@@ -30,7 +30,7 @@ A student builds two factions that look nothing alike and discovers they can sti
 - [ ] Counter map (Slash < Fly, Hairball < Lasers, Fly < Recharge) displays as reference material
 - [ ] Effects (Shield, Slowdown, Confuse, Evade, Range) display as reference cards on their actions
 - [ ] Student can manually adjust any tracked value at any time, to record rulings they made at the table
-- [ ] Student can copy a shareable link encoding the full build for the Discord thread
+- [ ] Student can copy a compact build code for the Discord thread, and paste one to load a classmate's build
 - [ ] Student can reset to the Workshop 16 board defaults at any point
 - [ ] Ships as one self-contained HTML file that opens offline by double-click
 
@@ -43,7 +43,9 @@ A student builds two factions that look nothing alike and discovers they can sti
 - **Batch simulation / win-rate statistics** — Would make the projection authoritative, which is exactly the framing this tool avoids.
 - **Faction authoring from scratch** — Students tune the prebuilt Cats vs Mechs. Inventing new factions is the instructor-led whiteboard step that precedes this tool.
 - **Build tooling (React/Vite/npm)** — Breaks the course's one-file convention and requires a served build.
-- **Persistence / accounts / backend** — Sharing is a URL-encoded build. Nothing is stored server-side.
+- **Persistence / accounts / backend** — Sharing is a copyable build code. Nothing is stored server-side.
+- **Shareable `file://` URL** — Research found it embeds the student's home directory path (leaking their real name into a public course Discord), doesn't work for the recipient whose copy lives elsewhere, and isn't linkified by Discord at all. Replaced by a build code.
+- **Difficulty verdict badge** — Every tool in the reference class (Kobold Fight Club, PF2e Encounter Builder) centers a color-coded Trivial→Extreme readout. It is a verdict, and it would undo the entire pedagogy in one component. Research flags it as the most likely accidental scope violation in the project.
 
 ## Context
 
@@ -79,7 +81,10 @@ A student builds two factions that look nothing alike and discovers they can sti
 | Editable roster counts rather than fixed 9 v 3 | Real asymmetry means changing the *shape* of a side, not only its numbers. | — Pending |
 | Single-file HTML, no build tooling | Matches the two existing course artifacts; students can open it offline with no setup. | — Pending |
 | Prebuilt Cats vs Mechs rather than blank-slate authoring | Faction invention is the instructor-led whiteboard step. The tool picks up after it. | — Pending |
-| Share via URL-encoded build | Delivers the board's "post in the Discord thread" step with no backend. | — Pending |
+| Share via copyable build code, not a URL | A `file://` link leaks the student's name via their home directory path, is useless to the recipient, and Discord won't linkify it. A ~35–60 char code is private, portable, and well under Discord's 2000-char limit. Changed after research. | — Pending |
+| Projection expressed in turns-to-wipe, not an abstract score | Matching the projection's unit to the fight's outcome unit makes the post-fight comparison land as "you guessed 3–5, it took 8" — and resists students optimizing the number instead of playing. | — Pending |
+| Board defaults get playtested and tuned, not shipped as-is | Lanchester's square law means 9v3 with focus fire and individual deaths can be a blowout that teaches "more bodies wins" — the inverse of the intended lesson. Verification is a played fight, not a code review. | — Pending |
+| Predict-then-play deferred to v2 | Adds a step between the student and playing. Ship the instrument first. | — Pending |
 
 ## Evolution
 
