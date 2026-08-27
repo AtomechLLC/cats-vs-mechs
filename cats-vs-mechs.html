@@ -2114,8 +2114,20 @@ App.interactions = (function () {
 
     // Capture, so the matching up or cancel is guaranteed to reach this same
     // element even after the pointer has left it.
+    //
+    // The try is not defensive noise. setPointerCapture throws NotFoundError
+    // when the id does not match a LIVE pointer, and a synthetic PointerEvent —
+    // which is exactly what [S09.5] and the Node gate dispatch — never has one.
+    // Without this, opening #selftest would raise the styled error panel on a
+    // code path that is working perfectly. Capture is an enhancement anyway:
+    // losing it costs nothing here, because the ramp still stops on pointerup,
+    // on the window losing focus and on the tab going away.
     if (typeof btn.setPointerCapture === 'function' && e.pointerId !== undefined) {
-      btn.setPointerCapture(e.pointerId);
+      try {
+        btn.setPointerCapture(e.pointerId);
+      } catch (noSuchPointer) {
+        void noSuchPointer;
+      }
     }
 
     fire(btn);   // step one lands immediately
@@ -3144,6 +3156,105 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the render suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.5] SUITE: interaction contract — owner plan 02-02 --- */
+(function () {
+  'use strict';
+
+  function pointerEvent(type) {
+    if (typeof PointerEvent === 'function') {
+      return new PointerEvent(type, { bubbles: true, pointerId: 1 });
+    }
+    return new MouseEvent(type, { bubbles: true });
+  }
+
+  App.selftest.suite('interaction contract', function (t) {
+    /* --- three facts about the seams that need no page at all, so they run in
+           the terminal harness too. Placed above the DOM gate on purpose. --- */
+    t.ok('the hold ramp stays inside the undo coalescing window',
+      App.interactions.HOLD_FIRST_MS < App.state.COALESCE_MS);
+    t.ok('the token-appearance act is claimed by the UI layer, never by [S05]',
+      App.interactions.UI_ACTS.indexOf('openTokenPicker') !== -1);
+    t.ok('undo is not a hold act, so holding it fires exactly once',
+      App.interactions.HOLD_ACTS.indexOf('undo') === -1);
+
+    // Everything below needs a page, and tests/selftest-node.cjs already drives
+    // the same wiring against a stub page in its own section 5. A browser run
+    // gains the real coverage; a terminal run says so and stops.
+    if (typeof document === 'undefined') {
+      t.info('interactions', 'skipped — no DOM');
+      return;
+    }
+
+    var savedAll = JSON.stringify(App.state.get());
+    App.render.structure(App.state.get());
+    App.render.sync(App.state.get());
+
+    var plus = document.querySelector('[data-act="nudgeMaxHp"][data-step="1"]');
+    if (plus === null) {
+      t.ok('the board carries the controls this suite drives', false);
+      App.state.restore(savedAll);
+      return;
+    }
+
+    function press(node) { node.dispatchEvent(pointerEvent('pointerdown')); }
+    function release(node) { node.dispatchEvent(pointerEvent('pointerup')); }
+    function clickAt(node, detail) {
+      node.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: detail }));
+    }
+
+    // A live kbdNav would add a ui commit to the first press and make the
+    // counts below read one high for a reason that is not the bug they hunt.
+    if (App.state.get().ui.kbdNav === true) { App.ops.setUi('kbdNav', false); }
+
+    /* --- the anti-double-fire gate. A press releases every time, or the ramp
+           keeps firing after the suite has finished. --- */
+    App.ops.setFactionAp('cats', 4);
+    var before = App.state.stats().commits;
+    press(plus);
+    clickAt(plus, 1);
+    release(plus);
+    t.eq('a pointerdown plus a mouse click is exactly one commit, not two',
+      App.state.stats().commits - before, 1);
+
+    before = App.state.stats().commits;
+    clickAt(plus, 0);
+    t.eq('a keyboard click on its own is still exactly one commit',
+      App.state.stats().commits - before, 1);
+
+    /* --- the UI-act seam, both halves --- */
+    var title = document.getElementById('err-title');
+    var message = document.getElementById('err-message');
+    var panel = document.getElementById('err-panel');
+    var tok = document.querySelector('[data-act="openTokenPicker"]');
+
+    before = App.state.stats().commits;
+    if (tok !== null) { press(tok); release(tok); }
+    t.eq('a token-appearance press reaches no op at all',
+      App.state.stats().commits - before, 0);
+    t.ok('and it opened no error panel',
+      tok !== null && title.textContent === '' && panel.hidden === true);
+
+    var rogue = document.createElement('button');
+    rogue.type = 'button';
+    rogue.textContent = '';
+    rogue.dataset.act = 'notAnOp';
+    document.getElementById('topbar').appendChild(rogue);
+    press(rogue);
+    release(rogue);
+    t.ok('but an act no layer claims still surfaces the styled panel',
+      title.textContent !== '' && message.textContent.indexOf('Unknown op') !== -1);
+    rogue.remove();
+    title.textContent = '';
+    message.textContent = '';
+    panel.hidden = true;
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the interaction suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();

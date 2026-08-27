@@ -148,4 +148,530 @@ if (perfElapsed >= PERF_BUDGET_MS) {
   fail('PERF: 100 commits took ' + perfElapsed + ' ms, over the ' + PERF_BUDGET_MS + ' ms budget');
 }
 
+// --- 5. interaction gate (stub DOM) -------------------------------------------
+// ALLOC-07 says twenty rapid clicks produce exactly twenty changes. That is the
+// only measurable criterion this phase has, and it fails in two opposite ways:
+// binding pointerdown AND click to the same stepper doubles every press, and
+// driving from click alone silently drops presses when a rebuild lands between
+// the down and the up. Both are invisible to a casual test. This section drives
+// the real delegated listeners through a hand-written page and counts.
+//
+// It builds a SECOND context rather than adding a document to the one above.
+// Supplying a document makes [S10] LAUNCH fire App.boot.start(), which would
+// change what section 3's number means. Here boot firing is the point: it is
+// the wiring path this gate exists to exercise end to end. Section 5 reports
+// its own counts and never touches section 3's.
+//
+// The stub is inline and uses Node built-ins only, which is the property this
+// harness's header advertises and which must survive this file growing.
+
+function makeStubDom() {
+  const doc = { _listeners: Object.create(null), activeElement: null };
+
+  // Every id the artifact asks for. getElementById returns null for anything
+  // else, and THAT IS THE ONE HONEST WEAKNESS OF THIS APPROACH: every consumer
+  // in the artifact guards on null, so a missing id degrades to a silent skip
+  // rather than a loud failure. This list must grow when the static shell does.
+  const KNOWN_IDS = [
+    'app', 'board', 'board-empty', 'topbar', 'col-cats', 'strip', 'col-mechs',
+    'err-panel', 'err-title', 'err-message', 'err-detail', 'err-dismiss',
+    'err-reset', 'selftest-report', 'selftest-summary', 'selftest-rows'
+  ];
+
+  const byId = Object.create(null);
+
+  function classesOf(node) {
+    return String(node.className || '').split(/\s+/).filter((c) => c !== '');
+  }
+
+  function unescapeValue(v) {
+    return String(v).replace(/\\(.)/g, '$1');
+  }
+
+  function datasetKey(attr) {
+    return attr.slice(5).replace(/-([a-z])/g, (m, c) => c.toUpperCase());
+  }
+
+  // Supports exactly what the artifact asks for: a tag name, one or more
+  // classes, and one or more [data-*] tests with or without a value.
+  const SEL_PART = /\.([A-Za-z0-9_-]+)|\[([A-Za-z-]+)(?:="((?:[^"\\]|\\.)*)")?\]|([A-Za-z][A-Za-z0-9]*)/g;
+
+  function matches(node, selector) {
+    SEL_PART.lastIndex = 0;
+    let m;
+    let saw = false;
+    let ok = true;
+    while ((m = SEL_PART.exec(selector)) !== null) {
+      saw = true;
+      if (m[1] !== undefined) {
+        ok = ok && classesOf(node).indexOf(m[1]) !== -1;
+      } else if (m[2] !== undefined) {
+        if (m[2].indexOf('data-') !== 0) { ok = false; }
+        else {
+          const key = datasetKey(m[2]);
+          if (m[3] === undefined) { ok = ok && node.dataset[key] !== undefined; }
+          else { ok = ok && String(node.dataset[key]) === unescapeValue(m[3]); }
+        }
+      } else if (m[4] !== undefined) {
+        ok = ok && node.tagName === m[4].toUpperCase();
+      }
+    }
+    return saw && ok;
+  }
+
+  function queryAll(root, selector) {
+    const found = [];
+    (function walk(n) {
+      n.children.forEach((child) => {
+        if (matches(child, selector)) { found.push(child); }
+        walk(child);
+      });
+    })(root);
+    return found;
+  }
+
+  function dispatch(target, evt) {
+    evt.target = target;
+    let n = target;
+    while (n) {
+      const list = n._listeners[evt.type];
+      if (list) { list.slice().forEach((fn) => fn.call(n, evt)); }
+      n = n.parentNode;
+    }
+    const onDoc = doc._listeners[evt.type];
+    if (onDoc) { onDoc.slice().forEach((fn) => fn.call(doc, evt)); }
+    return true;
+  }
+
+  function createElement(tagName) {
+    const node = {
+      tagName: String(tagName).toUpperCase(),
+      className: '',
+      dataset: Object.create(null),
+      children: [],
+      parentNode: null,
+      textContent: '',
+      value: '',
+      hidden: false,
+      disabled: false,
+      type: '',
+      scrollTop: 0,
+      _attrs: Object.create(null),
+      _listeners: Object.create(null)
+    };
+
+    node.classList = {
+      add(c) {
+        const list = classesOf(node);
+        if (list.indexOf(c) === -1) { list.push(c); node.className = list.join(' '); }
+      },
+      remove(c) {
+        node.className = classesOf(node).filter((x) => x !== c).join(' ');
+      },
+      contains(c) { return classesOf(node).indexOf(c) !== -1; }
+    };
+
+    node.setAttribute = (k, v) => { node._attrs[k] = String(v); };
+    node.getAttribute = (k) => (k in node._attrs ? node._attrs[k] : null);
+
+    node.appendChild = (child) => {
+      if (child.parentNode) { child.parentNode.removeChild(child); }
+      child.parentNode = node;
+      node.children.push(child);
+      return child;
+    };
+    node.removeChild = (child) => {
+      const i = node.children.indexOf(child);
+      if (i !== -1) { node.children.splice(i, 1); child.parentNode = null; }
+      return child;
+    };
+    node.remove = () => { if (node.parentNode) { node.parentNode.removeChild(node); } };
+    node.replaceChildren = (...kids) => {
+      node.children.forEach((c) => { c.parentNode = null; });
+      node.children.length = 0;
+      kids.forEach((k) => node.appendChild(k));
+    };
+
+    node.addEventListener = (type, fn) => {
+      if (!node._listeners[type]) { node._listeners[type] = []; }
+      node._listeners[type].push(fn);
+    };
+    node.dispatchEvent = (evt) => dispatch(node, evt);
+
+    node.focus = () => { doc.activeElement = node; };
+    node.blur = () => { if (doc.activeElement === node) { doc.activeElement = doc.body; } };
+    node.select = () => {};
+    node.setSelectionRange = () => {};
+    node.setPointerCapture = () => {};
+    node.releasePointerCapture = () => {};
+
+    node.closest = (selector) => {
+      let n = node;
+      while (n) {
+        if (matches(n, selector)) { return n; }
+        n = n.parentNode;
+      }
+      return null;
+    };
+    node.querySelector = (selector) => queryAll(node, selector)[0] || null;
+    node.querySelectorAll = (selector) => queryAll(node, selector);
+
+    Object.defineProperty(node, 'firstElementChild', {
+      get: () => node.children[0] || null
+    });
+    Object.defineProperty(node, 'lastElementChild', {
+      get: () => node.children[node.children.length - 1] || null
+    });
+
+    return node;
+  }
+
+  function idNode(id, tag) {
+    const node = createElement(tag || 'div');
+    node._attrs.id = id;
+    byId[id] = node;
+    return node;
+  }
+
+  const body = createElement('body');
+  doc.body = body;
+  doc.activeElement = body;
+
+  const app = idNode('app', 'main');
+  body.appendChild(app);
+
+  const topbar = idNode('topbar');
+  app.appendChild(topbar);
+
+  const board = idNode('board');
+  app.appendChild(board);
+  ['col-cats', 'strip', 'col-mechs'].forEach((id) => board.appendChild(idNode(id, 'section')));
+  board.appendChild(idNode('board-empty', 'p'));
+
+  const report = idNode('selftest-report', 'section');
+  app.appendChild(report);
+  report.appendChild(idNode('selftest-summary'));
+  report.appendChild(idNode('selftest-rows'));
+
+  const panel = idNode('err-panel');
+  panel.hidden = true;
+  body.appendChild(panel);
+  panel.appendChild(idNode('err-title'));
+  panel.appendChild(idNode('err-message'));
+  panel.appendChild(idNode('err-detail', 'textarea'));
+  panel.appendChild(idNode('err-dismiss', 'button'));
+  panel.appendChild(idNode('err-reset', 'button'));
+
+  // A hand-made stand-in for the STATIC #topbar markup, which this stub cannot
+  // produce because it has no HTML parser. These five controls ship in
+  // cats-vs-mechs.html as literal markup and must be kept in step with it: the
+  // Undo button, and one token-appearance button per board token type.
+  function topbarButton(k, act, extra) {
+    const b = createElement('button');
+    b.dataset.k = k;
+    b.dataset.act = act;
+    Object.keys(extra || {}).forEach((key) => { b.dataset[key] = extra[key]; });
+    topbar.appendChild(b);
+    return b;
+  }
+  topbarButton('undo', 'undo', null);
+  ['hp', 'ap', 'shield', 'dmg'].forEach((tok) => {
+    topbarButton('tok/' + tok, 'openTokenPicker', { tok: tok });
+  });
+
+  doc.createElement = createElement;
+  doc.getElementById = (id) => (KNOWN_IDS.indexOf(id) === -1 ? null : (byId[id] || null));
+  doc.querySelector = (selector) => queryAll(body, selector)[0] || null;
+  doc.querySelectorAll = (selector) => queryAll(body, selector);
+  doc.addEventListener = (type, fn) => {
+    if (!doc._listeners[type]) { doc._listeners[type] = []; }
+    doc._listeners[type].push(fn);
+  };
+
+  const win = { scrollX: 0, scrollY: 0, _listeners: Object.create(null) };
+  win.addEventListener = (type, fn) => {
+    if (!win._listeners[type]) { win._listeners[type] = []; }
+    win._listeners[type].push(fn);
+  };
+  win.scrollTo = () => {};
+
+  function event(type, props) {
+    const evt = { type: type, target: null, detail: 0, bubbles: true, defaultPrevented: false };
+    Object.keys(props || {}).forEach((k) => { evt[k] = props[k]; });
+    evt.preventDefault = () => { evt.defaultPrevented = true; };
+    evt.stopPropagation = () => {};
+    return evt;
+  }
+
+  return {
+    document: doc,
+    window: win,
+    byId: byId,
+    KNOWN_IDS: KNOWN_IDS,
+    event: event,
+    CSS: { escape: (s) => String(s).replace(/([^A-Za-z0-9_-])/g, '\\$1') }
+  };
+}
+
+const dom = makeStubDom();
+
+const domSandbox = {
+  console: console,
+  setTimeout: setTimeout,
+  clearTimeout: clearTimeout,
+  queueMicrotask: queueMicrotask,
+  requestAnimationFrame: (fn) => setTimeout(fn, 0),
+  document: dom.document,
+  window: dom.window,
+  location: { hash: '' },
+  CSS: dom.CSS
+};
+
+vm.runInNewContext(match[1], domSandbox, { filename: 'cats-vs-mechs.html (stub DOM)' });
+
+const A = domSandbox.App;
+if (!A || !A.interactions) {
+  fail('Script loaded into the stub page but App.interactions is missing');
+}
+
+// boot.start() asked for the first structural frame through requestAnimationFrame.
+// Run it now so every assertion below reads a page that matches state.
+A.state.flush();
+
+let gateChecks = 0;
+const gateFailures = [];
+
+function check(label, condition, detail) {
+  gateChecks++;
+  const line = 'interaction gate :: ' + label;
+  if (condition) {
+    console.log('PASS  ' + line);
+  } else {
+    gateFailures.push(label);
+    console.error('FAIL  ' + line);
+    console.error('      ' + (detail || 'condition was false'));
+  }
+}
+
+const stub = dom.document;
+const errTitle = dom.byId['err-title'];
+const errMessage = dom.byId['err-message'];
+const errPanel = dom.byId['err-panel'];
+
+function press(node) {
+  node.dispatchEvent(dom.event('pointerdown', { pointerId: 1 }));
+}
+function release(node) {
+  node.dispatchEvent(dom.event('pointerup', { pointerId: 1 }));
+}
+function clickAt(node, detail) {
+  node.dispatchEvent(dom.event('click', { detail: detail }));
+}
+function commits() {
+  return A.state.stats().commits;
+}
+function clearPanel() {
+  errTitle.textContent = '';
+  errMessage.textContent = '';
+  errPanel.hidden = true;
+}
+
+/* --- 9. the wiring path itself came up clean --- */
+check(
+  '9. boot wired the stubbed page without opening the error panel',
+  errTitle.textContent === '' && errPanel.hidden === true,
+  'title=' + JSON.stringify(errTitle.textContent) + ' hidden=' + errPanel.hidden
+);
+
+let plusHp = stub.querySelector('[data-act="nudgeMaxHp"][data-step="1"]');
+check(
+  '0. the rendered board carries the controls this gate drives',
+  plusHp !== null,
+  'no [data-act="nudgeMaxHp"][data-step="1"] in the stubbed page'
+);
+
+if (plusHp !== null) {
+  /* --- 1 and 2. the criterion, and the undo entry it collapses into --- */
+  A.ops.setFactionAp('cats', 3);   // a different label, so the burst starts clean
+  const commitsBefore = commits();
+  const depthBefore = A.state.undoDepth();
+  for (let i = 0; i < 20; i++) {
+    press(plusHp);
+    release(plusHp);
+  }
+  const twenty = commits() - commitsBefore;
+  check(
+    '1. twenty pointerdown at the delegated root produce exactly twenty commits',
+    twenty === 20,
+    'commits delta was ' + twenty + ', expected exactly 20'
+  );
+  const depthDelta = A.state.undoDepth() - depthBefore;
+  check(
+    '2. and those same twenty coalesce to exactly one undo entry',
+    depthDelta === 1,
+    'undoDepth delta was ' + depthDelta + ', expected exactly 1'
+  );
+
+  /* --- 3. the assertion that would have caught the measured 2x double-fire --- */
+  A.ops.setFactionAp('cats', 4);
+  const beforeBoth = commits();
+  press(plusHp);
+  clickAt(plusHp, 1);
+  release(plusHp);
+  const both = commits() - beforeBoth;
+  check(
+    '3. one pointerdown plus one mouse click{detail:1} produce exactly one commit',
+    both === 1,
+    'commits delta was ' + both + ', expected exactly 1 — a delta of 2 is the '
+      + 'double-fire: the click handler ran for a press pointerdown already served'
+  );
+
+  /* --- 4. and the keyboard path still works --- */
+  const beforeKey = commits();
+  clickAt(plusHp, 0);
+  const keyOnly = commits() - beforeKey;
+  check(
+    '4. one click{detail:0} alone produces exactly one commit',
+    keyOnly === 1,
+    'commits delta was ' + keyOnly + ', expected exactly 1'
+  );
+}
+
+/* --- 10. a UI-only act is claimed and ignored, on the pointer path --- */
+const tokBtn = stub.querySelector('[data-act="openTokenPicker"][data-tok="hp"]');
+const beforeTok = commits();
+if (tokBtn !== null) {
+  press(tokBtn);
+  release(tokBtn);
+}
+const tokDelta = commits() - beforeTok;
+check(
+  '10. a token-appearance press commits nothing and opens no panel — the guard '
+    + 'against openTokenPicker falling through to [S05] dispatch and raising the '
+    + 'styled error on a student\'s first click',
+  tokBtn !== null && tokDelta === 0 && errTitle.textContent === '' && errPanel.hidden === true,
+  'commits delta=' + tokDelta + ' title=' + JSON.stringify(errTitle.textContent)
+    + ' hidden=' + errPanel.hidden
+);
+
+/* --- 13. and on the keyboard path, which routeUi also guards --- */
+const beforeTokKey = commits();
+if (tokBtn !== null) { clickAt(tokBtn, 0); }
+const tokKeyDelta = commits() - beforeTokKey;
+check(
+  '13. the same act is claimed on the keyboard path too',
+  tokBtn !== null && tokKeyDelta === 0 && errTitle.textContent === '' && errPanel.hidden === true,
+  'commits delta=' + tokKeyDelta + ' title=' + JSON.stringify(errTitle.textContent)
+    + ' hidden=' + errPanel.hidden
+);
+clearPanel();
+
+/* --- 11. the other half of 10: the seam is not a blanket swallow --- */
+const rogue = stub.createElement('button');
+rogue.dataset.act = 'notAnOp';
+dom.byId['topbar'].appendChild(rogue);
+press(rogue);
+check(
+  '11. an act no layer claims still throws and surfaces the styled panel',
+  errTitle.textContent !== '' && errMessage.textContent.indexOf('Unknown op') !== -1
+    && errPanel.hidden === false,
+  'title=' + JSON.stringify(errTitle.textContent)
+    + ' message=' + JSON.stringify(errMessage.textContent)
+);
+rogue.remove();
+clearPanel();
+
+/* --- 12. the ramp allowlist, asserted through holdSource() rather than by
+       sleeping past HOLD_FIRST_MS in wall-clock time --- */
+const addBtn = stub.querySelector('[data-act="addUnit"][data-side="cats"]');
+let holdOnAdd = 'no add button';
+let addDelta = -1;
+let holdOnStepper = 'no stepper';
+let holdAfterRelease = 'no stepper';
+if (addBtn !== null) {
+  const beforeAdd = commits();
+  press(addBtn);
+  holdOnAdd = A.interactions.holdSource();
+  addDelta = commits() - beforeAdd;
+  release(addBtn);
+  A.state.flush();
+}
+plusHp = stub.querySelector('[data-act="nudgeMaxHp"][data-step="1"]');
+if (plusHp !== null) {
+  press(plusHp);
+  holdOnStepper = A.interactions.holdSource();
+  release(plusHp);
+  holdAfterRelease = A.interactions.holdSource();
+}
+check(
+  '12. a hold on a non-stepper act fires exactly once and starts no ramp, while '
+    + 'a stepper does start one and releasing stops it',
+  holdOnAdd === null && addDelta === 1 && holdOnStepper === 'pointer'
+    && holdAfterRelease === null,
+  'addUnit: holdSource=' + holdOnAdd + ' commits delta=' + addDelta
+    + '; stepper: holdSource=' + holdOnStepper + ' after release=' + holdAfterRelease
+);
+
+/* --- 7. the structural frame the roster ops request --- */
+A.ops.addUnit('cats');
+A.state.flush();
+const cardCount = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
+const rosterCount = A.state.get().build.cats.units.length;
+check(
+  '7. after addUnit the rendered card count equals the roster length',
+  cardCount === rosterCount,
+  'cards=' + cardCount + ' roster=' + rosterCount
+);
+
+/* --- 5. node identity is the animation contract --- */
+A.ops.setUnitMaxHp('cats', 'c1', 10);
+A.state.flush();
+const hpRow = stub.querySelector('.tok-row[data-amt="hp"][data-unit="c1"]');
+let grewByOne = false;
+let growDetail = 'no health row for c1';
+if (hpRow !== null) {
+  const tenBefore = hpRow.children.slice();
+  A.ops.nudgeUnitMaxHp('cats', 'c1', 1);
+  A.state.flush();
+  const after = hpRow.children;
+  grewByOne = tenBefore.length === 10 && after.length === 11
+    && tenBefore.every((n, i) => after[i] === n);
+  growDetail = 'before=' + tenBefore.length + ' after=' + after.length
+    + ' kept=' + tenBefore.filter((n, i) => after[i] === n).length;
+}
+check(
+  '5. growing a token row from ten to eleven keeps all ten original nodes and '
+    + 'appends exactly one',
+  grewByOne,
+  growDetail
+);
+
+/* --- 6. P-07: the focused control was the one that got removed --- */
+const rmBtn = stub.querySelector('[data-act="removeUnit"][data-side="cats"][data-unit="c2"]');
+if (rmBtn !== null) { rmBtn.focus(); }
+A.ops.removeUnit('cats', 'c2');
+A.state.flush();
+check(
+  '6. removing the unit whose remove button held focus lands focus on a real node',
+  rmBtn !== null && stub.activeElement !== null && stub.activeElement !== stub.body,
+  'activeElement is ' + (stub.activeElement === stub.body ? 'body' : String(stub.activeElement && stub.activeElement.dataset.k))
+);
+
+/* --- 8. P-05, asserted rather than trusted to a comment --- */
+check(
+  '8. the hold ramp stays inside the undo coalescing window',
+  A.interactions.HOLD_FIRST_MS < A.state.COALESCE_MS,
+  'HOLD_FIRST_MS=' + A.interactions.HOLD_FIRST_MS + ' COALESCE_MS=' + A.state.COALESCE_MS
+);
+
+console.log(
+  'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
+    + ' checks passed'
+);
+
+if (gateFailures.length > 0) {
+  fail('INTERACTION GATE: ' + gateFailures.length + ' check(s) failed — '
+    + gateFailures.join('; '));
+}
+
 process.exit(result.failed ? 1 : 0);
