@@ -409,8 +409,16 @@ App.state = (function () {
 
     // Declared no-op until Phase 4 plan 04-01. The call site exists from day
     // one precisely so nothing has to be retrofitted into this funnel.
-    App.serialize.scheduleUrlSync();
-    invalidate();
+    // The finally is not defensive noise. State has already moved by the time
+    // this runs, so a throw from the sync must never be able to leave a
+    // committed change with no frame scheduled for it -- the undo entry would
+    // exist, the board would read the old numbers, and nothing would ever
+    // reconcile the two. The page always catches up with state.
+    try {
+      App.serialize.scheduleUrlSync();
+    } finally {
+      invalidate();
+    }
   }
 
   // ui-only changes. Same thaw/mutate/refreeze cycle, but nothing lands on the
@@ -441,8 +449,13 @@ App.state = (function () {
     working.fight = snap.fight;
     cur = freeze(working);
 
-    App.serialize.scheduleUrlSync();
-    invalidate({ structural: true });
+    // Same ordering guarantee as commit(): the restored state is already live,
+    // so the frame is owed whether or not the sync succeeds.
+    try {
+      App.serialize.scheduleUrlSync();
+    } finally {
+      invalidate({ structural: true });
+    }
     return true;
   }
 
