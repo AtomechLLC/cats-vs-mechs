@@ -2612,6 +2612,30 @@ App.interactions = (function () {
   function onKeyDown(e) {
     noteKeyboard(e);
 
+    // The other door into the ramp problem D-17 closes below, and it was
+    // standing open. Holding Enter on a focused BUTTON makes the browser
+    // synthesise a click{detail:0} per repeated keydown, and onClick — which has
+    // no e.repeat to test, because click events do not carry one — served every
+    // single one. So a held Enter on a stepper ramped at the OS auto-repeat
+    // rate, which is by construction neither HOLD_FIRST_MS nor HOLD_FAST_MS;
+    // held on Undo it rewound the stack over and over, which is precisely what
+    // keeping `undo` out of HOLD_ACTS is supposed to make impossible; and held
+    // on Add or Remove it walked to the bound and then threw That side is full
+    // into the error panel, mid-demo.
+    //
+    // The suppression has to live here, on the keydown that GENERATES the
+    // click, and preventDefault is what stops the browser synthesising it.
+    //
+    // actTarget is the scope, not e.target: it returns null for INPUT and
+    // TEXTAREA, so a held Space inside the numeric field still types spaces and
+    // Enter in a field still reaches commitField below. Only an actionable
+    // button is silenced, and only on a repeat — the first press is untouched.
+    if (e.repeat === true && (e.key === 'Enter' || e.key === ' ')
+        && actTarget(e) !== null) {
+      e.preventDefault();
+      return;
+    }
+
     var el = e.target;
     if (!isField(el)) { return; }
 

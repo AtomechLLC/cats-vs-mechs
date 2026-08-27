@@ -925,6 +925,40 @@ check(
   'commits delta=' + rightDelta + ' holdSource=' + rightHold
 );
 
+/* --- 22. held Enter on a button. The browser generates one click{detail:0}
+       per repeated keydown and onClick cannot tell them apart, because click
+       events carry no repeat field — so the suppression has to happen on the
+       keydown, and preventDefault is what stops the click being synthesised at
+       all. This stub does not synthesise clicks from keydowns, so what is
+       asserted here is the guard itself: a repeat is cancelled, a first press
+       is not. Whether Chrome really withholds the click after a cancelled
+       keydown is spec-documented and NOT executed here — there is no browser in
+       this repo. --- */
+const undoBtn = stub.querySelector('[data-act="undo"]');
+let repeatCancelled = null;
+let firstCancelled = null;
+let undoDelta = -1;
+if (undoBtn !== null) {
+  const depthBeforeHold = A.state.undoDepth();
+  const firstPress = dom.event('keydown', { key: 'Enter', repeat: false });
+  undoBtn.dispatchEvent(firstPress);
+  firstCancelled = firstPress.defaultPrevented;
+  for (let i = 0; i < 10; i++) {
+    const rep = dom.event('keydown', { key: 'Enter', repeat: true });
+    undoBtn.dispatchEvent(rep);
+    repeatCancelled = rep.defaultPrevented;
+  }
+  undoDelta = A.state.undoDepth() - depthBeforeHold;
+}
+check(
+  '22. a repeated Enter keydown on a button is cancelled before it can become a '
+    + 'click, and the first press is not',
+  undoBtn !== null && repeatCancelled === true && firstCancelled === false
+    && undoDelta === 0,
+  'first press cancelled=' + firstCancelled + ' repeat cancelled=' + repeatCancelled
+    + ' undoDepth delta across ten repeats=' + undoDelta
+);
+
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
 check(
   '8. the hold ramp stays inside the undo coalescing window',
