@@ -548,14 +548,22 @@ App.ops = (function () {
   // the error boundary as a named failure the student can read, not as a NaN
   // that renders as an empty token row. Everything a handler supplies — and,
   // from Phase 4, everything a pasted build code supplies — comes through here.
+  //
+  // The type test runs BEFORE any arithmetic, and that order is the whole
+  // point. Math.trunc() coerces first, so truncate-then-test would let null,
+  // '', false, '7' and [5] all through as perfectly valid integers, and would
+  // silently turn an empty Phase-2 input into 0 health mid-fight. Clamping is
+  // for a whole number that is merely out of range; a non-number and a
+  // fraction are caller mistakes and throw.
+  // A DOM input hands back a string, so [S07] converts it explicitly at that
+  // one call site — the conversion stays visible instead of hiding in here.
   function int(value, min, max, what) {
-    var n = Math.trunc(value);
-    if (!Number.isFinite(n)) {
-      throw new TypeError('Expected a whole number for ' + what);
+    if (typeof value !== 'number' || !Number.isInteger(value)) {
+      throw new TypeError('Expected a whole number for ' + what + ', got ' + JSON.stringify(value));
     }
-    if (n < min) { return min; }
-    if (n > max) { return max; }
-    return n;
+    if (value < min) { return min; }
+    if (value > max) { return max; }
+    return value;
   }
 
   function findUnit(side, unitId, collection) {
@@ -1198,6 +1206,15 @@ App.selftest = (function () {
     t.throws('dispatch rejects an unknown act', function () {
       App.ops.dispatch('notAnOp', {});
     });
+
+    /* --- [S05] is the value boundary: reject, never silently coerce.
+           Each of these used to sail through as a valid integer. --- */
+    t.throws('a fraction is refused', function () { App.ops.setFactionAp('cats', 3.9); });
+    t.throws('an empty string is refused', function () { App.ops.setFactionAp('cats', ''); });
+    t.throws('null is refused', function () { App.ops.setFactionAp('cats', null); });
+    t.throws('a numeric string is refused', function () { App.ops.setFactionAp('cats', '7'); });
+    t.eq('a refused value left the board alone', App.state.get().build.cats.ap, 5);
+    t.eq('a refused value left no undo entry', App.state.undoDepth() - depth0, 1);
 
     /* --- alive is a flag, not an inference (D-00d) --- */
     App.ops.startFight();
