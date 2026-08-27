@@ -169,13 +169,27 @@ function makeStubDom() {
   const doc = { _listeners: Object.create(null), activeElement: null };
 
   // Every id the artifact asks for. getElementById returns null for anything
-  // else, and THAT IS THE ONE HONEST WEAKNESS OF THIS APPROACH: every consumer
-  // in the artifact guards on null, so a missing id degrades to a silent skip
-  // rather than a loud failure. This list must grow when the static shell does.
+  // else, and that USED TO BE the one honest weakness of this approach: every
+  // consumer in the artifact guards on null, so a missing id degraded to a
+  // silent skip rather than a loud failure. That is not a hypothetical — plan
+  // 02-03 added the picker's ids, this list was not grown, and the entire
+  // picker path went untested while its own gate checks reported green.
+  //
+  // So the list is no longer maintained by good intentions. Section 5b below
+  // scans cats-vs-mechs.html for every id="..." in the shell and fails the run
+  // if the two disagree in either direction. Adding an id here without building
+  // the matching node below is now just as loud as forgetting it entirely.
   const KNOWN_IDS = [
-    'app', 'board', 'board-empty', 'topbar', 'col-cats', 'strip', 'col-mechs',
+    'app', 'board', 'board-empty', 'topbar', 'tokedit-label', 'col-cats',
+    'strip', 'col-mechs',
     'err-panel', 'err-title', 'err-message', 'err-detail', 'err-dismiss',
-    'err-reset', 'selftest-report', 'selftest-summary', 'selftest-rows'
+    'err-reset', 'selftest-report', 'selftest-summary', 'selftest-rows',
+    // [S06.2] / [S07.2] — the token-appearance picker.
+    'tok-picker', 'tok-pick-title', 'tok-pick-preview', 'tok-pick-preview-label',
+    'tok-pick-shapes', 'tok-pick-shapes-label',
+    'tok-pick-colors', 'tok-pick-colors-label',
+    'tok-pick-glyphs', 'tok-pick-glyphs-label',
+    'tok-pick-done'
   ];
 
   const byId = Object.create(null);
@@ -375,9 +389,48 @@ function makeStubDom() {
     return b;
   }
   topbarButton('undo', 'undo', null);
+  topbar.appendChild(idNode('tokedit-label', 'span'));
   ['hp', 'ap', 'shield', 'dmg'].forEach((tok) => {
     topbarButton('tok/' + tok, 'openTokenPicker', { tok: tok });
   });
+
+  // The token-appearance <dialog>, likewise hand-made from the static markup.
+  // Exactly three members beyond a plain element, because that is all [S06.2]
+  // and [S07.2] touch: .open, showModal() and close(), the last dispatching the
+  // `close` event the focus hand-back is bound to. pickerDialog() probes for a
+  // close() FUNCTION before it will do anything, so a plain div here would keep
+  // the whole picker path skipped — which is precisely the state this stub was
+  // in before, with two gate checks reporting green over a handler that bailed
+  // out on its second line.
+  //
+  // The three grids are built empty, exactly as they ship: their contents come
+  // from App.data.SHAPES / COLORS / GLYPHS at render time.
+  const picker = idNode('tok-picker', 'dialog');
+  picker.open = false;
+  picker.showModal = () => { picker.open = true; };
+  picker.close = () => {
+    if (!picker.open) { return; }
+    picker.open = false;
+    dispatch(picker, event('close'));
+  };
+  body.appendChild(picker);
+  picker.appendChild(idNode('tok-pick-title', 'h2'));
+
+  const previewLine = createElement('div');
+  picker.appendChild(previewLine);
+  previewLine.appendChild(idNode('tok-pick-preview-label', 'span'));
+  previewLine.appendChild(idNode('tok-pick-preview'));
+
+  ['shapes', 'colors', 'glyphs'].forEach((kind) => {
+    const group = createElement('div');
+    picker.appendChild(group);
+    group.appendChild(idNode('tok-pick-' + kind + '-label', 'h3'));
+    group.appendChild(idNode('tok-pick-' + kind));
+  });
+
+  const doneBtn = idNode('tok-pick-done', 'button');
+  doneBtn.dataset.pk = 'done';
+  picker.appendChild(doneBtn);
 
   doc.createElement = createElement;
   doc.getElementById = (id) => (KNOWN_IDS.indexOf(id) === -1 ? null : (byId[id] || null));
@@ -414,6 +467,38 @@ function makeStubDom() {
 }
 
 const dom = makeStubDom();
+
+// --- 5b. the stub-drift gate ---------------------------------------------------
+// KNOWN_IDS used to be a promise: "this list must grow when the static shell
+// does." It did not grow, the six picker ids went missing, getElementById
+// returned null for every one of them, and the artifact's own null guards then
+// turned a completely unexercised feature into two PASSING checks. A soft gate
+// that fails silently in the direction of green is worse than no gate.
+//
+// So the promise is now mechanical, and it runs in both directions:
+//   shell id with no stub node  — the artifact path using it is being skipped
+//   stub id with no shell node  — the stub is testing something that shipped out
+const shellIds = Array.from(new Set(
+  (html.match(/\bid="[A-Za-z0-9_-]+"/g) || []).map((m) => m.slice(4, -1))
+));
+const missingFromStub = shellIds.filter((id) => dom.KNOWN_IDS.indexOf(id) === -1);
+const missingFromShell = dom.KNOWN_IDS.filter((id) => shellIds.indexOf(id) === -1);
+
+if (missingFromStub.length > 0) {
+  fail('STUB DRIFT: cats-vs-mechs.html carries id(s) the stub page does not know: '
+    + missingFromStub.join(', ')
+    + '\n       getElementById would return null for these, and every consumer in'
+    + '\n       the artifact guards on null — so the code path using them would be'
+    + '\n       silently skipped and its checks would pass vacuously. Add each id to'
+    + '\n       KNOWN_IDS in makeStubDom() AND build the matching node.');
+}
+if (missingFromShell.length > 0) {
+  fail('STUB DRIFT: the stub page builds id(s) the shell no longer carries: '
+    + missingFromShell.join(', ')
+    + '\n       Remove them from KNOWN_IDS, or the gate is testing markup that'
+    + '\n       has already shipped out of the artifact.');
+}
+console.log('stub-drift gate: ' + shellIds.length + ' shell ids, all built by the stub page');
 
 const domSandbox = {
   console: console,
@@ -729,6 +814,67 @@ check(
   'field shows ' + JSON.stringify(fieldShows) + ', state went '
     + hpBeforeArrow + ' -> ' + hpAfterArrow
     + ', dataset.was=' + JSON.stringify(fieldWas)
+);
+
+/* --- 17-19. the picker, driven end to end. Checks 10 and 13 above proved only
+       that an act claimed by UI_ACTS never reaches [S05] dispatch; with the
+       dialog missing from the stub they proved it about a handler that returned
+       on its second line, and would still have passed with onPickerPress
+       deleted. Nothing anywhere asserted that the picker opens, that a swatch
+       moves state, or that the board follows. These three do. --- */
+const dlg = dom.byId['tok-picker'];
+const openBtn = stub.querySelector('[data-act="openTokenPicker"][data-tok="hp"]');
+if (dlg.open === true) { dlg.close(); }
+
+let gridSizes = [];
+if (openBtn !== null) {
+  press(openBtn);
+  release(openBtn);
+  gridSizes = ['shapes', 'colors', 'glyphs'].map(
+    (kind) => dom.byId['tok-pick-' + kind].children.length
+  );
+}
+const wantSizes = [A.data.SHAPES.length, A.data.COLORS.length, A.data.GLYPHS.length];
+check(
+  '17. a token-appearance press opens the picker and fills all three grids from '
+    + 'the vocabulary allowlists',
+  openBtn !== null && dlg.open === true
+    && String(gridSizes) === String(wantSizes)
+    && dom.byId['tok-pick-preview'].children.length === 3,
+  'open=' + dlg.open + ' grids=' + JSON.stringify(gridSizes)
+    + ' expected=' + JSON.stringify(wantSizes)
+    + ' preview=' + dom.byId['tok-pick-preview'].children.length
+);
+
+const shapeBefore = A.state.get().build.tokens.hp.shape;
+const wantShape = A.data.SHAPES.filter((s) => s !== shapeBefore)[0];
+const swatch = dlg.querySelector('[data-act="setTokenStyle"][data-shape="' + wantShape + '"]');
+let shapeAfter = '(no swatch)';
+let boardClass = '(no swatch)';
+if (swatch !== null) {
+  press(swatch);
+  release(swatch);
+  A.state.flush();
+  shapeAfter = A.state.get().build.tokens.hp.shape;
+  const row = stub.querySelector('.tok-row[data-amt="hp"][data-unit="c1"]');
+  const tok = row ? row.firstElementChild : null;
+  boardClass = tok ? tok.className : '(no token on the row)';
+}
+check(
+  '18. a swatch press restyles the type in state and the board token follows',
+  swatch !== null && shapeAfter === wantShape
+    && boardClass.indexOf('tok--' + wantShape) !== -1,
+  'shape ' + shapeBefore + ' -> ' + shapeAfter + ' (wanted ' + wantShape
+    + '), board token className=' + JSON.stringify(boardClass)
+);
+
+press(dom.byId['tok-pick-done']);
+release(dom.byId['tok-pick-done']);
+check(
+  '19. Done closes the picker and hands focus back to the button that opened it',
+  dlg.open === false && stub.activeElement === openBtn,
+  'open=' + dlg.open + ' activeElement='
+    + String(stub.activeElement && stub.activeElement.dataset.k)
 );
 
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
