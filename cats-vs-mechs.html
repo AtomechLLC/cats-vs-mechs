@@ -23,6 +23,19 @@
     --radius:14px;
     /* artifact-specific */
     --coral:#ff8a5c;--maxw:1280px;
+    /* The board is wider than the document measure. --maxw stays at the
+       siblings' 1280px for .shell, the page header and the self-test report;
+       --boardw applies to #board alone, so both faction columns fit on a
+       1920px projector without the shell losing its family resemblance. */
+    --boardw:1600px;
+    --topbar-h:64px;
+    /* THE PROJECTOR REHEARSAL DIAL — the token box and the gap between tokens.
+       22px is a desk-tested guess at what stays countable from the back of a
+       room; only a rehearsal on the actual workshop display settles it. These
+       are the two numbers to turn, and no JavaScript anywhere in this file
+       hardcodes either of them. */
+    --tok:22px;
+    --tok-gap:6px;
   }
 
   /* ===================== [C01] BASE ===================== */
@@ -67,6 +80,226 @@
   .ex{display:inline-block;font-size:12px;color:var(--green);background:rgba(91,217,156,.08);
     border:1px solid rgba(91,217,156,.25);padding:2px 9px;border-radius:6px;margin-top:6px}
 
+  /* ===================== [C03] BOARD ===================== */
+  /* The sticky top bar, the two faction columns and the reserved projection
+     strip between them.
+     STICKY GOTCHA, written here because it is invisible everywhere else: a
+     sticky element sticks to its nearest ancestor that has a scrolling
+     mechanism, and ANY overflow value other than visible creates one. So no
+     ancestor of #topbar or #strip -- html, body, .shell, #board -- may ever
+     be given overflow:hidden, scroll or auto. The realistic way this breaks
+     is somebody clipping a long token row on an ancestor; keep that clipping
+     on .tok-row itself. There is no error and no warning when it goes wrong.
+     Sticky simply stops working. */
+  #topbar{
+    position:sticky;top:0;z-index:20;min-height:var(--topbar-h);margin:0 0 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    background:var(--bg);border-bottom:1px solid var(--line);
+  }
+  .brd-brand{font-size:20px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+  .brd-cluster{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
+  .brd-tokedit{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* UX-02: a real, permanently visible text label at the 18px minimum.
+     Never icon-only, never revealed on hover, never a title= tooltip. */
+  .brd-tokedit-label{font-size:18px;color:var(--ink-dim)}
+
+  .brd-btn{
+    background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:999px;padding:8px 16px;min-height:36px;
+    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+
+  #board{
+    display:grid;grid-template-columns:1fr minmax(220px, 320px) 1fr;gap:18px;align-items:start;
+    /* D-01 wants both columns fully visible at once, which the 1280px document
+       measure wastes on a projector. The escape is width plus a computed
+       negative margin, deliberately NOT a transform: a transform on an
+       ancestor of a sticky element re-parents its containing block and kills
+       the sticking silently. 44px is .shell's 22px horizontal padding, doubled. */
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
+  #board-empty{grid-column:1 / -1}
+
+  .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+  /* D-02: reserved, and visibly so. An instructor demoing Phase 2 should see
+     where the projection lands rather than watch the layout jump when Phase 3
+     arrives. align-self:start is load-bearing: a grid item stretches to the
+     row height by default, and a stretched sticky item has nowhere to move,
+     so sticky appears to do nothing at all. */
+  #strip{
+    position:sticky;top:var(--topbar-h);align-self:start;
+    border:1px dashed var(--ink-faint);border-radius:var(--radius);
+    padding:22px 18px;min-height:180px;
+    display:grid;place-items:center;text-align:center;
+    color:var(--ink-dim);font-size:18px;
+  }
+
+  /* Same breakpoint the shell already uses, rather than a second one. */
+  @media(max-width:760px){
+    #board{grid-template-columns:1fr;width:auto;margin-left:0}
+  }
+
+  /* ===================== [C04] UNIT ===================== */
+  /* Faction header, unit card and the roster chrome. The sizes are the
+     projector legibility spec, not taste: every value is at least 24px and
+     weight 700, every label at least 18px, and nothing at or below 14px is
+     allowed to carry information. Every numeric readout also takes the shipped
+     .num class so the digits keep a stable width while a held button steps. */
+  .brd-col-head{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;display:flex;flex-direction:column;gap:12px;user-select:none;
+  }
+  .brd-faction{margin:0;font-size:26px;font-weight:700;letter-spacing:-.2px}
+  .brd-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .brd-label{font-size:18px;color:var(--ink-dim);min-width:128px}
+  .brd-value{font-size:24px;font-weight:700}
+  .brd-note{font-size:18px;color:var(--ink-dim)}
+
+  .unit-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;display:flex;flex-direction:column;gap:10px;user-select:none;
+    /* :focus-within, and deliberately not the parent-matching selector that
+       would also work here. The file's whole design is that render writes
+       explicit classes from state; a parent-matching rule would create a
+       second, invisible source of truth in a stylesheet with no scoping. */
+    &:focus-within{border-color:var(--accent)}
+  }
+  .unit-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .unit-name{font-size:18px;font-weight:600}
+  .unit-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .unit-label{font-size:18px;color:var(--ink-dim);min-width:80px}
+
+  /* D-06 plus UX-02: available, not inviting, and never revealed by pointing
+     at something. This deliberately departs from the phase context's "quiet
+     outline" wording: --line measures 1.29:1 against --panel, which is
+     functionally invisible at projector distance. The border is --ink-faint
+     instead (3.69:1, clearing SC 1.4.11's 3:1 floor for UI components) and the
+     glyph is --ink-dim (7.47:1), with --accent-2 reserved for hover and focus.
+     Quiet and legible at the same time. opacity stays 1 at all times, and no
+     rule anywhere in this file reveals this control on pointer-over. */
+  .unit-rm{
+    background:transparent;border:1px solid var(--ink-faint);color:var(--ink-dim);
+    border-radius:10px;min-width:32px;min-height:32px;padding:0 8px;opacity:1;
+    font:inherit;font-size:18px;line-height:1;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent-2);color:var(--accent-2)}
+    &:focus{border-color:var(--accent-2);color:var(--accent-2)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+
+  .brd-add{
+    background:var(--panel);border:1px dashed var(--ink-faint);color:var(--ink);
+    border-radius:var(--radius);padding:12px 16px;min-height:44px;
+    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+
+  /* ===================== [C05] TOKENS-VIZ ===================== */
+  /* One token is three layers, and the reason is D-10: emoji come from
+     whatever the OS supplies and their metrics differ per platform, so the
+     glyph is taken out of flow entirely rather than measured. Inside a
+     fixed-size box, no emoji on any OS can change the box, the row width, or
+     the point at which the row compacts.
+       .tok    the box. Carries the size, and nothing else.
+       .tok-s  the shape. Clipping and rotation live HERE, so a triangle's clip
+               does not clip the glyph and a diamond's rotation is cancellable.
+       .tok-g  the glyph. Built only when the vocabulary entry has one, so the
+               shipped board stays one painted layer per token.
+
+     SHAPES COME FROM CSS, AND THAT IS NOT A PREFERENCE. Inline SVG is
+     unreachable here: the SVG namespace is an absolute URL and the dev gate
+     fails the build on any of those, hoisting it to a constant fails the same
+     rule, and both clip-path and mask-image's functional-reference form fail
+     the gate's own separate rule. Concatenating the namespace to slip past the
+     scan is the deliberate bypass that harness documents itself as not
+     catching, so do not. Polygons, rotation and border-radius cover all six
+     shapes and cost fewer nodes anyway. */
+  .tok{position:relative;width:var(--tok);height:var(--tok);flex:0 0 auto}
+  .tok-s{position:absolute;inset:0;background:var(--tok-fill);border-radius:3px}
+  .tok-g{
+    position:absolute;inset:0;display:grid;place-items:center;
+    font-size:calc(var(--tok) * .68);line-height:1;pointer-events:none;
+    font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
+  }
+
+  /* One rule per SHAPES id. `sq` needs none — the box already is the shape. */
+  .tok--rect{width:calc(var(--tok) * 1.7)}
+  .tok--tri .tok-s{clip-path:polygon(50% 0, 100% 100%, 0 100%);border-radius:0}
+  .tok--dia .tok-s{transform:rotate(45deg);border-radius:2px}
+  .tok--dia .tok-g{transform:rotate(-45deg)}
+  .tok--circ .tok-s{border-radius:50%}
+  .tok--hex .tok-s{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border-radius:0}
+
+  /* One rule per COLORS id. The fill stays at the pure token value so the
+     measured 7:1-to-11:1 ratios against --panel hold; color-mix() is for
+     borders and dimmed states only, never for a fill that carries meaning. */
+  .tok--green{--tok-fill:var(--green)}
+  .tok--gold{--tok-fill:var(--gold)}
+  .tok--accent{--tok-fill:var(--accent)}
+  .tok--coral{--tok-fill:var(--coral)}
+  .tok--violet{--tok-fill:var(--violet)}
+  .tok--accent-2{--tok-fill:var(--accent-2)}
+  .tok--ink-dim{--tok-fill:var(--ink-dim)}
+
+  /* Any clipping of a long row belongs here, on the row itself — never on an
+     ancestor, which would silently stop #topbar and #strip sticking. */
+  .tok-row{display:flex;flex-wrap:wrap;gap:var(--tok-gap);align-items:center;user-select:none;min-height:var(--tok)}
+  /* D-21: the compacted form is a count, a multiplication sign, then exactly
+     one token at normal size. Same 24px treatment as every other value on the
+     board, because that is what it is. */
+  .tok-count{font-size:24px;font-weight:700;color:var(--ink)}
+
+  /* D-22: nothing is attached to the compaction swap. A value oscillating at
+     11 and 12 would strobe, and hiding a mode with display:none would cancel
+     and restart the animations on every descendant. The renderer swaps modes
+     by emptying the row and setting a data-mode flag instead, which means a
+     threshold crossing repopulates from empty and therefore animates nothing.
+     This entry pop is only ever applied to a token appended to a row that
+     already had tokens in the same mode. */
+  @keyframes tok-pop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+  .tok--in{animation:tok-pop 140ms ease-out}
+  @media (prefers-reduced-motion: reduce){
+    .tok--in{animation:none}
+  }
+
+  /* ===================== [C06] STEPPER ===================== */
+  /* Styles only. The press-and-hold behaviour behind these is plan 02-02's.
+     44 x 44 is WCAG 2.5.5 Target Size (Enhanced, AAA): at that size the
+     twenty-rapid-clicks stress test stops being a test of the student's aim.
+     user-select:none across the whole control, because rapid clicking
+     otherwise drag-selects the labels around it. */
+  .stp{display:flex;align-items:center;gap:6px;user-select:none}
+  .stp-btn{
+    width:44px;height:44px;flex:0 0 44px;
+    background:var(--panel-2);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:10px;display:grid;place-items:center;
+    font:inherit;font-size:24px;line-height:1;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:active{background:var(--panel)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+  /* A fixed width on purpose, never a content-sized one -- the field must not
+     reflow its row while a held button steps it through 9, 10, 11. */
+  .stp-field{
+    width:76px;flex:0 0 76px;height:44px;text-align:center;
+    background:var(--bg-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:8px 6px;font:inherit;font-size:24px;font-weight:700;
+  }
+  .stp-field:focus{border-color:var(--accent)}
+
+  /* Both halves of the focus ring, not either one. A programmatic focus() --
+     which is exactly what the structural rebuild does when it puts the student
+     back where they were -- does not re-arm :focus-visible, so the ring would
+     vanish while focus was in fact correct. The attribute below is written on
+     the body by render.sync from state.ui.kbdNav; its writer is plan 02-02. */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  body[data-kbd="1"] :focus{outline:2px solid var(--accent);outline-offset:2px}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -104,7 +337,41 @@
     <div class="muted">Workshop 16 — allocation and fight sandbox</div>
   </div>
 
+  <!-- D-04. The control cluster's slot is decided once, here: Phase 4 adds
+       reset and share to it, Phase 5 adds turn state and start-fight, and
+       neither of them has to re-lay-out the page to do it. -->
+  <div class="brd-topbar" id="topbar">
+    <div class="brd-brand">Cats vs Mechs</div>
+    <div class="brd-cluster">
+      <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
+      <!-- Static markup, and that is the point. A data-k has to be unique
+           because the structural rebuild restores focus by taking the FIRST
+           [data-k="..."] match; one of these rendered inside a unit card would
+           produce nine tok/hp keys and silently break focus restore, which is
+           half of "twenty clicks make twenty changes". Four buttons here, one
+           per board token type, unique by construction. The fifth vocabulary
+           entry, dead, has no renderer consumer yet, so it gets no button.
+           openTokenPicker is page work, not a state transformation: [S07]
+           routes it and [S05] never sees it. -->
+      <div class="brd-tokedit" role="group" aria-labelledby="tokedit-label">
+        <span class="brd-tokedit-label" id="tokedit-label">Token appearance</span>
+        <button class="brd-btn" type="button" data-k="tok/hp" data-act="openTokenPicker" data-tok="hp">Health</button>
+        <button class="brd-btn" type="button" data-k="tok/ap" data-act="openTokenPicker" data-tok="ap">Action</button>
+        <button class="brd-btn" type="button" data-k="tok/shield" data-act="openTokenPicker" data-tok="shield">Shield</button>
+        <button class="brd-btn" type="button" data-k="tok/dmg" data-act="openTokenPicker" data-tok="dmg">Damage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The four children below are static siblings, never built by
+       render.structure(): a delegated listener bound to a root that outlives
+       every rebuild is the only arrangement that survives one. #board-empty
+       stays because [S08] boot.start()'s #throwhandler rehearsal reads it by
+       id; render.structure() hides it rather than removing it. -->
   <div class="board" id="board">
+    <section class="brd-col" id="col-cats"></section>
+    <aside class="brd-strip" id="strip">Projection lands here in Phase 3</aside>
+    <section class="brd-col" id="col-mechs"></section>
     <p class="muted" id="board-empty">The allocation board renders here.</p>
   </div>
 
@@ -221,11 +488,30 @@ App.data = (function () {
     return units;
   }
 
+  // The token vocabulary's allowlists. Shapes and colours are enumerated
+  // rather than free strings for three reasons that all point the same way:
+  // they become CSS class suffixes, Phase 4 encodes them as one character
+  // each, and an unvetted string reaching className is the tampering surface
+  // this file has already had to close twice elsewhere. Exported for the same
+  // reason [S03] exports UNDO_LIMIT — so [S05] and [S09] assert against the
+  // constant instead of against a bare literal that can drift away from it.
+  // Frozen because they are exported: an allowlist a caller can push onto is
+  // not an allowlist.
+  var SHAPES = deepFreeze(['sq', 'rect', 'tri', 'dia', 'circ', 'hex']);
+  var COLORS = deepFreeze(['green', 'gold', 'accent', 'coral', 'violet', 'accent-2', 'ink-dim']);
+  var TOKEN_IDS = deepFreeze(['hp', 'ap', 'shield', 'dmg', 'dead']);
+
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
   // Effect keyword ids live here; their card copy and the action-versus-action
   // reference table are data.reference, owned by Phase 3 plan 03-02.
+  //
+  // `tokens` is the drawing vocabulary for those rows (D-08). It sits in the
+  // board rather than beside it because D-13 puts it in `build`: a restyled
+  // token is an edit to the student's build, so it has to round-trip through
+  // Phase 4's build code (SHARE-08) and it has to be undoable. Being the last
+  // key of this literal also means it inherits the deep freeze for free.
   var DEFAULTS = deepFreeze({
     schema: 1,
     cats: {
@@ -249,6 +535,23 @@ App.data = (function () {
         { id: 'lasers', name: 'Lasers', dmg: 3, keywords: ['range'] },
         { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'] }
       ]
+    },
+    // The first four are the workshop board read literally, unchanged in
+    // appearance (ALLOC-04): green squares for health, yellow triangles for
+    // actions, blue squares for shield, red diamonds for damage.
+    //
+    // `dead` ships as vocabulary with NO renderer consumer, on the same
+    // "lock the shape before the mechanic arrives" precedent [S05] already set
+    // for `shield` and `log`. It is the concrete proof that this renderer can
+    // already draw Phase 5's dead marker — a rectangle carrying a skull —
+    // without any of Phase 5's mechanic being built. Nothing here rules on
+    // what a dead unit does; the table still rules that.
+    tokens: {
+      hp:     { shape: 'sq',   color: 'green',   glyph: '' },
+      ap:     { shape: 'tri',  color: 'gold',    glyph: '' },
+      shield: { shape: 'sq',   color: 'accent',  glyph: '' },
+      dmg:    { shape: 'dia',  color: 'coral',   glyph: '' },
+      dead:   { shape: 'rect', color: 'ink-dim', glyph: '\u{1F480}' }  // SKULL
     }
   });
 
@@ -262,7 +565,10 @@ App.data = (function () {
   return Object.freeze({
     DEFAULTS: DEFAULTS,
     defaults: defaults,
-    deepFreeze: deepFreeze
+    deepFreeze: deepFreeze,
+    SHAPES: SHAPES,
+    COLORS: COLORS,
+    TOKEN_IDS: TOKEN_IDS
   });
 })();
 // #endregion [S01] DATA
@@ -850,11 +1156,446 @@ App.ops = (function () {
  * owner: Phase 2, plan 02-01
  * ======================================================== */
 // #region [S06] RENDER
-App.render = Object.freeze({
-  // Declared no-ops until Phase 2 plan 02-01 fills them in.
-  structure: function () {},
-  sync: function () {}
-});
+App.render = (function () {
+  'use strict';
+
+  // D-20. Below this a row draws one token per point; at or above it the row
+  // draws a count and a single token. Named, and exported on the surface
+  // below, so [S09] asserts against the constant instead of a bare 12.
+  var COMPACT_AT = 12;
+
+  // The roster ceiling. A disabled button dispatches no pointer event, which
+  // is the cheap half of the guard; plan 02-02 adds the throwing backstop in
+  // [S05], because a guard that lives only in the page is not a guard.
+  var MAX_UNITS = 24;
+
+  /* ---- tiny page helpers. Every string reaches the page through
+         textContent and every node through createElement: there is no
+         markup-parsing sink anywhere in this file, and the dev gate enforces
+         that document-wide. ---- */
+
+  function el(tag, cls) {
+    var node = document.createElement(tag);
+    if (cls) { node.className = cls; }
+    return node;
+  }
+
+  function text(tag, cls, s) {
+    var node = el(tag, cls);
+    node.textContent = s;
+    return node;
+  }
+
+  function setData(node, pairs) {
+    Object.keys(pairs).forEach(function (k) {
+      if (pairs[k] !== undefined && pairs[k] !== null) { node.dataset[k] = pairs[k]; }
+    });
+  }
+
+  function keyed(container, k) {
+    return container.querySelector('[data-k="' + CSS.escape(k) + '"]');
+  }
+
+  /* ---- Tier 1: the rare rebuild, and the focus contract around it ---- */
+
+  // Every step in here is load-bearing and none of it is visible from the
+  // outside, which is why all of it is written down:
+  //   scrollTop clamps to 0 when the content shrinks -- that is, exactly when
+  //     a unit is removed -- so it is re-set AFTER the new content exists;
+  //   focus() scrolls the page to the element unless preventScroll is passed,
+  //     measured at over a thousand pixels of jump on a board this size;
+  //   the window scroll restore asks explicitly for an unanimated scroll,
+  //     because [C01] sets html{scroll-behavior:smooth}, which would otherwise
+  //     animate the restore and land it on a later frame at a different pixel.
+  function withPreservedFocus(container, fn) {
+    var active = document.activeElement;
+    var data = (active && active.dataset) ? active.dataset : {};
+    var k = data.k || null;
+    var act = data.act || null;
+    var side = data.side || null;
+    var caret = (active && active.selectionStart != null) ? active.selectionStart : null;
+    var ordinal = peerOrdinal(container, active, act, side);
+    var scrolled = container.scrollTop;
+    var pageY = window.scrollY;
+
+    fn();
+
+    container.scrollTop = scrolled;
+    window.scrollTo({ top: pageY, left: 0, behavior: 'instant' });
+
+    if (!k) { return; }
+    var target = keyed(container, k);
+    if (!target) { target = fallbackTarget(container, act, side, ordinal); }
+    if (!target) { return; }
+    target.focus({ preventScroll: true });
+    if (caret != null && target.setSelectionRange) { target.setSelectionRange(caret, caret); }
+  }
+
+  // The removed-unit case, which the published helper does not cover. The
+  // commonest Tier-1 trigger in this phase is removing the unit whose own
+  // remove button currently has focus, so the keyed node is gone by
+  // construction, the lookup above returns null and focus lands on <body>.
+  // Removing three units from the keyboard would then mean three re-Tabs from
+  // the top. So: record where the focused control sat among its peers on the
+  // same side, and afterwards land on whatever now occupies that slot,
+  // clamped to the end of the shortened list. Deterministic, and it keeps a
+  // repeated removal under the finger it started with.
+  function peerList(container, act, side) {
+    if (!act || !side) { return []; }
+    var found = container.querySelectorAll(
+      '[data-act="' + CSS.escape(act) + '"][data-side="' + CSS.escape(side) + '"]'
+    );
+    return Array.prototype.slice.call(found);
+  }
+
+  function peerOrdinal(container, node, act, side) {
+    if (!node) { return -1; }
+    return peerList(container, act, side).indexOf(node);
+  }
+
+  function fallbackTarget(container, act, side, ordinal) {
+    if (ordinal < 0 || !side) { return null; }
+    var list = peerList(container, act, side);
+    if (list.length > 0) { return list[Math.min(ordinal, list.length - 1)]; }
+    return keyed(container, side + '/add');
+  }
+
+  /* ---- Tier 1: the builders ----
+   * The data-k / data-act attributes written below are the whole of this
+   * renderer's contract with [S07] INTERACTIONS, which has no other way to
+   * find a control. data-k is IDENTITY and has to be unique document-wide,
+   * because focus restore takes the first match for it.
+   * data-amt names the quantity a node shows, and is what lets sync() read
+   * the right number out of state from the page's own keys rather than from a
+   * second walk of the roster that could drift away from this one. */
+
+  // type="text" and deliberately not type="number": the field accepts a
+  // signed delta as well as an absolute value (plan 02-02), and a number
+  // input silently refuses the leading sign. Behaviour is 02-02's; this
+  // builds the nodes and the attributes it reads.
+  function stepper(spec) {
+    var wrap = el('div', 'stp');
+
+    var minus = el('button', 'stp-btn');
+    minus.type = 'button';
+    minus.textContent = '−';   // MINUS SIGN, not a hyphen
+    minus.setAttribute('aria-label', 'Decrease ' + spec.label);
+    setData(minus, {
+      k: spec.key + '-', act: spec.nudge, side: spec.side, unit: spec.unitId, step: '-1'
+    });
+    wrap.appendChild(minus);
+
+    var field = el('input', 'stp-field num');
+    field.type = 'text';
+    field.value = String(spec.value);
+    field.setAttribute('inputmode', 'numeric');
+    field.setAttribute('autocomplete', 'off');
+    field.setAttribute('aria-label', spec.label);
+    setData(field, {
+      k: spec.key, act: spec.act, amt: spec.amt, side: spec.side, unit: spec.unitId
+    });
+    wrap.appendChild(field);
+
+    var plus = el('button', 'stp-btn');
+    plus.type = 'button';
+    plus.textContent = '+';
+    plus.setAttribute('aria-label', 'Increase ' + spec.label);
+    setData(plus, {
+      k: spec.key + '+', act: spec.nudge, side: spec.side, unit: spec.unitId, step: '1'
+    });
+    wrap.appendChild(plus);
+
+    return wrap;
+  }
+
+  // Built EMPTY, always. structure() creates no token node at any point, and
+  // that is a rule rather than an optimisation: it is what makes "a rebuild
+  // repopulates from an empty row, so nothing animates" true by construction.
+  function tokenRow(amt, side, unitId) {
+    var row = el('div', 'tok-row');
+    setData(row, { amt: amt, side: side, unit: unitId });
+    return row;
+  }
+
+  function statLine(cls, label, valueNode, row) {
+    var line = el('div', 'brd-line');
+    line.appendChild(text('span', cls, label));
+    line.appendChild(valueNode);
+    if (row) { line.appendChild(row); }
+    return line;
+  }
+
+  function readout(amt, side) {
+    var node = text('span', 'brd-value num', '0');
+    setData(node, { amt: amt, side: side });
+    return node;
+  }
+
+  function factionHead(faction, side) {
+    var head = el('section', 'brd-col-head');
+    head.appendChild(text('h2', 'brd-faction', faction.name));
+
+    // Action points are a faction-level pool. That is the whole reason they
+    // are held here rather than on the units, so the control sits here too.
+    head.appendChild(statLine('brd-label', 'Action points', stepper({
+      key: side + '/ap', act: 'ap', nudge: 'nudgeAp', amt: 'ap',
+      side: side, label: faction.name + ' action points', value: faction.ap
+    }), tokenRow('ap', side, null)));
+
+    // Q-2 -- where the red diamonds live. App.model.bestDamage is a shipped
+    // pure derivation that until now had no consumer at all, so this needs no
+    // new state, no new op and no new derivation to put the fourth token type
+    // on screen. Read-only in Phase 2: damage attaches to actions and the
+    // per-action cards are Phase 3's. The label is the plain word, never a
+    // score, a grade or a judgement.
+    head.appendChild(statLine('brd-label', 'Damage',
+      readout('dmg', side), tokenRow('dmg', side, null)));
+
+    head.appendChild(statLine('brd-label', 'Total health', readout('ehp', side), null));
+    return head;
+  }
+
+  function unitCard(faction, unit, side, setup) {
+    var card = el('article', 'unit-card');
+
+    var head = el('div', 'unit-head');
+    head.appendChild(text('span', 'unit-name', unit.name));
+    if (setup) {
+      var rm = el('button', 'unit-rm');
+      rm.type = 'button';
+      rm.textContent = '×';   // MULTIPLICATION SIGN
+      rm.setAttribute('aria-label', 'Remove ' + unit.name);
+      rm.disabled = faction.units.length <= 1;
+      setData(rm, { k: side + '/' + unit.id + '/rm', act: 'removeUnit', side: side, unit: unit.id });
+      head.appendChild(rm);
+    }
+    card.appendChild(head);
+
+    card.appendChild(statLine('unit-label', 'Health', stepper({
+      key: side + '/' + unit.id + '/maxHp', act: 'maxHp', nudge: 'nudgeMaxHp', amt: 'hp',
+      side: side, unitId: unit.id, label: unit.name + ' health', value: unit.maxHp
+    }), tokenRow('hp', side, unit.id)));
+
+    card.appendChild(statLine('unit-label', 'Shield', stepper({
+      key: side + '/' + unit.id + '/shield', act: 'shield', nudge: 'nudgeShield', amt: 'shield',
+      side: side, unitId: unit.id, label: unit.name + ' shield', value: unit.shield
+    }), tokenRow('shield', side, unit.id)));
+
+    return card;
+  }
+
+  // D-05: the roster controls are setup-only. A null fight slice IS setup --
+  // mode is derived, never stored, and [S05] fightOf already establishes that.
+  // Roster shaping and fight bookkeeping are different activities and the page
+  // should not blur them. Phase 2 ships no way to start a fight from the page,
+  // but App.ops.startFight() is already callable, so building the condition
+  // now costs one branch and saves Phase 5 a re-layout.
+  function buildColumn(col, state, side) {
+    var faction = state.build[side];
+    var setup = (state.fight === null);
+    var parts = [factionHead(faction, side)];
+
+    faction.units.forEach(function (unit) {
+      parts.push(unitCard(faction, unit, side, setup));
+    });
+
+    if (setup) {
+      var add = el('button', 'brd-add');
+      add.type = 'button';
+      add.textContent = (side === 'cats') ? '+ Add Cat' : '+ Add Mech';
+      add.disabled = faction.units.length >= MAX_UNITS;
+      setData(add, { k: side + '/add', act: 'addUnit', side: side });
+      parts.push(add);
+    }
+
+    col.replaceChildren();
+    parts.forEach(function (part) { col.appendChild(part); });
+  }
+
+  function structure(state) {
+    if (typeof document === 'undefined') { return; }
+
+    var board = document.getElementById('board');
+    var cats = document.getElementById('col-cats');
+    var mechs = document.getElementById('col-mechs');
+    if (!board || !cats || !mechs) { return; }
+
+    // Only the column INTERIORS are replaced. Never #board and never #app:
+    // plan 02-02 binds its delegated listeners to #app, and those have to
+    // outlive every rebuild this function will ever do.
+    withPreservedFocus(board, function () {
+      buildColumn(cats, state, 'cats');
+      buildColumn(mechs, state, 'mechs');
+    });
+
+    // Kept rather than removed, because [S08] boot.start()'s #throwhandler
+    // rehearsal branch reads it by id and [S08] belongs to another plan.
+    var empty = document.getElementById('board-empty');
+    if (empty) { empty.hidden = true; }
+  }
+
+  /* ---- Tier 2: the per-frame reconcile ---- */
+
+  function findUnit(faction, unitId) {
+    for (var i = 0; i < faction.units.length; i++) {
+      if (faction.units[i].id === unitId) { return faction.units[i]; }
+    }
+    return null;
+  }
+
+  // Nothing derived is stored: every number below is computed here, on every
+  // frame, from App.model and the build slice. A derived value kept in state
+  // becomes a second, mechanical reason for the projection to disagree with
+  // the board, and this artifact exists to stage a pedagogical disagreement.
+  function amountFor(state, amt, side, unitId) {
+    var faction = state.build[side];
+    if (!faction) { return 0; }
+    if (amt === 'ap') { return faction.ap; }
+    if (amt === 'dmg') { return App.model.bestDamage(faction); }
+    if (amt === 'ehp') { return App.model.factionEhp(faction); }
+    var unit = findUnit(faction, unitId);
+    if (!unit) { return 0; }
+    if (amt === 'hp') { return unit.maxHp; }
+    if (amt === 'shield') { return unit.shield; }
+    return 0;
+  }
+
+  // The vocabulary is read at render time and never copied into state.
+  // hasOwnProperty, not a bare index: from Phase 4 this object can arrive from
+  // a pasted build code, and a bare lookup for 'constructor' resolves on the
+  // prototype instead of failing.
+  function styleFor(state, amt) {
+    var vocab = state.build.tokens;
+    if (vocab && Object.prototype.hasOwnProperty.call(vocab, amt)) { return vocab[amt]; }
+    return App.data.DEFAULTS.tokens.hp;
+  }
+
+  // T-02-01. Shape and colour are enum ids checked against the exported
+  // allowlists and mapped to a fixed class suffix. A caller string is never
+  // interpolated raw into className; an unknown id falls back to the shipped
+  // health entry rather than being pasted through.
+  function safeShape(shape) {
+    return (App.data.SHAPES.indexOf(shape) === -1) ? App.data.DEFAULTS.tokens.hp.shape : shape;
+  }
+
+  function safeColor(color) {
+    return (App.data.COLORS.indexOf(color) === -1) ? App.data.DEFAULTS.tokens.hp.color : color;
+  }
+
+  function makeToken(style, animate) {
+    var node = el('div', 'tok tok--' + safeShape(style.shape) + ' tok--' + safeColor(style.color));
+    if (animate) { node.classList.add('tok--in'); }
+    node.appendChild(el('div', 'tok-s'));
+    // Built only when the entry actually carries a glyph, so the shipped
+    // board stays at one painted layer per token.
+    if (typeof style.glyph === 'string' && style.glyph !== '') {
+      node.appendChild(text('div', 'tok-g', style.glyph));
+    }
+    return node;
+  }
+
+  // RULE 1, and this one line is the whole of D-19. Any commit anywhere
+  // schedules a frame, and that frame writes every field on the board; a
+  // student half-way through typing "+5" must not be handed "3" back.
+  function setValue(node, n) {
+    if (node !== document.activeElement) { node.value = String(n); }
+  }
+
+  // RULE 2 and RULE 3 live here together, because the second is what makes
+  // the first mean anything.
+  //
+  // RULE 2 -- grow and shrink by DELTA only. Node identity is the animation
+  // contract: 10 to 11 keeps all ten original nodes and appends exactly one.
+  //
+  // RULE 3 -- never re-append, never reorder, never row.append(...allNodes),
+  // never replaceChildren(...existingNodes). appendChild on a node that is
+  // already a child is a MOVE, which is a remove plus an insert, and removal
+  // from the document cancels that element's CSS animations so re-insertion
+  // replays them from the beginning. Every token replaying its pop on a
+  // game-feel course artifact is a correctness bug, not a polish item.
+  function syncRow(row, n, style) {
+    var mode = (n >= COMPACT_AT) ? 'c' : 't';
+    var sig = safeShape(style.shape) + '/' + safeColor(style.color) + '/' + String(style.glyph);
+
+    // D-22 and the restyle case, which behave identically and should. Either
+    // a mode change or a vocabulary change empties the row first, so both
+    // repopulate from nothing and therefore animate nothing: a value
+    // oscillating at 11 and 12 cannot strobe, and recolouring health does not
+    // pop nine tokens at once. Emptying is replaceChildren() and a data flag,
+    // never display:none, which would cancel and restart the animations on
+    // every descendant instead.
+    if (row.dataset.mode !== mode || row.dataset.sig !== sig) {
+      row.replaceChildren();
+      row.dataset.mode = mode;
+      row.dataset.sig = sig;
+    }
+
+    if (mode === 'c') {
+      // D-21: a count, a multiplication sign, then exactly one token.
+      if (row.children.length !== 2) {
+        row.replaceChildren();
+        row.appendChild(text('span', 'tok-count num', ''));
+        row.appendChild(makeToken(style, false));
+      }
+      row.firstElementChild.textContent = String(n) + '×';
+      return;
+    }
+
+    // The entry pop goes only on a token appended to a row that ALREADY had
+    // tokens in this same mode. Read once, before the loops, so the flag
+    // describes the row as it arrived. A rebuild fills an empty row and
+    // animates nothing; adding one health point animates exactly one token.
+    var animate = row.children.length > 0;
+    while (row.children.length > n) { row.lastElementChild.remove(); }
+    while (row.children.length < n) { row.appendChild(makeToken(style, animate)); }
+  }
+
+  function sync(state) {
+    if (typeof document === 'undefined') { return; }
+
+    // P-08. ui.kbdNav has shipped since Phase 1 with an allowlisted writer and
+    // no reader at all; this is the reader, and plan 02-02 is the writer.
+    // [C06]'s body[data-kbd] rule is what it lights up, and it exists because
+    // a programmatic focus() does not re-arm :focus-visible, so the ring would
+    // otherwise vanish after a rebuild while focus was in fact correct.
+    document.body.dataset.kbd = (state.ui.kbdNav === true) ? '1' : '';
+
+    var board = document.getElementById('board');
+    if (!board) { return; }
+    var i;
+
+    var fields = board.querySelectorAll('.stp-field');
+    for (i = 0; i < fields.length; i++) {
+      setValue(fields[i], amountFor(state, fields[i].dataset.amt, fields[i].dataset.side, fields[i].dataset.unit));
+    }
+
+    var values = board.querySelectorAll('.brd-value');
+    for (i = 0; i < values.length; i++) {
+      values[i].textContent = String(amountFor(state, values[i].dataset.amt, values[i].dataset.side, values[i].dataset.unit));
+    }
+
+    var rows = board.querySelectorAll('.tok-row');
+    for (i = 0; i < rows.length; i++) {
+      syncRow(
+        rows[i],
+        amountFor(state, rows[i].dataset.amt, rows[i].dataset.side, rows[i].dataset.unit),
+        styleFor(state, rows[i].dataset.amt)
+      );
+    }
+  }
+
+  // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
+  // structural trigger belongs to [S05] -- an op that changes the number of
+  // units follows its commit with invalidate({structural:true}) -- and hiding
+  // that detection in here would invert the tier ownership and make the
+  // trigger unfindable. [S09.4] asserts the shape match instead.
+  return Object.freeze({
+    structure: structure,
+    sync: sync,
+    COMPACT_AT: COMPACT_AT,
+    MAX_UNITS: MAX_UNITS
+  });
+})();
 // #endregion [S06] RENDER
 
 /* ===================== [S07] INTERACTIONS =====================
@@ -1291,6 +2032,41 @@ App.selftest = (function () {
     });
     t.eq('DEFAULTS survived the frozen write', App.data.DEFAULTS.cats.units[0].maxHp, 3);
 
+    /* --- the token vocabulary (D-08, D-09). Shape and colour ids become CSS
+           class suffixes, so the allowlists are asserted against the exported
+           constants rather than against a second copy of the same literals. --- */
+    t.ok('every token id has a vocabulary entry', App.data.TOKEN_IDS.every(function (id) {
+      return d.tokens[id] !== undefined;
+    }));
+    t.ok('every shape is in the allowlist', App.data.TOKEN_IDS.every(function (id) {
+      return App.data.SHAPES.indexOf(d.tokens[id].shape) !== -1;
+    }));
+    t.ok('every colour is in the allowlist', App.data.TOKEN_IDS.every(function (id) {
+      return App.data.COLORS.indexOf(d.tokens[id].color) !== -1;
+    }));
+
+    // The board read literally: green squares, yellow triangles, blue squares,
+    // red diamonds. If this row goes red, the artifact has stopped mirroring
+    // the whiteboard the students just looked at.
+    t.eq('the four board token types read back literally',
+      ['hp', 'ap', 'shield', 'dmg'].map(function (id) {
+        return [id, d.tokens[id].shape, d.tokens[id].color];
+      }), [
+        ['hp', 'sq', 'green'],
+        ['ap', 'tri', 'gold'],
+        ['shield', 'sq', 'accent'],
+        ['dmg', 'dia', 'coral']
+      ]);
+
+    // The walk above permits strings, so this passes today. It is asserted so
+    // that a future numeric field on a vocabulary entry cannot slip a float in.
+    t.ok('the vocabulary survives the integer walk', allIntegers(d.tokens));
+
+    t.throws('DEFAULTS.tokens is deep-frozen too', function () {
+      App.data.DEFAULTS.tokens.hp.shape = 'hex';
+    });
+    t.eq('the frozen vocabulary write changed nothing', App.data.DEFAULTS.tokens.hp.shape, 'sq');
+
     var a = App.data.defaults();
     var b = App.data.defaults();
     t.ok('defaults() is a fresh deep copy', a !== b && a.cats.units !== b.cats.units);
@@ -1389,7 +2165,9 @@ App.selftest = (function () {
     // A shape assertion, not an equality one. From Phase 4 a shared link can
     // load a build before this suite runs, and a legitimately loaded build
     // must not paint the report red.
-    t.eq('the board has its three build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs']);
+    // The label deliberately does not name a number: `tokens` arrived in
+    // Phase 2 and Phase 4's codec work may well add another key.
+    t.eq('the board has its build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
 
     /* --- shape --- */
     t.eq('three slices', Object.keys(App.state.get()), ['build', 'fight', 'ui']);
@@ -1550,6 +2328,62 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     t.eq('the suite handed the board back untouched', JSON.stringify(App.state.get()), savedAll);
     t.eq('the suite left no undo history behind', App.state.undoDepth(), 0);
+  });
+})();
+
+/* --- [S09.4] SUITE: render contract — owner plan 02-01 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('render contract', function (t) {
+    /* --- these two need no page, so they run everywhere --- */
+    t.eq('the compaction threshold is a named constant', App.render.COMPACT_AT, 12);
+    t.ok('both render tiers are functions',
+      typeof App.render.structure === 'function' && typeof App.render.sync === 'function');
+
+    // Everything below needs a page. tests/selftest-node.cjs loads this file
+    // into a bare sandbox with no document, so the suite says so and stops
+    // rather than painting a terminal run red for something that is not a
+    // defect. A browser run gains the real coverage.
+    if (typeof document === 'undefined') {
+      t.info('render', 'skipped — no DOM');
+      return;
+    }
+
+    // Same contract as [S09.3]: everything below writes to the live board, so
+    // the whole state is recorded here and handed back as the last act.
+    var savedAll = JSON.stringify(App.state.get());
+
+    App.render.structure(App.state.get());
+    App.render.sync(App.state.get());
+
+    // The shape-match check research asked for instead of letting sync()
+    // detect a mismatch and escalate: if a structural frame were ever missed,
+    // this row is what says so.
+    ['cats', 'mechs'].forEach(function (side) {
+      var col = document.getElementById('col-' + side);
+      var cards = col ? col.querySelectorAll('.unit-card').length : -1;
+      t.eq(side + ' card count matches the roster', cards, App.state.get().build[side].units.length);
+    });
+
+    var first = App.state.get().build.cats.units[0];
+    var sel = '.tok-row[data-amt="hp"][data-unit="' + first.id + '"]';
+    var row = document.querySelector(sel);
+    t.eq('a health row holds one token per health point',
+      row ? row.children.length : -1, first.maxHp);
+
+    // Push one unit onto the threshold and read the compacted form back.
+    App.ops.setUnitMaxHp('cats', first.id, App.render.COMPACT_AT);
+    App.state.flush();
+    row = document.querySelector(sel);
+    t.eq('at the threshold the row swaps mode', row ? row.dataset.mode : '(no row)', 'c');
+    t.eq('the compacted row is a count plus exactly one token',
+      row ? row.children.length : -1, 2);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the render suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
   });
 })();
 // #endregion [S09] SELFTEST
