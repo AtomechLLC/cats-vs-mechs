@@ -12,11 +12,12 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **ALLOC-01**: Student can set each unit's health using +/− steppers
 - [ ] **ALLOC-02**: Student can set each faction's shared action point pool using +/− steppers
 - [ ] **ALLOC-03**: Student can type a delta into any numeric field (`-8`, `+5`) and adjust it with arrow keys
-- [ ] **ALLOC-04**: Allocation displays as token rows matching the board's vocabulary — green squares for health, yellow triangles for actions, blue squares for shield, red diamonds for damage
+- [ ] **ALLOC-04**: Allocation displays as token rows matching the board's vocabulary — green squares for health, yellow triangles for actions, blue squares for shield, red diamonds for damage. The vocabulary is data (shape, color, glyph) rather than fixed cases, so new token types are a data edit
 - [ ] **ALLOC-05**: Token rows compact above a readable count threshold instead of overflowing the row
 - [ ] **ALLOC-06**: Student can add and remove units on either side
 - [ ] **ALLOC-07**: Rapid stepper clicks and press-and-hold register every input without losing keyboard focus, scroll position, or restarting token animations
 - [x] **ALLOC-08**: Cats and Mechs load prebuilt with the Workshop 16 board's actions, damage, keywords and starting allocation
+- [ ] **ALLOC-09**: Student can edit a token type's appearance — shape, color and emoji — from the UI, with the shape and color carrying the meaning independently of the emoji
 
 ### Fight
 
@@ -56,6 +57,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SHARE-05**: The current build mirrors to `location.hash` for the student's own reload and bookmark, without being presented as the sharing mechanism
 - [ ] **SHARE-06**: Student can reset to Workshop 16 board defaults, behind a confirmation
 - [ ] **SHARE-07**: Student can reset the fight without discarding their build
+- [ ] **SHARE-08**: Custom token appearance round-trips through the build code, so a shared build looks the same for the recipient
 
 ### Usability & Delivery
 
@@ -123,6 +125,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALLOC-06 | Phase 2 | Pending |
 | ALLOC-07 | Phase 2 | Pending |
 | ALLOC-08 | Phase 1 | Complete |
+| ALLOC-09 | Phase 2 | Pending |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
@@ -150,6 +153,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHARE-05 | Phase 4 | Pending |
 | SHARE-06 | Phase 4 | Pending |
 | SHARE-07 | Phase 5 | Pending |
+| SHARE-08 | Phase 4 | Pending |
 | UX-01 | Phase 1 | Complete |
 | UX-02 | Phase 2 | Pending |
 | UX-03 | Phase 1 | Complete |
@@ -157,16 +161,16 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-05 | Phase 2 | Pending |
 
 **Coverage:**
-- v1 requirements: 40 total
-- Mapped to phases: 40 ✓
+- v1 requirements: 42 total
+- Mapped to phases: 42 ✓
 - Unmapped: 0
 
 | Phase | Requirements | Count |
 |-------|--------------|-------|
 | 1. Foundation — Data, State Funnel & Undo | ALLOC-08, UX-01, UX-03, UX-04 | 4 |
-| 2. Allocation Surface | ALLOC-01…07, UX-02, UX-05 | 9 |
+| 2. Allocation Surface | ALLOC-01…07, ALLOC-09, UX-02, UX-05 | 10 |
 | 3. Advisory Projection & Reference Material | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
-| 4. Share & Reset | SHARE-01…06 | 6 |
+| 4. Share & Reset | SHARE-01…06, SHARE-08 | 7 |
 | 5. Fight Loop & Playtest | FIGHT-01…11, PROJ-05, REF-03, SHARE-07 | 14 |
 
 PROJ-05, REF-03 and SHARE-07 sit in Phase 5 rather than with their category, because each only

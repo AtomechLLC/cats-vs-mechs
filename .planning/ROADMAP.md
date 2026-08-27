@@ -59,19 +59,20 @@ Plans:
 ### Phase 2: Allocation Surface
 **Goal**: A student can build both rosters on screen — setting health and action points with steppers, adding and removing units — and the display holds up under rapid live operation
 **Depends on**: Phase 1
-**Requirements**: ALLOC-01, ALLOC-02, ALLOC-03, ALLOC-04, ALLOC-05, ALLOC-06, ALLOC-07, UX-02, UX-05
+**Requirements**: ALLOC-01, ALLOC-02, ALLOC-03, ALLOC-04, ALLOC-05, ALLOC-06, ALLOC-07, ALLOC-09, UX-02, UX-05
 **Success Criteria** (what must be TRUE):
   1. A student can set any unit's health and either faction's shared action-point pool with +/− steppers, by typing a delta (`-8`, `+5`) into the field, or with arrow keys — and the token rows reflect it immediately.
   2. Allocation reads as the board's own vocabulary — green squares for health, yellow triangles for actions, blue squares for shield, red diamonds for damage — and rows compact to a count above a readable threshold instead of overflowing the row.
   3. A student can add and remove units on either side, and the roster rebuilds without losing scroll position or the keyboard focus ring.
   4. Clicking a stepper twenty times as fast as possible produces exactly twenty changes, and press-and-hold ramps continuously — with no token animation restarting, no focus jumping, and no dropped input.
   5. Every value and label is legible on a projector at the back of a room, nothing is conveyed by hover alone, and the page reads as a sibling of `game-feel-study-guide.html` (same dark palette and design tokens).
-**Plans**: 2 plans
+**Plans**: 3 plans
 **UI hint**: yes
 
 Plans:
 - [ ] 02-01: `render.structure()` (rare, focus/scroll-preserving) + `render.sync()` keyed token reconcile + `<style>` block on the course design tokens — owns sections `render` / `style`
 - [ ] 02-02: Delegated `interactions` (steppers, press-and-hold, delta math input, arrow keys) + roster add/remove `ops` — owns sections `interactions` and the `ops` additions
+- [ ] 02-03: Token vocabulary as data + the appearance picker (ALLOC-09) — owns the token-vocabulary `data` additions and the picker UI
 
 ### Phase 3: Advisory Projection & Reference Material
 **Goal**: A student can see what their allocation implies, stated in the fight's own unit with its arithmetic exposed and its blind spots named — and can read the counter map and effect cards without leaving the build
@@ -95,7 +96,7 @@ Plans:
 ### Phase 4: Share & Reset
 **Goal**: A student can copy a build code short enough to post in the Discord thread, load a classmate's, and get back to Workshop 16 defaults without ever loading garbage silently
 **Depends on**: Phase 2 (build shape must be stable; may run in parallel with Phase 3)
-**Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04, SHARE-05, SHARE-06
+**Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04, SHARE-05, SHARE-06, SHARE-08
 **Success Criteria** (what must be TRUE):
   1. A student clicks copy and gets a build code on the clipboard; pasting that code into the load field reproduces the build exactly, unit for unit and point for point. When the browser blocks the clipboard API, a selectable field appears with the code already highlighted so the copy still happens.
   2. The code for a deliberately large roster is short enough to post as an ordinary Discord message rather than becoming an attachment, and its character count is visible next to the copy button.
