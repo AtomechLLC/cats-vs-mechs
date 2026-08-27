@@ -1,7 +1,7 @@
 ---
 phase: 02-allocation-surface
 verified: 2026-08-27T18:03:07Z
-status: human_needed
+status: passed
 score: 5/5 roadmap truths code-verified; 2 rest on unrecorded human observation
 overrides_applied: 0
 re_verification:
@@ -35,8 +35,35 @@ human_verification:
 **Phase Goal:** A student can build both rosters on screen — setting health and action points
 with steppers, adding and removing units — and the display holds up under rapid live operation
 **Verified:** 2026-08-27
-**Status:** human_needed
+**Status:** passed
 **Re-verification:** Yes — after code-review fix pass (10 atomic commits closing 11 findings)
+
+## Human Verification Outcome (recorded 2026-08-27)
+
+All five outstanding human-observation items were subsequently exercised and are recorded in
+`02-HUMAN-UAT.md` (status: complete, 5 passed / 0 issues / 0 pending).
+
+Four were closed with real-browser evidence rather than stub proofs:
+
+- **G-02-A** — twenty real browser clicks moved the value **exactly 20**, with a `commits` delta of
+  exactly 20. The hand-count criterion 4 is phrased around now exists as a number.
+- **WR-03** — a real right-click produced zero commits, no armed ramp and no error panel.
+- **WR-04** — a `repeat: false` keydown left `defaultPrevented` false while `repeat: true` keydowns
+  came back true, which is the documented mechanism that withholds the synthesised click. Measured
+  in Chrome rather than reasoned from spec.
+- **WR-07** — the picker opened as a true `:modal`; an error through the real `wrap()` boundary
+  closed it, and `elementFromPoint` proved the recovery panel was the topmost hittable element
+  rather than inert beneath the dialog's top layer. Dismiss recovered and the page kept committing.
+
+**G-02-B (projector legibility) was closed by the developer's aggregate observation** — they viewed
+the artifact on a real display and approved it — **without an itemised display, viewing distance or
+re-confirmed `--tok` value.** `--tok` remains the shipped `22px`; no change was requested. This is
+recorded as a human pass, not a measurement, and the distinction only matters if the artifact is
+later shown in a materially larger room, where `--tok` and `--tok-gap` in `[C00]` are the two
+numbers to turn.
+
+Two sub-items rode along inside that same aggregate approval rather than being reported separately:
+Chrome's middle-click autoscroll, and a physically held Enter at the OS repeat rate.
 
 ## Goal Achievement
 

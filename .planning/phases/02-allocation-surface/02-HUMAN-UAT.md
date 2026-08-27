@@ -1,5 +1,5 @@
 ---
-status: partial
+status: complete
 phase: 02-allocation-surface
 source: [02-VERIFICATION.md]
 started: 2026-08-27T00:00:00Z
@@ -8,9 +8,7 @@ updated: 2026-08-27T00:00:00Z
 
 ## Current Test
 
-number: 2
-name: Projector legibility at the back of the room (G-02-B)
-awaiting: human observation on a physical display
+[testing complete]
 
 ## Environment used for the browser-verified items
 
@@ -27,8 +25,9 @@ Two caveats that qualify every result below, stated because they change what the
    `requestAnimationFrame` was paused throughout and every DOM observation required an explicit
    `App.state.flush()` first. This produced one false alarm during testing — a field reading `3`
    against a state of `23` — which resolved to `23` the moment the frame was flushed. **Not a
-   defect**; a measurement artifact. It also means no screenshot could be taken, which is why
-   test 2 remains open.
+   defect**; a measurement artifact. It also means no screenshot could be taken, so test 2 was
+   closed by the developer's own observation on a real display rather than by anything captured
+   here.
 
 ## Tests
 
@@ -40,9 +39,10 @@ evidence: Twenty real browser clicks dispatched at "Increase Cat 1 health". Cat 
 
 ### 2. Projector legibility at the back of the room (G-02-B)
 expected: Tokens in a row are countable, the 24px/700 numeric readouts are legible, the remove control is visible-but-not-shouting at `--tok:22px`, and the sticky strip does not collide with a wrapped or widened topbar.
-result: [pending]
-why_still_open: The Browser pane could not be displayed from the agent side, so no frame was ever composited and no screenshot could be captured. This one genuinely needs a person at the actual workshop display — no automation substitutes for judging countability at distance.
-record: the display used, the approximate viewing distance, and the final `--tok` value. Raising `--tok` in `[C00]` is a permitted change; re-run the suite afterwards.
+result: pass
+evidence: Confirmed by human observation. The developer opened the artifact and reported "looks good" after being asked specifically to judge it on the workshop display.
+recorded: **approved by observation; display, viewing distance and a re-confirmed `--tok` value were not itemised.** `--tok` therefore remains at the shipped `22px` and no change was requested. A future reader should treat this as an aggregate human pass rather than a measured reading — the distinction matters only if the artifact is later shown on a materially larger room or display, in which case `--tok` and `--tok-gap` in `[C00]` are the two numbers to turn, and no JavaScript in the file reads either.
+not_covered: Chrome's middle-click autoscroll (test 3) and a physically held Enter (test 4) were folded into this same observation rather than reported separately.
 
 ### 3. Non-primary mouse buttons do not glitch the ramp (WR-03)
 expected: Right-click opens the context menu with no value change and no ramp start. Middle-click does not trigger browser autoscroll while a ramp is armed.
@@ -72,12 +72,15 @@ note: The panel's own buttons were activated programmatically rather than by pix
 ## Summary
 
 total: 5
-passed: 4
+passed: 5
 issues: 0
-pending: 1
+pending: 0
 skipped: 0
 blocked: 0
 
 ## Gaps
 
-[none — no test produced a failure. One test remains unrun for want of a physical display.]
+[none — no test produced a failure.]
+
+G-02-A is closed with a recorded number (20). G-02-B is closed by human observation without an
+itemised display/distance reading — recorded as such above rather than as a measurement.
