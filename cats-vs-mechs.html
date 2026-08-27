@@ -337,7 +337,7 @@ App.model = (function () {
  * the two can never disagree. `alive` is stored, never inferred from hp === 0.
  * Slice lifetimes: `build` round-trips through the share code and the undo
  * stack; `fight` is undo-only and never shared; `ui` is in neither.
- * deps: App.data (deepFreeze), App.serialize, App.render
+ * deps: App.data (deepFreeze), App.serialize, App.render, App.boot (wrap)
  * owner: plan 01-02
  * ======================================================= */
 // #region [S03] STATE
@@ -450,13 +450,21 @@ App.state = (function () {
 
   // Idempotent by design: a late timer firing after a manual flush() finds
   // dirty already false and does nothing, so the frame tally cannot double.
+  //
+  // The structural flag is cleared only AFTER the rebuild returns, and the
+  // order matters more than it looks. Clearing it first loses three things to
+  // one throw: this frame's rebuild, this frame's sync, and the record that a
+  // rebuild is still owed. Every later invalidate() would then take the
+  // sync-only path, so the page would stay stale against state for the rest of
+  // the session with nothing left to signal it. Leaving the flag up means the
+  // next invalidate() retries the rebuild.
   function frame() {
     if (!dirty) { return; }
     dirty = false;
     frames++;
     if (structural) {
-      structural = false;
       App.render.structure(cur);
+      structural = false;
     }
     App.render.sync(cur);
   }
@@ -465,12 +473,18 @@ App.state = (function () {
   // into a variable and calling it through that variable throws "Illegal
   // invocation" in Chrome. The timer fallback is what lets the headless runner
   // load this file with no page attached.
+  // A scheduled frame runs outside every try/catch this file owns, so it goes
+  // through the one error boundary (D-13). Otherwise a render throw reaches
+  // the browser as an uncaught error, with no panel and no recovery button.
+  // flush() calls frame() directly and stays unguarded on purpose, so the
+  // self-test sees a render throw rather than a swallowed one.
   function schedule(fn) {
+    var guarded = App.boot.wrap('Render frame', fn);
     if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(fn);
+      requestAnimationFrame(guarded);
       return;
     }
-    setTimeout(fn, 16);
+    setTimeout(guarded, 16);
   }
 
   function invalidate(opts) {
