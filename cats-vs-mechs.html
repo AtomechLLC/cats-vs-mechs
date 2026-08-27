@@ -1058,6 +1058,31 @@ App.selftest = (function () {
     suites.push({ name: name, fn: fn });
   }
 
+  // A key-order-insensitive serialiser that never renders a value as nothing.
+  // Comparing raw JSON.stringify output had two failure modes, and this is the
+  // artifact's only correctness gate, so both of them cost more here than they
+  // would anywhere else:
+  //   - {a:1,b:2} and {b:2,a:1} compared as different, so a key-order change
+  //     turned a green row red for no reason a reader could act on;
+  //   - anything that stringifies to nothing at all compared as EQUAL to
+  //     anything else that does, so a typo'd property path passed silently.
+  // The second one is the dangerous one: a gate that fails quietly is worse
+  // than no gate, because it is believed.
+  function stable(v) {
+    if (v === undefined) { return '<undefined>'; }
+    if (typeof v === 'function') { return '<function ' + (v.name || 'anonymous') + '>'; }
+    if (v === null || typeof v !== 'object') {
+      var scalar = JSON.stringify(v);
+      return scalar === undefined ? '<' + String(v) + '>' : scalar;
+    }
+    if (Array.isArray(v)) {
+      return '[' + v.map(function (item) { return stable(item); }).join(',') + ']';
+    }
+    return '{' + Object.keys(v).sort().map(function (k) {
+      return JSON.stringify(k) + ':' + stable(v[k]);
+    }).join(',') + '}';
+  }
+
   function makeAsserts(records, suiteName) {
     function push(name, pass, actual, expected) {
       records.push({
@@ -1070,7 +1095,13 @@ App.selftest = (function () {
     }
     return {
       eq: function (label, actual, expected) {
-        push(label, JSON.stringify(actual) === JSON.stringify(expected), actual, expected);
+        // An assertion where both sides are missing is not a pass, it is a
+        // question nobody asked. Say so, rather than scoring it green.
+        if (actual === undefined && expected === undefined) {
+          push(label, false, 'both sides are undefined, so this assertion proves nothing', 'a real value');
+          return;
+        }
+        push(label, stable(actual) === stable(expected), actual, expected);
       },
       ok: function (label, condition) {
         push(label, !!condition, !!condition, true);
@@ -1155,6 +1186,22 @@ App.selftest = (function () {
   }
 
   return Object.freeze({ suite: suite, run: run, report: report });
+})();
+
+/* --- [S09.0] SUITE: the assertion harness itself — owner plan 01-01 --- */
+(function () {
+  'use strict';
+
+  // Everything else in this file is believed on the harness's word, so the
+  // harness gets its own rows instead of being taken on trust.
+  App.selftest.suite('assertion harness', function (t) {
+    t.eq('key order is not a difference', { a: 1, b: 2 }, { b: 2, a: 1 });
+    t.eq('nested key order is not a difference either',
+      { fight: { turn: 'cats', round: 1 } }, { fight: { round: 1, turn: 'cats' } });
+    t.throws('throws() actually sees a throw', function () {
+      throw new Error('deliberate');
+    });
+  });
 })();
 
 /* --- [S09.1] SUITE: board defaults — owner plan 01-01 --- */
