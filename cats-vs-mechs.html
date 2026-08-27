@@ -960,6 +960,23 @@ App.ops = (function () {
   // named style, not as "Cannot read properties of undefined".
   var SIDES = ['cats', 'mechs'];
 
+  // Named bounds. `99` was a bare literal at three call sites and would have
+  // been at seven by the end of plan 02-02 — one number in seven places, quietly
+  // waiting to drift apart. [S03] exports UNDO_LIMIT for exactly this reason, so
+  // these are exported too and [S09] asserts against the constant.
+  //   MAX_ALLOC — the ceiling on every allocated quantity: health, shield and
+  //     the faction action-point pool. The floor is 0 everywhere.
+  //   MIN_UNITS — a side with no units at all is not a faction. The projection
+  //     would read zero health for a roster that simply is not there.
+  //   MAX_UNITS — the roster ceiling, and it must stay in step with
+  //     App.render.MAX_UNITS, which is the other half of the same guard: the
+  //     page disables the Add button at the cap, and this throws if anything
+  //     reaches the op regardless. A guard that lives only in the page is not a
+  //     guard. [S09.3] asserts the two agree rather than trusting this note.
+  var MAX_ALLOC = 99;
+  var MIN_UNITS = 1;
+  var MAX_UNITS = 24;
+
   function requireSide(value) {
     if (SIDES.indexOf(value) === -1) {
       throw new Error('Unknown side "' + String(value) + '"');
@@ -972,6 +989,18 @@ App.ops = (function () {
       if (collection[i].id === unitId) { return collection[i]; }
     }
     throw new Error('No unit "' + unitId + '" on side "' + side + '"');
+  }
+
+  // The delta half of the value boundary, held to the same rule as int(): test
+  // the type BEFORE any arithmetic. A stepper hands its step across as a string
+  // that [S07] converts at one call site, so a missing or misspelt data-step
+  // arrives here as NaN, and `current + NaN` would clamp to the floor and wipe a
+  // student's health rather than failing where the mistake actually is.
+  function requireDelta(delta, what) {
+    if (!Number.isInteger(delta)) {
+      throw new TypeError('Expected a whole number to step ' + what + ' by, got ' + JSON.stringify(delta));
+    }
+    return delta;
   }
 
   // Mode is derived, never stored: a null fight slice IS setup.
@@ -1009,23 +1038,171 @@ App.ops = (function () {
   function setFactionAp(side, ap) {
     requireSide(side);
     App.state.commit('ap ' + side, function (s) {
-      s.build[side].ap = int(ap, 0, 99, 'action points');
+      s.build[side].ap = int(ap, 0, MAX_ALLOC, 'action points');
     });
   }
 
   function setUnitMaxHp(side, unitId, maxHp) {
     requireSide(side);
     App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, 99, 'max health');
+      findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, MAX_ALLOC, 'max health');
     });
+  }
+
+  // The BUILD-slice shield writer — the allocation, the number a student spends
+  // while setting a faction up. It is a deliberate sibling of setUnitMaxHp for
+  // the same reason those two belong together: App.model.unitEhp is literally
+  // maxHp + shield, so an allocation surface that can edit only half of a unit's
+  // durability cannot express the asymmetry this artifact exists to teach.
+  //
+  // The fight slice carries its OWN `shield` copy and that one still has no
+  // writer at all. Phase 5, plan 05-01 owns it, and its op will need a distinct
+  // name — setFightShield — because spending a shield during a fight and
+  // allocating one during setup are different acts on different numbers. This is
+  // precisely the build/fight pairing setUnitMaxHp and setUnitHp already model.
+  function setUnitShield(side, unitId, shield) {
+    requireSide(side);
+    App.state.commit('shield ' + side + '/' + unitId, function (s) {
+      findUnit(side, unitId, s.build[side].units).shield = int(shield, 0, MAX_ALLOC, 'shield');
+    });
+  }
+
+  /* ---- the delta siblings: one step of a stepper, one press of an arrow ----
+   * Three properties are load-bearing in all three, and none of them is visible
+   * from the outside:
+   *   1. requireSide and requireDelta run OUTSIDE the commit, so a bad call
+   *      throws before the funnel is entered and leaves no phantom undo step.
+   *   2. The read and the write happen inside the SAME mutator, so they are
+   *      atomic. A 40ms press-and-hold ramp must never be able to act on a value
+   *      it read one step ago.
+   *   3. The label string is IDENTICAL to the absolute-set sibling's. That is
+   *      what D-10's 500ms window keys on, and it is the whole reason a
+   *      press-and-hold collapses into one Ctrl+Z instead of forty (UX-01).
+   * Each returns TRUE when the value moved and FALSE when it did not. That
+   * boolean is the sixth stop condition for [S07]'s hold ramp: at 40ms a step, a
+   * hold saturates against the clamp in about four seconds and would then issue
+   * roughly 25 no-op commits a second, each one a full deep clone of state.
+   * Returning a boolean rather than throwing is deliberate — App.boot.wrap turns
+   * a throw into a visible error panel, and flashing that panel on every
+   * over-press during a live demo is worse than the no-op it warns about.
+   */
+
+  function nudgeFactionAp(side, delta) {
+    requireSide(side);
+    requireDelta(delta, 'action points');
+    var moved = false;
+    App.state.commit('ap ' + side, function (s) {
+      var faction = s.build[side];
+      var next = int(faction.ap + delta, 0, MAX_ALLOC, 'action points');
+      moved = (next !== faction.ap);
+      faction.ap = next;
+    });
+    return moved;
+  }
+
+  function nudgeUnitMaxHp(side, unitId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'max health');
+    var moved = false;
+    App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
+      var unit = findUnit(side, unitId, s.build[side].units);
+      var next = int(unit.maxHp + delta, 0, MAX_ALLOC, 'max health');
+      moved = (next !== unit.maxHp);
+      unit.maxHp = next;
+    });
+    return moved;
+  }
+
+  function nudgeUnitShield(side, unitId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'shield');
+    var moved = false;
+    App.state.commit('shield ' + side + '/' + unitId, function (s) {
+      var unit = findUnit(side, unitId, s.build[side].units);
+      var next = int(unit.shield + delta, 0, MAX_ALLOC, 'shield');
+      moved = (next !== unit.shield);
+      unit.shield = next;
+    });
+    return moved;
+  }
+
+  /* ---- roster shape (ALLOC-06) ---- */
+
+  // Id allocation is not an implementation detail. data-k, focus restore and the
+  // fight slice all key on `id`, and findUnit returns the FIRST match, so a
+  // duplicate is silent in every direction at once. prefix + (length + 1)
+  // collides after any removal: take c2 out of c1,c2,c3 and the next add
+  // produces a second c3, after which findUnit edits the wrong unit and
+  // withPreservedFocus refocuses the wrong node. So: scan every existing id,
+  // take the largest suffix in use and add one. The name reuses the same suffix,
+  // so id and name stay in step after removals too.
+  function nextUnitId(side, units) {
+    var prefix = side.charAt(0);
+    var pattern = new RegExp('^' + prefix + '(\\d+)$');
+    var highest = 0;
+    units.forEach(function (unit) {
+      var m = pattern.exec(String(unit.id));
+      if (m !== null && Number(m[1]) > highest) { highest = Number(m[1]); }
+    });
+    return { id: prefix + (highest + 1), suffix: highest + 1 };
+  }
+
+  // A shape change, so the frame must be structural. commit() alone schedules a
+  // sync-only frame and the new card would never be built. The call sits OUTSIDE
+  // the commit, matching how undo(), restore() and boot.start() already spell it.
+  function addUnit(side) {
+    requireSide(side);
+    App.state.commit('add unit ' + side, function (s) {
+      var units = s.build[side].units;
+      if (units.length >= MAX_UNITS) { throw new Error('That side is full'); }
+      var last = (units.length > 0) ? units[units.length - 1] : null;
+      // The fallback is the SHIPPED default for this side, never a hardcoded 3 —
+      // that would hand a fresh Mech the Cats' health and silently teach the
+      // wrong starting point.
+      var seed = App.data.DEFAULTS[side].units[0];
+      var named = nextUnitId(side, units);
+      units.push({
+        id: named.id,
+        name: (side === 'cats' ? 'Cat ' : 'Mech ') + named.suffix,
+        maxHp: last ? last.maxHp : seed.maxHp,
+        shield: last ? last.shield : seed.shield
+      });
+    });
+    App.state.invalidate({ structural: true });
+  }
+
+  // A real removal, not a dead-marker: D-07 — marking a unit dead is fight state
+  // and a wholly separate concept, and it already has setAlive.
+  function removeUnit(side, unitId) {
+    requireSide(side);
+    App.state.commit('remove unit ' + side + '/' + unitId, function (s) {
+      var units = s.build[side].units;
+      if (units.length <= MIN_UNITS) {
+        throw new Error('That side needs at least one unit');
+      }
+      // findUnit's own message style, rather than letting an index of -1 splice
+      // the tail off and call it a success.
+      findUnit(side, unitId, units);
+      for (var i = 0; i < units.length; i++) {
+        if (units[i].id === unitId) { units.splice(i, 1); return; }
+      }
+    });
+    App.state.invalidate({ structural: true });
   }
 
   // Writes the fight slice only, and deliberately touches nothing else: zero
   // health prompts a death ruling from the table, it never auto-kills (D-00d).
+  //
+  // The clamp is deliberately still MAX_ALLOC rather than this unit's own
+  // maxHp. That looks like an oversight and is not one: capping fight health at
+  // its allocation is a FIGHT-semantics ruling — whether a heal can overshoot,
+  // whether a shield reads as temporary health — and Phase 5, plan 05-01 owns
+  // fight health. Changing it here would silently alter behaviour in a phase
+  // that has no fight surface to test it on. Left consciously, not missed.
   function setUnitHp(side, unitId, hp) {
     requireSide(side);
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, 99, 'health');
+      findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, MAX_ALLOC, 'health');
     });
   }
 
@@ -1114,6 +1291,12 @@ App.ops = (function () {
     switch (act) {
       case 'ap': return setFactionAp(p.side, p.value);
       case 'maxHp': return setUnitMaxHp(p.side, p.unitId, p.value);
+      case 'shield': return setUnitShield(p.side, p.unitId, p.value);
+      case 'nudgeAp': return nudgeFactionAp(p.side, p.delta);
+      case 'nudgeMaxHp': return nudgeUnitMaxHp(p.side, p.unitId, p.delta);
+      case 'nudgeShield': return nudgeUnitShield(p.side, p.unitId, p.delta);
+      case 'addUnit': return addUnit(p.side);
+      case 'removeUnit': return removeUnit(p.side, p.unitId);
       case 'hp': return setUnitHp(p.side, p.unitId, p.value);
       case 'alive': return setAlive(p.side, p.unitId, p.value);
       case 'startFight': return startFight();
@@ -1125,13 +1308,24 @@ App.ops = (function () {
   }
 
   // DELIBERATELY ABSENT, do not "helpfully" add them here:
-  //   - roster add and remove, and the stepper nudge — Phase 2, plan 02-02
   //   - turn and round advance, action-point spending, damage application and
   //     the fight record — Phase 5, plan 05-01
   // Each arrives with the phase that has a surface to put it on.
+  //
+  // Also deliberately absent, and for a different reason: openTokenPicker. It
+  // is not a state transformation at all — opening a dialog is nothing but page
+  // work, and this section's banner says this layer never reads or writes the
+  // page. It has a named home in [S07], which owns UI_ACTS. Adding a case for it
+  // here would break that contract in both directions at once.
   return Object.freeze({
     setFactionAp: setFactionAp,
     setUnitMaxHp: setUnitMaxHp,
+    setUnitShield: setUnitShield,
+    nudgeFactionAp: nudgeFactionAp,
+    nudgeUnitMaxHp: nudgeUnitMaxHp,
+    nudgeUnitShield: nudgeUnitShield,
+    addUnit: addUnit,
+    removeUnit: removeUnit,
     setUnitHp: setUnitHp,
     setAlive: setAlive,
     startFight: startFight,
@@ -1139,7 +1333,10 @@ App.ops = (function () {
     resetToDefaults: resetToDefaults,
     setUi: setUi,
     undo: undo,
-    dispatch: dispatch
+    dispatch: dispatch,
+    MAX_ALLOC: MAX_ALLOC,
+    MIN_UNITS: MIN_UNITS,
+    MAX_UNITS: MAX_UNITS
   });
 })();
 // #endregion [S05] OPS
@@ -1269,10 +1466,14 @@ App.render = (function () {
    * the right number out of state from the page's own keys rather than from a
    * second walk of the roster that could drift away from this one. */
 
-  // type="text" and deliberately not type="number": the field accepts a
-  // signed delta as well as an absolute value (plan 02-02), and a number
-  // input silently refuses the leading sign. Behaviour is 02-02's; this
-  // builds the nodes and the attributes it reads.
+  // The type is text, and deliberately not the number state: the field accepts
+  // a signed delta as well as an absolute value (plan 02-02), and the number
+  // state's own value sanitisation silently drops a leading plus, so `+5` reads
+  // back as the empty string. setSelectionRange throws on that state too, which
+  // would make caret restore across a rebuild impossible. Behaviour is 02-02's;
+  // this builds the nodes and the attributes it reads.
+  // (Spelling the rejected attribute out literally here would defeat the
+  // acceptance grep that keeps it from ever being reintroduced.)
   function stepper(spec) {
     var wrap = el('div', 'stp');
 
@@ -1602,15 +1803,473 @@ App.render = (function () {
  * Delegated listeners bound once to the stable container roots in the static
  * shell, plus press-and-hold repeat and keyboard handling. Translates one
  * event into exactly one App.ops.* call and nothing else — no arithmetic, no
- * direct page writes.
- * deps: App.ops
+ * numbers written onto the page. The three exceptions to that last rule are
+ * all field-local text, never a rendered value: recording what a field held on
+ * focus, putting it back on Escape, and putting it back on a refused blur.
+ * Every number on the board is written by [S06] and only by [S06], so after a
+ * field commits, this section asks for a frame rather than writing the result.
+ *
+ * It is an IIFE rather than a frozen literal because the press-and-hold ramp
+ * needs private timer state, and a timer handle is interaction state — it must
+ * never reach App.state.
+ *
+ * [S07.1] below also OWNS the four extension seams every later plan attaches
+ * to. A plan adding a dialog, a reference card or a fight control writes into
+ * UI_ACTS / UI_HANDLERS / HOLD_ACTS / LATE_BINDERS from its own [S07.N]
+ * sub-region and edits no line of [S07.1].
+ * deps: App.ops, App.state, App.boot
  * owner: Phase 2, plan 02-02
  * ============================================================== */
 // #region [S07] INTERACTIONS
-App.interactions = Object.freeze({
-  // Declared no-op until Phase 2 plan 02-02 fills it in.
-  bind: function () {}
-});
+App.interactions = (function () {
+  'use strict';
+
+  /* --- [S07.1] the delegated core — owner plan 02-02 --- */
+
+  /* ---- the four extension seams. Everything below routes through them. ---- */
+
+  // Acts this section handles ITSELF and never forwards to App.ops.dispatch.
+  // [S05] OPS's banner states that layer never reads or writes the page, and
+  // opening a dialog is nothing but page work, so a UI-only act has no legal
+  // home there. Forwarding one would also land on dispatch's
+  // `default: throw new Error('Unknown op: ' + act)` arm, which App.boot.wrap
+  // turns into the styled error panel — so a student's very first click on a
+  // button plan 02-01 already shipped would show an error.
+  //
+  // This array is the landing place for EVERY future UI-only act: Phase 3's
+  // reference cards, Phase 4's share dialog, Phase 5's fight controls. Nothing
+  // UI-only may be added to [S05] to serve a dialog.
+  var UI_ACTS = ['openTokenPicker'];
+
+  // act name -> function (btn, e). This plan registers NONE of them. Plan 02-03
+  // assigns UI_HANDLERS.openTokenPicker from its own [S07.N] sub-region, which
+  // is exactly why it needs no edit anywhere in [S07.1].
+  //
+  // An act listed in UI_ACTS with no handler registered yet is CLAIMED AND
+  // IGNORED: the press does nothing, throws nothing and opens no panel. That is
+  // deliberate rather than unfinished. Between this plan and the picker's, the
+  // button exists and the dialog does not, and a silent no-op is the only
+  // honest behaviour for that window — the alternative is an error panel on a
+  // shipped control.
+  var UI_HANDLERS = {};
+
+  // The only acts the press-and-hold ramp may run for. An allowlist, not a
+  // data-step sniff: a future act could carry a step and still not want a ramp.
+  // Without this gate the ramp starts for ANYTHING carrying data-act — hold
+  // Undo, Add or a per-unit remove for HOLD_FIRST_MS and it begins repeating at
+  // up to 25 presses a second. The sixth stop condition cannot save those,
+  // because only the nudge ops return a boolean; undo, addUnit and removeUnit
+  // return undefined, so the ramp would run until release and then throw
+  // non-terminally on the first bound it met (roster full, one unit left, empty
+  // undo stack), flashing the error panel mid-demo.
+  var HOLD_ACTS = ['nudgeAp', 'nudgeMaxHp', 'nudgeShield'];
+
+  // Extra delegated roots that live OUTSIDE #app. bind() walks this list after
+  // binding its own roots and runs each entry through the same error boundary.
+  // A later plan needing a root of its own — plan 02-03's picker dialog, Phase
+  // 4's share dialog — pushes a binder here instead of editing bind().
+  var LATE_BINDERS = [];
+
+  /* ---- the press-and-hold ramp (D-18) ---- */
+
+  // The least visible constraint in this whole section, so it is written down
+  // rather than left to be rediscovered: the largest gap between successive
+  // steps in a hold is HOLD_FIRST_MS, and App.state.COALESCE_MS is 500 — a
+  // margin of 100ms. Raise HOLD_FIRST_MS above App.state.COALESCE_MS and a
+  // single press-and-hold stops being one Ctrl+Z: it becomes one undo entry per
+  // step, which also blows the 30-deep stack in under four seconds. COALESCE_MS
+  // lives in [S03] and no Phase 2 plan owns it, so the constraint is
+  // one-directional — this number may move down, never up. [S09.5] asserts the
+  // relationship rather than trusting this paragraph.
+  var HOLD_FIRST_MS = 400;
+  var HOLD_STEP_MS = 120;
+  var HOLD_FAST_MS = 40;
+
+  // Once a hold has been running this long the ramp accelerates to
+  // HOLD_FAST_MS. Acceleration is what makes a large allocation reachable
+  // without making a small one twitchy.
+  var HOLD_FAST_AFTER_MS = 1000;
+
+  // Transient interaction state, and the reason this section is an IIFE. `run`
+  // is a closure returning the op's changed-or-not boolean, so one engine
+  // serves both the pointer and the arrow keys; `source` keys the engine so a
+  // stuck key and a stuck pointer can never both be running.
+  var hold = { source: null, run: null, timer: null, t0: 0 };
+
+  function holdDelay(elapsed) {
+    if (elapsed < HOLD_FIRST_MS) { return HOLD_FIRST_MS; }
+    if (elapsed < HOLD_FAST_AFTER_MS) { return HOLD_STEP_MS; }
+    return HOLD_FAST_MS;
+  }
+
+  // Exported read-only, so [S09.5] and the Node gate can assert that NO ramp
+  // started without sleeping past HOLD_FIRST_MS in wall-clock time. A
+  // synchronous accessor keeps that gate deterministic.
+  function holdSource() {
+    return hold.source;
+  }
+
+  function stopHold() {
+    if (hold.timer !== null) { clearTimeout(hold.timer); }
+    hold.timer = null;
+    hold.source = null;
+    hold.run = null;
+    hold.t0 = 0;
+  }
+
+  // A self-rescheduling timeout rather than a repeating one, because the period
+  // changes on every step and a repeating timer would need clearing and
+  // resetting each time anyway.
+  function scheduleHold() {
+    hold.timer = setTimeout(
+      App.boot.wrap('stepper repeat', holdTick),
+      holdDelay(Date.now() - hold.t0)
+    );
+  }
+
+  function holdTick() {
+    hold.timer = null;
+    var run = hold.run;
+    if (run === null) { stopHold(); return; }
+
+    var moved;
+    try {
+      moved = run();
+    } catch (err) {
+      // Not a second error boundary — the wrapper above is still the one that
+      // reports this. Stopping first is what keeps a throwing ramp from being
+      // left half-alive with holdSource() lying about it.
+      stopHold();
+      throw err;
+    }
+
+    // The sixth stop condition: the op reported that nothing moved, so the
+    // value is sitting on a clamp bound.
+    if (moved === false) { stopHold(); return; }
+    scheduleHold();
+  }
+
+  function startHold(source, run) {
+    stopHold();
+    hold.source = source;
+    hold.run = run;
+    hold.t0 = Date.now();
+    scheduleHold();
+  }
+
+  /* ---- routing ---- */
+
+  // Returns true when the UI layer claimed the press. The caller must then
+  // return WITHOUT capturing the pointer, without starting a ramp and without
+  // ever reaching App.ops.dispatch. Both entry points below call this first;
+  // skipping it on the keyboard path is the same bug wearing a hat, because
+  // Enter on a token-appearance button would reach dispatch and raise the panel.
+  function routeUi(btn, e) {
+    var act = btn.dataset.act;
+    if (UI_ACTS.indexOf(act) === -1) { return false; }
+    if (typeof UI_HANDLERS[act] === 'function') { UI_HANDLERS[act](btn, e); }
+    return true;
+  }
+
+  // Dispatch, not arithmetic: the read-then-add happens inside the op's own
+  // mutator. The string-to-number conversion happens here because [S05]'s int()
+  // comment assigns it to this one call site, and it stays visible rather than
+  // hiding inside the value boundary. Returns the op's boolean so the ramp can
+  // read it. dataset is re-read off the element the event actually arrived on,
+  // never cached across frames.
+  function fire(btn) {
+    var d = btn.dataset;
+    return App.ops.dispatch(d.act, {
+      side: d.side,
+      unitId: d.unit,
+      delta: Number(d.step)
+    });
+  }
+
+  /* ---- the numeric field (ALLOC-03, D-14 through D-17) ---- */
+
+  // A regex, not Number() / parseInt() / Math.trunc(), because all three fail
+  // SILENTLY: '' and '  ' become 0, '1e3' becomes 1000, '0x5' becomes 5,
+  // 'Infinity' becomes Infinity and '5.5' becomes 5.5. The empty-string case is
+  // the dangerous one — a student who selects all, presses Delete and clicks
+  // away would commit zero health. \d without the u flag is ASCII-only, which
+  // is what is wanted here. {1,3} caps at 999 and [S05]'s int() then clamps to
+  // 0..MAX_ALLOC; parse and clamp stay separate, because '-12' typed over a
+  // current 3 legitimately yields -9 and clamping is not the parser's job.
+  //
+  // int() is the backstop, not the front line. Its own refusal reads
+  // "Expected a whole number for health, got null" — because JSON.stringify(NaN)
+  // is null — and that sentence means nothing to a student reading a projector.
+  var FIELD = /^([+-]?)(\d{1,3})$/;
+
+  function parseField(raw) {
+    var typed = String(raw).trim();
+    if (typed === '') {
+      return { ok: false, why: 'that field was empty' };
+    }
+    var m = FIELD.exec(typed);
+    if (m === null) {
+      return { ok: false, why: 'type a whole number, or +5 / -8 to adjust' };
+    }
+    return {
+      ok: true,
+      kind: (m[1] === '') ? 'absolute' : 'delta',
+      n: (m[1] === '-' ? -1 : 1) * Number(m[2])
+    };
+  }
+
+  // The field's data-act names its ABSOLUTE setter; this names the delta
+  // sibling. An allowlist by construction, for the same reason [S05]'s dispatch
+  // is one: a data-act read off the page is a caller-supplied key.
+  var NUDGE_OF = { ap: 'nudgeAp', maxHp: 'nudgeMaxHp', shield: 'nudgeShield' };
+
+  function isField(el) {
+    return !!(el && el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('stp-field'));
+  }
+
+  function nudgeField(el, delta) {
+    var d = el.dataset;
+    if (!Object.prototype.hasOwnProperty.call(NUDGE_OF, d.act)) {
+      throw new Error('No step op for "' + String(d.act) + '"');
+    }
+    return App.ops.dispatch(NUDGE_OF[d.act], {
+      side: d.side, unitId: d.unit, delta: delta
+    });
+  }
+
+  // The only decision this section makes about the number a student typed: a
+  // leading sign means delta, no sign means absolute.
+  function applyField(el, parsed) {
+    if (parsed.kind === 'delta') { return nudgeField(el, parsed.n); }
+    var d = el.dataset;
+    return App.ops.dispatch(d.act, {
+      side: d.side, unitId: d.unit, value: parsed.n
+    });
+  }
+
+  function revertField(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // `loud` is Enter, which is an explicit request and earns a readable refusal.
+  // Blur is quiet: a student clicking away from a half-typed value is not an
+  // error, so the recorded text goes back and no panel opens.
+  //
+  // The value-versus-was test is not a micro-optimisation. Without it, typing
+  // "+5", pressing Enter and then clicking away applies the delta TWICE.
+  function commitField(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var parsed = parseField(el.value);
+    if (!parsed.ok) {
+      revertField(el);
+      if (loud) { throw new Error(parsed.why); }
+      return;
+    }
+    applyField(el, parsed);
+    el.dataset.was = el.value;
+  }
+
+  /* ---- ui.kbdNav, the writer [S06]'s reader has been waiting for ---- */
+
+  // Guarded on the current value in BOTH directions. An unguarded call commits
+  // once per keystroke, which is 30 undo-stack-free commits a second during
+  // ordinary typing and a full deep clone of state for each.
+  var NAV_KEYS = ['Tab', 'ArrowUp', 'ArrowDown', 'ArrowLeft', 'ArrowRight', 'Enter', ' '];
+
+  function noteKeyboard(e) {
+    if (NAV_KEYS.indexOf(e.key) === -1) { return; }
+    if (App.state.get().ui.kbdNav === true) { return; }
+    App.ops.setUi('kbdNav', true);
+  }
+
+  /* ---- the handlers ---- */
+
+  function actTarget(e) {
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return null; }
+    var btn = node.closest('[data-act]');
+    if (!btn) { return null; }
+    // A numeric field carries data-act too, and it is NOT a button. Pressing
+    // into one is focus, not an action: firing its act here would dispatch an
+    // absolute set with no value at all and raise the panel on a click that
+    // should just place a caret.
+    if (btn.tagName === 'INPUT' || btn.tagName === 'TEXTAREA') { return null; }
+    return btn;
+  }
+
+  // pointerdown, not click, and this is the whole of ALLOC-07's count half. A
+  // click fires only when the down and the up land on the same element, so any
+  // rebuild between them silently eats it — an intermittent UNDERcount, which
+  // is the trust-destroying kind. pointerdown is immune.
+  function onPointerDown(e) {
+    var btn = actTarget(e);
+    if (btn === null) { return; }
+
+    if (App.state.get().ui.kbdNav === true) { App.ops.setUi('kbdNav', false); }
+
+    // UI-only acts are claimed here — before the pointer is captured, before a
+    // ramp can start, and before App.ops.dispatch is reachable at all.
+    if (routeUi(btn, e)) { return; }
+
+    // Capture, so the matching up or cancel is guaranteed to reach this same
+    // element even after the pointer has left it.
+    //
+    // The try is not defensive noise. setPointerCapture throws NotFoundError
+    // when the id does not match a LIVE pointer, and a synthetic PointerEvent —
+    // which is exactly what [S09.5] and the Node gate dispatch — never has one.
+    // Without this, opening #selftest would raise the styled error panel on a
+    // code path that is working perfectly. Capture is an enhancement anyway:
+    // losing it costs nothing here, because the ramp still stops on pointerup,
+    // on the window losing focus and on the tab going away.
+    if (typeof btn.setPointerCapture === 'function' && e.pointerId !== undefined) {
+      try {
+        btn.setPointerCapture(e.pointerId);
+      } catch (noSuchPointer) {
+        void noSuchPointer;
+      }
+    }
+
+    fire(btn);   // step one lands immediately
+
+    if (HOLD_ACTS.indexOf(btn.dataset.act) !== -1) {
+      startHold('pointer', function () { return fire(btn); });
+    }
+  }
+
+  function onClick(e) {
+    // Keyboard activation ONLY. A keyboard-activated click presents with
+    // detail 0, because detail is the click count and there was no click. A
+    // mouse click carries detail >= 1 and was already served by pointerdown
+    // above; running here as well DOUBLES every press — measured, one physical
+    // click with both handlers live produced two commits. The line looks like a
+    // spurious guard, which is exactly why deleting it is the single most
+    // likely way ALLOC-07 breaks, and it fails upward, which a casual test
+    // misses because "at least twenty" still passes.
+    if (e.detail !== 0) { return; }
+
+    var btn = actTarget(e);
+    if (btn === null) { return; }
+    if (routeUi(btn, e)) { return; }
+    fire(btn);
+  }
+
+  function onKeyDown(e) {
+    noteKeyboard(e);
+
+    var el = e.target;
+    if (!isField(el)) { return; }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitField(el, true);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      revertField(el);
+      return;
+    }
+
+    if (e.key === 'ArrowUp' || e.key === 'ArrowDown') {
+      // Always, including on a repeat, or the page scrolls under the student.
+      e.preventDefault();
+
+      // D-17, read literally. The OS key-repeat rate is neither HOLD_FIRST_MS
+      // nor HOLD_FAST_MS and differs per machine, so accepting it would make
+      // "held arrows use the same ramp as press-and-hold" false. Every repeat
+      // event is dropped and the ramp engine below supplies the rate instead.
+      if (e.repeat === true) { return; }
+
+      var step = (e.shiftKey ? 5 : 1) * (e.key === 'ArrowUp' ? 1 : -1);
+      nudgeField(el, step);
+      startHold('key', function () { return nudgeField(el, step); });
+    }
+  }
+
+  function onKeyUp(e) {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown') { return; }
+    if (hold.source === 'key') { stopHold(); }
+  }
+
+  // focusin / focusout rather than focus / blur: only the first pair bubbles,
+  // and a delegated root is the only arrangement that survives a rebuild.
+  function onFocusIn(e) {
+    var el = e.target;
+    if (!isField(el)) { return; }
+    el.dataset.was = el.value;
+    if (typeof el.select === 'function') { el.select(); }
+  }
+
+  function onFocusOut(e) {
+    var el = e.target;
+    if (!isField(el)) { return; }
+    if (hold.source === 'key') { stopHold(); }
+    commitField(el, false);
+
+    // The committed number is never written here. [S06] owns every value on the
+    // board, and it skips the focused field on purpose (D-19), so leaving the
+    // field is the moment a frame is owed: sync() then writes the real number
+    // over whatever "+5" the student left behind.
+    App.state.invalidate();
+  }
+
+  /* ---- one listener per event type, on roots that outlive every rebuild ---- */
+
+  function bind() {
+    if (typeof document === 'undefined') { return; }
+
+    // #app and #board are static markup and survive every structural rebuild;
+    // per-node listeners would not. #topbar lives inside #app, so the Undo
+    // button and the four token-appearance buttons need no separate binding.
+    var root = document.getElementById('app');
+    if (!root) { return; }
+
+    root.addEventListener('pointerdown', App.boot.wrap('board press', onPointerDown));
+    root.addEventListener('click', App.boot.wrap('board key-press', onClick));
+    root.addEventListener('keydown', App.boot.wrap('board keydown', onKeyDown));
+    root.addEventListener('keyup', App.boot.wrap('board keyup', onKeyUp));
+    root.addEventListener('focusin', App.boot.wrap('field focus', onFocusIn));
+    root.addEventListener('focusout', App.boot.wrap('field blur', onFocusOut));
+
+    // Stop conditions one through five. Missing the cancel and lost-capture
+    // pair is the classic press-and-hold bug: a hold that leaves the window
+    // never stops, and the first thing the student sees is health pinned at the
+    // ceiling. The sixth condition lives in holdTick above.
+    ['pointerup', 'pointercancel', 'lostpointercapture'].forEach(function (type) {
+      root.addEventListener(type, App.boot.wrap('press release', stopHold));
+    });
+    if (typeof window !== 'undefined') {
+      window.addEventListener('blur', App.boot.wrap('press release', stopHold));
+    }
+    document.addEventListener('visibilitychange', App.boot.wrap('press release', stopHold));
+
+    // The seam. bind() walks the list and runs each entry through the same
+    // boundary its own listeners use, so a later plan's root is bound exactly
+    // once, at exactly the same moment, without editing a line above.
+    LATE_BINDERS.forEach(function (binder) {
+      App.boot.wrap('late binder', binder)();
+    });
+  }
+
+  /* --- [S07.N] sub-regions land HERE, above the return: a later plan appends
+         its own block, pushes into UI_ACTS / HOLD_ACTS / LATE_BINDERS and
+         assigns into UI_HANDLERS, and edits nothing in [S07.1]. The frozen
+         copies below are taken at that point on purpose, so they describe the
+         seams as they finally are. --- */
+
+  return Object.freeze({
+    bind: bind,
+    holdSource: holdSource,
+    UI_ACTS: Object.freeze(UI_ACTS.slice()),
+    HOLD_ACTS: Object.freeze(HOLD_ACTS.slice()),
+    HOLD_FIRST_MS: HOLD_FIRST_MS,
+    HOLD_STEP_MS: HOLD_STEP_MS,
+    HOLD_FAST_MS: HOLD_FAST_MS,
+    HOLD_FAST_AFTER_MS: HOLD_FAST_AFTER_MS
+  });
+})();
 // #endregion [S07] INTERACTIONS
 
 /* ===================== [S08] BOOT =====================
@@ -2322,6 +2981,120 @@ App.selftest = (function () {
     t.ok('100 commits all landed', App.state.get().build.cats.ap === 4);
     t.info('100 commits took ' + elapsed + ' ms', elapsed);
 
+    /* --- plan 02-02: the delta transformers, the roster ops and the
+           build-side shield writer. Everything here reads the roster back out
+           of state rather than assuming an index, because the rows above have
+           already moved the board around a good deal. --- */
+
+    function buildUnit(side, id) {
+      return App.state.get().build[side].units.filter(function (u) {
+        return u.id === id;
+      })[0];
+    }
+
+    function catIds() {
+      return App.state.get().build.cats.units.map(function (u) { return u.id; });
+    }
+
+    t.eq('the roster ceiling is one number, not two',
+      App.ops.MAX_UNITS, App.render.MAX_UNITS);
+
+    if (App.state.get().fight !== null) { App.ops.endFight(); }
+
+    App.ops.setUnitMaxHp('cats', 'c1', App.ops.MAX_ALLOC);
+    t.eq('a nudge at the ceiling reports that nothing moved',
+      App.ops.nudgeUnitMaxHp('cats', 'c1', 1), false);
+    t.eq('the refused nudge left the value on the ceiling',
+      buildUnit('cats', 'c1').maxHp, App.ops.MAX_ALLOC);
+
+    App.ops.setUnitMaxHp('cats', 'c1', 1);
+    t.eq('a nudge past zero clamps at zero rather than going negative',
+      App.ops.nudgeUnitMaxHp('cats', 'c1', -9), true);
+    t.eq('the clamped nudge landed on zero', buildUnit('cats', 'c1').maxHp, 0);
+    t.eq('the next nudge down reports that nothing moved',
+      App.ops.nudgeUnitMaxHp('cats', 'c1', -1), false);
+
+    /* --- the same label as the absolute setter, so a whole press-and-hold is
+           one Ctrl+Z. Two pieces of setup are load-bearing and both were found
+           the hard way: the stack is hard-capped at UNDO_LIMIT and the rows
+           above have already filled it, so a push that also shifts reads as a
+           depth delta of zero and the coalescing question never gets asked —
+           hence the rewind. And the differently-labelled commit immediately
+           before the burst is what closes the previous window, exactly as the
+           burst rows above do. --- */
+    var rewound = 0;
+    while (App.state.undo()) {
+      rewound++;
+      if (rewound > 500) { break; }
+    }
+
+    App.ops.setUnitMaxHp('cats', 'c1', 0);
+    App.ops.setFactionAp('cats', 6);
+    var depthN = App.state.undoDepth();
+    for (i = 0; i < 40; i++) { App.ops.nudgeUnitMaxHp('cats', 'c1', 1); }
+    t.eq('forty nudges coalesce to one undo entry', App.state.undoDepth() - depthN, 1);
+    t.eq('and every one of the forty landed', buildUnit('cats', 'c1').maxHp, 40);
+    App.state.undo();
+    t.eq('one undo takes the whole ramp back', buildUnit('cats', 'c1').maxHp, 0);
+
+    t.throws('a fractional step is refused', function () {
+      App.ops.nudgeFactionAp('cats', 1.5);
+    });
+    t.throws('a numeric string step is refused', function () {
+      App.ops.nudgeUnitMaxHp('cats', 'c1', '1');
+    });
+    t.throws('a NaN step is refused', function () {
+      App.ops.nudgeUnitShield('cats', 'c1', NaN);
+    });
+    t.eq('a refused step left the value alone', buildUnit('cats', 'c1').maxHp, 0);
+
+    /* --- shield is a BUILD write. Phase 5 owns the fight slice's own copy. --- */
+    App.ops.setUnitShield('mechs', 'm1', 7);
+    t.eq('setUnitShield writes the build slice', buildUnit('mechs', 'm1').shield, 7);
+    App.ops.startFight();
+    var fightShield = App.state.get().fight.mechs.units[0].shield;
+    App.ops.setUnitShield('mechs', 'm1', 2);
+    t.eq('the build shield moved', buildUnit('mechs', 'm1').shield, 2);
+    t.eq('and the fight slice was left for Phase 5',
+      App.state.get().fight.mechs.units[0].shield, fightShield);
+    App.ops.endFight();
+
+    /* --- roster shape, and the id-collision gate. c2 is removed from the
+           middle deliberately: prefix + (length + 1) would hand the next add a
+           second c3, and findUnit's first-match loop would then silently edit
+           the wrong unit forever after. --- */
+    var len0 = catIds().length;
+    App.ops.addUnit('cats');
+    t.eq('addUnit grows the roster by one', catIds().length, len0 + 1);
+    App.ops.removeUnit('cats', 'c2');
+    t.eq('removeUnit takes the named unit out', catIds().indexOf('c2'), -1);
+    App.ops.addUnit('cats');
+    var ids = catIds();
+    var unique = ids.filter(function (id, n) { return ids.indexOf(id) === n; });
+    t.eq('add, remove and add returns the roster to one longer', ids.length, len0 + 1);
+    t.eq('unit ids survive an add-remove-add cycle without colliding',
+      unique.length, ids.length);
+
+    /* --- both bounds throw, and both leave the roster untouched --- */
+    var toDrain = catIds();
+    for (i = 0; i < toDrain.length - 1; i++) { App.ops.removeUnit('cats', toDrain[i]); }
+    t.eq('a side can be drained to its floor', catIds().length, App.ops.MIN_UNITS);
+    t.throws('removeUnit refuses to empty a side', function () {
+      App.ops.removeUnit('cats', catIds()[0]);
+    });
+    t.eq('the refused removal left the roster alone', catIds().length, App.ops.MIN_UNITS);
+
+    while (catIds().length < App.ops.MAX_UNITS) { App.ops.addUnit('cats'); }
+    t.eq('a side can be filled to its ceiling', catIds().length, App.ops.MAX_UNITS);
+    t.throws('addUnit refuses to pass the ceiling', function () {
+      App.ops.addUnit('cats');
+    });
+    t.eq('the refused add left the roster alone', catIds().length, App.ops.MAX_UNITS);
+    var filled = catIds();
+    t.eq('a full roster still holds no duplicate id',
+      filled.filter(function (id, n) { return filled.indexOf(id) === n; }).length,
+      App.ops.MAX_UNITS);
+
     /* --- hand the board back exactly as the suite found it, then prove it.
            This is the last act on purpose: everything above is allowed to be
            destructive precisely because this line is here. --- */
@@ -2383,6 +3156,105 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the render suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.5] SUITE: interaction contract — owner plan 02-02 --- */
+(function () {
+  'use strict';
+
+  function pointerEvent(type) {
+    if (typeof PointerEvent === 'function') {
+      return new PointerEvent(type, { bubbles: true, pointerId: 1 });
+    }
+    return new MouseEvent(type, { bubbles: true });
+  }
+
+  App.selftest.suite('interaction contract', function (t) {
+    /* --- three facts about the seams that need no page at all, so they run in
+           the terminal harness too. Placed above the DOM gate on purpose. --- */
+    t.ok('the hold ramp stays inside the undo coalescing window',
+      App.interactions.HOLD_FIRST_MS < App.state.COALESCE_MS);
+    t.ok('the token-appearance act is claimed by the UI layer, never by [S05]',
+      App.interactions.UI_ACTS.indexOf('openTokenPicker') !== -1);
+    t.ok('undo is not a hold act, so holding it fires exactly once',
+      App.interactions.HOLD_ACTS.indexOf('undo') === -1);
+
+    // Everything below needs a page, and tests/selftest-node.cjs already drives
+    // the same wiring against a stub page in its own section 5. A browser run
+    // gains the real coverage; a terminal run says so and stops.
+    if (typeof document === 'undefined') {
+      t.info('interactions', 'skipped — no DOM');
+      return;
+    }
+
+    var savedAll = JSON.stringify(App.state.get());
+    App.render.structure(App.state.get());
+    App.render.sync(App.state.get());
+
+    var plus = document.querySelector('[data-act="nudgeMaxHp"][data-step="1"]');
+    if (plus === null) {
+      t.ok('the board carries the controls this suite drives', false);
+      App.state.restore(savedAll);
+      return;
+    }
+
+    function press(node) { node.dispatchEvent(pointerEvent('pointerdown')); }
+    function release(node) { node.dispatchEvent(pointerEvent('pointerup')); }
+    function clickAt(node, detail) {
+      node.dispatchEvent(new MouseEvent('click', { bubbles: true, detail: detail }));
+    }
+
+    // A live kbdNav would add a ui commit to the first press and make the
+    // counts below read one high for a reason that is not the bug they hunt.
+    if (App.state.get().ui.kbdNav === true) { App.ops.setUi('kbdNav', false); }
+
+    /* --- the anti-double-fire gate. A press releases every time, or the ramp
+           keeps firing after the suite has finished. --- */
+    App.ops.setFactionAp('cats', 4);
+    var before = App.state.stats().commits;
+    press(plus);
+    clickAt(plus, 1);
+    release(plus);
+    t.eq('a pointerdown plus a mouse click is exactly one commit, not two',
+      App.state.stats().commits - before, 1);
+
+    before = App.state.stats().commits;
+    clickAt(plus, 0);
+    t.eq('a keyboard click on its own is still exactly one commit',
+      App.state.stats().commits - before, 1);
+
+    /* --- the UI-act seam, both halves --- */
+    var title = document.getElementById('err-title');
+    var message = document.getElementById('err-message');
+    var panel = document.getElementById('err-panel');
+    var tok = document.querySelector('[data-act="openTokenPicker"]');
+
+    before = App.state.stats().commits;
+    if (tok !== null) { press(tok); release(tok); }
+    t.eq('a token-appearance press reaches no op at all',
+      App.state.stats().commits - before, 0);
+    t.ok('and it opened no error panel',
+      tok !== null && title.textContent === '' && panel.hidden === true);
+
+    var rogue = document.createElement('button');
+    rogue.type = 'button';
+    rogue.textContent = '';
+    rogue.dataset.act = 'notAnOp';
+    document.getElementById('topbar').appendChild(rogue);
+    press(rogue);
+    release(rogue);
+    t.ok('but an act no layer claims still surfaces the styled panel',
+      title.textContent !== '' && message.textContent.indexOf('Unknown op') !== -1);
+    rogue.remove();
+    title.textContent = '';
+    message.textContent = '';
+    panel.hidden = true;
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the interaction suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
