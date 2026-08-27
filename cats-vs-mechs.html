@@ -306,8 +306,13 @@ App.model = (function () {
     return fightSide.units.reduce(function (n, u) { return u.alive === true ? n + 1 : n; }, 0);
   }
 
+  // Floored, because build and fight are independent slices by design and
+  // nothing stops a student lowering the build pool while a fight is running.
+  // The raw subtraction then reads "AP spent: -2" on a projector. The
+  // derivation owns the meaning of this number, so it is the only place that
+  // can hold the floor.
   function apSpent(buildFaction, fightSide) {
-    return buildFaction.ap - fightSide.ap;
+    return Math.max(0, buildFaction.ap - fightSide.ap);
   }
 
   return Object.freeze({
@@ -1234,6 +1239,8 @@ App.selftest = (function () {
     t.eq('alive is read, not inferred', App.model.aliveCount(side), 1);
 
     t.eq('apSpent', App.model.apSpent({ ap: 3 }, { ap: 1 }), 2);
+    // Lowering the build pool mid-fight is legal; a negative readout is not.
+    t.eq('apSpent never goes negative', App.model.apSpent({ ap: 1 }, { ap: 3 }), 0);
 
     t.ok('all derivations return integers', [
       App.model.unitEhp(d.cats.units[0]),
