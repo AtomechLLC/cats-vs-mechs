@@ -1005,6 +1005,38 @@ check(
 rogue2.remove();
 clearPanel();
 
+/* --- 25. a numeric field whose data-act drifted. The delta direction was
+       always allowlisted; the absolute direction passed el.dataset.act straight
+       into App.ops.dispatch, so a field carrying act="alive" reached setAlive
+       and surfaced its "No fight in progress" instead of failing at the page
+       boundary where the mistake actually is. The message is the discriminator
+       here: both spellings raise the panel, and only one of them names the
+       real fault. undoDepth rather than commits, because the keydown itself
+       legitimately flips ui.kbdNav through commitUi. --- */
+const rogueField = stub.createElement('input');
+rogueField.className = 'stp-field num';
+rogueField.dataset.k = 'cats/c1/rogue';
+rogueField.dataset.act = 'alive';
+rogueField.dataset.amt = 'hp';
+rogueField.dataset.side = 'cats';
+rogueField.dataset.unit = 'c1';
+rogueField.dataset.was = '';
+rogueField.value = '1';
+dom.byId['col-cats'].appendChild(rogueField);
+const depthBeforeRogueField = A.state.undoDepth();
+rogueField.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+const rogueFieldDepth = A.state.undoDepth() - depthBeforeRogueField;
+check(
+  '25. a field whose data-act is not one a field may drive is refused at the '
+    + 'page boundary, not forwarded to whatever op it names',
+  rogueFieldDepth === 0 && errPanel.hidden === false
+    && errMessage.textContent.indexOf('No set op for "alive"') !== -1,
+  'undoDepth delta=' + rogueFieldDepth
+    + ' message=' + JSON.stringify(errMessage.textContent)
+);
+rogueField.remove();
+clearPanel();
+
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
 check(
   '8. the hold ramp stays inside the undo coalescing window',

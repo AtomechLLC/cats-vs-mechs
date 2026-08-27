@@ -2485,16 +2485,35 @@ App.interactions = (function () {
     };
   }
 
-  // The field's data-act names its ABSOLUTE setter; this names the delta
-  // sibling. An allowlist by construction, for the same reason [S05]'s dispatch
-  // is one: a data-act read off the page is a caller-supplied key.
-  var NUDGE_OF = { ap: 'nudgeAp', maxHp: 'nudgeMaxHp', shield: 'nudgeShield' };
+  // The three acts a numeric field is ALLOWED to carry, and everything each one
+  // implies: the absolute setter, its delta sibling, and the [S06] amount key
+  // that reads the same quantity back out of state. One table, read in all
+  // three directions, so the field cannot be allowed to do one of them and
+  // refused the others.
+  //
+  // An allowlist by construction, for the same reason [S05]'s dispatch is one:
+  // a data-act read off the page is a caller-supplied key. The delta direction
+  // was already spelled this way; the absolute direction was not — it passed
+  // el.dataset.act straight into App.ops.dispatch. That is bounded to real ops
+  // by dispatch's own default: throw, but bounded to ALL of them rather than to
+  // the three a field may drive, so a field whose act drifted (a Phase 5
+  // fight-health field, a typo in a later builder) would have fired alive,
+  // reset, startFight, removeUnit or undo on blur instead of failing at the
+  // page boundary where the mistake is. A guard that runs in only one
+  // direction is not a guard.
+  var FIELD_OPS = {
+    ap:     { set: 'ap',     nudge: 'nudgeAp',    amt: 'ap' },
+    maxHp:  { set: 'maxHp',  nudge: 'nudgeMaxHp', amt: 'hp' },
+    shield: { set: 'shield', nudge: 'nudgeShield', amt: 'shield' }
+  };
 
-  // And the [S06] amount key that reads the same quantity back out of state.
-  // Keyed on the act rather than read from data-amt for the same reason
-  // NUDGE_OF is: a key read off the page is caller-supplied, and this one
-  // decides which number gets painted into the field.
-  var AMT_OF = { ap: 'ap', maxHp: 'hp', shield: 'shield' };
+  function fieldOp(el, which) {
+    var act = el.dataset.act;
+    if (!Object.prototype.hasOwnProperty.call(FIELD_OPS, act)) {
+      throw new Error('No ' + which + ' op for "' + String(act) + '"');
+    }
+    return FIELD_OPS[act][which];
+  }
 
   function isField(el) {
     return !!(el && el.classList && typeof el.classList.contains === 'function'
@@ -2517,8 +2536,10 @@ App.interactions = (function () {
   // disagreement this file keeps refusing to introduce.
   function showFieldValue(el) {
     var d = el.dataset;
-    if (!Object.prototype.hasOwnProperty.call(AMT_OF, d.act)) { return; }
-    el.value = String(App.render.amountFor(App.state.get(), AMT_OF[d.act], d.side, d.unit));
+    if (!Object.prototype.hasOwnProperty.call(FIELD_OPS, d.act)) { return; }
+    el.value = String(
+      App.render.amountFor(App.state.get(), FIELD_OPS[d.act].amt, d.side, d.unit)
+    );
 
     // dataset.was is what commitField compares against and what Escape puts
     // back, so it moves with the displayed text or both of them start lying.
@@ -2528,11 +2549,9 @@ App.interactions = (function () {
   }
 
   function nudgeField(el, delta) {
+    var op = fieldOp(el, 'nudge');
     var d = el.dataset;
-    if (!Object.prototype.hasOwnProperty.call(NUDGE_OF, d.act)) {
-      throw new Error('No step op for "' + String(d.act) + '"');
-    }
-    var moved = App.ops.dispatch(NUDGE_OF[d.act], {
+    var moved = App.ops.dispatch(op, {
       side: d.side, unitId: d.unit, delta: delta
     });
     showFieldValue(el);
@@ -2540,11 +2559,13 @@ App.interactions = (function () {
   }
 
   // The only decision this section makes about the number a student typed: a
-  // leading sign means delta, no sign means absolute.
+  // leading sign means delta, no sign means absolute. Both halves now name
+  // their op through the same table, so neither can reach past it.
   function applyField(el, parsed) {
     if (parsed.kind === 'delta') { return nudgeField(el, parsed.n); }
+    var op = fieldOp(el, 'set');
     var d = el.dataset;
-    return App.ops.dispatch(d.act, {
+    return App.ops.dispatch(op, {
       side: d.side, unitId: d.unit, value: parsed.n
     });
   }
