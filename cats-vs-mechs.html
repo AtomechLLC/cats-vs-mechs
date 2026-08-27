@@ -2009,6 +2009,12 @@ App.render = (function () {
     while (row.children.length < n) { row.appendChild(makeToken(style, animate)); }
   }
 
+  // The one extension seam [S06] declares. A sub-region that paints a page
+  // region outside #board pushes its own per-frame reconcile here; sync() walks
+  // the list as its last act, so every region this file owns is repainted by
+  // one frame rather than by whichever handler happened to touch it last.
+  var SYNC_HOOKS = [];
+
   function sync(state) {
     if (typeof document === 'undefined') { return; }
 
@@ -2041,6 +2047,19 @@ App.render = (function () {
         styleFor(state, rows[i].dataset.amt)
       );
     }
+
+    // The seam, and the reason it is a seam rather than a named call: #board is
+    // not the only region this file paints, and a sub-region that owns a page
+    // region of its own must be reconciled by the SAME frame as the board or it
+    // drifts. [S06.2]'s picker did drift — nothing repainted it on an arbitrary
+    // commit, so Ctrl+Z with focus inside the open dialog (which reaches
+    // App.ops.undo, because [S08]'s listener only steps aside for INPUT,
+    // TEXTAREA and contentEditable, and a swatch is a <button>) took the board
+    // back and left the dialog still marking the undone value as live.
+    //
+    // Spelled as a list so [S06.1] does not have to know what a picker is, in
+    // the same shape and for the same reason as [S07.1]'s LATE_BINDERS.
+    SYNC_HOOKS.forEach(function (hook) { hook(state); });
   }
 
   /* ===================== [S06.2] RENDER — PICKER =====================
@@ -2174,6 +2193,29 @@ App.render = (function () {
 
     dlg.dataset.sig = sig;
   }
+
+  // The per-frame half, attached to [S06.1]'s seam. picker() used to run only
+  // from [S07.2]'s own two handlers, so any OTHER commit left the dialog's
+  // selection marks asserting a value the board no longer held — reproduced by
+  // opening the Health picker, choosing Triangle, and pressing Ctrl+Z: state
+  // and board went back to the square, the dialog kept the outline and the tick
+  // on Triangle. It self-healed on close-and-reopen, which is to say it was
+  // wrong for exactly as long as the student was using the surface.
+  //
+  // Which type is open is read back out of the signature picker() itself wrote,
+  // rather than reaching across into [S07.2]'s private variable: [S06] owns
+  // that string, so this stays one tier reading its own bookkeeping. The id is
+  // checked against the allowlist before it is used, and picker()'s own sig
+  // comparison keeps a repaint that changes nothing free.
+  function syncPicker(state) {
+    var dlg = document.getElementById('tok-picker');
+    if (!dlg || dlg.open !== true) { return; }
+    var id = String(dlg.dataset.sig || '').split('/')[0];
+    if (App.data.TOKEN_IDS.indexOf(id) === -1) { return; }
+    picker(state, id);
+  }
+
+  SYNC_HOOKS.push(syncPicker);
   // #endregion [S06.2] RENDER — PICKER
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The

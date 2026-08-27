@@ -868,6 +868,25 @@ check(
     + '), board token className=' + JSON.stringify(boardClass)
 );
 
+/* --- 23. a commit that did NOT come from the picker's own handlers. Ctrl+Z
+       reaches App.ops.undo() from inside the open dialog, because [S08]'s
+       listener only steps aside for INPUT / TEXTAREA / contentEditable and a
+       swatch is a <button>. Nothing repainted the dialog on that commit, so it
+       went on marking the undone value as live. --- */
+A.ops.undo();
+A.state.flush();
+const shapeUndone = A.state.get().build.tokens.hp.shape;
+const markedOn = dlg.querySelectorAll('[data-act="setTokenStyle"][data-shape]')
+  .filter((n) => String(n.className).indexOf('pk-sw--on') !== -1)
+  .map((n) => n.dataset.shape);
+check(
+  '23. an undo taken while the picker is open repaints its selection marks',
+  shapeUndone === shapeBefore && String(markedOn) === shapeUndone
+    && String(dlg.dataset.sig).indexOf('hp/' + shapeUndone + '/') === 0,
+  'state shape=' + shapeUndone + ' (wanted ' + shapeBefore + '), swatches marked live='
+    + JSON.stringify(markedOn) + ', dialog sig=' + JSON.stringify(dlg.dataset.sig)
+);
+
 /* --- 21. the same non-primary rule on the picker's own root, while the dialog
        is still open. The swatch is re-queried rather than reused: check 18's
        restyle repainted all three grids, so the node pressed there is detached
