@@ -1,0 +1,73 @@
+# Project State
+
+## Project Reference
+
+See: .planning/PROJECT.md (updated 2026-08-26)
+
+**Core value:** A student builds two factions that look nothing alike and discovers they can still be balanced — and discovers it by playing, not by being told a number.
+**Current focus:** Phase 1 — Foundation: Data, State Funnel & Undo
+
+## Current Position
+
+Phase: 1 of 5 (Foundation — Data, State Funnel & Undo)
+Plan: 0 of 2 in current phase
+Status: Ready to plan
+Last activity: 2026-08-26 — Roadmap created; 40/40 v1 requirements mapped across 5 phases
+
+Progress: [░░░░░░░░░░] 0%
+
+## Performance Metrics
+
+**Velocity:**
+- Total plans completed: 0
+- Average duration: —
+- Total execution time: —
+
+**By Phase:**
+
+| Phase | Plans | Total | Avg/Plan |
+|-------|-------|-------|----------|
+| - | - | - | - |
+
+**Recent Trend:**
+- Last 5 plans: —
+- Trend: —
+
+*Updated after each plan completion*
+
+## Accumulated Context
+
+### Decisions
+
+Decisions are logged in PROJECT.md Key Decisions table.
+Recent decisions affecting current work:
+
+- [Roadmap]: Five converged Phase-1 architecture decisions are treated as near-binding — single `commit()` mutation funnel, integers-only JSON-clonable state split into `build`/`fight`/`ui`, two-tier render, snapshot undo, `alive` as a flag separate from `hp`.
+- [Roadmap]: Two ordering rules honored — steppers ship in the same phase as roster add/remove (Phase 2); serialization comes after roster editing settles the build shape (Phase 4).
+- [Roadmap]: PROJ-05, REF-03 and SHARE-07 pulled into Phase 5 because their observable behaviour requires the fight view to exist.
+- [Roadmap]: FIGHT-11 is a scheduled playtest activity (plan 05-03), gating Phase 5 — not a code-review item.
+- [Research]: Sharing is a compact build code, not a `file://` URL (leaks the student's home directory path, useless to recipients, not linkified by Discord).
+
+### Pending Todos
+
+None yet.
+
+### Blockers/Concerns
+
+- **The no-verdict constraint (PROJ-06) is the most likely accidental scope violation in the project.** Every phase that touches the projection carries an explicit no-verdict success criterion. Watch for it re-entering as a colour, a bar, or a word.
+- **Single file, parallel plans.** All code lands in one HTML file. Plans inside a phase must own disjoint named sections (`data / model / state / serialize / ops / render / interactions / boot / selftest`) or run sequentially.
+- **Phase 4 needs a cross-browser test matrix**, not a smoke test — clipboard, encoding and hash failures are all silent.
+
+## Deferred Items
+
+Items acknowledged and carried forward from previous milestone close:
+
+| Category | Item | Status | Deferred At |
+|----------|------|--------|-------------|
+| *(none)* | | | |
+
+## Session Continuity
+
+Last session: 2026-08-26
+Stopped at: ROADMAP.md and STATE.md written; REQUIREMENTS.md traceability updated
+Resume file: None

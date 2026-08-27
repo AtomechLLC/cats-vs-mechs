@@ -115,52 +115,63 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ALLOC-01 | TBD | Pending |
-| ALLOC-02 | TBD | Pending |
-| ALLOC-03 | TBD | Pending |
-| ALLOC-04 | TBD | Pending |
-| ALLOC-05 | TBD | Pending |
-| ALLOC-06 | TBD | Pending |
-| ALLOC-07 | TBD | Pending |
-| ALLOC-08 | TBD | Pending |
-| FIGHT-01 | TBD | Pending |
-| FIGHT-02 | TBD | Pending |
-| FIGHT-03 | TBD | Pending |
-| FIGHT-04 | TBD | Pending |
-| FIGHT-05 | TBD | Pending |
-| FIGHT-06 | TBD | Pending |
-| FIGHT-07 | TBD | Pending |
-| FIGHT-08 | TBD | Pending |
-| FIGHT-09 | TBD | Pending |
-| FIGHT-10 | TBD | Pending |
-| FIGHT-11 | TBD | Pending |
-| PROJ-01 | TBD | Pending |
-| PROJ-02 | TBD | Pending |
-| PROJ-03 | TBD | Pending |
-| PROJ-04 | TBD | Pending |
-| PROJ-05 | TBD | Pending |
-| PROJ-06 | TBD | Pending |
-| REF-01 | TBD | Pending |
-| REF-02 | TBD | Pending |
-| REF-03 | TBD | Pending |
-| SHARE-01 | TBD | Pending |
-| SHARE-02 | TBD | Pending |
-| SHARE-03 | TBD | Pending |
-| SHARE-04 | TBD | Pending |
-| SHARE-05 | TBD | Pending |
-| SHARE-06 | TBD | Pending |
-| SHARE-07 | TBD | Pending |
-| UX-01 | TBD | Pending |
-| UX-02 | TBD | Pending |
-| UX-03 | TBD | Pending |
-| UX-04 | TBD | Pending |
-| UX-05 | TBD | Pending |
+| ALLOC-01 | Phase 2 | Pending |
+| ALLOC-02 | Phase 2 | Pending |
+| ALLOC-03 | Phase 2 | Pending |
+| ALLOC-04 | Phase 2 | Pending |
+| ALLOC-05 | Phase 2 | Pending |
+| ALLOC-06 | Phase 2 | Pending |
+| ALLOC-07 | Phase 2 | Pending |
+| ALLOC-08 | Phase 1 | Pending |
+| FIGHT-01 | Phase 5 | Pending |
+| FIGHT-02 | Phase 5 | Pending |
+| FIGHT-03 | Phase 5 | Pending |
+| FIGHT-04 | Phase 5 | Pending |
+| FIGHT-05 | Phase 5 | Pending |
+| FIGHT-06 | Phase 5 | Pending |
+| FIGHT-07 | Phase 5 | Pending |
+| FIGHT-08 | Phase 5 | Pending |
+| FIGHT-09 | Phase 5 | Pending |
+| FIGHT-10 | Phase 5 | Pending |
+| FIGHT-11 | Phase 5 | Pending |
+| PROJ-01 | Phase 3 | Pending |
+| PROJ-02 | Phase 3 | Pending |
+| PROJ-03 | Phase 3 | Pending |
+| PROJ-04 | Phase 3 | Pending |
+| PROJ-05 | Phase 5 | Pending |
+| PROJ-06 | Phase 3 | Pending |
+| REF-01 | Phase 3 | Pending |
+| REF-02 | Phase 3 | Pending |
+| REF-03 | Phase 5 | Pending |
+| SHARE-01 | Phase 4 | Pending |
+| SHARE-02 | Phase 4 | Pending |
+| SHARE-03 | Phase 4 | Pending |
+| SHARE-04 | Phase 4 | Pending |
+| SHARE-05 | Phase 4 | Pending |
+| SHARE-06 | Phase 4 | Pending |
+| SHARE-07 | Phase 5 | Pending |
+| UX-01 | Phase 1 | Pending |
+| UX-02 | Phase 2 | Pending |
+| UX-03 | Phase 1 | Pending |
+| UX-04 | Phase 1 | Pending |
+| UX-05 | Phase 2 | Pending |
 
 **Coverage:**
 - v1 requirements: 40 total
-- Mapped to phases: 0 (roadmap not yet created)
-- Unmapped: 40 ⚠️
+- Mapped to phases: 40 ✓
+- Unmapped: 0
+
+| Phase | Requirements | Count |
+|-------|--------------|-------|
+| 1. Foundation — Data, State Funnel & Undo | ALLOC-08, UX-01, UX-03, UX-04 | 4 |
+| 2. Allocation Surface | ALLOC-01…07, UX-02, UX-05 | 9 |
+| 3. Advisory Projection & Reference Material | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
+| 4. Share & Reset | SHARE-01…06 | 6 |
+| 5. Fight Loop & Playtest | FIGHT-01…11, PROJ-05, REF-03, SHARE-07 | 14 |
+
+PROJ-05, REF-03 and SHARE-07 sit in Phase 5 rather than with their category, because each only
+becomes observable once the fight view exists.
 
 ---
 *Requirements defined: 2026-08-26*
-*Last updated: 2026-08-26 after initial definition*
+*Last updated: 2026-08-26 after roadmap creation (traceability mapped)*
