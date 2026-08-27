@@ -945,10 +945,23 @@ App.boot = (function () {
 
       // A caller, never the implementation (D-11). A Phase 2 undo button calls
       // this same one line.
+      //
+      // The target test is the important part. This listener is on document,
+      // so without it a student typing into a Phase-2 health field who presses
+      // Ctrl+Z to take back a typo rewinds the entire board instead, and the
+      // preventDefault() guarantees the browser's own text undo never gets a
+      // chance. The same applies to the error panel's detail box, which exists
+      // to be selected and edited before pasting into the course thread.
+      // Whenever a text-editing surface has focus, the browser owns undo.
       document.addEventListener('keydown', wrap('undo shortcut', function (e) {
         if (!(e.ctrlKey || e.metaKey)) { return; }
         if (e.shiftKey) { return; }
         if (e.key !== 'z' && e.key !== 'Z') { return; }
+
+        var el = e.target;
+        var tag = el ? el.tagName : '';
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) { return; }
+
         e.preventDefault();
         App.ops.undo();
       }));
