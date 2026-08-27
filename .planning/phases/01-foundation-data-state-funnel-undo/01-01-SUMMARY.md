@@ -184,3 +184,7 @@ None — no external service configuration required. The install step is double-
 ---
 *Phase: 01-foundation-data-state-funnel-undo*
 *Completed: 2026-08-26*
+
+## Self-Check: PASSED
+
+All claimed files exist on disk and all four commit hashes (`79abbd0`, `9776b7f`, `461b78e`, `1105a87`) are present in git history. `node tests/selftest-node.cjs` exits 0 with 28 passed, 0 failed and no forbidden-pattern hits. Working tree clean.
