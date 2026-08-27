@@ -2534,11 +2534,30 @@ App.interactions = (function () {
     return btn;
   }
 
+  // Primary contact only. pointerdown fires for the right and middle buttons
+  // as well as the left, so without this a right-click on a stepper stepped the
+  // value AND started the press-and-hold ramp underneath a native context menu
+  // — whose own stop conditions are the ones this file cannot rely on, since
+  // pointerup may never arrive while the menu is up. Middle-click was worse: it
+  // decremented and then engaged Chrome's autoscroll, taking the pointer off
+  // the button with the ramp still running. Right-clicking a control to inspect
+  // it in DevTools is ordinary behaviour for the instructor this artifact is
+  // built for.
+  //
+  // button === 0 is mouse-left, and it is also what touch contact and pen
+  // contact report. undefined keeps the synthetic events [S09.5] and the Node
+  // gate dispatch working, which do not set the field at all.
+  function isPrimaryPress(e) {
+    return e.button === undefined || e.button === 0;
+  }
+
   // pointerdown, not click, and this is the whole of ALLOC-07's count half. A
   // click fires only when the down and the up land on the same element, so any
   // rebuild between them silently eats it — an intermittent UNDERcount, which
   // is the trust-destroying kind. pointerdown is immune.
   function onPointerDown(e) {
+    if (!isPrimaryPress(e)) { return; }
+
     var btn = actTarget(e);
     if (btn === null) { return; }
 
@@ -2774,6 +2793,10 @@ App.interactions = (function () {
   // rebuilt on every restyle, so per-node listeners would have to be rebound on
   // every click and the first missed rebind is a dead swatch nobody notices.
   function onPickerPress(e) {
+    // The same rule [S07.1] applies at #app, for the same reason: without it a
+    // right-click on a swatch restyled the token type under the context menu.
+    if (!isPrimaryPress(e)) { return; }
+
     var node = e.target;
     if (!node || typeof node.closest !== 'function') { return; }
 

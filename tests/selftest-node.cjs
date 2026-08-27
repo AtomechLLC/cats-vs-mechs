@@ -868,6 +868,32 @@ check(
     + '), board token className=' + JSON.stringify(boardClass)
 );
 
+/* --- 21. the same non-primary rule on the picker's own root, while the dialog
+       is still open. The swatch is re-queried rather than reused: check 18's
+       restyle repainted all three grids, so the node pressed there is detached
+       and would take no event at all — a check that passes because nothing
+       happens is the failure mode this whole commit is about. It also targets a
+       shape that is NOT the live one, so an unguarded handler would visibly
+       move state. --- */
+const liveShape = A.state.get().build.tokens.hp.shape;
+const otherShape = A.data.SHAPES.filter((s) => s !== liveShape)[0];
+const swatch2 = dlg.querySelector('[data-act="setTokenStyle"][data-shape="' + otherShape + '"]');
+const swatchBefore = JSON.stringify(A.state.get().build.tokens.hp);
+let swatchRightDelta = -1;
+if (swatch2 !== null) {
+  const beforeRightSwatch = commits();
+  swatch2.dispatchEvent(dom.event('pointerdown', { pointerId: 1, button: 2 }));
+  swatch2.dispatchEvent(dom.event('pointerup', { pointerId: 1, button: 2 }));
+  swatchRightDelta = commits() - beforeRightSwatch;
+}
+check(
+  '21. a right-button press on a swatch restyles nothing',
+  swatch2 !== null && swatchRightDelta === 0
+    && JSON.stringify(A.state.get().build.tokens.hp) === swatchBefore,
+  'commits delta=' + swatchRightDelta + ' wanted shape ' + otherShape
+    + ' to be refused; tokens.hp=' + JSON.stringify(A.state.get().build.tokens.hp)
+);
+
 press(dom.byId['tok-pick-done']);
 release(dom.byId['tok-pick-done']);
 check(
@@ -875,6 +901,28 @@ check(
   dlg.open === false && stub.activeElement === openBtn,
   'open=' + dlg.open + ' activeElement='
     + String(stub.activeElement && stub.activeElement.dataset.k)
+);
+
+/* --- 20. pointerdown fires for the right and middle buttons too, so a control
+       that does not inspect e.button steps its value and starts a hold ramp
+       under a native context menu — where the ramp's own stop conditions may
+       never arrive. What a real browser does with pointerup while that menu is
+       up could not be executed here (no browser in this repo); what IS executed
+       is that the handler now declines the event outright. --- */
+const rightTarget = stub.querySelector('[data-act="nudgeMaxHp"][data-step="1"]');
+let rightDelta = -1;
+let rightHold = '(no stepper)';
+if (rightTarget !== null) {
+  const beforeRight = commits();
+  rightTarget.dispatchEvent(dom.event('pointerdown', { pointerId: 1, button: 2 }));
+  rightHold = A.interactions.holdSource();
+  rightTarget.dispatchEvent(dom.event('pointerup', { pointerId: 1, button: 2 }));
+  rightDelta = commits() - beforeRight;
+}
+check(
+  '20. a non-primary press on a stepper commits nothing and starts no ramp',
+  rightTarget !== null && rightDelta === 0 && rightHold === null,
+  'commits delta=' + rightDelta + ' holdSource=' + rightHold
 );
 
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
