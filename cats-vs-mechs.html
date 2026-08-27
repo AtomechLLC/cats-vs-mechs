@@ -253,7 +253,7 @@ App.data = (function () {
   });
 
   // A fresh, unfrozen deep copy on every call. The JSON round-trip is both
-  // faster than structuredClone on this payload and a free guard: anything
+  // faster than the platform's deep-clone call on this payload and a free guard: anything
   // that is not JSON-clonable disappears loudly instead of surviving silently.
   function defaults() {
     return JSON.parse(JSON.stringify(DEFAULTS));
@@ -341,7 +341,172 @@ App.model = (function () {
  * owner: plan 01-02
  * ======================================================= */
 // #region [S03] STATE
-// STUB — implemented by plan 01-02
+App.state = (function () {
+  'use strict';
+
+  // Named, and exported, so the self-test asserts against the constant rather
+  // than against a bare number that could drift away from this definition.
+  var UNDO_LIMIT = 30;
+  var COALESCE_MS = 500;
+
+  // The live state. Deep-frozen between commits: a stray write from anywhere
+  // outside commit() throws TypeError in strict mode and changes nothing. That
+  // is the mechanical guarantee this whole section exists to provide.
+  var cur = App.data.deepFreeze({
+    build: App.data.defaults(),
+    fight: null,
+    ui: { kbdNav: false }
+  });
+
+  var past = [];        // [{ label, snap, t }], newest last, hard-capped at UNDO_LIMIT
+  var commits = 0;      // how many commits have landed
+  var frames = 0;       // how many render frames have flushed
+  var dirty = false;    // a frame is scheduled and has not run yet
+  var structural = false; // the next frame must rebuild page structure, not just sync
+
+  // An unfrozen deep copy — and simultaneously the enforcement of the
+  // JSON-clonable rule, because anything that is not plain data disappears
+  // here loudly instead of surviving into the next commit.
+  function thaw(state) {
+    return JSON.parse(JSON.stringify(state));
+  }
+
+  // One recursive freeze exists in this file, in [S01] DATA. This is a name
+  // for it, not a second copy of it.
+  function freeze(state) {
+    return App.data.deepFreeze(state);
+  }
+
+  function now() {
+    return Date.now();
+  }
+
+  /* ---- the single mutation funnel (D-00a) ---- */
+  function commit(label, mutator) {
+    var snap = JSON.stringify({ build: cur.build, fight: cur.fight });
+    var t = now();
+    var last = past.length > 0 ? past[past.length - 1] : null;
+
+    // Same label inside the window means one continuous edit — press-and-hold
+    // is one undo step, not forty (D-10). The window slides on each repeat.
+    if (last !== null && last.label === label && (t - last.t) < COALESCE_MS) {
+      last.t = t;
+    } else {
+      past.push({ label: label, snap: snap, t: t });
+      if (past.length > UNDO_LIMIT) { past.shift(); }
+    }
+
+    var working = thaw(cur);
+    mutator(working);
+    cur = freeze(working);
+    commits++;
+
+    // Declared no-op until Phase 4 plan 04-01. The call site exists from day
+    // one precisely so nothing has to be retrofitted into this funnel.
+    App.serialize.scheduleUrlSync();
+    invalidate();
+  }
+
+  // ui-only changes. Same thaw/mutate/refreeze cycle, but nothing lands on the
+  // undo stack and nothing reaches the share code (D-09). It is a separate,
+  // greppable name so "which mutations are undoable" is answered by reading
+  // two function names instead of auditing a flag at forty call sites.
+  function commitUi(label, mutator) {
+    var working = thaw(cur);
+    mutator(working);
+    cur = freeze(working);
+    commits++;
+    invalidate();
+  }
+
+  // There is deliberately no redo stack and no future array: undo alone is the
+  // v1 requirement, and unused machinery in a single file is pure entropy.
+  function undo() {
+    if (past.length === 0) { return false; }
+
+    var entry = past.pop();
+    var snap = JSON.parse(entry.snap);
+    var working = thaw(cur);
+
+    // Snapshots span build and fight, so undo crosses the setup/fight
+    // boundary — undoing past a started fight un-starts it (D-08). The live ui
+    // slice is preserved, never restored.
+    working.build = snap.build;
+    working.fight = snap.fight;
+    cur = freeze(working);
+
+    App.serialize.scheduleUrlSync();
+    invalidate({ structural: true });
+    return true;
+  }
+
+  /* ---- frame-coalesced invalidation ---- */
+
+  // Idempotent by design: a late timer firing after a manual flush() finds
+  // dirty already false and does nothing, so the frame tally cannot double.
+  function frame() {
+    if (!dirty) { return; }
+    dirty = false;
+    frames++;
+    if (structural) {
+      structural = false;
+      App.render.structure(cur);
+    }
+    App.render.sync(cur);
+  }
+
+  // The bare global call is required: detaching the browser's frame scheduler
+  // into a variable and calling it through that variable throws "Illegal
+  // invocation" in Chrome. The timer fallback is what lets the headless runner
+  // load this file with no page attached.
+  function schedule(fn) {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(fn);
+      return;
+    }
+    setTimeout(fn, 16);
+  }
+
+  function invalidate(opts) {
+    if (opts && opts.structural) { structural = true; }
+    if (dirty) { return; }
+    dirty = true;
+    schedule(frame);
+  }
+
+  // Runs a pending frame right now and reports whether there was one. Lets the
+  // self-test assert coalescing without becoming asynchronous.
+  function flush() {
+    var wasPending = dirty;
+    frame();
+    return wasPending;
+  }
+
+  function get() {
+    return cur;
+  }
+
+  function undoDepth() {
+    return past.length;
+  }
+
+  function stats() {
+    return { commits: commits, frames: frames, undoDepth: past.length };
+  }
+
+  return Object.freeze({
+    get: get,
+    commit: commit,
+    commitUi: commitUi,
+    undo: undo,
+    undoDepth: undoDepth,
+    invalidate: invalidate,
+    flush: flush,
+    stats: stats,
+    UNDO_LIMIT: UNDO_LIMIT,
+    COALESCE_MS: COALESCE_MS
+  });
+})();
 // #endregion [S03] STATE
 
 /* ===================== [S04] SERIALIZE =====================
