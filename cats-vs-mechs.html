@@ -253,7 +253,7 @@ App.data = (function () {
   });
 
   // A fresh, unfrozen deep copy on every call. The JSON round-trip is both
-  // faster than structuredClone on this payload and a free guard: anything
+  // faster than the platform's deep-clone call on this payload and a free guard: anything
   // that is not JSON-clonable disappears loudly instead of surviving silently.
   function defaults() {
     return JSON.parse(JSON.stringify(DEFAULTS));
@@ -341,7 +341,178 @@ App.model = (function () {
  * owner: plan 01-02
  * ======================================================= */
 // #region [S03] STATE
-// STUB — implemented by plan 01-02
+App.state = (function () {
+  'use strict';
+
+  // Named, and exported, so the self-test asserts against the constant rather
+  // than against a bare number that could drift away from this definition.
+  var UNDO_LIMIT = 30;
+  var COALESCE_MS = 500;
+
+  // The live state. Deep-frozen between commits: a stray write from anywhere
+  // outside commit() throws TypeError in strict mode and changes nothing. That
+  // is the mechanical guarantee this whole section exists to provide.
+  var cur = App.data.deepFreeze({
+    build: App.data.defaults(),
+    fight: null,
+    ui: { kbdNav: false }
+  });
+
+  var past = [];        // [{ label, snap, t }], newest last, hard-capped at UNDO_LIMIT
+  var commits = 0;      // how many commits have landed
+  var frames = 0;       // how many render frames have flushed
+  var dirty = false;    // a frame is scheduled and has not run yet
+  var structural = false; // the next frame must rebuild page structure, not just sync
+
+  // An unfrozen deep copy — and simultaneously the enforcement of the
+  // JSON-clonable rule, because anything that is not plain data disappears
+  // here loudly instead of surviving into the next commit.
+  function thaw(state) {
+    return JSON.parse(JSON.stringify(state));
+  }
+
+  // One recursive freeze exists in this file, in [S01] DATA. This is a name
+  // for it, not a second copy of it.
+  function freeze(state) {
+    return App.data.deepFreeze(state);
+  }
+
+  function now() {
+    return Date.now();
+  }
+
+  /* ---- the single mutation funnel (D-00a) ---- */
+  function commit(label, mutator) {
+    var snap = JSON.stringify({ build: cur.build, fight: cur.fight });
+
+    // The snapshot is taken from the live state, but the mutator runs on a
+    // detached copy and runs FIRST. A mutator that throws — an unknown unit
+    // id, no fight in progress — must leave no trace at all, rather than a
+    // phantom undo step over a state that never changed.
+    var working = thaw(cur);
+    mutator(working);
+
+    var t = now();
+    var last = past.length > 0 ? past[past.length - 1] : null;
+
+    // Same label inside the window means one continuous edit — press-and-hold
+    // is one undo step, not forty (D-10). The window slides on each repeat.
+    if (last !== null && last.label === label && (t - last.t) < COALESCE_MS) {
+      last.t = t;
+    } else {
+      past.push({ label: label, snap: snap, t: t });
+      if (past.length > UNDO_LIMIT) { past.shift(); }
+    }
+
+    cur = freeze(working);
+    commits++;
+
+    // Declared no-op until Phase 4 plan 04-01. The call site exists from day
+    // one precisely so nothing has to be retrofitted into this funnel.
+    App.serialize.scheduleUrlSync();
+    invalidate();
+  }
+
+  // ui-only changes. Same thaw/mutate/refreeze cycle, but nothing lands on the
+  // undo stack and nothing reaches the share code (D-09). It is a separate,
+  // greppable name so "which mutations are undoable" is answered by reading
+  // two function names instead of auditing a flag at forty call sites.
+  function commitUi(label, mutator) {
+    var working = thaw(cur);
+    mutator(working);
+    cur = freeze(working);
+    commits++;
+    invalidate();
+  }
+
+  // There is deliberately no redo stack and no future array: undo alone is the
+  // v1 requirement, and unused machinery in a single file is pure entropy.
+  function undo() {
+    if (past.length === 0) { return false; }
+
+    var entry = past.pop();
+    var snap = JSON.parse(entry.snap);
+    var working = thaw(cur);
+
+    // Snapshots span build and fight, so undo crosses the setup/fight
+    // boundary — undoing past a started fight un-starts it (D-08). The live ui
+    // slice is preserved, never restored.
+    working.build = snap.build;
+    working.fight = snap.fight;
+    cur = freeze(working);
+
+    App.serialize.scheduleUrlSync();
+    invalidate({ structural: true });
+    return true;
+  }
+
+  /* ---- frame-coalesced invalidation ---- */
+
+  // Idempotent by design: a late timer firing after a manual flush() finds
+  // dirty already false and does nothing, so the frame tally cannot double.
+  function frame() {
+    if (!dirty) { return; }
+    dirty = false;
+    frames++;
+    if (structural) {
+      structural = false;
+      App.render.structure(cur);
+    }
+    App.render.sync(cur);
+  }
+
+  // The bare global call is required: detaching the browser's frame scheduler
+  // into a variable and calling it through that variable throws "Illegal
+  // invocation" in Chrome. The timer fallback is what lets the headless runner
+  // load this file with no page attached.
+  function schedule(fn) {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(fn);
+      return;
+    }
+    setTimeout(fn, 16);
+  }
+
+  function invalidate(opts) {
+    if (opts && opts.structural) { structural = true; }
+    if (dirty) { return; }
+    dirty = true;
+    schedule(frame);
+  }
+
+  // Runs a pending frame right now and reports whether there was one. Lets the
+  // self-test assert coalescing without becoming asynchronous.
+  function flush() {
+    var wasPending = dirty;
+    frame();
+    return wasPending;
+  }
+
+  function get() {
+    return cur;
+  }
+
+  function undoDepth() {
+    return past.length;
+  }
+
+  function stats() {
+    return { commits: commits, frames: frames, undoDepth: past.length };
+  }
+
+  return Object.freeze({
+    get: get,
+    commit: commit,
+    commitUi: commitUi,
+    undo: undo,
+    undoDepth: undoDepth,
+    invalidate: invalidate,
+    flush: flush,
+    stats: stats,
+    UNDO_LIMIT: UNDO_LIMIT,
+    COALESCE_MS: COALESCE_MS
+  });
+})();
 // #endregion [S03] STATE
 
 /* ===================== [S04] SERIALIZE =====================
@@ -361,16 +532,164 @@ App.serialize = Object.freeze({
 // #endregion [S04] SERIALIZE
 
 /* ===================== [S05] OPS =====================
- * Every state transformation, one named function per student action:
- * setUnitHp, addUnit, removeUnit, setAp, startFight, endFight, advanceTurn,
- * undo, resetToDefaults, loadFromCode. Each one is a thin wrapper around a
- * single commit() call. No exceptions, including temporary debug controls.
+ * Every state transformation, one named function per student action. Each one
+ * is a thin wrapper around a single commit() call, and this layer is the only
+ * writer of state anywhere in the file — no exceptions, including temporary
+ * debug controls. It never reads or writes the page.
  * ops.undo must stay callable from a button, not only from a key handler.
- * deps: [S03] STATE, App.data
+ * deps: App.state, App.data
  * owner: plan 01-02
  * ===================================================== */
 // #region [S05] OPS
-// STUB — implemented by plan 01-02
+App.ops = (function () {
+  'use strict';
+
+  // Clamp, and reject rather than silently coerce. A bad value must arrive at
+  // the error boundary as a named failure the student can read, not as a NaN
+  // that renders as an empty token row. Everything a handler supplies — and,
+  // from Phase 4, everything a pasted build code supplies — comes through here.
+  function int(value, min, max, what) {
+    var n = Math.trunc(value);
+    if (!Number.isFinite(n)) {
+      throw new TypeError('Expected a whole number for ' + what);
+    }
+    if (n < min) { return min; }
+    if (n > max) { return max; }
+    return n;
+  }
+
+  function findUnit(side, unitId, collection) {
+    for (var i = 0; i < collection.length; i++) {
+      if (collection[i].id === unitId) { return collection[i]; }
+    }
+    throw new Error('No unit "' + unitId + '" on side "' + side + '"');
+  }
+
+  // Mode is derived, never stored: a null fight slice IS setup.
+  function fightOf(s) {
+    if (s.fight === null) { throw new Error('No fight in progress'); }
+    return s.fight;
+  }
+
+  // The fight slice holds only what changes during a fight. Names, actions,
+  // damage and keywords stay in build, so a unit has exactly one identity.
+  function sideFromBuild(faction) {
+    return {
+      ap: faction.ap,
+      units: faction.units.map(function (u) {
+        return { id: u.id, hp: u.maxHp, alive: true };
+      })
+    };
+  }
+
+  /* ---- transformers: each one is exactly one commit ---- */
+
+  function setFactionAp(side, ap) {
+    App.state.commit('ap ' + side, function (s) {
+      s.build[side].ap = int(ap, 0, 99, 'action points');
+    });
+  }
+
+  function setUnitMaxHp(side, unitId, maxHp) {
+    App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
+      findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, 99, 'max health');
+    });
+  }
+
+  // Writes the fight slice only, and deliberately touches nothing else: zero
+  // health prompts a death ruling from the table, it never auto-kills (D-00d).
+  function setUnitHp(side, unitId, hp) {
+    App.state.commit('hp ' + side + '/' + unitId, function (s) {
+      findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, 99, 'health');
+    });
+  }
+
+  // The other half of D-00d: a stored flag, settable independently of health,
+  // so a unit ruled "survived via Shield" and a unit ruled dead at full health
+  // are both representable.
+  function setAlive(side, unitId, alive) {
+    App.state.commit('alive ' + side + '/' + unitId, function (s) {
+      findUnit(side, unitId, fightOf(s)[side].units).alive = (alive === true);
+    });
+  }
+
+  function startFight() {
+    App.state.commit('start fight', function (s) {
+      s.fight = {
+        round: 1,
+        turn: 'cats',
+        log: [],
+        cats: sideFromBuild(s.build.cats),
+        mechs: sideFromBuild(s.build.mechs)
+      };
+    });
+  }
+
+  // build is left untouched, so "run it again" always restarts from the same
+  // allocation the student spent the exercise arriving at.
+  function endFight() {
+    App.state.commit('end fight', function (s) {
+      s.fight = null;
+    });
+  }
+
+  // One commit, therefore one undo entry (D-12). The undo stack is never
+  // cleared here: a mis-clicked reset has to be recoverable.
+  function resetToDefaults() {
+    App.state.commit('reset to defaults', function (s) {
+      s.build = App.data.defaults();
+      s.fight = null;
+    });
+  }
+
+  // The only route into commitUi, so ui changes never reach the undo stack.
+  function setUi(key, value) {
+    App.state.commitUi('ui ' + key, function (s) {
+      s.ui[key] = value;
+    });
+  }
+
+  // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
+  // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
+  function undo() {
+    return App.state.undo();
+  }
+
+  // Phase 2's delegated interaction root calls this and nothing else. The
+  // unknown-act throw is also the cheapest live exercise of the error boundary.
+  function dispatch(act, payload) {
+    var p = payload || {};
+    switch (act) {
+      case 'ap': return setFactionAp(p.side, p.value);
+      case 'maxHp': return setUnitMaxHp(p.side, p.unitId, p.value);
+      case 'hp': return setUnitHp(p.side, p.unitId, p.value);
+      case 'alive': return setAlive(p.side, p.unitId, p.value);
+      case 'startFight': return startFight();
+      case 'endFight': return endFight();
+      case 'reset': return resetToDefaults();
+      case 'undo': return undo();
+      default: throw new Error('Unknown op: ' + act);
+    }
+  }
+
+  // DELIBERATELY ABSENT, do not "helpfully" add them here:
+  //   - roster add and remove, and the stepper nudge — Phase 2, plan 02-02
+  //   - turn and round advance, action-point spending, damage application and
+  //     the fight record — Phase 5, plan 05-01
+  // Each arrives with the phase that has a surface to put it on.
+  return Object.freeze({
+    setFactionAp: setFactionAp,
+    setUnitMaxHp: setUnitMaxHp,
+    setUnitHp: setUnitHp,
+    setAlive: setAlive,
+    startFight: startFight,
+    endFight: endFight,
+    resetToDefaults: resetToDefaults,
+    setUi: setUi,
+    undo: undo,
+    dispatch: dispatch
+  });
+})();
 // #endregion [S05] OPS
 
 /* ===================== [S06] RENDER =====================
@@ -409,30 +728,176 @@ App.interactions = Object.freeze({
 
 /* ===================== [S08] BOOT =====================
  * The entry point and the error boundary. attempt(label, fn) runs one wiring
- * step inside a try/catch so a single failure is non-terminal and surfaces in
- * the styled panel instead of blanking the page. start() is called exactly
- * once, from [S10] LAUNCH.
- * deps: [S03] STATE, App.render, App.interactions, App.selftest
+ * step inside a try/catch and wrap(label, fn) does the same for a listener, so
+ * a failure surfaces in the styled panel instead of blanking the page. Only an
+ * init failure is terminal; a handler failure leaves the last good state on
+ * screen (D-14). start() is called exactly once, from [S10] LAUNCH.
+ * deps: App.state, App.ops, App.selftest, App.interactions, App.hasFlag
  * owner: plan 01-02
  * ====================================================== */
 // #region [S08] BOOT
 App.boot = (function () {
   'use strict';
-  // STUB — plan 01-02 replaces these bodies; the selftest gate line must survive.
 
+  var terminal = false;  // an init failure poisons everything after it
+  var wired = false;     // the two panel buttons are wired exactly once
+
+  function byId(id) {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById(id);
+  }
+
+  // The buttons are wired from fail() as well as from start(), because the
+  // failure this panel most needs to survive is the one that happens before
+  // start() reaches its wiring step. Recovery has to be one click even then
+  // (D-15) — the realistic failure moment is an instructor mid-demo.
+  function ensurePanelButtons() {
+    if (wired) { return; }
+    var panel = byId('err-panel');
+    var dismiss = byId('err-dismiss');
+    var reset = byId('err-reset');
+    if (!panel || !dismiss || !reset) { return; }
+
+    dismiss.addEventListener('click', wrap('Dismiss', function () {
+      panel.hidden = true;
+    }));
+
+    reset.addEventListener('click', wrap('Reset to defaults', function () {
+      // After a terminal failure nothing in memory is trustworthy, so start
+      // over from a clean hash rather than writing to state.
+      if (terminal) {
+        location.hash = '';
+        location.reload();
+        return;
+      }
+      App.ops.resetToDefaults();
+      panel.hidden = true;
+    }));
+
+    wired = true;
+  }
+
+  // The panel driver. Every string reaches the page through textContent, or
+  // through the textarea's value property — never through a markup-parsing
+  // sink. Error text can already carry a fragment of a pasted link, and from
+  // Phase 4 it carries decoded build-code content (threat T-01-02).
+  // The detail field is selectable so it can be pasted into the course thread;
+  // there is no automatic reporting, because there is no backend (D-16).
+  function fail(label, err, isTerminal) {
+    if (isTerminal === true) { terminal = true; }
+
+    var error = (err && typeof err.message === 'string') ? err : new Error(String(err));
+    var panel = byId('err-panel');
+    var title = byId('err-title');
+    var message = byId('err-message');
+    var detail = byId('err-detail');
+    var dismiss = byId('err-dismiss');
+
+    if (!panel || !title || !message || !detail || !dismiss) {
+      console.error(label, error);
+      return;
+    }
+
+    ensurePanelButtons();
+
+    title.textContent = label;
+    message.textContent = terminal
+      ? error.message + ' — the artifact could not start, so reload the page to try again.'
+      : error.message + ' — the last good state is still on screen.';
+    detail.value = error.name + ': ' + error.message + '\n\n' + (error.stack || '(no stack)');
+
+    dismiss.hidden = terminal;
+    panel.hidden = false;
+    if (!terminal) { dismiss.focus(); }
+  }
+
+  // One wiring step, non-terminal.
   function attempt(label, fn) {
     try {
-      fn();
+      return fn();
     } catch (err) {
-      console.error(label, err);
+      fail(label, err, false);
+      return undefined;
     }
   }
 
-  function start() {
-    if (App.hasFlag('selftest')) { App.selftest.report(App.selftest.run()); }
+  // Every listener this file registers, in this phase and in every later one,
+  // goes through here (D-13). Exported so Phase 2's delegated roots reuse this
+  // boundary instead of inventing a second one.
+  function wrap(label, fn) {
+    return function () {
+      try {
+        return fn.apply(this, arguments);
+      } catch (err) {
+        fail(label, err, false);
+        return undefined;
+      }
+    };
   }
 
-  return Object.freeze({ attempt: attempt, start: start });
+  function start() {
+    try {
+      // Ships deliberately: three lines, and the only way to rehearse the
+      // blank-page failure before standing in front of a room.
+      if (App.hasFlag('throwinit')) {
+        throw new Error('Deliberate init failure (#throwinit)');
+      }
+
+      // The safety net for anything that escapes a wrapper.
+      window.addEventListener('error', function (e) {
+        fail('Uncaught error', e.error || new Error(e.message || 'Unknown error'), false);
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = (e.reason && typeof e.reason.message === 'string') ? e.reason : new Error(String(e.reason));
+        fail('Unhandled rejection', reason, false);
+      });
+
+      ensurePanelButtons();
+
+      // A caller, never the implementation (D-11). A Phase 2 undo button calls
+      // this same one line.
+      document.addEventListener('keydown', wrap('undo shortcut', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) { return; }
+        if (e.shiftKey) { return; }
+        if (e.key !== 'z' && e.key !== 'Z') { return; }
+        e.preventDefault();
+        App.ops.undo();
+      }));
+
+      App.interactions.bind();
+
+      // The second half of the rehearsal: a throw from inside a live handler.
+      if (App.hasFlag('throwhandler')) {
+        var empty = byId('board-empty');
+        var board = byId('board');
+        if (empty) {
+          empty.textContent = 'Click anywhere in this panel to trigger a deliberate handler failure.';
+        }
+        if (board) {
+          board.addEventListener('click', wrap('board click', function () {
+            throw new Error('Deliberate handler failure (#throwhandler)');
+          }));
+        }
+      }
+
+      // The very first paint goes through the same path every later update
+      // does, so there is no separate first-render code path to keep in step.
+      App.state.invalidate({ structural: true });
+
+      if (App.hasFlag('selftest')) {
+        attempt('Self-test', function () { App.selftest.report(App.selftest.run()); });
+      }
+    } catch (err) {
+      fail('Initialisation', err, true);
+    }
+  }
+
+  return Object.freeze({
+    start: start,
+    attempt: attempt,
+    wrap: wrap,
+    fail: fail
+  });
 })();
 // #endregion [S08] BOOT
 
@@ -669,6 +1134,155 @@ App.selftest = (function () {
 })();
 
 /* --- [S09.3] SUITE: state contract — owner plan 01-02 --- */
+(function () {
+  'use strict';
+
+  // The same shape walk [S09.1] runs over the frozen board, applied here to
+  // the live state: rejects a fractional number, a NaN, an undefined value or
+  // a function anywhere in the tree.
+  function allIntegers(value) {
+    if (value === null) { return true; }
+    if (typeof value === 'number') { return Number.isInteger(value); }
+    if (typeof value === 'string' || typeof value === 'boolean') { return true; }
+    if (Array.isArray(value)) { return value.every(function (v) { return allIntegers(v); }); }
+    if (typeof value === 'object') {
+      return Object.keys(value).every(function (k) { return allIntegers(value[k]); });
+    }
+    return false;
+  }
+
+  App.selftest.suite('state contract', function (t) {
+    var i;
+
+    function unitOf(side, id) {
+      return App.state.get().fight[side].units.filter(function (u) {
+        return u.id === id;
+      })[0];
+    }
+
+    // Exercising the contract necessarily writes to the live board, so record
+    // where the suite found it; the last act below hands it back.
+    var before = JSON.stringify(App.state.get().build);
+    t.eq('the suite started from the shipped defaults', before, JSON.stringify(App.data.defaults()));
+
+    /* --- shape --- */
+    t.eq('three slices', Object.keys(App.state.get()), ['build', 'fight', 'ui']);
+    t.ok('no mode key', !Object.prototype.hasOwnProperty.call(App.state.get().ui, 'mode'));
+    t.ok('integers only', allIntegers({
+      build: App.state.get().build,
+      fight: App.state.get().fight
+    }));
+
+    var live = JSON.stringify(App.state.get());
+    t.eq('json clonable', JSON.stringify(JSON.parse(live)), live);
+
+    /* --- the frozen guard: two depths, because a shallow freeze passes the
+           first probe and silently allows the second --- */
+    var apWas = App.state.get().build.cats.ap;
+    t.throws('frozen between commits', function () {
+      App.state.get().build.cats.ap = 99;
+    });
+    t.eq('the frozen write changed nothing', App.state.get().build.cats.ap, apWas);
+
+    var maxHpWas = App.state.get().build.cats.units[0].maxHp;
+    t.throws('frozen deep inside a nested array', function () {
+      App.state.get().build.cats.units[0].maxHp = 99;
+    });
+    t.eq('the nested frozen write changed nothing', App.state.get().build.cats.units[0].maxHp, maxHpWas);
+
+    /* --- the funnel --- */
+    var depth0 = App.state.undoDepth();
+    App.ops.setFactionAp('cats', 5);
+    t.eq('commit is the only writer', App.state.get().build.cats.ap, 5);
+    t.eq('a commit adds exactly one undo entry', App.state.undoDepth() - depth0, 1);
+    t.throws('dispatch rejects an unknown act', function () {
+      App.ops.dispatch('notAnOp', {});
+    });
+
+    /* --- alive is a flag, not an inference (D-00d) --- */
+    App.ops.startFight();
+    App.ops.setUnitHp('cats', 'c1', 0);
+    t.ok('alive independent of hp', unitOf('cats', 'c1').hp === 0 && unitOf('cats', 'c1').alive === true);
+    App.ops.setAlive('cats', 'c2', false);
+    t.ok('a full-health unit can be ruled dead', unitOf('cats', 'c2').alive === false && unitOf('cats', 'c2').hp === 3);
+    t.eq('aliveCount reads the flags, not the hit points', App.model.aliveCount(App.state.get().fight.cats), 8);
+
+    /* --- depth and ordering. Distinct labels, so nothing coalesces. --- */
+    var seq = [];
+    for (i = 0; i < 40; i++) { seq.push(i + 1); }
+    seq.forEach(function (v, n) {
+      App.state.commit('seq ' + n, function (s) { s.build.cats.ap = v; });
+    });
+
+    var ordered = true;
+    for (i = 0; i < App.state.UNDO_LIMIT; i++) {
+      App.state.undo();
+      // Undo n restores the state before commit 40-n, which is the value the
+      // commit before it wrote.
+      if (App.state.get().build.cats.ap !== seq[38 - i]) { ordered = false; }
+    }
+    t.ok('undo restores 30 states in order', ordered);
+
+    var drained = 0;
+    while (App.state.undo()) {
+      drained++;
+      if (drained > 500) { break; }
+    }
+    t.ok('undo cap is a no-op, not an error', App.state.undo() === false);
+
+    /* --- burst coalescing (D-10) --- */
+    App.state.commit('before the burst', function (s) { s.build.cats.ap = 7; });
+    var preBurst = App.state.get().build.cats.ap;
+    var depthB = App.state.undoDepth();
+    for (i = 0; i < 40; i++) {
+      App.state.commit('burst', function (s) { s.build.cats.ap = 12; });
+    }
+    t.eq('burst coalesces to one entry', App.state.undoDepth() - depthB, 1);
+    App.state.undo();
+    t.eq('one undo restores the pre-burst value', App.state.get().build.cats.ap, preBurst);
+
+    /* --- undo crosses the setup/fight boundary (D-08) --- */
+    App.ops.endFight();
+    App.ops.startFight();
+    t.ok('a fight is in progress', App.state.get().fight !== null);
+    App.state.undo();
+    t.eq('undo crosses the fight boundary', App.state.get().fight, null);
+
+    /* --- ui is outside the stack (D-09) --- */
+    var depthU = App.state.undoDepth();
+    App.ops.setUi('kbdNav', true);
+    t.eq('ui changes are not undoable', App.state.undoDepth(), depthU);
+    t.eq('the ui change still landed', App.state.get().ui.kbdNav, true);
+
+    /* --- reset is one entry, and is itself undoable (D-12) --- */
+    App.state.commit('before the reset', function (s) { s.build.cats.ap = 11; });
+    var depthR = App.state.undoDepth();
+    App.ops.resetToDefaults();
+    t.eq('reset is one undo entry', App.state.undoDepth() - depthR, 1);
+    t.eq('reset restored the shipped ap', App.state.get().build.cats.ap, App.data.defaults().cats.ap);
+    App.state.undo();
+    t.eq('undo brings the pre-reset build back', App.state.get().build.cats.ap, 11);
+
+    /* --- one frame per burst --- */
+    App.state.flush();
+    var frames0 = App.state.stats().frames;
+    for (i = 0; i < 50; i++) { App.state.invalidate(); }
+    App.state.flush();
+    t.eq('invalidate coalesces to one frame', App.state.stats().frames - frames0, 1);
+
+    /* --- the thaw/freeze cycle has to stay cheap enough to be invisible --- */
+    var started = Date.now();
+    for (i = 0; i < 100; i++) {
+      App.state.commit('perf ' + i, function (s) { s.build.cats.ap = 4; });
+    }
+    var elapsed = Date.now() - started;
+    t.ok('100 commits stay fast', elapsed < 50);
+
+    /* --- hand the board back --- */
+    App.ops.resetToDefaults();
+    t.eq('state restored to defaults', App.state.get().build, App.data.defaults());
+  });
+})();
 // #endregion [S09] SELFTEST
 
 /* ===================== [S10] LAUNCH =====================
