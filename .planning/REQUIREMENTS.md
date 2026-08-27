@@ -9,15 +9,15 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Allocation & Roster
 
-- [ ] **ALLOC-01**: Student can set each unit's health using +/− steppers
-- [ ] **ALLOC-02**: Student can set each faction's shared action point pool using +/− steppers
-- [ ] **ALLOC-03**: Student can type a delta into any numeric field (`-8`, `+5`) and adjust it with arrow keys
-- [ ] **ALLOC-04**: Allocation displays as token rows matching the board's vocabulary — green squares for health, yellow triangles for actions, blue squares for shield, red diamonds for damage. The vocabulary is data (shape, color, glyph) rather than fixed cases, so new token types are a data edit
-- [ ] **ALLOC-05**: Token rows compact above a readable count threshold instead of overflowing the row
-- [ ] **ALLOC-06**: Student can add and remove units on either side
-- [ ] **ALLOC-07**: Rapid stepper clicks and press-and-hold register every input without losing keyboard focus, scroll position, or restarting token animations
+- [x] **ALLOC-01**: Student can set each unit's health using +/− steppers
+- [x] **ALLOC-02**: Student can set each faction's shared action point pool using +/− steppers
+- [x] **ALLOC-03**: Student can type a delta into any numeric field (`-8`, `+5`) and adjust it with arrow keys
+- [x] **ALLOC-04**: Allocation displays as token rows matching the board's vocabulary — green squares for health, yellow triangles for actions, blue squares for shield, red diamonds for damage. The vocabulary is data (shape, color, glyph) rather than fixed cases, so new token types are a data edit
+- [x] **ALLOC-05**: Token rows compact above a readable count threshold instead of overflowing the row
+- [x] **ALLOC-06**: Student can add and remove units on either side
+- [x] **ALLOC-07**: Rapid stepper clicks and press-and-hold register every input without losing keyboard focus, scroll position, or restarting token animations
 - [x] **ALLOC-08**: Cats and Mechs load prebuilt with the Workshop 16 board's actions, damage, keywords and starting allocation
-- [ ] **ALLOC-09**: Student can edit a token type's appearance — shape, color and emoji — from the UI, with the shape and color carrying the meaning independently of the emoji
+- [x] **ALLOC-09**: Student can edit a token type's appearance — shape, color and emoji — from the UI, with the shape and color carrying the meaning independently of the emoji
 
 ### Fight
 
@@ -62,10 +62,10 @@ Requirements for initial release. Each maps to roadmap phases.
 ### Usability & Delivery
 
 - [x] **UX-01**: Student can undo any change with Ctrl+Z, roughly 30 steps deep, with press-and-hold coalesced into single entries
-- [ ] **UX-02**: Every piece of information is legible on a projector, with nothing conveyed by hover alone
+- [x] **UX-02**: Every piece of information is legible on a projector, with nothing conveyed by hover alone — *the hover-only half is verified; the projector half was approved without a recorded display or distance, so Q-4 stays formally open (gap G-02-B)*
 - [x] **UX-03**: A runtime error surfaces a styled error panel rather than a blank page
 - [x] **UX-04**: Ships as one self-contained HTML file that opens offline by double-click with no build step, no runtime network calls, and no external dependencies
-- [ ] **UX-05**: Visual language matches the sibling course artifacts' palette and design tokens
+- [x] **UX-05**: Visual language matches the sibling course artifacts' palette and design tokens
 
 ## v2 Requirements
 
@@ -117,15 +117,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 
 | Requirement | Phase | Status |
 |-------------|-------|--------|
-| ALLOC-01 | Phase 2 | Pending |
-| ALLOC-02 | Phase 2 | Pending |
-| ALLOC-03 | Phase 2 | Pending |
-| ALLOC-04 | Phase 2 | Pending |
-| ALLOC-05 | Phase 2 | Pending |
-| ALLOC-06 | Phase 2 | Pending |
-| ALLOC-07 | Phase 2 | Pending |
+| ALLOC-01 | Phase 2 | Complete |
+| ALLOC-02 | Phase 2 | Complete |
+| ALLOC-03 | Phase 2 | Complete |
+| ALLOC-04 | Phase 2 | Complete |
+| ALLOC-05 | Phase 2 | Complete |
+| ALLOC-06 | Phase 2 | Complete |
+| ALLOC-07 | Phase 2 | Complete — automated gate 14/14 (twenty `pointerdown` → twenty commits, one undo entry); the human hand-count was approved in aggregate but never recorded as a number (gap G-02-A) |
 | ALLOC-08 | Phase 1 | Complete |
-| ALLOC-09 | Phase 2 | Pending |
+| ALLOC-09 | Phase 2 | Complete |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
@@ -155,10 +155,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHARE-07 | Phase 5 | Pending |
 | SHARE-08 | Phase 4 | Pending |
 | UX-01 | Phase 1 | Complete |
-| UX-02 | Phase 2 | Pending |
+| UX-02 | Phase 2 | Complete — the "nothing hover-only" half is delivered and keyboard-verified; the projector-legibility half was approved in aggregate, but no display or viewing distance was recorded, so Q-4 stays formally open (gap G-02-B). `--tok` remains `22px`. |
 | UX-03 | Phase 1 | Complete |
 | UX-04 | Phase 1 | Complete |
-| UX-05 | Phase 2 | Pending |
+| UX-05 | Phase 2 | Complete |
 
 **Coverage:**
 - v1 requirements: 42 total

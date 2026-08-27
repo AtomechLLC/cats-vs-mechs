@@ -49,11 +49,11 @@ patterns-established:
   - "Pattern: a missing optional surface is a silent no-op, never a throw — an error panel raised on a button that ships in every build is worse than nothing happening"
   - "Pattern: a suite that changes another suite's observable side effects cleans up in its own region rather than editing the suite that owns the press"
 
-requirements-completed: [ALLOC-09]
-requirements-pending-human-verification: [ALLOC-04, ALLOC-07, UX-02]
+requirements-completed: [ALLOC-04, ALLOC-07, ALLOC-09, UX-02]
+requirements-completed-on-aggregate-approval: [ALLOC-07, UX-02]
 
 # Metrics
-duration: 22min
+duration: 30min
 completed: 2026-08-27
 ---
 
@@ -61,12 +61,14 @@ completed: 2026-08-27
 
 **A student can restyle any of the four board token types from the top bar — shape, colour and one of 29 curated emoji — and the change lands in the `build` slice where Ctrl+Z takes it back and Phase 4 will carry it in the share code.**
 
-> **STATUS: Tasks 1 and 2 complete and committed. Task 3 — the blocking human
-> rehearsal — has NOT been run.** It cannot be self-approved: projector
-> legibility and a hand-counted twenty clicks are answerable only by a person at
-> a real browser. The fourteen checks are reproduced verbatim at the end of this
-> document with an empty result column, and the phase is not closed until they
-> are filled in.
+> **STATUS: all three tasks complete. Task 3 — the blocking human rehearsal —
+> was run and APPROVED BY THE USER IN AGGREGATE.** The user opened the artifact
+> in a real browser and replied `approved`. They did **not** itemize the
+> fourteen checks, so the three checks that were specified to capture a recorded
+> value — the twenty-click count (3), the error-panel observation (9), and the
+> display and viewing distance (11) — have **no recorded value**, and none has
+> been invented. `--tok` stays at `22px`. See "Task 3 — the rehearsal" below and
+> the `<acceptance_record>` block in `02-03-PLAN.md`.
 
 ## Performance
 
@@ -363,55 +365,117 @@ Neither blocks this plan's goal.
 
 ---
 
-# TASK 3 — BLOCKING HUMAN REHEARSAL (NOT YET RUN)
+# TASK 3 — THE REHEARSAL: APPROVED IN AGGREGATE (`d4c9738`)
 
-This section is the deliverable of Task 3 and is **empty on purpose**. It must be filled in by a
-person at a real browser, not inferred. A skipped check is a failure, and a failing check is a
-Phase 2 gap for `/gsd:plan-phase 2 --gaps` rather than something to work around.
+**Outcome: the user opened `cats-vs-mechs.html` in a real browser, worked it, and replied
+`approved`.** That is a genuine human approval of the artifact, and Phase 2's gate is passed.
 
-Open `cats-vs-mechs.html` by double-clicking it, and work through these in order.
+**What it is not: an itemized reading.** No per-check result was reported back. Three of the
+fourteen checks were specified to capture a *recorded value* rather than a bare pass, and those
+values do not exist:
+
+| # | Value the plan asked to record | Value actually reported |
+|---|---|---|
+| 3 | the hand-counted twenty-click total, as a number | **none** |
+| 9 | whether an error panel appeared when the picker opened | **none** |
+| 11 | the display used, the approximate viewing distance, the final `--tok` | **`--tok` = 22px unchanged; display and distance: none** |
+
+Nothing below is inferred or reconstructed. No count is written where none was given, no display
+or distance is named, and no "no error panel appeared" is claimed. The distinction between a check
+approved in detail and one approved in aggregate is the point of this record.
+
+**Code changed during Task 3: none.** `--tok` stays at its shipped `22px` in `[C00]` — the user
+reported no change, and raising it was the only edit this task permitted. (The file's second
+`--tok:24px` is `[C07]`'s local swatch override, not the board's value.)
+
+The full record, including the two of Task 3's own acceptance criteria that were **not** literally
+met, lives in the `<acceptance_record>` block at the end of `02-03-PLAN.md`.
 
 | # | Check | What must be true | Result |
 |---|---|---|---|
-| 1 | It opens | No console errors, no error panel, no network activity. Cats left: 9 units at 3 health. Mechs right: 3 units at 6 health and 3 shield. Both pools at 3 action points. | |
-| 2 | Vocabulary on screen (ALLOC-04) | Green squares for health, yellow triangles for action points, blue squares for shield, red diamonds for damage — four distinct **shapes** as well as four distinct colours | |
-| 3 | **Twenty clicks means twenty (ALLOC-07)** | Note a unit's health, click `+` twenty times as fast as you physically can, and **record the actual number the value moved.** Then press and hold: brief pause, repeat, speed up after ~1s, stop on release. Drag off the button and release outside the window — it must stop there too. No token may flicker or replay its entry pop; the focus ring must not jump. | **count = ___** |
-| 4 | Delta typing (ALLOC-03) | `-8`+Enter subtracts 8. `+5`+click-away adds 5. `12`+Enter sets 12. Nonsense+Escape reverts silently, no panel. Select-all, Delete, click away → the value comes back, **not** 0. | |
-| 5 | Arrow keys (D-17) | ArrowUp = 1. Shift+ArrowUp = 5. Held ArrowUp ramps at the button's rate, not the OS key-repeat rate. | |
-| 6 | **Ctrl+Z inside a field** (Phase 1 WR-04's outstanding item) | Type a few characters into a health field, press Ctrl+Z. **Only the text reverts** — the board must not rewind. | |
-| 7 | Roster editing without losing your place (ALLOC-06) | Scroll down. Add a Cat — no page jump. Tab to a remove button, press Enter — focus lands on a neighbouring control with a **visible ring**. Remove three in a row by keyboard without re-Tabbing from the top. | |
-| 8 | Compaction (ALLOC-05) | Type `20` into a unit's health — the row collapses to a count and one token. Step 11↔12 repeatedly — nothing strobes, flashes or animates. | |
-| 9 | **The picker (ALLOC-09), both input methods** | Click the top bar's `Health`. The picker opens and **no error panel appears** — one appearing is a blocking failure, not a cosmetic one. Close it, Tab to the same button, press Enter — it opens the same way. Change health to hexagons, then violet, then add an emoji: every health token updates. Ctrl+Z reverts it. The emoji sits inside the shape without changing the token's size or the row's width. Press and **hold** the button for two seconds — it opens once, not repeatedly. | |
-| 10 | Undo from the button (D-04, D-11) | The top bar's Undo does exactly what Ctrl+Z does. | |
-| 11 | **THE PROJECTOR TEST (Q-4)** — the reason this gate is blocking | On the actual workshop display, from the back of the room: (a) can you **count** the tokens in a row of seven, or do they blur? If not, raise `--tok` from `22px` in `[C00]` and look again — one number, no JavaScript depends on it. (b) Can you read every health and action-point value? (c) Is the remove control visible but not shouting? | **display = ___**<br>**distance = ___**<br>**final `--tok` = ___** |
-| 12 | It reads as a sibling (UX-05) | Open `../game-feel-study-guide.html` beside it: same dark palette, radial background, card treatment, type stack. | |
-| 13 | Nothing is hover-only (UX-02) | Operate the whole board with the keyboard alone and without ever hovering. Every control's purpose is readable as text. | |
-| 14 | `#selftest` still renders | Open `cats-vs-mechs.html#selftest`, confirm every row is green (expect ~153), then reload without the hash and confirm the board is exactly as you left it. | |
+| 1 | It opens | No console errors, no error panel, no network activity. Cats left: 9 units at 3 health. Mechs right: 3 units at 6 health and 3 shield. Both pools at 3 action points. | approved in aggregate |
+| 2 | Vocabulary on screen (ALLOC-04) | Green squares for health, yellow triangles for action points, blue squares for shield, red diamonds for damage — four distinct **shapes** as well as four distinct colours | approved in aggregate |
+| 3 | **Twenty clicks means twenty (ALLOC-07)** | Note a unit's health, click `+` twenty times as fast as you physically can, and **record the actual number the value moved.** Then press and hold: brief pause, repeat, speed up after ~1s, stop on release. Drag off the button and release outside the window — it must stop there too. No token may flicker or replay its entry pop; the focus ring must not jump. | approved in aggregate — **count = not reported** (gap G-02-A). Automated backing: gate checks 1 and 2 assert twenty `pointerdown` → twenty commits → one undo entry |
+| 4 | Delta typing (ALLOC-03) | `-8`+Enter subtracts 8. `+5`+click-away adds 5. `12`+Enter sets 12. Nonsense+Escape reverts silently, no panel. Select-all, Delete, click away → the value comes back, **not** 0. | approved in aggregate |
+| 5 | Arrow keys (D-17) | ArrowUp = 1. Shift+ArrowUp = 5. Held ArrowUp ramps at the button's rate, not the OS key-repeat rate. | approved in aggregate |
+| 6 | **Ctrl+Z inside a field** (Phase 1 WR-04's outstanding item) | Type a few characters into a health field, press Ctrl+Z. **Only the text reverts** — the board must not rewind. | approved in aggregate |
+| 7 | Roster editing without losing your place (ALLOC-06) | Scroll down. Add a Cat — no page jump. Tab to a remove button, press Enter — focus lands on a neighbouring control with a **visible ring**. Remove three in a row by keyboard without re-Tabbing from the top. | approved in aggregate |
+| 8 | Compaction (ALLOC-05) | Type `20` into a unit's health — the row collapses to a count and one token. Step 11↔12 repeatedly — nothing strobes, flashes or animates. | approved in aggregate |
+| 9 | **The picker (ALLOC-09), both input methods** | Click the top bar's `Health`. The picker opens and **no error panel appears** — one appearing is a blocking failure, not a cosmetic one. Close it, Tab to the same button, press Enter — it opens the same way. Change health to hexagons, then violet, then add an emoji: every health token updates. Ctrl+Z reverts it. The emoji sits inside the shape without changing the token's size or the row's width. Press and **hold** the button for two seconds — it opens once, not repeatedly. | approved in aggregate — **no error-panel observation reported**. Automated backing: gate checks 10 and 13 assert the act commits nothing and opens no panel on both the pointer and the keyboard path, while an unclaimed act still throws |
+| 10 | Undo from the button (D-04, D-11) | The top bar's Undo does exactly what Ctrl+Z does. | approved in aggregate |
+| 11 | **THE PROJECTOR TEST (Q-4)** — the reason this gate is blocking | On the actual workshop display, from the back of the room: (a) can you **count** the tokens in a row of seven, or do they blur? If not, raise `--tok` from `22px` in `[C00]` and look again — one number, no JavaScript depends on it. (b) Can you read every health and action-point value? (c) Is the remove control visible but not shouting? | approved in aggregate — **display = not reported**, **distance = not reported** (gap G-02-B). **final `--tok` = 22px, unchanged**, confirmed only by the absence of a request to raise it |
+| 12 | It reads as a sibling (UX-05) | Open `../game-feel-study-guide.html` beside it: same dark palette, radial background, card treatment, type stack. | approved in aggregate |
+| 13 | Nothing is hover-only (UX-02) | Operate the whole board with the keyboard alone and without ever hovering. Every control's purpose is readable as text. | approved in aggregate |
+| 14 | `#selftest` still renders | Open `cats-vs-mechs.html#selftest`, confirm every row is green (expect ~153), then reload without the hash and confirm the board is exactly as you left it. | approved in aggregate |
 
-**If check 11 leads to raising `--tok`:** that is the one code change permitted during this task —
-a single value in `[C00]`. Re-run `node tests/selftest-node.cjs` afterwards and record the new
-value above.
+"Approved in aggregate" means covered by the user's blanket `approved`, not by a per-check result
+reported back. Read it as "the developer used the artifact and was satisfied", not as fourteen
+independently witnessed observations.
+
+## Residual gaps for `/gsd:plan-phase 2 --gaps`
+
+Not reported failures — nothing was reported as broken. These are **unrecorded observations**:
+
+- **G-02-A — the twenty-click count was never written down.** The mechanism has strong automated
+  backing (gate checks 1 and 2), but a stub cannot see an input dropped by a real browser under a
+  real finger. Re-run check 3 at the next rehearsal and record the integer.
+- **G-02-B — Q-4 is still formally open.** `--tok:22px` is confirmed only by the absence of a
+  request to change it, and the display and viewing distance behind that judgement are unrecorded.
+  Research's "projector legibility is unanswerable without a rehearsal" is answered in practice
+  but not in the record. Re-check on the actual workshop display before the session.
+
+Neither blocks Phase 3.
 
 ## ROADMAP Phase 2 success criteria
 
-To be marked satisfied, or the gap named plainly, once the fourteen checks above are answered.
-
 | # | Criterion | Status |
 |---|---|---|
-| 1 | | awaiting rehearsal |
-| 2 | | awaiting rehearsal |
-| 3 | | awaiting rehearsal |
-| 4 | | awaiting rehearsal |
-| 5 | | awaiting rehearsal |
+| 1 | Steppers, delta typing and arrow keys set unit health and the faction AP pool; token rows reflect it immediately | **Satisfied.** Automated: 142 assertions incl. nudge clamping, fractional/NaN refusal, ceiling and floor. Human: approved in aggregate (checks 4, 5). |
+| 2 | Board vocabulary — four distinct shapes and colours — and rows compact instead of overflowing | **Satisfied.** Automated: vocabulary allowlist suite, `COMPACT_AT` asserted as a named constant, row growth 10→11 keeps all ten nodes and appends one. Human: approved in aggregate (checks 2, 8). |
+| 3 | Add and remove on either side; roster rebuilds without losing scroll or the focus ring | **Satisfied.** Automated: gate checks 6 and 7 assert focus lands on a real node after removing the focused button, and card count tracks roster length. Human: approved in aggregate (check 7). |
+| 4 | Twenty rapid clicks produce exactly twenty changes; hold ramps; no animation restart, no focus jump, no dropped input | **Satisfied on the automated evidence; the human count is missing.** Gate checks 1–4 and 8 pass at 14 of 14. The hand-counted number this criterion is phrased around was not reported — see G-02-A. |
+| 5 | Legible on a projector at the back of a room, nothing hover-only, reads as a sibling of `game-feel-study-guide.html` | **Satisfied for the hover-only and sibling halves** (checks 12, 13; grep confirms zero inline handlers and the shared token palette). **The projector half is approved but unrecorded** — see G-02-B. |
+
+## Requirements closed by this phase
+
+| Requirement | Evidence grade |
+|---|---|
+| ALLOC-01, ALLOC-02, ALLOC-03, ALLOC-05, ALLOC-06 | automated assertions plus aggregate approval |
+| ALLOC-04 | automated vocabulary/allowlist assertions plus aggregate approval |
+| ALLOC-07 | automated gate 14/14 is the primary evidence; the human hand-count is missing (G-02-A) |
+| ALLOC-09 | automated `[S09.6]` suite plus gate checks 10 and 13, plus aggregate approval |
+| UX-02 | the hover-only half is verified; the projector half rests on aggregate approval with no recorded display or distance (G-02-B) |
+| UX-05 | aggregate approval plus the shared design-token palette in `[C00]` |
+
+All ten are ticked in `.planning/REQUIREMENTS.md`, with the ALLOC-07 and UX-02 caveats carried in
+the traceability table rather than dropped.
+
+## Gates re-run after the rehearsal
+
+| Gate | Required | Result |
+|---|---|---|
+| `node tests/selftest-node.cjs` | exit 0, `0 failed`, ≥ 142 passed | exit **0**, **142 passed, 0 failed** |
+| interaction gate | 14 of 14 | **14 of 14** |
+| `grep -ci "counter\|rating\|balanced\|difficulty"` | `0` | **0** |
+| `grep -c "verdict\|balanced\|rating\|difficulty"` | `0` | **0** |
+| forbidden-API grep | `0` | **0** |
+| `grep -c "<style>"` / `grep -c "<script>"` | `1` / `1` | **1** / **1** |
+| `grep -c "Object.assign"` | `0` | **0** |
+| `[C00] --tok` | unchanged unless check 11 raised it | **`22px`, unchanged** |
 
 ## Self-Check
 
 - `cats-vs-mechs.html` — FOUND
 - `.planning/phases/02-allocation-surface/02-03-SUMMARY.md` — FOUND
+- `.planning/phases/02-allocation-surface/02-03-PLAN.md` `<acceptance_record>` — FOUND
+- `.planning/REQUIREMENTS.md` — ALLOC-01…07, ALLOC-09, UX-02, UX-05 ticked
 - `615dfd9` — FOUND
 - `45179a9` — FOUND
+- `d4c9738` — FOUND
 - `STATE.md` / `ROADMAP.md` — untouched, as required in worktree mode
 
-## Self-Check: PASSED (for Tasks 1 and 2)
+## Self-Check: PASSED
 
-Task 3 is unstarted and is reported as a checkpoint to the orchestrator, not as a pass.
+All three tasks are complete. Task 3's approval is recorded as what it was — a blanket `approved`
+from the user after using the artifact — and the three checks that carry no reported value say so
+plainly instead of borrowing confidence from the ones that do.
