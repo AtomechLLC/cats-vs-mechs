@@ -278,7 +278,47 @@ App.data = (function () {
  * owner: plan 01-01
  * ======================================================= */
 // #region [S02] MODEL
-// PENDING — filled by task 3 of plan 01-01
+App.model = (function () {
+  'use strict';
+
+  function unitEhp(unit) {
+    return unit.maxHp + unit.shield;
+  }
+
+  function factionEhp(faction) {
+    return faction.units.reduce(function (n, u) { return n + unitEhp(u); }, 0);
+  }
+
+  function bestDamage(faction) {
+    return faction.actions.reduce(function (n, a) { return a.dmg > n ? a.dmg : n; }, 0);
+  }
+
+  // Throughput is capped by the shared action-point pool, not by unit count.
+  // That cap is the whole point of holding action points at faction level.
+  function factionDps(faction, activeUnits) {
+    var active = (activeUnits === undefined) ? faction.units.length : activeUnits;
+    return Math.min(faction.ap, active) * bestDamage(faction);
+  }
+
+  // Reads the stored flag. Death is never inferred from hp === 0 — a unit a
+  // student ruled "survived via Shield" has to stay representable.
+  function aliveCount(fightSide) {
+    return fightSide.units.reduce(function (n, u) { return u.alive === true ? n + 1 : n; }, 0);
+  }
+
+  function apSpent(buildFaction, fightSide) {
+    return buildFaction.ap - fightSide.ap;
+  }
+
+  return Object.freeze({
+    unitEhp: unitEhp,
+    factionEhp: factionEhp,
+    bestDamage: bestDamage,
+    factionDps: factionDps,
+    aliveCount: aliveCount,
+    apSpent: apSpent
+  });
+})();
 // #endregion [S02] MODEL
 
 /* ===================== [S03] STATE =====================
@@ -581,6 +621,52 @@ App.selftest = (function () {
 })();
 
 /* --- [S09.2] SUITE: model derivations — owner plan 01-01 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('model derivations', function (t) {
+    var d = App.data.defaults();
+
+    // The two sides landing on the same eHP is a coincidence of the board's
+    // token rows, not a claim about the matchup. Phase 5's playtest gate is
+    // what settles that question, by being played.
+    t.eq('cats eHP', App.model.factionEhp(d.cats), 27);
+    t.eq('mechs eHP', App.model.factionEhp(d.mechs), 27);
+
+    t.eq('cats best damage', App.model.bestDamage(d.cats), 1);
+    t.eq('mechs best damage', App.model.bestDamage(d.mechs), 3);
+
+    t.eq('cats throughput', App.model.factionDps(d.cats), 3);
+    t.eq('mechs throughput', App.model.factionDps(d.mechs), 9);
+    t.eq('throughput respects the ap cap', App.model.factionDps(d.cats, 1), 1);
+
+    var snapshot = JSON.stringify(d.cats);
+    App.model.factionEhp(d.cats);
+    App.model.factionEhp(d.cats);
+    t.eq('model is pure', JSON.stringify(d.cats), snapshot);
+
+    // Zero HP but flagged alive counts; full HP but flagged dead does not.
+    var side = {
+      ap: 3,
+      units: [
+        { id: 'c1', hp: 0, alive: true },
+        { id: 'c2', hp: 3, alive: false }
+      ]
+    };
+    t.eq('alive is read, not inferred', App.model.aliveCount(side), 1);
+
+    t.eq('apSpent', App.model.apSpent({ ap: 3 }, { ap: 1 }), 2);
+
+    t.ok('all derivations return integers', [
+      App.model.unitEhp(d.cats.units[0]),
+      App.model.factionEhp(d.cats),
+      App.model.bestDamage(d.mechs),
+      App.model.factionDps(d.mechs),
+      App.model.aliveCount(side),
+      App.model.apSpent(d.cats, side)
+    ].every(Number.isInteger));
+  });
+})();
 
 /* --- [S09.3] SUITE: state contract — owner plan 01-02 --- */
 // #endregion [S09] SELFTEST
