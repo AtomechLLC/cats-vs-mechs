@@ -728,30 +728,176 @@ App.interactions = Object.freeze({
 
 /* ===================== [S08] BOOT =====================
  * The entry point and the error boundary. attempt(label, fn) runs one wiring
- * step inside a try/catch so a single failure is non-terminal and surfaces in
- * the styled panel instead of blanking the page. start() is called exactly
- * once, from [S10] LAUNCH.
- * deps: [S03] STATE, App.render, App.interactions, App.selftest
+ * step inside a try/catch and wrap(label, fn) does the same for a listener, so
+ * a failure surfaces in the styled panel instead of blanking the page. Only an
+ * init failure is terminal; a handler failure leaves the last good state on
+ * screen (D-14). start() is called exactly once, from [S10] LAUNCH.
+ * deps: App.state, App.ops, App.selftest, App.interactions, App.hasFlag
  * owner: plan 01-02
  * ====================================================== */
 // #region [S08] BOOT
 App.boot = (function () {
   'use strict';
-  // STUB — plan 01-02 replaces these bodies; the selftest gate line must survive.
 
+  var terminal = false;  // an init failure poisons everything after it
+  var wired = false;     // the two panel buttons are wired exactly once
+
+  function byId(id) {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById(id);
+  }
+
+  // The buttons are wired from fail() as well as from start(), because the
+  // failure this panel most needs to survive is the one that happens before
+  // start() reaches its wiring step. Recovery has to be one click even then
+  // (D-15) — the realistic failure moment is an instructor mid-demo.
+  function ensurePanelButtons() {
+    if (wired) { return; }
+    var panel = byId('err-panel');
+    var dismiss = byId('err-dismiss');
+    var reset = byId('err-reset');
+    if (!panel || !dismiss || !reset) { return; }
+
+    dismiss.addEventListener('click', wrap('Dismiss', function () {
+      panel.hidden = true;
+    }));
+
+    reset.addEventListener('click', wrap('Reset to defaults', function () {
+      // After a terminal failure nothing in memory is trustworthy, so start
+      // over from a clean hash rather than writing to state.
+      if (terminal) {
+        location.hash = '';
+        location.reload();
+        return;
+      }
+      App.ops.resetToDefaults();
+      panel.hidden = true;
+    }));
+
+    wired = true;
+  }
+
+  // The panel driver. Every string reaches the page through textContent, or
+  // through the textarea's value property — never through a markup-parsing
+  // sink. Error text can already carry a fragment of a pasted link, and from
+  // Phase 4 it carries decoded build-code content (threat T-01-02).
+  // The detail field is selectable so it can be pasted into the course thread;
+  // there is no automatic reporting, because there is no backend (D-16).
+  function fail(label, err, isTerminal) {
+    if (isTerminal === true) { terminal = true; }
+
+    var error = (err && typeof err.message === 'string') ? err : new Error(String(err));
+    var panel = byId('err-panel');
+    var title = byId('err-title');
+    var message = byId('err-message');
+    var detail = byId('err-detail');
+    var dismiss = byId('err-dismiss');
+
+    if (!panel || !title || !message || !detail || !dismiss) {
+      console.error(label, error);
+      return;
+    }
+
+    ensurePanelButtons();
+
+    title.textContent = label;
+    message.textContent = terminal
+      ? error.message + ' — the artifact could not start, so reload the page to try again.'
+      : error.message + ' — the last good state is still on screen.';
+    detail.value = error.name + ': ' + error.message + '\n\n' + (error.stack || '(no stack)');
+
+    dismiss.hidden = terminal;
+    panel.hidden = false;
+    if (!terminal) { dismiss.focus(); }
+  }
+
+  // One wiring step, non-terminal.
   function attempt(label, fn) {
     try {
-      fn();
+      return fn();
     } catch (err) {
-      console.error(label, err);
+      fail(label, err, false);
+      return undefined;
     }
   }
 
-  function start() {
-    if (App.hasFlag('selftest')) { App.selftest.report(App.selftest.run()); }
+  // Every listener this file registers, in this phase and in every later one,
+  // goes through here (D-13). Exported so Phase 2's delegated roots reuse this
+  // boundary instead of inventing a second one.
+  function wrap(label, fn) {
+    return function () {
+      try {
+        return fn.apply(this, arguments);
+      } catch (err) {
+        fail(label, err, false);
+        return undefined;
+      }
+    };
   }
 
-  return Object.freeze({ attempt: attempt, start: start });
+  function start() {
+    try {
+      // Ships deliberately: three lines, and the only way to rehearse the
+      // blank-page failure before standing in front of a room.
+      if (App.hasFlag('throwinit')) {
+        throw new Error('Deliberate init failure (#throwinit)');
+      }
+
+      // The safety net for anything that escapes a wrapper.
+      window.addEventListener('error', function (e) {
+        fail('Uncaught error', e.error || new Error(e.message || 'Unknown error'), false);
+      });
+      window.addEventListener('unhandledrejection', function (e) {
+        var reason = (e.reason && typeof e.reason.message === 'string') ? e.reason : new Error(String(e.reason));
+        fail('Unhandled rejection', reason, false);
+      });
+
+      ensurePanelButtons();
+
+      // A caller, never the implementation (D-11). A Phase 2 undo button calls
+      // this same one line.
+      document.addEventListener('keydown', wrap('undo shortcut', function (e) {
+        if (!(e.ctrlKey || e.metaKey)) { return; }
+        if (e.shiftKey) { return; }
+        if (e.key !== 'z' && e.key !== 'Z') { return; }
+        e.preventDefault();
+        App.ops.undo();
+      }));
+
+      App.interactions.bind();
+
+      // The second half of the rehearsal: a throw from inside a live handler.
+      if (App.hasFlag('throwhandler')) {
+        var empty = byId('board-empty');
+        var board = byId('board');
+        if (empty) {
+          empty.textContent = 'Click anywhere in this panel to trigger a deliberate handler failure.';
+        }
+        if (board) {
+          board.addEventListener('click', wrap('board click', function () {
+            throw new Error('Deliberate handler failure (#throwhandler)');
+          }));
+        }
+      }
+
+      // The very first paint goes through the same path every later update
+      // does, so there is no separate first-render code path to keep in step.
+      App.state.invalidate({ structural: true });
+
+      if (App.hasFlag('selftest')) {
+        attempt('Self-test', function () { App.selftest.report(App.selftest.run()); });
+      }
+    } catch (err) {
+      fail('Initialisation', err, true);
+    }
+  }
+
+  return Object.freeze({
+    start: start,
+    attempt: attempt,
+    wrap: wrap,
+    fail: fail
+  });
 })();
 // #endregion [S08] BOOT
 
