@@ -35,6 +35,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 
 - [ ] **Phase 1: Foundation — Data, State Funnel & Undo** - The file opens offline and proves its own data model, mutation funnel and undo before any UI exists
 - [ ] **Phase 2: Allocation Surface** - Steppers, token rows and roster editing that survive live-workshop hammering
+- [ ] **Phase 2.1: Token Authoring (INSERTED)** - Students name their tokens and invent new ones, so the vocabulary stops being ours and starts being theirs
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student
 - [ ] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back
 - [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it
@@ -80,6 +81,23 @@ the `[S01]` token-vocabulary map and `[C05] TOKENS-VIZ` went from 02-03 to 02-01
 must render the board's four token types in wave 1 and cannot render them from data that does
 not exist yet. Recorded in both plans' frontmatter.
 
+### Phase 2.1: Token Authoring (INSERTED)
+**Goal**: A student can name any token type and invent new ones of their own, so the board's vocabulary becomes something they authored rather than something the tool handed them
+**Depends on**: Phase 2 (the picker, the data-driven renderer and the token vocabulary all ship there)
+**Requirements**: ALLOC-10, ALLOC-11
+**Success Criteria** (what must be TRUE):
+  1. A student can give any token type a name, and that name appears wherever the token type is presented — in the picker, and anywhere the board labels a row.
+  2. A student can create a new token type, choosing its name, shape, colour and emoji from the same allowlists the built-in types use, and it renders on the board exactly like a built-in one.
+  3. A student-created token counts nothing on its own. It carries a per-unit or per-faction tally the student increments by hand — the tool tracks the number and never infers what it means.
+  4. A student can remove a token type they created. The five built-in types (health, actions, shield, damage, dead) cannot be removed, because the rest of the board is bound to them.
+  5. Creating a token type cannot corrupt the board: an id that collides with a built-in, or with a JavaScript object-prototype key, is refused by name with a message rather than silently accepted.
+**Plans**: 2 plans
+**UI hint**: yes
+
+Plans:
+- [ ] 02.1-01: Token records carry a name and an open id space — `[S01]` vocabulary, id-shape validation replacing the fixed `TOKEN_IDS` allowlist, `[S05]` create/rename/remove ops
+- [ ] 02.1-02: The authoring surface — name field, create and remove flows in the picker, and the board rendering student-created types
+
 ### Phase 3: Advisory Projection & Reference Material
 **Goal**: A student can see what their allocation implies, stated in the fight's own unit with its arithmetic exposed and its blind spots named — and can read the counter map and effect cards without leaving the build
 **Depends on**: Phase 2 (may run in parallel with Phase 4)
@@ -101,7 +119,7 @@ Plans:
 
 ### Phase 4: Share & Reset
 **Goal**: A student can copy a build code short enough to post in the Discord thread, load a classmate's, and get back to Workshop 16 defaults without ever loading garbage silently
-**Depends on**: Phase 2 (build shape must be stable; may run in parallel with Phase 3)
+**Depends on**: Phase 2 and Phase 2.1 (build shape must be stable — 2.1 opens the token id space, and SHARE-08 must carry student-created type definitions, not just restyles; may run in parallel with Phase 3)
 **Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04, SHARE-05, SHARE-06, SHARE-08
 **Success Criteria** (what must be TRUE):
   1. A student clicks copy and gets a build code on the clipboard; pasting that code into the load field reproduces the build exactly, unit for unit and point for point. When the browser blocks the clipboard API, a selectable field appears with the code already highlighted so the copy still happens.

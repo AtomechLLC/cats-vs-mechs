@@ -18,6 +18,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ALLOC-07**: Rapid stepper clicks and press-and-hold register every input without losing keyboard focus, scroll position, or restarting token animations
 - [x] **ALLOC-08**: Cats and Mechs load prebuilt with the Workshop 16 board's actions, damage, keywords and starting allocation
 - [x] **ALLOC-09**: Student can edit a token type's appearance — shape, color and emoji — from the UI, with the shape and color carrying the meaning independently of the emoji
+- [ ] **ALLOC-10**: Student can give a token type a name, shown wherever that token type is presented
+- [ ] **ALLOC-11**: Student can create and remove their own token types, which count nothing on their own — a free annotation the student increments by hand to track a mechanic they invented
 
 ### Fight
 
@@ -57,7 +59,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SHARE-05**: The current build mirrors to `location.hash` for the student's own reload and bookmark, without being presented as the sharing mechanism
 - [ ] **SHARE-06**: Student can reset to Workshop 16 board defaults, behind a confirmation
 - [ ] **SHARE-07**: Student can reset the fight without discarding their build
-- [ ] **SHARE-08**: Custom token appearance round-trips through the build code, so a shared build looks the same for the recipient
+- [ ] **SHARE-08**: Custom token appearance, names and student-created token types all round-trip through the build code, so a shared build looks the same for the recipient
 
 ### Usability & Delivery
 
@@ -126,6 +128,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALLOC-07 | Phase 2 | Complete — automated gate 14/14 (twenty `pointerdown` → twenty commits, one undo entry); the human hand-count was approved in aggregate but never recorded as a number (gap G-02-A) |
 | ALLOC-08 | Phase 1 | Complete |
 | ALLOC-09 | Phase 2 | Complete |
+| ALLOC-10 | Phase 2.1 | Pending |
+| ALLOC-11 | Phase 2.1 | Pending |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
@@ -161,14 +165,15 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-05 | Phase 2 | Complete |
 
 **Coverage:**
-- v1 requirements: 42 total
-- Mapped to phases: 42 ✓
+- v1 requirements: 44 total
+- Mapped to phases: 44 ✓
 - Unmapped: 0
 
 | Phase | Requirements | Count |
 |-------|--------------|-------|
 | 1. Foundation — Data, State Funnel & Undo | ALLOC-08, UX-01, UX-03, UX-04 | 4 |
 | 2. Allocation Surface | ALLOC-01…07, ALLOC-09, UX-02, UX-05 | 10 |
+| 2.1 Token Authoring (INSERTED) | ALLOC-10, ALLOC-11 | 2 |
 | 3. Advisory Projection & Reference Material | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
 | 4. Share & Reset | SHARE-01…06, SHARE-08 | 7 |
 | 5. Fight Loop & Playtest | FIGHT-01…11, PROJ-05, REF-03, SHARE-07 | 14 |
