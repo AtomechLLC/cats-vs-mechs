@@ -1110,6 +1110,15 @@ App.selftest = (function () {
         var threw = false;
         try { fn(); } catch (e) { threw = true; }
         push(label, threw, threw, true);
+      },
+      // A measurement, not a gate. Recorded as a passing row so the number is
+      // visible to whoever opened the report and can never turn it red. Some
+      // numbers are worth showing and worth nobody's failure: a wall-clock
+      // budget on a shared projector goes red because the tab was throttled or
+      // the machine was busy, which tells a room full of students nothing at
+      // all about the code they are reading.
+      info: function (label, value) {
+        push(label, true, value, 'informational');
       }
     };
   }
@@ -1489,13 +1498,19 @@ App.selftest = (function () {
     App.state.flush();
     t.eq('invalidate coalesces to one frame', App.state.stats().frames - frames0, 1);
 
-    /* --- the thaw/freeze cycle has to stay cheap enough to be invisible --- */
+    /* --- the thaw/freeze cycle has to stay cheap enough to be invisible.
+           Timed and reported here, never asserted: this was the one row in the
+           suite whose colour depended on the machine, the browser's background
+           load and whether the tab was throttled. The hard budget lives in
+           tests/selftest-node.cjs, where the environment is controlled and no
+           student is watching the screen. --- */
     var started = Date.now();
     for (i = 0; i < 100; i++) {
       App.state.commit('perf ' + i, function (s) { s.build.cats.ap = 4; });
     }
     var elapsed = Date.now() - started;
-    t.ok('100 commits stay fast', elapsed < 50);
+    t.ok('100 commits all landed', App.state.get().build.cats.ap === 4);
+    t.info('100 commits took ' + elapsed + ' ms', elapsed);
 
     /* --- hand the board back --- */
     App.ops.resetToDefaults();

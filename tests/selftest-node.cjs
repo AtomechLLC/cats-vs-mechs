@@ -6,14 +6,17 @@
  * double-click, so optional dev tooling lives here in a sibling tests/ folder.
  * It uses Node built-ins only (fs, path, vm) — there is nothing to install.
  *
- * It does two things:
- *   1. Scans the HTML for forbidden patterns. This is the mechanical proof of
- *      "no outbound requests, no external dependencies, no markup-injection
- *      sink" — including inside comments.
+ * It does three things:
+ *   1. Scans the HTML for forbidden patterns. This is a mechanical gate
+ *      against the known sinks — "no outbound requests, no external
+ *      dependencies, no markup-injection sink" — including inside comments.
  *   2. Loads the single script body into a bare vm sandbox with no document
  *      and no location, then runs App.selftest.run() and prints one line per
  *      assertion. The in-file #selftest report stays the primary surface;
  *      this exists so the same assertions are checkable from a terminal.
+ *   3. Holds the wall-clock budget the in-file harness deliberately does not.
+ *      A timing gate belongs where the environment is controlled, not on a
+ *      workshop projector.
  *
  * Usage:  node tests/selftest-node.cjs
  * Exit:   0 when every assertion passes and nothing forbidden is present.
@@ -110,4 +113,23 @@ result.records.forEach((r) => {
 });
 
 console.log(result.passed + ' passed, ' + result.failed + ' failed');
+
+// --- 4. the timing gate, dev-side only ----------------------------------------
+// The in-file harness reports this number through t.info and never fails on it:
+// a wall-clock budget on a workshop projector goes red because the tab was
+// throttled, which teaches a room full of students nothing. Here the
+// environment is controlled and nobody is watching, so here it is allowed to
+// be a gate. This runs after the suites, so it is free to leave state dirty.
+const PERF_BUDGET_MS = 50;
+const perfStarted = Date.now();
+for (let i = 0; i < 100; i++) {
+  sandbox.App.state.commit('perf ' + i, (s) => { s.build.cats.ap = 4; });
+}
+const perfElapsed = Date.now() - perfStarted;
+console.log('perf: 100 commits in ' + perfElapsed + ' ms (budget ' + PERF_BUDGET_MS + ' ms)');
+
+if (perfElapsed >= PERF_BUDGET_MS) {
+  fail('PERF: 100 commits took ' + perfElapsed + ' ms, over the ' + PERF_BUDGET_MS + ' ms budget');
+}
+
 process.exit(result.failed ? 1 : 0);
