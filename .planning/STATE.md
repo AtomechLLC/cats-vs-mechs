@@ -2,10 +2,10 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: planning
+status: executing
 stopped_at: Phase 2 planned (3 plans, verified)
-last_updated: "2026-08-27T15:19:47.674Z"
-last_activity: 2026-08-27
+last_updated: "2026-08-27T15:21:13.279Z"
+last_activity: 2026-08-27 -- Phase 02 execution started
 progress:
   total_phases: 5
   completed_phases: 1
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A student builds two factions that look nothing alike and discovers they can still be balanced — and discovers it by playing, not by being told a number.
-**Current focus:** Phase 2 — allocation surface
+**Current focus:** Phase 02 — allocation-surface
 
 ## Current Position
 
-Phase: 2
-Plan: Not started
-Status: Ready to plan
-Last activity: 2026-08-27
+Phase: 02 (allocation-surface) — EXECUTING
+Plan: 1 of 3
+Status: Executing Phase 02
+Last activity: 2026-08-27 -- Phase 02 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
