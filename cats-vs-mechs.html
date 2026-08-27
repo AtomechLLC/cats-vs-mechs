@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cats vs Mechs — Workshop 16 Interactive Sample</title>
+<style>
+  /* ===================== [C00] TOKENS ===================== */
+  :root{
+    --bg:#0e1014;
+    --bg-2:#15181f;
+    --panel:#191d26;
+    --panel-2:#1f2530;
+    --ink:#e8ebf2;
+    --ink-dim:#a4adbe;
+    --ink-faint:#6c7689;
+    --line:#2a3140;
+    --accent:#5cc8ff;
+    --accent-2:#ff7eb6;
+    --gold:#ffd166;
+    --green:#5bd99c;
+    --violet:#b98cff;
+    --radius:14px;
+    /* artifact-specific */
+    --coral:#ff8a5c;--maxw:1280px;
+  }
+
+  /* ===================== [C01] BASE ===================== */
+  *{box-sizing:border-box}
+  html{scroll-behavior:smooth}
+  body{
+    margin:0;
+    background:radial-gradient(1200px 700px at 80% -10%, #1a2030 0%, var(--bg) 55%) no-repeat fixed,var(--bg);
+    color:var(--ink);
+    font:17px/1.6 "Segoe UI",system-ui,-apple-system,Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--accent);text-decoration:none}
+  a:hover{text-decoration:underline}
+  /* every numeric readout in this file gets stable digit widths */
+  .num{font-variant-numeric:tabular-nums}
+
+  /* ===================== [C02] SHELL ===================== */
+  .shell{max-width:var(--maxw);margin:0 auto;padding:28px 22px}
+  .shell-head{margin:0 0 18px}
+  .shell-head h1{margin:0 0 2px;font-size:32px;line-height:1.2;letter-spacing:-.4px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px 22px;margin:14px 0}
+  .card.tight{padding:16px 18px}
+  .grid{display:grid;gap:14px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  @media(max-width:760px){.g2,.g3{grid-template-columns:1fr}}
+
+  .eyebrow{color:var(--accent-2);font-size:12px;font-weight:700;text-transform:uppercase;letter-spacing:1px}
+  .muted{color:var(--ink-dim)}
+  .faint{color:var(--ink-faint)}
+
+  .callout{border-radius:10px;padding:14px 18px;margin:16px 0;border:1px solid var(--line);background:var(--panel-2)}
+  .callout.accent{border-left:3px solid var(--accent)}
+  .callout.gold{border-left:3px solid var(--gold)}
+  .callout.green{border-left:3px solid var(--green)}
+  .callout.pink{border-left:3px solid var(--accent-2)}
+  .callout b{color:#fff}
+
+  .ex{display:inline-block;font-size:12px;color:var(--green);background:rgba(91,217,156,.08);
+    border:1px solid rgba(91,217,156,.25);padding:2px 9px;border-radius:6px;margin-top:6px}
+
+  /* ===================== [C08] BOOT — ERROR PANEL ===================== */
+  .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
+    background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
+  .err-panel[hidden]{display:none}
+  .err-title{font-weight:700;color:var(--ink)}
+  .err-message{color:var(--ink-dim)}
+  .err-detail{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--ink-dim);
+    width:100%;min-height:96px;padding:8px 10px;
+    font-family:ui-monospace,Consolas,monospace;font-size:12.5px;resize:vertical;user-select:text}
+  .err-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .err-btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);
+    border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
+  .err-btn:hover{border-color:var(--accent)}
+  .err-btn--danger{border-color:var(--accent-2);color:var(--accent-2)}
+
+  /* ===================== [C09] SELFTEST REPORT ===================== */
+  .st-report[hidden]{display:none}
+  .st-summary{font-size:20px;font-weight:700;margin:6px 0 12px}
+  .st-rows{display:flex;flex-direction:column;gap:6px}
+  .st-row{border:1px solid var(--line);border-radius:9px;padding:8px 12px;font-size:14px}
+  .st-row--pass{border-left:3px solid var(--green)}
+  .st-row--fail{border-left:3px solid var(--coral)}
+  .st-row b{display:block;font-size:11px;text-transform:uppercase;letter-spacing:.6px;margin-bottom:3px}
+  .st-row--pass b{color:var(--green)}
+  .st-row--fail b{color:var(--coral)}
+  .st-detail{color:var(--ink-dim);font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+</style>
+</head>
+<body>
+
+<main class="shell" id="app">
+
+  <div class="shell-head">
+    <h1>Cats vs Mechs</h1>
+    <div class="muted">Workshop 16 — allocation and fight sandbox</div>
+  </div>
+
+  <div class="board" id="board">
+    <p class="muted" id="board-empty">The allocation board renders here.</p>
+  </div>
+
+  <section class="card st-report" id="selftest-report" hidden>
+    <div class="eyebrow">Developer self-test</div>
+    <div class="st-summary num" id="selftest-summary"></div>
+    <div class="st-rows" id="selftest-rows"></div>
+  </section>
+
+</main>
+
+<div class="callout pink err-panel" id="err-panel" hidden role="alert">
+  <div class="eyebrow">Something went wrong</div>
+  <div class="err-title" id="err-title"></div>
+  <div class="err-message" id="err-message"></div>
+  <textarea class="err-detail" id="err-detail" readonly aria-label="Error details"></textarea>
+  <div class="err-actions">
+    <button type="button" class="err-btn" id="err-dismiss">Dismiss and continue</button>
+    <button type="button" class="err-btn err-btn--danger" id="err-reset">Reset to Workshop 16 defaults</button>
+  </div>
+</div>
+
+<script>
+/* =========================================================================
+ * TABLE OF CONTENTS — the section banner is the file tree.
+ * Search a token such as [S03] and you land in exactly one place.
+ *
+ *   [S00] APP           the single global namespace + the hash-flag test   (plan 01-01)
+ *   [S01] DATA          deep-frozen Workshop 16 board defaults             (plan 01-01)
+ *   [S02] MODEL         pure eHP / damage-throughput derivations           (plan 01-01)
+ *   [S03] STATE         the state slices, commit() funnel, snapshot undo   (plan 01-02)
+ *   [S04] SERIALIZE     build-code encode / decode + hash sync             (Phase 4, plan 04-01)
+ *   [S05] OPS           every state transformation, one per student action (plan 01-02)
+ *   [S06] RENDER        page structure and per-tick reconcile from state   (Phase 2, plan 02-01)
+ *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
+ *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
+ *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
+ *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
+ *
+ * Region order is fixed. Dependency arrows point DOWN only; reference another
+ * section as App.x.y() at the call site, never by capturing it at section-body
+ * scope, so reordering can never break anything.
+ *
+ * Two deliberate divergences from the sibling course artifacts:
+ *   1. This file introduces one global, App. The siblings use bare top-level
+ *      const, which is fine at 400-700 lines and stops working at several
+ *      thousand.
+ *   2. Each section is an IIFE opening with 'use strict'. Strict mode is what
+ *      makes a write to the frozen defaults throw instead of failing silently.
+ * Section banners and #region markers sit at column 0; code is indented two
+ * spaces, matching the siblings.
+ * ========================================================================= */
+
+/* ===================== [S00] APP =====================
+ * The single global. Every section hangs off it.
+ * hasFlag() is the only place hash text is read anywhere in this file, and it
+ * compares whole tokens by exact equality: a link ending #notselftest or
+ * #selftestx must not open the developer report. Hash text never reaches a
+ * page sink or a dynamic code path.
+ * deps: none
+ * owner: plan 01-01
+ * ===================================================== */
+// #region [S00] APP
+var App = {};
+
+App.hasFlag = function (name) {
+  'use strict';
+  if (typeof location === 'undefined') { return false; }
+  var raw = location.hash || '';
+  if (raw.charAt(0) === '#') { raw = raw.slice(1); }
+  var tokens = raw.split(',');
+  for (var i = 0; i < tokens.length; i++) {
+    if (tokens[i].trim() === name) { return true; }
+  }
+  return false;
+};
+// #endregion [S00] APP
+
+/* ===================== [S01] DATA =====================
+ * The deep-frozen Workshop 16 board, and the recursive freeze helper.
+ * Damage attaches to actions, health attaches to units, action points attach
+ * to the faction. Every number in here is an integer.
+ * deepFreeze is exported as App.data.deepFreeze because [S03] STATE reuses
+ * this exact function rather than keeping a second copy of it.
+ * deps: none
+ * owner: plan 01-01
+ * ====================================================== */
+// #region [S01] DATA
+App.data = (function () {
+  'use strict';
+
+  // Object.freeze is shallow; the board is three levels deep.
+  function deepFreeze(o) {
+    if (o === null || typeof o !== 'object') { return o; }
+    Object.getOwnPropertyNames(o).forEach(function (k) {
+      var v = o[k];
+      if (v !== null && typeof v === 'object' && !Object.isFrozen(v)) { deepFreeze(v); }
+    });
+    return Object.freeze(o);
+  }
+
+  // Units are built by a loop, so a roster change is one number rather than
+  // twelve near-identical literals drifting apart.
+  function makeUnits(idPrefix, namePrefix, howMany, stats) {
+    var units = [];
+    for (var i = 1; i <= howMany; i++) {
+      units.push({
+        id: idPrefix + i,
+        name: namePrefix + ' ' + i,
+        maxHp: stats.maxHp,
+        shield: stats.shield
+      });
+    }
+    return units;
+  }
+
+  // D-01: a literal reading of the board's token rows. A starting point, not a
+  // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
+  // retunes these, and this object is the single place that edit happens.
+  // Effect keyword ids live here; their card copy and the action-versus-action
+  // reference table are data.reference, owned by Phase 3 plan 03-02.
+  var DEFAULTS = deepFreeze({
+    schema: 1,
+    cats: {
+      id: 'cats',
+      name: 'Cats',
+      ap: 3,
+      units: makeUnits('c', 'Cat', 9, { maxHp: 3, shield: 0 }),
+      actions: [
+        { id: 'slash', name: 'Slash', dmg: 1, keywords: [] },
+        { id: 'hairball', name: 'Hairball', dmg: 0, keywords: ['slowdown'] },
+        { id: 'screech', name: 'Screech', dmg: 0, keywords: ['confuse'] }
+      ]
+    },
+    mechs: {
+      id: 'mechs',
+      name: 'Mechs',
+      ap: 3,
+      units: makeUnits('m', 'Mech', 3, { maxHp: 6, shield: 3 }),
+      actions: [
+        { id: 'fly', name: 'Fly', dmg: 0, keywords: ['evade'] },
+        { id: 'lasers', name: 'Lasers', dmg: 3, keywords: ['range'] },
+        { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'] }
+      ]
+    }
+  });
+
+  // A fresh, unfrozen deep copy on every call. The JSON round-trip is both
+  // faster than structuredClone on this payload and a free guard: anything
+  // that is not JSON-clonable disappears loudly instead of surviving silently.
+  function defaults() {
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  return Object.freeze({
+    DEFAULTS: DEFAULTS,
+    defaults: defaults,
+    deepFreeze: deepFreeze
+  });
+})();
+// #endregion [S01] DATA
+
+/* ===================== [S02] MODEL =====================
+ * PURE derivations. Every function takes the state, or a slice of it, as an
+ * argument. Nothing here reads the state singleton, reads or writes the page,
+ * or stores a derived value — a derived value kept in state becomes a second,
+ * mechanical reason for the projection to disagree with the board.
+ * Turns-to-wipe ranges, formatting and the projection panel are Phase 3
+ * (plan 03-01) and deliberately do not live here.
+ * deps: none
+ * owner: plan 01-01
+ * ======================================================= */
+// #region [S02] MODEL
+App.model = (function () {
+  'use strict';
+
+  function unitEhp(unit) {
+    return unit.maxHp + unit.shield;
+  }
+
+  function factionEhp(faction) {
+    return faction.units.reduce(function (n, u) { return n + unitEhp(u); }, 0);
+  }
+
+  function bestDamage(faction) {
+    return faction.actions.reduce(function (n, a) { return a.dmg > n ? a.dmg : n; }, 0);
+  }
+
+  // Throughput is capped by the shared action-point pool, not by unit count.
+  // That cap is the whole point of holding action points at faction level.
+  function factionDps(faction, activeUnits) {
+    var active = (activeUnits === undefined) ? faction.units.length : activeUnits;
+    return Math.min(faction.ap, active) * bestDamage(faction);
+  }
+
+  // Reads the stored flag. Death is never inferred from hp === 0 — a unit a
+  // student ruled "survived via Shield" has to stay representable.
+  function aliveCount(fightSide) {
+    return fightSide.units.reduce(function (n, u) { return u.alive === true ? n + 1 : n; }, 0);
+  }
+
+  function apSpent(buildFaction, fightSide) {
+    return buildFaction.ap - fightSide.ap;
+  }
+
+  return Object.freeze({
+    unitEhp: unitEhp,
+    factionEhp: factionEhp,
+    bestDamage: bestDamage,
+    factionDps: factionDps,
+    aliveCount: aliveCount,
+    apSpent: apSpent
+  });
+})();
+// #endregion [S02] MODEL
+
+/* ===================== [S03] STATE =====================
+ * The single state object, the commit(label, mutator) funnel, the snapshot
+ * undo stack and the frame-coalesced invalidate(). Nothing mutates state
+ * outside commit(); that one rule is what makes undo, the fight log, hash
+ * sync and coalesced rendering free byproducts instead of features.
+ *
+ * Shape — integers only, JSON-clonable, no DOM nodes, no functions:
+ *   { build: { schema, cats, mechs },
+ *     fight: null | { round, turn, cats, mechs, log },
+ *     ui:    { kbdNav } }
+ *   fight side shape: { ap, units: [ { id, hp, alive } ] }
+ *
+ * There is NO `mode` key anywhere. Mode is derived from `fight !== null`, so
+ * the two can never disagree. `alive` is stored, never inferred from hp === 0.
+ * Slice lifetimes: `build` round-trips through the share code and the undo
+ * stack; `fight` is undo-only and never shared; `ui` is in neither.
+ * deps: App.data (deepFreeze), App.serialize, App.render
+ * owner: plan 01-02
+ * ======================================================= */
+// #region [S03] STATE
+// STUB — implemented by plan 01-02
+// #endregion [S03] STATE
+
+/* ===================== [S04] SERIALIZE =====================
+ * Compact positional build code: encode(build) -> string,
+ * decode(string) -> build, a mandatory version prefix and a checksum.
+ * Knows about `build` only — never about `fight` or `ui`.
+ * scheduleUrlSync() is a declared no-op today so that the commit() call site
+ * exists from the first day and is never retrofitted.
+ * deps: App.data
+ * owner: Phase 4, plan 04-01
+ * =========================================================== */
+// #region [S04] SERIALIZE
+App.serialize = Object.freeze({
+  // Declared no-op until Phase 4 plan 04-01 fills it in.
+  scheduleUrlSync: function () {}
+});
+// #endregion [S04] SERIALIZE
+
+/* ===================== [S05] OPS =====================
+ * Every state transformation, one named function per student action:
+ * setUnitHp, addUnit, removeUnit, setAp, startFight, endFight, advanceTurn,
+ * undo, resetToDefaults, loadFromCode. Each one is a thin wrapper around a
+ * single commit() call. No exceptions, including temporary debug controls.
+ * ops.undo must stay callable from a button, not only from a key handler.
+ * deps: [S03] STATE, App.data
+ * owner: plan 01-02
+ * ===================================================== */
+// #region [S05] OPS
+// STUB — implemented by plan 01-02
+// #endregion [S05] OPS
+
+/* ===================== [S06] RENDER =====================
+ * Produces the page from state, in two tiers, and this split is decided here
+ * so Phase 2 inherits it rather than re-deciding it:
+ *   structure(state) — the rare rebuild. Runs when the roster's shape changes.
+ *   sync(state)      — the per-tick keyed reconcile. Updates text and classes
+ *                      in place so the node under the cursor, and the focused
+ *                      input, are never destroyed mid-interaction.
+ * Never mutates state. Never binds per-node listeners; that is [S07]'s job.
+ * deps: App.model, App.data
+ * owner: Phase 2, plan 02-01
+ * ======================================================== */
+// #region [S06] RENDER
+App.render = Object.freeze({
+  // Declared no-ops until Phase 2 plan 02-01 fills them in.
+  structure: function () {},
+  sync: function () {}
+});
+// #endregion [S06] RENDER
+
+/* ===================== [S07] INTERACTIONS =====================
+ * Delegated listeners bound once to the stable container roots in the static
+ * shell, plus press-and-hold repeat and keyboard handling. Translates one
+ * event into exactly one App.ops.* call and nothing else — no arithmetic, no
+ * direct page writes.
+ * deps: App.ops
+ * owner: Phase 2, plan 02-02
+ * ============================================================== */
+// #region [S07] INTERACTIONS
+App.interactions = Object.freeze({
+  // Declared no-op until Phase 2 plan 02-02 fills it in.
+  bind: function () {}
+});
+// #endregion [S07] INTERACTIONS
+
+/* ===================== [S08] BOOT =====================
+ * The entry point and the error boundary. attempt(label, fn) runs one wiring
+ * step inside a try/catch so a single failure is non-terminal and surfaces in
+ * the styled panel instead of blanking the page. start() is called exactly
+ * once, from [S10] LAUNCH.
+ * deps: [S03] STATE, App.render, App.interactions, App.selftest
+ * owner: plan 01-02
+ * ====================================================== */
+// #region [S08] BOOT
+App.boot = (function () {
+  'use strict';
+  // STUB — plan 01-02 replaces these bodies; the selftest gate line must survive.
+
+  function attempt(label, fn) {
+    try {
+      fn();
+    } catch (err) {
+      console.error(label, err);
+    }
+  }
+
+  function start() {
+    if (App.hasFlag('selftest')) { App.selftest.report(App.selftest.run()); }
+  }
+
+  return Object.freeze({ attempt: attempt, start: start });
+})();
+// #endregion [S08] BOOT
+
+/* ===================== [S09] SELFTEST =====================
+ * In-file assertions. Ships with the artifact because stripping it would need
+ * a build step, and stays invisible unless the hash carries the exact token
+ * `selftest`. The report is a readable pass/fail list rather than a console
+ * dump, because the person who needs it opened the file by double-click.
+ * Every string that reaches the page here goes through createElement plus
+ * textContent — assertion labels and, from Phase 4, decoded build data are
+ * echoed back, so there is no markup-parsing path anywhere in this renderer.
+ * deps: App.data, App.model
+ * owner: plan 01-01
+ * ========================================================== */
+// #region [S09] SELFTEST
+App.selftest = (function () {
+  'use strict';
+
+  var suites = [];
+
+  function suite(name, fn) {
+    suites.push({ name: name, fn: fn });
+  }
+
+  function makeAsserts(records, suiteName) {
+    function push(name, pass, actual, expected) {
+      records.push({
+        suite: suiteName,
+        name: name,
+        pass: pass === true,
+        actual: actual,
+        expected: expected
+      });
+    }
+    return {
+      eq: function (label, actual, expected) {
+        push(label, JSON.stringify(actual) === JSON.stringify(expected), actual, expected);
+      },
+      ok: function (label, condition) {
+        push(label, !!condition, !!condition, true);
+      },
+      throws: function (label, fn) {
+        var threw = false;
+        try { fn(); } catch (e) { threw = true; }
+        push(label, threw, threw, true);
+      }
+    };
+  }
+
+  function run() {
+    var records = [];
+    suites.forEach(function (s) {
+      var t = makeAsserts(records, s.name);
+      try {
+        s.fn(t);
+      } catch (err) {
+        // A thrown suite costs one failing record, never the rest of the run.
+        records.push({
+          suite: s.name,
+          name: 'suite threw',
+          pass: false,
+          actual: String(err),
+          expected: 'no exception'
+        });
+      }
+    });
+    var passed = 0;
+    var failed = 0;
+    records.forEach(function (r) {
+      if (r.pass) { passed++; } else { failed++; }
+    });
+    return { records: records, passed: passed, failed: failed };
+  }
+
+  function describe(value) {
+    if (typeof value === 'string') { return value; }
+    try { return JSON.stringify(value); } catch (e) { return String(value); }
+  }
+
+  function report(result) {
+    if (typeof document === 'undefined') { return; }
+    var panel = document.getElementById('selftest-report');
+    var summary = document.getElementById('selftest-summary');
+    var rows = document.getElementById('selftest-rows');
+    if (!panel || !summary || !rows) { return; }
+
+    summary.textContent = result.passed + ' passed, ' + result.failed + ' failed';
+    rows.replaceChildren();
+
+    // Failures first, so a red row is visible without scrolling.
+    var ordered = result.records.slice().sort(function (a, b) {
+      if (a.pass === b.pass) { return 0; }
+      return a.pass ? 1 : -1;
+    });
+
+    ordered.forEach(function (r) {
+      var row = document.createElement('div');
+      row.className = 'st-row ' + (r.pass ? 'st-row--pass' : 'st-row--fail');
+
+      var head = document.createElement('b');
+      head.textContent = (r.pass ? 'PASS' : 'FAIL') + ' — ' + r.suite;
+      row.appendChild(head);
+
+      var label = document.createElement('div');
+      label.textContent = r.name;
+      row.appendChild(label);
+
+      if (!r.pass) {
+        var detail = document.createElement('div');
+        detail.className = 'st-detail';
+        detail.textContent = 'actual: ' + describe(r.actual) + ' — expected: ' + describe(r.expected);
+        row.appendChild(detail);
+      }
+
+      rows.appendChild(row);
+    });
+
+    panel.hidden = false;
+  }
+
+  return Object.freeze({ suite: suite, run: run, report: report });
+})();
+
+/* --- [S09.1] SUITE: board defaults — owner plan 01-01 --- */
+(function () {
+  'use strict';
+
+  function tuple(action) {
+    return [action.id, action.name, action.dmg, action.keywords];
+  }
+
+  // Walks anything JSON-shaped and rejects a non-integer number, a NaN, an
+  // undefined or a function.
+  function allIntegers(value) {
+    if (value === null) { return true; }
+    if (typeof value === 'number') { return Number.isInteger(value); }
+    if (typeof value === 'string' || typeof value === 'boolean') { return true; }
+    if (Array.isArray(value)) { return value.every(function (v) { return allIntegers(v); }); }
+    if (typeof value === 'object') {
+      return Object.keys(value).every(function (k) { return allIntegers(value[k]); });
+    }
+    return false;
+  }
+
+  App.selftest.suite('board defaults', function (t) {
+    var d = App.data.defaults();
+
+    t.eq('cats unit count', d.cats.units.length, 9);
+    t.ok('cats unit maxHp', d.cats.units.every(function (u) { return u.maxHp === 3; }));
+    t.ok('cats unit shield', d.cats.units.every(function (u) { return u.shield === 0; }));
+    t.eq('cats faction ap', d.cats.ap, 3);
+
+    t.eq('mechs unit count', d.mechs.units.length, 3);
+    t.ok('mechs unit maxHp', d.mechs.units.every(function (u) { return u.maxHp === 6; }));
+    t.ok('mechs unit shield', d.mechs.units.every(function (u) { return u.shield === 3; }));
+    t.eq('mechs faction ap', d.mechs.ap, 3);
+
+    t.eq('cats actions', d.cats.actions.map(tuple), [
+      ['slash', 'Slash', 1, []],
+      ['hairball', 'Hairball', 0, ['slowdown']],
+      ['screech', 'Screech', 0, ['confuse']]
+    ]);
+    t.eq('mechs actions', d.mechs.actions.map(tuple), [
+      ['fly', 'Fly', 0, ['evade']],
+      ['lasers', 'Lasers', 3, ['range']],
+      ['recharge', 'Recharge', 0, ['shield']]
+    ]);
+
+    var ids = d.cats.units.concat(d.mechs.units).map(function (u) { return u.id; });
+    t.eq('unit ids unique', new Set(ids).size, 12);
+
+    t.ok('defaults are integers', allIntegers(d));
+
+    t.throws('DEFAULTS is deep-frozen', function () {
+      App.data.DEFAULTS.cats.units[0].maxHp = 99;
+    });
+    t.eq('DEFAULTS survived the frozen write', App.data.DEFAULTS.cats.units[0].maxHp, 3);
+
+    var a = App.data.defaults();
+    var b = App.data.defaults();
+    t.ok('defaults() is a fresh deep copy', a !== b && a.cats.units !== b.cats.units);
+    a.cats.units[0].maxHp = 99;
+    t.eq('a mutated copy leaves the next copy alone', b.cats.units[0].maxHp, 3);
+    t.eq('a mutated copy leaves DEFAULTS alone', App.data.DEFAULTS.cats.units[0].maxHp, 3);
+  });
+})();
+
+/* --- [S09.2] SUITE: model derivations — owner plan 01-01 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('model derivations', function (t) {
+    var d = App.data.defaults();
+
+    // The two sides landing on the same eHP is a coincidence of the board's
+    // token rows, not a claim about the matchup. Phase 5's playtest gate is
+    // what settles that question, by being played.
+    t.eq('cats eHP', App.model.factionEhp(d.cats), 27);
+    t.eq('mechs eHP', App.model.factionEhp(d.mechs), 27);
+
+    t.eq('cats best damage', App.model.bestDamage(d.cats), 1);
+    t.eq('mechs best damage', App.model.bestDamage(d.mechs), 3);
+
+    t.eq('cats throughput', App.model.factionDps(d.cats), 3);
+    t.eq('mechs throughput', App.model.factionDps(d.mechs), 9);
+    t.eq('throughput respects the ap cap', App.model.factionDps(d.cats, 1), 1);
+
+    var snapshot = JSON.stringify(d.cats);
+    App.model.factionEhp(d.cats);
+    App.model.factionEhp(d.cats);
+    t.eq('model is pure', JSON.stringify(d.cats), snapshot);
+
+    // Zero HP but flagged alive counts; full HP but flagged dead does not.
+    var side = {
+      ap: 3,
+      units: [
+        { id: 'c1', hp: 0, alive: true },
+        { id: 'c2', hp: 3, alive: false }
+      ]
+    };
+    t.eq('alive is read, not inferred', App.model.aliveCount(side), 1);
+
+    t.eq('apSpent', App.model.apSpent({ ap: 3 }, { ap: 1 }), 2);
+
+    t.ok('all derivations return integers', [
+      App.model.unitEhp(d.cats.units[0]),
+      App.model.factionEhp(d.cats),
+      App.model.bestDamage(d.mechs),
+      App.model.factionDps(d.mechs),
+      App.model.aliveCount(side),
+      App.model.apSpent(d.cats, side)
+    ].every(Number.isInteger));
+  });
+})();
+
+/* --- [S09.3] SUITE: state contract — owner plan 01-02 --- */
+// #endregion [S09] SELFTEST
+
+/* ===================== [S10] LAUNCH =====================
+ * The one entry call. The guard is what lets a headless runner load this
+ * script with no page attached and reach App directly.
+ * deps: App.boot
+ * owner: plan 01-01
+ * ======================================================== */
+// #region [S10] LAUNCH
+if (typeof document !== 'undefined') { App.boot.start(); }
+// #endregion [S10] LAUNCH
+</script>
+</body>
+</html>
