@@ -384,6 +384,14 @@ App.state = (function () {
   /* ---- the single mutation funnel (D-00a) ---- */
   function commit(label, mutator) {
     var snap = JSON.stringify({ build: cur.build, fight: cur.fight });
+
+    // The snapshot is taken from the live state, but the mutator runs on a
+    // detached copy and runs FIRST. A mutator that throws — an unknown unit
+    // id, no fight in progress — must leave no trace at all, rather than a
+    // phantom undo step over a state that never changed.
+    var working = thaw(cur);
+    mutator(working);
+
     var t = now();
     var last = past.length > 0 ? past[past.length - 1] : null;
 
@@ -396,8 +404,6 @@ App.state = (function () {
       if (past.length > UNDO_LIMIT) { past.shift(); }
     }
 
-    var working = thaw(cur);
-    mutator(working);
     cur = freeze(working);
     commits++;
 
