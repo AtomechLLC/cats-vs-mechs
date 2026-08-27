@@ -300,6 +300,69 @@
   :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
   body[data-kbd="1"] :focus{outline:2px solid var(--accent);outline-offset:2px}
 
+  /* ===================== [C07] PICKER ===================== */
+  /* The token-appearance dialog. Every class here carries the .pk- prefix,
+     which is fake scoping and entirely deliberate: a single stylesheet has no
+     real scope, so a Phase 5 rule for .row or .grid would otherwise restyle
+     this surface from two thousand lines away. (The opening tag of this block
+     is a mechanical gate on the file staying one stylesheet, so it is not
+     spelled out here.)
+
+     The swatches reuse [C05]'s .tok classes rather than drawing their own
+     squares, so a swatch and a board token are demonstrably the same object.
+     That is the whole reason to show a student a swatch at all.
+
+     The chip chrome is derived from the token's own colour with color-mix()
+     instead of a hand-written rgba() literal — the same idea .ex in [C02]
+     expresses in the older spelling, and the reason no new hex appears here. */
+  .pk{
+    background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;max-width:660px;width:calc(100vw - 48px);
+    font:inherit;
+  }
+  .pk::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
+  .pk-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
+  .pk-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
+  .pk-group{margin:0 0 18px}
+  /* UX-02 again: a permanent visible label at the 18px minimum, never an icon
+     and never a title= tooltip. */
+  .pk-legend{display:block;margin:0 0 8px;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  .pk-legend--inline{margin:0;white-space:nowrap}
+  .pk-grid{display:flex;flex-wrap:wrap;gap:8px}
+
+  /* WCAG 2.5.5 Enhanced puts the floor at 44 x 44; these are taller because
+     each one stacks a token, a text label and a selection mark. --tok is set
+     locally so a swatch keeps its proportions if the projector rehearsal
+     raises the board's own token size in [C00]. */
+  .pk-sw{
+    --tok:24px;
+    min-width:66px;min-height:70px;padding:7px 9px;
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    background:color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 32%, transparent);
+    border-radius:10px;color:var(--ink);
+    font:inherit;font-size:13px;line-height:1.2;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  /* The live choice is marked by an outline AND a tick, never by colour on its
+     own. Half of this surface IS colours, so a student who cannot tell two of
+     them apart would otherwise have no way to read which one is in use. */
+  .pk-sw--on{outline:2px solid var(--accent);outline-offset:2px}
+  .pk-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
+  .pk-sw--on .pk-check{visibility:visible}
+  .pk-sw-label{text-align:center}
+
+  .pk-preview-line{
+    display:flex;align-items:center;gap:14px;margin:0 0 18px;
+    border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg-2);
+  }
+  /* Board size, not swatch size: this row exists to answer "what will it look
+     like out there", so it inherits --tok from [C00] rather than overriding it. */
+  .pk-preview{display:flex;flex-wrap:wrap;gap:var(--tok-gap);align-items:center;min-height:var(--tok)}
+  .pk-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -393,6 +456,50 @@
     <button type="button" class="err-btn err-btn--danger" id="err-reset">Reset to Workshop 16 defaults</button>
   </div>
 </div>
+
+<!-- The token-appearance picker (ALLOC-09, D-11). Static markup and a sibling
+     of #err-panel, outside #app, so nothing about it depends on a rebuild:
+     [S06.2] fills the three grids and [S07.2] opens it and reads the presses.
+     Its own delegated root is bound through [S07]'s LATE_BINDERS seam.
+
+     <dialog> IS THE FIRST ONE IN THIS REPO and there is none in either sibling
+     course artifact, so #err-panel above is the formatting analog and CLAUDE.md
+     is the behavioural source. It is Baseline Widely Available (2022-03) and it
+     supplies modal semantics, a backdrop and Escape handling that would
+     otherwise be a hand-written focus trap nobody would maintain.
+
+     The three grids are EMPTY here on purpose. Their contents are built from
+     App.data.SHAPES / COLORS / GLYPHS at render time, which is what makes it
+     impossible for this surface to offer a value [S05] would refuse. -->
+<dialog class="pk" id="tok-picker" aria-labelledby="tok-pick-title">
+  <div class="eyebrow">Token appearance</div>
+  <h2 class="pk-title" id="tok-pick-title"></h2>
+  <p class="pk-note">The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+
+  <div class="pk-preview-line">
+    <span class="pk-legend pk-legend--inline" id="tok-pick-preview-label">On the board</span>
+    <div class="pk-preview" id="tok-pick-preview" aria-labelledby="tok-pick-preview-label"></div>
+  </div>
+
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-shapes-label">Shape</h3>
+    <div class="pk-grid" id="tok-pick-shapes" role="group" aria-labelledby="tok-pick-shapes-label"></div>
+  </div>
+
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-colors-label">Colour</h3>
+    <div class="pk-grid" id="tok-pick-colors" role="group" aria-labelledby="tok-pick-colors-label"></div>
+  </div>
+
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-glyphs-label">Emoji</h3>
+    <div class="pk-grid" id="tok-pick-glyphs" role="group" aria-labelledby="tok-pick-glyphs-label"></div>
+  </div>
+
+  <div class="pk-actions">
+    <button class="brd-btn" type="button" id="tok-pick-done" data-pk="done">Done</button>
+  </div>
+</dialog>
 
 <script>
 /* =========================================================================
@@ -501,6 +608,67 @@ App.data = (function () {
   var COLORS = deepFreeze(['green', 'gold', 'accent', 'coral', 'violet', 'accent-2', 'ink-dim']);
   var TOKEN_IDS = deepFreeze(['hp', 'ap', 'shield', 'dmg', 'dead']);
 
+  // The curated glyph set (D-10, D-12). Free-text emoji entry was considered
+  // and refused, on three grounds:
+  //   1. Phase 4's budget. Measured encodeURIComponent lengths: a plain emoji
+  //      is 12 characters, one carrying a variation selector is 21, and a
+  //      zero-width-joiner sequence is 30. Five token types of free text is
+  //      60-150 characters against SHARE-04's 512-character build code — up to
+  //      29% of a whole share spent on decoration. An index into this array
+  //      costs ONE character.
+  //   2. The state contract. [S03]'s banner promises whole numbers and short
+  //      enums; int(), requireSide and UI_KEYS all assume it. An arbitrary
+  //      student string in `build` would be a new class of value in a contract
+  //      three phases already depend on.
+  //   3. D-10 becomes checkable. Every entry below is a SINGLE code point with
+  //      no variation selector, no joiner and no skin-tone modifier, so it
+  //      renders the same on Windows, macOS and Linux. [S09.6] asserts that
+  //      mechanically. A pasted just-released emoji would show as a tofu box
+  //      on the projector, which is the exact failure D-10 exists to prevent.
+  //
+  // INDEX STABILITY — read this before editing the array. Phase 4's codec
+  // encodes a glyph as its POSITION here. Entries may be APPENDED to the end.
+  // They may never be reordered, and never removed, without bumping the build
+  // code's schema version — otherwise a link shared last term silently loads a
+  // different picture into this term's board.
+  //
+  // '' is first and means "no glyph", which is what the shipped board uses:
+  // the shape and the colour carry the meaning and the emoji is decoration on
+  // top of them (D-10). Written as \u{...} escapes with a name beside each so
+  // an instructor hand-editing this file in a plain editor can read the set,
+  // and so no editor or clipboard can quietly mangle a literal.
+  var GLYPHS = deepFreeze([
+    '',              // none — the shipped board, and the honest default
+    '\u{1F49A}',     // green heart
+    '\u{1F49B}',     // yellow heart
+    '\u{1F499}',     // blue heart
+    '\u{1F49C}',     // purple heart
+    '\u{1F9E1}',     // orange heart
+    '\u{1F5A4}',     // black heart
+    '\u{26A1}',      // high voltage
+    '\u{1F525}',     // fire
+    '\u{1F4A5}',     // collision
+    '\u{1F4A3}',     // bomb
+    '\u{1F52A}',     // kitchen knife
+    '\u{1F3AF}',     // direct hit
+    '\u{1F512}',     // closed lock
+    '\u{1F9CA}',     // ice
+    '\u{1F4A7}',     // droplet
+    '\u{1F480}',     // skull
+    '\u{1F9B4}',     // bone
+    '\u{1F431}',     // cat face
+    '\u{1F43E}',     // paw prints
+    '\u{1F41F}',     // fish
+    '\u{1F9F6}',     // yarn
+    '\u{1F916}',     // robot face
+    '\u{1F527}',     // wrench
+    '\u{1F529}',     // nut and bolt
+    '\u{1F50B}',     // battery
+    '\u{2B50}',      // star
+    '\u{2728}',      // sparkles
+    '\u{1F3C6}'      // trophy
+  ]);
+
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
@@ -568,7 +736,8 @@ App.data = (function () {
     deepFreeze: deepFreeze,
     SHAPES: SHAPES,
     COLORS: COLORS,
-    TOKEN_IDS: TOKEN_IDS
+    TOKEN_IDS: TOKEN_IDS,
+    GLYPHS: GLYPHS
   });
 })();
 // #endregion [S01] DATA
@@ -1278,6 +1447,56 @@ App.ops = (function () {
     });
   }
 
+  // Token appearance (ALLOC-09, D-11). The same key-and-value allowlist shape
+  // as setUi above, and the comment there records why the allowlist exists at
+  // all, so it is not restated here. ONE deliberate divergence: this uses
+  // commit, not commitUi. D-13 puts the token vocabulary in the `build` slice
+  // because it round-trips through the Phase 4 share code, and that makes a
+  // restyle undoable — correct, because it is an edit to the student's build
+  // and not a view preference. Routing it through commitUi because it "feels
+  // like" a view preference is the tempting exception this section forbids.
+  //
+  // Every guard runs BEFORE the commit is entered, so a refusal leaves no
+  // phantom undo step over a board that never changed.
+  //
+  // The tokenId test is the load-bearing one: s.build.tokens[tokenId] has
+  // exactly the shape that CR-02 and WR-02 already had to close twice in this
+  // file. Without the allowlist, setTokenStyle('__proto__', ...) reparents the
+  // whole vocabulary instead of styling anything. String() inside the message
+  // is there so a symbol or an object cannot throw while the error is being
+  // built.
+  function setTokenStyle(tokenId, patch) {
+    if (App.data.TOKEN_IDS.indexOf(tokenId) === -1) {
+      throw new Error('Unknown token type "' + String(tokenId) + '"');
+    }
+    var p = patch || {};
+    if (p.shape !== undefined && App.data.SHAPES.indexOf(p.shape) === -1) {
+      throw new Error('Unknown token shape "' + String(p.shape) + '"');
+    }
+    if (p.color !== undefined && App.data.COLORS.indexOf(p.color) === -1) {
+      throw new Error('Unknown token colour "' + String(p.color) + '"');
+    }
+    // Membership, not length or pattern. An arbitrary string is refused by
+    // identity, which is what keeps `build` a set of short enums and keeps an
+    // unbounded student string out of the state tree entirely.
+    if (p.glyph !== undefined && App.data.GLYPHS.indexOf(p.glyph) === -1) {
+      throw new Error('That glyph is not one of the offered set');
+    }
+
+    // The label matches the file's '<what> <which>' convention, so rapid
+    // swatch-clicking coalesces into ONE undo entry the same way a stepper
+    // hold does.
+    App.state.commit('token ' + tokenId, function (s) {
+      var t = s.build.tokens[tokenId];
+      // Explicitly, field by field. A merge helper here would copy whatever
+      // keys the caller supplied, which is precisely how a prototype key slips
+      // past an allowlist that only inspected the values.
+      if (p.shape !== undefined) { t.shape = p.shape; }
+      if (p.color !== undefined) { t.color = p.color; }
+      if (p.glyph !== undefined) { t.glyph = p.glyph; }
+    });
+  }
+
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
   // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
   function undo() {
@@ -1302,6 +1521,7 @@ App.ops = (function () {
       case 'startFight': return startFight();
       case 'endFight': return endFight();
       case 'reset': return resetToDefaults();
+      case 'setTokenStyle': return setTokenStyle(p.tokenId, p.patch);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -1331,6 +1551,7 @@ App.ops = (function () {
     startFight: startFight,
     endFight: endFight,
     resetToDefaults: resetToDefaults,
+    setTokenStyle: setTokenStyle,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
@@ -1355,6 +1576,8 @@ App.ops = (function () {
 // #region [S06] RENDER
 App.render = (function () {
   'use strict';
+
+  /* --- [S06.1] the board renderer — owner plan 02-01 --- */
 
   // D-20. Below this a row draws one token per point; at or above it the row
   // draws a count and a single token. Named, and exported on the surface
@@ -1785,6 +2008,139 @@ App.render = (function () {
     }
   }
 
+  /* ===================== [S06.2] RENDER — PICKER =====================
+   * The token-appearance surface, appended as its own sub-region rather than
+   * folded into the board renderer above: it paints a different page region,
+   * on a different trigger, and it changes NOTHING in [S06.1]. It reuses
+   * [S06.1]'s helpers — el, text, setData, makeToken, styleFor, safeShape,
+   * safeColor and withPreservedFocus — because a swatch that were built by a
+   * second, parallel token builder could drift away from the board's, and the
+   * whole point of a swatch is that it is the same object as a board token.
+   * deps: App.data, [S06.1]'s helpers
+   * owner: Phase 2, plan 02-03
+   * =================================================================== */
+  // #region [S06.2] RENDER — PICKER
+
+  // Plain names, because the dialog's heading is the only place a student is
+  // told which of the four types they are editing. `dead` is here for
+  // completeness even though Phase 2 ships no button for it: the map is data,
+  // and a missing entry would render an empty heading in Phase 5.
+  var TOKEN_NAMES = {
+    hp: 'Health tokens',
+    ap: 'Action point tokens',
+    shield: 'Shield tokens',
+    dmg: 'Damage tokens',
+    dead: 'Dead marker'
+  };
+
+  // One entry per SHAPES id and per COLORS id. These are the visible text that
+  // makes UX-02 true on this surface: the swatch is not the only signal, and
+  // nothing here is revealed by hovering.
+  var SHAPE_NAMES = {
+    sq: 'Square', rect: 'Bar', tri: 'Triangle',
+    dia: 'Diamond', circ: 'Circle', hex: 'Hexagon'
+  };
+  var COLOR_NAMES = {
+    green: 'Green', gold: 'Gold', accent: 'Blue', coral: 'Coral',
+    violet: 'Violet', 'accent-2': 'Pink', 'ink-dim': 'Grey'
+  };
+
+  // The third of the three safe* helpers, and it lives here rather than beside
+  // the other two because the board never needed it: [S06.1] simply skips a
+  // glyph it does not like. The picker has to mark one entry as the live one,
+  // so it needs the same fall back to a known value.
+  function safeGlyph(glyph) {
+    return (App.data.GLYPHS.indexOf(glyph) === -1) ? '' : glyph;
+  }
+
+  // Every swatch is a real button carrying the SAME data-act the board's
+  // controls carry, so [S07.2] routes it through App.ops.dispatch and there is
+  // no second mutation entry point anywhere in the file. data-k is an index,
+  // not the value, so an emoji never has to survive a round trip through a CSS
+  // attribute selector during focus restore.
+  function pickerSwatch(tokenId, kind, value, index, on, base, label) {
+    var demo = { shape: base.shape, color: base.color, glyph: base.glyph };
+    demo[kind] = value;
+
+    var b = el('button', 'pk-sw tok--' + safeColor(demo.color) + (on ? ' pk-sw--on' : ''));
+    b.type = 'button';
+
+    var pairs = { act: 'setTokenStyle', tok: tokenId, k: 'pk/' + kind + '/' + index };
+    pairs[kind] = value;
+    setData(b, pairs);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+
+    b.appendChild(makeToken(demo, false));
+    if (label !== '') { b.appendChild(text('span', 'pk-sw-label', label)); }
+    // Always present, hidden by [C07] until the swatch is the live one. A node
+    // that appears and disappears would change the button's height as the
+    // student clicks along the row.
+    b.appendChild(text('span', 'pk-check', '✓'));
+    return b;
+  }
+
+  function fillGrid(grid, tokenId, kind, values, current, base, labelOf) {
+    if (!grid) { return; }
+    grid.replaceChildren();
+    values.forEach(function (value, index) {
+      grid.appendChild(
+        pickerSwatch(tokenId, kind, value, index, value === current, base, labelOf(value, index))
+      );
+    });
+  }
+
+  // The one entry point, and the argument is deliberate: WHICH picker is open
+  // is transient interaction state, so it lives in a private variable in
+  // [S07.2] and is passed in. Putting it in the `ui` slice would add a key to
+  // a contract [S09.3] asserts exactly.
+  function picker(state, tokenId) {
+    if (typeof document === 'undefined') { return; }
+    var dlg = document.getElementById('tok-picker');
+    if (!dlg) { return; }
+
+    var id = (App.data.TOKEN_IDS.indexOf(tokenId) === -1) ? App.data.TOKEN_IDS[0] : tokenId;
+    var raw = styleFor(state, id);
+    var base = { shape: safeShape(raw.shape), color: safeColor(raw.color), glyph: safeGlyph(raw.glyph) };
+
+    // The same signature idiom syncRow uses, for the same reason: a repaint
+    // that changes nothing must touch no nodes, so clicking the swatch that is
+    // already live does not rebuild the grid under the student's finger.
+    var sig = id + '/' + base.shape + '/' + base.color + '/' + base.glyph;
+    if (dlg.dataset.sig === sig) { return; }
+
+    // A restyle DOES rebuild all three grids, because every swatch is drawn in
+    // the type's live colour and a shape swatch has to follow a colour change.
+    // Rebuilding destroys the node the keyboard was on, so it goes through the
+    // board's own focus contract — the swatch data-k is what it lands back on.
+    withPreservedFocus(dlg, function () {
+      var heading = document.getElementById('tok-pick-title');
+      if (heading) { heading.textContent = TOKEN_NAMES[id] || id; }
+
+      fillGrid(document.getElementById('tok-pick-shapes'), id, 'shape',
+        App.data.SHAPES, base.shape, base, function (v) { return SHAPE_NAMES[v] || v; });
+
+      fillGrid(document.getElementById('tok-pick-colors'), id, 'color',
+        App.data.COLORS, base.color, base, function (v) { return COLOR_NAMES[v] || v; });
+
+      // Index 0 is the empty entry, and it is the only glyph swatch that needs
+      // a word: the rest show the emoji itself at token size, which is exactly
+      // what the student is choosing.
+      fillGrid(document.getElementById('tok-pick-glyphs'), id, 'glyph',
+        App.data.GLYPHS, base.glyph, base, function (v, i) { return i === 0 ? 'None' : ''; });
+
+      var preview = document.getElementById('tok-pick-preview');
+      if (preview) {
+        preview.replaceChildren();
+        // Three at board size, because one token cannot show a row's rhythm
+        // and the rhythm is half of what the rehearsal is judging.
+        for (var n = 0; n < 3; n++) { preview.appendChild(makeToken(base, false)); }
+      }
+    });
+
+    dlg.dataset.sig = sig;
+  }
+  // #endregion [S06.2] RENDER — PICKER
+
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
   // units follows its commit with invalidate({structural:true}) -- and hiding
@@ -1793,6 +2149,7 @@ App.render = (function () {
   return Object.freeze({
     structure: structure,
     sync: sync,
+    picker: picker,
     COMPACT_AT: COMPACT_AT,
     MAX_UNITS: MAX_UNITS
   });
@@ -2258,6 +2615,137 @@ App.interactions = (function () {
          assigns into UI_HANDLERS, and edits nothing in [S07.1]. The frozen
          copies below are taken at that point on purpose, so they describe the
          seams as they finally are. --- */
+
+  /* ===================== [S07.2] INTERACTIONS — PICKER =================
+   * The token-appearance dialog's handling, and the first user of every seam
+   * [S07.1] declared. It ATTACHES rather than edits: it assigns one entry in
+   * UI_HANDLERS, pushes one entry into LATE_BINDERS, and changes not a line of
+   * the code above.
+   *
+   * Two acts, two different routes, and the difference is the whole seam:
+   *   openTokenPicker  is PAGE WORK ONLY. It opens a dialog and writes nothing
+   *                    to state, so it is claimed by UI_ACTS and handled here.
+   *                    [S05]'s banner says that layer never reads or writes the
+   *                    page, so it has no legal home there — and with no case
+   *                    for it, dispatch's `default: throw` arm would have shown
+   *                    a student the styled error panel on their first click.
+   *   setTokenStyle    is STATE WORK ONLY. It validates and writes and touches
+   *                    no node, so it is a real op and goes through
+   *                    App.ops.dispatch like everything else. It is deliberately
+   *                    NOT in UI_ACTS.
+   * deps: App.ops, App.render, App.state, App.boot, App.data
+   * owner: Phase 2, plan 02-03
+   * ==================================================================== */
+  // #region [S07.2] INTERACTIONS — PICKER
+
+  // Which type is being edited. Transient interaction state, so it lives here
+  // beside the hold timer rather than in the `ui` slice — [S09.3] asserts that
+  // slice holds exactly its documented keys, and "which dialog is open" is not
+  // one of them and should never become one.
+  var pickerTok = null;
+
+  // Null rather than a throw when the surface is absent. The Node gate drives a
+  // stub page that has no dialog at all, and an error panel raised on a button
+  // that ships in every build is the one outcome worse than nothing happening.
+  //
+  // close() is the capability probed, because it is the method every consumer
+  // below calls and because the two arrive together on the element or not at
+  // all — a page carrying one and not the other is not a browser.
+  function pickerDialog() {
+    if (typeof document === 'undefined') { return null; }
+    var dlg = document.getElementById('tok-picker');
+    if (!dlg || typeof dlg.close !== 'function') { return null; }
+    return dlg;
+  }
+
+  // THE authorized handler for the phase's one UI-only act. routeUi has already
+  // found the button, already matched UI_ACTS and already returned before
+  // App.ops.dispatch was reachable — on the pointerdown path AND on the
+  // detail === 0 keyboard path, so Enter on the button behaves exactly like a
+  // click. The button is not in HOLD_ACTS, so holding it starts no ramp and
+  // opens the dialog exactly once.
+  UI_HANDLERS.openTokenPicker = function (btn) {
+    var dlg = pickerDialog();
+    if (dlg === null) { return; }
+    pickerTok = btn.dataset.tok;
+    App.render.picker(App.state.get(), pickerTok);
+    if (dlg.open !== true) { dlg.showModal(); }
+  };
+
+  function closePicker() {
+    var dlg = pickerDialog();
+    if (dlg !== null && dlg.open === true) { dlg.close(); }
+  }
+
+  // A modal that drops focus onto <body> when it closes is the same keyboard
+  // failure the board's own remove control had to solve. <dialog> restores the
+  // opener itself, but only for the element that held focus at the moment the
+  // modal opened — a student who reached the button with the pointer was never
+  // focused on it, so the platform has nothing to go back to. This names the
+  // opener explicitly. The id is checked against the allowlist first, so no
+  // caller-shaped string is ever built into a selector.
+  function onPickerClose() {
+    if (typeof document === 'undefined') { return; }
+    if (App.data.TOKEN_IDS.indexOf(pickerTok) === -1) { return; }
+    var opener = document.querySelector('[data-k="tok/' + pickerTok + '"]');
+    if (opener && typeof opener.focus === 'function') { opener.focus(); }
+  }
+
+  // One delegated listener on the dialog, never one per swatch: the grids are
+  // rebuilt on every restyle, so per-node listeners would have to be rebound on
+  // every click and the first missed rebind is a dead swatch nobody notices.
+  function onPickerPress(e) {
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+
+    if (node.closest('[data-pk="done"]') !== null) { closePicker(); return; }
+
+    var sw = node.closest('[data-act="setTokenStyle"]');
+    if (sw === null) { return; }
+
+    // Only the keys this swatch actually carries. Three separate tests rather
+    // than a copy of the dataset, because the dataset is caller-supplied by
+    // definition and [S05] should be handed a patch of known shape.
+    var d = sw.dataset;
+    var patch = {};
+    if (d.shape !== undefined) { patch.shape = d.shape; }
+    if (d.color !== undefined) { patch.color = d.color; }
+    if (d.glyph !== undefined) { patch.glyph = d.glyph; }
+
+    App.ops.dispatch('setTokenStyle', { tokenId: d.tok, patch: patch });
+
+    // The commit already asked for a frame, and [S06.1]'s sync swaps the
+    // board's token classes in place — a restyle changes no unit count, so
+    // invalidate({structural:true}) would be a rebuild nobody needs. This
+    // second call is only the dialog's own selection marks.
+    App.render.picker(App.state.get(), pickerTok);
+  }
+
+  // The same anti-double-fire rule [S07.1] uses on #app, for the same measured
+  // reason: a mouse click was already served by pointerdown, and running here
+  // as well would apply every swatch press twice. detail === 0 is the keyboard.
+  function onPickerClick(e) {
+    if (e.detail !== 0) { return; }
+    onPickerPress(e);
+  }
+
+  // The seam, used exactly as [S07.1] describes it: the dialog lives outside
+  // #app, so it needs a root of its own, and bind() runs this through the same
+  // App.boot.wrap boundary its own listeners use. No edit to bind(), and the
+  // number of places that invoke it stays at the one in [S08] — which is a
+  // mechanical gate, so this sentence deliberately does not spell the call.
+  function bindPicker() {
+    var dlg = pickerDialog();
+    if (dlg === null) { return; }
+    dlg.addEventListener('pointerdown', App.boot.wrap('picker press', onPickerPress));
+    dlg.addEventListener('click', App.boot.wrap('picker key-press', onPickerClick));
+    // <dialog> fires close for the Done button and for Escape alike, so the
+    // focus hand-back has one home rather than two.
+    dlg.addEventListener('close', App.boot.wrap('picker close', onPickerClose));
+  }
+
+  LATE_BINDERS.push(bindPicker);
+  // #endregion [S07.2] INTERACTIONS — PICKER
 
   return Object.freeze({
     bind: bind,
@@ -3256,6 +3744,125 @@ App.selftest = (function () {
     App.state.flush();
     t.eq('the interaction suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.6] SUITE: token appearance — owner plan 02-03 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('token appearance', function (t) {
+    // Every row below is DOM-free on purpose: the write path is state work and
+    // proving it needs no page at all, so the terminal harness gets the whole
+    // suite rather than a skip row.
+
+    /* --- the curated set, D-10 made mechanical rather than promised in a
+           comment. Array.from spreads by code point, so a variation selector,
+           a joiner sequence or a skin-tone modifier reads as 2 or more and
+           turns this row red. --- */
+    var singles = App.data.GLYPHS.every(function (g) {
+      return Array.from(g).length <= 1;
+    });
+    t.ok('every offered glyph is a single code point', singles);
+    t.eq('the "no glyph" option is first, so an index of zero means bare',
+      App.data.GLYPHS[0], '');
+    t.eq('the glyph set has no repeated entry',
+      new Set(App.data.GLYPHS).size, App.data.GLYPHS.length);
+    t.ok('the set is large enough to be worth a picker and small enough to '
+      + 'index in one character', App.data.GLYPHS.length >= 25
+      && App.data.GLYPHS.length <= 33);
+
+    // Exercising the write path writes to the live board, so the whole state
+    // is recorded here and handed back as this suite's last act, exactly as
+    // [S09.3] does.
+    var savedAll = JSON.stringify(App.state.get());
+
+    function tokensNow() {
+      return App.state.get().build.tokens;
+    }
+
+    /* --- every shipped vocabulary entry is already inside the allowlists the
+           picker will offer, or the UI could show the student a value their
+           own board is using and the op would refuse. --- */
+    var shippedLegal = App.data.TOKEN_IDS.every(function (id) {
+      var s = App.data.DEFAULTS.tokens[id];
+      return App.data.SHAPES.indexOf(s.shape) !== -1
+        && App.data.COLORS.indexOf(s.color) !== -1
+        && App.data.GLYPHS.indexOf(s.glyph) !== -1;
+    });
+    t.ok('every shipped token style is drawn from the offered allowlists', shippedLegal);
+
+    /* --- D-13, proven rather than asserted in prose: a restyle is a build
+           edit, so it lands on the undo stack and Ctrl+Z takes it back. --- */
+    App.ops.setFactionAp('cats', 3);   // a different label, so nothing coalesces
+    var depth0 = App.state.undoDepth();
+    App.ops.setTokenStyle('hp', { shape: 'tri' });
+    t.eq('a restyle reaches the live vocabulary', tokensNow().hp.shape, 'tri');
+    t.eq('and it is exactly one undo entry', App.state.undoDepth() - depth0, 1);
+    App.state.undo();
+    t.eq('so undo brings the square back', tokensNow().hp.shape, 'sq');
+
+    App.ops.setTokenStyle('ap', { color: 'violet', glyph: App.data.GLYPHS[1] });
+    t.eq('a colour and a glyph land together in one call',
+      tokensNow().ap.color + '/' + tokensNow().ap.glyph,
+      'violet/' + App.data.GLYPHS[1]);
+
+    /* --- refusal by name, one row per off-list value. The UI generates its
+           swatches from the same allowlists, so none of these is reachable by
+           clicking; they are reachable from a pasted build code in Phase 4 and
+           from a typo in a later plan, which is why the op checks and does not
+           trust its caller. --- */
+    var depth1 = App.state.undoDepth();
+    t.throws('an unknown token type is refused', function () {
+      App.ops.setTokenStyle('sparkle', { shape: 'sq' });
+    });
+    t.throws('an unknown shape is refused', function () {
+      App.ops.setTokenStyle('hp', { shape: 'octagon' });
+    });
+    t.throws('an unknown colour is refused', function () {
+      App.ops.setTokenStyle('hp', { color: 'chartreuse' });
+    });
+    t.throws('an off-list glyph is refused, so no unbounded string enters build',
+      function () { App.ops.setTokenStyle('hp', { glyph: 'not an emoji at all' }); });
+    t.throws('and dispatch refuses the same off-list value through the funnel',
+      function () {
+        App.ops.dispatch('setTokenStyle', { tokenId: 'hp', patch: { shape: 'octagon' } });
+      });
+
+    /* --- T-02-13. The key is allowlisted BEFORE it indexes state, which is
+           what stops the vocabulary being reparented instead of styled. The
+           same shape [S09.3] asserts for a side. --- */
+    t.throws('a prototype key is refused as a token type', function () {
+      App.ops.setTokenStyle('__proto__', { shape: 'sq' });
+    });
+    t.throws('the constructor key is refused as a token type', function () {
+      App.ops.setTokenStyle('constructor', { color: 'green' });
+    });
+    t.ok('nothing leaked onto the shared object prototype',
+      ({}).shape === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'shape'));
+
+    t.eq('a refused call left the vocabulary alone', tokensNow().hp.shape, 'sq');
+    t.eq('and left no undo entry behind it', App.state.undoDepth(), depth1);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the token-appearance suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+
+    /* --- the one part of this suite that needs a page, and it is housekeeping
+           rather than coverage. [S09.5] above presses a token-appearance button
+           to prove the act never reaches [S05]. In a browser that press now
+           also OPENS the picker, because this plan registered the handler — so
+           without this the self-test report an instructor opened would be left
+           sitting behind a modal. Closing it here rather than editing [S09.5]
+           keeps the suite that owns that press owned by plan 02-02. --- */
+    if (typeof document !== 'undefined') {
+      var dlg = document.getElementById('tok-picker');
+      if (dlg && dlg.open === true && typeof dlg.close === 'function') { dlg.close(); }
+      t.ok('a self-test run leaves no picker open over the report',
+        !dlg || dlg.open !== true);
+    }
   });
 })();
 // #endregion [S09] SELFTEST
