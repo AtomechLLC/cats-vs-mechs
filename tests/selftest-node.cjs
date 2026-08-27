@@ -695,6 +695,42 @@ check(
     + ', after fight=' + (addAfterFight === null ? 'absent' : 'present')
 );
 
+/* --- 16. the displayed text of a FOCUSED field, which nothing in the repo
+       asserted. setValue() skips document.activeElement by design (D-19) so a
+       half-typed "+5" survives an unrelated frame — which means the frame an
+       arrow press schedules is exactly the frame that will not show its result.
+       State and the token row moved; the number the student was looking at did
+       not, until blur. This drives the real keydown through the delegated root
+       and reads the field back.
+       focus() on this stub does not dispatch focusin, so dataset.was is seeded
+       here the way onFocusIn would have. --- */
+const hpField = stub.querySelector('.stp-field[data-act="maxHp"][data-unit="c1"]');
+let fieldShows = '(no field)';
+let fieldWas = '(no field)';
+let hpAfterArrow = -1;
+let hpBeforeArrow = -1;
+if (hpField !== null) {
+  hpField.focus();
+  hpField.dataset.was = hpField.value;
+  hpBeforeArrow = A.state.get().build.cats.units[0].maxHp;
+  hpField.dispatchEvent(dom.event('keydown', { key: 'ArrowUp' }));
+  hpField.dispatchEvent(dom.event('keyup', { key: 'ArrowUp' }));
+  A.state.flush();
+  fieldShows = hpField.value;
+  fieldWas = hpField.dataset.was;
+  hpAfterArrow = A.state.get().build.cats.units[0].maxHp;
+  hpField.blur();
+}
+check(
+  '16. an arrow-key step shows up in the focused field it was typed into, and '
+    + 'moves the recorded baseline with it',
+  hpField !== null && hpAfterArrow === hpBeforeArrow + 1
+    && fieldShows === String(hpAfterArrow) && fieldWas === fieldShows,
+  'field shows ' + JSON.stringify(fieldShows) + ', state went '
+    + hpBeforeArrow + ' -> ' + hpAfterArrow
+    + ', dataset.was=' + JSON.stringify(fieldWas)
+);
+
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
 check(
   '8. the hold ramp stays inside the undo coalescing window',

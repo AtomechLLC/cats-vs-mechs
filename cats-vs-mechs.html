@@ -2185,6 +2185,13 @@ App.render = (function () {
     structure: structure,
     sync: sync,
     picker: picker,
+    // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
+    // ramp, which owes the focused field a value setValue() is forbidden to
+    // write (D-19). Exporting the READ rather than letting the stepper add the
+    // delta itself keeps one definition of what a number on this board means —
+    // the op clamps, and a local copy of that sum would be a second, mechanical
+    // reason for the field and the tokens beside it to disagree.
+    amountFor: amountFor,
     COMPACT_AT: COMPACT_AT,
     MAX_UNITS: MAX_UNITS
   });
@@ -2195,11 +2202,14 @@ App.render = (function () {
  * Delegated listeners bound once to the stable container roots in the static
  * shell, plus press-and-hold repeat and keyboard handling. Translates one
  * event into exactly one App.ops.* call and nothing else — no arithmetic, no
- * numbers written onto the page. The three exceptions to that last rule are
- * all field-local text, never a rendered value: recording what a field held on
- * focus, putting it back on Escape, and putting it back on a refused blur.
- * Every number on the board is written by [S06] and only by [S06], so after a
- * field commits, this section asks for a frame rather than writing the result.
+ * numbers written onto the page. The four exceptions to that last rule are all
+ * field-local text, never a rendered value: recording what a field held on
+ * focus, putting it back on Escape, putting it back on a refused blur, and
+ * showFieldValue() — the one number [S06] is contractually forbidden to write,
+ * because setValue() skips the focused field and an arrow press lands on the
+ * focused field by definition. Every OTHER number on the board is written by
+ * [S06] and only by [S06], so after a field commits by blur, this section asks
+ * for a frame rather than writing the result.
  *
  * It is an IIFE rather than a frozen literal because the press-and-hold ramp
  * needs private timer state, and a timer handle is interaction state — it must
@@ -2415,9 +2425,41 @@ App.interactions = (function () {
   // is one: a data-act read off the page is a caller-supplied key.
   var NUDGE_OF = { ap: 'nudgeAp', maxHp: 'nudgeMaxHp', shield: 'nudgeShield' };
 
+  // And the [S06] amount key that reads the same quantity back out of state.
+  // Keyed on the act rather than read from data-amt for the same reason
+  // NUDGE_OF is: a key read off the page is caller-supplied, and this one
+  // decides which number gets painted into the field.
+  var AMT_OF = { ap: 'ap', maxHp: 'hp', shield: 'shield' };
+
   function isField(el) {
     return !!(el && el.classList && typeof el.classList.contains === 'function'
       && el.classList.contains('stp-field'));
+  }
+
+  // The fourth field-local write, and the one the section banner's list was
+  // missing. [S06] owns every value on the board except this one: setValue()
+  // skips the focused field on purpose (D-19) so a half-typed "+5" survives the
+  // frame that any commit anywhere schedules. But a keydown arrives BY
+  // DEFINITION on the focused field, so the frame an arrow press asks for is
+  // precisely the frame that refuses to show its result. Left to [S06], the
+  // student saw the tokens move and the number beside them sit still until
+  // blur — on an artifact whose whole subject is that the number and the
+  // picture agree — and then appended a digit to the stale figure and committed
+  // something they never chose.
+  //
+  // It reads the value back rather than adding the delta locally: the op clamps
+  // at 0 and MAX_ALLOC, and a second copy of that sum is exactly the mechanical
+  // disagreement this file keeps refusing to introduce.
+  function showFieldValue(el) {
+    var d = el.dataset;
+    if (!Object.prototype.hasOwnProperty.call(AMT_OF, d.act)) { return; }
+    el.value = String(App.render.amountFor(App.state.get(), AMT_OF[d.act], d.side, d.unit));
+
+    // dataset.was is what commitField compares against and what Escape puts
+    // back, so it moves with the displayed text or both of them start lying.
+    // Left stale, blur would re-read the new number as a freshly typed
+    // absolute, and Escape would restore a figure state no longer holds.
+    d.was = el.value;
   }
 
   function nudgeField(el, delta) {
@@ -2425,9 +2467,11 @@ App.interactions = (function () {
     if (!Object.prototype.hasOwnProperty.call(NUDGE_OF, d.act)) {
       throw new Error('No step op for "' + String(d.act) + '"');
     }
-    return App.ops.dispatch(NUDGE_OF[d.act], {
+    var moved = App.ops.dispatch(NUDGE_OF[d.act], {
       side: d.side, unitId: d.unit, delta: delta
     });
+    showFieldValue(el);
+    return moved;
   }
 
   // The only decision this section makes about the number a student typed: a
