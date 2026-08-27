@@ -319,6 +319,14 @@ function makeStubDom() {
     node.setPointerCapture = () => {};
     node.releasePointerCapture = () => {};
 
+    // No layout engine here, so a node reports whatever height the gate gave
+    // it. _rectHeight defaults to 0, which is the "no layout at all" case
+    // [S08]'s measurement is required to decline rather than publish.
+    node._rectHeight = 0;
+    node.getBoundingClientRect = () => ({
+      width: 0, height: node._rectHeight, top: 0, left: 0, right: 0, bottom: node._rectHeight
+    });
+
     node.closest = (selector) => {
       let n = node;
       while (n) {
@@ -351,10 +359,22 @@ function makeStubDom() {
   doc.body = body;
   doc.activeElement = body;
 
+  // <html>, for the one thing the artifact does with it: publishing the
+  // measured chrome height as a custom property so #strip's sticky offset
+  // stops guessing at --topbar-h.
+  doc.documentElement = {
+    _props: Object.create(null),
+    style: {
+      setProperty(name, value) { doc.documentElement._props[name] = String(value); },
+      getPropertyValue(name) { return doc.documentElement._props[name] || ''; }
+    }
+  };
+
   const app = idNode('app', 'main');
   body.appendChild(app);
 
   const topbar = idNode('topbar');
+  topbar._rectHeight = 88;   // one wrapped row taller than the shipped 64px floor
   app.appendChild(topbar);
 
   const board = idNode('board');
@@ -500,8 +520,19 @@ if (missingFromShell.length > 0) {
 }
 console.log('stub-drift gate: ' + shellIds.length + ' shell ids, all built by the stub page');
 
+// [S08] observes the topbar so a wrapped control cluster republishes the sticky
+// offset. There is no layout here, so the observer is a list of callbacks the
+// gate can fire by hand after changing a reported height.
+const resizeCallbacks = [];
+function StubResizeObserver(fn) {
+  this.observe = () => { resizeCallbacks.push(fn); };
+  this.unobserve = () => {};
+  this.disconnect = () => {};
+}
+
 const domSandbox = {
   console: console,
+  ResizeObserver: StubResizeObserver,
   setTimeout: setTimeout,
   clearTimeout: clearTimeout,
   queueMicrotask: queueMicrotask,
@@ -1036,6 +1067,27 @@ check(
 );
 rogueField.remove();
 clearPanel();
+
+/* --- 26. #strip stuck at a hardcoded --topbar-h while #topbar is min-height
+       with a wrapping control cluster, and the markup comment above that
+       cluster plans for Phase 4 and Phase 5 to add to it. When the two
+       disagree there is no error and no warning: the sticky panel simply parks
+       under the bar. The offset is measured now, and republished when the bar
+       changes size. The CSS consequences are NOT executed here — there is no
+       browser and no layout engine in this repo — but the publish-and-
+       republish path is. --- */
+const styleOf = dom.document.documentElement.style;
+const firstPublish = styleOf.getPropertyValue('--topbar-now');
+dom.byId['topbar']._rectHeight = 120;
+resizeCallbacks.forEach((fn) => fn());
+const secondPublish = styleOf.getPropertyValue('--topbar-now');
+check(
+  '26. boot publishes the measured topbar height and republishes it when the '
+    + 'bar changes size',
+  firstPublish === '88px' && resizeCallbacks.length === 1 && secondPublish === '120px',
+  'first=' + JSON.stringify(firstPublish) + ' after resize=' + JSON.stringify(secondPublish)
+    + ' observers registered=' + resizeCallbacks.length
+);
 
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
 check(

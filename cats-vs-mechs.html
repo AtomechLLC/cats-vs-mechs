@@ -28,6 +28,15 @@
        --boardw applies to #board alone, so both faction columns fit on a
        1920px projector without the shell losing its family resemblance. */
     --boardw:1600px;
+    /* --topbar-h is the bar's FLOOR. --topbar-now is what #strip actually
+       sticks below, and [S08] republishes it from the bar's measured height on
+       every resize — because the bar is min-height with a wrapping cluster,
+       and the markup comment above #topbar plans for Phase 4 and Phase 5 to
+       add more controls to that cluster. A hardcoded offset and a bar that can
+       grow disagree the moment it wraps, with no error and no warning: the
+       sticky panel simply parks underneath the bar. The var() fallback is the
+       floor again, so the layout is right before the first measurement and
+       stays right if the measurement never happens at all. */
     --topbar-h:64px;
     /* THE PROJECTOR REHEARSAL DIAL — the token box and the gap between tokens.
        22px is a desk-tested guess at what stays countable from the back of a
@@ -95,6 +104,14 @@
     position:sticky;top:0;z-index:20;min-height:var(--topbar-h);margin:0 0 18px;
     display:flex;align-items:center;justify-content:space-between;gap:16px;
     background:var(--bg);border-bottom:1px solid var(--line);
+    /* The same width and the same computed negative margin #board carries, and
+       for the same reason spelled the same way. Without it the bar spanned
+       .shell's 1280px while the board it covers spans up to 1600px, so on the
+       1920px projector this file targets the outer ~160px of board content on
+       each side scrolled past the top of the viewport with nothing over it —
+       an opaque bar that stops short of the thing it is meant to sit above. */
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
   .brd-brand{font-size:20px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
   .brd-cluster{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
@@ -131,7 +148,7 @@
      row height by default, and a stretched sticky item has nowhere to move,
      so sticky appears to do nothing at all. */
   #strip{
-    position:sticky;top:var(--topbar-h);align-self:start;
+    position:sticky;top:var(--topbar-now, var(--topbar-h));align-self:start;
     border:1px dashed var(--ink-faint);border-radius:var(--radius);
     padding:22px 18px;min-height:180px;
     display:grid;place-items:center;text-align:center;
@@ -141,6 +158,7 @@
   /* Same breakpoint the shell already uses, rather than a second one. */
   @media(max-width:760px){
     #board{grid-template-columns:1fr;width:auto;margin-left:0}
+    #topbar{width:auto;margin-left:0}
   }
 
   /* ===================== [C04] UNIT ===================== */
@@ -3117,6 +3135,45 @@ App.boot = (function () {
     };
   }
 
+  // --topbar-h is the bar's floor and #strip's sticky offset was reading it as
+  // if it were the bar's height. It is not: #topbar is min-height with a
+  // wrapping control cluster, and the markup comment above it plans for Phase 4
+  // and Phase 5 to add more controls. The moment the cluster wraps — a narrower
+  // window, a larger projector text scale, or simply one more button — the bar
+  // grows past 64px and the sticky panel parks underneath it, with no error and
+  // no warning to say so.
+  //
+  // So the offset is measured rather than promised. It is published as a
+  // SEPARATE property from --topbar-h on purpose: writing the measurement back
+  // into the min-height would ratchet, because the bar could then never
+  // measure smaller than the largest height it had ever reached.
+  //
+  // Everything here degrades to the shipped 64px: no ResizeObserver, no
+  // element, no measurement, or a headless page with no layout at all, and the
+  // var() fallback in [C01] stands.
+  function publishTopbarHeight() {
+    var bar = byId('topbar');
+    if (!bar || typeof bar.getBoundingClientRect !== 'function') { return; }
+    var h = bar.getBoundingClientRect().height;
+    if (!(h > 0)) { return; }
+    document.documentElement.style.setProperty('--topbar-now', h + 'px');
+  }
+
+  function watchTopbarHeight() {
+    var bar = byId('topbar');
+    if (!bar) { return; }
+    publishTopbarHeight();
+    if (typeof ResizeObserver === 'function') {
+      new ResizeObserver(wrap('topbar measure', publishTopbarHeight)).observe(bar);
+      return;
+    }
+    // The fallback catches the window resize but not a reflow from a content
+    // change, which is the weaker half of the same guarantee. ResizeObserver is
+    // Baseline widely available, so this is the path nothing is expected to
+    // take.
+    window.addEventListener('resize', wrap('topbar measure', publishTopbarHeight));
+  }
+
   function start() {
     try {
       // Ships deliberately: three lines, and the only way to rehearse the
@@ -3160,6 +3217,10 @@ App.boot = (function () {
       }));
 
       App.interactions.bind();
+
+      // Layout metadata, not state and not a rendered number: it publishes how
+      // tall the chrome actually is so the CSS below it can stop guessing.
+      attempt('Topbar measurement', watchTopbarHeight);
 
       // The second half of the rehearsal: a throw from inside a live handler.
       if (App.hasFlag('throwhandler')) {
