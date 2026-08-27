@@ -687,8 +687,19 @@ App.ops = (function () {
     });
   }
 
+  // Refuses to overwrite a fight that is already running. Without the guard, a
+  // double-click on the Phase-2 start button returned both rosters to full
+  // health and emptied the fight record -- recoverable only by a Ctrl+Z the
+  // student has to think of before the coalescing window and the 30-entry cap
+  // move on. The check sits inside the mutator, which runs on the detached
+  // copy before anything is recorded, so the throw leaves no phantom undo
+  // step: exactly the property commit() was built for. If a restart
+  // affordance is wanted, Phase 2 adds an explicit one.
   function startFight() {
     App.state.commit('start fight', function (s) {
+      if (s.fight !== null) {
+        throw new Error('A fight is already in progress — end it before starting a new one');
+      }
       s.fight = {
         round: 1,
         turn: 'cats',
@@ -1321,6 +1332,12 @@ App.selftest = (function () {
 
     /* --- alive is a flag, not an inference (D-00d) --- */
     App.ops.startFight();
+
+    var depthF = App.state.undoDepth();
+    t.throws('a second startFight is refused', function () { App.ops.startFight(); });
+    t.eq('the refused restart left no undo entry', App.state.undoDepth(), depthF);
+    t.eq('the refused restart left the round alone', App.state.get().fight.round, 1);
+
     App.ops.setUnitHp('cats', 'c1', 0);
     t.ok('alive independent of hp', unitOf('cats', 'c1').hp === 0 && unitOf('cats', 'c1').alive === true);
     App.ops.setAlive('cats', 'c2', false);
