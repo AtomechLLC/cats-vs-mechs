@@ -3008,8 +3008,44 @@ App.boot = (function () {
   // Phase 4 it carries decoded build-code content (threat T-01-02).
   // The detail field is selectable so it can be pasted into the course thread;
   // there is no automatic reporting, because there is no backend (D-16).
+  // A modal <dialog> is promoted to the top layer, which sits above every
+  // z-index in the document, and it makes the rest of the document INERT — not
+  // clickable and not focusable. The recovery panel is .err-panel at z-index 50
+  // in the ordinary stacking context, so an error raised while the token
+  // picker was open painted it behind the dialog and its 76%-opaque backdrop,
+  // dismiss.focus() below did nothing at all, and neither recovery button could
+  // be pressed. D-15 says recovery has to stay one click "even then"; with a
+  // modal up it was zero.
+  //
+  // Reachable while a modal is open: the document-level Ctrl+Z listener, the
+  // window error and unhandledrejection nets, and any throw out of the picker's
+  // own handlers.
+  //
+  // Every open dialog, not the picker by name: [S08] is the error boundary for
+  // the whole file and should not have to be edited each time a later phase
+  // adds a modal.
+  // The try is not defensive noise. close() fires a close event, whose handler
+  // runs through wrap() and could therefore re-enter fail() — and a failure to
+  // tidy up must never be allowed to pre-empt the message this function was
+  // called to show.
+  function closeModals() {
+    if (typeof document === 'undefined') { return; }
+    try {
+      var dialogs = document.querySelectorAll('dialog');
+      for (var i = 0; i < dialogs.length; i++) {
+        if (dialogs[i].open === true && typeof dialogs[i].close === 'function') {
+          dialogs[i].close();
+        }
+      }
+    } catch (cannotClose) {
+      void cannotClose;
+    }
+  }
+
   function fail(label, err, isTerminal) {
     if (isTerminal === true) { terminal = true; }
+
+    closeModals();
 
     var error = (err && typeof err.message === 'string') ? err : new Error(String(err));
     var panel = byId('err-panel');

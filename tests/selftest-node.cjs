@@ -978,6 +978,33 @@ check(
     + ' undoDepth delta across ten repeats=' + undoDelta
 );
 
+/* --- 24. an error raised while a modal is up. A showModal() dialog is promoted
+       to the top layer, which is above every z-index in the document, and it
+       makes the rest of the document inert — so .err-panel painted behind it
+       could be neither read through the 76%-opaque backdrop nor clicked, and
+       dismiss.focus() landed on an inert button. The top-layer and inert
+       semantics are spec behaviour and are NOT executed here; there is no
+       browser in this repo. What IS executed is that fail() now closes the
+       modal before it raises the panel. --- */
+press(openBtn);
+release(openBtn);
+const modalWasOpen = dlg.open;
+const rogue2 = stub.createElement('button');
+rogue2.dataset.act = 'notAnOp';
+dom.byId['topbar'].appendChild(rogue2);
+press(rogue2);
+check(
+  '24. an error raised while the picker is modal closes it first, so the '
+    + 'recovery panel is reachable',
+  modalWasOpen === true && dlg.open === false && errPanel.hidden === false
+    && errTitle.textContent !== '',
+  'modal was open=' + modalWasOpen + ', now open=' + dlg.open
+    + ', panel hidden=' + errPanel.hidden
+    + ', title=' + JSON.stringify(errTitle.textContent)
+);
+rogue2.remove();
+clearPanel();
+
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
 check(
   '8. the hold ramp stays inside the undo coalescing window',
