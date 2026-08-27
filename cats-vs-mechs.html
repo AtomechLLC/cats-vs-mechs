@@ -352,11 +352,22 @@ App.state = (function () {
   // The live state. Deep-frozen between commits: a stray write from anywhere
   // outside commit() throws TypeError in strict mode and changes nothing. That
   // is the mechanical guarantee this whole section exists to provide.
-  var cur = App.data.deepFreeze({
-    build: App.data.defaults(),
-    fight: null,
-    ui: { kbdNav: false }
-  });
+  //
+  // It starts as null and is built on first read, because the table of
+  // contents states that a section may reference another one at a call site
+  // and never by capturing it while its own body is being evaluated. Building
+  // the board right here would call into [S01] DATA at evaluation time, so
+  // moving [S03] above [S01] would throw at load -- which is the exact failure
+  // that rule exists to prevent. Every reader below goes through get().
+  var cur = null;
+
+  function initial() {
+    return App.data.deepFreeze({
+      build: App.data.defaults(),
+      fight: null,
+      ui: { kbdNav: false }
+    });
+  }
 
   var past = [];        // [{ label, snap, t }], newest last, hard-capped at UNDO_LIMIT
   var commits = 0;      // how many commits have landed
@@ -383,13 +394,14 @@ App.state = (function () {
 
   /* ---- the single mutation funnel (D-00a) ---- */
   function commit(label, mutator) {
-    var snap = JSON.stringify({ build: cur.build, fight: cur.fight });
+    var base = get();
+    var snap = JSON.stringify({ build: base.build, fight: base.fight });
 
     // The snapshot is taken from the live state, but the mutator runs on a
     // detached copy and runs FIRST. A mutator that throws — an unknown unit
     // id, no fight in progress — must leave no trace at all, rather than a
     // phantom undo step over a state that never changed.
-    var working = thaw(cur);
+    var working = thaw(base);
     mutator(working);
 
     var t = now();
@@ -426,7 +438,7 @@ App.state = (function () {
   // greppable name so "which mutations are undoable" is answered by reading
   // two function names instead of auditing a flag at forty call sites.
   function commitUi(label, mutator) {
-    var working = thaw(cur);
+    var working = thaw(get());
     mutator(working);
     cur = freeze(working);
     commits++;
@@ -440,7 +452,7 @@ App.state = (function () {
 
     var entry = past.pop();
     var snap = JSON.parse(entry.snap);
-    var working = thaw(cur);
+    var working = thaw(get());
 
     // Snapshots span build and fight, so undo crosses the setup/fight
     // boundary — undoing past a started fight un-starts it (D-08). The live ui
@@ -475,11 +487,12 @@ App.state = (function () {
     if (!dirty) { return; }
     dirty = false;
     frames++;
+    var state = get();
     if (structural) {
-      App.render.structure(cur);
+      App.render.structure(state);
       structural = false;
     }
-    App.render.sync(cur);
+    App.render.sync(state);
   }
 
   // The bare global call is required: detaching the browser's frame scheduler
@@ -515,7 +528,10 @@ App.state = (function () {
     return wasPending;
   }
 
+  // The one place `cur` is allowed to be null, and therefore the one place the
+  // board is built. Everything above reads through here.
   function get() {
+    if (cur === null) { cur = initial(); }
     return cur;
   }
 
