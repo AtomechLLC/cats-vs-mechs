@@ -1518,6 +1518,28 @@ App.ops = (function () {
       throw new Error('That glyph is not one of the offered set');
     }
 
+    // Every repeat-capable transformer in this section reports whether it
+    // moved. This one is not driven by a ramp, so it goes one step further and
+    // does not commit at all when nothing changes. picker()'s repaint already
+    // treats an unchanged signature as a no-op — its own comment says clicking
+    // the swatch that is already live must not rebuild the grid under the
+    // student's finger — and the commit underneath it was doing the opposite:
+    // two deep clones of state and a fresh undo entry per press. A student
+    // tapping around the grid to compare shapes ended up with several
+    // do-nothing Ctrl+Z steps between them and the edit they wanted back.
+    //
+    // Read outside the funnel, unlike the nudge siblings above. Those must read
+    // and write inside one mutator because a 40ms ramp could otherwise act on a
+    // number it read a step ago; this compares frozen enum values against a
+    // patch that nothing can change underneath it.
+    var vocab = App.state.get().build.tokens;
+    var live = Object.prototype.hasOwnProperty.call(vocab, tokenId) ? vocab[tokenId] : null;
+    var same = live !== null
+      && (p.shape === undefined || p.shape === live.shape)
+      && (p.color === undefined || p.color === live.color)
+      && (p.glyph === undefined || p.glyph === live.glyph);
+    if (same) { return false; }
+
     // The label matches the file's '<what> <which>' convention, so rapid
     // swatch-clicking coalesces into ONE undo entry the same way a stepper
     // hold does.
@@ -1530,6 +1552,7 @@ App.ops = (function () {
       if (p.color !== undefined) { t.color = p.color; }
       if (p.glyph !== undefined) { t.glyph = p.glyph; }
     });
+    return true;
   }
 
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
@@ -3969,6 +3992,19 @@ App.selftest = (function () {
     t.eq('and it is exactly one undo entry', App.state.undoDepth() - depth0, 1);
     App.state.undo();
     t.eq('so undo brings the square back', tokensNow().hp.shape, 'sq');
+
+    /* --- and the same boolean contract the nudge siblings carry, for the same
+           reason: pressing the swatch that is already live is a repaint that
+           changes nothing, and it must not deep-clone state twice and push a
+           do-nothing entry between the student and the edit they want back. --- */
+    var depthLive = App.state.undoDepth();
+    t.eq('re-choosing the live shape reports that nothing moved',
+      App.ops.setTokenStyle('hp', { shape: tokensNow().hp.shape }), false);
+    t.eq('and leaves the undo stack exactly where it was',
+      App.state.undoDepth() - depthLive, 0);
+    t.eq('a real change still reports that it moved',
+      App.ops.setTokenStyle('hp', { shape: 'tri' }), true);
+    App.state.undo();
 
     App.ops.setTokenStyle('ap', { color: 'violet', glyph: App.data.GLYPHS[1] });
     t.eq('a colour and a glyph land together in one call',
