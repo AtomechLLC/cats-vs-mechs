@@ -23,6 +23,19 @@
     --radius:14px;
     /* artifact-specific */
     --coral:#ff8a5c;--maxw:1280px;
+    /* The board is wider than the document measure. --maxw stays at the
+       siblings' 1280px for .shell, the page header and the self-test report;
+       --boardw applies to #board alone, so both faction columns fit on a
+       1920px projector without the shell losing its family resemblance. */
+    --boardw:1600px;
+    --topbar-h:64px;
+    /* THE PROJECTOR REHEARSAL DIAL — the token box and the gap between tokens.
+       22px is a desk-tested guess at what stays countable from the back of a
+       room; only a rehearsal on the actual workshop display settles it. These
+       are the two numbers to turn, and no JavaScript anywhere in this file
+       hardcodes either of them. */
+    --tok:22px;
+    --tok-gap:6px;
   }
 
   /* ===================== [C01] BASE ===================== */
@@ -67,6 +80,158 @@
   .ex{display:inline-block;font-size:12px;color:var(--green);background:rgba(91,217,156,.08);
     border:1px solid rgba(91,217,156,.25);padding:2px 9px;border-radius:6px;margin-top:6px}
 
+  /* ===================== [C03] BOARD ===================== */
+  /* The sticky top bar, the two faction columns and the reserved projection
+     strip between them.
+     STICKY GOTCHA, written here because it is invisible everywhere else: a
+     sticky element sticks to its nearest ancestor that has a scrolling
+     mechanism, and ANY overflow value other than visible creates one. So no
+     ancestor of #topbar or #strip -- html, body, .shell, #board -- may ever
+     be given overflow:hidden, scroll or auto. The realistic way this breaks
+     is somebody clipping a long token row on an ancestor; keep that clipping
+     on .tok-row itself. There is no error and no warning when it goes wrong.
+     Sticky simply stops working. */
+  #topbar{
+    position:sticky;top:0;z-index:20;min-height:var(--topbar-h);margin:0 0 18px;
+    display:flex;align-items:center;justify-content:space-between;gap:16px;
+    background:var(--bg);border-bottom:1px solid var(--line);
+  }
+  .brd-brand{font-size:20px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+  .brd-cluster{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
+  .brd-tokedit{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  /* UX-02: a real, permanently visible text label at the 18px minimum.
+     Never icon-only, never revealed on hover, never a title= tooltip. */
+  .brd-tokedit-label{font-size:18px;color:var(--ink-dim)}
+
+  .brd-btn{
+    background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:999px;padding:8px 16px;min-height:36px;
+    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+
+  #board{
+    display:grid;grid-template-columns:1fr minmax(220px, 320px) 1fr;gap:18px;align-items:start;
+    /* D-01 wants both columns fully visible at once, which the 1280px document
+       measure wastes on a projector. The escape is width plus a computed
+       negative margin, deliberately NOT a transform: a transform on an
+       ancestor of a sticky element re-parents its containing block and kills
+       the sticking silently. 44px is .shell's 22px horizontal padding, doubled. */
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
+  #board-empty{grid-column:1 / -1}
+
+  .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+
+  /* D-02: reserved, and visibly so. An instructor demoing Phase 2 should see
+     where the projection lands rather than watch the layout jump when Phase 3
+     arrives. align-self:start is load-bearing: a grid item stretches to the
+     row height by default, and a stretched sticky item has nowhere to move,
+     so sticky appears to do nothing at all. */
+  #strip{
+    position:sticky;top:var(--topbar-h);align-self:start;
+    border:1px dashed var(--ink-faint);border-radius:var(--radius);
+    padding:22px 18px;min-height:180px;
+    display:grid;place-items:center;text-align:center;
+    color:var(--ink-dim);font-size:18px;
+  }
+
+  /* Same breakpoint the shell already uses, rather than a second one. */
+  @media(max-width:760px){
+    #board{grid-template-columns:1fr;width:auto;margin-left:0}
+  }
+
+  /* ===================== [C04] UNIT ===================== */
+  /* Faction header, unit card and the roster chrome. The sizes are the
+     projector legibility spec, not taste: every value is at least 24px and
+     weight 700, every label at least 18px, and nothing at or below 14px is
+     allowed to carry information. Every numeric readout also takes the shipped
+     .num class so the digits keep a stable width while a held button steps. */
+  .brd-col-head{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;display:flex;flex-direction:column;gap:12px;user-select:none;
+  }
+  .brd-faction{margin:0;font-size:26px;font-weight:700;letter-spacing:-.2px}
+  .brd-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .brd-label{font-size:18px;color:var(--ink-dim);min-width:128px}
+  .brd-value{font-size:24px;font-weight:700}
+  .brd-note{font-size:18px;color:var(--ink-dim)}
+
+  .unit-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;display:flex;flex-direction:column;gap:10px;user-select:none;
+    /* :focus-within, and deliberately not the parent-matching selector that
+       would also work here. The file's whole design is that render writes
+       explicit classes from state; a parent-matching rule would create a
+       second, invisible source of truth in a stylesheet with no scoping. */
+    &:focus-within{border-color:var(--accent)}
+  }
+  .unit-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .unit-name{font-size:18px;font-weight:600}
+  .unit-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .unit-label{font-size:18px;color:var(--ink-dim);min-width:80px}
+
+  /* D-06 plus UX-02: available, not inviting, and never revealed by pointing
+     at something. This deliberately departs from the phase context's "quiet
+     outline" wording: --line measures 1.29:1 against --panel, which is
+     functionally invisible at projector distance. The border is --ink-faint
+     instead (3.69:1, clearing SC 1.4.11's 3:1 floor for UI components) and the
+     glyph is --ink-dim (7.47:1), with --accent-2 reserved for hover and focus.
+     Quiet and legible at the same time. opacity stays 1 at all times, and no
+     rule anywhere in this file reveals this control on pointer-over. */
+  .unit-rm{
+    background:transparent;border:1px solid var(--ink-faint);color:var(--ink-dim);
+    border-radius:10px;min-width:32px;min-height:32px;padding:0 8px;opacity:1;
+    font:inherit;font-size:18px;line-height:1;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent-2);color:var(--accent-2)}
+    &:focus{border-color:var(--accent-2);color:var(--accent-2)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+
+  .brd-add{
+    background:var(--panel);border:1px dashed var(--ink-faint);color:var(--ink);
+    border-radius:var(--radius);padding:12px 16px;min-height:44px;
+    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+
+  /* ===================== [C06] STEPPER ===================== */
+  /* Styles only. The press-and-hold behaviour behind these is plan 02-02's.
+     44 x 44 is WCAG 2.5.5 Target Size (Enhanced, AAA): at that size the
+     twenty-rapid-clicks stress test stops being a test of the student's aim.
+     user-select:none across the whole control, because rapid clicking
+     otherwise drag-selects the labels around it. */
+  .stp{display:flex;align-items:center;gap:6px;user-select:none}
+  .stp-btn{
+    width:44px;height:44px;flex:0 0 44px;
+    background:var(--panel-2);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:10px;display:grid;place-items:center;
+    font:inherit;font-size:24px;line-height:1;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:active{background:var(--panel)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+  /* A fixed width on purpose, never a content-sized one -- the field must not
+     reflow its row while a held button steps it through 9, 10, 11. */
+  .stp-field{
+    width:76px;flex:0 0 76px;height:44px;text-align:center;
+    background:var(--bg-2);border:1px solid var(--line);color:var(--ink);
+    border-radius:10px;padding:8px 6px;font:inherit;font-size:24px;font-weight:700;
+  }
+  .stp-field:focus{border-color:var(--accent)}
+
+  /* Both halves of the focus ring, not either one. A programmatic focus() --
+     which is exactly what the structural rebuild does when it puts the student
+     back where they were -- does not re-arm :focus-visible, so the ring would
+     vanish while focus was in fact correct. The attribute below is written on
+     the body by render.sync from state.ui.kbdNav; its writer is plan 02-02. */
+  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+  body[data-kbd="1"] :focus{outline:2px solid var(--accent);outline-offset:2px}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -104,7 +269,41 @@
     <div class="muted">Workshop 16 — allocation and fight sandbox</div>
   </div>
 
+  <!-- D-04. The control cluster's slot is decided once, here: Phase 4 adds
+       reset and share to it, Phase 5 adds turn state and start-fight, and
+       neither of them has to re-lay-out the page to do it. -->
+  <div class="brd-topbar" id="topbar">
+    <div class="brd-brand">Cats vs Mechs</div>
+    <div class="brd-cluster">
+      <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
+      <!-- Static markup, and that is the point. A data-k has to be unique
+           because the structural rebuild restores focus by taking the FIRST
+           [data-k="..."] match; one of these rendered inside a unit card would
+           produce nine tok/hp keys and silently break focus restore, which is
+           half of "twenty clicks make twenty changes". Four buttons here, one
+           per board token type, unique by construction. The fifth vocabulary
+           entry, dead, has no renderer consumer yet, so it gets no button.
+           openTokenPicker is page work, not a state transformation: [S07]
+           routes it and [S05] never sees it. -->
+      <div class="brd-tokedit" role="group" aria-labelledby="tokedit-label">
+        <span class="brd-tokedit-label" id="tokedit-label">Token appearance</span>
+        <button class="brd-btn" type="button" data-k="tok/hp" data-act="openTokenPicker" data-tok="hp">Health</button>
+        <button class="brd-btn" type="button" data-k="tok/ap" data-act="openTokenPicker" data-tok="ap">Action</button>
+        <button class="brd-btn" type="button" data-k="tok/shield" data-act="openTokenPicker" data-tok="shield">Shield</button>
+        <button class="brd-btn" type="button" data-k="tok/dmg" data-act="openTokenPicker" data-tok="dmg">Damage</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- The four children below are static siblings, never built by
+       render.structure(): a delegated listener bound to a root that outlives
+       every rebuild is the only arrangement that survives one. #board-empty
+       stays because [S08] boot.start()'s #throwhandler rehearsal reads it by
+       id; render.structure() hides it rather than removing it. -->
   <div class="board" id="board">
+    <section class="brd-col" id="col-cats"></section>
+    <aside class="brd-strip" id="strip">Projection lands here in Phase 3</aside>
+    <section class="brd-col" id="col-mechs"></section>
     <p class="muted" id="board-empty">The allocation board renders here.</p>
   </div>
 
