@@ -53,8 +53,8 @@ Decimal phases appear between their surrounding integers in numeric order.
 **Plans**: 2 plans
 
 Plans:
-- [ ] 01-01-PLAN.md — File skeleton (TOC + `[S00]`–`[S10]` section banners), `<style>` on the course design tokens, static shell markup, frozen `DEFAULTS`, pure `model` derivations, `#selftest` harness and report — owns `data` / `model` / `selftest` plus the whole scaffold (wave 1)
-- [ ] 01-02-PLAN.md — `state` slices + `commit()` funnel + snapshot undo + rAF `invalidate`, `ops` transformer layer, `boot` with try/catch error panel and Ctrl+Z — owns `state` / `ops` / `boot` and the `[S09.3]` state-contract suite (wave 2, blocking human-verify checkpoint)
+- [x] 01-01-PLAN.md — File skeleton (TOC + `[S00]`–`[S10]` section banners), `<style>` on the course design tokens, static shell markup, frozen `DEFAULTS`, pure `model` derivations, `#selftest` harness and report — owns `data` / `model` / `selftest` plus the whole scaffold (wave 1)
+- [x] 01-02-PLAN.md — `state` slices + `commit()` funnel + snapshot undo + rAF `invalidate`, `ops` transformer layer, `boot` with try/catch error panel and Ctrl+Z — owns `state` / `ops` / `boot` and the `[S09.3]` state-contract suite (wave 2, blocking human-verify checkpoint)
 
 ### Phase 2: Allocation Surface
 **Goal**: A student can build both rosters on screen — setting health and action points with steppers, adding and removing units — and the display holds up under rapid live operation
