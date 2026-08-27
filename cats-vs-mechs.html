@@ -566,6 +566,23 @@ App.ops = (function () {
     return value;
   }
 
+  // The other half of the boundary: the KEY, not just the value. Every op
+  // below indexes the state with a caller-supplied side name, and `s.build` is
+  // a plain JSON.parse object, so `s.build['__proto__']` resolves to
+  // Object.prototype -- which is not frozen. Without this allowlist,
+  // setFactionAp('__proto__', 42) writes Object.prototype.ap and every object
+  // on the page inherits a phantom key that deepFreeze and JSON.stringify both
+  // walk straight past. An unknown side also has to fail in this file's own
+  // named style, not as "Cannot read properties of undefined".
+  var SIDES = ['cats', 'mechs'];
+
+  function requireSide(value) {
+    if (SIDES.indexOf(value) === -1) {
+      throw new Error('Unknown side "' + String(value) + '"');
+    }
+    return value;
+  }
+
   function findUnit(side, unitId, collection) {
     for (var i = 0; i < collection.length; i++) {
       if (collection[i].id === unitId) { return collection[i]; }
@@ -592,13 +609,17 @@ App.ops = (function () {
 
   /* ---- transformers: each one is exactly one commit ---- */
 
+  // requireSide runs OUTSIDE the commit call in every op below, so an unknown
+  // side throws before the funnel is entered and leaves no phantom undo step.
   function setFactionAp(side, ap) {
+    requireSide(side);
     App.state.commit('ap ' + side, function (s) {
       s.build[side].ap = int(ap, 0, 99, 'action points');
     });
   }
 
   function setUnitMaxHp(side, unitId, maxHp) {
+    requireSide(side);
     App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
       findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, 99, 'max health');
     });
@@ -607,6 +628,7 @@ App.ops = (function () {
   // Writes the fight slice only, and deliberately touches nothing else: zero
   // health prompts a death ruling from the table, it never auto-kills (D-00d).
   function setUnitHp(side, unitId, hp) {
+    requireSide(side);
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
       findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, 99, 'health');
     });
@@ -616,6 +638,7 @@ App.ops = (function () {
   // so a unit ruled "survived via Shield" and a unit ruled dead at full health
   // are both representable.
   function setAlive(side, unitId, alive) {
+    requireSide(side);
     App.state.commit('alive ' + side + '/' + unitId, function (s) {
       findUnit(side, unitId, fightOf(s)[side].units).alive = (alive === true);
     });
@@ -1215,6 +1238,15 @@ App.selftest = (function () {
     t.throws('a numeric string is refused', function () { App.ops.setFactionAp('cats', '7'); });
     t.eq('a refused value left the board alone', App.state.get().build.cats.ap, 5);
     t.eq('a refused value left no undo entry', App.state.undoDepth() - depth0, 1);
+
+    /* --- and [S05] is the key boundary too: an unknown side never reaches
+           the state indexer, so a prototype key can never be written. --- */
+    t.throws('an unknown side is refused', function () { App.ops.setFactionAp('nope', 1); });
+    t.throws('a prototype key is refused as a side', function () { App.ops.setFactionAp('__proto__', 42); });
+    t.throws('the constructor key is refused as a side', function () { App.ops.setUnitMaxHp('constructor', 'c1', 1); });
+    t.ok('nothing leaked onto the shared object prototype',
+      ({}).ap === undefined && !Object.prototype.hasOwnProperty.call(Object.prototype, 'ap'));
+    t.eq('a refused side left the board alone', App.state.get().build.cats.ap, 5);
 
     /* --- alive is a flag, not an inference (D-00d) --- */
     App.ops.startFight();
