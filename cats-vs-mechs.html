@@ -334,6 +334,10 @@ App.model = (function () {
  * undo stack and the frame-coalesced invalidate(). Nothing mutates state
  * outside commit(); that one rule is what makes undo, the fight log, hash
  * sync and coalesced rendering free byproducts instead of features.
+ * The single documented exception is restore(), which exists so [S09]
+ * SELFTEST can hand the live board back untouched. It is named here rather
+ * than left for a reader to discover, because a banner that quietly lies is
+ * worse than no banner.
  *
  * Shape — integers only, JSON-clonable, no DOM nodes, no functions:
  *   { build: { schema, cats, mechs },
@@ -547,6 +551,22 @@ App.state = (function () {
     return cur;
   }
 
+  // For [S09] SELFTEST, and for nothing else. This is the single documented
+  // writer outside [S05] OPS, and it exists so that opening #selftest stops
+  // being a destructive act: the state contract can only be exercised against
+  // the live singleton, so the suite has to be able to put the board back
+  // exactly as it found it — build, fight and ui together.
+  // Deliberately no undo entry: an undo step meaning "the test suite ran" is
+  // the very thing this is here to prevent. It clears the stack rather than
+  // restoring it, because the alternative is handing back thirty entries full
+  // of test values, one Ctrl+Z away from the board an instructor is demoing.
+  // No student action reaches this, and no op calls it.
+  function restore(snapshotJson) {
+    cur = freeze(JSON.parse(snapshotJson));
+    past.length = 0;
+    invalidate({ structural: true });
+  }
+
   function undoDepth() {
     return past.length;
   }
@@ -561,6 +581,7 @@ App.state = (function () {
     commitUi: commitUi,
     undo: undo,
     undoDepth: undoDepth,
+    restore: restore,
     invalidate: invalidate,
     flush: flush,
     stats: stats,
@@ -589,8 +610,10 @@ App.serialize = Object.freeze({
 /* ===================== [S05] OPS =====================
  * Every state transformation, one named function per student action. Each one
  * is a thin wrapper around a single commit() call, and this layer is the only
- * writer of state anywhere in the file — no exceptions, including temporary
- * debug controls. It never reads or writes the page.
+ * writer of state reachable from a student action — no exceptions, including
+ * temporary debug controls. It never reads or writes the page.
+ * (App.state.restore() is the one non-op writer in the file. It is reachable
+ * only from [S09] SELFTEST, and is named in the [S03] banner.)
  * ops.undo must stay callable from a button, not only from a key handler.
  * deps: App.state, App.data
  * owner: plan 01-02
@@ -1355,9 +1378,18 @@ App.selftest = (function () {
     }
 
     // Exercising the contract necessarily writes to the live board, so record
-    // where the suite found it; the last act below hands it back.
-    var before = JSON.stringify(App.state.get().build);
-    t.eq('the suite started from the shipped defaults', before, JSON.stringify(App.data.defaults()));
+    // the WHOLE state — build, fight AND ui — and hand it back as the last act
+    // below. Snapshotting only `build` and calling resetToDefaults() at the
+    // end left the ui slice flipped and the undo stack thirty entries deep in
+    // test values, so an instructor who opened #selftest to show the panel and
+    // then started the workshop on that tab was one Ctrl+Z away from a board
+    // holding a value written by the timing loop.
+    var savedAll = JSON.stringify(App.state.get());
+
+    // A shape assertion, not an equality one. From Phase 4 a shared link can
+    // load a build before this suite runs, and a legitimately loaded build
+    // must not paint the report red.
+    t.eq('the board has its three build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs']);
 
     /* --- shape --- */
     t.eq('three slices', Object.keys(App.state.get()), ['build', 'fight', 'ui']);
@@ -1512,9 +1544,12 @@ App.selftest = (function () {
     t.ok('100 commits all landed', App.state.get().build.cats.ap === 4);
     t.info('100 commits took ' + elapsed + ' ms', elapsed);
 
-    /* --- hand the board back --- */
-    App.ops.resetToDefaults();
-    t.eq('state restored to defaults', App.state.get().build, App.data.defaults());
+    /* --- hand the board back exactly as the suite found it, then prove it.
+           This is the last act on purpose: everything above is allowed to be
+           destructive precisely because this line is here. --- */
+    App.state.restore(savedAll);
+    t.eq('the suite handed the board back untouched', JSON.stringify(App.state.get()), savedAll);
+    t.eq('the suite left no undo history behind', App.state.undoDepth(), 0);
   });
 })();
 // #endregion [S09] SELFTEST
