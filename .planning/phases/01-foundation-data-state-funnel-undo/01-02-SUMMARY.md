@@ -214,3 +214,10 @@ None. The install step is still double-clicking the file.
 *Phase: 01-foundation-data-state-funnel-undo*
 *Completed: 2026-08-27*
 *Note: written and committed before the task 4 human-verify checkpoint so it survives worktree teardown. If the checkpoint surfaces a defect, the continuation agent amends this file.*
+
+## Self-Check: PASSED
+
+`cats-vs-mechs.html` (50,235 bytes, 1,299 lines) and `01-02-SUMMARY.md` both exist on disk. All four
+task commits (`36c1a08`, `46c78bf`, `6c4286c`, `ac6173d`) plus the summary commit are present on
+`worktree-agent-ace459961db8f183b`. `node tests/selftest-node.cjs` exits 0 with 57 passed, 0 failed and
+no forbidden-pattern hits. No tracked file was deleted by any commit; no untracked files remain.
