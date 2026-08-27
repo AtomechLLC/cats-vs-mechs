@@ -14,14 +14,14 @@ A student builds two factions that look nothing alike and discovers they can sti
 
 ### Validated
 
-(None yet — ship to validate)
+- [x] Ships as one self-contained HTML file that opens offline by double-click — *Validated in Phase 1: Foundation — Data, State Funnel & Undo*
+- [x] Cats and Mechs ship prebuilt with their board actions (Slash / Hairball / Screech, Fly / Lasers / Recharge) and attached damage and keywords — *Validated in Phase 1: Foundation — Data, State Funnel & Undo* (data layer frozen and self-tested; on-screen display arrives in Phase 3)
 
 ### Active
 
 - [ ] Student can allocate per-unit health and faction-level action points across both factions using +/− steppers
 - [ ] Allocation displays as token rows (green squares, yellow triangles, red diamonds) mirroring the workshop board
 - [ ] Student can add and remove units per side, so 9 Cats vs 3 Mechs is a starting point rather than a fixed roster
-- [ ] Cats and Mechs ship prebuilt with their board actions (Slash / Hairball / Screech, Fly / Lasers / Recharge) and attached damage and keywords
 - [ ] Student can play a turn-based fight hot-seat, controlling both sides
 - [ ] Units die individually, so focus fire and overkill waste are visible
 - [ ] Action points are a shared faction pool spent across the whole team each turn
@@ -32,7 +32,6 @@ A student builds two factions that look nothing alike and discovers they can sti
 - [ ] Student can manually adjust any tracked value at any time, to record rulings they made at the table
 - [ ] Student can copy a compact build code for the Discord thread, and paste one to load a classmate's build
 - [ ] Student can reset to the Workshop 16 board defaults at any point
-- [ ] Ships as one self-contained HTML file that opens offline by double-click
 
 ### Out of Scope
 
@@ -104,4 +103,6 @@ This document evolves at phase transitions and milestone boundaries.
 4. Update Context with current state
 
 ---
-*Last updated: 2026-08-26 after initialization*
+*Last updated: 2026-08-27 after Phase 1 completion*
+
+**Current state:** Phase 1 complete — `cats-vs-mechs.html` opens offline as a self-proving skeleton. Workshop 16 data is deep-frozen, every mutation routes through one `commit()` funnel, 30-deep coalescing undo works, and a styled error boundary replaces the blank-page failure mode. 57 in-file assertions pass. No UI yet; Phase 2 puts the board on screen.
