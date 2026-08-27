@@ -32,15 +32,18 @@ const HTML_PATH = path.join(__dirname, '..', 'cats-vs-mechs.html');
 const FORBIDDEN = [
   { label: 'absolute URL', re: /https?:\/\// },
   { label: 'external stylesheet', re: /<link/ },
-  { label: 'external source attribute', re: / src=/ },
+  { label: 'external source attribute', re: / src=|setAttribute\(\s*['"]src['"]/ },
   { label: 'ES module script', re: /type="module"/ },
   { label: 'fetch call', re: /fetch\(/ },
   { label: 'XMLHttpRequest', re: /XMLHttpRequest/ },
   { label: 'CSS @import', re: /@import/ },
   { label: 'CSS url() reference', re: /url\(/ },
-  { label: 'markup injection sink', re: /innerHTML/ },
-  { label: 'eval', re: /eval\(/ },
-  { label: 'Function constructor', re: /new Function/ }
+  { label: 'markup injection sink', re: /innerHTML|outerHTML|insertAdjacentHTML|document\s*\.\s*write|createContextualFragment/ },
+  { label: 'HTML parser', re: /DOMParser|srcdoc/ },
+  { label: 'javascript: URL', re: /javascript:/ },
+  { label: 'embedded frame', re: /<iframe/i },
+  { label: 'eval', re: /\beval\s*\(/ },
+  { label: 'Function constructor', re: /\bnew\s+Function\b|\bFunction\s*\(/ }
 ];
 
 function fail(message) {
@@ -55,13 +58,26 @@ if (!fs.existsSync(HTML_PATH)) {
 const html = fs.readFileSync(HTML_PATH, 'utf8');
 
 // --- 1. forbidden-pattern scan ------------------------------------------------
+// Scanned across the whole document rather than line by line. A line-scoped
+// test is evaded by a newline in the middle of the pattern, and
+// `el\n  .innerHTML = x` is ordinary formatting, not somebody being clever --
+// which is exactly why the old scan would have waved it through. Line numbers
+// are recovered from the match offset, so a hit still points somewhere.
+//
+// Stated plainly, because a gate is trusted rather than re-read: this catches
+// the known sinks written literally. It does NOT catch computed access such as
+// el['inner' + 'HTML'] or el[prop]. That is the shape a deliberate bypass
+// takes; the literal spelling is the shape an accidental reintroduction takes,
+// and this file is guarding against the second one.
 const hits = [];
-html.split(/\r?\n/).forEach((line, i) => {
-  FORBIDDEN.forEach((rule) => {
-    if (rule.re.test(line)) {
-      hits.push('  line ' + (i + 1) + ' [' + rule.label + ']: ' + line.trim());
-    }
-  });
+FORBIDDEN.forEach((rule) => {
+  const re = new RegExp(rule.re.source, rule.re.flags.replace('g', '') + 'g');
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const line = html.slice(0, m.index).split('\n').length;
+    hits.push('  line ' + line + ' [' + rule.label + ']: ' + m[0]);
+    if (m[0] === '') { re.lastIndex++; }
+  }
 });
 
 if (hits.length > 0) {
