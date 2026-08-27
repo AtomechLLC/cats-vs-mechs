@@ -16,7 +16,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **ALLOC-05**: Token rows compact above a readable count threshold instead of overflowing the row
 - [ ] **ALLOC-06**: Student can add and remove units on either side
 - [ ] **ALLOC-07**: Rapid stepper clicks and press-and-hold register every input without losing keyboard focus, scroll position, or restarting token animations
-- [ ] **ALLOC-08**: Cats and Mechs load prebuilt with the Workshop 16 board's actions, damage, keywords and starting allocation
+- [x] **ALLOC-08**: Cats and Mechs load prebuilt with the Workshop 16 board's actions, damage, keywords and starting allocation
 
 ### Fight
 
@@ -62,7 +62,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **UX-01**: Student can undo any change with Ctrl+Z, roughly 30 steps deep, with press-and-hold coalesced into single entries
 - [ ] **UX-02**: Every piece of information is legible on a projector, with nothing conveyed by hover alone
 - [ ] **UX-03**: A runtime error surfaces a styled error panel rather than a blank page
-- [ ] **UX-04**: Ships as one self-contained HTML file that opens offline by double-click with no build step, no runtime network calls, and no external dependencies
+- [x] **UX-04**: Ships as one self-contained HTML file that opens offline by double-click with no build step, no runtime network calls, and no external dependencies
 - [ ] **UX-05**: Visual language matches the sibling course artifacts' palette and design tokens
 
 ## v2 Requirements
@@ -122,7 +122,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALLOC-05 | Phase 2 | Pending |
 | ALLOC-06 | Phase 2 | Pending |
 | ALLOC-07 | Phase 2 | Pending |
-| ALLOC-08 | Phase 1 | Pending |
+| ALLOC-08 | Phase 1 | Complete |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
@@ -153,7 +153,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-01 | Phase 1 | Pending |
 | UX-02 | Phase 2 | Pending |
 | UX-03 | Phase 1 | Pending |
-| UX-04 | Phase 1 | Pending |
+| UX-04 | Phase 1 | Complete |
 | UX-05 | Phase 2 | Pending |
 
 **Coverage:**
