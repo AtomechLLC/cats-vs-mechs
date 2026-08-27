@@ -198,6 +198,74 @@
     &:disabled{opacity:.45;cursor:not-allowed}
   }
 
+  /* ===================== [C05] TOKENS-VIZ ===================== */
+  /* One token is three layers, and the reason is D-10: emoji come from
+     whatever the OS supplies and their metrics differ per platform, so the
+     glyph is taken out of flow entirely rather than measured. Inside a
+     fixed-size box, no emoji on any OS can change the box, the row width, or
+     the point at which the row compacts.
+       .tok    the box. Carries the size, and nothing else.
+       .tok-s  the shape. Clipping and rotation live HERE, so a triangle's clip
+               does not clip the glyph and a diamond's rotation is cancellable.
+       .tok-g  the glyph. Built only when the vocabulary entry has one, so the
+               shipped board stays one painted layer per token.
+
+     SHAPES COME FROM CSS, AND THAT IS NOT A PREFERENCE. Inline SVG is
+     unreachable here: the SVG namespace is an absolute URL and the dev gate
+     fails the build on any of those, hoisting it to a constant fails the same
+     rule, and both clip-path and mask-image's functional-reference form fail
+     the gate's own separate rule. Concatenating the namespace to slip past the
+     scan is the deliberate bypass that harness documents itself as not
+     catching, so do not. Polygons, rotation and border-radius cover all six
+     shapes and cost fewer nodes anyway. */
+  .tok{position:relative;width:var(--tok);height:var(--tok);flex:0 0 auto}
+  .tok-s{position:absolute;inset:0;background:var(--tok-fill);border-radius:3px}
+  .tok-g{
+    position:absolute;inset:0;display:grid;place-items:center;
+    font-size:calc(var(--tok) * .68);line-height:1;pointer-events:none;
+    font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
+  }
+
+  /* One rule per SHAPES id. `sq` needs none — the box already is the shape. */
+  .tok--rect{width:calc(var(--tok) * 1.7)}
+  .tok--tri .tok-s{clip-path:polygon(50% 0, 100% 100%, 0 100%);border-radius:0}
+  .tok--dia .tok-s{transform:rotate(45deg);border-radius:2px}
+  .tok--dia .tok-g{transform:rotate(-45deg)}
+  .tok--circ .tok-s{border-radius:50%}
+  .tok--hex .tok-s{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border-radius:0}
+
+  /* One rule per COLORS id. The fill stays at the pure token value so the
+     measured 7:1-to-11:1 ratios against --panel hold; color-mix() is for
+     borders and dimmed states only, never for a fill that carries meaning. */
+  .tok--green{--tok-fill:var(--green)}
+  .tok--gold{--tok-fill:var(--gold)}
+  .tok--accent{--tok-fill:var(--accent)}
+  .tok--coral{--tok-fill:var(--coral)}
+  .tok--violet{--tok-fill:var(--violet)}
+  .tok--accent-2{--tok-fill:var(--accent-2)}
+  .tok--ink-dim{--tok-fill:var(--ink-dim)}
+
+  /* Any clipping of a long row belongs here, on the row itself — never on an
+     ancestor, which would silently stop #topbar and #strip sticking. */
+  .tok-row{display:flex;flex-wrap:wrap;gap:var(--tok-gap);align-items:center;user-select:none;min-height:var(--tok)}
+  /* D-21: the compacted form is a count, a multiplication sign, then exactly
+     one token at normal size. Same 24px treatment as every other value on the
+     board, because that is what it is. */
+  .tok-count{font-size:24px;font-weight:700;color:var(--ink)}
+
+  /* D-22: nothing is attached to the compaction swap. A value oscillating at
+     11 and 12 would strobe, and hiding a mode with display:none would cancel
+     and restart the animations on every descendant. The renderer swaps modes
+     by emptying the row and setting a data-mode flag instead, which means a
+     threshold crossing repopulates from empty and therefore animates nothing.
+     This entry pop is only ever applied to a token appended to a row that
+     already had tokens in the same mode. */
+  @keyframes tok-pop{from{transform:scale(.55);opacity:0}to{transform:scale(1);opacity:1}}
+  .tok--in{animation:tok-pop 140ms ease-out}
+  @media (prefers-reduced-motion: reduce){
+    .tok--in{animation:none}
+  }
+
   /* ===================== [C06] STEPPER ===================== */
   /* Styles only. The press-and-hold behaviour behind these is plan 02-02's.
      44 x 44 is WCAG 2.5.5 Target Size (Enhanced, AAA): at that size the
@@ -420,11 +488,30 @@ App.data = (function () {
     return units;
   }
 
+  // The token vocabulary's allowlists. Shapes and colours are enumerated
+  // rather than free strings for three reasons that all point the same way:
+  // they become CSS class suffixes, Phase 4 encodes them as one character
+  // each, and an unvetted string reaching className is the tampering surface
+  // this file has already had to close twice elsewhere. Exported for the same
+  // reason [S03] exports UNDO_LIMIT — so [S05] and [S09] assert against the
+  // constant instead of against a bare literal that can drift away from it.
+  // Frozen because they are exported: an allowlist a caller can push onto is
+  // not an allowlist.
+  var SHAPES = deepFreeze(['sq', 'rect', 'tri', 'dia', 'circ', 'hex']);
+  var COLORS = deepFreeze(['green', 'gold', 'accent', 'coral', 'violet', 'accent-2', 'ink-dim']);
+  var TOKEN_IDS = deepFreeze(['hp', 'ap', 'shield', 'dmg', 'dead']);
+
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
   // Effect keyword ids live here; their card copy and the action-versus-action
   // reference table are data.reference, owned by Phase 3 plan 03-02.
+  //
+  // `tokens` is the drawing vocabulary for those rows (D-08). It sits in the
+  // board rather than beside it because D-13 puts it in `build`: a restyled
+  // token is an edit to the student's build, so it has to round-trip through
+  // Phase 4's build code (SHARE-08) and it has to be undoable. Being the last
+  // key of this literal also means it inherits the deep freeze for free.
   var DEFAULTS = deepFreeze({
     schema: 1,
     cats: {
@@ -448,6 +535,23 @@ App.data = (function () {
         { id: 'lasers', name: 'Lasers', dmg: 3, keywords: ['range'] },
         { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'] }
       ]
+    },
+    // The first four are the workshop board read literally, unchanged in
+    // appearance (ALLOC-04): green squares for health, yellow triangles for
+    // actions, blue squares for shield, red diamonds for damage.
+    //
+    // `dead` ships as vocabulary with NO renderer consumer, on the same
+    // "lock the shape before the mechanic arrives" precedent [S05] already set
+    // for `shield` and `log`. It is the concrete proof that this renderer can
+    // already draw Phase 5's dead marker — a rectangle carrying a skull —
+    // without any of Phase 5's mechanic being built. Nothing here rules on
+    // what a dead unit does; the table still rules that.
+    tokens: {
+      hp:     { shape: 'sq',   color: 'green',   glyph: '' },
+      ap:     { shape: 'tri',  color: 'gold',    glyph: '' },
+      shield: { shape: 'sq',   color: 'accent',  glyph: '' },
+      dmg:    { shape: 'dia',  color: 'coral',   glyph: '' },
+      dead:   { shape: 'rect', color: 'ink-dim', glyph: '\u{1F480}' }  // SKULL
     }
   });
 
@@ -461,7 +565,10 @@ App.data = (function () {
   return Object.freeze({
     DEFAULTS: DEFAULTS,
     defaults: defaults,
-    deepFreeze: deepFreeze
+    deepFreeze: deepFreeze,
+    SHAPES: SHAPES,
+    COLORS: COLORS,
+    TOKEN_IDS: TOKEN_IDS
   });
 })();
 // #endregion [S01] DATA
@@ -1490,6 +1597,41 @@ App.selftest = (function () {
     });
     t.eq('DEFAULTS survived the frozen write', App.data.DEFAULTS.cats.units[0].maxHp, 3);
 
+    /* --- the token vocabulary (D-08, D-09). Shape and colour ids become CSS
+           class suffixes, so the allowlists are asserted against the exported
+           constants rather than against a second copy of the same literals. --- */
+    t.ok('every token id has a vocabulary entry', App.data.TOKEN_IDS.every(function (id) {
+      return d.tokens[id] !== undefined;
+    }));
+    t.ok('every shape is in the allowlist', App.data.TOKEN_IDS.every(function (id) {
+      return App.data.SHAPES.indexOf(d.tokens[id].shape) !== -1;
+    }));
+    t.ok('every colour is in the allowlist', App.data.TOKEN_IDS.every(function (id) {
+      return App.data.COLORS.indexOf(d.tokens[id].color) !== -1;
+    }));
+
+    // The board read literally: green squares, yellow triangles, blue squares,
+    // red diamonds. If this row goes red, the artifact has stopped mirroring
+    // the whiteboard the students just looked at.
+    t.eq('the four board token types read back literally',
+      ['hp', 'ap', 'shield', 'dmg'].map(function (id) {
+        return [id, d.tokens[id].shape, d.tokens[id].color];
+      }), [
+        ['hp', 'sq', 'green'],
+        ['ap', 'tri', 'gold'],
+        ['shield', 'sq', 'accent'],
+        ['dmg', 'dia', 'coral']
+      ]);
+
+    // The walk above permits strings, so this passes today. It is asserted so
+    // that a future numeric field on a vocabulary entry cannot slip a float in.
+    t.ok('the vocabulary survives the integer walk', allIntegers(d.tokens));
+
+    t.throws('DEFAULTS.tokens is deep-frozen too', function () {
+      App.data.DEFAULTS.tokens.hp.shape = 'hex';
+    });
+    t.eq('the frozen vocabulary write changed nothing', App.data.DEFAULTS.tokens.hp.shape, 'sq');
+
     var a = App.data.defaults();
     var b = App.data.defaults();
     t.ok('defaults() is a fresh deep copy', a !== b && a.cats.units !== b.cats.units);
@@ -1588,7 +1730,9 @@ App.selftest = (function () {
     // A shape assertion, not an equality one. From Phase 4 a shared link can
     // load a build before this suite runs, and a legitimately loaded build
     // must not paint the report red.
-    t.eq('the board has its three build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs']);
+    // The label deliberately does not name a number: `tokens` arrived in
+    // Phase 2 and Phase 4's codec work may well add another key.
+    t.eq('the board has its build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
 
     /* --- shape --- */
     t.eq('three slices', Object.keys(App.state.get()), ['build', 'fight', 'ui']);
