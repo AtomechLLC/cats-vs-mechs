@@ -65,8 +65,8 @@ completed: 2026-08-27
 - **Duration:** ~9 min
 - **Started:** 2026-08-27T03:45:31Z
 - **Completed:** 2026-08-27T03:54:54Z
-- **Tasks:** 3 of 4 (task 4 is the blocking human-verify checkpoint)
-- **Files modified:** 1
+- **Tasks:** 4 of 4 (task 4 was the blocking human-verify checkpoint — approved)
+- **Files modified:** 1 source file (`cats-vs-mechs.html`), plus 2 planning files at acceptance
 
 ## Accomplishments
 
@@ -85,10 +85,42 @@ completed: 2026-08-27
 | 1b | Push the undo entry only after the mutator succeeds | `46c78bf` | fix |
 | 2 | `[S05]` OPS transformer layer + `[S09.3]` state-contract suite | `6c4286c` | feat |
 | 3 | `[S08]` BOOT — error boundary, panel wiring, Ctrl+Z, throw probes | `ac6173d` | feat |
+| 4 | Phase 1 acceptance record + `UX-01` / `UX-03` closed in REQUIREMENTS.md | `7e49eba` | docs |
+
+## Task 4 — Phase 1 Acceptance: APPROVED
+
+The developer opened the artifact in a real desktop browser from the file manager and typed
+**"approved"**. All four ROADMAP Phase 1 success criteria are verified on the real surface, not just
+in the headless harness. The full evidence table lives in the `<acceptance_record>` block appended to
+`01-02-PLAN.md`; the outcome:
+
+| ROADMAP criterion | Verified as | Result |
+|---|---|---|
+| 1 — offline double-click, styled page, zero console errors, zero network requests, no report | Networking disconnected, no hash, DevTools Console and Network inspected | VERIFIED |
+| 2 — `#selftest` shows a readable pass/fail report of the Workshop 16 defaults | `57 passed, 0 failed`, with the board's action, keyword, damage and roster rows named | VERIFIED |
+| 3 — the same report confirms the state contract | All nine named `state contract` rows present and passing | VERIFIED |
+| 4 — a throw in init and a throw in a handler each surface a styled panel | `#throwinit` → `Initialisation` panel; `#throwhandler` + board click → `board click` panel, page alive, Dismiss recovers | VERIFIED |
+
+Two further checks passed at acceptance:
+
+- **The hash gate is exact-match, not a substring test.** `#notselftest` and `#selftestx` are inert —
+  threat `T-01-01` confirmed mitigated on the real surface.
+- **D-01 is settled.** The shipped defaults — 9 Cats at 3 HP; 3 Mechs at 6 HP with 3 shield; 3 faction
+  action points a side — were **approved as shipped**. `DEFAULTS` is unchanged. Phase 5 plan 05-03's
+  playtest gate may still retune them; that remains a one-place edit.
+- **All three recorded deviations were reviewed and accepted as-is** — the `commit()` mutator-before-
+  undo-push reordering, `fail()` wiring its own panel buttons, and the one-word `[S01]` comment
+  rewording.
+
+Task 4 modified no source file: `cats-vs-mechs.html` is unchanged since `ac6173d`. `UX-01` and `UX-03`
+are now marked complete in `.planning/REQUIREMENTS.md` (`ALLOC-08` and `UX-04` were already closed by
+plan 01-01). `STATE.md` and `ROADMAP.md` are the orchestrator's to write and were not touched.
 
 ## Files Created/Modified
 
-- `cats-vs-mechs.html` — 685 → 1,299 lines. Three stub regions replaced in place (`[S03] STATE`, `[S05] OPS`, `[S08] BOOT`), the `[S09.3]` placeholder filled, the `[S05]` and `[S08]` banners updated to name `App.state` now that the symbol exists, and one comment reworded in `[S01]`.
+- `cats-vs-mechs.html` — 685 → 1,299 lines. Three stub regions replaced in place (`[S03] STATE`, `[S05] OPS`, `[S08] BOOT`), the `[S09.3]` placeholder filled, the `[S05]` and `[S08]` banners updated to name `App.state` now that the symbol exists, and one comment reworded in `[S01]`. Unchanged by task 4.
+- `.planning/phases/01-foundation-data-state-funnel-undo/01-02-PLAN.md` — task 4 appended an `<acceptance_record>` block holding the per-criterion evidence table, the two extra acceptance steps and the deviation review.
+- `.planning/REQUIREMENTS.md` — `UX-01` and `UX-03` marked complete, in both the checklist and the traceability table.
 
 ## Verification Evidence
 
@@ -99,6 +131,10 @@ scan: no forbidden patterns
 57 passed, 0 failed
 EXIT=0
 ```
+
+Re-run unchanged at task 4 acceptance, after the planning-file edits: still `57 passed, 0 failed`,
+exit 0, no forbidden-pattern hits. The prose greps were re-run at the same time and all still return
+`0` — see the acceptance-grep table below.
 
 Acceptance greps:
 
@@ -201,19 +237,19 @@ None. The install step is still double-clicking the file.
 
 ## Next Phase Readiness
 
-**Blocked on the task 4 acceptance checkpoint** (ROADMAP Phase 1's four success criteria, verified in a real browser). Everything else is ready:
+**Unblocked — the task 4 acceptance checkpoint passed.** All four ROADMAP Phase 1 success criteria are verified in a real browser and the developer approved. Phase 2 can start:
 
 - Phase 2 plan 02-01 fills `App.render.structure(state)` / `sync(state)`; both are already called from the frame callback, with `structural` already routed from `invalidate({ structural: true })` at boot and on undo.
 - Phase 2 plan 02-02 fills `App.interactions.bind()`; it should call `App.boot.wrap()` for every listener and `App.ops.dispatch(act, payload)` for every action. A visible undo button calls `App.ops.undo()` — the same line Ctrl+Z calls.
 - Phase 4 plan 04-01 fills `App.serialize.scheduleUrlSync()`; the call site already exists in both `commit()` and `undo()`.
 - Phase 5 plan 05-01 owns turn and round advance, action-point spending, damage application and the fight record. The `fight` slice shape is already decided and instantiated by `startFight()`; the operations are not.
 
-**Open item, unchanged:** D-01's board numbers still await the developer's confirmation. `DEFAULTS` remains a one-place edit.
+**Closed item:** D-01's board numbers are confirmed. The developer approved 9 Cats at 3 HP and 3 Mechs at 6 HP with 3 shield, 3 faction action points a side, as shipped. `DEFAULTS` remains a one-place edit if Phase 5 plan 05-03's playtest gate wants a retune.
 
 ---
 *Phase: 01-foundation-data-state-funnel-undo*
 *Completed: 2026-08-27*
-*Note: written and committed before the task 4 human-verify checkpoint so it survives worktree teardown. If the checkpoint surfaces a defect, the continuation agent amends this file.*
+*Note: the body above tasks 1–3 was written and committed before the task 4 human-verify checkpoint so it would survive worktree teardown. The continuation agent then amended it with the acceptance outcome — no source change was needed.*
 
 ## Self-Check: PASSED
 
@@ -221,3 +257,13 @@ None. The install step is still double-clicking the file.
 task commits (`36c1a08`, `46c78bf`, `6c4286c`, `ac6173d`) plus the summary commit are present on
 `worktree-agent-ace459961db8f183b`. `node tests/selftest-node.cjs` exits 0 with 57 passed, 0 failed and
 no forbidden-pattern hits. No tracked file was deleted by any commit; no untracked files remain.
+
+### Task 4 re-check (continuation agent, `worktree-agent-a78889a631c1f7f4a`)
+
+Re-verified after the acceptance edits: `node tests/selftest-node.cjs` still exits 0 with
+`57 passed, 0 failed` and `scan: no forbidden patterns`. `grep -ci "verdict|balanced|rating|difficulty"`
+and `grep -ci "counter|rating|balanced|difficulty"` both return `0` against `cats-vs-mechs.html`, as
+does `grep -c "innerHTML|https?://|<link|type=\"module\"|queueMicrotask|structuredClone"` and
+`grep -c "eval(|new Function"`. `git diff --name-only -- cats-vs-mechs.html` is empty against
+`ac6173d`, confirming task 4 changed no source. The task 4 commit `7e49eba` deleted no tracked file
+and left no untracked files. `STATE.md` and `ROADMAP.md` were not modified.
