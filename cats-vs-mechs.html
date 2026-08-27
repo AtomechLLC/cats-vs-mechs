@@ -193,7 +193,78 @@ App.hasFlag = function (name) {
  * owner: plan 01-01
  * ====================================================== */
 // #region [S01] DATA
-// PENDING — filled by task 2 of plan 01-01
+App.data = (function () {
+  'use strict';
+
+  // Object.freeze is shallow; the board is three levels deep.
+  function deepFreeze(o) {
+    if (o === null || typeof o !== 'object') { return o; }
+    Object.getOwnPropertyNames(o).forEach(function (k) {
+      var v = o[k];
+      if (v !== null && typeof v === 'object' && !Object.isFrozen(v)) { deepFreeze(v); }
+    });
+    return Object.freeze(o);
+  }
+
+  // Units are built by a loop, so a roster change is one number rather than
+  // twelve near-identical literals drifting apart.
+  function makeUnits(idPrefix, namePrefix, howMany, stats) {
+    var units = [];
+    for (var i = 1; i <= howMany; i++) {
+      units.push({
+        id: idPrefix + i,
+        name: namePrefix + ' ' + i,
+        maxHp: stats.maxHp,
+        shield: stats.shield
+      });
+    }
+    return units;
+  }
+
+  // D-01: a literal reading of the board's token rows. A starting point, not a
+  // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
+  // retunes these, and this object is the single place that edit happens.
+  // Effect keyword ids live here; their card copy and the action-versus-action
+  // reference table are data.reference, owned by Phase 3 plan 03-02.
+  var DEFAULTS = deepFreeze({
+    schema: 1,
+    cats: {
+      id: 'cats',
+      name: 'Cats',
+      ap: 3,
+      units: makeUnits('c', 'Cat', 9, { maxHp: 3, shield: 0 }),
+      actions: [
+        { id: 'slash', name: 'Slash', dmg: 1, keywords: [] },
+        { id: 'hairball', name: 'Hairball', dmg: 0, keywords: ['slowdown'] },
+        { id: 'screech', name: 'Screech', dmg: 0, keywords: ['confuse'] }
+      ]
+    },
+    mechs: {
+      id: 'mechs',
+      name: 'Mechs',
+      ap: 3,
+      units: makeUnits('m', 'Mech', 3, { maxHp: 6, shield: 3 }),
+      actions: [
+        { id: 'fly', name: 'Fly', dmg: 0, keywords: ['evade'] },
+        { id: 'lasers', name: 'Lasers', dmg: 3, keywords: ['range'] },
+        { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'] }
+      ]
+    }
+  });
+
+  // A fresh, unfrozen deep copy on every call. The JSON round-trip is both
+  // faster than structuredClone on this payload and a free guard: anything
+  // that is not JSON-clonable disappears loudly instead of surviving silently.
+  function defaults() {
+    return JSON.parse(JSON.stringify(DEFAULTS));
+  }
+
+  return Object.freeze({
+    DEFAULTS: DEFAULTS,
+    defaults: defaults,
+    deepFreeze: deepFreeze
+  });
+})();
 // #endregion [S01] DATA
 
 /* ===================== [S02] MODEL =====================
@@ -446,6 +517,68 @@ App.selftest = (function () {
 })();
 
 /* --- [S09.1] SUITE: board defaults — owner plan 01-01 --- */
+(function () {
+  'use strict';
+
+  function tuple(action) {
+    return [action.id, action.name, action.dmg, action.keywords];
+  }
+
+  // Walks anything JSON-shaped and rejects a non-integer number, a NaN, an
+  // undefined or a function.
+  function allIntegers(value) {
+    if (value === null) { return true; }
+    if (typeof value === 'number') { return Number.isInteger(value); }
+    if (typeof value === 'string' || typeof value === 'boolean') { return true; }
+    if (Array.isArray(value)) { return value.every(function (v) { return allIntegers(v); }); }
+    if (typeof value === 'object') {
+      return Object.keys(value).every(function (k) { return allIntegers(value[k]); });
+    }
+    return false;
+  }
+
+  App.selftest.suite('board defaults', function (t) {
+    var d = App.data.defaults();
+
+    t.eq('cats unit count', d.cats.units.length, 9);
+    t.ok('cats unit maxHp', d.cats.units.every(function (u) { return u.maxHp === 3; }));
+    t.ok('cats unit shield', d.cats.units.every(function (u) { return u.shield === 0; }));
+    t.eq('cats faction ap', d.cats.ap, 3);
+
+    t.eq('mechs unit count', d.mechs.units.length, 3);
+    t.ok('mechs unit maxHp', d.mechs.units.every(function (u) { return u.maxHp === 6; }));
+    t.ok('mechs unit shield', d.mechs.units.every(function (u) { return u.shield === 3; }));
+    t.eq('mechs faction ap', d.mechs.ap, 3);
+
+    t.eq('cats actions', d.cats.actions.map(tuple), [
+      ['slash', 'Slash', 1, []],
+      ['hairball', 'Hairball', 0, ['slowdown']],
+      ['screech', 'Screech', 0, ['confuse']]
+    ]);
+    t.eq('mechs actions', d.mechs.actions.map(tuple), [
+      ['fly', 'Fly', 0, ['evade']],
+      ['lasers', 'Lasers', 3, ['range']],
+      ['recharge', 'Recharge', 0, ['shield']]
+    ]);
+
+    var ids = d.cats.units.concat(d.mechs.units).map(function (u) { return u.id; });
+    t.eq('unit ids unique', new Set(ids).size, 12);
+
+    t.ok('defaults are integers', allIntegers(d));
+
+    t.throws('DEFAULTS is deep-frozen', function () {
+      App.data.DEFAULTS.cats.units[0].maxHp = 99;
+    });
+    t.eq('DEFAULTS survived the frozen write', App.data.DEFAULTS.cats.units[0].maxHp, 3);
+
+    var a = App.data.defaults();
+    var b = App.data.defaults();
+    t.ok('defaults() is a fresh deep copy', a !== b && a.cats.units !== b.cats.units);
+    a.cats.units[0].maxHp = 99;
+    t.eq('a mutated copy leaves the next copy alone', b.cats.units[0].maxHp, 3);
+    t.eq('a mutated copy leaves DEFAULTS alone', App.data.DEFAULTS.cats.units[0].maxHp, 3);
+  });
+})();
 
 /* --- [S09.2] SUITE: model derivations — owner plan 01-01 --- */
 
