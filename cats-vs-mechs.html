@@ -501,6 +501,67 @@ App.data = (function () {
   var COLORS = deepFreeze(['green', 'gold', 'accent', 'coral', 'violet', 'accent-2', 'ink-dim']);
   var TOKEN_IDS = deepFreeze(['hp', 'ap', 'shield', 'dmg', 'dead']);
 
+  // The curated glyph set (D-10, D-12). Free-text emoji entry was considered
+  // and refused, on three grounds:
+  //   1. Phase 4's budget. Measured encodeURIComponent lengths: a plain emoji
+  //      is 12 characters, one carrying a variation selector is 21, and a
+  //      zero-width-joiner sequence is 30. Five token types of free text is
+  //      60-150 characters against SHARE-04's 512-character build code — up to
+  //      29% of a whole share spent on decoration. An index into this array
+  //      costs ONE character.
+  //   2. The state contract. [S03]'s banner promises whole numbers and short
+  //      enums; int(), requireSide and UI_KEYS all assume it. An arbitrary
+  //      student string in `build` would be a new class of value in a contract
+  //      three phases already depend on.
+  //   3. D-10 becomes checkable. Every entry below is a SINGLE code point with
+  //      no variation selector, no joiner and no skin-tone modifier, so it
+  //      renders the same on Windows, macOS and Linux. [S09.6] asserts that
+  //      mechanically. A pasted just-released emoji would show as a tofu box
+  //      on the projector, which is the exact failure D-10 exists to prevent.
+  //
+  // INDEX STABILITY — read this before editing the array. Phase 4's codec
+  // encodes a glyph as its POSITION here. Entries may be APPENDED to the end.
+  // They may never be reordered, and never removed, without bumping the build
+  // code's schema version — otherwise a link shared last term silently loads a
+  // different picture into this term's board.
+  //
+  // '' is first and means "no glyph", which is what the shipped board uses:
+  // the shape and the colour carry the meaning and the emoji is decoration on
+  // top of them (D-10). Written as \u{...} escapes with a name beside each so
+  // an instructor hand-editing this file in a plain editor can read the set,
+  // and so no editor or clipboard can quietly mangle a literal.
+  var GLYPHS = deepFreeze([
+    '',              // none — the shipped board, and the honest default
+    '\u{1F49A}',     // green heart
+    '\u{1F49B}',     // yellow heart
+    '\u{1F499}',     // blue heart
+    '\u{1F49C}',     // purple heart
+    '\u{1F9E1}',     // orange heart
+    '\u{1F5A4}',     // black heart
+    '\u{26A1}',      // high voltage
+    '\u{1F525}',     // fire
+    '\u{1F4A5}',     // collision
+    '\u{1F4A3}',     // bomb
+    '\u{1F52A}',     // kitchen knife
+    '\u{1F3AF}',     // direct hit
+    '\u{1F512}',     // closed lock
+    '\u{1F9CA}',     // ice
+    '\u{1F4A7}',     // droplet
+    '\u{1F480}',     // skull
+    '\u{1F9B4}',     // bone
+    '\u{1F431}',     // cat face
+    '\u{1F43E}',     // paw prints
+    '\u{1F41F}',     // fish
+    '\u{1F9F6}',     // yarn
+    '\u{1F916}',     // robot face
+    '\u{1F527}',     // wrench
+    '\u{1F529}',     // nut and bolt
+    '\u{1F50B}',     // battery
+    '\u{2B50}',      // star
+    '\u{2728}',      // sparkles
+    '\u{1F3C6}'      // trophy
+  ]);
+
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
@@ -568,7 +629,8 @@ App.data = (function () {
     deepFreeze: deepFreeze,
     SHAPES: SHAPES,
     COLORS: COLORS,
-    TOKEN_IDS: TOKEN_IDS
+    TOKEN_IDS: TOKEN_IDS,
+    GLYPHS: GLYPHS
   });
 })();
 // #endregion [S01] DATA
@@ -1278,6 +1340,56 @@ App.ops = (function () {
     });
   }
 
+  // Token appearance (ALLOC-09, D-11). The same key-and-value allowlist shape
+  // as setUi above, and the comment there records why the allowlist exists at
+  // all, so it is not restated here. ONE deliberate divergence: this uses
+  // commit, not commitUi. D-13 puts the token vocabulary in the `build` slice
+  // because it round-trips through the Phase 4 share code, and that makes a
+  // restyle undoable — correct, because it is an edit to the student's build
+  // and not a view preference. Routing it through commitUi because it "feels
+  // like" a view preference is the tempting exception this section forbids.
+  //
+  // Every guard runs BEFORE the commit is entered, so a refusal leaves no
+  // phantom undo step over a board that never changed.
+  //
+  // The tokenId test is the load-bearing one: s.build.tokens[tokenId] has
+  // exactly the shape that CR-02 and WR-02 already had to close twice in this
+  // file. Without the allowlist, setTokenStyle('__proto__', ...) reparents the
+  // whole vocabulary instead of styling anything. String() inside the message
+  // is there so a symbol or an object cannot throw while the error is being
+  // built.
+  function setTokenStyle(tokenId, patch) {
+    if (App.data.TOKEN_IDS.indexOf(tokenId) === -1) {
+      throw new Error('Unknown token type "' + String(tokenId) + '"');
+    }
+    var p = patch || {};
+    if (p.shape !== undefined && App.data.SHAPES.indexOf(p.shape) === -1) {
+      throw new Error('Unknown token shape "' + String(p.shape) + '"');
+    }
+    if (p.color !== undefined && App.data.COLORS.indexOf(p.color) === -1) {
+      throw new Error('Unknown token colour "' + String(p.color) + '"');
+    }
+    // Membership, not length or pattern. An arbitrary string is refused by
+    // identity, which is what keeps `build` a set of short enums and keeps an
+    // unbounded student string out of the state tree entirely.
+    if (p.glyph !== undefined && App.data.GLYPHS.indexOf(p.glyph) === -1) {
+      throw new Error('That glyph is not one of the offered set');
+    }
+
+    // The label matches the file's '<what> <which>' convention, so rapid
+    // swatch-clicking coalesces into ONE undo entry the same way a stepper
+    // hold does.
+    App.state.commit('token ' + tokenId, function (s) {
+      var t = s.build.tokens[tokenId];
+      // Explicitly, field by field. A merge helper here would copy whatever
+      // keys the caller supplied, which is precisely how a prototype key slips
+      // past an allowlist that only inspected the values.
+      if (p.shape !== undefined) { t.shape = p.shape; }
+      if (p.color !== undefined) { t.color = p.color; }
+      if (p.glyph !== undefined) { t.glyph = p.glyph; }
+    });
+  }
+
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
   // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
   function undo() {
@@ -1302,6 +1414,7 @@ App.ops = (function () {
       case 'startFight': return startFight();
       case 'endFight': return endFight();
       case 'reset': return resetToDefaults();
+      case 'setTokenStyle': return setTokenStyle(p.tokenId, p.patch);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -1331,6 +1444,7 @@ App.ops = (function () {
     startFight: startFight,
     endFight: endFight,
     resetToDefaults: resetToDefaults,
+    setTokenStyle: setTokenStyle,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
@@ -3255,6 +3369,111 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the interaction suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.6] SUITE: token appearance — owner plan 02-03 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('token appearance', function (t) {
+    // Every row below is DOM-free on purpose: the write path is state work and
+    // proving it needs no page at all, so the terminal harness gets the whole
+    // suite rather than a skip row.
+
+    /* --- the curated set, D-10 made mechanical rather than promised in a
+           comment. Array.from spreads by code point, so a variation selector,
+           a joiner sequence or a skin-tone modifier reads as 2 or more and
+           turns this row red. --- */
+    var singles = App.data.GLYPHS.every(function (g) {
+      return Array.from(g).length <= 1;
+    });
+    t.ok('every offered glyph is a single code point', singles);
+    t.eq('the "no glyph" option is first, so an index of zero means bare',
+      App.data.GLYPHS[0], '');
+    t.eq('the glyph set has no repeated entry',
+      new Set(App.data.GLYPHS).size, App.data.GLYPHS.length);
+    t.ok('the set is large enough to be worth a picker and small enough to '
+      + 'index in one character', App.data.GLYPHS.length >= 25
+      && App.data.GLYPHS.length <= 33);
+
+    // Exercising the write path writes to the live board, so the whole state
+    // is recorded here and handed back as this suite's last act, exactly as
+    // [S09.3] does.
+    var savedAll = JSON.stringify(App.state.get());
+
+    function tokensNow() {
+      return App.state.get().build.tokens;
+    }
+
+    /* --- every shipped vocabulary entry is already inside the allowlists the
+           picker will offer, or the UI could show the student a value their
+           own board is using and the op would refuse. --- */
+    var shippedLegal = App.data.TOKEN_IDS.every(function (id) {
+      var s = App.data.DEFAULTS.tokens[id];
+      return App.data.SHAPES.indexOf(s.shape) !== -1
+        && App.data.COLORS.indexOf(s.color) !== -1
+        && App.data.GLYPHS.indexOf(s.glyph) !== -1;
+    });
+    t.ok('every shipped token style is drawn from the offered allowlists', shippedLegal);
+
+    /* --- D-13, proven rather than asserted in prose: a restyle is a build
+           edit, so it lands on the undo stack and Ctrl+Z takes it back. --- */
+    App.ops.setFactionAp('cats', 3);   // a different label, so nothing coalesces
+    var depth0 = App.state.undoDepth();
+    App.ops.setTokenStyle('hp', { shape: 'tri' });
+    t.eq('a restyle reaches the live vocabulary', tokensNow().hp.shape, 'tri');
+    t.eq('and it is exactly one undo entry', App.state.undoDepth() - depth0, 1);
+    App.state.undo();
+    t.eq('so undo brings the square back', tokensNow().hp.shape, 'sq');
+
+    App.ops.setTokenStyle('ap', { color: 'violet', glyph: App.data.GLYPHS[1] });
+    t.eq('a colour and a glyph land together in one call',
+      tokensNow().ap.color + '/' + tokensNow().ap.glyph,
+      'violet/' + App.data.GLYPHS[1]);
+
+    /* --- refusal by name, one row per off-list value. The UI generates its
+           swatches from the same allowlists, so none of these is reachable by
+           clicking; they are reachable from a pasted build code in Phase 4 and
+           from a typo in a later plan, which is why the op checks and does not
+           trust its caller. --- */
+    var depth1 = App.state.undoDepth();
+    t.throws('an unknown token type is refused', function () {
+      App.ops.setTokenStyle('sparkle', { shape: 'sq' });
+    });
+    t.throws('an unknown shape is refused', function () {
+      App.ops.setTokenStyle('hp', { shape: 'octagon' });
+    });
+    t.throws('an unknown colour is refused', function () {
+      App.ops.setTokenStyle('hp', { color: 'chartreuse' });
+    });
+    t.throws('an off-list glyph is refused, so no unbounded string enters build',
+      function () { App.ops.setTokenStyle('hp', { glyph: 'not an emoji at all' }); });
+    t.throws('and dispatch refuses the same off-list value through the funnel',
+      function () {
+        App.ops.dispatch('setTokenStyle', { tokenId: 'hp', patch: { shape: 'octagon' } });
+      });
+
+    /* --- T-02-13. The key is allowlisted BEFORE it indexes state, which is
+           what stops the vocabulary being reparented instead of styled. The
+           same shape [S09.3] asserts for a side. --- */
+    t.throws('a prototype key is refused as a token type', function () {
+      App.ops.setTokenStyle('__proto__', { shape: 'sq' });
+    });
+    t.throws('the constructor key is refused as a token type', function () {
+      App.ops.setTokenStyle('constructor', { color: 'green' });
+    });
+    t.ok('nothing leaked onto the shared object prototype',
+      ({}).shape === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'shape'));
+
+    t.eq('a refused call left the vocabulary alone', tokensNow().hp.shape, 'sq');
+    t.eq('and left no undo entry behind it', App.state.undoDepth(), depth1);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the token-appearance suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
