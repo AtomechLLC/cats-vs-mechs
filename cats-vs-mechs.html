@@ -701,7 +701,22 @@ App.ops = (function () {
   }
 
   // The only route into commitUi, so ui changes never reach the undo stack.
+  // Allowlisted on the key AND the value, for the same reason the ops above
+  // are. [S03] documents this state as integers only, JSON-clonable, no DOM
+  // nodes and no functions; a bare `s.ui[key] = value` admitted all of them.
+  // A stored function is the nastiest case: it survives inside the frozen
+  // `cur` until the next commit, then thaw() drops it silently, so the value
+  // is there and then simply is not, one commit later. `__proto__` as a key
+  // reparented the whole slice instead of setting anything on it.
+  var UI_KEYS = ['kbdNav'];
+
   function setUi(key, value) {
+    if (UI_KEYS.indexOf(key) === -1) {
+      throw new Error('Unknown ui key "' + String(key) + '"');
+    }
+    if (typeof value !== 'boolean' && typeof value !== 'string' && !Number.isInteger(value)) {
+      throw new TypeError('ui.' + key + ' must be a boolean, a whole number or a string');
+    }
     App.state.commitUi('ui ' + key, function (s) {
       s.ui[key] = value;
     });
@@ -1329,6 +1344,9 @@ App.selftest = (function () {
     App.ops.setUi('kbdNav', true);
     t.eq('ui changes are not undoable', App.state.undoDepth(), depthU);
     t.eq('the ui change still landed', App.state.get().ui.kbdNav, true);
+    t.throws('an unknown ui key is refused', function () { App.ops.setUi('anythingAtAll', true); });
+    t.throws('a non-primitive ui value is refused', function () { App.ops.setUi('kbdNav', { deep: true }); });
+    t.eq('the ui slice holds exactly its documented keys', Object.keys(App.state.get().ui), ['kbdNav']);
 
     /* --- reset is one entry, and is itself undoable (D-12) --- */
     App.state.commit('before the reset', function (s) { s.build.cats.ap = 11; });
