@@ -657,6 +657,44 @@ check(
   'activeElement is ' + (stub.activeElement === stub.body ? 'body' : String(stub.activeElement && stub.activeElement.dataset.k))
 );
 
+/* --- 14. the same structural contract as check 7, through resetToDefaults.
+       Check 7 only ever proved that addUnit remembered its trailing
+       invalidate(); resetToDefaults did not, and it is the op a student reaches
+       most easily — the error panel's own "Reset to Workshop 16 defaults"
+       button. This drives the op and reads the page back, so the whole class of
+       shape-changing ops is covered rather than the one that happened to be
+       right. --- */
+A.ops.addUnit('cats');
+A.ops.addUnit('cats');
+A.state.flush();
+A.ops.resetToDefaults();
+A.state.flush();
+const resetCards = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
+const resetRoster = A.state.get().build.cats.units.length;
+check(
+  '14. after resetToDefaults the rendered card count equals the roster length',
+  resetCards === resetRoster && resetRoster === 9,
+  'cards=' + resetCards + ' roster=' + resetRoster + ' (expected 9 and 9)'
+);
+
+/* --- 15. startFight/endFight flip buildColumn's `setup`, which decides whether
+       the roster-shaping chrome is built at all, so they owe a structural frame
+       for the same reason. No page control calls them yet; this is the
+       assertion that keeps that true when Phase 5 wires them up. --- */
+A.ops.startFight();
+A.state.flush();
+const addDuringFight = stub.querySelector('[data-act="addUnit"][data-side="cats"]');
+A.ops.endFight();
+A.state.flush();
+const addAfterFight = stub.querySelector('[data-act="addUnit"][data-side="cats"]');
+check(
+  '15. starting a fight rebuilds the column without the setup-only roster '
+    + 'chrome, and ending it puts the chrome back',
+  addDuringFight === null && addAfterFight !== null,
+  'add button during fight=' + (addDuringFight === null ? 'absent' : 'present')
+    + ', after fight=' + (addAfterFight === null ? 'absent' : 'present')
+);
+
 /* --- 8. P-05, asserted rather than trusted to a comment --- */
 check(
   '8. the hold ramp stays inside the undo coalescing window',

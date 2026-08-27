@@ -1297,6 +1297,28 @@ App.ops = (function () {
 
   /* ---- roster shape (ALLOC-06) ---- */
 
+  // [S06] renders in two tiers: structure() builds and destroys cards, sync()
+  // only rewrites the text and classes of cards the page already has. So any op
+  // whose mutator changes what structure() would build has to ask for a
+  // structural frame; commit() alone schedules a sync-only one, and sync() can
+  // neither create a card nor remove one.
+  //
+  // That rule used to live as a trailing App.state.invalidate({structural:true})
+  // that each op had to remember. Two ops remembered and three did not, and the
+  // page silently kept showing eleven cards for a nine-unit roster. A rule
+  // enforced by memory at five call sites is not a rule, so it is spelled once
+  // here instead: every op that can change units.length, or flip s.fight between
+  // null and non-null (which decides whether the add/remove chrome exists at
+  // all), commits through this rather than through App.state.commit directly.
+  //
+  // The invalidate sits OUTSIDE the commit, matching how undo(), restore() and
+  // boot.start() already spell it — and AFTER it, so a mutator that throws
+  // leaves no structural frame owed for a change that never landed.
+  function commitStructural(label, mutator) {
+    App.state.commit(label, mutator);
+    App.state.invalidate({ structural: true });
+  }
+
   // Id allocation is not an implementation detail. data-k, focus restore and the
   // fight slice all key on `id`, and findUnit returns the FIRST match, so a
   // duplicate is silent in every direction at once. prefix + (length + 1)
@@ -1316,12 +1338,11 @@ App.ops = (function () {
     return { id: prefix + (highest + 1), suffix: highest + 1 };
   }
 
-  // A shape change, so the frame must be structural. commit() alone schedules a
-  // sync-only frame and the new card would never be built. The call sits OUTSIDE
-  // the commit, matching how undo(), restore() and boot.start() already spell it.
+  // A shape change, so it goes through commitStructural and the new card gets
+  // built.
   function addUnit(side) {
     requireSide(side);
-    App.state.commit('add unit ' + side, function (s) {
+    commitStructural('add unit ' + side, function (s) {
       var units = s.build[side].units;
       if (units.length >= MAX_UNITS) { throw new Error('That side is full'); }
       var last = (units.length > 0) ? units[units.length - 1] : null;
@@ -1337,14 +1358,13 @@ App.ops = (function () {
         shield: last ? last.shield : seed.shield
       });
     });
-    App.state.invalidate({ structural: true });
   }
 
   // A real removal, not a dead-marker: D-07 — marking a unit dead is fight state
   // and a wholly separate concept, and it already has setAlive.
   function removeUnit(side, unitId) {
     requireSide(side);
-    App.state.commit('remove unit ' + side + '/' + unitId, function (s) {
+    commitStructural('remove unit ' + side + '/' + unitId, function (s) {
       var units = s.build[side].units;
       if (units.length <= MIN_UNITS) {
         throw new Error('That side needs at least one unit');
@@ -1356,7 +1376,6 @@ App.ops = (function () {
         if (units[i].id === unitId) { units.splice(i, 1); return; }
       }
     });
-    App.state.invalidate({ structural: true });
   }
 
   // Writes the fight slice only, and deliberately touches nothing else: zero
@@ -1393,8 +1412,14 @@ App.ops = (function () {
   // copy before anything is recorded, so the throw leaves no phantom undo
   // step: exactly the property commit() was built for. If a restart
   // affordance is wanted, Phase 2 adds an explicit one.
+  //
+  // Structural, even though the roster length does not move: buildColumn derives
+  // `setup = (state.fight === null)` and uses it to decide whether the per-unit
+  // remove buttons and the "+ Add Cat" button are built at all, so starting a
+  // fight changes what structure() would produce. A sync-only frame left the
+  // roster-shaping chrome D-05 exists to hide on screen for the whole fight.
   function startFight() {
-    App.state.commit('start fight', function (s) {
+    commitStructural('start fight', function (s) {
       if (s.fight !== null) {
         throw new Error('A fight is already in progress — end it before starting a new one');
       }
@@ -1409,17 +1434,27 @@ App.ops = (function () {
   }
 
   // build is left untouched, so "run it again" always restarts from the same
-  // allocation the student spent the exercise arriving at.
+  // allocation the student spent the exercise arriving at. Structural for the
+  // same reason startFight is: it puts the setup chrome back.
   function endFight() {
-    App.state.commit('end fight', function (s) {
+    commitStructural('end fight', function (s) {
       s.fight = null;
     });
   }
 
   // One commit, therefore one undo entry (D-12). The undo stack is never
   // cleared here: a mis-clicked reset has to be recoverable.
+  //
+  // Structural because it replaces s.build wholesale, which puts units.length
+  // back to the shipped 9/3. This is the op the memory-based spelling of the
+  // rule missed, and it is the one a student reaches most easily: type `abc`
+  // into a health field, get the error panel, press its "Reset to Workshop 16
+  // defaults" button. A sync-only frame left the extra cards on the page with
+  // no units behind them — still clickable, reading zero, and raising a second
+  // error panel on the next press. The one-click recovery D-15 promises has to
+  // land on a board that matches state.
   function resetToDefaults() {
-    App.state.commit('reset to defaults', function (s) {
+    commitStructural('reset to defaults', function (s) {
       s.build = App.data.defaults();
       s.fight = null;
     });
@@ -2143,7 +2178,7 @@ App.render = (function () {
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
-  // units follows its commit with invalidate({structural:true}) -- and hiding
+  // units goes through its commitStructural helper -- and hiding
   // that detection in here would invert the tier ownership and make the
   // trigger unfindable. [S09.4] asserts the shape match instead.
   return Object.freeze({
