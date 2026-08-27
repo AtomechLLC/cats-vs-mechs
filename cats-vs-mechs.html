@@ -960,6 +960,23 @@ App.ops = (function () {
   // named style, not as "Cannot read properties of undefined".
   var SIDES = ['cats', 'mechs'];
 
+  // Named bounds. `99` was a bare literal at three call sites and would have
+  // been at seven by the end of plan 02-02 — one number in seven places, quietly
+  // waiting to drift apart. [S03] exports UNDO_LIMIT for exactly this reason, so
+  // these are exported too and [S09] asserts against the constant.
+  //   MAX_ALLOC — the ceiling on every allocated quantity: health, shield and
+  //     the faction action-point pool. The floor is 0 everywhere.
+  //   MIN_UNITS — a side with no units at all is not a faction. The projection
+  //     would read zero health for a roster that simply is not there.
+  //   MAX_UNITS — the roster ceiling, and it must stay in step with
+  //     App.render.MAX_UNITS, which is the other half of the same guard: the
+  //     page disables the Add button at the cap, and this throws if anything
+  //     reaches the op regardless. A guard that lives only in the page is not a
+  //     guard. [S09.3] asserts the two agree rather than trusting this note.
+  var MAX_ALLOC = 99;
+  var MIN_UNITS = 1;
+  var MAX_UNITS = 24;
+
   function requireSide(value) {
     if (SIDES.indexOf(value) === -1) {
       throw new Error('Unknown side "' + String(value) + '"');
@@ -972,6 +989,18 @@ App.ops = (function () {
       if (collection[i].id === unitId) { return collection[i]; }
     }
     throw new Error('No unit "' + unitId + '" on side "' + side + '"');
+  }
+
+  // The delta half of the value boundary, held to the same rule as int(): test
+  // the type BEFORE any arithmetic. A stepper hands its step across as a string
+  // that [S07] converts at one call site, so a missing or misspelt data-step
+  // arrives here as NaN, and `current + NaN` would clamp to the floor and wipe a
+  // student's health rather than failing where the mistake actually is.
+  function requireDelta(delta, what) {
+    if (!Number.isInteger(delta)) {
+      throw new TypeError('Expected a whole number to step ' + what + ' by, got ' + JSON.stringify(delta));
+    }
+    return delta;
   }
 
   // Mode is derived, never stored: a null fight slice IS setup.
@@ -1009,23 +1038,171 @@ App.ops = (function () {
   function setFactionAp(side, ap) {
     requireSide(side);
     App.state.commit('ap ' + side, function (s) {
-      s.build[side].ap = int(ap, 0, 99, 'action points');
+      s.build[side].ap = int(ap, 0, MAX_ALLOC, 'action points');
     });
   }
 
   function setUnitMaxHp(side, unitId, maxHp) {
     requireSide(side);
     App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, 99, 'max health');
+      findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, MAX_ALLOC, 'max health');
     });
+  }
+
+  // The BUILD-slice shield writer — the allocation, the number a student spends
+  // while setting a faction up. It is a deliberate sibling of setUnitMaxHp for
+  // the same reason those two belong together: App.model.unitEhp is literally
+  // maxHp + shield, so an allocation surface that can edit only half of a unit's
+  // durability cannot express the asymmetry this artifact exists to teach.
+  //
+  // The fight slice carries its OWN `shield` copy and that one still has no
+  // writer at all. Phase 5, plan 05-01 owns it, and its op will need a distinct
+  // name — setFightShield — because spending a shield during a fight and
+  // allocating one during setup are different acts on different numbers. This is
+  // precisely the build/fight pairing setUnitMaxHp and setUnitHp already model.
+  function setUnitShield(side, unitId, shield) {
+    requireSide(side);
+    App.state.commit('shield ' + side + '/' + unitId, function (s) {
+      findUnit(side, unitId, s.build[side].units).shield = int(shield, 0, MAX_ALLOC, 'shield');
+    });
+  }
+
+  /* ---- the delta siblings: one step of a stepper, one press of an arrow ----
+   * Three properties are load-bearing in all three, and none of them is visible
+   * from the outside:
+   *   1. requireSide and requireDelta run OUTSIDE the commit, so a bad call
+   *      throws before the funnel is entered and leaves no phantom undo step.
+   *   2. The read and the write happen inside the SAME mutator, so they are
+   *      atomic. A 40ms press-and-hold ramp must never be able to act on a value
+   *      it read one step ago.
+   *   3. The label string is IDENTICAL to the absolute-set sibling's. That is
+   *      what D-10's 500ms window keys on, and it is the whole reason a
+   *      press-and-hold collapses into one Ctrl+Z instead of forty (UX-01).
+   * Each returns TRUE when the value moved and FALSE when it did not. That
+   * boolean is the sixth stop condition for [S07]'s hold ramp: at 40ms a step, a
+   * hold saturates against the clamp in about four seconds and would then issue
+   * roughly 25 no-op commits a second, each one a full deep clone of state.
+   * Returning a boolean rather than throwing is deliberate — App.boot.wrap turns
+   * a throw into a visible error panel, and flashing that panel on every
+   * over-press during a live demo is worse than the no-op it warns about.
+   */
+
+  function nudgeFactionAp(side, delta) {
+    requireSide(side);
+    requireDelta(delta, 'action points');
+    var moved = false;
+    App.state.commit('ap ' + side, function (s) {
+      var faction = s.build[side];
+      var next = int(faction.ap + delta, 0, MAX_ALLOC, 'action points');
+      moved = (next !== faction.ap);
+      faction.ap = next;
+    });
+    return moved;
+  }
+
+  function nudgeUnitMaxHp(side, unitId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'max health');
+    var moved = false;
+    App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
+      var unit = findUnit(side, unitId, s.build[side].units);
+      var next = int(unit.maxHp + delta, 0, MAX_ALLOC, 'max health');
+      moved = (next !== unit.maxHp);
+      unit.maxHp = next;
+    });
+    return moved;
+  }
+
+  function nudgeUnitShield(side, unitId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'shield');
+    var moved = false;
+    App.state.commit('shield ' + side + '/' + unitId, function (s) {
+      var unit = findUnit(side, unitId, s.build[side].units);
+      var next = int(unit.shield + delta, 0, MAX_ALLOC, 'shield');
+      moved = (next !== unit.shield);
+      unit.shield = next;
+    });
+    return moved;
+  }
+
+  /* ---- roster shape (ALLOC-06) ---- */
+
+  // Id allocation is not an implementation detail. data-k, focus restore and the
+  // fight slice all key on `id`, and findUnit returns the FIRST match, so a
+  // duplicate is silent in every direction at once. prefix + (length + 1)
+  // collides after any removal: take c2 out of c1,c2,c3 and the next add
+  // produces a second c3, after which findUnit edits the wrong unit and
+  // withPreservedFocus refocuses the wrong node. So: scan every existing id,
+  // take the largest suffix in use and add one. The name reuses the same suffix,
+  // so id and name stay in step after removals too.
+  function nextUnitId(side, units) {
+    var prefix = side.charAt(0);
+    var pattern = new RegExp('^' + prefix + '(\\d+)$');
+    var highest = 0;
+    units.forEach(function (unit) {
+      var m = pattern.exec(String(unit.id));
+      if (m !== null && Number(m[1]) > highest) { highest = Number(m[1]); }
+    });
+    return { id: prefix + (highest + 1), suffix: highest + 1 };
+  }
+
+  // A shape change, so the frame must be structural. commit() alone schedules a
+  // sync-only frame and the new card would never be built. The call sits OUTSIDE
+  // the commit, matching how undo(), restore() and boot.start() already spell it.
+  function addUnit(side) {
+    requireSide(side);
+    App.state.commit('add unit ' + side, function (s) {
+      var units = s.build[side].units;
+      if (units.length >= MAX_UNITS) { throw new Error('That side is full'); }
+      var last = (units.length > 0) ? units[units.length - 1] : null;
+      // The fallback is the SHIPPED default for this side, never a hardcoded 3 —
+      // that would hand a fresh Mech the Cats' health and silently teach the
+      // wrong starting point.
+      var seed = App.data.DEFAULTS[side].units[0];
+      var named = nextUnitId(side, units);
+      units.push({
+        id: named.id,
+        name: (side === 'cats' ? 'Cat ' : 'Mech ') + named.suffix,
+        maxHp: last ? last.maxHp : seed.maxHp,
+        shield: last ? last.shield : seed.shield
+      });
+    });
+    App.state.invalidate({ structural: true });
+  }
+
+  // A real removal, not a dead-marker: D-07 — marking a unit dead is fight state
+  // and a wholly separate concept, and it already has setAlive.
+  function removeUnit(side, unitId) {
+    requireSide(side);
+    App.state.commit('remove unit ' + side + '/' + unitId, function (s) {
+      var units = s.build[side].units;
+      if (units.length <= MIN_UNITS) {
+        throw new Error('That side needs at least one unit');
+      }
+      // findUnit's own message style, rather than letting an index of -1 splice
+      // the tail off and call it a success.
+      findUnit(side, unitId, units);
+      for (var i = 0; i < units.length; i++) {
+        if (units[i].id === unitId) { units.splice(i, 1); return; }
+      }
+    });
+    App.state.invalidate({ structural: true });
   }
 
   // Writes the fight slice only, and deliberately touches nothing else: zero
   // health prompts a death ruling from the table, it never auto-kills (D-00d).
+  //
+  // The clamp is deliberately still MAX_ALLOC rather than this unit's own
+  // maxHp. That looks like an oversight and is not one: capping fight health at
+  // its allocation is a FIGHT-semantics ruling — whether a heal can overshoot,
+  // whether a shield reads as temporary health — and Phase 5, plan 05-01 owns
+  // fight health. Changing it here would silently alter behaviour in a phase
+  // that has no fight surface to test it on. Left consciously, not missed.
   function setUnitHp(side, unitId, hp) {
     requireSide(side);
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, 99, 'health');
+      findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, MAX_ALLOC, 'health');
     });
   }
 
@@ -1114,6 +1291,12 @@ App.ops = (function () {
     switch (act) {
       case 'ap': return setFactionAp(p.side, p.value);
       case 'maxHp': return setUnitMaxHp(p.side, p.unitId, p.value);
+      case 'shield': return setUnitShield(p.side, p.unitId, p.value);
+      case 'nudgeAp': return nudgeFactionAp(p.side, p.delta);
+      case 'nudgeMaxHp': return nudgeUnitMaxHp(p.side, p.unitId, p.delta);
+      case 'nudgeShield': return nudgeUnitShield(p.side, p.unitId, p.delta);
+      case 'addUnit': return addUnit(p.side);
+      case 'removeUnit': return removeUnit(p.side, p.unitId);
       case 'hp': return setUnitHp(p.side, p.unitId, p.value);
       case 'alive': return setAlive(p.side, p.unitId, p.value);
       case 'startFight': return startFight();
@@ -1125,13 +1308,24 @@ App.ops = (function () {
   }
 
   // DELIBERATELY ABSENT, do not "helpfully" add them here:
-  //   - roster add and remove, and the stepper nudge — Phase 2, plan 02-02
   //   - turn and round advance, action-point spending, damage application and
   //     the fight record — Phase 5, plan 05-01
   // Each arrives with the phase that has a surface to put it on.
+  //
+  // Also deliberately absent, and for a different reason: openTokenPicker. It
+  // is not a state transformation at all — opening a dialog is nothing but page
+  // work, and this section's banner says this layer never reads or writes the
+  // page. It has a named home in [S07], which owns UI_ACTS. Adding a case for it
+  // here would break that contract in both directions at once.
   return Object.freeze({
     setFactionAp: setFactionAp,
     setUnitMaxHp: setUnitMaxHp,
+    setUnitShield: setUnitShield,
+    nudgeFactionAp: nudgeFactionAp,
+    nudgeUnitMaxHp: nudgeUnitMaxHp,
+    nudgeUnitShield: nudgeUnitShield,
+    addUnit: addUnit,
+    removeUnit: removeUnit,
     setUnitHp: setUnitHp,
     setAlive: setAlive,
     startFight: startFight,
@@ -1139,7 +1333,10 @@ App.ops = (function () {
     resetToDefaults: resetToDefaults,
     setUi: setUi,
     undo: undo,
-    dispatch: dispatch
+    dispatch: dispatch,
+    MAX_ALLOC: MAX_ALLOC,
+    MIN_UNITS: MIN_UNITS,
+    MAX_UNITS: MAX_UNITS
   });
 })();
 // #endregion [S05] OPS
@@ -2321,6 +2518,120 @@ App.selftest = (function () {
     var elapsed = Date.now() - started;
     t.ok('100 commits all landed', App.state.get().build.cats.ap === 4);
     t.info('100 commits took ' + elapsed + ' ms', elapsed);
+
+    /* --- plan 02-02: the delta transformers, the roster ops and the
+           build-side shield writer. Everything here reads the roster back out
+           of state rather than assuming an index, because the rows above have
+           already moved the board around a good deal. --- */
+
+    function buildUnit(side, id) {
+      return App.state.get().build[side].units.filter(function (u) {
+        return u.id === id;
+      })[0];
+    }
+
+    function catIds() {
+      return App.state.get().build.cats.units.map(function (u) { return u.id; });
+    }
+
+    t.eq('the roster ceiling is one number, not two',
+      App.ops.MAX_UNITS, App.render.MAX_UNITS);
+
+    if (App.state.get().fight !== null) { App.ops.endFight(); }
+
+    App.ops.setUnitMaxHp('cats', 'c1', App.ops.MAX_ALLOC);
+    t.eq('a nudge at the ceiling reports that nothing moved',
+      App.ops.nudgeUnitMaxHp('cats', 'c1', 1), false);
+    t.eq('the refused nudge left the value on the ceiling',
+      buildUnit('cats', 'c1').maxHp, App.ops.MAX_ALLOC);
+
+    App.ops.setUnitMaxHp('cats', 'c1', 1);
+    t.eq('a nudge past zero clamps at zero rather than going negative',
+      App.ops.nudgeUnitMaxHp('cats', 'c1', -9), true);
+    t.eq('the clamped nudge landed on zero', buildUnit('cats', 'c1').maxHp, 0);
+    t.eq('the next nudge down reports that nothing moved',
+      App.ops.nudgeUnitMaxHp('cats', 'c1', -1), false);
+
+    /* --- the same label as the absolute setter, so a whole press-and-hold is
+           one Ctrl+Z. Two pieces of setup are load-bearing and both were found
+           the hard way: the stack is hard-capped at UNDO_LIMIT and the rows
+           above have already filled it, so a push that also shifts reads as a
+           depth delta of zero and the coalescing question never gets asked —
+           hence the rewind. And the differently-labelled commit immediately
+           before the burst is what closes the previous window, exactly as the
+           burst rows above do. --- */
+    var rewound = 0;
+    while (App.state.undo()) {
+      rewound++;
+      if (rewound > 500) { break; }
+    }
+
+    App.ops.setUnitMaxHp('cats', 'c1', 0);
+    App.ops.setFactionAp('cats', 6);
+    var depthN = App.state.undoDepth();
+    for (i = 0; i < 40; i++) { App.ops.nudgeUnitMaxHp('cats', 'c1', 1); }
+    t.eq('forty nudges coalesce to one undo entry', App.state.undoDepth() - depthN, 1);
+    t.eq('and every one of the forty landed', buildUnit('cats', 'c1').maxHp, 40);
+    App.state.undo();
+    t.eq('one undo takes the whole ramp back', buildUnit('cats', 'c1').maxHp, 0);
+
+    t.throws('a fractional step is refused', function () {
+      App.ops.nudgeFactionAp('cats', 1.5);
+    });
+    t.throws('a numeric string step is refused', function () {
+      App.ops.nudgeUnitMaxHp('cats', 'c1', '1');
+    });
+    t.throws('a NaN step is refused', function () {
+      App.ops.nudgeUnitShield('cats', 'c1', NaN);
+    });
+    t.eq('a refused step left the value alone', buildUnit('cats', 'c1').maxHp, 0);
+
+    /* --- shield is a BUILD write. Phase 5 owns the fight slice's own copy. --- */
+    App.ops.setUnitShield('mechs', 'm1', 7);
+    t.eq('setUnitShield writes the build slice', buildUnit('mechs', 'm1').shield, 7);
+    App.ops.startFight();
+    var fightShield = App.state.get().fight.mechs.units[0].shield;
+    App.ops.setUnitShield('mechs', 'm1', 2);
+    t.eq('the build shield moved', buildUnit('mechs', 'm1').shield, 2);
+    t.eq('and the fight slice was left for Phase 5',
+      App.state.get().fight.mechs.units[0].shield, fightShield);
+    App.ops.endFight();
+
+    /* --- roster shape, and the id-collision gate. c2 is removed from the
+           middle deliberately: prefix + (length + 1) would hand the next add a
+           second c3, and findUnit's first-match loop would then silently edit
+           the wrong unit forever after. --- */
+    var len0 = catIds().length;
+    App.ops.addUnit('cats');
+    t.eq('addUnit grows the roster by one', catIds().length, len0 + 1);
+    App.ops.removeUnit('cats', 'c2');
+    t.eq('removeUnit takes the named unit out', catIds().indexOf('c2'), -1);
+    App.ops.addUnit('cats');
+    var ids = catIds();
+    var unique = ids.filter(function (id, n) { return ids.indexOf(id) === n; });
+    t.eq('add, remove and add returns the roster to one longer', ids.length, len0 + 1);
+    t.eq('unit ids survive an add-remove-add cycle without colliding',
+      unique.length, ids.length);
+
+    /* --- both bounds throw, and both leave the roster untouched --- */
+    var toDrain = catIds();
+    for (i = 0; i < toDrain.length - 1; i++) { App.ops.removeUnit('cats', toDrain[i]); }
+    t.eq('a side can be drained to its floor', catIds().length, App.ops.MIN_UNITS);
+    t.throws('removeUnit refuses to empty a side', function () {
+      App.ops.removeUnit('cats', catIds()[0]);
+    });
+    t.eq('the refused removal left the roster alone', catIds().length, App.ops.MIN_UNITS);
+
+    while (catIds().length < App.ops.MAX_UNITS) { App.ops.addUnit('cats'); }
+    t.eq('a side can be filled to its ceiling', catIds().length, App.ops.MAX_UNITS);
+    t.throws('addUnit refuses to pass the ceiling', function () {
+      App.ops.addUnit('cats');
+    });
+    t.eq('the refused add left the roster alone', catIds().length, App.ops.MAX_UNITS);
+    var filled = catIds();
+    t.eq('a full roster still holds no duplicate id',
+      filled.filter(function (id, n) { return filled.indexOf(id) === n; }).length,
+      App.ops.MAX_UNITS);
 
     /* --- hand the board back exactly as the suite found it, then prove it.
            This is the last act on purpose: everything above is allowed to be
