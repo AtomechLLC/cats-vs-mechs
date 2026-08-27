@@ -281,6 +281,9 @@ App.data = (function () {
 App.model = (function () {
   'use strict';
 
+  // Effective health is the two pools added together. Both halves are carried
+  // into the fight slice by [S05], so this projection and the board can never
+  // drift apart for a merely mechanical reason.
   function unitEhp(unit) {
     return unit.maxHp + unit.shield;
   }
@@ -336,7 +339,11 @@ App.model = (function () {
  *   { build: { schema, cats, mechs },
  *     fight: null | { round, turn, cats, mechs, log },
  *     ui:    { kbdNav } }
- *   fight side shape: { ap, units: [ { id, hp, alive } ] }
+ *   fight side shape: { ap, units: [ { id, hp, shield, alive } ] }
+ *
+ * `shield` is carried into the fight slice, not left as a build-only eHP
+ * modifier, so the health the projection panel promises and the health the
+ * board shows are the same number. Its writer arrives with Phase 5.
  *
  * There is NO `mode` key anywhere. Mode is derived from `fight !== null`, so
  * the two can never disagree. `alive` is stored, never inferred from hp === 0.
@@ -646,11 +653,22 @@ App.ops = (function () {
 
   // The fight slice holds only what changes during a fight. Names, actions,
   // damage and keywords stay in build, so a unit has exactly one identity.
+  //
+  // shield is copied alongside hp because eHP is maxHp + shield. Leaving it
+  // out projected the mechs at 27 while the board only ever showed 18, and a
+  // student who ruled "the Recharge shield absorbs that hit" had nowhere to
+  // write the ruling down. That gap is a purely mechanical reason for the
+  // projection to disagree with the board, and this artifact exists to stage a
+  // pedagogical disagreement, not to bury it under a bookkeeping one.
+  //
+  // Like `log`, the field ships now and its writer arrives with the phase that
+  // has a surface to spend from — Phase 5, plan 05-01. Nothing here decides
+  // how a shield behaves; the table still rules that.
   function sideFromBuild(faction) {
     return {
       ap: faction.ap,
       units: faction.units.map(function (u) {
-        return { id: u.id, hp: u.maxHp, alive: true };
+        return { id: u.id, hp: u.maxHp, shield: u.shield, alive: true };
       })
     };
   }
@@ -1344,6 +1362,13 @@ App.selftest = (function () {
     t.throws('a second startFight is refused', function () { App.ops.startFight(); });
     t.eq('the refused restart left no undo entry', App.state.undoDepth(), depthF);
     t.eq('the refused restart left the round alone', App.state.get().fight.round, 1);
+
+    // The fight has to open on the same health the projection panel promised,
+    // or the board and the panel disagree for a reason nobody ruled on.
+    var mechPool = App.state.get().fight.mechs.units.reduce(function (n, u) {
+      return n + u.hp + u.shield;
+    }, 0);
+    t.eq('the fight opens at the projected eHP', mechPool, App.model.factionEhp(App.state.get().build.mechs));
 
     App.ops.setUnitHp('cats', 'c1', 0);
     t.ok('alive independent of hp', unitOf('cats', 'c1').hp === 0 && unitOf('cats', 'c1').alive === true);
