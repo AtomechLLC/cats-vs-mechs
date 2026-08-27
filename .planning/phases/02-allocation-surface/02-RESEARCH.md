@@ -1158,6 +1158,11 @@ block as 02-01 — run it after 02-01, or partition `[CNN]` markers explicitly.
 
 ## Open Questions
 
+> **Status: all resolved during planning.** Every question below carries a `RESOLVED` marker
+> naming the plan that decided it and the decision taken. The full reasoning lives in that
+> plan's `<open_questions_resolved>` block; the one-line summary here exists so a reader
+> consulting this document alone does not mistake a settled question for an open one.
+
 **Q-1 — Does `shield` get a stepper in Phase 2?**
 *What we know:* `unit.shield` is in `build`, is rendered as blue squares by ALLOC-04, and has **no
 writer** — WR-07 deliberately scoped `setUnitShield` to Phase 5. ALLOC-01 names health only.
@@ -1167,6 +1172,14 @@ and "3 shield per Mech" is a board number they might want to change.
 of `setUnitMaxHp` and belongs to 02-02 — but note that WR-07's fix report explicitly flagged this
 split for a human decision and it has not been made.
 
+**RESOLVED — plan 02-02 (Task 1).** Against the recommendation: `shield` **does** get a stepper,
+on the `build` slice only. `setUnitShield` / `nudgeUnitShield` write
+`state.build[side].units[].shield`; the `fight` slice's own `shield` copy still has no writer and
+Phase 5 (plan 05-01) still owns it under the future name `setFightShield`. Reasoning: `unitEhp`
+is literally `maxHp + shield`, so an allocation surface that edits only half of a unit's
+durability cannot express the asymmetry the artifact exists to teach, and a stat that is visible
+but uneditable is a workshop trap.
+
 **Q-2 — Where do the red damage diamonds live? (blocks 02-01's faction header)**
 *What we know:* ROADMAP criterion 2 requires them on screen in Phase 2; damage attaches to actions;
 the action/effect cards are Phase 3's REF-02; `App.model.bestDamage()` exists with no consumer.
@@ -1175,12 +1188,23 @@ vocabulary, or whether the criterion wants per-action rows (which is Phase 3's s
 *Recommendation:* per-faction, from `bestDamage`. Cheapest thing that satisfies the criterion and
 leaves Phase 3's work untouched.
 
+**RESOLVED — plan 02-01 (Task 3).** As recommended: a read-only per-faction damage row in the
+faction header, rendered from `App.model.bestDamage(state.build[side])`. No new state, no new op,
+no new derivation; `bestDamage` was already shipped with no consumer. Read-only in Phase 2 (no
+stepper), labelled with the plain word `damage` — never a score, a grade or a judgement, per
+PROJ-06 and the comment-prose grep gate. Phase 3's per-action cards stay entirely unbuilt.
+
 **Q-3 — Should `--maxw` rise for the board?**
 *What we know:* it is 1280px; the siblings are documents at 980px; a workshop projector is typically
 1920 wide; D-01 wants both columns fully visible.
 *What's unclear:* whether raising it breaks the "reads as a sibling artifact" test (UX-05).
 *Recommendation:* keep `--maxw` for the shell and the self-test report; give `#board` its own wider
 bound (`--boardw: 1600px`). Two variables, no conflict with UX-05.
+
+**RESOLVED — plan 02-01 (Task 1).** As recommended. `--maxw` stays at 1280px for `.shell`;
+`#board` gets `--boardw: 1600px` and escapes the shell measure with
+`width:min(var(--boardw), calc(100vw - 44px))` plus a matching negative-free margin — never a
+`transform`, which would break the sticky `#topbar` and `#strip`.
 
 **Q-4 — Is `--tok: 22px` countable at the back of a room?**
 *What we know:* all four colours clear WCAG 1.4.11 at 7–11:1; below the 12-token threshold a student
@@ -1190,6 +1214,13 @@ must be able to *count* the row, not merely see it.
 from the back of the room" on the phase's manual checklist — PITFALLS.md Pitfall 11 says no amount
 of research substitutes for it, and that is correct.
 
+**RESOLVED — plan 02-01 (Task 1) ships the dial; plan 02-03 (Task 3) turns it.** `--tok: 22px`
+and `--tok-gap: 6px` live in `[C00]` with a comment naming them as the projector-rehearsal dial,
+and no JavaScript may hardcode either number. Check 11 of 02-03's blocking human-verify
+checkpoint is the rehearsal: it records the display used, the viewing distance, whether a row of
+seven was countable, and the final `--tok` value. Raising `--tok` is the one change that
+checkpoint is permitted to make.
+
 **Q-5 — IN-01 from the Phase 1 review is now live.**
 *What we know:* `99` is a magic number in three places, and fight HP is clamped to `99` rather than
 to the unit's own `maxHp`. The fix report called it *"a real render-correctness issue for Phase 2,
@@ -1197,6 +1228,33 @@ not just tidiness"* and left it out of scope.
 *What's unclear:* whether Phase 2 fixes it (it touches `[S05]`, which 02-02 owns) or Phase 5 does.
 *Recommendation:* 02-02 hoists `99` to a named constant while it is already editing `[S05]`. Leave
 the `maxHp`-vs-`99` fight clamp to Phase 5, which owns fight HP.
+
+**RESOLVED — plan 02-02 (Task 1).** As recommended, in both halves. `[S05]` gains
+`MAX_ALLOC = 99`, `MIN_UNITS = 1` and `MAX_UNITS = 24` as exported module constants and every
+`int(..., 0, 99, ...)` call site uses `MAX_ALLOC` — a pure rename, no behaviour change. The
+`setUnitHp` fight clamp stays at `MAX_ALLOC` rather than the unit's own `maxHp`, deliberately and
+with a comment saying so: it is a fight-semantics decision, Phase 5 owns fight HP, and Phase 2
+has no fight surface to test a change on. 02-02's SUMMARY records the deferral so it does not
+evaporate.
+
+**Q-6 — Arrow-key repeat versus the OS key-repeat rate (raised in §3, not numbered there).**
+*What we know:* D-17 says held arrows use the same ramp as press-and-hold; the OS repeat rate is
+neither 400ms nor 40ms and differs per machine.
+**RESOLVED — plan 02-02 (Task 2).** Option (b) from §3: honour D-17 literally. On `keydown` with
+`e.repeat === false`, fire one step and start the same ramp engine the pointer uses; on `keyup`,
+stop it; ignore every `e.repeat === true` event. The ramp is keyed by source (`'pointer'` /
+`'key'`) so a stuck key and a stuck pointer cannot both be running.
+
+**Q-7 — Curated glyph set versus free-text emoji entry (left open by 02-CONTEXT.md's
+`<deferred>` list).**
+*What we know:* `encodeURIComponent` lengths measured in §4 — a plain emoji is 12 characters, a
+variation-selector emoji 21, a ZWJ sequence 30, against SHARE-04's 512-character budget.
+**RESOLVED — plan 02-03 (Task 1): curated.** `App.data.GLYPHS` is an ordered, index-stable set of
+`''` plus 24–32 single-code-point emoji, and Phase 4's codec will encode a glyph as its index in
+that array — one character each. Free text would also put an unbounded student string into a
+`build` contract that `int()`, `requireSide` and `UI_KEYS` all assume is integers and short
+enums, and would make D-10's cross-platform rendering guarantee unenforceable. If free text is
+ever wanted it belongs behind a Phase 4 decision about codec cost.
 
 ---
 

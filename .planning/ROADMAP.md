@@ -70,9 +70,15 @@ Plans:
 **UI hint**: yes
 
 Plans:
-- [ ] 02-01: `render.structure()` (rare, focus/scroll-preserving) + `render.sync()` keyed token reconcile + `<style>` block on the course design tokens — owns sections `render` / `style`
-- [ ] 02-02: Delegated `interactions` (steppers, press-and-hold, delta math input, arrow keys) + roster add/remove `ops` — owns sections `interactions` and the `ops` additions
-- [ ] 02-03: Token vocabulary as data + the appearance picker (ALLOC-09) — owns the token-vocabulary `data` additions and the picker UI
+- [ ] 02-01-PLAN.md — Static shell roots, the `<style>` board surface (`[C03]`–`[C06]`), the token vocabulary as data, and both tiers of `[S06] RENDER` — owns `[S06]`, the `<style>` block and the `[S01]` `tokens` map (wave 1)
+- [ ] 02-02-PLAN.md — `[S05]` nudge/shield/roster transformers + `[S07] INTERACTIONS` (pointerdown steppers, press-and-hold ramp, delta typing, arrow keys) + the stub-DOM ALLOC-07 gate in `tests/selftest-node.cjs` — owns `[S07]`, the `[S05]` additions and the harness (wave 2)
+- [ ] 02-03-PLAN.md — Curated glyph set, the allowlisted `setTokenStyle` write path and the appearance picker (ALLOC-09), then the blocking projector rehearsal — owns `[S01]` `GLYPHS`, `[S05].setTokenStyle`, `[C07]`, `[S06.2]`, `[S07.2]` (wave 3, blocking human-verify checkpoint)
+
+**Plan-split note (set during planning):** all three plans modify the same single HTML file, so
+they run in strictly sequential waves rather than in parallel. Two ROADMAP assignments moved:
+the `[S01]` token-vocabulary map and `[C05] TOKENS-VIZ` went from 02-03 to 02-01, because 02-01
+must render the board's four token types in wave 1 and cannot render them from data that does
+not exist yet. Recorded in both plans' frontmatter.
 
 ### Phase 3: Advisory Projection & Reference Material
 **Goal**: A student can see what their allocation implies, stated in the fight's own unit with its arithmetic exposed and its blind spots named — and can read the counter map and effect cards without leaving the build
@@ -143,7 +149,7 @@ parallel if desired.
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
 | 1. Foundation — Data, State Funnel & Undo | 0/2 | Not started | - |
-| 2. Allocation Surface | 0/2 | Not started | - |
+| 2. Allocation Surface | 0/3 | Not started | - |
 | 3. Advisory Projection & Reference Material | 0/2 | Not started | - |
 | 4. Share & Reset | 0/2 | Not started | - |
 | 5. Fight Loop & Playtest | 0/3 | Not started | - |
@@ -155,7 +161,7 @@ All 40 v1 requirements are mapped to exactly one phase. See REQUIREMENTS.md Trac
 | Phase | Requirements | Count |
 |-------|--------------|-------|
 | 1 | ALLOC-08, UX-01, UX-03, UX-04 | 4 |
-| 2 | ALLOC-01…07, UX-02, UX-05 | 9 |
+| 2 | ALLOC-01…07, ALLOC-09, UX-02, UX-05 | 10 |
 | 3 | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
 | 4 | SHARE-01…06 | 6 |
 | 5 | FIGHT-01…11, PROJ-05, REF-03, SHARE-07 | 14 |
