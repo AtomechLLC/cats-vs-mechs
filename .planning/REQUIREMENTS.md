@@ -59,9 +59,9 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Usability & Delivery
 
-- [ ] **UX-01**: Student can undo any change with Ctrl+Z, roughly 30 steps deep, with press-and-hold coalesced into single entries
+- [x] **UX-01**: Student can undo any change with Ctrl+Z, roughly 30 steps deep, with press-and-hold coalesced into single entries
 - [ ] **UX-02**: Every piece of information is legible on a projector, with nothing conveyed by hover alone
-- [ ] **UX-03**: A runtime error surfaces a styled error panel rather than a blank page
+- [x] **UX-03**: A runtime error surfaces a styled error panel rather than a blank page
 - [x] **UX-04**: Ships as one self-contained HTML file that opens offline by double-click with no build step, no runtime network calls, and no external dependencies
 - [ ] **UX-05**: Visual language matches the sibling course artifacts' palette and design tokens
 
@@ -150,9 +150,9 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHARE-05 | Phase 4 | Pending |
 | SHARE-06 | Phase 4 | Pending |
 | SHARE-07 | Phase 5 | Pending |
-| UX-01 | Phase 1 | Pending |
+| UX-01 | Phase 1 | Complete |
 | UX-02 | Phase 2 | Pending |
-| UX-03 | Phase 1 | Pending |
+| UX-03 | Phase 1 | Complete |
 | UX-04 | Phase 1 | Complete |
 | UX-05 | Phase 2 | Pending |
 
