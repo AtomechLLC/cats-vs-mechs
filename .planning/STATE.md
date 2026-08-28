@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2.1 rehearsal deferred by developer; next work is Phase 3
-last_updated: "2026-08-28T07:58:34.914Z"
+stopped_at: Phase 3 context gathered
+last_updated: "2026-08-28T08:23:13.551Z"
 last_activity: 2026-08-28 -- Phase 02.1 execution started
 progress:
   total_phases: 6
@@ -86,6 +86,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T07:58:34.903Z
-Stopped at: Phase 2.1 rehearsal deferred by developer; next work is Phase 3
-Resume file: .planning/ROADMAP.md
+Last session: 2026-08-28T08:23:13.540Z
+Stopped at: Phase 3 context gathered
+Resume file: .planning/phases/03-advisory-projection-reference-material/03-CONTEXT.md
