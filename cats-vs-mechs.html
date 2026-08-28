@@ -518,7 +518,7 @@
        id; render.structure() hides it rather than removing it. -->
   <div class="board" id="board">
     <section class="brd-col" id="col-cats"></section>
-    <aside class="brd-strip" id="strip">Projection lands here in Phase 3</aside>
+    <aside class="brd-strip" id="strip">The projection renders here.</aside>
     <section class="brd-col" id="col-mechs"></section>
     <p class="muted" id="board-empty">The allocation board renders here.</p>
   </div>
@@ -635,6 +635,9 @@
  *   [S04] SERIALIZE     build-code encode / decode + hash sync             (Phase 4, plan 04-01)
  *   [S05] OPS           every state transformation, one per student action (plan 01-02)
  *   [S06] RENDER        page structure and per-tick reconcile from state   (Phase 2, plan 02-01)
+ *     [S06.1] the board renderer, both tiers                               (plan 02-01)
+ *     [S06.2] the token-appearance picker                                  (plan 02-03)
+ *     [S06.3] the advisory projection in the centre strip                  (plan 03-03)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
@@ -3454,6 +3457,235 @@ App.render = (function () {
 
   SYNC_HOOKS.push(syncPicker);
   // #endregion [S06.2] RENDER — PICKER
+
+  /* ===================== [S06.3] RENDER — PROJECTION =====================
+   * The advisory projection, painted into the centre strip Phase 2 reserved
+   * for it. A SUB-REGION of [S06] rather than a section of its own, for one
+   * mechanical reason: it reconciles through SYNC_HOOKS, SYNC_HOOKS is a
+   * closure variable of this IIFE, and the surface returned below it is
+   * frozen — so there is no route to the seam from a top-level section.
+   * [S06.2] is the template this copies, down to the registration line at the
+   * end.
+   *
+   * Four rules govern anything appended to #strip, and every one of them fails
+   * SILENTLY when broken. #strip is a CHILD of #board, so sync() already walks
+   * it, and structure() — which replaces only the two column interiors — leaves
+   * it alone. That is convenient and it is exactly the hazard:
+   *   no data-k anywhere in here, because keyed() takes the FIRST document
+   *     match and #strip sits ahead of #col-mechs, so a key spelled the same
+   *     way as a real field's would quietly steal focus restore from it;
+   *   no data-amt on a .brd-value, because sync()'s value pass writes every
+   *     .brd-value inside #board from amountFor, whose fall-through hands back
+   *     0 — a projection figure would paint a silent, confident zero;
+   *   no .brd-line--opt, because that class means "hide while the tally reads
+   *     zero" and the hide pass reads amountFor too, so a line wearing it here
+   *     would be hidden for good;
+   *   build once, sync every frame, because structure() never touches this
+   *     region. dlg.dataset.tok in [S06.2] is the same bookkeeping.
+   * So the nodes below carry data-prj and .prj- classes, which nothing else in
+   * this file reads or writes.
+   *
+   * Nothing is stored. Every figure is read out of App.model at render time on
+   * every frame, for the reason amountFor states above it: a derived value kept
+   * in state would be a second, mechanical reason for the projection to
+   * disagree with the board.
+   * deps: App.model, [S06.1]'s helpers
+   * owner: Phase 3, plan 03-03
+   * ======================================================================= */
+  // #region [S06.3] RENDER — PROJECTION
+
+  // PROJ-04 and D-16. Five plain nouns, permanent and adjacent to the figures
+  // they qualify — not collapsed, not a disclosure, not revealed on hover,
+  // which UX-02 forbids on its own account. They are scanned rather than read,
+  // which is why they are nouns and not a paragraph.
+  //
+  // The first noun is NOT the word PROJ-04 uses for it. That word is a banned
+  // substring under this project's oldest acceptance grep, so the feature
+  // cannot be named after itself anywhere in this file. "Matchups" is the
+  // artifact's own precedent — [S09.2]'s comment already reaches for it — and
+  // it says the same thing to a student on a projector.
+  var PRJ_IGNORES = ['Matchups', 'Effects', 'Focus fire', 'Overkill', 'Your rulings'];
+
+  // The formatting [S02] deliberately excludes. It hands back two whole
+  // numbers or null and formats nothing at all, because the page owns how a
+  // range is written down; this is the page.
+  //
+  // D-05: equal bounds reach a student as ONE number rather than as a range
+  // whose halves happen to match. A spread that is permanently on screen
+  // teaches nothing; a spread that appears exactly when a hit spills past a
+  // unit's last point of health teaches that the spilling is real.
+  // D-07: the tilde stays anyway, on a single number as much as on a range.
+  // The arithmetic is exact; the claim about the fight is not, because the
+  // model ignores the five nouns above.
+  // D-06: whole numbers only. Every input is already whole and [S02]'s ceiling
+  // keeps the output whole, so there is nothing to round here.
+  //
+  // The null branch is FIRST and prints words. [S02] returns null for a side
+  // with no throughput at all, and a number — any number — would be a
+  // confident claim about a side that cannot attack. Printing the raw quotient
+  // instead is what [S02]'s refusal on the divisor exists to make impossible,
+  // and this branch is the other half of it: the refusal is only worth taking
+  // if the page has something to say when it fires.
+  //
+  // ≈ is ALMOST EQUAL TO and – is an EN DASH, deliberately not a
+  // hyphen: a hyphen between the two bounds reads as a minus beside the
+  // steppers' own minus sign, which is itself the MINUS SIGN in [S06.1] for
+  // the mirror-image reason. Both are written as escapes rather than as glyphs
+  // so this line stays reviewable in an editor of any encoding.
+  function turnsText(r, foeName) {
+    if (r === null) { return 'no damage to spend'; }
+    if (r.ehp === 0) { return 'nothing left to wipe'; }
+    if (r.fast === r.slow) { return '\u2248' + r.fast + ' turns to wipe ' + foeName; }
+    return '\u2248' + r.fast + '\u2013' + r.slow + ' turns to wipe ' + foeName;
+  }
+
+  // PROJ-03 and D-08: the arithmetic on screen as text, both operands and the
+  // operator, with no tooltip and no disclosure anywhere near it. An instructor
+  // pointing at a projector cannot hover, and UX-02 says so generally.
+  //
+  // The second line exists only when a spread does. Without it the slow bound
+  // would be a second number with nothing on screen saying where it came from,
+  // and an unexplained number on this surface is the shape of the thing this
+  // whole phase is built to avoid.
+  //
+  // "health", spelled out: the board's own label for this quantity is the plain
+  // word, and no shorter form is defined anywhere on the page. An abbreviation
+  // the artifact never introduces costs legibility for no gain.
+  //
+  // DELIBERATELY no label attribute on either line — the one sync()'s label
+  // pass reads, written out where [S06.1] builds it. The projection's "health"
+  // is the SUM of two token types, and a student who renames one of them has
+  // not renamed the sum, so routing this word through labelFor would put one
+  // type's name on a figure that is not that type's. This is a decision, not
+  // an oversight; do not "fix" it.
+  //
+  // The rejected attribute is described here rather than spelled, for the
+  // reason [S06.1] gives about its own: writing it down would defeat the
+  // region-scoped grep that keeps it from ever being reintroduced.
+  function workLines(r) {
+    if (r === null) { return ['0 per turn']; }
+    if (r.ehp === 0) { return ['0 health \u00f7 ' + r.perTurn + ' per turn']; }
+    var lines = [r.ehp + ' health \u00f7 ' + r.perTurn + ' per turn'];
+    if (r.fast !== r.slow) {
+      lines.push(r.soak + ' soaked \u00f7 ' + r.perTurn + ' per turn with overkill');
+    }
+    return lines;
+  }
+
+  // D-13, and this signature is the load-bearing part of holding it. ONE
+  // builder, called once per side with the side as an argument. That is not a
+  // code-size preference: a builder naming both sides in one body is the shape
+  // a shared axis, a paired bar or a midpoint marker takes, and this is the
+  // only structural place the prohibition can be held at all. [S09.8] asserts
+  // the shape rather than trusting this note, in the same spirit as the
+  // FORBIDDEN scan asserting its own subject rather than describing it.
+  //
+  // Every figure carries its own side and sits under a panel carrying the same
+  // one, and [S09.8] asserts that too: a figure with no side is, by
+  // construction, a figure about both sides, which is the comparison the tool
+  // never performs.
+  //
+  // .num is D-11 — tabular digits, so a figure changing under a held stepper
+  // does not shift the line beside it.
+  function projPanel(state, side) {
+    var panel = el('section', 'prj-panel');
+    setData(panel, { side: side });
+
+    var owner = text('h3', 'prj-owner', state.build[side].name);
+    setData(owner, { prj: 'owner', side: side });
+    panel.appendChild(owner);
+
+    var fig = text('div', 'prj-turns num', '');
+    setData(fig, { prj: 'turns', side: side });
+    panel.appendChild(fig);
+
+    var work = text('div', 'prj-work num', '');
+    setData(work, { prj: 'work', side: side });
+    panel.appendChild(work);
+
+    // The soak line is built once and carried hidden while the two bounds
+    // agree, rather than created and destroyed as a spread comes and goes: a
+    // line that exists is a line the sync pass writes in one branch, and this
+    // region is built once by construction. It is hidden through the plain
+    // property plus a rule of its own in [C10] — never through the board's
+    // hide-when-zero class, which reads amountFor and would pin it shut.
+    var soak = text('div', 'prj-work num', '');
+    setData(soak, { prj: 'soak', side: side });
+    soak.hidden = true;
+    panel.appendChild(soak);
+
+    return panel;
+  }
+
+  function projIgnores() {
+    var box = el('section', 'prj-ignores');
+    box.appendChild(text('h3', 'prj-ignores-head', 'This projection ignores:'));
+
+    var list = el('div', 'prj-ignores-list');
+    PRJ_IGNORES.forEach(function (noun) {
+      list.appendChild(text('span', 'prj-ignore', noun));
+    });
+    box.appendChild(list);
+
+    // D-05 said out loud, so an instructor is never asked a question the tool
+    // has not already answered on screen. It sits with the list, at label
+    // weight, permanently, for both panels, and whether or not a spread is
+    // showing on either of them.
+    box.appendChild(text('p', 'prj-note',
+      'One number means nothing is wasted at this damage. A range appears when '
+      + 'a hit spills past a unit\'s last point of health.'));
+
+    return box;
+  }
+
+  // The per-frame half, attached to [S06.1]'s seam in syncPicker's exact shape.
+  // It writes nothing to state (D-00b) and stores no derived value: every
+  // figure is read out of App.model on the same frame the board is repainted,
+  // which is the whole reason the projection cannot drift away from the
+  // allocation it describes.
+  function syncProjection(state) {
+    if (typeof document === 'undefined') { return; }
+    var strip = document.getElementById('strip');
+    if (!strip) { return; }
+
+    // Build once. structure() replaces the two column interiors and never
+    // #strip, so a flag on the node is sufficient AND correct here in a way it
+    // would not be inside a column. replaceChildren() clears the shell's
+    // placeholder line on the first frame and never runs again.
+    if (strip.dataset.built !== '1') {
+      strip.replaceChildren();
+      strip.appendChild(projPanel(state, 'cats'));
+      strip.appendChild(projPanel(state, 'mechs'));
+      strip.appendChild(projIgnores());
+      strip.dataset.built = '1';
+    }
+
+    var nodes = strip.querySelectorAll('[data-prj]');
+    for (var i = 0; i < nodes.length; i++) {
+      var node = nodes[i];
+      var side = node.dataset.side;
+      var foe = (side === 'cats') ? 'mechs' : 'cats';
+      if (!state.build[side] || !state.build[foe]) { continue; }
+      // App.model.* resolved at CALL time, never captured at section-body
+      // scope, so section order can never break this.
+      var r = App.model.turnsToWipe(state.build[side], state.build[foe]);
+      var lines = workLines(r);
+      var kind = node.dataset.prj;
+      if (kind === 'owner') {
+        node.textContent = state.build[side].name;
+      } else if (kind === 'turns') {
+        node.textContent = turnsText(r, state.build[foe].name);
+      } else if (kind === 'work') {
+        node.textContent = lines[0];
+      } else {
+        node.textContent = (lines.length > 1) ? lines[1] : '';
+        node.hidden = (lines.length < 2);
+      }
+    }
+  }
+
+  SYNC_HOOKS.push(syncProjection);
+  // #endregion [S06.3] RENDER — PROJECTION
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
