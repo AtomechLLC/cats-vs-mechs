@@ -3903,11 +3903,28 @@ App.render = (function () {
   // steppers' own minus sign, which is itself the MINUS SIGN in [S06.1] for
   // the mirror-image reason. Both are written as escapes rather than as glyphs
   // so this line stays reviewable in an editor of any encoding.
+  //
+  // The noun agrees with the figure. A single bound of ONE is reachable from
+  // the shipped board — one Cat left standing against nine points of
+  // throughput — and the plural noun beside a 1 lands at 24px on a projector,
+  // on the one surface this whole phase exists to make trustworthy. A
+  // two-bound spread is always plural, because its bounds differ by at least
+  // one whenever they differ at all.
+  //
+  // This is a branch rather than a field on a record, which is the opposite of
+  // the choice [S01] made for its own connective. The two cases are not alike:
+  // that connective agrees with an action NAME, which is authored data and can
+  // carry its own word, whereas this noun agrees with a quantity derived at
+  // render time. There is no record for it to live on. What the two share is
+  // the rule — no renderer anywhere in this file guesses at agreement.
   function turnsText(r, foeName) {
     if (r === null) { return 'no damage to spend'; }
     if (r.ehp === 0) { return 'nothing left to wipe'; }
-    if (r.fast === r.slow) { return '\u2248' + r.fast + ' turns to wipe ' + foeName; }
-    return '\u2248' + r.fast + '\u2013' + r.slow + ' turns to wipe ' + foeName;
+    var noun = (r.fast === r.slow && r.fast === 1)
+      ? ' turn to wipe '
+      : ' turns to wipe ';
+    if (r.fast === r.slow) { return '\u2248' + r.fast + noun + foeName; }
+    return '\u2248' + r.fast + '\u2013' + r.slow + noun + foeName;
   }
 
   // PROJ-03 and D-08: the arithmetic on screen as text, both operands and the
@@ -8163,6 +8180,65 @@ App.selftest = (function () {
     t.eq('nothing in the strip carries an inline style attribute',
       document.querySelectorAll('#strip [style]').length, 0);
 
+    /* --- The four rules [S06.3] and [S06.4] each state at length as SILENT
+           failure modes, asserted rather than promised. Every one of them is a
+           rule about what must NOT be on a node, and a rule of that shape is
+           held by nothing at all unless something walks the page looking for
+           it — it cannot be broken by deleting code, only by adding some, and
+           the addition is a single key in an object literal.
+
+           What each one costs when it goes: a data-k in either region steals
+           keyed()'s first document match, and because #strip sits ahead of
+           #col-mechs in document order it takes the focus restore for the
+           whole Mechs column with it — a student typing in a health field
+           lands on an unfocusable figure after the next rebuild. A data-amt,
+           or a .brd-value for sync()'s value pass to find, paints a confident
+           zero over a figure. A .brd-line--opt is read by the hide pass and
+           pins the line shut for good.
+
+           This suite already says of D-13 that it asserts the SHAPE rather
+           than trusting the note that promises it. That sentence was true one
+           paragraph away from these four and had never been applied to them.
+
+           The walk starts AT each region, so the build flag on the region
+           itself is in scope; `built` is deliberately not in the key list,
+           because that flag is the bookkeeping both banners call for. --- */
+    var boardRuleBreaks = [];
+    ['strip', 'refband'].forEach(function (id) {
+      var region = document.getElementById(id);
+      if (!region) { boardRuleBreaks.push(id + ': the region is missing'); return; }
+      (function walk(n) {
+        ['k', 'amt', 'lbl', 'albl'].forEach(function (key) {
+          if (n.dataset && n.dataset[key] !== undefined) {
+            boardRuleBreaks.push(id + '/' + n.className + ': data-' + key);
+          }
+        });
+        if (typeof n.className === 'string' && n !== region) {
+          if (n.className.indexOf('brd-value') !== -1) {
+            boardRuleBreaks.push(id + '/' + n.className + ': brd-value');
+          }
+          if (n.className.indexOf('brd-line--opt') !== -1) {
+            boardRuleBreaks.push(id + '/' + n.className + ': brd-line--opt');
+          }
+        }
+        Array.prototype.forEach.call(n.children, walk);
+      })(region);
+    });
+    // Floored first, for the reason the figure count above is floored: a walk
+    // over two regions that were never built finds nothing on either and
+    // passes spotlessly, which is precisely the shape of pass this row exists
+    // not to be.
+    var stripNode = document.getElementById('strip');
+    var bandNode = document.getElementById('refband');
+    t.ok('both regions this phase appended to the board are on the page with '
+      + 'something in them for the row below to be about',
+      stripNode !== null && bandNode !== null
+        && stripNode.children.length > 0 && bandNode.children.length > 0);
+    t.eq('and neither carries any of the attributes keyed() matches on or '
+      + 'sync() writes through — each is a silent failure mode, and each was '
+      + 'held by a comment until this row',
+      boardRuleBreaks.join(' | '), '');
+
     /* --- PROJ-02 and PROJ-03 on the shipped board. The worked lines are
            asserted as WHOLE strings rather than by looking for the operator in
            them, so a line that lost an operand still turns this red. --- */
@@ -8224,6 +8300,26 @@ App.selftest = (function () {
       strip ? strip.dataset.built : '(no node)', '1');
     t.eq('and the projection it holds moved with the roster',
       prj('turns', 'cats'), '\u224812 turns to wipe Mechs');
+
+    /* --- THE SINGULAR. Every other figure this suite pins is 3, 4–6, 9 or 12,
+           and a noun spelled once for all of them agrees with every one — which
+           is precisely why a hard-coded plural survived here unseen. One is the
+           single quantity whose noun differs, it is reachable from the shipped
+           board through a shipped op, and so it is pinned like the rest.
+
+           slice(1) is taken BEFORE the loop and off the live array: removeUnit
+           commits structurally and hands back a fresh state each time, so a
+           forEach walking the array in place would walk a list that is being
+           spliced under it. The op refuses the last unit, and the slice is what
+           keeps this row away from that refusal. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.state.get().build.cats.units.slice(1).forEach(function (u) {
+      App.ops.removeUnit('cats', u.id);
+    });
+    App.state.flush();
+    t.eq('one Cat left standing reads as one TURN rather than one turns',
+      prj('turns', 'mechs'), '\u22481 turn to wipe Cats');
 
     App.state.restore(savedAll);
     App.state.flush();
@@ -8380,6 +8476,36 @@ App.selftest = (function () {
       + 'two different objects — a rule and a resource, which is why labelFor '
       + 'is never called for a keyword',
       named.indexOf('shield') !== -1 && App.data.TOKEN_IDS.indexOf('shield') !== -1);
+
+    /* --- TWO READS OF ONE FACT, held together. The action cards read the
+           FROZEN board: refActions returns App.data.DEFAULTS[side].actions.
+           The projection reads the deep COPY in the build slice, because
+           bestDamage is handed state.build[side]. So the Lasers card prints
+           3 damage from one object while the worked line beside it divides by
+           a 9 derived from another, a column apart on the same screen.
+
+           That boundary is deliberate, and refActions says so in its own
+           comment: the day actions become student-editable is the day that
+           read has to change on purpose. The decision is sound. What was
+           missing is the tripwire that makes the day loud.
+
+           [S09.1] already asserts the actions on defaults() — but defaults()
+           is a JSON round trip of DEFAULTS, so that row agrees with itself by
+           construction and says nothing whatever about the build slice. Phase
+           4 decodes a build code INTO that slice, and a code carrying an
+           altered damage figure would put a card reading one number beside a
+           worked line dividing by another, with nothing red anywhere in this
+           repo. This row is that day alarming rather than silent.
+
+           Compared as ONE serialised pair rather than as six scalar rows, the
+           idiom [S09.1] uses: a field that drifted names itself in the failure
+           detail instead of being hunted across rows that each pass. --- */
+    t.eq('the actions the cards read and the actions the projection reads are '
+      + 'the same actions',
+      JSON.stringify([App.state.get().build.cats.actions,
+        App.state.get().build.mechs.actions]),
+      JSON.stringify([App.data.DEFAULTS.cats.actions,
+        App.data.DEFAULTS.mechs.actions]));
 
     /* --- The rendered half, plan 03-05's. Everything below needs a page.
            tests/selftest-node.cjs runs these suites in a bare sandbox with no

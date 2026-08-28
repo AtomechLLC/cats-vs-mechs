@@ -119,33 +119,61 @@ console.log('scan: no forbidden patterns');
 // `judgment` here is the US spelling on purpose: the UK spelling the artifact
 // uses in that comment is handled by Layer B, where it is checked only against
 // rendered strings.
+// WHAT BELONGS IN THIS LAYER, and what does not.
+//
+// This layer reads the WHOLE document -- markup, CSS, comments and code alike
+// -- so a word in it is banned from prose as well as from copy. That reach is
+// the right instrument for a word that NAMES THE BANNED FEATURE: `verdict`,
+// `rating`, the `balanc` and `difficult` stems, `counter`, a traffic light, a
+// good or bad build. None of those has an innocent reading in this codebase,
+// and a CSS class or a comment carrying one is evidence the feature itself is
+// arriving, which is worth catching before any copy exists.
+//
+// It is the WRONG instrument for a comparative adjective. `better`, `weak`,
+// `stronger`, `advantage`, `dominat`, `optimal` are ordinary engineering
+// prose, and a gate that reddens on them tells its reader
+//   "comparative language reached cats-vs-mechs.html ... The artifact reports
+//    what a build costs and what it can take"
+// -- a diagnosis about RENDERED COPY for something that is not rendered copy.
+// This phase already paid that toll once: a comment reading "the weaker half
+// of the same guarantee" was reworded to "the narrower half" for no reason but
+// this list. The stem also bans `text-wrap: balance`, which the project's own
+// stack notes list as a progressive enhancement to use.
+//
+// So those thirteen move to VERDICT_LITERAL_WORDS below. That is not a new
+// idea -- it is the split this file already invented for `score`, `grade`,
+// `judgement` and `worse`, for a reason stated a few lines up that applies to
+// them word for word. Keeping `judgment` here while `judgement` sat there, and
+// `better` here while `worse` sat there, was an inconsistency rather than a
+// policy.
+//
+// WHAT THE MOVE GIVES UP, stated exactly, because narrowing a PROJ-06 layer is
+// a real trade and not a tidy-up:
+//   RETAINED for all thirteen -- every string literal in the script block,
+//     via Layer B; and the whole rendered page, via Layer C, which scans
+//     VERDICT_WORDS.concat(VERDICT_LITERAL_WORDS) and is therefore completely
+//     unaffected by which of the two lists a word sits in.
+//   GIVEN UP for those thirteen only -- the CSS block, and static markup
+//     outside the script block that Layer C's walk does not reach, which is
+//     #err-panel and the <dialog> (Layer C harvests #app). A verdict feature
+//     wearing a `.better-build` class in CSS with no matching literal and no
+//     rendered word would now pass. That is the hole, and it is accepted
+//     because a feature of that shape would have to avoid all sixteen words
+//     below as well, every one of which still reads the whole document.
 const VERDICT_WORDS = [
   { label: 'verdict', re: /verdict/i },
   { label: 'balance stem', re: /balanc/i },
   { label: 'rating', re: /rating/i },
   { label: 'difficulty stem', re: /difficult/i },
   { label: 'counter', re: /counter/i },
-  { label: 'stronger', re: /stronger/i },
-  { label: 'strongest', re: /strongest/i },
-  { label: 'weak stem', re: /weak/i },
-  { label: 'weakest', re: /weakest/i },
-  { label: 'advantage', re: /advantage/i },
   { label: 'outmatch', re: /outmatch/i },
   { label: 'outclass', re: /outclass/i },
-  { label: 'favoured', re: /favou?red/i },
   { label: 'winner', re: /winner/i },
   { label: 'loser', re: /loser/i },
   { label: 'traffic light', re: /traffic light/i },
   { label: 'overpowered', re: /overpowered/i },
   { label: 'underpowered', re: /underpowered/i },
   { label: 'unfair', re: /unfair/i },
-  { label: 'fair', re: /\bfair\b/i },
-  { label: 'superior', re: /superior/i },
-  { label: 'inferior', re: /inferior/i },
-  { label: 'dominate stem', re: /dominat/i },
-  { label: 'optimal', re: /optimal/i },
-  { label: 'better', re: /better/i },
-  { label: 'judgment', re: /judgment/i },
   { label: 'good build', re: /good build/i },
   { label: 'bad build', re: /bad build/i },
   { label: 'should aim', re: /should aim/i }
@@ -191,25 +219,72 @@ if (!match) {
 //
 // Same honesty clause as the two scans above. This catches the literal
 // spelling inside a literal, which is the shape an accidental reintroduction
-// takes. It does NOT catch a string built by concatenation, a word arriving
-// through a template, or text assembled at render time -- that is Layer C's
-// job. It also cannot see the CSS or the markup outside the script block,
-// which Layer A already reads in full.
+// takes. It does NOT catch a string built by concatenation, a value arriving
+// through a ${...} substitution, or text assembled at render time -- that is
+// Layer C's job. It also cannot see the CSS or the markup outside the script
+// block, which Layer A already reads in full.
+//
+// Backticks ARE read, as of this row. They were not, and that was a hole
+// rather than a scope decision: this layer is the ONLY one that scans code for
+// `score`, `grade`, `judgement`, `rank`, `ahead`, `wins`, `win`, `edge`,
+// `lead` and `worse` -- Layer A deliberately excludes them so the file can
+// discuss its own rule -- so a backtick string carrying one of those passed
+// Layer A because it is not on that list and passed Layer B because it was
+// never extracted. Layer C would have caught it only if that particular string
+// reached #app on the stub page in setup mode, which the closing note down in
+// Layer C lists five reasons it might not.
+//
+// A template literal with no substitution IS a plain literal and has to be
+// read as one. One WITH a substitution is read for its static halves, which is
+// strictly more than not reading it at all.
+//
+// The backtick arm deliberately does NOT exclude newlines, because a real
+// template literal may span lines and excluding them would silently truncate
+// the one thing this arm exists to read.
+//
+// Measured before shipping, because an extractor that swallows more than it
+// should is the same kind of silent shrink the floor below exists to catch:
+// the artifact uses no template literal in code today and all 192 backticks
+// sit in comments, paired, none spanning a line. Adding the arm takes the
+// count from 2466 to 2555, of which 94 are backtick-delimited. Five
+// single-quoted literals stop being extracted separately -- every one of them
+// a duplicate occurrence sitting INSIDE a comment's backtick span, such as
+// `default: throw new Error('Unknown op: ' + act)`, which is itself scanned as
+// one chunk. So the swallowed text is still read; it is read as a larger
+// string. No word coverage is given up.
 //
 // The extraction is escape-aware so a literal containing \' does not truncate
 // and leave the rest of the file misparsed as code. The count is printed on a
 // clean run and floored below, because the failure mode of a broken extractor
 // is not a red run -- it is a green one that scanned nothing, which is exactly
 // the vacuous pass the stub-drift gate was added to close.
-const STRING_LITERAL = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g;
+const STRING_LITERAL =
+  /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
 const literals = match[1].match(STRING_LITERAL) || [];
 
-if (literals.length < 1500) {
+// The floor moves with the extractor. It was 1500 against a measured 2466 when
+// this layer read two quote characters; the backtick arm takes the measurement
+// to 2555, so 2000 keeps the same job -- catching an extractor that silently
+// scans nothing or nearly nothing -- with room for a legitimate deletion.
+if (literals.length < 2000) {
   fail('Layer B extracted only ' + literals.length + ' string literals from the ' +
-    'script block. The artifact carries well over 1500, so this is a broken ' +
+    'script block. The artifact carries well over 2000, so this is a broken ' +
     'extractor scanning nothing, not a clean file.');
 }
 
+// Two groups, one rule: a comment may discuss the concept, a rendered string
+// may not carry the word.
+//
+// The first ten are the original set -- words the artifact uses in its own
+// prose about the anti-verdict rule, which a document-wide ban would redden on.
+//
+// The last thirteen arrived from VERDICT_WORDS, for the reasoning written out
+// above that list: they are comparative adjectives with ordinary engineering
+// readings, not names for the banned feature. Nothing about their coverage of
+// RENDERED output changed in the move -- Layer C concatenates both lists -- and
+// nothing about their coverage of string literals changed either, because this
+// layer reads every literal in the script block. What changed is that a comment
+// may now say "the weaker half of the guarantee" and mean it.
 const VERDICT_LITERAL_WORDS = [
   { label: 'score', re: /score/i },
   { label: 'grade', re: /grade/i },
@@ -220,7 +295,20 @@ const VERDICT_LITERAL_WORDS = [
   { label: 'win', re: /\bwin\b/i },
   { label: 'edge', re: /\bedge\b/i },
   { label: 'lead', re: /\blead\b/i },
-  { label: 'worse', re: /worse/i }
+  { label: 'worse', re: /worse/i },
+  { label: 'stronger', re: /stronger/i },
+  { label: 'strongest', re: /strongest/i },
+  { label: 'weak stem', re: /weak/i },
+  { label: 'weakest', re: /weakest/i },
+  { label: 'advantage', re: /advantage/i },
+  { label: 'favoured', re: /favou?red/i },
+  { label: 'fair', re: /\bfair\b/i },
+  { label: 'superior', re: /superior/i },
+  { label: 'inferior', re: /inferior/i },
+  { label: 'dominate stem', re: /dominat/i },
+  { label: 'optimal', re: /optimal/i },
+  { label: 'better', re: /better/i },
+  { label: 'judgment', re: /judgment/i }
 ];
 
 const literalHits = [];
@@ -2178,6 +2266,29 @@ check(
     + ' soak line hidden=' + (soakNode ? soakNode.hidden : '(no node)')
 );
 
+/* The singular, mirrored from [S09.8]. Every other figure pinned in this file
+   is 3, 4-6, 9 or 12, and one noun spelled once agrees with all of them — which
+   is how a hard-coded plural sat on the highest-contrast figure on the board
+   without a single row noticing. One is the only quantity whose noun differs,
+   and it is reachable through a shipped op, so CI pins it too.
+
+   The ids are snapshotted BEFORE the loop: removeUnit commits structurally and
+   the op refuses the last unit, so the slice both avoids that refusal and keeps
+   the walk off an array being spliced under it. */
+A.ops.resetToDefaults();
+A.state.flush();
+A.state.get().build.cats.units.slice(1).map((u) => u.id)
+  .forEach((id) => A.ops.removeUnit('cats', id));
+A.state.flush();
+check(
+  '52b. one Cat left standing reads as one TURN, not one turns — the noun on '
+    + 'the projected figure agrees with the figure. Every other number this '
+    + 'file pins is plural, so the plural was free to be hard-coded and was',
+  prjText('turns', 'mechs') === '≈1 turn to wipe Cats',
+  'figure=' + JSON.stringify(prjText('turns', 'mechs'))
+    + ' cats units left=' + A.state.get().build.cats.units.length
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 A.ops.setFactionAp('cats', 0);
@@ -2259,6 +2370,59 @@ check(
   '56. nothing in the strip carries an inline style attribute',
   prjStyled.length === 0,
   'nodes carrying one: ' + JSON.stringify(prjStyled)
+);
+
+/* 56b. The four rules [S06.3] and [S06.4] each state at length as SILENT
+   failure modes, mirrored into CI. Until this row every one of them was held
+   by prose alone — and prose is the exact instrument this file refuses to
+   trust one paragraph away, where [S09.8] says of D-13 that it asserts the
+   shape rather than trusting the note.
+
+   Each is a rule about what must NOT be on a node, so it cannot be broken by
+   deleting code, only by adding one key to an object literal — and the cost
+   of adding it is invisible. A data-k in either region steals keyed()'s first
+   document match, and since #strip sits ahead of #col-mechs in document order
+   it takes the focus restore for the whole Mechs column with it. A data-amt,
+   or a .brd-value for sync()'s value pass to find, paints a confident zero
+   over the copy. A .brd-line--opt is pinned shut by the hide pass for good.
+
+   Walked rather than selected, for the reason 63b is walked: the walk is
+   about the page and not about this file's selector engine, and it reads
+   dataset, which is what setData actually writes. The walk starts AT each
+   region so the region's own node is in scope; `built` is deliberately not in
+   the key list, because that flag is the bookkeeping both banners call for. */
+const boardRuleBreaks = [];
+['strip', 'refband'].forEach((id) => {
+  const region = dom.byId[id];
+  if (!region) { boardRuleBreaks.push(id + ': the region is missing'); return; }
+  (function walk(n) {
+    ['k', 'amt', 'lbl', 'albl'].forEach((key) => {
+      if (n.dataset && n.dataset[key] !== undefined) {
+        boardRuleBreaks.push(id + '/' + n.className + ': data-' + key);
+      }
+    });
+    if (typeof n.className === 'string' && n !== region) {
+      if (n.className.indexOf('brd-value') !== -1) {
+        boardRuleBreaks.push(id + '/' + n.className + ': brd-value');
+      }
+      if (n.className.indexOf('brd-line--opt') !== -1) {
+        boardRuleBreaks.push(id + '/' + n.className + ': brd-line--opt');
+      }
+    }
+    n.children.forEach(walk);
+  })(region);
+});
+const stripBuilt = dom.byId['strip'] ? dom.byId['strip'].children.length : 0;
+const bandBuilt = dom.byId['refband'] ? dom.byId['refband'].children.length : 0;
+check(
+  '56b. neither region this phase appended to #board carries any of the four '
+    + 'things sync() and keyed() act on. Each is a silent failure mode both '
+    + 'banners spell out at length, and each was held by that comment and by '
+    + 'nothing else. Floored on both regions being built, because a walk over '
+    + 'two empty nodes finds nothing and passes spotlessly',
+  stripBuilt > 0 && bandBuilt > 0 && boardRuleBreaks.length === 0,
+  'strip children=' + stripBuilt + ' refband children=' + bandBuilt
+    + ' rules broken: ' + JSON.stringify(boardRuleBreaks)
 );
 
 const styleAccesses = html.split('.style').length - 1;
@@ -2506,16 +2670,70 @@ const refOpenAt = html.indexOf(REF_OPEN);
 const refCloseAt = html.indexOf(REF_CLOSE);
 const refRegionCode = (refOpenAt !== -1 && refCloseAt > refOpenAt)
   ? stripComments(html.slice(refOpenAt, refCloseAt)) : '';
-const refBanned = ['labelFor', 'data-act', 'data-k', 'createElementNS']
+/* Only the two words the artifact actually SPELLS. `data-act` and `data-k`
+   used to sit in this list and could never have fired: the artifact never
+   writes either literal in its JavaScript. Attributes are written through
+   setData(node, { act: ..., k: ... }), which builds the attribute name from a
+   dataset key, so the only spelling a real regression can take was invisible
+   to a source scan — two list entries that read as protection and were not.
+   Check 63b below asserts the built page instead, which no spelling can
+   evade. `labelFor` and `createElementNS` stay here because they ARE spelled,
+   and a source scan is the right instrument for a spelled thing. */
+const refBanned = ['labelFor', 'createElementNS']
   .filter((w) => refRegionCode.indexOf(w) !== -1);
 check(
-  '63. the card builder\'s CODE calls no label reader and carries neither '
-    + 'attribute the interaction layer dispatches on — read between the '
-    + 'region markers with the comments stripped, because the comment has to '
-    + 'state the label rule by name and a raw grep could never pass',
+  '63. the card builder\'s CODE calls no label reader and builds no namespaced '
+    + 'element — read between the region markers with the comments stripped, '
+    + 'because the comment has to state the label rule by name and a raw grep '
+    + 'could never pass',
   refRegionCode.length > 400 && refBanned.length === 0,
   'code-only region ' + refRegionCode.length + ' chars (floor 400); found: '
     + JSON.stringify(refBanned)
+);
+
+/* 63b. The same rule, asserted against the RENDERED page. This is the half
+   check 63 could not carry, and the register checks 56 and 60 already use: a
+   walk over what was built cannot be evaded by a spelling, so it holds for
+   setData, for a direct dataset write and for a setAttribute alike.
+
+   The five keys are the whole dispatch and sync surface: `act` is what [S07]
+   routes a press on, `k` is what keyed() matches and would steal the first
+   hit for, `amt` is what sync()'s value pass writes a number into, and `lbl`
+   and `albl` are what its label and aria-label passes own the text of. A
+   reference card carrying any one of them is a card the rest of the machine
+   believes is a control.
+
+   Read through `dataset` rather than through a selector on purpose: dataset
+   is what setData actually writes, so this reads the same surface the artifact
+   wrote rather than trusting the stub's selector engine, which understands a
+   class and a [data-*] test and nothing else.
+
+   Floored on the card count for the reason check 55 is floored: a walk that
+   found no cards would find no attributes and pass spotlessly. */
+const refAttrDrift = [];
+['cats', 'mechs'].forEach((side) => {
+  refCards(side).forEach((card) => {
+    (function walk(n) {
+      ['act', 'k', 'amt', 'lbl', 'albl'].forEach((key) => {
+        if (n.dataset && n.dataset[key] !== undefined) {
+          refAttrDrift.push(String(n.className) + '/' + key);
+        }
+      });
+      n.children.forEach(walk);
+    })(card);
+  });
+});
+check(
+  '63b. and no reference card ON THE PAGE — the card or anything under it — '
+    + 'carries an attribute the interaction layer dispatches on or the sync '
+    + 'pass writes. The source scan above cannot see setData(node, { act: … }), '
+    + 'which is the only spelling this file uses, so a card that silently '
+    + 'became a live stepper passed every check in this repo',
+  refCards('cats').length === 3 && refCards('mechs').length === 3
+    && refAttrDrift.length === 0,
+  'cats cards=' + refCards('cats').length
+    + ' mechs cards=' + refCards('mechs').length
+    + ' attributes found: ' + JSON.stringify(refAttrDrift)
 );
 
 A.state.restore(refSaved);
