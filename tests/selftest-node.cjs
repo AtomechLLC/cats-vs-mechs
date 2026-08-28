@@ -2084,6 +2084,88 @@ check(
 clearPanel();
 if (dlg.open === true) { dlg.close(); }
 
+/* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
+       Layers A and B, up at the top of this file, read the SOURCE. This one
+       reads the PAGE, for two reasons. The roadmap's criterion is written about
+       reading the rendered artifact top to bottom and finding no judgement on
+       it, which is a statement about output. And a sentence assembled at render
+       time out of fragments no single literal contains passes both source
+       layers while failing the requirement outright.
+
+       The walk collects the textContent of every LEAF node under #app plus the
+       aria-label, title and placeholder of every node it passes. Leaves are the
+       exact set rather than an approximation: the stub's textContent is a plain
+       own property, not a concatenation computed over descendants, so a parent
+       carries no copy of its children's words and collecting parents too would
+       add nothing while risking nothing being missed either way.
+
+       The recursion shape is lifted from allIntegers in [S09.1] — scalar case
+       first, then recurse into children — rather than invented here.
+
+       ALLOC-10 lets a student name a token type anything they like, and a
+       student who names one `Winner` must not redden CI. The requirement is
+       about what the ARTIFACT says, not about what a student typed into their
+       own build. So the two attributes through which a student's word reaches
+       the page are excluded at exactly the place it lands: sync() writes
+       [data-lbl] nodes' text from labelFor, and [data-albl] nodes' aria-label
+       from the same call, so the first is skipped for text and the second for
+       aria-label. Each is skipped only for the channel labelFor actually
+       writes, so a static title on a relabelled node is still read. */
+A.state.flush();
+
+const renderedText = [];
+const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
+
+(function harvest(node) {
+  if (!node) { return; }
+  if (node.children.length === 0
+    && typeof node.textContent === 'string' && node.textContent !== ''
+    && !('lbl' in node.dataset)) {
+    renderedText.push(node.textContent);
+  }
+  LABEL_ATTRS.forEach((attr) => {
+    if (attr === 'aria-label' && ('albl' in node.dataset)) { return; }
+    const value = node.getAttribute ? node.getAttribute(attr) : null;
+    if (typeof value === 'string' && value !== '') { renderedText.push(value); }
+  });
+  node.children.forEach(harvest);
+})(dom.byId['app']);
+
+const RENDERED_VERDICT_WORDS = VERDICT_WORDS.concat(VERDICT_LITERAL_WORDS);
+const renderedHits = [];
+renderedText.forEach((s) => {
+  RENDERED_VERDICT_WORDS.forEach((rule) => {
+    if (rule.re.test(s)) {
+      renderedHits.push('[' + rule.label + '] in ' + JSON.stringify(s));
+    }
+  });
+});
+
+// A walk that silently collects nothing would report a spotlessly clean page
+// forever. That is precisely the defect KNOWN_IDS carried before section 5b
+// existed: a gate failing in the direction of green. So the harvest is floored
+// rather than merely searched, and the number is printed on a clean run as well
+// as a failing one, because a baseline nobody can read is a baseline nobody
+// notices collapsing.
+console.log('scan: ' + renderedText.length + ' rendered strings read from #app (Layer C, '
+  + RENDERED_VERDICT_WORDS.length + ' words)');
+
+check(
+  '47. the rendered-page walk actually reaches the page, so a clean result is a '
+    + 'read page rather than an empty one',
+  renderedText.length > 100,
+  'harvested ' + renderedText.length + ' strings from #app; the floor is 100'
+);
+
+check(
+  '48. PROJ-06 — nothing on the rendered page judges a build, and a student who '
+    + 'names their own type after a comparative word does not trip it',
+  renderedHits.length === 0,
+  renderedHits.length === 0
+    ? 'clean across ' + renderedText.length + ' rendered strings'
+    : renderedHits.join(' | ')
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the
@@ -2105,7 +2187,16 @@ if (dlg.open === true) { dlg.close(); }
             emoji name. Check 38 covers the code-point cut, which is the guard.
          4. Whether eleven rows of the type list are legible on a projector.
             That is an empirical question a rehearsal answers and nothing else
-            does. --- */
+            does.
+         5. Any words Layer C's page does not currently show. The walk reads
+            #app as the stub page renders it in setup mode, so a string that
+            appears only once the fight has started, or only inside an open
+            dialog, is outside its reach until that surface is built and the
+            walk is pointed at it. The same goes for the static markup of the
+            shell: the stub is a hand-made stand-in and not a parser, so text
+            written directly into the HTML is empty here and only the text the
+            artifact renders is read. Layers A and B still read all of those in
+            the source; it is only the assembled-at-render case that waits. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
