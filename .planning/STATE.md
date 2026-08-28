@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 03.1-02-PLAN.md
-last_updated: "2026-08-28T18:58:01.311Z"
+last_updated: "2026-08-28T19:21:52.829Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 24
-  completed_plans: 18
+  completed_plans: 20
   percent: 57
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [████████░░] 75%
+Progress: [████████░░] 83%
 
 ## Performance Metrics
 
@@ -54,6 +54,7 @@ Progress: [████████░░] 75%
 *Updated after each plan completion*
 | Phase 03.1 P01 | 78 | 3 tasks | 2 files |
 | Phase 03.1 P02 | 62min | 3 tasks | 1 files |
+| Phase 03.1 P03 | 95min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -73,6 +74,9 @@ Recent decisions affecting current work:
 - [Phase 3.1]: DAMAGE_KEYS ships health-only: a bounded shield pool read as unbounded throughput would overstate, the one direction PROJ-06 forbids
 - [Phase 3.1]: turnsToWipe reads ONE bestPair call, so the hit and the per-turn always describe the same swing
 - [Phase 3.1]: CONTEXT D-14a corrected by measurement: the shipped board does not move under either shield reading, because no shipped action carries a shield transformation
+- [Phase ?]: 03.1-03: a shipped action can be renamed and re-costed but not removed — the reference band names the six by id
+- [Phase ?]: 03.1-03: renameAction is a plain commit; createAction and removeAction are structural
+- [Phase ?]: 03.1-03: guard placement inside a commit is caught by refusal ORDER, never by undo depth — commit() runs its mutator before it records
 
 ### Pending Todos
 
@@ -94,6 +98,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T18:58:01.301Z
+Last session: 2026-08-28T19:21:35.012Z
 Stopped at: Completed 03.1-02-PLAN.md
 Resume file: None

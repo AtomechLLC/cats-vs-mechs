@@ -23,13 +23,13 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Action Authoring
 
-- [ ] **ACT-01**: Student can create, rename and remove their own actions on either faction, alongside the shipped ones
+- [x] **ACT-01**: Student can create, rename and remove their own actions on either faction, alongside the shipped ones
 - [x] **ACT-02**: An action carries a cost — a token type and an amount that is **consumed** when it fires (default: one action point)
 - [x] **ACT-03**: An action carries requirements — token types and amounts that must be present but are **not** consumed
 - [x] **ACT-04**: An action carries transformations — each names the caster or the target, a token type, and the amount that token changes by
 - [ ] **ACT-05**: The tool proposes what an authored action would do and the student accepts, edits the numbers, or overrides it entirely before anything lands — the tool never applies a transformation on its own
 - [x] **ACT-06**: The tool reports whether a cost is affordable and a requirement met, and never decides whether the action happens
-- [ ] **ACT-07**: An action whose cost, requirement or transformation names a token type that has since been removed is refused by name with a message, and never silently skipped
+- [x] **ACT-07**: An action whose cost, requirement or transformation names a token type that has since been removed is refused by name with a message, and never silently skipped
 
 ### Fight
 
@@ -145,13 +145,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALLOC-09 | Phase 2 | Complete |
 | ALLOC-10 | Phase 2.1 | Complete — every token record carries a `name`; rename commits through the op, and gate check 30 asserts the picker list row, the picker heading and the board label all repaint from the same rename. Confirmed by a human in aggregate ("token config works"), not itemised. |
 | ALLOC-11 | Phase 2.1 | **Code-complete, awaiting human confirmation.** Create, remove (one undoable step) and the appearance surface are covered by gate checks 31, 33 and 35. The **"increments by hand"** half was blocked by F-02.1-A — a never-written tally could not be raised at all (24 nudge buttons and 12 tally fields built for a fresh unit-scope type, 0 of 36 reachable). **F-02.1-A's reveal-on-select did not close it**: the editor is modal, so its backdrop owned every pointer and the revealed line was visible but unpressable. **F-02.1-B closed it** by letting the reveal survive the editor closing (commit `ce6f61e`); reverting that one line turns 2 of the 430 rows red. Still unticked only because no one has raised a tally by hand in a real browser — the rehearsal never attempted it, because at the time it was impossible. |
-| ACT-01 | Phase 3.1 | Pending |
+| ACT-01 | Phase 3.1 | Complete |
 | ACT-02 | Phase 3.1 | Complete |
 | ACT-03 | Phase 3.1 | Complete |
 | ACT-04 | Phase 3.1 | Complete |
 | ACT-05 | Phase 3.1 | Pending |
 | ACT-06 | Phase 3.1 | Complete |
-| ACT-07 | Phase 3.1 | Pending |
+| ACT-07 | Phase 3.1 | Complete |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
