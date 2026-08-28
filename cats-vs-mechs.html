@@ -5997,8 +5997,17 @@ App.selftest = (function () {
 (function () {
   'use strict';
 
+  // A PROJECTION THAT DROPS A FIELD IS A CHECK THAT CANNOT SEE IT. This one
+  // read four fields while the record carried seven, and the whole action table
+  // stayed green with `cost`, `req` and `xf` present AND with every one of them
+  // wrong — measured, 520 rows, 0 failed, both ways. That is the same shape as
+  // the two findings the previous phase paid for: a check written against one
+  // spelling cannot see behaviour expressed through another. So the projection
+  // is widened whenever the record is, and the rows below name the individual
+  // facts on top of it.
   function tuple(action) {
-    return [action.id, action.name, action.dmg, action.keywords];
+    return [action.id, action.name, action.dmg, action.keywords,
+      action.cost, action.req, action.xf];
   }
 
   // Walks anything JSON-shaped and rejects a non-integer number, a NaN, an
@@ -6027,16 +6036,131 @@ App.selftest = (function () {
     t.ok('mechs unit shield', d.mechs.units.every(function (u) { return u.shield === 3; }));
     t.eq('mechs faction ap', d.mechs.ap, 3);
 
+    var AP1 = [{ tok: 'ap', n: 1 }];
     t.eq('cats actions', d.cats.actions.map(tuple), [
-      ['slash', 'Slash', 1, []],
-      ['hairball', 'Hairball', 0, ['slowdown']],
-      ['screech', 'Screech', 0, ['confuse']]
+      ['slash', 'Slash', 1, [], AP1, [], [{ who: 'target', tok: 'hp', d: -1 }]],
+      ['hairball', 'Hairball', 0, ['slowdown'], AP1, [], []],
+      ['screech', 'Screech', 0, ['confuse'], AP1, [], []]
     ]);
     t.eq('mechs actions', d.mechs.actions.map(tuple), [
-      ['fly', 'Fly', 0, ['evade']],
-      ['lasers', 'Lasers', 3, ['range']],
-      ['recharge', 'Recharge', 0, ['shield']]
+      ['fly', 'Fly', 0, ['evade'], AP1, [], []],
+      ['lasers', 'Lasers', 3, ['range'], AP1, [], [{ who: 'target', tok: 'hp', d: -3 }]],
+      ['recharge', 'Recharge', 0, ['shield'], AP1, [], []]
     ]);
+
+    /* --- ACT-02 through ACT-04 on the shipped six. The table above is ONE row
+           for the whole board, which is what makes a drifted field name itself
+           in a diff; these name the individual facts a later plan is most
+           likely to adjust helpfully. Every bound is read from the exported
+           constant rather than re-typed, so a dial moved in [S01] moves its
+           assertion with it. --- */
+    function actionOf(side, id) {
+      return d[side].actions.filter(function (a) { return a.id === id; })[0];
+    }
+
+    t.eq('every shipped action spends one action point and needs nothing, '
+      + 'which is what the board already implied',
+      d.cats.actions.concat(d.mechs.actions).map(function (a) {
+        return [a.id, a.cost, a.req];
+      }),
+      App.data.ACTION_IDS.map(function (id) { return [id, AP1, []]; }));
+
+    t.eq('Lasers changes exactly one thing: the health of the unit acted on, '
+      + 'by minus three',
+      actionOf('mechs', 'lasers').xf,
+      [{ who: App.data.XF_WHO[1], tok: 'hp', d: -3 }]);
+
+    t.eq('and Slash changes the same one thing by minus one',
+      actionOf('cats', 'slash').xf,
+      [{ who: App.data.XF_WHO[1], tok: 'hp', d: -1 }]);
+
+    t.eq('the three actions that say what they do through a keyword change '
+      + 'nothing of their own -- Hairball, Screech and Fly carry Slowdown, '
+      + 'Confuse and Evade, and the table rules on those',
+      [actionOf('cats', 'hairball').xf, actionOf('cats', 'screech').xf,
+        actionOf('mechs', 'fly').xf],
+      [[], [], []]);
+
+    t.eq('Recharge\'s shield gain is ABSENT ON PURPOSE, and this row is where '
+      + 'that is written down: the shield KEYWORD carries the meaning and the '
+      + 'table rules on it, while writing the gain into the record would make '
+      + 'Recharge the one shipped action the projection has to admit it cannot '
+      + 'model -- on a board where the student has authored nothing at all. A '
+      + 'reader restoring it fails a check that explains itself',
+      actionOf('mechs', 'recharge').xf, []);
+
+    /* --- the caps and the allowlists, by NAME. A cap with no assertion is a
+           comment, and an allowlist a caller can push onto is not an allowlist
+           -- the same pair of sentences [S09.7] writes about the token
+           vocabulary, applied to the record that names it. --- */
+    t.eq('the cap on actions of a student\'s own is three per side (D-10)',
+      App.data.MAX_CUSTOM_ACTIONS, 3);
+    t.eq('a requirement list is capped at two terms', App.data.MAX_ACTION_REQ, 2);
+    t.eq('a transformation list is capped at two terms', App.data.MAX_ACTION_XF, 2);
+
+    t.eq('the who allowlist is exactly the acting unit and then the unit acted '
+      + 'on, in that order, because Phase 4 may encode the POSITION',
+      App.data.XF_WHO, ['caster', 'target']);
+    t.ok('and it is frozen', Object.isFrozen(App.data.XF_WHO));
+
+    t.ok('the shipped action id list is frozen too',
+      Object.isFrozen(App.data.ACTION_IDS));
+    t.eq('and it names exactly the six the board ships with, in board order',
+      App.data.ACTION_IDS,
+      d.cats.actions.concat(d.mechs.actions).map(function (a) { return a.id; }));
+
+    t.eq('the signed bound is symmetric -- the floor is the negation of the '
+      + 'ceiling, so one edit moves both',
+      App.data.MIN_XF_DELTA, -App.data.MAX_XF_DELTA);
+    t.eq('and its magnitude IS the allocation ceiling, written once and read '
+      + 'in both tiers rather than typed twice',
+      App.data.MAX_XF_DELTA, App.ops.MAX_ALLOC);
+
+    t.ok('the produced action-id pattern accepts a produced id and refuses a '
+      + 'token id, a shipped action id and every name reachable from a '
+      + 'prototype -- the width is narrow on purpose',
+      App.data.ACTION_ID_PATTERN.test('x1')
+        && App.data.ACTION_ID_PATTERN.test('x12')
+        && ['t1', 'slash', 'x100', '1x', 'x1\n', 'X1', '__proto__',
+          'constructor', 'prototype', 'toString', ''].every(function (bad) {
+          return App.data.ACTION_ID_PATTERN.test(bad) === false;
+        }));
+
+    /* --- Pitfall 5, and it is why this row is narrower than the walk below.
+           allIntegers answers TRUE for null, and a NaN written into a term
+           comes back from the JSON round trip AS null -- so a delta that was
+           NaN when it was written survives one commit as NaN and passes the
+           walk forever afterwards. Every value inside a term is checked for
+           what it is meant to BE. --- */
+    var termTrouble = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      d[side].actions.forEach(function (a) {
+        [['cost', 'n'], ['req', 'n'], ['xf', 'd']].forEach(function (pair) {
+          var list = a[pair[0]];
+          if (!Array.isArray(list)) {
+            termTrouble.push(a.id + '.' + pair[0] + ' is not an array');
+            return;
+          }
+          list.forEach(function (term, i) {
+            var at = a.id + '.' + pair[0] + '[' + i + ']';
+            if (typeof term.tok !== 'string' || term.tok === '') {
+              termTrouble.push(at + '.tok = ' + JSON.stringify(term.tok));
+            }
+            if (!Number.isInteger(term[pair[1]])) {
+              termTrouble.push(at + '.' + pair[1] + ' = '
+                + JSON.stringify(term[pair[1]]));
+            }
+            if (pair[0] === 'xf' && App.data.XF_WHO.indexOf(term.who) === -1) {
+              termTrouble.push(at + '.who = ' + JSON.stringify(term.who));
+            }
+          });
+        });
+      });
+    });
+    t.eq('every amount inside a shipped cost, requirement or transformation is '
+      + 'a whole number, every token key is a non-empty string, and every '
+      + 'transformation names somebody on the allowlist',
+      termTrouble.join(' | ') || 'none', 'none');
 
     var ids = d.cats.units.concat(d.mechs.units).map(function (u) { return u.id; });
     t.eq('unit ids unique', new Set(ids).size, 12);
@@ -6184,6 +6308,20 @@ App.selftest = (function () {
     // The label deliberately does not name a number: `tokens` arrived in
     // Phase 2 and Phase 4's codec work may well add another key.
     t.eq('the board has its build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+
+    /* --- and each SIDE has its own, which nothing asserted until this phase.
+           Four rows pinned Object.keys(build); none pinned Object.keys of a
+           faction, so a plan could add a key to a side and nothing objected --
+           measured, writing build.cats.proposal reddened nothing at all. This
+           phase grows the record it holds, so the growth should be loud: an
+           equality row rather than a shape row, because a faction is this
+           file's own structure and not something a shared link may extend. --- */
+    t.eq('and each faction holds exactly its documented keys',
+      ['cats', 'mechs'].map(function (side) {
+        return Object.keys(App.state.get().build[side]);
+      }),
+      [['id', 'name', 'ap', 'units', 'actions'],
+        ['id', 'name', 'ap', 'units', 'actions']]);
 
     /* --- shape --- */
     t.eq('three slices', Object.keys(App.state.get()), ['build', 'fight', 'ui']);
