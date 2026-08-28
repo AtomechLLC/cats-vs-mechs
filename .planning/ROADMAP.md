@@ -91,12 +91,24 @@ not exist yet. Recorded in both plans' frontmatter.
   3. A student-created token counts nothing on its own. It carries a per-unit or per-faction tally the student increments by hand — the tool tracks the number and never infers what it means.
   4. A student can remove a token type they created. The five built-in types (health, actions, shield, damage, dead) cannot be removed, because the rest of the board is bound to them.
   5. Creating a token type cannot corrupt the board: an id that collides with a built-in, or with a JavaScript object-prototype key, is refused by name with a message rather than silently accepted.
-**Plans**: 2 plans
+**Plans**: 6 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 02.1-01: Token records carry a name and an open id space — `[S01]` vocabulary, id-shape validation replacing the fixed `TOKEN_IDS` allowlist, `[S05]` create/rename/remove ops
-- [ ] 02.1-02: The authoring surface — name field, create and remove flows in the picker, and the board rendering student-created types
+- [ ] 02.1-01-PLAN.md — `[S01]` vocabulary (`name` on every record, `TOKEN_ID_PATTERN`, `RESERVED_KEYS`, `MAX_CUSTOM_TYPES`, `TOKEN_SCOPES`, the name cap) + the `[S05]` id and name guards + `setTokenStyle` rewired onto them + the `[S09.7]` suite frame (wave 1)
+- [ ] 02.1-02-PLAN.md — the five `[S05]` authoring ops: create, remove, rename, set and nudge a tally, with sparse nested tally storage and a row per reserved key per write shape (wave 2)
+- [ ] 02.1-03-PLAN.md — the board draws a student-made type: `labelFor` + the `[data-lbl]` sync pass, the `amountFor` scope branch, the builder loops, the zero-tally hide pass, `[C03]`, and the one deliberate `[S07.1]` edit (wave 3)
+- [ ] 02.1-04-PLAN.md — the picker becomes a list plus an editor: new `<dialog>` nodes and `[C07]` styles, the whole-vocabulary fingerprint replacing the four-field signature, `TOKEN_NAMES` deleted, `KNOWN_IDS` grown to match (wave 4)
+- [ ] 02.1-05-PLAN.md — one Tokens button and the flows behind it: the topbar collapse, `[S07.2]` select / create / remove / rename handlers, the dialog `cancel` listener, and the harness selectors and gate checks D-07's collapse invalidates (wave 5)
+- [ ] 02.1-06-PLAN.md — the closing rehearsal: the topbar collapse as its own numbered check per D-06, plus the four behaviours no Node stub can reach (wave 6, blocking human-verify checkpoint)
+
+**Plan-split note (set during planning):** ROADMAP originally named two work units and assigned
+section ownership between them. That ownership is preserved exactly — plans 02.1-01 and 02.1-02 are
+the `[S01]` + `[S05]` unit; plans 02.1-03 through 02.1-05 are the authoring-surface unit; 02.1-06 is
+the checkpoint split out on its own. The unit count grew from 2 to 6 because everything lands in one
+HTML file, so plans cannot run in parallel and each is instead capped at 2–3 tasks to stay inside a
+single context window. Waves are strictly sequential for the same reason: every plan modifies
+`cats-vs-mechs.html`, so no two share a wave.
 
 ### Phase 3: Advisory Projection & Reference Material
 **Goal**: A student can see what their allocation implies, stated in the fight's own unit with its arithmetic exposed and its blind spots named — and can read the counter map and effect cards without leaving the build
