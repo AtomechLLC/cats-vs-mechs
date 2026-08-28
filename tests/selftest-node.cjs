@@ -3215,6 +3215,201 @@ check(
     + ' hidden=' + (aeProposePane ? aeProposePane.hidden : '(no node)')
 );
 
+/* 66-66e. [S06.5] THE EDITOR REPAINT. These rows drive App.render.editor and
+   the per-frame hook DIRECTLY rather than through a control, because that is
+   what they are about: [S07.3]'s handlers get their own rows further down, and
+   a render row that went through a handler would go red for two unrelated
+   reasons at once. The dialog is opened with showModal() here for the same
+   reason — there is no press to make yet at this point in the file.
+
+   Everything below is put back before Layer C runs, because the harvest reads
+   the shipped board and a stray action of a student's own in it would move
+   every floor in the file. */
+const aeSaved = JSON.stringify(A.state.get());
+const aeList = dom.byId['act-edit-list'];
+const aeName = dom.byId['act-edit-name'];
+const aeNew = dom.byId['act-edit-new'];
+const aeRemove = dom.byId['act-edit-remove'];
+
+function aeOpen(side, actionId) {
+  if (aeDialog.open !== true) { aeDialog.showModal(); }
+  A.render.editor(A.state.get(), side, actionId);
+  A.state.flush();
+}
+function aeRowIds() {
+  return aeList.children.map((c) => c.dataset.edPick);
+}
+function aeRowNames() {
+  return aeList.children.map((c) => {
+    const n = c.querySelectorAll('.ae-item-name')[0];
+    return n ? n.textContent : '(no name node)';
+  });
+}
+const aeSigNow = () => aeDialog.dataset.edSig;
+
+/* 66. One row per action on the side, in board order, and the row names the
+   action by ID and never by the student's text — because data-ed-pick is what
+   [S07.3] reads back off a press and a name is a string a student can put a
+   selector metacharacter into. A create adds one row; a shipped action and an
+   authored one are the same row shape, which is D-07 on the page. */
+aeOpen('cats', 'slash');
+const aeIdsBefore = aeRowIds().join(',');
+const aeNamesBefore = aeRowNames().join(',');
+const aeShapesMatch = aeList.children
+  .every((c) => c.tagName === 'BUTTON' && c.className.indexOf('ae-item') !== -1);
+const aeMade = A.ops.createAction('cats', 'Pounce');
+A.state.flush();
+const aeIdsAfter = aeRowIds().join(',');
+const aeMechsRows = (() => { aeOpen('mechs', 'fly'); const r = aeRowIds().join(','); aeOpen('cats', aeMade); return r; })();
+check(
+  '66. the editor lists every action on the chosen side in board order, shipped '
+    + 'and authored in ONE list with no second tier, and each row names its '
+    + 'action by ID rather than by the words the student typed',
+  aeIdsBefore === 'slash,hairball,screech'
+    && aeNamesBefore === 'Slash,Hairball,Screech'
+    && aeShapesMatch === true
+    && aeIdsAfter === 'slash,hairball,screech,' + aeMade
+    && aeMechsRows === 'fly,lasers,recharge',
+  'cats rows before=' + JSON.stringify(aeIdsBefore)
+    + ' names=' + JSON.stringify(aeNamesBefore)
+    + ' every row a button carrying the row class=' + aeShapesMatch
+    + ' after a create=' + JSON.stringify(aeIdsAfter)
+    + ' mechs rows=' + JSON.stringify(aeMechsRows)
+);
+
+/* 66b. A rename reaches the row and the heading on the frame it happens, with
+   NO structural commit in between. renameAction is a PLAIN commit by plan
+   03.1-03's recorded decision, so structure() never runs for one — a surface
+   that only repainted on a structural frame would sit there showing the old
+   word until something unrelated forced a rebuild. That is the Damage bug
+   (e7f14ef) a third time, with a third record underneath it. */
+A.ops.renameAction('cats', aeMade, 'Prowl');
+A.state.flush();
+const aeRenamedRow = aeRowNames().join(',');
+const aeRenamedHead = dom.byId['act-edit-title'].textContent;
+check(
+  '66b. renaming an action moves its row and the editor heading on the frame '
+    + 'it happens, with no structural commit between the write and the read',
+  aeRenamedRow === 'Slash,Hairball,Screech,Prowl' && aeRenamedHead === 'Prowl',
+  'rows=' + JSON.stringify(aeRenamedRow) + ' heading=' + JSON.stringify(aeRenamedHead)
+);
+
+/* 66c. THE FINGERPRINT NAMES EVERY FIELD OF THE RECORD, all six of them, each
+   driven separately and each compared against the signature taken immediately
+   before it. Two of those fields the surface draws today; four are what the
+   reserved term rows exist to draw, and they are in the fingerprint now rather
+   than added by plan 03.1-06 beside the code that draws them — a fingerprint
+   widened in the same change as the thing it draws is a surface that was born
+   stale in every release before that change, which is the pre-02.1-04 defect
+   and then ACT-07's line, twice in two phases.
+
+   [S05] has no op that writes dmg, keywords, cost, req or xf, so those four are
+   driven through App.state.restore, which is [S09]'s documented writer and
+   exists for exactly this. */
+function aeFieldMoves(mutate) {
+  const before = aeSigNow();
+  const s = JSON.parse(JSON.stringify(A.state.get()));
+  const rec = s.build.cats.actions.filter((a) => a.id === aeMade)[0];
+  mutate(rec);
+  A.state.restore(JSON.stringify(s));
+  A.state.flush();
+  return aeSigNow() !== before;
+}
+const aeNameMoves = (() => {
+  const before = aeSigNow();
+  A.ops.renameAction('cats', aeMade, 'Lunge');
+  A.state.flush();
+  return aeSigNow() !== before;
+})();
+const aeDmgMoves = aeFieldMoves((r) => { r.dmg = 4; });
+const aeKwMoves = aeFieldMoves((r) => { r.keywords = ['range']; });
+const aeCostMoves = aeFieldMoves((r) => { r.cost = [{ tok: 'ap', n: 2 }]; });
+const aeReqMoves = aeFieldMoves((r) => { r.req = [{ tok: 'hp', n: 2 }]; });
+const aeXfMoves = aeFieldMoves((r) => { r.xf = [{ who: 'target', tok: 'hp', d: -2 }]; });
+check(
+  '66c. the fingerprint moves for every field of an action record — the name, '
+    + 'the damage, the keywords, the cost, a requirement and a transformation — '
+    + 'so a surface that draws any of them cannot be born stale. Each is driven '
+    + 'and read separately, because a fingerprint that misses exactly one field '
+    + 'passes any row that only checks that SOMETHING moves',
+  aeNameMoves && aeDmgMoves && aeKwMoves && aeCostMoves && aeReqMoves && aeXfMoves,
+  'name=' + aeNameMoves + ' dmg=' + aeDmgMoves + ' keywords=' + aeKwMoves
+    + ' cost=' + aeCostMoves + ' req=' + aeReqMoves + ' xf=' + aeXfMoves
+);
+
+/* 66d. The repaint never writes a focused field, and the list keeps its scroll
+   offset across a rebuild. Both are D-19 applied to this surface: the dialog
+   rides SYNC_HOOKS, so it repaints on every frame while it is open, and a
+   student halfway through typing a name must not be handed the old text back.
+   The scroll half is the same defect [C07]'s list had — every repaint empties
+   the box, which clamps the offset to zero, and selecting a row IS a repaint,
+   so a row pressed near the bottom went off the top. */
+aeName.focus();
+aeName.value = 'Half-typ';
+aeList.scrollTop = 84;
+A.ops.renameAction('cats', 'slash', 'Rake');
+A.state.flush();
+const aeFieldKept = aeName.value;
+const aeScrollKept = aeList.scrollTop;
+aeName.blur();
+A.ops.renameAction('cats', 'slash', 'Slash');
+A.state.flush();
+check(
+  '66d. a repaint raised from outside leaves a FOCUSED name field untouched '
+    + 'and puts the list back at the offset it was scrolled to — a student '
+    + 'halfway through a word is not handed the old one back, and a row near '
+    + 'the bottom does not jump off the top',
+  aeFieldKept === 'Half-typ' && aeScrollKept === 84
+    && aeRowNames()[0] === 'Slash',
+  'field read ' + JSON.stringify(aeFieldKept) + ' (was typed as "Half-typ")'
+    + ' scroll offset=' + aeScrollKept + ' (was 84)'
+    + ' first row now=' + JSON.stringify(aeRowNames()[0])
+);
+
+/* 66e. THE TWO BOUNDS, RE-DECIDED FROM STATE ON EVERY REPAINT. Remove is shut
+   for a shipped action, because the reference band names those six by id and a
+   removed one would leave the band naming nothing (plan 03.1-03's recorded
+   decision). New is shut at MAX_CUSTOM_ACTIONS. Both are bounds on what the
+   TOOL may do, never rulings on what the STUDENT may do — the distinction
+   [S02]'s affordability comment draws.
+
+   The undo is the half that matters. A surface that toggled these when
+   something was pressed would leave New disabled forever after a create was
+   undone, because nothing pressed anything to turn it back on. */
+aeOpen('cats', 'slash');
+const aeRemoveOnShipped = aeRemove.disabled;
+aeOpen('cats', aeMade);
+const aeRemoveOnOwn = aeRemove.disabled;
+const aeNewBelowCap = aeNew.disabled;
+while (A.state.get().build.cats.actions
+  .filter((a) => A.data.ACTION_IDS.indexOf(a.id) === -1).length
+  < A.data.MAX_CUSTOM_ACTIONS) {
+  A.ops.createAction('cats', 'Filler');
+}
+A.state.flush();
+const aeNewAtCap = aeNew.disabled;
+A.ops.undo();
+A.state.flush();
+const aeNewAfterUndo = aeNew.disabled;
+check(
+  '66e. Remove is shut for one of the six the board ships with and open for an '
+    + 'action the student made; New is shut at MAX_CUSTOM_ACTIONS and open '
+    + 'below it; and BOTH are re-decided from state on every repaint, so an '
+    + 'undo moves them — a surface that toggled them on a press would leave New '
+    + 'shut forever after the create that shut it was taken back',
+  aeRemoveOnShipped === true && aeRemoveOnOwn === false
+    && aeNewBelowCap === false && aeNewAtCap === true && aeNewAfterUndo === false,
+  'Remove on a shipped action disabled=' + aeRemoveOnShipped
+    + ' on an authored one disabled=' + aeRemoveOnOwn
+    + ' New below the cap disabled=' + aeNewBelowCap
+    + ' at the cap disabled=' + aeNewAtCap
+    + ' after undoing the create that reached it=' + aeNewAfterUndo
+);
+
+if (aeDialog.open === true) { aeDialog.close(); }
+A.state.restore(aeSaved);
+A.state.flush();
+
 /* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
        Layers A and B, up at the top of this file, read the SOURCE. This one
        reads the PAGE, for two reasons. The roadmap's criterion is written about

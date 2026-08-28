@@ -5583,6 +5583,347 @@ App.render = (function () {
   SYNC_HOOKS.push(syncReference);
   // #endregion [S06.4] RENDER — REFERENCE
 
+  /* ===================== [S06.5] RENDER — ACTION EDITOR =================
+   * The action-authoring surface (ACT-01), appended as its own sub-region for
+   * the mechanical reason [S06.2] and [S06.3] both state: it reconciles
+   * through SYNC_HOOKS, SYNC_HOOKS is a closure variable of this IIFE, and it
+   * paints a different page region on a different trigger. It changes NOTHING
+   * in [S06.1], [S06.2], [S06.3] or [S06.4].
+   *
+   * IT IS [S06.2] TWICE OVER, and that is deliberate rather than lazy. The
+   * picker is a LIST PLUS AN EDITOR: every type on the board is a row, a
+   * student's invention and one of the five the board is built on alike, and
+   * the row that is live decides what the editor below it shows. An action
+   * surface is the same object with a different record in it (D-07 — a shipped
+   * action and a student's action are the same kind of thing), so the
+   * structure is copied end to end rather than reinvented, down to the two
+   * dataset attributes and the self-healing fallback.
+   *
+   * IT REUSES [S06.1]'s HELPERS — el, text, setData, withPreservedFocus — and
+   * [S06.1]'s readers — refActions and actionNameFor — for the reason [S06.2]
+   * gives about its own: a name on a row and a name on a card must come from
+   * the same place or they will drift the first time one is changed, and a
+   * second parallel builder is exactly how they drift.
+   *
+   * ONE THING IS GENUINELY NEW HERE, and it is why the dataset carries three
+   * attributes rather than two: this surface is PER SIDE. nextActionId numbers
+   * each side's own list, so `x1` on the Cats and `x1` on the Mechs are two
+   * different actions with one id, and an editor that knew only which action it
+   * was showing would paint one column's rule into the other's the moment a
+   * student authored a first action on each.
+   *
+   * WHAT THIS REGION DOES NOT DO: it does not propose, apply or resolve
+   * anything. The reserved term rows in the shell are not written here; the
+   * proposal pane is not written here; no transformation is applied anywhere
+   * (D-05b — a declared action lands on Advance, in Phase 5). This region draws
+   * a list and an editor over a rule's DEFINITION, and stops.
+   * deps: App.data, App.ops, [S06.1]'s helpers and readers
+   * owner: plan 03.1-05
+   * ===================================================================== */
+  // #region [S06.5] RENDER — ACTION EDITOR
+
+  // The two sides, named once. [S05] has a list of its own for the same job and
+  // this is not a second copy of a decision — it is the same two ids spelled in
+  // a tier that may not reach across into another section's private variable,
+  // which is the rule the whole file keeps about capturing at section-body
+  // scope. Three sites here need to iterate them and one needs to fall back to
+  // one of them, and a fourth literal pair is how the fallback ends up naming a
+  // side the loop does not visit.
+  var SIDE_IDS = ['cats', 'mechs'];
+
+  // The six the board ships with cannot be removed, and the reason is [S05]'s:
+  // the reference band's relationship records name them BY ID, so a removed one
+  // would leave the band naming nothing. A shipped action CAN be renamed and
+  // re-costed. Asked in one place because the enable pass and any later reader
+  // are asking the same question, which is the shape isShippedType already has.
+  function isShippedAction(actionId) {
+    return App.data.ACTION_IDS.indexOf(actionId) !== -1;
+  }
+
+  // The actions on a side that the student made. It is the count the cap is
+  // read against and it is derived, never stored, for the reason nothing
+  // derived is stored anywhere in this file.
+  function ownActions(state, side) {
+    return refActions(state, side).filter(function (a) {
+      return !isShippedAction(a.id);
+    });
+  }
+
+  // D-07's list row, built with pickerListRow's idiom and for the same three
+  // reasons: it is a real <button> carrying the same data-act the board's
+  // controls carry, so [S07.3] routes it through one delegated listener and
+  // there is still no second mutation entry point in the file; SHIPPED AND
+  // AUTHORED ACTIONS RENDER IDENTICALLY, because they are the same kind of
+  // thing and a second tier here would rebuild exactly the special case one
+  // list exists to delete; and data-ed-pick names the ACTION ID and never the
+  // name, so a string a student typed never has to survive a round trip
+  // through a CSS attribute selector during focus restore.
+  //
+  // The live row is marked by an outline AND a tick, which is [C07]'s idiom
+  // restated in [C12] — said once in the class and once in the aria-pressed
+  // state, never in colour alone.
+  //
+  // THE NAME NODE CARRIES THE ACTION-NAME MARKER, AND IT IS AN EXEMPTION AND
+  // NOTHING ELSE. [S06.1]'s per-frame pass queries `board` — the region inside
+  // #app — so this attribute on a node that lives in the dialog appoints no
+  // second writer: the row is rebuilt whole on every repaint and that rebuild
+  // stays the only thing that writes here. What the attribute does do is name
+  // the CHANNEL. The rendered-page walk in tests/selftest-node.cjs reads the
+  // dialogs as well as #app, and it skips the text of any node carrying this
+  // key, because that text is a word the student typed rather than a word this
+  // file says. Without the marker, a student who names an action after a
+  // comparative word would redden CI — the exact outcome the walk's own
+  // preamble rules out. The value is the action id and the side sits beside it,
+  // which is what this key already means at every other site in the file.
+  function editorListRow(side, selectedId, action) {
+    var on = (action.id === selectedId);
+
+    var b = el('button', 'ae-item' + (on ? ' ae-item--on' : ''));
+    b.type = 'button';
+    setData(b, {
+      act: 'selectAction',
+      edSide: side,
+      edPick: action.id,
+      k: 'ae/list/' + side + '/' + action.id
+    });
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+
+    var nameNode = text('span', 'ae-item-name', action.name);
+    setData(nameNode, { anm: action.id, aside: side });
+    b.appendChild(nameNode);
+
+    b.appendChild(text('span', 'ae-check', '✓'));
+    return b;
+  }
+
+  // EVERY action on the side, in board order, shipped and authored together.
+  // The order is the list's own order, which is the order the cards appear in
+  // that faction's column, so a student reading down this list and a student
+  // reading down the column are reading the same sequence.
+  //
+  // The offset is saved and put back for the reason fillList gives one region
+  // up, and it has to be done HERE rather than left to withPreservedFocus: the
+  // container that helper preserves is the dialog, and this box scrolls inside
+  // it. [C12] caps the height and lets it scroll, every repaint empties it —
+  // which clamps the offset to zero — and selecting a row IS a repaint, because
+  // the selection is in the fingerprint. Put back AFTER the new content exists,
+  // because an offset set against an empty box is an offset set against
+  // nothing.
+  function fillActionList(list, state, side, selectedId) {
+    if (!list) { return; }
+    var scrolled = list.scrollTop;
+    list.replaceChildren();
+    refActions(state, side).forEach(function (action) {
+      list.appendChild(editorListRow(side, selectedId, action));
+    });
+    list.scrollTop = scrolled;
+  }
+
+  // THE REPAINT GATE, and it fingerprints everything this surface draws.
+  //
+  // JSON.stringify of an ARRAY, never a joined string, for the reason
+  // pickerSig states at length: a name is text a student types, so any
+  // delimiter is a character they can enter, and a joined fingerprint can be
+  // made to report "nothing changed" for a change. Every name goes into a slot
+  // of its own and JSON.stringify escapes it there.
+  //
+  // THE HEAD IS THE SIDE AND THE SELECTION, because both change what is drawn
+  // without changing a single record: choosing the other faction replaces every
+  // row, and choosing another action moves the tick and the heading.
+  //
+  // THE TAIL IS THE WHOLE RECORD OF EVERY ACTION ON THE SIDE — id, name,
+  // damage, keywords, cost, requirements and transformations. The first two are
+  // what the list and the heading draw today. The last five are what the
+  // reserved term rows in the shell exist to draw, and they are in the
+  // fingerprint NOW rather than added by plan 03.1-06 alongside the code that
+  // draws them, because a surface whose fingerprint is widened in the same
+  // change as the thing it draws is a surface that was born stale in every
+  // release before that change — which is the pre-02.1-04 defect and then
+  // ACT-07's line beside Remove, twice in two phases.
+  //
+  // That is a departure from what plan 03.1-04 concluded about pickerSig, and
+  // it is a departure rather than a contradiction. That fingerprint was cut
+  // back to the drawn STRING because the record behind it moved for changes the
+  // line can never show — an action naming a type the picker is not open on.
+  // Here every field named is a field of an action THIS surface is listing, and
+  // the rows to draw it into are already in the shell. The cost is one repaint
+  // that touches no node, on an edit no surface in this phase can make.
+  function editorSig(state, side, actionId) {
+    return JSON.stringify([side, actionId, refActions(state, side).map(function (a) {
+      return [a.id, a.name, a.dmg, a.keywords, a.cost, a.req, a.xf];
+    })]);
+  }
+
+  function setEditorEnabled(id, on) {
+    var node = document.getElementById(id);
+    if (node) { node.disabled = !on; }
+  }
+
+  // The one entry point, and the two arguments are deliberate for the reason
+  // picker()'s one argument is: WHICH side and WHICH action the editor is
+  // showing is transient interaction state, so it is held in the dialog's own
+  // dataset and passed in rather than added to the `ui` slice, whose exact key
+  // set [S09.3] asserts.
+  function editor(state, side, actionId) {
+    if (typeof document === 'undefined') { return; }
+    var dlg = document.getElementById('act-edit');
+    if (!dlg) { return; }
+    if (side !== 'cats' && side !== 'mechs') { return; }
+
+    // The existence test the rest of the file uses, rather than a membership
+    // test against the six the board ships with: a membership test would have
+    // handed a student who opened an action of their own the Slash editor and
+    // told them nothing about it. An id that names nothing on this side paints
+    // no editor at all rather than painting the wrong one, which is the same
+    // refusal `if (!dlg)` above makes.
+    var list = refActions(state, side);
+    var live = list.find(function (a) { return a.id === actionId; });
+    if (live === undefined) { return; }
+
+    var sig = editorSig(state, side, actionId);
+    if (dlg.dataset.edSig === sig) { return; }
+
+    // A repaint rebuilds every row, which destroys the node the keyboard was
+    // on, so it goes through the board's own focus contract — the row data-k is
+    // what it lands back on.
+    withPreservedFocus(dlg, function () {
+      // The heading is this surface's student-word node, and it takes the same
+      // marker the list rows take, for the same reason and with the same value:
+      // the walk skips this key, [S06.1]'s pass never reaches inside a dialog,
+      // and the pair names an action AND its side. Written on every repaint
+      // beside the text it exempts, so the two cannot drift onto different
+      // actions.
+      var heading = document.getElementById('act-edit-title');
+      if (heading) {
+        heading.textContent = live.name;
+        setData(heading, { anm: live.id, aside: side });
+      }
+
+      // The two side buttons. The faction name is read from the build slice
+      // per frame, on the same rule everything else on this surface follows,
+      // and it carries NO exemption marker — deliberately, because no op in
+      // this file renames a faction, so it is a word the ARTIFACT says. It is
+      // the same treatment [S06.1] gives the faction head it paints on the
+      // board, and the day a rename op exists is the day both need the marker,
+      // not one of them.
+      SIDE_IDS.forEach(function (each) {
+        var btn = document.getElementById('act-edit-side-' + each);
+        if (!btn) { return; }
+        var on = (each === side);
+        btn.className = 'ae-side' + (on ? ' ae-side--on' : '');
+        btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+        var nameNode = btn.querySelector('.ae-side-name');
+        if (nameNode) { nameNode.textContent = state.build[each].name; }
+      });
+
+      fillActionList(document.getElementById('act-edit-list'), state, side, actionId);
+
+      // NOT rebuilt, and never written while it holds focus. This is setValue's
+      // rule (D-19) applied to text instead of a figure, and it is the whole
+      // reason the field is static markup: the dialog rides SYNC_HOOKS, so it
+      // repaints on every frame while it is open, and a student halfway through
+      // typing "Pounce" must not be handed "Pou" back — or "Slash".
+      //
+      // dataset.was moves with the displayed text for the reason showFieldValue
+      // gives: it is what a revert puts back, so left stale it would restore a
+      // name state no longer holds.
+      var nameField = document.getElementById('act-edit-name');
+      if (nameField && nameField !== document.activeElement) {
+        nameField.value = live.name;
+        nameField.dataset.was = nameField.value;
+      }
+
+      // A bound the student can see coming is a disabled button, not an error
+      // panel they have to read their way out of. Both are BOUNDS ON WHAT THE
+      // TOOL MAY DO, never rulings on what the student may do — the distinction
+      // [S02]'s affordability comment draws, and the same one [S06.2]'s enable
+      // pass keeps one region up. Both are re-decided from state on every
+      // repaint rather than toggled by whoever last pressed something, so an
+      // undo moves them too.
+      setEditorEnabled('act-edit-remove', !isShippedAction(actionId));
+      setEditorEnabled('act-edit-new',
+        ownActions(state, side).length < App.data.MAX_CUSTOM_ACTIONS);
+    });
+
+    // THREE attributes, written together, because they answer three questions
+    // and nothing here answers two of them at once.
+    //   data-ed-side  is WHICH faction the editor is showing. It is an
+    //                 attribute of its own rather than the head of a joined
+    //                 string, for the reason [S06.2] records about the shape it
+    //                 replaced: recovering an id by splitting a signature on
+    //                 its delimiter parses a selector-bound id back out of text
+    //                 a student can type.
+    //   data-ed-pick  is WHICH action on that side. Both are needed because an
+    //                 authored id is unique only WITHIN its side.
+    //   data-ed-sig   is WHETHER anything drawn here has moved since the last
+    //                 frame, and nothing ever reads a value out of it.
+    // data-ed-pane, written in the shell and owned by this region, is a fourth
+    // and answers a fourth: WHICH PANE is showing. Plan 03.1-07 moves it; this
+    // plan ships one pane and never touches it.
+    dlg.dataset.edSide = side;
+    dlg.dataset.edPick = actionId;
+    dlg.dataset.edSig = sig;
+  }
+
+  // The per-frame half, attached to [S06.1]'s seam in syncPicker's exact shape
+  // and for its exact reason: an editor that repainted only from its own
+  // handlers would keep asserting a value the board no longer held after any
+  // OTHER commit — a Ctrl+Z taken with the dialog open being the reproduction
+  // one region up, where it was wrong for exactly as long as the student was
+  // using the surface.
+  //
+  // Which side and which action are open are read out of the attributes editor()
+  // itself wrote, rather than reaching across into [S07.3]'s private state:
+  // [S06] owns those attributes, so this stays one tier reading its own
+  // bookkeeping.
+  //
+  // A SELECTION NAMING NOTHING IS A REASON TO REPAINT ONTO SOMETHING LIVE,
+  // NEVER A REASON TO STOP PAINTING. Returning would leave the whole editor up
+  // for an action that has gone: a ghost row in the list, its name in the
+  // heading and in the field, and Remove still enabled — and the next press
+  // would put the styled error panel in front of the student. Two paths reach
+  // it, undoing a create and resetToDefaults with the editor open, and the undo
+  // one does not self-heal because the dialog stays up.
+  //
+  // WHICH ACTION IS CHOSEN WHEN THE SELECTION NAMES NOTHING: the FIRST action
+  // on the side, which on every board this file can produce is one of the three
+  // that side ships with. The fallback is the first LIVE entry rather than a
+  // constant borrowed from [S07.3], for the reason this whole hook is written
+  // the way it is — it reads its own bookkeeping and the list it is drawing,
+  // and nothing else. A side that somehow holds no action at all paints
+  // nothing, because there is nothing to paint.
+  //
+  // A SIDE naming nothing falls back the same way, to the first of the two the
+  // board has. That is unreachable from this plan's own surface — the two side
+  // buttons are static and carry the two ids — and it is here because the
+  // attribute is a string on a DOM node, which is a thing a later plan, a
+  // pasted board or a hand-edited page can make say anything.
+  function syncEditor(state) {
+    var dlg = document.getElementById('act-edit');
+    if (!dlg || dlg.open !== true) { return; }
+
+    var side = String(dlg.dataset.edSide || '');
+    if (SIDE_IDS.indexOf(side) === -1) {
+      side = SIDE_IDS[0];
+      dlg.dataset.edSide = side;
+    }
+
+    var list = refActions(state, side);
+    if (list.length === 0) { return; }
+
+    var id = String(dlg.dataset.edPick || '');
+    var found = list.some(function (a) { return a.id === id; });
+    if (!found) {
+      id = list[0].id;
+      dlg.dataset.edPick = id;
+    }
+
+    editor(state, side, id);
+  }
+
+  SYNC_HOOKS.push(syncEditor);
+  // #endregion [S06.5] RENDER — ACTION EDITOR
+
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
   // units goes through its commitStructural helper -- and hiding
@@ -5592,6 +5933,12 @@ App.render = (function () {
     structure: structure,
     sync: sync,
     picker: picker,
+    // Exported for exactly the reason picker() is, and to exactly one caller:
+    // [S07.3]'s handlers, which move the selection and then ask for the surface
+    // to be repainted onto it. A press that changed the attribute and waited
+    // for the next frame would leave the tick and the heading a frame behind
+    // the student's own click.
+    editor: editor,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the
