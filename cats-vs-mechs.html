@@ -2611,7 +2611,7 @@ App.render = (function () {
     // per-action cards are Phase 3's. The label is the plain word, never a
     // score, a grade or a judgement.
     head.appendChild(statLine('brd-label', 'Damage',
-      readout('dmg', side), tokenRow('dmg', side, null)));
+      readout('dmg', side), tokenRow('dmg', side, null), 'dmg'));
 
     head.appendChild(statLine('brd-label', 'Total health', readout('ehp', side), null));
     return head;
@@ -6316,6 +6316,38 @@ App.selftest = (function () {
 
       App.ops.renameTokenType('hp', 'Health');
       App.state.flush();
+
+      /* --- ALLOC-10 regression. Every BUILT-IN type has to name itself
+             through the label key, not only the three that carry a stepper.
+             Damage shipped with a literal because its line shows a derivation
+             rather than a tally, so it was the one built-in whose label the
+             sync pass could not reach: state renamed and the board did not
+             follow. Found by a student renaming Damage and watching nothing
+             happen. This walks every built-in so a fourth exception cannot be
+             added quietly. --- */
+      (function () {
+        var builtIns = ['hp', 'ap', 'shield', 'dmg'];
+        var unreached = builtIns.filter(function (id) {
+          return document.querySelectorAll('[data-lbl="' + id + '"]').length === 0;
+        });
+        t.eq('every built-in type names itself through the label key, Damage '
+          + 'included -- a literal here is a label a rename cannot move',
+          unreached.join(',') || 'none', 'none');
+      }());
+
+      App.ops.renameTokenType('dmg', 'Wallop');
+      App.state.flush();
+      t.ok('renaming Damage moves every one of its labels on the board',
+        (function () {
+          var live = document.querySelectorAll('[data-lbl="dmg"]');
+          return live.length === 2
+            && Array.prototype.every.call(live, function (n) {
+              return n.textContent === 'Wallop';
+            });
+        }()));
+      App.ops.renameTokenType('dmg', 'Damage');
+      App.state.flush();
+
 
       /* --- ALLOC-11, D-01 and D-02. A type a student made draws at the site
              its scope names and at no other: 'unit' puts a line on every unit
