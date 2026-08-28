@@ -1516,7 +1516,13 @@ App.model = (function () {
   function actionModelled(a) {
     if (!a.cost && !a.req && !a.xf) { return true; }
     if (actionApCost(a) === null) { return false; }
-    if (a.xf === undefined || a.xf === null) { return true; }
+    // A record that carries one of the three fields but no readable
+    // transformation list is NOT covered, and this line is deliberately not
+    // written as `(a.xf || [])`. Written that way it hands back true for a
+    // record with no list at all, which quietly does the first arm's job a
+    // second time — and an arm whose deletion changes nothing is an arm no
+    // probe can hold to account. There is exactly one place that decides a
+    // bare record is covered, and it is the line above.
     if (!Array.isArray(a.xf)) { return false; }
     return a.xf.every(function (x) {
       return !!x && x.who === 'target'
@@ -6474,6 +6480,68 @@ App.selftest = (function () {
     // Lowering the build pool mid-fight is legal; a negative readout is not.
     t.eq('apSpent never goes negative', App.model.apSpent({ ap: 1 }, { ap: 3 }), 0);
 
+    /* --- plan 03.1-02: the contracts underneath the generalised projection.
+           The arithmetic itself is asserted in [S09.8]; these rows pin what
+           each read does with a record, which is where a malformed one from a
+           pasted build code lands first. --- */
+
+    t.eq('an action with no cost costs the one point the board already implied',
+      App.model.actionApCost({ dmg: 1 }), 1);
+    t.eq('and a cost naming action points costs exactly what it says',
+      App.model.actionApCost({ cost: [{ tok: 'ap', n: 2 }] }), 2);
+    t.eq('every cost this derivation has no denominator for is refused ABOVE '
+      + 'the arithmetic rather than repaired below it: a cost in another '
+      + 'token, an empty list, two terms at once, a fraction, a zero, a '
+      + 'negative, and a term that is not a record at all',
+      [{ cost: [{ tok: 'hp', n: 2 }] },
+        { cost: [] },
+        { cost: [{ tok: 'ap', n: 1 }, { tok: 'hp', n: 1 }] },
+        { cost: [{ tok: 'ap', n: 1.5 }] },
+        { cost: [{ tok: 'ap', n: 0 }] },
+        { cost: [{ tok: 'ap', n: -1 }] },
+        { cost: [null] }].map(function (a) { return App.model.actionApCost(a); }),
+      [null, null, null, null, null, null, null]);
+
+    t.eq('a record with no transformation list falls back to the scalar the '
+      + 'board shipped with', App.model.actionDamage({ dmg: 3 }), 3);
+    t.eq('and a record with one reads the size of its negative target delta '
+      + 'on a token the damage list names, leaving out a caster delta, a '
+      + 'positive delta and a token the list does not name',
+      App.model.actionDamage({ dmg: 99, xf: [
+        { who: 'target', tok: 'hp', d: -3 },
+        { who: 'caster', tok: 'hp', d: -5 },
+        { who: 'target', tok: 'hp', d: 4 },
+        { who: 'target', tok: 'shield', d: -6 }
+      ] }), 3);
+
+    t.ok('the damage list is frozen and names exactly one token - the entry '
+      + 'that is NOT in it is the shield reading, written down beside it with '
+      + 'both measured outcomes',
+      Object.isFrozen(App.model.DAMAGE_KEYS)
+        && App.model.DAMAGE_KEYS.length === 1
+        && App.model.DAMAGE_KEYS[0] === 'hp');
+
+    t.eq('the hit and the per-turn come off ONE action, and the two older '
+      + 'reads are two views of that same pair',
+      [App.model.bestPair(d.mechs).hit, App.model.bestPair(d.mechs).perTurn,
+        App.model.bestDamage(d.mechs), App.model.factionDps(d.mechs)],
+      [3, 9, 3, 9]);
+
+    t.ok('and none of the new reads writes to the record it is handed',
+      (function () {
+        var a = {
+          id: 'x', name: 'X', dmg: 2, keywords: [],
+          cost: [{ tok: 'ap', n: 2 }], req: [{ tok: 'hp', n: 2 }],
+          xf: [{ who: 'target', tok: 'hp', d: -2 }]
+        };
+        var was = JSON.stringify(a);
+        App.model.actionApCost(a);
+        App.model.actionDamage(a);
+        App.model.actionModelled(a);
+        App.model.affordability(d.cats, a);
+        return JSON.stringify(a) === was;
+      })());
+
     t.ok('all derivations return integers', [
       App.model.unitEhp(d.cats.units[0]),
       App.model.factionEhp(d.cats),
@@ -8675,6 +8743,196 @@ App.selftest = (function () {
       + 'finite, whole, and not below zero', sweepUnprintable, 0);
     t.eq('and not one pair put the slow bound below the fast one',
       sweepInverted, 0);
+
+    /* --- plan 03.1-02. D-14 answered, and the nine scenarios research
+           measured turned into rows so this phase's decision is asserted
+           rather than described.
+
+           Every fixture below is a DETACHED deep copy from App.data.defaults(),
+           which is the idiom every row above already uses, so the live board is
+           never written to at all. That is not a shortcut: no op authors an
+           action until plan 03.1-03, and reaching into [S05] from here would
+           touch a region this plan does not own. One drive through a real op
+           follows at the end, bracketed, so the "reads its argument and never
+           the singleton" claim is held by something more than a comment. --- */
+
+    function authored(side, name, cost, xf) {
+      var b = App.data.defaults();
+      b[side].actions.push({
+        id: 'auth', name: name, dmg: 0, keywords: [],
+        cost: cost, req: [], xf: xf
+      });
+      return b;
+    }
+
+    var CATS_SHIPPED = { perTurn: 3, hit: 1, ehp: 27, soak: 27, fast: 9, slow: 9 };
+    var MECHS_SHIPPED = { perTurn: 9, hit: 3, ehp: 27, soak: 27, fast: 3, slow: 3 };
+
+    /* --- THE CONTROL, first, because everything below is a claim about a
+           board that moved and this is the claim that it did not. --- */
+    t.eq('THE CONTROL: the shipped board reads the same two figures it read '
+      + 'before actions became programmable, so a change to either of them is '
+      + 'a change somebody has to mean',
+      [App.model.turnsToWipe(d.cats, d.mechs), App.model.turnsToWipe(d.mechs, d.cats)],
+      [CATS_SHIPPED, MECHS_SHIPPED]);
+    t.eq('and the Damage token row on each faction head, which reads the same '
+      + 'derivation the strip does, is unmoved with it',
+      [App.model.bestDamage(d.cats), App.model.bestDamage(d.mechs)], [1, 3]);
+    t.eq('a board the student has not touched admits nothing at all',
+      [App.model.unmodelled(d.cats), App.model.unmodelled(d.mechs)], [[], []]);
+
+    /* --- The developer's own example: one point, target health minus three.
+           The cats triple their throughput and the read comes down. --- */
+    var pounce = App.data.defaults();
+    pounce.cats.actions.push({
+      id: 'pounce', name: 'Pounce', dmg: 0, keywords: [],
+      cost: [{ tok: 'ap', n: 1 }], req: [{ tok: 'hp', n: 2 }],
+      xf: [{ who: 'target', tok: 'hp', d: -3 }]
+    });
+    t.eq('a one-point action taking three health raises the cats per-turn to '
+      + 'nine and brings their read down to three turns, and admits nothing',
+      [App.model.turnsToWipe(pounce.cats, pounce.mechs), App.model.unmodelled(pounce.cats)],
+      [{ perTurn: 9, hit: 3, ehp: 27, soak: 27, fast: 3, slow: 3 }, []]);
+
+    /* --- The affordability denominator doing its work. A bigger hit that
+           costs more does NOT automatically win. --- */
+    var over = authored('mechs', 'Overcharge', [{ tok: 'ap', n: 2 }],
+      [{ who: 'target', tok: 'hp', d: -7 }]);
+    t.eq('a two-point action taking seven health does NOT become the pair '
+      + 'the projection reads, because one affordable use of seven falls '
+      + 'short of three uses of three - the cost is a denominator and not a '
+      + 'decoration',
+      [App.model.turnsToWipe(over.mechs, over.cats), App.model.unmodelled(over.mechs)],
+      [MECHS_SHIPPED, []]);
+
+    /* --- The projection getting LESS confident, which is the behaviour D-15
+           permits and the strongest single argument for this shape. A
+           twelve-damage hit on three-health Cats throws nine away per swing,
+           and the two bounds come apart. --- */
+    var barrage = authored('mechs', 'Barrage', [{ tok: 'ap', n: 3 }],
+      [{ who: 'target', tok: 'hp', d: -12 }]);
+    var barrageRead = App.model.turnsToWipe(barrage.mechs, barrage.cats);
+    t.eq('a three-point action taking twelve health becomes the pair the '
+      + 'projection reads, and opens a real range where there was a single '
+      + 'figure, because most of each swing is thrown away',
+      barrageRead,
+      { perTurn: 12, hit: 12, ehp: 27, soak: 108, fast: 3, slow: 9 });
+    t.ok('and the range it opens is a genuine one: the slow bound sits above '
+      + 'the fast one rather than beside it',
+      barrageRead.slow > barrageRead.fast);
+
+    /* --- The five the derivation cannot cover. Each is NAMED, each names
+           only itself, and none of them moves a figure. --- */
+    var rend = authored('cats', 'Rend', [{ tok: 'ap', n: 1 }],
+      [{ who: 'target', tok: 'shield', d: -2 }]);
+    t.eq('a shield strip is named rather than added in, because a shield pool '
+      + 'is bounded while this derivation assumes the action repeats without '
+      + 'limit - adding it in would report more throughput than the board can '
+      + 'deliver, the one direction PROJ-06 forbids',
+      [App.model.unmodelled(rend.cats), App.model.turnsToWipe(rend.cats, rend.mechs)],
+      [['Rend'], CATS_SHIPPED]);
+
+    var finish = authored('cats', 'Finish', [{ tok: 'ap', n: 1 }],
+      [{ who: 'target', tok: 'dead', d: 1 }]);
+    t.eq('a dead-marker increase is named, not read as damage',
+      [App.model.unmodelled(finish.cats), App.model.turnsToWipe(finish.cats, finish.mechs)],
+      [['Finish'], CATS_SHIPPED]);
+
+    var envenom = authored('cats', 'Envenom', [{ tok: 'ap', n: 1 }],
+      [{ who: 'target', tok: 't1', d: 1 }]);
+    t.eq('a token a student made themselves is named, because this file has '
+      + 'no idea what it is worth, and naming it is what D-16 asks for '
+      + 'instead of assuming a number',
+      [App.model.unmodelled(envenom.cats), App.model.turnsToWipe(envenom.cats, envenom.mechs)],
+      [['Envenom'], CATS_SHIPPED]);
+
+    var sacrifice = authored('mechs', 'Sacrifice', [{ tok: 'hp', n: 2 }],
+      [{ who: 'target', tok: 'hp', d: -6 }]);
+    t.eq('a cost paid in health is named, because there is no throughput '
+      + 'denominator for it, and its six damage never reaches the figures',
+      [App.model.unmodelled(sacrifice.mechs),
+        App.model.turnsToWipe(sacrifice.mechs, sacrifice.cats)],
+      [['Sacrifice'], MECHS_SHIPPED]);
+
+    var groom = authored('cats', 'Groom', [{ tok: 'ap', n: 1 }],
+      [{ who: 'caster', tok: 'hp', d: 2 }]);
+    t.eq('an action that heals its own caster is named, because this '
+      + 'derivation reads throughput against a target and nothing else',
+      [App.model.unmodelled(groom.cats), App.model.turnsToWipe(groom.cats, groom.mechs)],
+      [['Groom'], CATS_SHIPPED]);
+
+    /* --- The arm that keeps a quiet board quiet. --- */
+    t.eq('a record carrying none of the three new fields IS covered, and the '
+      + 'arm that says so is the ONLY place that decides it — write the '
+      + 'transformation walk over an empty stand-in list instead and the arm '
+      + 'can be deleted with nothing going red, which is an arm no probe can '
+      + 'hold to account',
+      [App.model.actionModelled({ id: 'x', name: 'X', dmg: 0, keywords: [] }),
+        App.model.unmodelled({
+          ap: 3, units: [], actions: [
+            { id: 'x', name: 'X', dmg: 0, keywords: [] },
+            { id: 'y', name: 'Y', dmg: 2, keywords: [] }
+          ]
+        })],
+      [true, []]);
+    /* --- And the fact that decides where that arm's reach actually is, which
+           the research measured against an older board: since plan 03.1-01 all
+           six shipped actions carry a cost, a requirement list AND a
+           transformation list, so the bare arm no longer covers any of them.
+           Its reach is a fixture written in the older shape, and a record that
+           reaches [S02] from a paste with fields dropped. The row above is
+           therefore written against a record built here rather than against
+           the board, and this row is why. --- */
+    t.ok('the six shipped actions are no longer bare records, so the arm above '
+      + 'reaches fixtures and pasted records rather than the board',
+      d.cats.actions.concat(d.mechs.actions).every(function (a) {
+        return !!a.cost && !!a.req && !!a.xf;
+      }));
+
+    /* --- ACT-06. A report, never a ruling. --- */
+    var report = App.model.affordability(d.cats, {
+      id: 'p', name: 'Pounce', dmg: 0, keywords: [],
+      cost: [{ tok: 'ap', n: 1 }], req: [{ tok: 'hp', n: 2 }],
+      xf: [{ who: 'target', tok: 'hp', d: -3 }]
+    });
+    function noProse(v) {
+      if (v === null || typeof v === 'number' || typeof v === 'boolean') { return true; }
+      if (typeof v === 'string') { return (/^[a-z][a-z0-9]*$/).test(v); }
+      if (Array.isArray(v)) { return v.every(noProse); }
+      if (typeof v === 'object') {
+        return Object.keys(v).every(function (k) { return noProse(v[k]); });
+      }
+      return false;
+    }
+    t.ok('the affordability report holds numbers and token ids and no prose '
+      + 'at all - walked rather than eyeballed, because [S02] produces no '
+      + 'sentence and the page owns how one is written', noProse(report));
+    t.eq('and it states an unmet requirement as two numbers to compare, with '
+      + 'no flag saying whether the action may happen: the tool never decides '
+      + 'that, and a consumer disabling a control on this report would be '
+      + 'ruling on a board the student rules',
+      [report.apCost, report.apHave, report.met, Object.keys(report)],
+      [1, 3, [{ tok: 'hp', need: 2, have: 27 }], ['apCost', 'apHave', 'met']]);
+    var broke = App.model.affordability(
+      (function () { var poor = App.data.defaults(); poor.cats.ap = 0; return poor.cats; })(),
+      { cost: [{ tok: 'ap', n: 2 }], req: [] });
+    t.eq('a side that cannot pay reads as a cost beside a holding, and the '
+      + 'comparison is left to the reader',
+      [broke.apCost, broke.apHave, broke.met], [2, 0, []]);
+
+    /* --- The one drive through a real op, bracketed the way [S09.3] brackets
+           its own. Every row above reads a detached copy, and a detached copy
+           cannot notice a derivation that quietly read the state singleton
+           instead of the slice it was handed. --- */
+    var savedForDrive = JSON.stringify(App.state.get());
+    App.ops.setFactionAp('cats', 1);
+    t.eq('lowering the pool through the shipped op lowers the throughput the '
+      + 'projection reads back off the live slice',
+      [App.model.factionDps(App.state.get().build.cats),
+        App.model.bestDamage(App.state.get().build.cats)], [1, 1]);
+    App.state.restore(savedForDrive);
+    t.eq('and the drive handed the board back untouched',
+      JSON.stringify(App.state.get()), savedForDrive);
 
     var snapshot = JSON.stringify(d.cats);
     App.model.soakTotal(d.cats, 3);
