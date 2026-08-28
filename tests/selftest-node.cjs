@@ -474,10 +474,22 @@ function makeStubDom() {
     'act-edit-xf-0', 'act-edit-xf-0-amt',
     'act-edit-xf-1', 'act-edit-xf-1-amt',
     'act-edit-done',
-    // The proposal pane. Reserved and empty on purpose (D-05b): nothing in plan
-    // 03.1-05 proposes, applies or resolves anything, and this stub builds the
-    // node with nothing inside it so that stays checkable rather than promised.
-    'act-edit-propose'
+    // plan 03.1-07 — the proposal pane, and the button on the authoring pane
+    // that switches to it. Reserved empty by plan 03.1-05 and filled here.
+    //
+    // Every static row inside it is built below for the reason the term rows
+    // are: they are static markup in the shell so a half-typed number survives
+    // the per-frame repaint, so they are static here too, and their COUNT is
+    // asserted against App.data.MAX_ACTION_XF rather than hand-written twice.
+    // The amount fields carry .ae-prop-amt and NOT .ae-amt — one class name is
+    // the whole distance between a field that proposes and a field that
+    // dispatches an op, and a typo here would be a green run over a pane
+    // nothing is listening to.
+    'act-edit-propose', 'act-edit-prop-open',
+    'act-edit-prop-title', 'act-edit-prop-refuse', 'act-edit-prop-says',
+    'act-edit-prop-caster-label', 'act-edit-prop-target-label',
+    'act-edit-prop-cost', 'act-edit-prop-reqs',
+    'act-edit-prop-rows', 'act-edit-prop-close'
   ];
 
   const byId = Object.create(null);
@@ -977,16 +989,109 @@ function makeStubDom() {
   aeTermRow('act-edit-xf-0', 'xf', 0, true);
   aeTermRow('act-edit-xf-1', 'xf', 1, true);
 
+  const aeActions = createElement('div');
+  authorPane.appendChild(aeActions);
+  // plan 03.1-07's pane switch. data-ap and NOT data-act: it is page work with
+  // no op behind it, and the proposal pane's own delegated listener is what
+  // reads it.
+  const aePropOpen = idNode('act-edit-prop-open', 'button');
+  aePropOpen.dataset.ap = 'open';
+  aePropOpen.dataset.k = 'ap/open';
+  aeActions.appendChild(aePropOpen);
   const aeDone = idNode('act-edit-done', 'button');
   aeDone.dataset.ae = 'done';
-  authorPane.appendChild(aeDone);
+  aeActions.appendChild(aeDone);
 
-  // Reserved, empty and hidden. Nothing goes in here until plan 03.1-07, and
-  // a check below reads that emptiness back rather than trusting this comment.
+  /* ---- plan 03.1-07's proposal pane (ACT-05's first half, ACT-06, ACT-07) --
+     Reserved empty by plan 03.1-05 and filled here, hand-made from the static
+     markup exactly as every block above it is.
+
+     EVERY CLASS IS COPIED FROM THE SHELL and two of them are load-bearing
+     rather than decorative. [S06.5] selects the transformation rows by
+     .ae-prop-row and the override row by .ae-prop-over, so the override row
+     must NOT wear the first of those or it would be filled as a fourth
+     transformation. And [S07.3]'s proposal block tells an amount field apart
+     by .ae-prop-amt, which is deliberately NOT .ae-amt: a field in here
+     wearing the authoring class would dispatch the very op this pane exists
+     not to send, and the whole of the nothing-lands check would be green over
+     a pane that writes. */
   const aePropose = idNode('act-edit-propose', 'section');
   aePropose.className = 'ae-pane';
   aePropose.hidden = true;
   editor.appendChild(aePropose);
+
+  aePropose.appendChild(idNode('act-edit-prop-title', 'h2'));
+
+  const aePropRefuse = idNode('act-edit-prop-refuse', 'p');
+  aePropRefuse.className = 'ae-prop-refuse';
+  aePropRefuse.hidden = true;
+  aePropose.appendChild(aePropRefuse);
+
+  const aePropSays = idNode('act-edit-prop-says', 'p');
+  aePropSays.className = 'ae-prop-says';
+  aePropose.appendChild(aePropSays);
+
+  [['caster', 'act-edit-prop-caster-label'],
+    ['target', 'act-edit-prop-target-label']].forEach(([kind, labelId]) => {
+    const group = createElement('div');
+    aePropose.appendChild(group);
+    group.appendChild(idNode(labelId, 'h3'));
+    const box = createElement('div');
+    box.className = 'ae-prop-picks ae-prop-' + kind;
+    group.appendChild(box);
+  });
+
+  const aePropCost = idNode('act-edit-prop-cost', 'p');
+  aePropCost.className = 'ae-prop-report';
+  aePropose.appendChild(aePropCost);
+  const aePropReqs = idNode('act-edit-prop-reqs');
+  aePropReqs.className = 'ae-prop-reports';
+  aePropose.appendChild(aePropReqs);
+
+  const aePropRows = idNode('act-edit-prop-rows');
+  aePropRows.className = 'ae-prop-rows';
+  aePropose.appendChild(aePropRows);
+
+  function aePropRow(slot) {
+    const row = createElement('div');
+    row.className = 'ae-prop-row';
+    row.hidden = true;
+    const lbl = createElement('span');
+    lbl.className = 'ae-prop-lbl';
+    row.appendChild(lbl);
+    const amt = createElement('input');
+    amt.type = 'text';
+    amt.className = 'ae-prop-amt';
+    amt.dataset.apSlot = String(slot);
+    amt.dataset.k = 'ap/amt/' + slot;
+    amt.setAttribute('aria-label', 'How much this change is');
+    row.appendChild(amt);
+    aePropRows.appendChild(row);
+    return row;
+  }
+  aePropRow(0);
+  aePropRow(1);
+
+  const aePropOver = createElement('div');
+  aePropOver.className = 'ae-prop-over';
+  aePropRows.appendChild(aePropOver);
+  ['ae-prop-who', 'ae-prop-toks'].forEach((cls) => {
+    const box = createElement('div');
+    box.className = cls;
+    aePropOver.appendChild(box);
+  });
+  const aePropOverAmt = createElement('input');
+  aePropOverAmt.type = 'text';
+  aePropOverAmt.className = 'ae-prop-amt';
+  aePropOverAmt.dataset.apSlot = 'over';
+  aePropOverAmt.dataset.k = 'ap/amt/over';
+  aePropOverAmt.setAttribute('aria-label', 'How much the added line is');
+  aePropOver.appendChild(aePropOverAmt);
+
+  const aePropClose = idNode('act-edit-prop-close', 'button');
+  aePropClose.dataset.ap = 'close';
+  aePropClose.dataset.k = 'ap/close';
+  aePropose.appendChild(aePropClose);
 
   doc.createElement = createElement;
   doc.getElementById = (id) => (KNOWN_IDS.indexOf(id) === -1 ? null : (byId[id] || null));
@@ -3231,28 +3336,43 @@ A.state.flush();
    real markup rather than out of the stub, because the stub is hand-written
    from the same source and asserting it against itself would assert nothing.
 
-   The proposal pane is read back EMPTY in the same row. It is reserved by this
-   plan and filled by plan 03.1-07 (D-05b), and "nothing in here yet" is a claim
-   worth holding mechanically rather than in a comment nobody re-reads. */
+   THE PROPOSAL PANE'S OWN ROWS ARE COUNTED IN THE SAME BREATH, and this half
+   is WIDENED by plan 03.1-07 rather than replaced. It used to read the pane
+   back EMPTY, which was the honest claim while the pane was reserved. The pane
+   is filled now, so the claim that carries the same weight is the one about
+   the COUNT: the shell reserves exactly MAX_ACTION_XF editable rows plus ONE
+   override row, and those two numbers live in the markup and in [S01] exactly
+   as the authoring rows' do. The pane is still hidden while the authoring pane
+   is showing, which is the other half of what the old row said. */
 const shellReqRows = (html.match(/id="act-edit-req-\d+"/g) || []).length;
 const shellXfRows = (html.match(/id="act-edit-xf-\d+"/g) || []).length;
+const shellPropRows = (html.match(/class="ae-prop-row"/g) || []).length;
+const shellPropOver = (html.match(/class="ae-prop-over"/g) || []).length;
 const aeDialog = dom.byId['act-edit'];
 const aeProposePane = dom.byId['act-edit-propose'];
+const stubPropRows = aeProposePane
+  ? aeProposePane.querySelectorAll('.ae-prop-row').length : -1;
+const stubPropOver = aeProposePane
+  ? aeProposePane.querySelectorAll('.ae-prop-over').length : -1;
 check(
-  '65. the shell reserves exactly MAX_ACTION_REQ requirement rows and '
-    + 'MAX_ACTION_XF transformation rows — the rows are static so a half-typed '
-    + 'number survives the per-frame repaint, which puts the count in the '
-    + 'markup AND in [S01], and a raised cap that reached only one of them '
-    + 'would leave a term a student can hold and cannot type. The proposal '
-    + 'pane is read back empty in the same breath, because plan 03.1-05 '
-    + 'reserves it and plan 03.1-07 fills it',
+  '65. the shell reserves exactly MAX_ACTION_REQ requirement rows, '
+    + 'MAX_ACTION_XF transformation rows and — on the proposal pane — '
+    + 'MAX_ACTION_XF editable rows plus exactly ONE override row. Every one of '
+    + 'them is static markup so a half-typed number survives the per-frame '
+    + 'repaint, which puts each count in the markup AND in [S01], and a raised '
+    + 'cap that reached only one of them would leave a term a student can hold '
+    + 'and cannot type. The proposal pane is hidden while the authoring pane '
+    + 'is showing, which is the half of this row that has been true since plan '
+    + '03.1-05 reserved the pane',
   shellReqRows === A.data.MAX_ACTION_REQ && shellXfRows === A.data.MAX_ACTION_XF
-    && aeProposePane !== null && aeProposePane.children.length === 0
-    && aeProposePane.hidden === true,
+    && shellPropRows === A.data.MAX_ACTION_XF && shellPropOver === 1
+    && stubPropRows === A.data.MAX_ACTION_XF && stubPropOver === 1
+    && aeProposePane !== null && aeProposePane.hidden === true,
   'requirement rows in the shell=' + shellReqRows + ' (cap ' + A.data.MAX_ACTION_REQ + ')'
     + ' transformation rows=' + shellXfRows + ' (cap ' + A.data.MAX_ACTION_XF + ')'
-    + ' proposal pane children=' + (aeProposePane ? aeProposePane.children.length : '(no node)')
-    + ' hidden=' + (aeProposePane ? aeProposePane.hidden : '(no node)')
+    + ' proposal rows in the shell=' + shellPropRows + ' override rows=' + shellPropOver
+    + ' proposal rows in the stub=' + stubPropRows + ' override rows=' + stubPropOver
+    + ' proposal pane hidden=' + (aeProposePane ? aeProposePane.hidden : '(no node)')
 );
 
 /* 66-66e. [S06.5] THE EDITOR REPAINT. These rows drive App.render.editor and
@@ -4712,6 +4832,330 @@ check(
       + 'with all ' + fullRowsShown.length + ' term rows shown and all '
       + fullAmountsShown.length + ' amounts filled'
     : fullHits.join(' | ')
+);
+
+/* --- 71-71e. plan 03.1-07's PROPOSAL PANE ------------------------------------
+
+   ACT-05's first half, ACT-06 and ACT-07. These rows drive App.render.editor
+   and the pane attribute DIRECTLY rather than through a control, for the
+   reason 66-66e give about the authoring pane: the handlers get their own rows
+   further down, and a render row that went through a handler would go red for
+   two unrelated reasons at once.
+
+   THE PANE IS WALKED EXPLICITLY RATHER THAN READ OFF textContent. The stub's
+   textContent is NOT recursive — it is whatever was assigned to that one node
+   — so a row that read the pane's own textContent would read the empty string
+   and pass over anything. Every assertion below concatenates the leaf text,
+   which is the same walk Layer C uses minus the exemption skip: here the
+   student's own words are exactly what is being asserted. */
+const apDlg = dom.byId['act-edit'];
+const apPane = dom.byId['act-edit-propose'];
+
+function paneText(node) {
+  const out = [];
+  (function walk(n) {
+    if (!n) { return; }
+    if (n.children.length === 0 && typeof n.textContent === 'string') {
+      out.push(n.textContent);
+    }
+    n.children.forEach(walk);
+  })(node);
+  return out.join('');
+}
+
+// Every control in the pane, keyed by its data-k so the reading survives the
+// chooser pills being rebuilt on every repaint. A raw node list would compare
+// object identity and go red for a repaint rather than for a disable.
+function disabledIn(root) {
+  const out = [];
+  ['button', 'input'].forEach((tag) => {
+    root.querySelectorAll(tag).forEach((n) => {
+      out.push(String(n.dataset.k || n.getAttribute('id') || '?')
+        + '=' + (n.disabled === true));
+    });
+  });
+  return out.sort().join('|');
+}
+
+function apShow(side, actionId) {
+  if (apDlg.open !== true) { apDlg.showModal(); }
+  apDlg.dataset.edPane = 'propose';
+  A.render.editor(A.state.get(), side, actionId);
+  A.state.flush();
+}
+function apHide() {
+  apDlg.dataset.edPane = 'author';
+  A.render.editor(A.state.get(), apDlg.dataset.edSide, apDlg.dataset.edPick);
+  A.state.flush();
+}
+function apRows() {
+  return apPane.querySelectorAll('.ae-prop-row').filter((r) => r.hidden === false);
+}
+function apAmounts() {
+  return apPane.querySelectorAll('.ae-prop-row')
+    .map((r) => (r.hidden ? null : r.querySelectorAll('.ae-prop-amt')[0].value))
+    .filter((v) => v !== null);
+}
+
+/* 71. THE DEVELOPER'S OWN EXAMPLE, PROPOSED. One action point, needs two
+   Health, target Health minus three — the exact action CONTEXT names as the
+   test this phase is built toward — read back off the pane as a restatement,
+   a cost line, a requirement line and one editable field pre-filled from the
+   record. */
+const apSaved = JSON.stringify(A.state.get());
+const apAct = A.ops.createAction('cats', 'Pounce');
+A.ops.setActionCost('cats', apAct, 'ap', 1);
+A.ops.setActionReq('cats', apAct, 0, 'hp', 2);
+A.ops.setActionXf('cats', apAct, 0, A.data.XF_WHO[1], 'hp', -3);
+A.state.flush();
+apShow('cats', apAct);
+
+// Read off the live board rather than written down here. The gate has driven
+// the roster and the pool by the time these rows run, and a hand-typed 27
+// would assert this file's memory of the shipped board instead of what the
+// report is reading.
+const apHave = A.state.get().build.cats.ap;
+const apHp = A.state.get().build.cats.units.reduce((n, u) => n + u.maxHp, 0);
+const apUnits = A.state.get().build.cats.units.length;
+
+const apSays = paneText(dom.byId['act-edit-prop-says']);
+const apCostLine = paneText(dom.byId['act-edit-prop-cost']);
+const apReqLine = paneText(dom.byId['act-edit-prop-reqs']);
+const apFields = apAmounts();
+const apTitle = paneText(dom.byId['act-edit-prop-title']);
+const apCasterPicks = apPane.querySelectorAll('[data-ap="caster"]').length;
+const apTargetPicks = apPane.querySelectorAll('[data-ap="target"]').length;
+const apChosen = apPane.querySelectorAll('[data-ap="target"]')
+  .filter((b) => b.className.indexOf('ae-prop-pill--on') !== -1)
+  .map((b) => b.dataset.apUnit).join(',');
+
+check(
+  '71. the proposal restates the student\'s own rule — the party, the token '
+    + 'and the SIGNED amount, in the terms the record holds — and reports what '
+    + 'the action costs against what the side has and what the requirement '
+    + 'needs against what is present. One editable field per transformation is '
+    + 'pre-filled from the record. This is the developer\'s own example, the '
+    + 'action CONTEXT names as the test the phase is built toward',
+  apSays === 'Your Pounce says: target Health -3, caster Action points -1'
+    && apCostLine === 'Pounce costs 1 Action points of ' + apHave + '. Enough to spend.'
+    && apReqLine === 'Pounce needs 2 Health of ' + apHp + '. Requirement met.'
+    && apFields.join(',') === '-3'
+    && apTitle === 'Pounce'
+    && apCasterPicks === apUnits
+    && apTargetPicks === apUnits + A.state.get().build.mechs.units.length
+    && apChosen === A.state.get().build.cats.units[0].id,
+  'says=' + JSON.stringify(apSays) + ' cost=' + JSON.stringify(apCostLine)
+    + ' req=' + JSON.stringify(apReqLine) + ' fields=' + JSON.stringify(apFields)
+    + ' title=' + JSON.stringify(apTitle)
+    + ' caster picks=' + apCasterPicks + ' target picks=' + apTargetPicks
+    + ' target chosen=' + JSON.stringify(apChosen)
+);
+
+/* 71b. THE NAMES ARE READ LIVE. A student who renames Health to Vigor must
+   read Vigor in the restatement, in the cost line, in the requirement line and
+   on the editable row's label, on the frame the rename lands — and the static
+   rows must NOT have been rebuilt underneath them, which is the whole reason
+   they are static markup. Node identity is compared before and after. */
+const apRowNodes = apPane.querySelectorAll('.ae-prop-row');
+const apRowWas = apRowNodes[0];
+const apAmtWas = apRowWas.querySelectorAll('.ae-prop-amt')[0];
+A.ops.renameTokenType('hp', 'Vigor');
+A.state.flush();
+const apSaysV = paneText(dom.byId['act-edit-prop-says']);
+const apReqV = paneText(dom.byId['act-edit-prop-reqs']);
+const apRowLblV = paneText(apRowWas.querySelectorAll('.ae-prop-lbl')[0]);
+const apSameNodes = apPane.querySelectorAll('.ae-prop-row')[0] === apRowWas
+  && apRowWas.querySelectorAll('.ae-prop-amt')[0] === apAmtWas;
+A.ops.renameTokenType('hp', 'Health');
+A.state.flush();
+
+check(
+  '71b. every token name on the proposal is read LIVE, so renaming Health to '
+    + 'Vigor moves the restatement, the requirement line and the editable '
+    + 'row\'s own label on the frame it lands — and the static row and the '
+    + 'field inside it are the SAME NODES afterwards, which is the whole '
+    + 'reason they are static markup rather than rebuilt',
+  apSaysV === 'Your Pounce says: target Vigor -3, caster Action points -1'
+    && apReqV === 'Pounce needs 2 Vigor of ' + apHp + '. Requirement met.'
+    && apRowLblV === 'target Vigor'
+    && apSameNodes === true,
+  'says=' + JSON.stringify(apSaysV) + ' req=' + JSON.stringify(apReqV)
+    + ' row label=' + JSON.stringify(apRowLblV)
+    + ' same nodes=' + apSameNodes
+);
+
+/* 71c. ACT-06, AND IT IS THE WHOLE OF IT. The report is a statement about what
+   the BOARD holds and never a ruling on what the STUDENT may do, so driving
+   the side to nothing to spend and the roster below a requirement must move
+   the NUMBERS and must not move one control's disabled state.
+
+   The full set is compared rather than the terminal control alone, keyed by
+   data-k so the chooser pills being rebuilt on every repaint does not read as
+   a change. A row that watched one button would be green over a pane that
+   disabled every other one. */
+A.ops.setActionReq('cats', apAct, 0, 'hp', 99);
+A.state.flush();
+const apDisabledWas = disabledIn(apPane);
+const apCostWas = paneText(dom.byId['act-edit-prop-cost']);
+const apReqWas = paneText(dom.byId['act-edit-prop-reqs']);
+
+A.ops.setFactionAp('cats', 0);
+A.state.flush();
+const apDisabledPoor = disabledIn(apPane);
+const apCostPoor = paneText(dom.byId['act-edit-prop-cost']);
+
+A.state.get().build.cats.units.forEach((u) => { A.ops.setUnitMaxHp('cats', u.id, 1); });
+A.state.flush();
+const apDisabledThin = disabledIn(apPane);
+const apReqThin = paneText(dom.byId['act-edit-prop-reqs']);
+
+check(
+  '71c. the affordability report rules on NOTHING. Driving the side to no '
+    + 'action points and every unit below the requirement moves the numbers on '
+    + 'the cost line and on the requirement line, and changes not one '
+    + 'control\'s disabled state anywhere on the pane. The tool never decides '
+    + 'whether an action happens — the picker\'s Remove IS disabled and that is '
+    + 'a bound on what the TOOL may do, which is a different thing entirely',
+  apCostWas === 'Pounce costs 1 Action points of ' + apHave + '. Enough to spend.'
+    && apCostPoor === 'Pounce costs 1 Action points of 0. Not enough to spend. Short by 1.'
+    && apReqWas === 'Pounce needs 99 Health of ' + apHp + '. Requirement not met.'
+    && apReqThin === 'Pounce needs 99 Health of ' + apUnits + '. Requirement not met.'
+    && apDisabledWas === apDisabledPoor && apDisabledWas === apDisabledThin
+    && apDisabledWas.indexOf('=true') === -1,
+  'cost before=' + JSON.stringify(apCostWas) + ' after=' + JSON.stringify(apCostPoor)
+    + ' req before=' + JSON.stringify(apReqWas) + ' after=' + JSON.stringify(apReqThin)
+    + ' disabled set before=' + JSON.stringify(apDisabledWas)
+    + ' with nothing to spend=' + JSON.stringify(apDisabledPoor)
+    + ' with the roster thinned=' + JSON.stringify(apDisabledThin)
+);
+
+/* 71d. ACT-07. A rule naming a token type that has GONE is refused by name and
+   never draws — not skipped, not fired with a missing term. The message names
+   the action by its LIVE name and the term by the ID it still carries, which
+   is deliberate: the type's record has gone, so asking labelFor for a name
+   would get the shipped health label back and print a name that is actively
+   wrong. */
+A.state.restore(apSaved);
+A.state.flush();
+const apGoneTok = A.ops.createTokenType({
+  name: 'Poison', shape: 'dia', color: 'violet', glyph: '', scope: 'unit'
+});
+const apGoneAct = A.ops.createAction('cats', 'Envenom');
+A.ops.setActionXf('cats', apGoneAct, 0, A.data.XF_WHO[1], apGoneTok, -2);
+A.ops.renameAction('cats', apGoneAct, 'Sting');
+A.state.flush();
+apShow('cats', apGoneAct);
+const apDrewBefore = apRows().length;
+A.ops.removeTokenType(apGoneTok);
+A.state.flush();
+const apRefuseNode = dom.byId['act-edit-prop-refuse'];
+const apRefuseText = paneText(apRefuseNode);
+const apDrewAfter = apRows().length;
+const apSaysAfter = paneText(dom.byId['act-edit-prop-says']);
+const apReportAfter = paneText(dom.byId['act-edit-prop-cost'])
+  + paneText(dom.byId['act-edit-prop-reqs']);
+
+check(
+  '71d. an action naming a token type that has since been removed is REFUSED '
+    + 'by name — the message names the action\'s live name and the term\'s ID, '
+    + 'and no proposal is drawn at all. The id rather than a name is the point: '
+    + 'the type\'s record has gone, so the label reader falls back to the '
+    + 'shipped health label for an id it cannot find and would print a name '
+    + 'that is actively wrong',
+  apDrewBefore === 1 && apDrewAfter === 0
+    && apRefuseNode.hidden === false
+    && apRefuseText === 'Cannot fire Sting. What it changes names ' + apGoneTok
+      + ', which is no longer a token type on this board. Nothing has changed.'
+    && apSaysAfter === '' && apReportAfter === '',
+  'rows before the removal=' + apDrewBefore + ' after=' + apDrewAfter
+    + ' refusal hidden=' + apRefuseNode.hidden
+    + ' refusal=' + JSON.stringify(apRefuseText)
+    + ' restatement after=' + JSON.stringify(apSaysAfter)
+    + ' report after=' + JSON.stringify(apReportAfter)
+);
+
+/* 71e. LAYER C OVER THE PROPOSAL PANE, and it is a row of its own rather than
+   a widening of 69g because it exercises a channel nothing else can reach.
+   Every line on this pane is ASSEMBLED at render time out of the artifact's
+   words and the student's — which is precisely what Layers A and B cannot see,
+   because not one of those sentences exists as a literal anywhere. The
+   dialog-wide harvest opens each root COLD, so it lands on the authoring pane
+   and reads none of this; the pane has to be opened here or the whole surface
+   is outside the only gate that could read it.
+
+   Driven over an action named after one comparative word and a token type
+   named after another, so the exemption on the assembled fragments is
+   exercised rather than asserted. */
+A.state.restore(apSaved);
+A.state.flush();
+const apCTok = A.ops.createTokenType({
+  name: 'Winner', shape: 'hex', color: 'coral', glyph: '', scope: 'unit'
+});
+const apCAct = A.ops.createAction('mechs', 'Superior');
+A.ops.setActionCost('mechs', apCAct, 'ap', 2);
+A.ops.setActionReq('mechs', apCAct, 0, apCTok, 1);
+A.ops.setActionXf('mechs', apCAct, 0, A.data.XF_WHO[1], 'hp', -4);
+A.ops.setActionXf('mechs', apCAct, 1, A.data.XF_WHO[0], apCTok, 3);
+A.state.flush();
+apShow('mechs', apCAct);
+const apCText = harvestInto(apPane, [], '#act-edit-propose');
+const apCHits = verdictHitsIn(apCText);
+const apCSays = paneText(dom.byId['act-edit-prop-says']);
+apHide();
+A.state.restore(apSaved);
+A.state.flush();
+clearPanel();
+
+// THE PROPOSAL PANE'S OWN FLOOR, kept apart from DIALOG_FLOOR for the reason
+// PICKER_FLOOR is kept apart from it: that number is over the TOTAL of every
+// root with each opened COLD, so it lands on the AUTHORING pane and reads none
+// of this. The proposal only exists once something inside the dialog has been
+// pressed, which is entry 13 on the closing list of what this gate cannot
+// reach — this row is that entry closed for one surface.
+//
+// MEASURED AT 60 on the board this row drives — a Mechs action carrying two
+// transformations and a cost, over a 9-and-3 roster and a vocabulary of seven
+// — and 23 is chosen by arithmetic rather than by taste. The arithmetic is the
+// per-pill worth, measured in the same run:
+//   a unit pill is worth EXACTLY 2, its name and its tick, because a unit's
+//     name carries no exemption — no op in this file renames one;
+//   a party pill is worth exactly 2, for the same reason;
+//   a token pill is worth exactly 1, the tick alone, because the type's name
+//     is a word the STUDENT typed and carries the exemption marker.
+// So the 3 caster and 12 target pills are worth 30 and the override row's 7
+// token pills are worth 7 — 37 of the 60 move with the roster or with the
+// vocabulary. The remaining 23 move with neither: the restatement's fragments,
+// the cost line's, the requirement line's, the two editable row labels, the
+// three aria-labels on the amount fields and the override row's two party
+// pills.
+//
+// 23 is therefore the exact reading of a pane whose unit choosers AND token
+// chooser went dark, which trips it — while the smallest board this file can
+// produce, one unit a side over the five shipped types that cannot be removed,
+// reads 23 + 6 + 5 = 34 and clears it. THE RULE FOR THE NEXT PLAN THAT ADDS A
+// LINE HERE: re-measure, and move this number by the roster-independent part
+// alone.
+const PROPOSE_FLOOR = 23;
+const apCTicks = apCText.filter((item) => item.s === '✓').length;
+console.log('scan: ' + apCText.length + ' rendered strings read from '
+  + '#act-edit-propose with the pane OPEN (Layer C, floor ' + PROPOSE_FLOOR
+  + '), of which ' + apCTicks + ' are chooser ticks');
+
+check(
+  '71e. every line the proposal pane paints is assembled at render time out of '
+    + 'the artifact\'s words and the student\'s, which is the one shape Layers '
+    + 'A and B cannot see — and the walk over the OPEN pane stays clean with '
+    + 'an action named after one comparative word and a token type named after '
+    + 'another. The harvest is floored, because a pane that never opened reads '
+    + 'spotlessly clean forever',
+  apCHits.length === 0 && apCText.length > PROPOSE_FLOOR
+    && apCSays === 'Your Superior says: target Health -4, caster Winner +3, '
+      + 'caster Action points -2',
+  apCHits.length === 0
+    ? 'clean across ' + apCText.length + ' strings harvested from the open '
+      + 'proposal pane (floor ' + PROPOSE_FLOOR + ', of which ' + apCTicks
+      + ' are chooser ticks); restatement=' + JSON.stringify(apCSays)
+    : apCHits.join(' | ')
 );
 
 /* --- 70-70b. THE RULE IS A RECORD, AND THAT IS NOW A CHECK -------------------

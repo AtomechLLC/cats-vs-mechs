@@ -789,10 +789,101 @@
   .ae-amt[hidden]{display:none}
 
   /* The proposal pane, reserved by plan 03.1-05 and filled by plan 03.1-07.
-     Empty and hidden, and the dialog's own data-ed-pane attribute is what will
-     swap the two — one dialog, two panes, for the three reasons the markup
-     comment on #act-edit sets out. */
+     The dialog's own data-ed-pane attribute is what swaps the two — one dialog,
+     two panes, for the three reasons the markup comment on #act-edit sets out.
+     [S06.5] writes .hidden on both panes from that attribute on every repaint,
+     rather than a [data-ed-pane] selector doing it in here, so the decision is
+     re-made from state and an undo moves it. */
   .ae-pane[hidden]{display:none}
+
+  /* THE PROPOSAL PANE'S OWN CLASSES (ACT-05, ACT-06, ACT-07 — plan 03.1-07).
+     Still .ae-, because this pane is part of the action editor and [C12]'s
+     opening note is about what the prefix MEANS; the second segment is what
+     tells the two panes apart. They are NOT the authoring pane's classes
+     reused, and that is deliberate rather than tidy: [S07.3] tells an
+     authoring amount field apart by .ae-amt and drives an op off it, so a
+     field in here wearing that class would dispatch the very write this whole
+     pane exists not to make. One class name is the entire distance between a
+     pane that proposes and a pane that applies. */
+
+  /* The restatement. It is the student's own rule read back, so it is sized
+     like something meant to be read aloud in a room rather than like a caption
+     — this is the line the whole pane exists to show. */
+  .ae-prop-says{margin:0 0 16px;font-size:19px;line-height:1.45;max-width:60ch}
+  /* The artifact's own words and the student's sit in separate nodes, for the
+     reason [S06.5] gives at the builder: a word a student typed must not be
+     read by the rendered-page walk. There is no visual difference between the
+     two — a student reading this line should not be able to tell which words
+     came from where — so this rule exists to say that the split is a GATE
+     concern and never a styling one. */
+  .ae-prop-said,.ae-prop-word{white-space:pre-wrap}
+
+  /* The report. ACT-06 in one place: what the action costs and what the side
+     has, and per requirement what is needed and what is present. NO colour
+     coding, and no rule anywhere in here keyed on whether the number is
+     enough — the same PROJ-06 stance [C10] holds for the projection, applied
+     to a report about a rule instead of to a figure about a board. A red line
+     here would be a ruling delivered in colour, which PROJ-06 forbids in every
+     medium and not only in words. */
+  .ae-prop-report{margin:0 0 8px;font-size:17px;line-height:1.4;max-width:60ch}
+  .ae-prop-reports{margin:0 0 18px}
+
+  /* The refusal (ACT-07). It takes .pk-warn's treatment rather than the error
+     panel's, for the reason plan 03.1-04's line beside Remove takes it: this
+     is the page telling a student what their own board says, not the artifact
+     reporting that something went wrong. */
+  .ae-prop-refuse{
+    margin:0 0 16px;font-size:17px;line-height:1.4;max-width:60ch;
+    color:var(--ink);
+    background:color-mix(in srgb, var(--ink-faint) 10%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:10px;padding:10px 12px;
+  }
+  .ae-prop-refuse[hidden]{display:none}
+
+  /* The caster and the target. Real buttons over the live rosters, in the same
+     outline-and-tick idiom every other chooser on this surface uses, because
+     "the live one" is said the same way everywhere in this file or it is said
+     twice. They WRAP: a roster can run to two dozen units and a horizontal
+     scroll is the one interaction a projector audience cannot follow. */
+  .ae-prop-picks{display:flex;flex-wrap:wrap;gap:6px}
+  .ae-prop-pill{
+    display:flex;align-items:center;gap:6px;
+    min-height:38px;padding:6px 11px;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:9px;color:var(--ink);
+    font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  .ae-prop-pill--on{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* One editable row per transformation, plus the override row. Same wrapping
+     rule .ae-term keeps and for the same measured reason. */
+  .ae-prop-rows{margin:0 0 18px;display:flex;flex-direction:column;gap:14px}
+  .ae-prop-row,.ae-prop-over{
+    display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:44px;
+  }
+  .ae-prop-row[hidden]{display:none}
+  .ae-prop-lbl{color:var(--ink-dim);font-size:16px}
+  .ae-prop-who,.ae-prop-toks{display:flex;flex-wrap:wrap;gap:6px}
+  .ae-prop-amt{
+    width:5.5ch;box-sizing:content-box;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:8px 10px;font:inherit;font-size:17px;
+    font-variant-numeric:tabular-nums;text-align:right;
+    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  }
+
+  /* The line that says nothing has landed. It is PERMANENT — no [hidden] rule
+     and no writer anywhere in [S06] — because the fact it states is permanent
+     in this phase, and a line that can be hidden is a line some later frame
+     hides. */
+  .ae-prop-nothing{
+    margin:0 0 16px;color:var(--ink-dim);font-size:16px;line-height:1.4;
+    max-width:60ch;
+  }
 </style>
 </head>
 <body>
@@ -1022,10 +1113,11 @@
      technique [S06.2] and [S07.2] both state for "which surface is showing
      what" — an attribute answering exactly one question, owned by [S06.5].
 
-     THE PROPOSAL PANE IS RESERVED AND EMPTY. Plan 03.1-07 fills it. Nothing in
-     plan 03.1-05 proposes, applies or resolves anything: this surface edits a
-     rule's DEFINITION and stops, which is the line this whole phase walks
-     (D-05b — a declared action lands on Advance, in Phase 5).
+     THE PROPOSAL PANE IS FILLED BY PLAN 03.1-07, and it SHOWS rather than
+     applies: the authoring pane edits a rule's DEFINITION, the proposal pane
+     reads that definition back and lets a student change any number in it, and
+     neither of them writes a transformation anywhere. That is the line this
+     whole phase walks (D-05b — a declared action lands on Advance, in Phase 5).
 
      #act-edit-name is STATIC for the reason #tok-pick-name is: the dialog
      repaints on every frame while it is open, and a field rebuilt or
@@ -1152,16 +1244,122 @@
       </div>
     </div>
 
+    <!-- The pane switch and the end of the visit, in that order: one moves to
+         the other half of this dialog, the other ends the whole thing. The
+         Proposal button carries data-ap rather than data-act because it is
+         PAGE WORK and there is no op behind it — see [S07.3]'s proposal
+         block, which owns every data-ap on this surface. -->
     <div class="ae-actions">
+      <button class="brd-btn" type="button" id="act-edit-prop-open" data-ap="open" data-k="ap/open">Proposal</button>
       <button class="brd-btn" type="button" id="act-edit-done" data-ae="done">Done</button>
     </div>
   </div>
 
-  <!-- THE PROPOSAL PANE. Reserved by plan 03.1-05, filled by plan 03.1-07,
-       empty and hidden here on purpose — see the block comment above this
-       dialog for why the two panes share one surface. Nothing in plan 03.1-05
-       writes a single node inside it. -->
-  <section class="ae-pane" id="act-edit-propose" hidden></section>
+  <!-- THE PROPOSAL PANE (ACT-05's first half, ACT-06 and ACT-07 — plan
+       03.1-07). Reserved empty by plan 03.1-05 and filled here.
+
+       THIS IS THE ONE SURFACE IN THIS FILE WITH NO PRECEDENT, and it is said
+       here rather than left for a reader to notice, in the shape
+       App.ops.clampTokenName uses for the same situation. Nothing else in this
+       document stages a change for approval. A swatch dispatches on the press.
+       A field commits on Enter or on blur. Remove commits with no confirmation
+       at all and its comment says out loud that undo is why. So there is no
+       shape to copy, and the shape chosen instead is a FORM: every number on
+       this pane lives in an <input> with a dataset.was beside it, exactly as
+       every other piece of INPUT in this file does, and not one of them
+       reaches a slice.
+
+       THAT IS NOT A STORAGE CHOICE, IT IS THE MECHANICAL EXPRESSION OF THE
+       RULE. All four homes were measured. A `ui` key reddens the row that
+       asserts that slice's exact key set, and the ui writer refuses an object
+       value by contract. A fourth top-level slice reddens the row that asserts
+       there are three. Nesting under the build slice reddens nothing and is
+       still the wrong home, because the build slice is the student's
+       allocation — it round-trips through a build code and an undo stack — and
+       a proposal HAS NOT HAPPENED. Keeping it on the DOM means there is no
+       state in which a proposal exists and has not been accepted, so nothing
+       downstream — undo, the build code, the projection — can ever read one.
+
+       WHAT IS DELIBERATELY ABSENT: a control that writes. There is no Confirm
+       here and no op behind anything on this pane. The developer settled it on
+       2026-08-28: the round loop is declare both sides, press Advance, the
+       previous board moves up into a history, the new board shows what changed
+       — so confirm writes on ADVANCE, which is Phase 5 (FIGHT-12..16).
+       Auto-apply was the alternative and it was declined, because it would
+       have needed PROJECT.md's Out of Scope entry rewritten. Two numbered
+       checks in tests/selftest-node.cjs hold that absence to account rather
+       than leaving it as an intention.
+
+       EVERY ROW HERE IS STATIC, and so is the amount field inside it, for the
+       reason the name field and the term rows are static (D-19): this dialog
+       repaints on every frame while it is open, and a number a student is
+       halfway through typing is exactly the text a rebuilt node throws away.
+       There are App.data.MAX_ACTION_XF transformation rows plus one override
+       row, and the surplus is hidden rather than removed.
+
+       THE AMOUNT FIELDS CARRY .ae-prop-amt AND NOT .ae-amt. One class name is
+       the entire distance between this pane and the authoring pane: [S07.3]
+       tells an authoring amount field apart by .ae-amt and dispatches an op
+       off it, so a field in here wearing that class would send the very write
+       this pane exists not to make. -->
+  <section class="ae-pane" id="act-edit-propose" hidden>
+    <div class="eyebrow">Proposal</div>
+    <h2 class="ae-title" id="act-edit-prop-title"></h2>
+    <p class="ae-note">What your rule says would happen. Change any number in it, or add a line your rule did not state. Nothing here is applied.</p>
+
+    <!-- ACT-07's refusal. Empty and hidden while the action's terms all name
+         a token type this board still holds; when one does not, this is the
+         only thing on the pane. -->
+    <p class="ae-prop-refuse" id="act-edit-prop-refuse" hidden></p>
+
+    <p class="ae-prop-says" id="act-edit-prop-says"></p>
+
+    <div class="ae-group">
+      <h3 class="ae-legend" id="act-edit-prop-caster-label">Caster</h3>
+      <div class="ae-prop-picks ae-prop-caster" role="group" aria-labelledby="act-edit-prop-caster-label"></div>
+    </div>
+
+    <div class="ae-group">
+      <h3 class="ae-legend" id="act-edit-prop-target-label">Target</h3>
+      <div class="ae-prop-picks ae-prop-target" role="group" aria-labelledby="act-edit-prop-target-label"></div>
+    </div>
+
+    <!-- ACT-06. What the action costs and what the side has, and per
+         requirement what is needed and what is present. NOTHING ON THIS PANE
+         IS DISABLED ON WHAT THESE LINES SAY — see [S06.5]'s proposal block,
+         which states the rule beside the code that writes them. -->
+    <p class="ae-prop-report" id="act-edit-prop-cost"></p>
+    <div class="ae-prop-reports" id="act-edit-prop-reqs"></div>
+
+    <div class="ae-prop-rows" id="act-edit-prop-rows">
+      <h3 class="ae-legend">Changes</h3>
+      <div class="ae-prop-row" hidden>
+        <span class="ae-prop-lbl"></span>
+        <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this change is" data-ap-slot="0" data-k="ap/amt/0">
+      </div>
+      <div class="ae-prop-row" hidden>
+        <span class="ae-prop-lbl"></span>
+        <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this change is" data-ap-slot="1" data-k="ap/amt/1">
+      </div>
+
+      <h3 class="ae-legend">Override</h3>
+      <p class="ae-note ae-term-note">Add a line your rule did not state.</p>
+      <!-- The override row carries .ae-prop-over and NOT .ae-prop-row, which
+           is load-bearing rather than tidy: [S06.5] selects the transformation
+           rows by that one class and this row is not one of them. -->
+      <div class="ae-prop-over">
+        <div class="ae-prop-who"></div>
+        <div class="ae-prop-toks"></div>
+        <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much the added line is" data-ap-slot="over" data-k="ap/amt/over">
+      </div>
+    </div>
+
+    <p class="ae-prop-nothing">Nothing here has been applied. Your edits stay on this pane. A declared action lands when the round advances.</p>
+
+    <div class="ae-actions">
+      <button class="brd-btn" type="button" id="act-edit-prop-close" data-ap="close" data-k="ap/close">Done</button>
+    </div>
+  </section>
 </dialog>
 
 <script>
@@ -5958,11 +6156,12 @@ App.render = (function () {
    * was showing would paint one column's rule into the other's the moment a
    * student authored a first action on each.
    *
-   * WHAT THIS REGION DOES NOT DO: it does not propose, apply or resolve
-   * anything. The reserved term rows in the shell are not written here; the
-   * proposal pane is not written here; no transformation is applied anywhere
+   * WHAT THIS REGION DOES NOT DO: it does not apply or resolve anything. Since
+   * plan 03.1-07 it DOES propose — it reads a rule back and says what that rule
+   * says would happen — and that is a read, at render time, from a record. No
+   * transformation is applied anywhere and no op on this surface writes one
    * (D-05b — a declared action lands on Advance, in Phase 5). This region draws
-   * a list and an editor over a rule's DEFINITION, and stops.
+   * a list, an editor over a rule's DEFINITION, and a restatement of it.
    * deps: App.data, App.ops, [S06.1]'s helpers and readers
    * owner: plan 03.1-05
    * ===================================================================== */
@@ -6234,6 +6433,500 @@ App.render = (function () {
       termList(live, 'xf'));
   }
 
+  /* ---- ACT-05's first half, ACT-06 and ACT-07: the proposal pane —
+   *      plan 03.1-07 ------------------------------------------------------
+   *
+   * THIS IS THE ONE SURFACE IN THIS FILE WITH NO PRECEDENT, and saying so is
+   * the first thing this block does, in the shape App.ops.clampTokenName uses
+   * for the same situation one region away. Nothing else in this document
+   * stages a change for approval. A swatch dispatches on the press. A field
+   * commits on Enter or on blur. Remove commits with no confirmation at all,
+   * and its comment says out loud that undo is the reason. There was no shape
+   * here to copy, so the shape chosen is a FORM — and the shell comment on
+   * #act-edit-propose records why that is the mechanical expression of the
+   * rule rather than a storage preference.
+   *
+   * WHAT THIS BLOCK DOES: it reads a rule the student wrote and says it back.
+   * Every line is arithmetic. It restates the record — which party, which
+   * token, by how much — reports what the cost is against what the side has
+   * and what each requirement needs against what is present, and offers a
+   * field per line plus one line the rule did not state.
+   *
+   * WHAT IT NEVER DOES, and this is the whole of ACT-06: it never disables a
+   * control on the grounds that a cost is unaffordable or a requirement unmet.
+   * The report is a statement about what the BOARD holds; it is not a ruling
+   * on what the STUDENT may do, and the tool never decides whether an action
+   * happens. Contrast the picker's Remove button and the editor's own Remove,
+   * which ARE disabled — those bound what the TOOL may do to itself, because
+   * a removed shipped action would leave the reference band naming nothing.
+   * Not one line below writes .disabled, and a numbered check in
+   * tests/selftest-node.cjs compares the pane's whole disabled set across a
+   * board driven to zero action points and a roster driven below every
+   * requirement.
+   *
+   * AND IT WRITES NOTHING. There is no App.ops call anywhere in this block or
+   * in the handlers that drive it. A declared action lands on Advance, in
+   * Phase 5 (D-05b, the developer, 2026-08-28).
+   */
+
+  // The same two ids as WHO_NAMES, said inside a SENTENCE rather than on a
+  // control. A second map rather than WHO_NAMES lower-cased, because
+  // lower-casing is a transformation performed on a word and this file's rule
+  // is that a word the page says is written down where a reader can find it.
+  // [S09.10] asserts both maps cover App.data.XF_WHO exactly, so an id with no
+  // word in either is a red row rather than a silently empty fragment.
+  var WHO_SAID = { caster: 'caster', target: 'target' };
+
+  function whoSaid(who) {
+    return Object.prototype.hasOwnProperty.call(WHO_SAID, who) ? WHO_SAID[who] : '';
+  }
+
+  // Which of the three lists a departed token was found in, as the page's own
+  // words. Same treatment and same reason as WHO_SAID: the field ids are data,
+  // these are English, and the id never reaches a rendered string.
+  var TERM_SAID = {
+    cost: 'What it spends names ',
+    req: 'What it needs names ',
+    xf: 'What it changes names '
+  };
+
+  // The sign is part of the VALUE (D-08), so it is written out rather than
+  // implied: "+2" and "-3" both say which way the token count moves, and a
+  // bare "2" beside the word "changes" does not. ASCII, deliberately — the
+  // amount FIELD beside this text is parsed by [S07.3]'s regex, which takes
+  // ASCII + and - only, and a restatement spelled with a typographic minus
+  // would be a line a student cannot copy into the field under it.
+  function signed(n) {
+    return (n < 0 ? '-' : '+') + Math.abs(n);
+  }
+
+  // A line the page ASSEMBLES out of its own words and the student's, one node
+  // per fragment. That split is a GATE concern and not a styling one.
+  //
+  // The rendered-page walk in tests/selftest-node.cjs reads the text of every
+  // leaf node in this dialog and skips any node carrying an exemption key. A
+  // line built as ONE string would have to be either wholly read — which
+  // reddens CI the day a student names a token type after a comparative word,
+  // the gate then asserting the opposite of what ALLOC-10 promises — or wholly
+  // exempt, which would take every word the ARTIFACT chose out of the only
+  // layer that can see copy assembled at render time. Layers A and B read the
+  // source, so a whole-string literal is already covered; not one of the
+  // sentences below exists as a literal anywhere, so this layer is the only
+  // one that can ever read them.
+  //
+  // The two node classes look identical on screen on purpose. A student
+  // reading this line must not be able to tell which words came from where.
+  function sayInto(box, parts) {
+    parts.forEach(function (part) {
+      if (part.said !== undefined) {
+        box.appendChild(text('span', 'ae-prop-said', part.said));
+        return;
+      }
+      var node = text('span', 'ae-prop-word', part.word);
+      setData(node, (part.tok !== undefined) ? { lbl: part.tok } : { anm: part.act });
+      box.appendChild(node);
+    });
+  }
+
+  function sayOver(node, parts) {
+    if (!node) { return; }
+    node.replaceChildren();
+    sayInto(node, parts);
+  }
+
+  // ACT-07. Checked BEFORE anything is drawn, and the answer is the FIRST term
+  // found naming a type this board no longer holds — one refusal names one
+  // term, because a student who has to fix two still fixes them one at a time
+  // and a list of them would be a longer sentence saying the same thing.
+  //
+  // hasOwnProperty on the vocabulary rather than a bare lookup, for the reason
+  // styleFor and labelFor each give at length: from Phase 4 this object can
+  // arrive from a pasted build code, and a bare lookup for `constructor`
+  // resolves on the prototype and reports a departed type as present.
+  function missingTerm(state, live) {
+    var vocab = state.build.tokens;
+    var gone = null;
+    ['cost', 'req', 'xf'].forEach(function (field) {
+      termList(live, field).forEach(function (term) {
+        if (gone !== null) { return; }
+        var tok = (term && typeof term.tok === 'string') ? term.tok : null;
+        if (tok !== null && vocab
+          && Object.prototype.hasOwnProperty.call(vocab, tok)) { return; }
+        gone = { field: field, tok: (tok === null) ? '' : tok };
+      });
+    });
+    return gone;
+  }
+
+  // A unit on a roster, as a real button in the outline-and-tick idiom every
+  // other chooser on this surface uses — said once in the class and once in
+  // aria-pressed, never in colour alone ([C07]'s rule, restated in [C12]).
+  //
+  // NO EXEMPTION MARKER ON THE NAME, and that is a decision rather than an
+  // oversight. A unit's name is built by [S01]'s makeUnits and no op in this
+  // file renames one, so it is a word the ARTIFACT says — the same treatment
+  // the faction head on the board gets and for the same stated reason. The day
+  // a unit-rename op exists is the day this node and that one both need the
+  // marker, not one of them.
+  function unitPick(kind, unit, on) {
+    var b = el('button', 'ae-prop-pill' + (on ? ' ae-prop-pill--on' : ''));
+    b.type = 'button';
+    setData(b, { ap: kind, apUnit: unit.id, k: 'ap/' + kind + '/' + unit.id });
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.appendChild(text('span', 'ae-prop-pill-name', unit.name));
+    b.appendChild(text('span', 'ae-check', '✓'));
+    return b;
+  }
+
+  // THE TARGET CHOOSER LISTS EVERY UNIT ON THE BOARD, both factions, and the
+  // caster chooser lists the acting side's. That asymmetry is a fact about the
+  // record rather than a ruling: the caster is on the side that OWNS the
+  // action, and who an action may be pointed at is exactly the sort of question
+  // this tool does not answer. A heal that lands on a friend and a hit that
+  // lands on a foe are the same record with a different unit chosen, and the
+  // student chooses.
+  function fillPicks(box, kind, rosters, current) {
+    if (!box) { return; }
+    box.replaceChildren();
+    rosters.forEach(function (faction) {
+      faction.units.forEach(function (unit) {
+        box.appendChild(unitPick(kind, unit, unit.id === current));
+      });
+    });
+  }
+
+  // The chosen unit, or the first live one when the page names nobody the
+  // board still holds. A STARTING POSITION ON A FORM IS NOT A DECISION ABOUT
+  // WHO AN ACTION HITS: every unit is one press away, the choice is re-read
+  // from the page on every frame, and nothing downstream reads either chooser
+  // — they name nobody in any record, because no record is written.
+  //
+  // A chooser naming a unit that has gone falls back rather than painting an
+  // empty row, which is syncEditor's rule one region up applied to the second
+  // thing on this surface that a removal can invalidate.
+  function pickedUnit(pane, key, rosters) {
+    var want = String(pane.dataset[key] || '');
+    var found = '';
+    rosters.forEach(function (faction) {
+      faction.units.forEach(function (unit) {
+        if (found === '' && unit.id === want) { found = unit.id; }
+      });
+    });
+    if (found !== '') { return found; }
+    rosters.forEach(function (faction) {
+      if (found === '' && faction.units.length > 0) { found = faction.units[0].id; }
+    });
+    return found;
+  }
+
+  // NEVER WRITTEN WHILE IT HOLDS FOCUS — showAmount's rule (D-19) — AND NEVER
+  // WRITTEN ONCE THE STUDENT HAS CHANGED IT.
+  //
+  // The second half is this pane alone, and it is the one place in this file
+  // where "nothing derived is stored" needs care rather than obedience.
+  // Everywhere else a field shows a number that state HOLDS, so recomputing it
+  // from state on every frame is exactly right and a stale field is the defect.
+  // Here the number is the student's INPUT: they typed -4 over the -3 their
+  // rule says, and no record anywhere remembers it — writing one is precisely
+  // the thing this pane does not do. So the flag on the node carries it, and
+  // the flag is cleared when the pane is OPENED, which is why closing and
+  // reopening shows the rule's own numbers again. That is the deliberate
+  // behaviour and not a lost edit.
+  function showProposed(field, value) {
+    if (!field || field === document.activeElement) { return; }
+    if (field.dataset.apEdit === '1') { return; }
+    field.value = value;
+    field.dataset.was = field.value;
+  }
+
+  // The restatement. "Your Pounce says: target Health -3, caster Action points
+  // -1" — the transformations in the record's own order, then the cost said as
+  // what it takes off the caster, which is what a cost IS. Every token name is
+  // read live through labelFor, so a student who renamed Health to Vigor reads
+  // Vigor here on the next frame.
+  function fillSays(node, state, live) {
+    if (!node) { return; }
+    var parts = [{ said: 'Your ' }, { word: live.name, act: live.id }, { said: ' says: ' }];
+    var said = 0;
+
+    termList(live, 'xf').forEach(function (x) {
+      if (said > 0) { parts.push({ said: ', ' }); }
+      parts.push({ said: whoSaid(x.who) + ' ' });
+      parts.push({ word: labelFor(state, x.tok), tok: x.tok });
+      parts.push({ said: ' ' + signed(x.d) });
+      said++;
+    });
+
+    termList(live, 'cost').forEach(function (c) {
+      if (said > 0) { parts.push({ said: ', ' }); }
+      parts.push({ said: whoSaid('caster') + ' ' });
+      parts.push({ word: labelFor(state, c.tok), tok: c.tok });
+      parts.push({ said: ' ' + signed(-c.n) });
+      said++;
+    });
+
+    // A rule that says nothing says so. Silence here would read as a surface
+    // that failed to draw rather than as a rule with nothing in it yet.
+    if (said === 0) { parts.push({ said: 'nothing changes yet.' }); }
+    sayOver(node, parts);
+  }
+
+  // ACT-06's report, written from App.model.affordability and from nothing
+  // else. That function hands back numbers, booleans and token ids and formats
+  // nothing — the division of labour every read in [S02] keeps — so the
+  // sentence is owned here and the arithmetic is owned there.
+  //
+  // A COST THIS REPORT CANNOT PRICE IS SAID PLAINLY RATHER THAN DROPPED. The
+  // derivation has a pool for action points and for nothing else, so a cost in
+  // a token a student invented comes back with a null figure. Naming that is
+  // D-16's stance — a report that quietly omits half of what it was asked
+  // about is worse than one that admits its blind spot — and it is the same
+  // choice the projection's own ignored-list already makes.
+  function fillReport(state, side, live) {
+    var faction = state.build[side];
+    var report = App.model.affordability(faction, live);
+    var cost = termList(live, 'cost')[0];
+    var costNode = document.getElementById('act-edit-prop-cost');
+
+    if (costNode) {
+      if (!cost) {
+        sayOver(costNode, [
+          { word: live.name, act: live.id },
+          { said: ' costs nothing.' }
+        ]);
+      } else if (report.apCost === null) {
+        sayOver(costNode, [
+          { word: live.name, act: live.id },
+          { said: ' costs ' + cost.n + ' ' },
+          { word: labelFor(state, cost.tok), tok: cost.tok },
+          { said: '. This report has no figure for that pool.' }
+        ]);
+      } else {
+        var short = report.apCost - report.apHave;
+        sayOver(costNode, [
+          { word: live.name, act: live.id },
+          { said: ' costs ' + report.apCost + ' ' },
+          { word: labelFor(state, cost.tok), tok: cost.tok },
+          { said: ' of ' + report.apHave + '. ' + ((short > 0)
+            ? 'Not enough to spend. Short by ' + short + '.'
+            : 'Enough to spend.') }
+        ]);
+      }
+    }
+
+    var reqNode = document.getElementById('act-edit-prop-reqs');
+    if (!reqNode) { return; }
+    reqNode.replaceChildren();
+    report.met.forEach(function (m) {
+      var line = el('p', 'ae-prop-report');
+      sayInto(line, [
+        { word: live.name, act: live.id },
+        { said: ' needs ' + m.need + ' ' },
+        { word: labelFor(state, m.tok), tok: m.tok },
+        { said: ' of ' + m.have + '. '
+          + ((m.have >= m.need) ? 'Requirement met.' : 'Requirement not met.') }
+      ]);
+      reqNode.appendChild(line);
+    });
+  }
+
+  // One editable row per transformation the rule states, and the surplus is
+  // hidden rather than destroyed — a destroyed static row is a row the next
+  // repaint cannot find, which is the reason the authoring pane's rows are
+  // static and it does not change on this side of the dialog.
+  function fillProposedRows(pane, state, live) {
+    var rows = pane.querySelectorAll('.ae-prop-row');
+    var xf = termList(live, 'xf');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var term = xf[i];
+      row.hidden = !term;
+      if (!term) { continue; }
+      sayOver(row.querySelector('.ae-prop-lbl'), [
+        { said: whoSaid(term.who) + ' ' },
+        { word: labelFor(state, term.tok), tok: term.tok }
+      ]);
+      showProposed(row.querySelector('.ae-prop-amt'), String(term.d));
+    }
+  }
+
+  // The override row: a party, a token type and an amount, all empty, so a
+  // student can add a line their rule did not state. That is "overrides it
+  // entirely", and it is a row on a FORM — pressing a pill here writes an
+  // attribute on this node and nothing else. No op is called, no term is
+  // added to any record, and the row is emptied again when the pane is
+  // reopened.
+  function fillOverride(pane, state) {
+    var row = pane.querySelector('.ae-prop-over');
+    if (!row) { return; }
+    var who = String(pane.dataset.apWho || '');
+    var tok = String(pane.dataset.apTok || '');
+
+    var whoBox = row.querySelector('.ae-prop-who');
+    if (whoBox) {
+      whoBox.replaceChildren();
+      App.data.XF_WHO.forEach(function (id) {
+        var word = whoName(id);
+        if (word === '') { return; }
+        whoBox.appendChild(overPill('over-who', 'apWho', id, word, id === who, false));
+      });
+    }
+
+    var tokBox = row.querySelector('.ae-prop-toks');
+    if (tokBox) {
+      tokBox.replaceChildren();
+      Object.keys(state.build.tokens).forEach(function (id) {
+        tokBox.appendChild(overPill('over-tok', 'apTok', id, labelFor(state, id),
+          id === tok, true));
+      });
+    }
+
+    showProposed(row.querySelector('.ae-prop-amt'), '');
+  }
+
+  function overPill(kind, dataKey, value, label, on, isToken) {
+    var b = el('button', 'ae-prop-pill' + (on ? ' ae-prop-pill--on' : ''));
+    b.type = 'button';
+    var pairs = { ap: kind, k: 'ap/' + kind + '/' + value };
+    pairs[dataKey] = value;
+    setData(b, pairs);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    var nameNode = text('span', 'ae-prop-pill-name', label);
+    // A token type's name is a word a student typed, so it takes the same
+    // exemption the choosers on the authoring pane take. A party's word is
+    // this file's own.
+    if (isToken) { setData(nameNode, { lbl: value }); }
+    b.appendChild(nameNode);
+    b.appendChild(text('span', 'ae-check', '✓'));
+    return b;
+  }
+
+  // A pane that is not showing holds NOTHING. Emptied rather than left
+  // standing, so "hidden" and "empty" say the same thing about this surface
+  // and no later check has to work out which of the two it means. It also
+  // keeps the rendered-page walk honest: a harvest taken with the authoring
+  // pane up reads no proposal string, so the proposal's own floor measures
+  // the proposal rather than whatever the last visit left behind.
+  function emptyProposal(pane) {
+    ['act-edit-prop-title', 'act-edit-prop-says', 'act-edit-prop-cost',
+      'act-edit-prop-reqs'].forEach(function (id) {
+      var node = document.getElementById(id);
+      if (node) { node.replaceChildren(); }
+    });
+    var refuse = document.getElementById('act-edit-prop-refuse');
+    if (refuse) { refuse.replaceChildren(); refuse.hidden = true; }
+    ['.ae-prop-caster', '.ae-prop-target'].forEach(function (sel) {
+      var box = pane.querySelector(sel);
+      if (box) { box.replaceChildren(); }
+    });
+    var rows = pane.querySelectorAll('.ae-prop-row');
+    for (var i = 0; i < rows.length; i++) {
+      rows[i].hidden = true;
+      var lbl = rows[i].querySelector('.ae-prop-lbl');
+      if (lbl) { lbl.replaceChildren(); }
+    }
+    var over = pane.querySelector('.ae-prop-over');
+    if (over) {
+      ['.ae-prop-who', '.ae-prop-toks'].forEach(function (sel) {
+        var box = over.querySelector(sel);
+        if (box) { box.replaceChildren(); }
+      });
+    }
+  }
+
+  function proposalPane() {
+    return document.getElementById('act-edit-propose');
+  }
+
+  // Which pane is showing, and the three answers the proposal pane holds on
+  // its own node. All four change what is DRAWN without changing a single
+  // record, which is exactly what a fingerprint is for.
+  //
+  // THE AMOUNT FIELDS ARE DELIBERATELY NOT IN HERE. They hold the student's
+  // input, and a fingerprint over an input is a fingerprint that moves on
+  // every keystroke — which would rebuild the surface under the caret, the one
+  // thing the whole static-markup arrangement exists to prevent.
+  function proposalSig(dlg) {
+    var pane = proposalPane();
+    if (!dlg || !pane) { return ['author', '', '', '', '']; }
+    return [
+      String(dlg.dataset.edPane || 'author'),
+      String(pane.dataset.apCaster || ''),
+      String(pane.dataset.apTarget || ''),
+      String(pane.dataset.apWho || ''),
+      String(pane.dataset.apTok || '')
+    ];
+  }
+
+  // Run BEFORE the fingerprint is taken, for syncEditor's stated reason: a
+  // chooser naming a unit the board no longer holds is a reason to stand on
+  // something live, and settling it after the fingerprint would spend a frame
+  // drawing the stale one and only then correct itself.
+  function settleProposal(state, side, dlg) {
+    var pane = proposalPane();
+    if (!pane) { return; }
+    if (String(dlg.dataset.edPane || 'author') !== 'propose') { return; }
+    pane.dataset.apCaster = pickedUnit(pane, 'apCaster', [state.build[side]]);
+    pane.dataset.apTarget = pickedUnit(pane, 'apTarget',
+      [state.build.cats, state.build.mechs]);
+  }
+
+  function fillProposal(state, side, live, dlg) {
+    var pane = proposalPane();
+    var author = document.getElementById('act-edit-pane-author');
+    var showing = (String(dlg.dataset.edPane || 'author') === 'propose');
+
+    // Both panes are re-decided from state on every repaint rather than
+    // toggled by whoever last pressed something, which is the rule the enable
+    // pass one region up already keeps and for the same reason — an undo moves
+    // them too.
+    if (author) { author.hidden = showing; }
+    if (!pane) { return; }
+    pane.hidden = !showing;
+    if (!showing) { emptyProposal(pane); return; }
+
+    sayOver(document.getElementById('act-edit-prop-title'),
+      [{ word: live.name, act: live.id }]);
+
+    // ACT-07, and it runs BEFORE a single line of the proposal is drawn. A
+    // rule with a missing term does not MEAN what it says any more, so the
+    // honest answer is to refuse it by name rather than to draw a proposal
+    // with a hole in it or to quietly skip the term.
+    //
+    // THE MESSAGE NAMES THE ID AND NOT A NAME, and the reason is mechanical:
+    // the type's record has gone, so labelFor falls back to the shipped health
+    // label for an id it cannot find — asking it here would print a name that
+    // is actively wrong and send the student looking for the wrong type.
+    // Plan 03.1-04's line beside Remove is what stops a student meeting this
+    // by surprise; this refusal is what stops a rule firing with a term the
+    // board no longer holds.
+    var gone = missingTerm(state, live);
+    var refuse = document.getElementById('act-edit-prop-refuse');
+    if (gone !== null) {
+      emptyProposal(pane);
+      sayOver(document.getElementById('act-edit-prop-title'),
+        [{ word: live.name, act: live.id }]);
+      sayOver(refuse, [
+        { said: 'Cannot fire ' },
+        { word: live.name, act: live.id },
+        { said: '. ' + TERM_SAID[gone.field] + gone.tok
+          + ', which is no longer a token type on this board. Nothing has changed.' }
+      ]);
+      if (refuse) { refuse.hidden = false; }
+      return;
+    }
+    if (refuse) { refuse.replaceChildren(); refuse.hidden = true; }
+
+    fillSays(document.getElementById('act-edit-prop-says'), state, live);
+    fillPicks(pane.querySelector('.ae-prop-caster'), 'caster',
+      [state.build[side]], String(pane.dataset.apCaster || ''));
+    fillPicks(pane.querySelector('.ae-prop-target'), 'target',
+      [state.build.cats, state.build.mechs], String(pane.dataset.apTarget || ''));
+    fillReport(state, side, live);
+    fillProposedRows(pane, state, live);
+    fillOverride(pane, state);
+  }
+
   // THE REPAINT GATE, and it fingerprints everything this surface draws.
   //
   // JSON.stringify of an ARRAY, never a joined string, for the reason
@@ -6274,11 +6967,30 @@ App.render = (function () {
   // renames Health to Vigor with the editor open must see it on every chooser
   // in every row — and the id rides along beside the name because a type
   // created or removed changes how many entries a chooser holds.
-  function editorSig(state, side, actionId) {
+  //
+  // AND THE ROSTERS AND THE POOL, added by plan 03.1-07 beside the code that
+  // draws them, for the reason the vocabulary slot above gives: nothing on
+  // this surface drew a unit's name or a faction's action points until the
+  // proposal pane existed, so there was nothing here to be stale about. Now
+  // there is — removing the unit a chooser is standing on, or lowering the
+  // pool the cost line reports against, must reach this dialog on the frame it
+  // happens.
+  //
+  // THE FIFTH SLOT IS THE PROPOSAL'S OWN BOOKKEEPING, read off the page rather
+  // than out of a slice, because that is where a proposal lives (see the shell
+  // comment on #act-edit-propose). Which pane is showing, which caster, which
+  // target and which override line each change what is DRAWN while changing no
+  // record at all, and a fingerprint blind to them would leave a pressed
+  // chooser looking unpressed until something unrelated moved.
+  function editorSig(state, side, actionId, dlg) {
     return JSON.stringify([side, actionId, refActions(state, side).map(function (a) {
       return [a.id, a.name, a.dmg, a.keywords, a.cost, a.req, a.xf];
     }), Object.keys(state.build.tokens).map(function (id) {
       return [id, labelFor(state, id)];
+    }), proposalSig(dlg), SIDE_IDS.map(function (each) {
+      return [state.build[each].ap, state.build[each].units.map(function (u) {
+        return [u.id, u.name, u.maxHp, u.shield, u.tally];
+      })];
     })]);
   }
 
@@ -6308,7 +7020,10 @@ App.render = (function () {
     var live = list.find(function (a) { return a.id === actionId; });
     if (live === undefined) { return; }
 
-    var sig = editorSig(state, side, actionId);
+    // Settled BEFORE the fingerprint is taken — see settleProposal for why.
+    settleProposal(state, side, dlg);
+
+    var sig = editorSig(state, side, actionId, dlg);
     if (dlg.dataset.edSig === sig) { return; }
 
     // A repaint rebuilds every row, which destroys the node the keyboard was
@@ -6375,6 +7090,11 @@ App.render = (function () {
       // why this is a call rather than a rebuild.
       fillTerms(state, live);
 
+      // ACT-05's first half, ACT-06 and ACT-07. It draws the OTHER pane, so
+      // it sits inside the same focus contract and behind the same
+      // fingerprint, and it writes nothing anywhere.
+      fillProposal(state, side, live, dlg);
+
       setEditorEnabled('act-edit-remove', !isShippedAction(actionId));
       setEditorEnabled('act-edit-new',
         ownActions(state, side).length < App.data.MAX_CUSTOM_ACTIONS);
@@ -6393,8 +7113,10 @@ App.render = (function () {
     //   data-ed-sig   is WHETHER anything drawn here has moved since the last
     //                 frame, and nothing ever reads a value out of it.
     // data-ed-pane, written in the shell and owned by this region, is a fourth
-    // and answers a fourth: WHICH PANE is showing. Plan 03.1-07 moves it; this
-    // plan ships one pane and never touches it.
+    // and answers a fourth: WHICH PANE is showing. [S07.3]'s proposal block
+    // moves it, this region reads it into the fingerprint and paints from it,
+    // and the pane's own three attributes sit on the pane rather than here for
+    // the same reason these three sit here rather than in a slice.
     dlg.dataset.edSide = side;
     dlg.dataset.edPick = actionId;
     dlg.dataset.edSig = sig;
