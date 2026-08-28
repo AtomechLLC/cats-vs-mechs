@@ -173,6 +173,18 @@
   }
   .brd-faction{margin:0;font-size:26px;font-weight:700;letter-spacing:-.2px}
   .brd-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  /* A stat line for a type a student made, which shows nothing until they
+     actually write a number on it. The rule is needed because `hidden` alone
+     collapses nothing here: [hidden]{display:none} is a USER-AGENT rule and
+     .brd-line{display:flex} directly above is an AUTHOR rule, so the author
+     wins and a hidden line keeps its box. Same fix, same shape, as
+     .err-panel[hidden] and .st-report[hidden] further down.
+     Deliberately NOT paired with a matching rule on .unit-line: statLine
+     builds .brd-line for BOTH the faction head and the unit card, and
+     .unit-line has no builder anywhere in this file, so the twin selector the
+     research proposed would ship dead on arrival. An acceptance grep keeps it
+     from being helpfully added back. */
+  .brd-line--opt[hidden]{display:none}
   .brd-label{font-size:18px;color:var(--ink-dim);min-width:128px}
   .brd-value{font-size:24px;font-weight:700}
   .brd-note{font-size:18px;color:var(--ink-dim)}
@@ -2411,7 +2423,67 @@ App.render = (function () {
     return node;
   }
 
-  function factionHead(faction, side) {
+  // ALLOC-11. One builder for both scopes, because the two differ in exactly
+  // two values — the key and the unit id — and a second copy would be a second
+  // place for the data-k contract above to drift away from.
+  //
+  // data-k is IDENTITY and has to be unique document-wide, because focus
+  // restore takes the FIRST match for it. Both shapes below are unique by
+  // construction for the same reason the shipped keys are: a side key names a
+  // side and a type, a unit key names a side, a unit and a type, and no unit
+  // is on two sides.
+  //
+  // The line itself carries enough data-* for sync()'s hide pass to read its
+  // quantity straight back off the page — the type, the side, and for a unit
+  // line the unit. setData skips the undefined one, so the faction line needs
+  // no special case.
+  //
+  // The value is read through amountFor rather than off the record here. The
+  // rebuilt field is the one case sync() is forbidden to write over (D-19
+  // skips the focused field), so a build-time number of its own would be the
+  // one number on the board with a second source.
+  function tallyLine(state, tokenId, rec, side, unitId, ownerName) {
+    var key = (unitId === null)
+      ? side + '/' + tokenId
+      : side + '/' + unitId + '/' + tokenId;
+    var line = statLine(
+      (unitId === null) ? 'brd-label' : 'unit-label',
+      rec.name,
+      stepper({
+        key: key, act: 'tally', nudge: 'nudgeTally', amt: tokenId,
+        side: side, unitId: unitId,
+        label: ownerName + ' ' + rec.name,
+        value: amountFor(state, tokenId, side, unitId)
+      }),
+      tokenRow(tokenId, side, unitId),
+      tokenId
+    );
+    line.classList.add('brd-line--opt');
+    setData(line, { amt: tokenId, side: side, unit: unitId });
+    return line;
+  }
+
+  // D-01 and D-02: the scope a student chose at creation decides the site, and
+  // the record is where that choice already lives — so this reads it rather
+  // than deciding again. A null unit id IS the faction site.
+  //
+  // The five the board is built on are skipped: their quantity is the health,
+  // shield or action points already on the card, and a second number beside
+  // one of them would be a purely mechanical reason for the two to disagree.
+  function tallyLines(state, side, unitId, ownerName) {
+    var vocab = state.build.tokens;
+    var want = (unitId === null) ? 'side' : 'unit';
+    var lines = [];
+    if (!vocab) { return lines; }
+    Object.keys(vocab).forEach(function (tokenId) {
+      if (App.data.TOKEN_IDS.indexOf(tokenId) !== -1) { return; }
+      if (vocab[tokenId].scope !== want) { return; }
+      lines.push(tallyLine(state, tokenId, vocab[tokenId], side, unitId, ownerName));
+    });
+    return lines;
+  }
+
+  function factionHead(state, faction, side) {
     var head = el('section', 'brd-col-head');
     head.appendChild(text('h2', 'brd-faction', faction.name));
 
@@ -2421,6 +2493,14 @@ App.render = (function () {
       key: side + '/ap', act: 'ap', nudge: 'nudgeAp', amt: 'ap',
       side: side, label: faction.name + ' action points', value: faction.ap
     }), tokenRow('ap', side, null), 'ap'));
+
+    // Directly after the action points, and before the two derivations below,
+    // because this is the other thing on this head a student ALLOCATES. The
+    // damage and total-health lines are projections of what they allocated,
+    // and keeping the two groups apart is the whole reading of the column.
+    tallyLines(state, side, null, faction.name).forEach(function (line) {
+      head.appendChild(line);
+    });
 
     // Q-2 -- where the red diamonds live. App.model.bestDamage is a shipped
     // pure derivation that until now had no consumer at all, so this needs no
@@ -2435,7 +2515,7 @@ App.render = (function () {
     return head;
   }
 
-  function unitCard(faction, unit, side, setup) {
+  function unitCard(state, faction, unit, side, setup) {
     var card = el('article', 'unit-card');
 
     var head = el('div', 'unit-head');
@@ -2461,6 +2541,16 @@ App.render = (function () {
       side: side, unitId: unit.id, label: unit.name + ' shield', value: unit.shield
     }), tokenRow('shield', side, unit.id), 'shield'));
 
+    // Every type a student made and scoped to a unit gets a line here, on
+    // every card, whether or not this unit carries a number for it — the hide
+    // pass in sync() is what keeps a zero off the screen, and it needs the
+    // line to exist to hide it. Building only the non-zero ones would make a
+    // tally going 0 -> 1 a structural change, and a rebuild throws away the
+    // caret and every token node on the board.
+    tallyLines(state, side, unit.id, unit.name).forEach(function (line) {
+      card.appendChild(line);
+    });
+
     return card;
   }
 
@@ -2473,10 +2563,10 @@ App.render = (function () {
   function buildColumn(col, state, side) {
     var faction = state.build[side];
     var setup = (state.fight === null);
-    var parts = [factionHead(faction, side)];
+    var parts = [factionHead(state, faction, side)];
 
     faction.units.forEach(function (unit) {
-      parts.push(unitCard(faction, unit, side, setup));
+      parts.push(unitCard(state, faction, unit, side, setup));
     });
 
     if (setup) {
@@ -2719,6 +2809,28 @@ App.render = (function () {
         amountFor(state, rows[i].dataset.amt, rows[i].dataset.side, rows[i].dataset.unit),
         styleFor(state, rows[i].dataset.amt)
       );
+    }
+
+    // T-02.1-18 and UX-02. Six types across twenty-four units is 144 labelled
+    // boxes on a projector, almost every one of them zero. A line for a type a
+    // student made shows NOTHING until they write a number on it — no empty
+    // box, no orphan label — so the board stays clean until their invention is
+    // actually in play.
+    //
+    // Three things this depends on, each checked rather than assumed:
+    //   nothing animates when a line comes back. A hidden line holds zero
+    //     children by construction, and syncRow reads `animate` off
+    //     row.children.length BEFORE its loop, so 0 -> 1 appends without the
+    //     entry class and no token pops for a line that was merely revealed;
+    //   the line already exists, so a tally going 0 -> 1 is a plain commit and
+    //     a sync-only frame reveals it. structure() is not involved, and no
+    //     caret or token node is thrown away to show one number;
+    //   a line the board is built on is never touched here, because only the
+    //     student-made ones carry the class. A unit at zero health is
+    //     something a student meant, and it stays on screen.
+    var opt = board.querySelectorAll('.brd-line--opt');
+    for (i = 0; i < opt.length; i++) {
+      opt[i].hidden = amountFor(state, opt[i].dataset.amt, opt[i].dataset.side, opt[i].dataset.unit) === 0;
     }
 
     // The seam, and the reason it is a seam rather than a named call: #board is
