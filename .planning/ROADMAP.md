@@ -162,8 +162,31 @@ range back, so the feature is demonstrated rather than argued.
   3. A student can give an action transformations: each naming the caster or the target, a token type, and the amount that token changes by. An action may carry more than one.
   4. **The tool proposes and the student disposes.** Firing an authored action shows what that student's own rule says would happen — which tokens move, on whom, by how much — and the student accepts it, edits any number in it, or overrides it entirely. **Nothing lands until they say so, and the tool never decides whether an action happens or what it is worth.**
   5. An action naming a token type that has since been removed is refused by name with a message that says which action and which token, rather than being silently skipped or firing with a missing term.
-**Plans**: TBD
+**Plans**: 8 plans
 **UI hint**: yes
+
+Plans:
+- [ ] 03.1-01-PLAN.md — Layer C's verdict harvest extended over every dialog (bidirectionally gated, with its own floor), plus the `[S01]` action record — `cost` / `req` / `xf` on all six shipped actions, the action-id trio, the three caps, the signed bound — and the rows that would go red without them (wave 1)
+- [ ] 03.1-02-PLAN.md — `[S02]` D-14 answered: `actionApCost` / `actionDamage` / `bestPair` generalise `bestDamage` and `factionDps`; `actionModelled` / `unmodelled` name what the figures leave out; `affordability` is ACT-06's read; the shield reading written down beside `DAMAGE_KEYS` (wave 2)
+- [ ] 03.1-03-PLAN.md — `[S05]` the three-layer action-id gate, `createAction` / `renameAction` / `removeAction`, `actionsNaming`, and a new `[S09.10]` suite with a row per reserved key per write shape (wave 3)
+- [ ] 03.1-04-PLAN.md — the page reads the student's rules: `refActions` points at the build slice and the tripwire turns on purpose, action names get their own gate exemption, the strip gains the admission line, the picker gains the line beside Remove (wave 4)
+- [ ] 03.1-05-PLAN.md — the action editor: one new `<dialog>` with two panes, its ids / stub nodes / `DIALOG_ROOTS` entry / `[C12]` styles together, `[S06.5]` sig-keyed repaint and `[S07.3]` attached through the four seams (wave 5)
+- [ ] 03.1-06-PLAN.md — cost, requirements and transformations: `setActionCost` / `setActionReq` / `setActionXf`, the editors for them, and the rows proving the rule is a record rather than a program (wave 6)
+- [ ] 03.1-07-PLAN.md — the proposal: a restatement of the student's own rule, an affordability report that disables nothing, refusal by name for a departed token, editable numbers and an override row — and two checks proving nothing lands (wave 7)
+- [ ] 03.1-08-PLAN.md — the browser rehearsal: every LOW-confidence layout / legibility / close-request item answered by a person, plus the two decisions made on the developer's behalf confirmed or redirected (wave 8, blocking human-verify checkpoint)
+
+**Plan-split note (set during planning).** Eight sequential waves, no parallelism: everything lands
+in one HTML file, so two plans in the same wave could not own disjoint regions. Phase 2.1 needed six
+and Phase 3 needed five for the same reason. Two prerequisites are deliberately in wave 1: the
+verdict gate's Layer C harvests `#app`, and every surface this phase builds lives in a dialog
+outside it — so the gate is extended, bidirectionally, before a word of this phase's copy exists.
+
+**ACT-05 is half-delivered by this phase, on purpose, and that is not a gap.** D-05b settled that a
+declared action lands on **Advance**, which is Phase 5 (FIGHT-12..16). This phase ships the half
+that exists without a turn to hang on: the tool shows what the student's rule says, the student
+edits any number in it or overrides it entirely, and nothing lands. There is deliberately no apply
+op and no Confirm that writes, and that absence is asserted by two numbered checks rather than left
+as an intention.
 
 **Why this is not automated combat.** PROJECT.md excludes an engine that resolves combat, on the
 grounds that adjudication *is* the exercise. This phase does not resolve anything: the student
