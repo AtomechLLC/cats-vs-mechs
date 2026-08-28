@@ -1424,6 +1424,15 @@ App.ops = (function () {
   // Like `log`, the field ships now and its writer arrives with the phase that
   // has a surface to spend from — Phase 5, plan 05-01. Nothing here decides
   // how a shield behaves; the table still rules that.
+  //
+  // Note what is NOT copied: a `tally` from a student-made token type. That is
+  // deliberate and not an oversight. In this phase a tally is a build-time
+  // annotation — a number the student writes down beside their own invention,
+  // which the tool stores and never reads a meaning into (D-00e). Whether a
+  // tally should be spendable DURING a fight is a fight-semantics ruling, and
+  // Phase 5 owns it, exactly as it owns the fight slice's own `shield` copy.
+  // Written down here rather than left for the next reader to wonder whether
+  // somebody simply forgot it.
   function sideFromBuild(faction) {
     return {
       ap: faction.ap,
@@ -1801,6 +1810,315 @@ App.ops = (function () {
     return true;
   }
 
+  /* ---- token types a student makes for themselves (ALLOC-11) ----
+   * A type made here counts NOTHING on its own (D-00e). It carries a tally the
+   * student writes down by hand, and the tool stores that number and never
+   * infers what it means. Automating what a student-made token does is the
+   * temptation this artifact exists to refuse: the table is the rules engine.
+   *
+   * Both ops below carry all THREE layers of the id gate, not just the one
+   * that happens to fire first. Plan 02.1-01 measured that removing any single
+   * layer left its whole suite green, so a one-layer gate reads correct and is
+   * one layer thin:
+   *   1. the named refusal list, inside requireTokenId
+   *   2. TOKEN_ID_PATTERN, inside requireTokenId
+   *   3. a hasOwnProperty existence check against the LIVE vocabulary, here
+   * Layer 3 runs inside the mutator on both paths, where the detached copy is
+   * the only honest thing to ask.
+   */
+
+  // A tally bag holds only the numbers a student actually wrote down (D-04),
+  // so taking an entry out has to be able to take the bag with it. Both rules
+  // are here rather than spread across the callers: a tally of zero deletes
+  // its key, and a bag with no keys left deletes itself.
+  //
+  // hasOwnProperty on every step. A bare `owner.tally` test would read an
+  // inherited name as present, and from Phase 4 a bag can arrive from a pasted
+  // build code rather than from this file.
+  function dropTally(owner, tokenId) {
+    if (!Object.prototype.hasOwnProperty.call(owner, 'tally')) { return; }
+    delete owner.tally[tokenId];
+    if (Object.keys(owner.tally).length === 0) { delete owner.tally; }
+  }
+
+  // Every guard runs BEFORE the commit is entered, matching setTokenStyle
+  // above, so a refusal leaves no phantom undo step over a board that never
+  // changed — with exactly one documented exception, called out below.
+  //
+  // The id comes from a sequence and is never derived from the name the
+  // student typed (D-13): deriving an id from student text is how a reserved
+  // name reaches the key position in the first place. The double call is
+  // deliberate — nextTokenTypeId produces the id and requireNewTokenId
+  // confirms it — so that a later change to either one cannot quietly widen
+  // the other.
+  //
+  // Structural, because buildColumn decides whether this type's stat line
+  // exists at all and sync() can neither create a line nor remove one. That is
+  // commitStructural's own stated trigger, spelled out in its comment above.
+  function createTokenType(spec) {
+    var p = spec || {};
+    var name = requireTokenName(p.name);
+    if (App.data.SHAPES.indexOf(p.shape) === -1) {
+      throw new Error('Unknown token shape "' + String(p.shape) + '"');
+    }
+    if (App.data.COLORS.indexOf(p.color) === -1) {
+      throw new Error('Unknown token colour "' + String(p.color) + '"');
+    }
+    if (App.data.GLYPHS.indexOf(p.glyph) === -1) {
+      throw new Error('The glyph "' + String(p.glyph) + '" is not one of the offered set');
+    }
+    // Scope is chosen once, at creation, and never changed afterwards (D-03).
+    // Changing it later would orphan every number already written under the
+    // old scope; removing the type and making a fresh one is the supported
+    // path, and there is deliberately no scope-change op anywhere in [S05].
+    if (App.data.TOKEN_SCOPES.indexOf(p.scope) === -1) {
+      throw new Error('A token type is kept either on each unit or on the whole '
+        + 'side, and "' + String(p.scope) + '" is neither.');
+    }
+
+    var made = requireNewTokenId(nextTokenTypeId(App.state.get().build.tokens));
+
+    commitStructural('token new ' + made, function (s) {
+      // THE ONE GUARD INSIDE THE COMMIT, and the reason is the same one
+      // addUnit's MAX_UNITS check gives: it needs the key count from the
+      // detached copy. It is safe precisely because a mutator that throws
+      // leaves no trace — commit() runs the mutator before it records
+      // anything. Every other guard above stays outside.
+      var own = Object.keys(s.build.tokens).filter(function (id) {
+        return App.data.TOKEN_IDS.indexOf(id) === -1;
+      });
+      if (own.length >= App.data.MAX_CUSTOM_TYPES) {
+        throw new Error('This board already has ' + App.data.MAX_CUSTOM_TYPES
+          + ' token types of your own. Remove one before adding another.');
+      }
+      // Layer 3 of the gate. The sequence should never hand back an id that is
+      // already here, and this is what makes "should never" checkable rather
+      // than assumed.
+      if (Object.prototype.hasOwnProperty.call(s.build.tokens, made)) {
+        throw new Error('There is already a token type "' + String(made) + '" on this board.');
+      }
+      // Field by field, never a merge helper, for the reason setTokenStyle's
+      // mutator already gives: a merge copies whatever keys the caller
+      // supplied, which is how a reserved key slips past an allowlist that
+      // only inspected the values.
+      s.build.tokens[made] = {
+        shape: p.shape,
+        color: p.color,
+        glyph: p.glyph,
+        name: name,
+        scope: p.scope
+      };
+    });
+    // Handed back so [S07.2] can select the new type in the list the moment
+    // dispatch returns, rather than re-deriving which id was just made.
+    return made;
+  }
+
+  // The five the board is built on cannot be removed (D-15) — [S02], [S05] and
+  // [S06] all bind to them. That refusal fires FIRST and reads the LIVE
+  // record's name, so a student who renamed Health to Vigor is told about
+  // Vigor rather than about a key they have never seen, and it offers the
+  // supported alternative (D-10: a built-in can be renamed).
+  //
+  // There is no confirmation dialog here, on purpose (D-17). Everything the
+  // mutator does happens in ONE commit, so one Ctrl+Z brings the type and
+  // every number back together (D-16), and a modal would cost an instructor a
+  // click mid-demo to guard against something undo already covers.
+  function removeTokenType(tokenId) {
+    if (typeof tokenId === 'string' && App.data.TOKEN_IDS.indexOf(tokenId) !== -1) {
+      var vocab = App.state.get().build.tokens;
+      var live = Object.prototype.hasOwnProperty.call(vocab, tokenId)
+        ? vocab[tokenId] : null;
+      throw new Error('"' + String(live !== null ? live.name : tokenId)
+        + '" is one of the five token types the board is built on, so it cannot '
+        + 'be removed. You can rename it instead.');
+    }
+    requireTokenId(tokenId);
+
+    commitStructural('token remove ' + tokenId, function (s) {
+      // Layer 3 again. Without it a delete on an id that names nothing would
+      // succeed silently and report a removal that never happened.
+      if (!Object.prototype.hasOwnProperty.call(s.build.tokens, tokenId)) {
+        throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+      }
+      delete s.build.tokens[tokenId];
+      // The numbers go with it, inside the SAME mutator, which is the whole of
+      // D-16: one mutator is one snapshot is one Ctrl+Z.
+      SIDES.forEach(function (side) {
+        var faction = s.build[side];
+        dropTally(faction, tokenId);
+        faction.units.forEach(function (unit) { dropTally(unit, tokenId); });
+      });
+    });
+  }
+
+  // ALLOC-10. A name is a display label and nothing more (D-09) — the id
+  // stays the identity, so this writes one field and touches nothing else.
+  // Built-ins are renameable on purpose (D-10): a student calling Health
+  // "Vigor" is exactly the authorship this phase exists for. Names need not be
+  // unique (D-11), because the id already tells two of them apart.
+  //
+  // THE GUARD ORDER IS THE WHOLE PITFALL-2 DEFENCE. The mutator below is the
+  // read-then-write shape `var t = tokens[id]; t.name = x`, which for a
+  // reserved id resolves `t` to Object.prototype and writes onto it —
+  // persistent, global, and invisible to JSON.stringify and deepFreeze alike.
+  // It is the worse of the two corruption shapes, and gating create but not
+  // rename would ship precisely it. Both guards run before the commit, and the
+  // existence check is the third layer behind them.
+  //
+  // A plain commit, NOT a structural one: a rename changes a label, and plan
+  // 02.1-03 makes labels a per-frame sync pass. A structural frame here would
+  // rebuild both columns on every keystroke of a name being typed.
+  function renameTokenType(tokenId, name) {
+    requireTokenId(tokenId);
+    var next = requireTokenName(name);
+    var vocab = App.state.get().build.tokens;
+    if (!Object.prototype.hasOwnProperty.call(vocab, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+    }
+    // The same no-op contract setTokenStyle states above, and for the same
+    // reason: a name field commits on every keystroke, and a rename that
+    // changes nothing would put a do-nothing Ctrl+Z step between the student
+    // and the edit they actually want back. requireTokenName has already
+    // trimmed, so padding alone compares equal.
+    if (vocab[tokenId].name === next) { return false; }
+    App.state.commit('token rename ' + tokenId, function (s) {
+      s.build.tokens[tokenId].name = next;
+    });
+    return true;
+  }
+
+  /* ---- the tally: the number a student writes down beside their own
+   * invention (D-00e). The tool stores it and never infers what it means, and
+   * nothing anywhere in this file acts on it — a type a student made counts
+   * nothing on its own. That is the boundary this artifact is built around.
+   *
+   * TWO sparse-storage rules, and both are worth stating rather than leaving
+   * to be inferred from the code (D-04):
+   *   1. A tally of zero deletes its key.
+   *   2. A bag with no keys left deletes itself.
+   * Nine cats by six types is fifty-four potential numbers, and almost all of
+   * them are zero in a real build — which is what Phase 4's 512-character
+   * budget cares about.
+   *
+   * hasOwnProperty on every read. A bare `owner.tally[id]` lookup for
+   * 'constructor' resolves on the prototype and hands back a function instead
+   * of failing, and from Phase 4 a bag can arrive from a pasted build code
+   * rather than from this file.
+   */
+  function tallyBag(owner, create) {
+    if (!Object.prototype.hasOwnProperty.call(owner, 'tally')) {
+      if (!create) { return null; }
+      owner.tally = {};
+    }
+    return owner.tally;
+  }
+
+  function readTally(owner, tokenId) {
+    if (!owner || !Object.prototype.hasOwnProperty.call(owner, 'tally')) { return 0; }
+    return Object.prototype.hasOwnProperty.call(owner.tally, tokenId)
+      ? owner.tally[tokenId] : 0;
+  }
+
+  function writeTally(owner, tokenId, n) {
+    // Rule 1 and rule 2 both live in dropTally, which removeTokenType already
+    // needs — one place that knows how a tally disappears, rather than two
+    // that have to agree.
+    if (n === 0) { dropTally(owner, tokenId); return; }
+    tallyBag(owner, true)[tokenId] = n;
+  }
+
+  // Which type, and is a tally even the right question for it? The five the
+  // board is built on have no tally: their quantity is the health, shield or
+  // action points already on the board, and giving them a second number would
+  // create a purely mechanical reason for the two to disagree.
+  function tallyType(vocab, tokenId) {
+    if (!Object.prototype.hasOwnProperty.call(vocab, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+    }
+    if (App.data.TOKEN_IDS.indexOf(tokenId) !== -1) {
+      throw new Error('"' + String(vocab[tokenId].name) + '" is one of the five token '
+        + 'types the board is built on, and its quantity is the health, shield or '
+        + 'action points already there rather than a tally of its own.');
+    }
+    return vocab[tokenId];
+  }
+
+  // And WHICH record carries the number, which is what the scope chosen at
+  // creation decides (D-01). Both render sites already exist on the board —
+  // health and shield are per-unit, action points are per-faction — so a
+  // scoped type reuses whichever its scope names. Called once on the live
+  // board to rule on the arguments, and again on the detached copy inside the
+  // mutator, where it cannot throw because the first call already ruled.
+  function tallyOwner(build, side, unitId, rec) {
+    var named = (unitId !== null && unitId !== undefined);
+    if (rec.scope === 'side') {
+      if (named) {
+        throw new Error('"' + String(rec.name) + '" is kept on the whole side, so it '
+          + 'has no number of its own on a single unit.');
+      }
+      return build[side];
+    }
+    if (!named) {
+      throw new Error('"' + String(rec.name) + '" is kept on each unit, so it has to '
+        + 'be told which one.');
+    }
+    return findUnit(side, unitId, build[side].units);
+  }
+
+  // The absolute set. Every guard outside the commit, and the current value is
+  // read outside it too — unlike the nudge sibling below. Those must read and
+  // write inside one mutator because a 40ms ramp could otherwise act on a
+  // number it read a step ago; this one compares against a value the caller
+  // handed over whole, which nothing can change underneath it.
+  //
+  // Plain commit, not structural: the stat line this number is shown on
+  // already exists by the time anyone can set it, so a tally change is
+  // sync-only. MAX_ALLOC is reused rather than a second ceiling invented for
+  // tallies, so int() clamps a whole number that is merely out of range and
+  // throws on anything that is not a whole number at all.
+  function setTally(side, unitId, tokenId, n) {
+    requireSide(side);
+    requireTokenId(tokenId);
+    var rec = tallyType(App.state.get().build.tokens, tokenId);
+    var live = tallyOwner(App.state.get().build, side, unitId, rec);
+    var next = int(n, 0, MAX_ALLOC, 'a tally of "' + rec.name + '"');
+    if (readTally(live, tokenId) === next) { return false; }
+    App.state.commit(tallyLabel(side, unitId, tokenId), function (s) {
+      writeTally(tallyOwner(s.build, side, unitId, rec), tokenId, next);
+    });
+    return true;
+  }
+
+  // The delta sibling, held to the three properties the shipped nudges hold:
+  // the guards run outside the commit, the read and the write share one
+  // mutator, and the label is IDENTICAL to the absolute-set sibling's so a
+  // press-and-hold collapses into one Ctrl+Z instead of forty. The boolean is
+  // the ramp's sixth stop condition — returning it rather than throwing keeps
+  // an over-press during a live demo from flashing the error panel.
+  function nudgeTally(side, unitId, tokenId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'a tally');
+    requireTokenId(tokenId);
+    var rec = tallyType(App.state.get().build.tokens, tokenId);
+    tallyOwner(App.state.get().build, side, unitId, rec);
+    var moved = false;
+    App.state.commit(tallyLabel(side, unitId, tokenId), function (s) {
+      var owner = tallyOwner(s.build, side, unitId, rec);
+      var current = readTally(owner, tokenId);
+      var next = int(current + delta, 0, MAX_ALLOC, 'a tally of "' + rec.name + '"');
+      moved = (next !== current);
+      writeTally(owner, tokenId, next);
+    });
+    return moved;
+  }
+
+  // One spelling of the label, so the two ops above cannot drift apart and
+  // quietly stop coalescing.
+  function tallyLabel(side, unitId, tokenId) {
+    return 'tally ' + tokenId + ' ' + side + '/' + String(unitId);
+  }
+
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
   // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
   function undo() {
@@ -1826,6 +2144,17 @@ App.ops = (function () {
       case 'endFight': return endFight();
       case 'reset': return resetToDefaults();
       case 'setTokenStyle': return setTokenStyle(p.tokenId, p.patch);
+      // Read key by key rather than forwarding the payload object whole. The
+      // op's own guards would refuse a stray key's VALUE, but they would never
+      // see a key nobody meant to send; naming the five here is what keeps the
+      // page's payload and the op's contract the same list.
+      case 'createTokenType': return createTokenType({
+        name: p.name, shape: p.shape, color: p.color, glyph: p.glyph, scope: p.scope
+      });
+      case 'removeTokenType': return removeTokenType(p.tokenId);
+      case 'renameTokenType': return renameTokenType(p.tokenId, p.name);
+      case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
+      case 'nudgeTally': return nudgeTally(p.side, p.unitId, p.tokenId, p.delta);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -1856,6 +2185,11 @@ App.ops = (function () {
     endFight: endFight,
     resetToDefaults: resetToDefaults,
     setTokenStyle: setTokenStyle,
+    createTokenType: createTokenType,
+    removeTokenType: removeTokenType,
+    renameTokenType: renameTokenType,
+    setTally: setTally,
+    nudgeTally: nudgeTally,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
@@ -4684,6 +5018,401 @@ App.selftest = (function () {
            nothing in this phase may add a top-level key to it. --- */
     t.eq('the build slice still holds exactly the four keys it shipped with',
       Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+
+    /* ============ plan 02.1-02, the create and remove write paths ============
+       Two more paths now index build.tokens with a key the caller supplied,
+       and plan 02.1-01 measured that the id gate is THREE independent layers
+       rather than one — the named refusal list, the id shape, and a
+       hasOwnProperty existence check. Removing any single layer still left
+       that plan's suite fully green, which means a one-layer gate would ship
+       looking proven. So every path below carries all three, and the rows are
+       written per reserved key per path rather than one row for the class.
+       ------------------------------------------------------------------- */
+
+    t.eq('the create op is exported', typeof App.ops.createTokenType, 'function');
+    t.eq('the remove op is exported', typeof App.ops.removeTokenType, 'function');
+
+    /* --- ALLOC-11. A type of the student's own, under an id that comes from a
+           sequence and never from the text they typed (D-13). --- */
+    var madeId = App.ops.createTokenType({
+      name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+    });
+    t.eq('a type of the student\'s own takes the first id in the sequence',
+      madeId, 't1');
+    var madeRec = App.state.get().build.tokens.t1;
+    t.eq('and the record holds exactly the five fields a type is made of',
+      Object.keys(madeRec).sort(), ['color', 'glyph', 'name', 'scope', 'shape']);
+    t.eq('carrying the name the student typed', madeRec.name, 'Poison');
+    t.eq('the shape they picked', madeRec.shape, 'circ');
+    t.eq('the colour they picked', madeRec.color, 'violet');
+    t.eq('the glyph they picked', madeRec.glyph, '');
+    t.eq('and the scope they chose, which is fixed from here on (D-03)',
+      madeRec.scope, 'unit');
+
+    /* --- the sequence takes the largest suffix in use, never the count of
+           types. Prefix-plus-count would hand a later type an id a removal
+           had already freed, and a duplicate key in the vocabulary is silent
+           in every direction at once. --- */
+    t.eq('a second type takes the next id in the sequence',
+      App.ops.createTokenType({
+        name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+      }), 't2');
+    App.ops.removeTokenType('t1');
+    t.eq('and after a removal the sequence still moves forward rather than '
+      + 're-using the id that was freed',
+      App.ops.createTokenType({
+        name: 'Rust', shape: 'dia', color: 'coral', glyph: '', scope: 'unit'
+      }), 't3');
+
+    /* --- the value allowlists. Each refusal names the value it refused,
+           because the audience is a student who picked something reasonable,
+           not a developer reading a stack trace. --- */
+    var depthCreate = App.state.undoDepth();
+    [
+      { what: 'shape', bad: 'blob',
+        spec: { name: 'X', shape: 'blob', color: 'gold', glyph: '', scope: 'unit' } },
+      { what: 'colour', bad: 'puce',
+        spec: { name: 'X', shape: 'sq', color: 'puce', glyph: '', scope: 'unit' } },
+      { what: 'glyph', bad: 'zz',
+        spec: { name: 'X', shape: 'sq', color: 'gold', glyph: 'zz', scope: 'unit' } },
+      { what: 'scope', bad: 'faction',
+        spec: { name: 'X', shape: 'sq', color: 'gold', glyph: '', scope: 'faction' } }
+    ].forEach(function (c) {
+      t.throws('a token type with an unknown ' + c.what + ' is refused',
+        function () { App.ops.createTokenType(c.spec); });
+      t.ok('and the ' + c.what + ' refusal names the value it refused',
+        (function () {
+          try { App.ops.createTokenType(c.spec); } catch (e) {
+            return String(e.message).indexOf(c.bad) !== -1;
+          }
+          return false;
+        })());
+    });
+    t.throws('a name that fails the name gate is refused, and the name gate '
+      + 'runs before anything else', function () {
+      App.ops.createTokenType({
+        name: '   ', shape: 'sq', color: 'gold', glyph: '', scope: 'unit'
+      });
+    });
+    t.eq('and not one of those refusals left an undo entry behind it',
+      App.state.undoDepth(), depthCreate);
+
+    /* --- D-18, asserted against the NAMED constant so a Phase 4 dial moved in
+           [S01] moves this row with it. The cap is checked INSIDE the mutator,
+           because it needs the key count from the detached copy — the same
+           documented exception addUnit's MAX_UNITS check already is, and it is
+           safe for the same reason: a mutator that throws leaves no trace. --- */
+    var ownCount = Object.keys(App.state.get().build.tokens).filter(function (id) {
+      return App.data.TOKEN_IDS.indexOf(id) === -1;
+    }).length;
+    while (ownCount < App.data.MAX_CUSTOM_TYPES) {
+      App.ops.createTokenType({
+        name: 'Spare ' + ownCount, shape: 'sq', color: 'gold', glyph: '', scope: 'unit'
+      });
+      ownCount++;
+    }
+    t.eq('the board now holds exactly the cap of types of a student\'s own',
+      Object.keys(App.state.get().build.tokens).filter(function (id) {
+        return App.data.TOKEN_IDS.indexOf(id) === -1;
+      }).length, App.data.MAX_CUSTOM_TYPES);
+    var depthCap = App.state.undoDepth();
+    var overCap = { name: 'One too many', shape: 'sq', color: 'gold', glyph: '', scope: 'unit' };
+    t.throws('one type past the cap is refused',
+      function () { App.ops.createTokenType(overCap); });
+    t.ok('and that refusal names the cap rather than a bare number', (function () {
+      try { App.ops.createTokenType(overCap); } catch (e) {
+        return String(e.message).indexOf(String(App.data.MAX_CUSTOM_TYPES)) !== -1;
+      }
+      return false;
+    })());
+    t.eq('a refusal raised from inside the mutator leaves no phantom undo step '
+      + 'either, which is the property that makes the exception safe',
+      App.state.undoDepth(), depthCap);
+
+    /* --- D-15. The five the board is built on refuse removal, and they refuse
+           it by the label the student reads, so somebody who renamed Health to
+           Vigor is told about Vigor rather than about a key they never saw. --- */
+    var depthRemove = App.state.undoDepth();
+    App.data.TOKEN_IDS.forEach(function (id) {
+      t.throws('the ' + id + ' type refuses removal',
+        function () { App.ops.removeTokenType(id); });
+      t.ok('and the ' + id + ' refusal names the label a student reads, and '
+        + 'says the board is built on it', (function () {
+        var label = App.state.get().build.tokens[id].name;
+        try { App.ops.removeTokenType(id); } catch (e) {
+          return String(e.message).indexOf(label) !== -1
+            && String(e.message).indexOf('the board is built on') !== -1;
+        }
+        return false;
+      })());
+    });
+
+    /* --- the CREATE-shape family reaches the remove path too, through
+           `delete tokens[id]` and `delete owner.tally[id]`. One row per
+           reserved key, because 'constructor' fails with a different
+           TypeError than '__proto__' does. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('removing through the ' + k + ' key is refused',
+        function () { App.ops.removeTokenType(k); });
+      t.ok('and the live vocabulary still has the ordinary object prototype '
+        + 'after ' + k + ' reached the remove path',
+        Object.getPrototypeOf(App.state.get().build.tokens) === Object.prototype);
+    });
+
+    /* --- the third layer, on the remove path: an id that satisfies the shape
+           but names nothing here. Without it the delete would succeed
+           silently on a type that was never there. --- */
+    t.throws('an id that fits the pattern but names no live type is refused '
+      + 'on the remove path too',
+      function () { App.ops.removeTokenType('t9'); });
+    t.ok('and that refusal names the id it refused', (function () {
+      try { App.ops.removeTokenType('t9'); } catch (e) {
+        return String(e.message).indexOf('t9') !== -1;
+      }
+      return false;
+    })());
+    t.eq('and not one of the removal refusals left an undo entry behind it',
+      App.state.undoDepth(), depthRemove);
+
+    /* --- D-16. Removal takes every tally with it, inside ONE mutator, so one
+           Ctrl+Z brings the type and all of its numbers back together. The
+           numbers are seeded through App.state.commit directly rather than
+           through setTally, which arrives in the next task of this plan;
+           [S09.3] writes to the live board the same way for the same reason.
+           There is deliberately no confirmation dialog anywhere near this
+           (D-17) — undo already covers it, and a modal would cost an
+           instructor a click mid-demo. --- */
+    App.state.commit('tally seed for the removal row', function (s) {
+      s.build.cats.units[0].tally = { t6: 2 };
+      s.build.cats.units[1].tally = { t6: 5 };
+      s.build.mechs.tally = { t6: 4 };
+    });
+    var depthSeed = App.state.undoDepth();
+    App.ops.removeTokenType('t6');
+    t.ok('removing a type takes it out of the vocabulary',
+      !Object.prototype.hasOwnProperty.call(App.state.get().build.tokens, 't6'));
+    t.ok('and takes its numbers with it, on both scopes and both sides — and '
+      + 'the emptied bags go too, because a bag with no keys left deletes '
+      + 'itself', (function () {
+        var b = App.state.get().build;
+        return !Object.prototype.hasOwnProperty.call(b.cats.units[0], 'tally')
+          && !Object.prototype.hasOwnProperty.call(b.cats.units[1], 'tally')
+          && !Object.prototype.hasOwnProperty.call(b.mechs, 'tally');
+      })());
+    t.eq('the whole removal is exactly one undo entry',
+      App.state.undoDepth(), depthSeed + 1);
+    App.state.undo();
+    t.ok('and one undo brings the type itself back', (function () {
+      var v = App.state.get().build.tokens;
+      return Object.prototype.hasOwnProperty.call(v, 't6');
+    })());
+    t.eq('together with the number on the first cat',
+      App.state.get().build.cats.units[0].tally.t6, 2);
+    t.eq('the number on the second cat',
+      App.state.get().build.cats.units[1].tally.t6, 5);
+    t.eq('and the number the mechs carried as a side',
+      App.state.get().build.mechs.tally.t6, 4);
+
+    /* --- Pattern 2's measured finding: the nested shape is the ONLY tally
+           shape that costs no shipped assertion. A top-level build.tally key
+           turns [S09.3]'s 'the board has its build keys' row red. --- */
+    t.eq('and six types of a student\'s own plus their numbers still add no '
+      + 'top-level key to the build slice',
+      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+
+    /* ========== plan 02.1-02, the rename and the tally write paths ==========
+       The board is handed back here, MID-SUITE, so the rows below start from
+       the shipped vocabulary rather than from the six types the block above
+       left behind. restore() clears the undo stack with it, which is what
+       makes the depth rows underneath readable at all.
+       -------------------------------------------------------------------- */
+    App.state.restore(savedAll);
+    App.state.flush();
+
+    t.eq('the rename op is exported', typeof App.ops.renameTokenType, 'function');
+    t.eq('the set-a-tally op is exported', typeof App.ops.setTally, 'function');
+    t.eq('the nudge-a-tally op is exported', typeof App.ops.nudgeTally, 'function');
+
+    /* --- ALLOC-10 and D-10. A student calling Health "Vigor" is exactly the
+           authorship this phase is for, and it changes the label and nothing
+           else: the KEY stays the identity (D-09), because [S02], [S05] and
+           [S06] all bind to it. --- */
+    t.eq('one of the five the board is built on can be renamed',
+      App.ops.renameTokenType('hp', 'Vigor'), true);
+    t.eq('and the label a student reads follows',
+      App.state.get().build.tokens.hp.name, 'Vigor');
+    t.eq('while the shape it draws with is untouched',
+      App.state.get().build.tokens.hp.shape, App.data.DEFAULTS.tokens.hp.shape);
+    t.ok('and the id it is known by is untouched too',
+      Object.prototype.hasOwnProperty.call(App.state.get().build.tokens, 'hp'));
+
+    var depthRename = App.state.undoDepth();
+    t.eq('renaming to the name it already carries commits nothing',
+      App.ops.renameTokenType('hp', 'Vigor'), false);
+    t.eq('and leaves no do-nothing step between the student and the edit they '
+      + 'want back', App.state.undoDepth(), depthRename);
+    t.eq('the name is trimmed before it is compared, so padding on its own is '
+      + 'still a no-op', App.ops.renameTokenType('hp', '  Vigor  '), false);
+    t.eq('a name carrying a symbol is accepted on the rename path too (D-12)',
+      App.ops.renameTokenType('hp', 'Poison \u{2620}'), true);
+    t.throws('renaming an id that fits the pattern but names no live type is '
+      + 'refused', function () { App.ops.renameTokenType('t9', 'Nothing'); });
+
+    /* --- Pitfall 2, the RENAME shape, and it is the WORSE of the two:
+           `var rec = tokens[id]; rec.name = x` resolves rec to
+           Object.prototype and writes onto it — persistent, global, and
+           invisible to JSON.stringify and deepFreeze alike. Gating create but
+           not rename would ship exactly this. The check is on
+           Object.prototype itself and never on the board, which would read
+           clean either way. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('renaming through the ' + k + ' key is refused', function () {
+        App.ops.renameTokenType(k, 'Poison');
+      });
+      t.ok('and nothing leaked onto the shared object prototype through ' + k
+        + ' on the rename path',
+        ({}).name === undefined
+          && !Object.prototype.hasOwnProperty.call(Object.prototype, 'name'));
+    });
+
+    /* --- D-00e and D-04. A type a student made counts nothing on its own; it
+           carries a number they write down by hand, and that number defaults
+           to zero and is stored SPARSELY — nine cats by six types is fifty-four
+           potential numbers, and almost all of them are zero in a real
+           build. --- */
+    var unitType = App.ops.createTokenType({
+      name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+    });
+    var sideType = App.ops.createTokenType({
+      name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+    });
+
+    t.ok('a number nobody has written is stored nowhere at all',
+      !Object.prototype.hasOwnProperty.call(
+        App.state.get().build.cats.units[0], 'tally'));
+    t.eq('setting one on a unit reports that it moved',
+      App.ops.setTally('cats', 'c1', unitType, 3), true);
+    t.eq('and the unit carries it', App.state.get().build.cats.units[0].tally.t1, 3);
+    t.eq('setting it to what it already holds commits nothing',
+      App.ops.setTally('cats', 'c1', unitType, 3), false);
+    t.eq('setting it back to zero moves it',
+      App.ops.setTally('cats', 'c1', unitType, 0), true);
+    t.ok('and leaves the unit with no bag at all, because a tally of zero '
+      + 'deletes its key and a bag with no keys left deletes itself',
+      !Object.prototype.hasOwnProperty.call(
+        App.state.get().build.cats.units[0], 'tally'));
+
+    /* --- D-01: the scope chosen at creation decides WHICH record carries the
+           number, and the arguments have to agree with it. --- */
+    t.eq('a side-scope type is written on the faction, with no unit named',
+      App.ops.setTally('cats', null, sideType, 5), true);
+    t.eq('and the faction carries it', App.state.get().build.cats.tally.t2, 5);
+    t.throws('naming a unit for a side-scope type is refused',
+      function () { App.ops.setTally('cats', 'c1', sideType, 5); });
+    t.throws('and naming no unit for a unit-scope type is refused',
+      function () { App.ops.setTally('cats', null, unitType, 5); });
+    t.throws('an unknown side is refused before anything indexes a bag',
+      function () { App.ops.setTally('dogs', 'c1', unitType, 1); });
+    t.throws('and so is a unit that is not on that side',
+      function () { App.ops.setTally('cats', 'm1', unitType, 1); });
+    t.throws('one of the five the board is built on has no tally of its own — '
+      + 'its quantity is the health, shield or action points already there',
+      function () { App.ops.setTally('cats', 'c1', 'hp', 2); });
+    t.throws('and an id that names no live type is refused',
+      function () { App.ops.setTally('cats', 'c1', 't9', 2); });
+
+    /* --- the value boundary is the board's OWN ceiling, reused rather than a
+           second bound invented for tallies. int() clamps a whole number that
+           is merely out of range and throws on anything that is not a whole
+           number, which is the contract every other allocated quantity on this
+           board already goes through. --- */
+    App.ops.setTally('cats', 'c1', unitType, App.ops.MAX_ALLOC + 40);
+    t.eq('a number past the ceiling is clamped to it',
+      App.state.get().build.cats.units[0].tally.t1, App.ops.MAX_ALLOC);
+    t.throws('a fraction is refused outright',
+      function () { App.ops.setTally('cats', 'c1', unitType, 2.5); });
+    t.throws('as is text that merely looks like a number',
+      function () { App.ops.setTally('cats', 'c1', unitType, '3'); });
+
+    /* --- the nudge sibling, held to the shipped nudge shape: the read and the
+           write happen inside ONE mutator so a 40ms press-and-hold ramp can
+           never act on a number it read a step ago, and it reports whether it
+           moved, which is the ramp's sixth stop condition. --- */
+    App.ops.setTally('cats', 'c1', unitType, 2);
+    t.eq('a nudge moves the number and says so',
+      App.ops.nudgeTally('cats', 'c1', unitType, 1), true);
+    t.eq('by exactly one step',
+      App.state.get().build.cats.units[0].tally.t1, 3);
+    t.throws('a step by something that is not a whole number is refused',
+      function () { App.ops.nudgeTally('cats', 'c1', unitType, 'up'); });
+    t.eq('nudging below zero clamps at zero',
+      App.ops.nudgeTally('cats', 'c1', unitType, -9), true);
+    t.ok('and leaves no key behind, because zero is stored as nothing',
+      !Object.prototype.hasOwnProperty.call(
+        App.state.get().build.cats.units[0], 'tally'));
+    t.eq('a step that cannot move reports false rather than throwing, so an '
+      + 'over-press during a demo does not flash the error panel',
+      App.ops.nudgeTally('cats', 'c1', unitType, -1), false);
+
+    /* --- both tally paths index a bag with a caller-supplied key, so both
+           carry the gate, and both are asserted per reserved key. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('setting a number through the ' + k + ' key is refused',
+        function () { App.ops.setTally('cats', 'c1', k, 3); });
+      t.throws('and stepping one through the ' + k + ' key is refused too',
+        function () { App.ops.nudgeTally('cats', 'c1', k, 1); });
+      t.ok('with nothing left on the shared object prototype after ' + k
+        + ' reached the tally paths',
+        ({}).tally === undefined
+          && !Object.prototype.hasOwnProperty.call(Object.prototype, 'tally')
+          && Object.getPrototypeOf(App.state.get().build.cats.units[0])
+            === Object.prototype);
+    });
+
+    /* --- Pitfall 13. addUnit seeds a new unit from the last one field by
+           field, and `tally` is deliberately NOT one of those fields — adding
+           a unit must not silently duplicate the numbers a student wrote on
+           the one before it. That is a rule about NOT writing a line, which is
+           the easiest kind to lose in a later edit, so it gets an assertion
+           rather than a comment alone. --- */
+    App.ops.setTally('cats', 'c9', unitType, 4);
+    App.ops.addUnit('cats');
+    var seeded = App.state.get().build.cats.units;
+    t.ok('a unit added after a tally was written carries no bag of its own',
+      !Object.prototype.hasOwnProperty.call(seeded[seeded.length - 1], 'tally'));
+    t.eq('while it does inherit the health it was seeded from',
+      seeded[seeded.length - 1].maxHp, seeded[seeded.length - 2].maxHp);
+
+    /* --- the state-shape rows, with the vocabulary full and numbers on the
+           board. Pattern 2 measured that the NESTED shape is the only tally
+           shape that costs no shipped assertion: a top-level build.tally key
+           turns [S09.3]'s 'the board has its build keys' row red. --- */
+    while (Object.keys(App.state.get().build.tokens).length
+        < App.data.TOKEN_IDS.length + App.data.MAX_CUSTOM_TYPES) {
+      App.ops.createTokenType({
+        name: 'Spare', shape: 'sq', color: 'gold', glyph: '', scope: 'unit'
+      });
+    }
+    t.eq('the vocabulary now holds the five the board is built on plus the '
+      + 'full cap of a student\'s own',
+      Object.keys(App.state.get().build.tokens).length,
+      App.data.TOKEN_IDS.length + App.data.MAX_CUSTOM_TYPES);
+    t.eq('and even so the build slice holds exactly the four keys it shipped '
+      + 'with — the nested shape adds no top-level key',
+      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+    t.ok('every value in the build slice is still a whole number, a piece of '
+      + 'text or a flag, so [S09.3]\'s walk keeps its meaning', (function walk(v) {
+        if (v === null) { return true; }
+        if (typeof v === 'string' || typeof v === 'boolean') { return true; }
+        if (typeof v === 'number') { return Number.isInteger(v); }
+        if (typeof v !== 'object') { return false; }
+        return Object.keys(v).every(function (k) { return walk(v[k]); });
+      })(App.state.get().build));
+    t.ok('and the whole board still survives the JSON round trip the funnel '
+      + 'puts it through on every commit', (function () {
+        var json = JSON.stringify(App.state.get().build);
+        return JSON.stringify(JSON.parse(json)) === json;
+      })());
 
     App.state.restore(savedAll);
     App.state.flush();
