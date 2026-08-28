@@ -202,15 +202,40 @@ Plans:
 **Verification note** (flagged by research): the failure modes here are cross-browser and silent. This phase needs a real test matrix — 2 browsers × focused / DevTools-focused / backgrounded × forced Tier-3 fallback — not a smoke test.
 
 ### Phase 5: Fight Loop & Playtest
-**Goal**: A student can play the fight hot-seat with the tool doing bookkeeping and the student doing adjudication — and the shipped default is confirmed contested by actually playing it
+**Goal**: A student declares what both sides do, advances the round, and reads what changed — with the tool doing bookkeeping and the student doing adjudication — and the shipped default is confirmed contested by actually playing it
 **Depends on**: Phase 1, Phase 2, Phase 3, Phase 3.1, Phase 4
-**Requirements**: FIGHT-01, FIGHT-02, FIGHT-03, FIGHT-04, FIGHT-05, FIGHT-06, FIGHT-07, FIGHT-08, FIGHT-09, FIGHT-10, FIGHT-11, FIGHT-12, PROJ-05, REF-03, SHARE-07
+**Requirements**: FIGHT-01 … FIGHT-16, PROJ-05, REF-03, SHARE-07
 **Success Criteria** (what must be TRUE):
   1. A student can start a fight from the current build, advance and rewind turn and round by hand — the tool never advances on its own, not even when a side's action points hit zero — and can reset the fight to turn one without discarding the build. Whose turn it is and what remains to spend are unambiguous from across the room, with spent action points visibly distinct from available ones.
   2. A student can apply damage to an individual unit; a unit reaching zero health is marked dead, stays visible in the roster rather than disappearing, and can be toggled back alive by hand so a Shield or Evade ruling is representable.
   3. Any tracked value can be overridden at any point from wherever it is displayed, the override is visibly marked as one, and the combat log records each turn's actions and every override in readable order.
   4. Editing the build mid-fight applies to the build rather than retroactively to the fight in progress, and the tool says so on screen. Throughout the fight the per-side projection and the counter map / effect cards stay readable without navigating away — and still render no verdict, badge, traffic light, or balance judgement of any kind.
   5. **Playtest gate — this is a played fight, not a code review.** A person plays the shipped 9-Cats-vs-3-Mechs default end to end at least twice, hot-seat, adjudicating counters and effects as a student would. The phase is not complete until neither side wipes the other with a large force advantage remaining (target: the winner finishes with no more than roughly 30% of its starting force intact). If the default blows out — the expected Lanchester square-law outcome for a swarm with focus fire and individual deaths — the default allocation is retuned in `data` and replayed until it doesn't. The playtest result and the tuning applied are recorded.
+
+**THE ROUND LOOP — the developer's own description, 2026-08-28.** This supersedes the
+turn-by-turn reading the earlier criteria implied, and it is the shape to build:
+
+  1. The student declares the actions **both sides** will perform this round — and the performer and
+     target where the action needs them. Nothing resolves while declaring.
+  2. They press **Advance**. The round resolves for both sides at once.
+  3. **The previous state of the board moves up into a history**, so earlier rounds stay on screen.
+  4. The new state shows **what changed since the previous round** — the student reads the effect of
+     their own declaration without reconstructing it.
+  5. They declare again and advance to the next round.
+
+Two consequences worth stating. **This is simultaneous declaration, not alternating turns** — one
+Advance resolves both sides, which is a different shape from FIGHT-02's original "advance and rewind
+turn and round". And the history is a **ledger that accumulates on screen**, not a log panel: the
+board's own past states stack upward. The developer explicitly rejected calling a round a "Day".
+
+**Shield.** Damage spends shield before it reaches health (FIGHT-16), and the split is shown rather
+than applied silently — which is the propose-not-decide line Phase 3.1 draws, applied to the one
+resolution rule the developer specified directly.
+
+**Where Phase 3.1 stops and this starts.** Phase 3.1 makes an action *authorable* and shows what a
+student's own rule would do. This phase is where a declared action *lands*, on Advance. That split
+is why Phase 3.1 ships a preview rather than an apply.
+
 **Plans**: 3 plans
 **UI hint**: yes
 

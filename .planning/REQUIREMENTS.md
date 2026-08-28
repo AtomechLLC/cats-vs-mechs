@@ -35,7 +35,11 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **FIGHT-01**: Student can start a fight from the current build
 - [ ] **FIGHT-02**: Student can advance and rewind turn and round; the tool never advances on its own
-- [ ] **FIGHT-12**: Student can set the sequence of actions each side performs in a turn, drawing on that side's authored and shipped actions
+- [ ] **FIGHT-12**: Student declares the actions both sides will perform this round — and the performer and target where the action needs them — before anything resolves
+- [ ] **FIGHT-13**: One **Advance** control resolves the declared round for both sides at once; the tool never advances on its own
+- [ ] **FIGHT-14**: On advancing, the previous state of the board moves up into a visible history, so earlier rounds stay on screen and readable rather than being replaced
+- [ ] **FIGHT-15**: The current board shows what changed since the previous round, so a student can see the effect of what they just declared without reconstructing it
+- [ ] **FIGHT-16**: Damage spends shield before it reaches health, and the tool shows that split rather than applying it silently
 - [ ] **FIGHT-03**: Student can spend a faction's action points during its turn, with spent points visibly distinct from available ones
 - [ ] **FIGHT-04**: Student can apply damage to an individual unit
 - [ ] **FIGHT-05**: A unit reaching zero health is marked dead but can be manually toggled alive or dead, so a student's Shield or Evade ruling is representable
@@ -160,6 +164,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FIGHT-10 | Phase 5 | Pending |
 | FIGHT-11 | Phase 5 | Pending |
 | FIGHT-12 | Phase 5 | Pending |
+| FIGHT-13 | Phase 5 | Pending |
+| FIGHT-14 | Phase 5 | Pending |
+| FIGHT-15 | Phase 5 | Pending |
+| FIGHT-16 | Phase 5 | Pending |
 | PROJ-01 | Phase 3 | Pending |
 | PROJ-02 | Phase 3 | Pending |
 | PROJ-03 | Phase 3 | Pending |
@@ -184,8 +192,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-05 | Phase 2 | Complete |
 
 **Coverage:**
-- v1 requirements: 52 total
-- Mapped to phases: 52 ✓
+- v1 requirements: 56 total
+- Mapped to phases: 56 ✓
 - Unmapped: 0
 
 | Phase | Requirements | Count |
@@ -196,7 +204,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | 3.1 Action Authoring (INSERTED) | ACT-01…07 | 7 |
 | 3. Advisory Projection & Reference Material | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
 | 4. Share & Reset | SHARE-01…06, SHARE-08 | 7 |
-| 5. Fight Loop & Playtest | FIGHT-01…11, FIGHT-12, PROJ-05, REF-03, SHARE-07 | 14 |
+| 5. Fight Loop & Playtest | FIGHT-01…16, PROJ-05, REF-03, SHARE-07 | 14 |
 
 PROJ-05, REF-03 and SHARE-07 sit in Phase 5 rather than with their category, because each only
 becomes observable once the fight view exists.
