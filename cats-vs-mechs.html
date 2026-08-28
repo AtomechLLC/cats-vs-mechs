@@ -6473,8 +6473,10 @@ App.render = (function () {
   // control. A second map rather than WHO_NAMES lower-cased, because
   // lower-casing is a transformation performed on a word and this file's rule
   // is that a word the page says is written down where a reader can find it.
-  // [S09.10] asserts both maps cover App.data.XF_WHO exactly, so an id with no
-  // word in either is a red row rather than a silently empty fragment.
+  // A numbered check in tests/selftest-node.cjs drives an action carrying a
+  // transformation on EVERY party App.data.XF_WHO holds and reads both
+  // spellings back off the page, so an id with no word in either is a red row
+  // rather than a silently empty fragment that reads as a rule about nobody.
   var WHO_SAID = { caster: 'caster', target: 'target' };
 
   function whoSaid(who) {
@@ -14457,6 +14459,83 @@ App.selftest = (function () {
       Object.keys(App.ops).filter(function (k) {
         return /^(apply|resolve|advance|spend|fire)/.test(k);
       }), []);
+
+    /* --- THE PHASE'S BOUNDARY, STATED IN THE SUITE ITSELF — plan 03.1-07.
+           Three rows, each labelled so a reader who has never seen the plan
+           understands what is being claimed and why an ABSENCE is the claim.
+           They are DOM-FREE, which is why they are here rather than beside the
+           driven acceptance run in tests/selftest-node.cjs: this suite's own
+           banner says every row in it runs without a page, so the terminal
+           harness gets all three. --- */
+
+    // 1. PROJECT.md's Out of Scope entry says a tool that resolved combat
+    //    would remove the learning, because adjudicating is the exercise. The
+    //    proposal pane shows a student what their own rule says and lets them
+    //    change it; the thing that would cross the line is an op that APPLIED
+    //    one, and there is none. Read off the live export list rather than
+    //    grepped for, because a check written against source spelling cannot
+    //    see behaviour reached through a helper.
+    t.eq('ACT-05 IS HALF-DELIVERED ON PURPOSE: no op anywhere in [S05] applies '
+      + 'a transformation, spends a cost, tests a requirement against a unit '
+      + 'or moves a token. The tool proposes and the student disposes, and the '
+      + 'absence of an applier is the requirement rather than an oversight',
+      Object.keys(App.ops).filter(function (k) {
+        return /^(apply|resolve|advance|spend|fire|perform|execute|enact|land|deal|damage)/i.test(k);
+      }), []);
+
+    // 2. The proposal is a FORM ON A DIALOG, and this row is what makes that
+    //    mechanical rather than architectural taste. All four homes were
+    //    measured: a `ui` key reddens the row asserting that slice's exact key
+    //    set and the ui writer refuses an object value by contract; a fourth
+    //    top-level slice reddens the row asserting there are three; nesting
+    //    under the build slice reddens nothing and is still wrong, because the
+    //    build slice is the student's allocation and a proposal HAS NOT
+    //    HAPPENED. Keeping it off the slices means there is no state in which
+    //    a proposal exists and has not been accepted — so undo, the build code
+    //    and the projection can never read one. Walked at every depth, because
+    //    a key set can be right at the top while a proposal hides inside a
+    //    unit or an action, which is where one would end up under pressure.
+    t.eq('NO PROPOSAL LIVES IN ANY SLICE, at any depth: nothing reachable from '
+      + 'the state is named after a proposal, an override, a caster, a target '
+      + 'or a pending anything. That is what stops undo, a pasted build code '
+      + 'and the projection from ever reading a change the student has not '
+      + 'accepted',
+      (function () {
+        var found = [];
+        (function walk(node, where) {
+          if (!node || typeof node !== 'object') { return; }
+          Object.keys(node).forEach(function (k) {
+            if (/propos|override|caster|target|pending/i.test(k)) {
+              found.push(where + '.' + k);
+            }
+            walk(node[k], where + '.' + k);
+          });
+        })(App.state.get(), 'state');
+        return found;
+      })(), []);
+
+    // 3. The remaining half of ACT-05, named rather than left as a gap a
+    //    verifier has to guess about. The developer settled the round loop on
+    //    2026-08-28: declare both sides, press Advance, the previous board
+    //    moves up into a history, the new board shows what changed. So confirm
+    //    writes on ADVANCE, and Advance is FIGHT-12..16 in Phase 5. There is no
+    //    op for it here and no arm in the router for one, and the router is
+    //    DRIVEN rather than read, because an arm can exist without an export.
+    t.ok('THE REMAINING HALF OF ACT-05 IS THE ADVANCE PATH AND IT BELONGS TO '
+      + 'PHASE 5: no op advances a round and the dispatcher refuses one, so a '
+      + 'later plan adding the write has to add it deliberately rather than '
+      + 'find it half-present', (function () {
+        var named = Object.keys(App.ops).filter(function (k) {
+          return /^(advance|nextRound|endRound|beginRound|takeTurn)/i.test(k);
+        });
+        if (named.length > 0) { return false; }
+        try {
+          App.ops.dispatch('advanceRound', {});
+          return false;
+        } catch (refused) {
+          return true;
+        }
+      })());
 
     App.state.restore(savedAll);
     App.state.flush();

@@ -373,6 +373,34 @@ result.records.forEach((r) => {
 
 console.log(result.passed + ' passed, ' + result.failed + ' failed');
 
+// THE TOTAL IS ASSERTED, NOT ONLY THE FAILURE COUNT, and plan 03.1-07 adds this
+// because `failed === 0` is green over a suite that never ran. A suite whose
+// body throws costs ONE failing record and loses every row after the throw —
+// and a suite whose registration was deleted, renamed or bracketed on a
+// condition that stopped holding costs no record at all and reports a
+// spotlessly clean run with a smaller number nobody was reading. The CONTEXT
+// for this phase names that failure directly: "assert the TOTAL, not just
+// failed === 0."
+//
+// This is the DOM-FREE total, which is what this harness produces — it loads
+// the script into a sandbox with no document, so every row bracketed on one is
+// skipped here. The full figure with a DOM is larger and is measured
+// separately; the floor below bounds THIS run.
+//
+// History, kept so the next plan to move it inherits data rather than a bare
+// constant:
+//   plan 03.1-03 opened the action-authoring suite at 412 rows in this run;
+//   plan 03.1-06 took it to 786;
+//   plan 03.1-07 takes it to 789 and floors it at 760 — a margin of 29, which
+//     is more than any single row group this phase added and far above the
+//     zero a suite that failed to register would report.
+const SUITE_FLOOR = 760;
+if (result.passed < SUITE_FLOOR) {
+  fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
+    + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
+    + '— a suite that threw, or one that stopped registering.');
+}
+
 // --- 4. the timing gate, dev-side only ----------------------------------------
 // The in-file harness reports this number through t.info and never fails on it:
 // a wall-clock budget on a workshop projector goes red because the tab was
@@ -5411,6 +5439,239 @@ check(
     + ' after close and reopen=' + JSON.stringify(fcReopened)
     + ' commits during the reopen=' + fcCommits
     + ' state length=' + fcState.length
+);
+
+/* --- 73-73c. THE PHASE'S OWN ACCEPTANCE RUN, END TO END ----------------------
+
+   CONTEXT.md names this as the test the phase is built toward: "cost = 1 action
+   point (consumed), requirement = 2 health (not consumed), transformation =
+   target loses some amount of a resource. If that action can be authored,
+   fired, proposed and confirmed, the phase works." Confirm is Advance and
+   belongs to Phase 5 (D-05b); everything before it is here, as ONE contiguous
+   sequence driven through real controls with no state poked anywhere in it.
+
+   IT LIVES HERE RATHER THAN IN [S09.10], and the reason is worth writing down.
+   That suite opens by saying every row in it is DOM-FREE on purpose, so the
+   terminal harness gets the whole of it rather than a skip row — and an
+   acceptance run driven through the surface is the opposite of DOM-free. A row
+   bracketed on `typeof document !== 'undefined'` inside that suite would not
+   run in this harness at all, which is where the phase's verification actually
+   looks. So the DRIVEN half is here, where it runs, and the BOUNDARY half — no
+   applier, no proposal in any slice, the remaining half of ACT-05 owned by
+   Phase 5 — is in [S09.10], where it is DOM-free and runs everywhere. */
+
+// The shipped board, so the figures below are the ones plan 03.1-02 pinned
+// rather than whatever this gate's earlier drives left behind. This line is
+// SETUP and sits outside the sequence the row asserts.
+if (apDlg.open === true) {
+  const accEnd = dom.byId['act-edit-done'];
+  press(accEnd); release(accEnd);
+  A.state.flush();
+}
+A.ops.resetToDefaults();
+A.state.flush();
+
+const accShippedState = JSON.stringify(A.state.get());
+const accShipped = [prjText('turns', 'cats'), prjText('work', 'cats'),
+  prjText('turns', 'mechs'), prjText('work', 'mechs')].join(' | ');
+const accShippedCards = refCards('cats')
+  .map((c) => c.querySelectorAll('.ref-action')[0].textContent).join(',');
+
+/* ---- the sequence. Every step below is a control a student presses. ---- */
+press(nlOpener); release(nlOpener);
+A.state.flush();
+aePress(aeNew);
+const accId = aeDialog.dataset.edPick;
+
+const accName = dom.byId['act-edit-name'];
+accName.focus();
+accName.value = 'Pounce';
+accName.dispatchEvent(dom.event('input'));
+accName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+A.state.flush();
+
+aePress(aePillFor('cost', 0, 'edTok', 'ap'));
+aeTypeAmount(aeAmtOf('cost', 0), '1');
+aePress(aePillFor('req', 0, 'edTok', 'hp'));
+aeTypeAmount(aeAmtOf('req', 0), '2');
+aePress(aePillFor('xf', 0, 'edTok', 'hp'));
+aePress(aePillFor('xf', 0, 'edWho', 'target'));
+aeTypeAmount(aeAmtOf('xf', 0), '-3');
+aeAmtOf('xf', 0).blur();
+A.state.flush();
+
+// The card in the faction column names it, which is the authored action
+// reaching the BOARD rather than only the dialog.
+const accCard = refCardNamed('cats', 'Pounce');
+// And the strip moves to the figure plan 03.1-02 measured for this exact
+// action: three damage a use, three uses a turn off a three-point pool.
+const accProjected = [prjText('turns', 'cats'), prjText('work', 'cats')].join(' | ');
+
+press(nlOpenBtn); release(nlOpenBtn);
+A.state.flush();
+const accSays = paneText(dom.byId['act-edit-prop-says']);
+const accCost = paneText(dom.byId['act-edit-prop-cost']);
+const accReq = paneText(dom.byId['act-edit-prop-reqs']);
+
+const accBefore = JSON.stringify(A.state.get());
+const accField = apPane.querySelectorAll('.ae-prop-row')
+  .filter((r) => r.hidden === false)[0].querySelectorAll('.ae-prop-amt')[0];
+accField.focus();
+accField.value = '-6';
+accField.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+const accEdited = accField.value;
+const accOverWho = nlPress('[data-ap="over-who"]', 0).dataset.apWho;
+const accOverTok = nlPress('[data-ap="over-tok"]', 1).dataset.apTok;
+const accOverAmt = apPane.querySelector('.ae-prop-over')
+  .querySelectorAll('.ae-prop-amt')[0];
+accOverAmt.focus();
+accOverAmt.value = '+4';
+accOverAmt.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+const accOverride = accOverWho + '/' + accOverTok + '/' + accOverAmt.value;
+
+press(nlCloseBtn); release(nlCloseBtn);
+A.state.flush();
+const accAfter = JSON.stringify(A.state.get());
+
+// Undone through the topbar control, not through the op, and only until the
+// board is the shipped one again — a fixed count would be a second place the
+// number of commits this sequence makes has to be kept in step.
+const accUndo = stub.querySelector('[data-act="undo"]');
+let accSteps = 0;
+while (JSON.stringify(A.state.get()) !== accShippedState && accSteps < 20) {
+  press(accUndo); release(accUndo);
+  A.state.flush();
+  accSteps++;
+}
+const accBack = [prjText('turns', 'cats'), prjText('work', 'cats'),
+  prjText('turns', 'mechs'), prjText('work', 'mechs')].join(' | ');
+const accBackCards = refCards('cats')
+  .map((c) => c.querySelectorAll('.ref-action')[0].textContent).join(',');
+
+check(
+  '73. THE PHASE\'S OWN ACCEPTANCE RUN. An action created, named, given a cost '
+    + 'of one action point, a requirement of two Health and a transformation of '
+    + 'target Health minus three — all through real controls — appears on the '
+    + 'board\'s own card, moves the projected figure to what plan 03.1-02 '
+    + 'measured for this exact action, and then restates itself on the '
+    + 'proposal with the board\'s real numbers beside it. A number is changed '
+    + 'and a line the rule did not state is added; the pane closes; the state '
+    + 'is byte-identical to the reading taken before it opened; and an undo '
+    + 'back to the shipped board returns every figure to its shipped value',
+  accCard !== null
+    && accShipped === '≈9 turns to wipe Mechs | 27 health ÷ 3 per turn'
+      + ' | ≈3 turns to wipe Cats | 27 health ÷ 9 per turn'
+    && accProjected === '≈3 turns to wipe Mechs | 27 health ÷ 9 per turn'
+    && accSays === 'Your Pounce says: target Health -3, caster Action points -1'
+    && accCost === 'Pounce costs 1 Action points of 3. Enough to spend.'
+    && accReq === 'Pounce needs 2 Health of 27. Requirement met.'
+    // The second entry of the shipped vocabulary, which is deterministic
+    // because the board was reset to defaults at the head of this sequence.
+    // "+4" is read back as "4": the sign is a value, so the field is left
+    // holding the number the parser read rather than the text that made it.
+    && accEdited === '-6' && accOverride === 'caster/ap/4'
+    && accAfter === accBefore
+    && accBack === accShipped && accBackCards === accShippedCards
+    && accSteps > 0 && accSteps < 20,
+  'card on the board=' + (accCard === null ? 'MISSING' : 'Pounce')
+    + ' | shipped strip=' + JSON.stringify(accShipped)
+    + ' | with the action authored=' + JSON.stringify(accProjected)
+    + ' | restatement=' + JSON.stringify(accSays)
+    + ' | cost=' + JSON.stringify(accCost) + ' | requirement=' + JSON.stringify(accReq)
+    + ' | field after the edit=' + JSON.stringify(accEdited)
+    + ' | override line=' + JSON.stringify(accOverride)
+    + ' | state before the proposal=' + fnv(accBefore)
+    + ' after the close=' + fnv(accAfter)
+    + ' identical=' + (accBefore === accAfter)
+    + ' | undo steps=' + accSteps
+    + ' | strip back to=' + JSON.stringify(accBack)
+    + ' | cards back to=' + JSON.stringify(accBackCards)
+);
+
+/* 73b. THE TWO PARTY WORDS, BOTH SPELLINGS, AGAINST THE EXPORTED ALLOWLIST.
+   The page says a party TWICE in two registers — capitalised on a control, and
+   lower-case inside the restatement — and each spelling is its own map in
+   [S06.5]. An id with no word in either would be pasted through as an empty
+   fragment and read as a rule about nobody, so both maps are compared against
+   App.data.XF_WHO here rather than trusted. Check 69f already holds the
+   control spelling; this holds the sentence one, which no other row can see. */
+A.ops.resetToDefaults();
+A.state.flush();
+const wsAct = A.ops.createAction('cats', 'Both');
+A.data.XF_WHO.forEach((who, i) => {
+  A.ops.setActionXf('cats', wsAct, i, who, 'hp', (i === 0) ? 2 : -2);
+});
+A.state.flush();
+apShow('cats', wsAct);
+const wsSaid = paneText(dom.byId['act-edit-prop-says']);
+const wsRowWords = apPane.querySelectorAll('.ae-prop-row')
+  .filter((r) => r.hidden === false)
+  .map((r) => paneText(r.querySelectorAll('.ae-prop-lbl')[0]).split(' ')[0]);
+const wsPillWords = apPane.querySelectorAll('[data-ap="over-who"]')
+  .map((b) => b.dataset.apWho + '=' + paneText(b).replace('✓', ''));
+apHide();
+A.state.restore(nlSaved);
+A.state.flush();
+clearPanel();
+
+check(
+  '73b. every party on the exported XF_WHO allowlist has a word in BOTH of the '
+    + 'page\'s registers — capitalised on the override control, lower-case '
+    + 'inside the restatement — and the two agree on which id they name. A '
+    + 'party with no word in one of them would reach the page as an empty '
+    + 'fragment and read as a rule about nobody',
+  wsRowWords.join(',') === A.data.XF_WHO.join(',')
+    && wsPillWords.join(',') === A.data.XF_WHO.map((w) =>
+      w + '=' + w.charAt(0).toUpperCase() + w.slice(1)).join(',')
+    && wsSaid === 'Your Both says: caster Health +2, target Health -2, '
+      + 'caster Action points -1',
+  'restatement=' + JSON.stringify(wsSaid)
+    + ' | row words=' + JSON.stringify(wsRowWords.join(','))
+    + ' | control words=' + JSON.stringify(wsPillWords.join(','))
+    + ' | allowlist=' + JSON.stringify(A.data.XF_WHO.join(','))
+);
+
+/* 73c. THE SLICE KEY SETS, READ AFTER THE WHOLE RUN. This phase grows the
+   record a faction holds, so the growth has to be LOUD — and the proposal is
+   the one piece of this phase that must not be in any slice at all. Research
+   measured that `Object.keys(build[side])` was asserted NOWHERE before plan
+   03.1-01, so writing build.cats.proposal reddened nothing; the equality rows
+   in [S09.3] closed that, and this reads them back HERE, after every drive in
+   this file has run, rather than trusting a suite that runs before them.
+
+   The name walk is the second half and it is not a duplicate: a key set can be
+   correct at the top level while a proposal hides one level down inside a unit
+   or an action, which is exactly where a plan under time pressure would put
+   it. */
+const skState = A.state.get();
+const skWords = [];
+(function walkKeys(node, where) {
+  if (!node || typeof node !== 'object') { return; }
+  Object.keys(node).forEach((k) => {
+    if (/propos|override|caster|target|pending/i.test(k)) {
+      skWords.push(where + '.' + k);
+    }
+    walkKeys(node[k], where + '.' + k);
+  });
+})(skState, 'state');
+
+check(
+  '73c. the three slices hold exactly their pinned key sets after every drive '
+    + 'in this file, each faction holds exactly its five, and NOTHING anywhere '
+    + 'in the state — at any depth, inside a unit or inside an action — is '
+    + 'named after a proposal, an override, a caster, a target or a pending '
+    + 'anything. The proposal lives on the DOM, which is what makes it '
+    + 'impossible for undo, for a build code or for the projection to read one',
+  Object.keys(skState).sort().join(',') === 'build,fight,ui'
+    && Object.keys(skState.build).join(',') === 'schema,cats,mechs,tokens'
+    && Object.keys(skState.build.cats).join(',') === 'id,name,ap,units,actions'
+    && Object.keys(skState.build.mechs).join(',') === 'id,name,ap,units,actions'
+    && skWords.length === 0,
+  'slices=' + JSON.stringify(Object.keys(skState).sort().join(','))
+    + ' build=' + JSON.stringify(Object.keys(skState.build).join(','))
+    + ' cats=' + JSON.stringify(Object.keys(skState.build.cats).join(','))
+    + ' mechs=' + JSON.stringify(Object.keys(skState.build.mechs).join(','))
+    + ' | proposal-shaped keys found: ' + (skWords.join(', ') || 'none')
 );
 
 /* --- 70-70b. THE RULE IS A RECORD, AND THAT IS NOW A CHECK -------------------
