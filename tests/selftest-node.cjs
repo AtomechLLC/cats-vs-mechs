@@ -2529,16 +2529,70 @@ const refOpenAt = html.indexOf(REF_OPEN);
 const refCloseAt = html.indexOf(REF_CLOSE);
 const refRegionCode = (refOpenAt !== -1 && refCloseAt > refOpenAt)
   ? stripComments(html.slice(refOpenAt, refCloseAt)) : '';
-const refBanned = ['labelFor', 'data-act', 'data-k', 'createElementNS']
+/* Only the two words the artifact actually SPELLS. `data-act` and `data-k`
+   used to sit in this list and could never have fired: the artifact never
+   writes either literal in its JavaScript. Attributes are written through
+   setData(node, { act: ..., k: ... }), which builds the attribute name from a
+   dataset key, so the only spelling a real regression can take was invisible
+   to a source scan — two list entries that read as protection and were not.
+   Check 63b below asserts the built page instead, which no spelling can
+   evade. `labelFor` and `createElementNS` stay here because they ARE spelled,
+   and a source scan is the right instrument for a spelled thing. */
+const refBanned = ['labelFor', 'createElementNS']
   .filter((w) => refRegionCode.indexOf(w) !== -1);
 check(
-  '63. the card builder\'s CODE calls no label reader and carries neither '
-    + 'attribute the interaction layer dispatches on — read between the '
-    + 'region markers with the comments stripped, because the comment has to '
-    + 'state the label rule by name and a raw grep could never pass',
+  '63. the card builder\'s CODE calls no label reader and builds no namespaced '
+    + 'element — read between the region markers with the comments stripped, '
+    + 'because the comment has to state the label rule by name and a raw grep '
+    + 'could never pass',
   refRegionCode.length > 400 && refBanned.length === 0,
   'code-only region ' + refRegionCode.length + ' chars (floor 400); found: '
     + JSON.stringify(refBanned)
+);
+
+/* 63b. The same rule, asserted against the RENDERED page. This is the half
+   check 63 could not carry, and the register checks 56 and 60 already use: a
+   walk over what was built cannot be evaded by a spelling, so it holds for
+   setData, for a direct dataset write and for a setAttribute alike.
+
+   The five keys are the whole dispatch and sync surface: `act` is what [S07]
+   routes a press on, `k` is what keyed() matches and would steal the first
+   hit for, `amt` is what sync()'s value pass writes a number into, and `lbl`
+   and `albl` are what its label and aria-label passes own the text of. A
+   reference card carrying any one of them is a card the rest of the machine
+   believes is a control.
+
+   Read through `dataset` rather than through a selector on purpose: dataset
+   is what setData actually writes, so this reads the same surface the artifact
+   wrote rather than trusting the stub's selector engine, which understands a
+   class and a [data-*] test and nothing else.
+
+   Floored on the card count for the reason check 55 is floored: a walk that
+   found no cards would find no attributes and pass spotlessly. */
+const refAttrDrift = [];
+['cats', 'mechs'].forEach((side) => {
+  refCards(side).forEach((card) => {
+    (function walk(n) {
+      ['act', 'k', 'amt', 'lbl', 'albl'].forEach((key) => {
+        if (n.dataset && n.dataset[key] !== undefined) {
+          refAttrDrift.push(String(n.className) + '/' + key);
+        }
+      });
+      n.children.forEach(walk);
+    })(card);
+  });
+});
+check(
+  '63b. and no reference card ON THE PAGE — the card or anything under it — '
+    + 'carries an attribute the interaction layer dispatches on or the sync '
+    + 'pass writes. The source scan above cannot see setData(node, { act: … }), '
+    + 'which is the only spelling this file uses, so a card that silently '
+    + 'became a live stepper passed every check in this repo',
+  refCards('cats').length === 3 && refCards('mechs').length === 3
+    && refAttrDrift.length === 0,
+  'cats cards=' + refCards('cats').length
+    + ' mechs cards=' + refCards('mechs').length
+    + ' attributes found: ' + JSON.stringify(refAttrDrift)
 );
 
 A.state.restore(refSaved);
