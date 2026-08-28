@@ -2457,13 +2457,31 @@ App.render = (function () {
   // this builds the nodes and the attributes it reads.
   // (Spelling the rejected attribute out literally here would defeat the
   // acceptance grep that keeps it from ever being reintroduced.)
+  // The accessible name is built the way the visible one is: an owner and a
+  // verb that are fixed when the node is built, plus the TYPE's name, which is
+  // a per-frame read. What was here baked the whole sentence at build time from
+  // a string the caller had already joined, and a rename schedules no
+  // structural frame — so a student naming their own invention moved the label
+  // beside it and left all three of these saying the old word. Renaming one of
+  // the five the board is built on was worse in a different direction: the
+  // sentence held a hardcoded noun that no rename could ever reach. So the
+  // type's name is the ONE part that is not baked, and sync()'s aria pass
+  // writes it from the same read the visible label uses.
+  //
+  // The whole sentence is still written here as well, so the first painted
+  // frame carries a complete name rather than a fragment waiting for a frame.
+  function ariaOn(node, verb, spec) {
+    node.setAttribute('aria-label', verb + spec.owner + ' ' + spec.label);
+    setData(node, { albl: spec.amt, ablPre: verb + spec.owner + ' ' });
+  }
+
   function stepper(spec) {
     var wrap = el('div', 'stp');
 
     var minus = el('button', 'stp-btn');
     minus.type = 'button';
     minus.textContent = '−';   // MINUS SIGN, not a hyphen
-    minus.setAttribute('aria-label', 'Decrease ' + spec.label);
+    ariaOn(minus, 'Decrease ', spec);
     // The two buttons carry `amt` for the same reason the field does, and it
     // is load-bearing only for a tally: [S07.1]'s fire() reads data-amt off
     // whichever node the press arrived on to say WHICH type is being stepped,
@@ -2483,7 +2501,7 @@ App.render = (function () {
     field.value = String(spec.value);
     field.setAttribute('inputmode', 'numeric');
     field.setAttribute('autocomplete', 'off');
-    field.setAttribute('aria-label', spec.label);
+    ariaOn(field, '', spec);
     setData(field, {
       k: spec.key, act: spec.act, amt: spec.amt, side: spec.side, unit: spec.unitId
     });
@@ -2492,7 +2510,7 @@ App.render = (function () {
     var plus = el('button', 'stp-btn');
     plus.type = 'button';
     plus.textContent = '+';
-    plus.setAttribute('aria-label', 'Increase ' + spec.label);
+    ariaOn(plus, 'Increase ', spec);
     setData(plus, {
       k: spec.key + '+', act: spec.nudge, amt: spec.amt,
       side: spec.side, unit: spec.unitId, step: '1'
@@ -2564,7 +2582,9 @@ App.render = (function () {
       stepper({
         key: key, act: 'tally', nudge: 'nudgeTally', amt: tokenId,
         side: side, unitId: unitId,
-        label: ownerName + ' ' + rec.name,
+        // Split at the join the old single string hid: the owner is fixed for
+        // the life of the node, the type's name is not.
+        owner: ownerName, label: rec.name,
         value: amountFor(state, tokenId, side, unitId)
       }),
       tokenRow(tokenId, side, unitId),
@@ -2603,7 +2623,8 @@ App.render = (function () {
     // are held here rather than on the units, so the control sits here too.
     head.appendChild(statLine('brd-label', 'Action points', stepper({
       key: side + '/ap', act: 'ap', nudge: 'nudgeAp', amt: 'ap',
-      side: side, label: faction.name + ' action points', value: faction.ap
+      side: side, owner: faction.name, label: labelFor(state, 'ap'),
+      value: faction.ap
     }), tokenRow('ap', side, null), 'ap'));
 
     // Directly after the action points, and before the two derivations below,
@@ -2645,12 +2666,14 @@ App.render = (function () {
 
     card.appendChild(statLine('unit-label', 'Health', stepper({
       key: side + '/' + unit.id + '/maxHp', act: 'maxHp', nudge: 'nudgeMaxHp', amt: 'hp',
-      side: side, unitId: unit.id, label: unit.name + ' health', value: unit.maxHp
+      side: side, unitId: unit.id, owner: unit.name,
+      label: labelFor(state, 'hp'), value: unit.maxHp
     }), tokenRow('hp', side, unit.id), 'hp'));
 
     card.appendChild(statLine('unit-label', 'Shield', stepper({
       key: side + '/' + unit.id + '/shield', act: 'shield', nudge: 'nudgeShield', amt: 'shield',
-      side: side, unitId: unit.id, label: unit.name + ' shield', value: unit.shield
+      side: side, unitId: unit.id, owner: unit.name,
+      label: labelFor(state, 'shield'), value: unit.shield
     }), tokenRow('shield', side, unit.id), 'shield'));
 
     // Every type a student made and scoped to a unit gets a line here, on
@@ -2912,6 +2935,19 @@ App.render = (function () {
     var labels = board.querySelectorAll('[data-lbl]');
     for (i = 0; i < labels.length; i++) {
       labels[i].textContent = labelFor(state, labels[i].dataset.lbl);
+    }
+
+    // The same rule, applied to the name a screen reader gets. The pass above
+    // moved the VISIBLE label to a per-frame read and stopped there, so a
+    // rename repainted the word on the projector and left the field and both
+    // nudge buttons announcing the old one — the phase's headline feature,
+    // invisible to a screen reader until something unrelated forced a rebuild.
+    // Same read, same frame, one loop each because the visible label is the
+    // whole text of its node and the accessible one is a sentence around it.
+    var arias = board.querySelectorAll('[data-albl]');
+    for (i = 0; i < arias.length; i++) {
+      arias[i].setAttribute('aria-label',
+        (arias[i].dataset.ablPre || '') + labelFor(state, arias[i].dataset.albl));
     }
 
     var rows = board.querySelectorAll('.tok-row');

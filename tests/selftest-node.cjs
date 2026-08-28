@@ -1693,6 +1693,61 @@ check(
 clearPanel();
 if (dlg.open === true) { dlg.close(); }
 
+/* --- 41. the accessible name follows a rename, on all three stepper nodes and
+       for a type the board is built on as well as one a student made. The
+       visible label was moved to a per-frame read and the aria one was left
+       baked at build time, so the projector and the screen reader disagreed
+       from the first rename onwards. --- */
+function ariaOf(node) {
+  return node ? node.getAttribute('aria-label') : '(no node)';
+}
+function hpStepperNodes() {
+  return ['cats/c1/maxHp-', 'cats/c1/maxHp', 'cats/c1/maxHp+']
+    .map((k) => stub.querySelector('[data-k="' + k + '"]'));
+}
+const hpAriaBefore = hpStepperNodes().map(ariaOf);
+A.ops.renameTokenType('hp', 'Vigor');
+A.state.flush();
+const hpAriaAfter = hpStepperNodes().map(ariaOf);
+A.ops.renameTokenType('hp', 'Health');
+A.state.flush();
+const hpAriaBack = hpStepperNodes().map(ariaOf);
+
+// And the same again for a type the student invented, which is the case the
+// phase exists for.
+press(openBtn);
+release(openBtn);
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const madeAria = dlg.dataset.tok;
+if (dlg.open === true) { dlg.close(); }
+function madeStepperNodes() {
+  return ['cats/c1/' + madeAria + '-', 'cats/c1/' + madeAria, 'cats/c1/' + madeAria + '+']
+    .map((k) => stub.querySelector('[data-k="' + k + '"]'));
+}
+const madeAriaBefore = madeStepperNodes().map(ariaOf);
+A.ops.renameTokenType(madeAria, 'Poison');
+A.state.flush();
+const madeAriaAfter = madeStepperNodes().map(ariaOf);
+A.ops.removeTokenType(madeAria);
+A.state.flush();
+
+check(
+  '41. a rename moves the accessible name on the field and on both nudge '
+    + 'buttons, for a type the board is built on and for one a student made',
+  String(hpAriaBefore) === String(['Decrease Cat 1 Health', 'Cat 1 Health', 'Increase Cat 1 Health'])
+    && String(hpAriaAfter) === String(['Decrease Cat 1 Vigor', 'Cat 1 Vigor', 'Increase Cat 1 Vigor'])
+    && String(hpAriaBack) === String(hpAriaBefore)
+    && String(madeAriaBefore) === String(['Decrease Cat 1 New type', 'Cat 1 New type', 'Increase Cat 1 New type'])
+    && String(madeAriaAfter) === String(['Decrease Cat 1 Poison', 'Cat 1 Poison', 'Increase Cat 1 Poison']),
+  'built-in before=' + JSON.stringify(hpAriaBefore)
+    + ' after=' + JSON.stringify(hpAriaAfter)
+    + ' back=' + JSON.stringify(hpAriaBack)
+    + ' | student-made before=' + JSON.stringify(madeAriaBefore)
+    + ' after=' + JSON.stringify(madeAriaAfter)
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the
