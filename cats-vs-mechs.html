@@ -626,6 +626,80 @@ App.data = (function () {
   var COLORS = deepFreeze(['green', 'gold', 'accent', 'coral', 'violet', 'accent-2', 'ink-dim']);
   var TOKEN_IDS = deepFreeze(['hp', 'ap', 'shield', 'dmg', 'dead']);
 
+  // The five ids above ARE the board, and until this phase that frozen list of
+  // five was also the whole prototype-pollution defence (CR-02). Students may
+  // now add token types of their own, so the id space opens in SHAPE while
+  // staying closed by NAME (D-14): TOKEN_ID_PATTERN says what a student-made
+  // id may look like, and RESERVED_KEYS is what lets a refusal say which name
+  // it refused. Kept here beside the other allowlists and exported for the
+  // same reason they are — [S05] enforces the constant and [S09.7] asserts
+  // against it, rather than either of them holding a re-typed copy that can
+  // drift away from this one.
+  //
+  // The pattern is deliberately narrower than a plain lowercase word, and the
+  // width is the whole point. Measured: `^[a-z][a-z0-9]{0,7}$` admits `apply`,
+  // `bind`, `call`, `caller`, `length` and `name` — all of them reachable from
+  // Object.prototype or Function.prototype. This one admits none of the twenty
+  // names reachable from either.
+  //
+  // The leading `t` is doing a second job. Object.keys puts integer-like keys
+  // FIRST and in numeric order, ahead of every string key, so an id such as
+  // `12` would silently reshuffle the whole vocabulary — and a positional
+  // Phase 4 codec would then encode the reshuffled version. A student-made id
+  // comes from a sequence and is never derived from the name they typed
+  // (D-13), because deriving an id from student text is how a reserved name
+  // reaches the key position in the first place.
+  var TOKEN_ID_PATTERN = /^t[0-9]{1,2}$/;
+
+  // The named refusal list. It is the MESSAGE, not the defence: the pattern
+  // above is what actually keeps these out of the key position, and this array
+  // is what lets the refusal name what was refused instead of dropping it
+  // silently or calling it merely unknown (D-14). Frozen for the same reason
+  // the allowlists are.
+  var RESERVED_KEYS = deepFreeze(['__proto__', 'constructor', 'prototype']);
+
+  // How many token types of their own a student may keep (D-18). Ships at 6
+  // and is a Phase 4 dial, exactly as --tok shipped as a rehearsal dial for
+  // the projector: six definitions at roughly 30 characters each is ~180 of
+  // SHARE-04's 512-character build code before a single tally is written.
+  var MAX_CUSTOM_TYPES = 6;
+
+  // Where a type's tally is kept — on each unit, or on the whole side (D-01).
+  // Both patterns are already on the shipped board (hp and shield are
+  // per-unit, ap is per-faction), so a scoped type reuses whichever render
+  // site its scope names instead of inventing a new layout. Chosen at creation
+  // and never changed afterwards (D-03).
+  //
+  // INDEX STABILITY — the same rule GLYPHS carries below, for the same reason.
+  // Phase 4 may encode a scope as its POSITION here. Entries may be APPENDED
+  // to the end. They may never be reordered, and never removed, without
+  // bumping the build code's schema version.
+  var TOKEN_SCOPES = deepFreeze(['unit', 'side']);
+
+  // The name cap (D-12), and the unit is CODE POINTS, not UTF-16 code units.
+  // That distinction is the whole of D-12a: a name may carry symbols, a symbol
+  // can be two code units, and cutting one in half leaves a lone surrogate
+  // that makes Phase 4's encodeURIComponent throw URIError a long way from the
+  // code that caused it. A Phase 4 budget dial, like MAX_CUSTOM_TYPES above.
+  var MAX_TOKEN_NAME = 24;
+
+  // What a name may NOT hold. Names MAY carry BMP symbols and emoji — "Poison
+  // \u{2620}" is a name a student is allowed to type. That is D-12, the user's
+  // decision taken after research priced it at roughly 9 encoded characters
+  // per symbol. 02.1-RESEARCH.md proposed an ASCII allowlist instead; D-12 is
+  // the later decision the other way and outranks it, so do not "fix" this
+  // back into an allowlist.
+  //
+  // What is left to refuse is exactly two classes, and the `u` flag is what
+  // makes both of them testable by code point:
+  //   \p{Cc} — control characters. Invisible on a projector, and a newline in
+  //            a name would break every single-line label on the board.
+  //   \p{Cs} — a LONE surrogate. A well-formed astral pair decodes to one
+  //            code point that is not Cs and so passes; half a pair does not,
+  //            and half a pair is exactly the value encodeURIComponent throws
+  //            URIError on at Phase 4 share time.
+  var TOKEN_NAME_REFUSE = /[\p{Cc}\p{Cs}]/u;
+
   // The curated glyph set (D-10, D-12). Free-text emoji entry was considered
   // and refused, on three grounds:
   //   1. Phase 4's budget. Measured encodeURIComponent lengths: a plain emoji
@@ -732,12 +806,19 @@ App.data = (function () {
     // already draw Phase 5's dead marker — a rectangle carrying a skull —
     // without any of Phase 5's mechanic being built. Nothing here rules on
     // what a dead unit does; the table still rules that.
+    // `name` is the display label and nothing more (ALLOC-10, D-09). The KEY
+    // stays the identity: hp, ap, shield, dmg and dead are load-bearing in
+    // [S02], [S05] and [S06], so a student renaming Health to Vigor changes
+    // this field and touches nothing else. Built-ins are renameable (D-10) and
+    // names need not be unique (D-11) — the key already disambiguates them.
+    // One edit here covers three call sites, because defaults() below is a
+    // JSON deep copy of this literal and resetToDefaults reuses defaults().
     tokens: {
-      hp:     { shape: 'sq',   color: 'green',   glyph: '' },
-      ap:     { shape: 'tri',  color: 'gold',    glyph: '' },
-      shield: { shape: 'sq',   color: 'accent',  glyph: '' },
-      dmg:    { shape: 'dia',  color: 'coral',   glyph: '' },
-      dead:   { shape: 'rect', color: 'ink-dim', glyph: '\u{1F480}' }  // SKULL
+      hp:     { shape: 'sq',   color: 'green',   glyph: '',           name: 'Health' },
+      ap:     { shape: 'tri',  color: 'gold',    glyph: '',           name: 'Action points' },
+      shield: { shape: 'sq',   color: 'accent',  glyph: '',           name: 'Shield' },
+      dmg:    { shape: 'dia',  color: 'coral',   glyph: '',           name: 'Damage' },
+      dead:   { shape: 'rect', color: 'ink-dim', glyph: '\u{1F480}',  name: 'Dead marker' }  // SKULL
     }
   });
 
@@ -755,6 +836,12 @@ App.data = (function () {
     SHAPES: SHAPES,
     COLORS: COLORS,
     TOKEN_IDS: TOKEN_IDS,
+    TOKEN_ID_PATTERN: TOKEN_ID_PATTERN,
+    RESERVED_KEYS: RESERVED_KEYS,
+    MAX_CUSTOM_TYPES: MAX_CUSTOM_TYPES,
+    TOKEN_SCOPES: TOKEN_SCOPES,
+    MAX_TOKEN_NAME: MAX_TOKEN_NAME,
+    TOKEN_NAME_REFUSE: TOKEN_NAME_REFUSE,
     GLYPHS: GLYPHS
   });
 })();
