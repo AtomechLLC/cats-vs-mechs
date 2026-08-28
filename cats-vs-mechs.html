@@ -1424,6 +1424,15 @@ App.ops = (function () {
   // Like `log`, the field ships now and its writer arrives with the phase that
   // has a surface to spend from — Phase 5, plan 05-01. Nothing here decides
   // how a shield behaves; the table still rules that.
+  //
+  // Note what is NOT copied: a `tally` from a student-made token type. That is
+  // deliberate and not an oversight. In this phase a tally is a build-time
+  // annotation — a number the student writes down beside their own invention,
+  // which the tool stores and never reads a meaning into (D-00e). Whether a
+  // tally should be spendable DURING a fight is a fight-semantics ruling, and
+  // Phase 5 owns it, exactly as it owns the fight slice's own `shield` copy.
+  // Written down here rather than left for the next reader to wonder whether
+  // somebody simply forgot it.
   function sideFromBuild(faction) {
     return {
       ap: faction.ap,
@@ -1801,6 +1810,148 @@ App.ops = (function () {
     return true;
   }
 
+  /* ---- token types a student makes for themselves (ALLOC-11) ----
+   * A type made here counts NOTHING on its own (D-00e). It carries a tally the
+   * student writes down by hand, and the tool stores that number and never
+   * infers what it means. Automating what a student-made token does is the
+   * temptation this artifact exists to refuse: the table is the rules engine.
+   *
+   * Both ops below carry all THREE layers of the id gate, not just the one
+   * that happens to fire first. Plan 02.1-01 measured that removing any single
+   * layer left its whole suite green, so a one-layer gate reads correct and is
+   * one layer thin:
+   *   1. the named refusal list, inside requireTokenId
+   *   2. TOKEN_ID_PATTERN, inside requireTokenId
+   *   3. a hasOwnProperty existence check against the LIVE vocabulary, here
+   * Layer 3 runs inside the mutator on both paths, where the detached copy is
+   * the only honest thing to ask.
+   */
+
+  // A tally bag holds only the numbers a student actually wrote down (D-04),
+  // so taking an entry out has to be able to take the bag with it. Both rules
+  // are here rather than spread across the callers: a tally of zero deletes
+  // its key, and a bag with no keys left deletes itself.
+  //
+  // hasOwnProperty on every step. A bare `owner.tally` test would read an
+  // inherited name as present, and from Phase 4 a bag can arrive from a pasted
+  // build code rather than from this file.
+  function dropTally(owner, tokenId) {
+    if (!Object.prototype.hasOwnProperty.call(owner, 'tally')) { return; }
+    delete owner.tally[tokenId];
+    if (Object.keys(owner.tally).length === 0) { delete owner.tally; }
+  }
+
+  // Every guard runs BEFORE the commit is entered, matching setTokenStyle
+  // above, so a refusal leaves no phantom undo step over a board that never
+  // changed — with exactly one documented exception, called out below.
+  //
+  // The id comes from a sequence and is never derived from the name the
+  // student typed (D-13): deriving an id from student text is how a reserved
+  // name reaches the key position in the first place. The double call is
+  // deliberate — nextTokenTypeId produces the id and requireNewTokenId
+  // confirms it — so that a later change to either one cannot quietly widen
+  // the other.
+  //
+  // Structural, because buildColumn decides whether this type's stat line
+  // exists at all and sync() can neither create a line nor remove one. That is
+  // commitStructural's own stated trigger, spelled out in its comment above.
+  function createTokenType(spec) {
+    var p = spec || {};
+    var name = requireTokenName(p.name);
+    if (App.data.SHAPES.indexOf(p.shape) === -1) {
+      throw new Error('Unknown token shape "' + String(p.shape) + '"');
+    }
+    if (App.data.COLORS.indexOf(p.color) === -1) {
+      throw new Error('Unknown token colour "' + String(p.color) + '"');
+    }
+    if (App.data.GLYPHS.indexOf(p.glyph) === -1) {
+      throw new Error('The glyph "' + String(p.glyph) + '" is not one of the offered set');
+    }
+    // Scope is chosen once, at creation, and never changed afterwards (D-03).
+    // Changing it later would orphan every number already written under the
+    // old scope; removing the type and making a fresh one is the supported
+    // path, and there is deliberately no scope-change op anywhere in [S05].
+    if (App.data.TOKEN_SCOPES.indexOf(p.scope) === -1) {
+      throw new Error('A token type is kept either on each unit or on the whole '
+        + 'side, and "' + String(p.scope) + '" is neither.');
+    }
+
+    var made = requireNewTokenId(nextTokenTypeId(App.state.get().build.tokens));
+
+    commitStructural('token new ' + made, function (s) {
+      // THE ONE GUARD INSIDE THE COMMIT, and the reason is the same one
+      // addUnit's MAX_UNITS check gives: it needs the key count from the
+      // detached copy. It is safe precisely because a mutator that throws
+      // leaves no trace — commit() runs the mutator before it records
+      // anything. Every other guard above stays outside.
+      var own = Object.keys(s.build.tokens).filter(function (id) {
+        return App.data.TOKEN_IDS.indexOf(id) === -1;
+      });
+      if (own.length >= App.data.MAX_CUSTOM_TYPES) {
+        throw new Error('This board already has ' + App.data.MAX_CUSTOM_TYPES
+          + ' token types of your own. Remove one before adding another.');
+      }
+      // Layer 3 of the gate. The sequence should never hand back an id that is
+      // already here, and this is what makes "should never" checkable rather
+      // than assumed.
+      if (Object.prototype.hasOwnProperty.call(s.build.tokens, made)) {
+        throw new Error('There is already a token type "' + String(made) + '" on this board.');
+      }
+      // Field by field, never a merge helper, for the reason setTokenStyle's
+      // mutator already gives: a merge copies whatever keys the caller
+      // supplied, which is how a reserved key slips past an allowlist that
+      // only inspected the values.
+      s.build.tokens[made] = {
+        shape: p.shape,
+        color: p.color,
+        glyph: p.glyph,
+        name: name,
+        scope: p.scope
+      };
+    });
+    // Handed back so [S07.2] can select the new type in the list the moment
+    // dispatch returns, rather than re-deriving which id was just made.
+    return made;
+  }
+
+  // The five the board is built on cannot be removed (D-15) — [S02], [S05] and
+  // [S06] all bind to them. That refusal fires FIRST and reads the LIVE
+  // record's name, so a student who renamed Health to Vigor is told about
+  // Vigor rather than about a key they have never seen, and it offers the
+  // supported alternative (D-10: a built-in can be renamed).
+  //
+  // There is no confirmation dialog here, on purpose (D-17). Everything the
+  // mutator does happens in ONE commit, so one Ctrl+Z brings the type and
+  // every number back together (D-16), and a modal would cost an instructor a
+  // click mid-demo to guard against something undo already covers.
+  function removeTokenType(tokenId) {
+    if (typeof tokenId === 'string' && App.data.TOKEN_IDS.indexOf(tokenId) !== -1) {
+      var vocab = App.state.get().build.tokens;
+      var live = Object.prototype.hasOwnProperty.call(vocab, tokenId)
+        ? vocab[tokenId] : null;
+      throw new Error('"' + String(live !== null ? live.name : tokenId)
+        + '" is one of the five token types the board is built on, so it cannot '
+        + 'be removed. You can rename it instead.');
+    }
+    requireTokenId(tokenId);
+
+    commitStructural('token remove ' + tokenId, function (s) {
+      // Layer 3 again. Without it a delete on an id that names nothing would
+      // succeed silently and report a removal that never happened.
+      if (!Object.prototype.hasOwnProperty.call(s.build.tokens, tokenId)) {
+        throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+      }
+      delete s.build.tokens[tokenId];
+      // The numbers go with it, inside the SAME mutator, which is the whole of
+      // D-16: one mutator is one snapshot is one Ctrl+Z.
+      SIDES.forEach(function (side) {
+        var faction = s.build[side];
+        dropTally(faction, tokenId);
+        faction.units.forEach(function (unit) { dropTally(unit, tokenId); });
+      });
+    });
+  }
+
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
   // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
   function undo() {
@@ -1826,6 +1977,14 @@ App.ops = (function () {
       case 'endFight': return endFight();
       case 'reset': return resetToDefaults();
       case 'setTokenStyle': return setTokenStyle(p.tokenId, p.patch);
+      // Read key by key rather than forwarding the payload object whole. The
+      // op's own guards would refuse a stray key's VALUE, but they would never
+      // see a key nobody meant to send; naming the five here is what keeps the
+      // page's payload and the op's contract the same list.
+      case 'createTokenType': return createTokenType({
+        name: p.name, shape: p.shape, color: p.color, glyph: p.glyph, scope: p.scope
+      });
+      case 'removeTokenType': return removeTokenType(p.tokenId);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -1856,6 +2015,8 @@ App.ops = (function () {
     endFight: endFight,
     resetToDefaults: resetToDefaults,
     setTokenStyle: setTokenStyle,
+    createTokenType: createTokenType,
+    removeTokenType: removeTokenType,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
