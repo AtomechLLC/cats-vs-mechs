@@ -2712,6 +2712,20 @@ check(
    wrote rather than trusting the stub's selector engine, which understands a
    class and a [data-*] test and nothing else.
 
+   THE ONE KEY PHASE 3.1 ADMITTED, named here rather than left to be noticed as
+   an absence from the list above. `anm` marks a node whose whole text is the
+   live name of one action, and sync() writes it — so by the sentence this
+   check is written around it belongs in the list, and leaving it out silently
+   would be the list quietly meaning something narrower than it says. It is
+   admitted because a card's name is a word a STUDENT typed and ACT-01 makes it
+   a per-frame read, exactly as ALLOC-10 already made a token type's label one;
+   what the five keys are actually about is a card becoming a CONTROL, and a
+   node that can only ever be written a name is not one. It is admitted as
+   EXACTLY itself and no wider: check 63c below asserts that every card carries
+   precisely one such node and that it names its own action, so a card that
+   grew a second one, or one pointed at somebody else's action, is caught here
+   rather than in a rehearsal.
+
    Floored on the card count for the reason check 55 is floored: a walk that
    found no cards would find no attributes and pass spotlessly. */
 const refAttrDrift = [];
@@ -2738,6 +2752,50 @@ check(
   'cats cards=' + refCards('cats').length
     + ' mechs cards=' + refCards('mechs').length
     + ' attributes found: ' + JSON.stringify(refAttrDrift)
+);
+
+/* 63c. The other half of the exception 63b admits: `anm` is allowed on a card
+   EXACTLY once and pointed at that card's own action. Without this row the
+   admission is open-ended — a second marker under a card, or one carrying
+   another side's id, would be a card painting somebody else's name, and 63b
+   would say nothing because the key is on its permitted list.
+
+   The side is checked too, and it is not decoration. nextActionId numbers each
+   side's own list, so `x1` on the Cats and `x1` on the Mechs are two different
+   actions with one id; a marker that carried the id and not the side would
+   paint one column's name into the other's card the moment a student authored
+   a first action on each side. */
+const refNameDrift = [];
+['cats', 'mechs'].forEach((side) => {
+  refCards(side).forEach((card, i) => {
+    const marked = [];
+    (function walk(n) {
+      if (n.dataset && n.dataset.anm !== undefined) { marked.push(n); }
+      n.children.forEach(walk);
+    })(card);
+    if (marked.length !== 1) {
+      refNameDrift.push(side + '/card' + i + ': ' + marked.length + ' marked nodes');
+      return;
+    }
+    const want = A.state.get().build[side].actions[i];
+    if (!want || marked[0].dataset.anm !== want.id || marked[0].dataset.aside !== side) {
+      refNameDrift.push(side + '/card' + i + ': marker names '
+        + JSON.stringify(marked[0].dataset.aside + '/' + marked[0].dataset.anm)
+        + ' but the card is the ' + (want ? want.id : '(none)') + ' card');
+    }
+  });
+});
+check(
+  '63c. and the one attribute 63b admits is on each card exactly once, naming '
+    + 'that card\'s own action AND its own side — an open-ended exception is '
+    + 'not an exception, and a marker carrying an id without a side would paint '
+    + 'one column\'s name into the other\'s card as soon as a student authored '
+    + 'a first action on each',
+  refCards('cats').length === 3 && refCards('mechs').length === 3
+    && refNameDrift.length === 0,
+  refNameDrift.length === 0
+    ? 'six cards, six markers, each naming its own side and action'
+    : JSON.stringify(refNameDrift)
 );
 
 A.state.restore(refSaved);
@@ -2771,6 +2829,21 @@ A.state.flush();
        aria-label. Each is skipped only for the channel labelFor actually
        writes, so a static title on a relabelled node is still read.
 
+       ACT-01 IS THE SAME REQUIREMENT ABOUT A SECOND RECORD, and it needs a
+       THIRD entry here rather than a reuse of the first. Since phase 3.1 a
+       student can name an ACTION, and that name reaches the page in three
+       places — the card in the faction column, the relationship lines in the
+       band, and the strip's line naming what the figures leave out. An action
+       is not a token type: it is a different record, read by a different
+       function, and routing one through the other would put the token
+       vocabulary's fall-through behaviour on an action's card. So [data-anm]
+       is its own channel and is skipped for TEXT only, exactly as [data-lbl]
+       is, and for the same reason — a static title on such a node is still
+       read. The marker carries the action's id where the node's whole text is
+       one name, and carries nothing where the node's text is a sentence the
+       region assembled out of names; both are text a student supplied, which
+       is the only fact this walk is deciding on.
+
        THE WALK IS A NAMED FUNCTION BECAUSE IT NOW RUNS OVER MORE THAN ONE ROOT.
        `</main>` closes at cats-vs-mechs.html:692 and the first <dialog> opens at
        :728, a SIBLING of #app rather than a descendant — so every string a
@@ -2794,7 +2867,8 @@ function harvestInto(root, into, where) {
     if (!node) { return; }
     if (node.children.length === 0
       && typeof node.textContent === 'string' && node.textContent !== ''
-      && !('lbl' in node.dataset)) {
+      && !('lbl' in node.dataset)
+      && !('anm' in node.dataset)) {
       into.push({ s: node.textContent, where: where });
     }
     LABEL_ATTRS.forEach((attr) => {
@@ -2919,25 +2993,36 @@ console.log('scan: ' + renderedText.length + ' rendered strings read from #app (
 //     edit;
 //   plan 03-03's projection strip took the harvest to 115 and the floor to 105;
 //   plan 03-05's reference band and action cards take it to 135, and the floor
-//     to 125.
+//     to 125;
+//   plan 03.1-04 takes it DOWN, to 127, and the floor to 117 — the first plan
+//     to move this number in that direction, and the reason is worth having in
+//     front of whoever moves it next. Nothing was removed from the page. Eight
+//     strings that used to be READ here are now EXEMPT, because they are words
+//     a student typed rather than words the artifact chose: six action names,
+//     one per card, and the two relationship lines in the band, which are built
+//     out of action names. That is the same trade plan 03.1-01 made in the
+//     dialog, where 96 became 91.
 //
-// 125 is chosen against four measurements, taken this session, rather than
-// picked. The shipped board harvests 135 here and 131 on a board with no gate
-// drives behind it; a board shrunk to one unit a side harvests 61; and each
-// unit card is worth 7 strings, measured by adding three Mechs and watching 131
-// become 152. So 125 leaves more than one unit card of headroom against a
-// legitimate change to the shipped roster, while sitting far above the zero a
-// walk reading the wrong node would report.
+// 117 is chosen against five measurements, taken this session against the
+// patched artifact, rather than picked. The shipped board harvests 127 here and
+// 123 on a board with no gate drives behind it; a board shrunk to one unit a
+// side harvests 95; each unit card is worth EXACTLY 7 strings, measured by
+// adding three Mechs one at a time and watching 123 go 130, 137, 144; and an
+// authored action is worth 1, its name being exempt and its damage line not. So
+// 117 sits a full unit card and a half below the shipped figure — headroom
+// against a legitimate change to the shipped roster — while sitting far above
+// the zero a walk reading the wrong node would report.
 //
-// The strip's 13 strings and the reference material's 20 — three in the band,
-// seventeen across the six action cards — are roster-INdependent, and every one
-// of them is separately pinned by checks 49-55 and 58-60, which assert them by
-// name. This floor is only ever about the walk still reaching the page.
+// The strip's 13 strings and the reference material's 12 — one in the band's
+// heading, eleven across the six action cards — are roster-INdependent, and
+// every one of them is separately pinned by checks 49-55 and 58-60, which
+// assert them by name. This floor is only ever about the walk still reaching
+// the page.
 check(
   '47. the rendered-page walk actually reaches the page, so a clean result is a '
     + 'read page rather than an empty one',
-  renderedText.length > 125,
-  'harvested ' + renderedText.length + ' strings from #app; the floor is 125'
+  renderedText.length > 117,
+  'harvested ' + renderedText.length + ' strings from #app; the floor is 117'
 );
 
 // THE DIALOG HARVEST'S OWN FLOOR, kept separate from 125 above because the two
@@ -3013,6 +3098,49 @@ check(
   controlHits.length === 0
     ? 'clean across ' + controlText.length + ' dialog strings under the rename'
     : controlHits.join(' | ')
+);
+
+/* --- 47e. THE SAME CONTROL FOR THE SECOND RECORD, and it is a separate row
+       rather than a widening of 47d because it exercises a different channel on
+       a different surface. ACT-01 lets a student name an ACTION anything, and
+       that name reaches #app in two places at once: the card in the faction
+       column, and — for one of the six the board ships with — the relationship
+       lines in the band, which are built out of action names.
+
+       BOTH WRITE PATHS ARE DRIVEN, because they are not the same frame. A
+       rename is a plain commit and lands through the sync passes alone; a
+       create is structural and lands through the builder. A row that drove only
+       one of them would leave half the exemption unexercised, which is the
+       WR-01 lesson from Phase 3 written as a control instead of as a tripwire.
+
+       Driven through the real ops and the real repaint rather than by planting
+       text, for 47d's reason: a planted string proves nothing about the path the
+       word actually travels. The board is put back afterwards. --- */
+const actCtlWas = A.state.get().build.mechs.actions
+  .filter((a) => a.id === 'lasers')[0].name;
+A.ops.renameAction('mechs', 'lasers', 'Winner');
+const actCtlMade = A.ops.createAction('cats', 'Overpowered');
+A.state.flush();
+const actCtlText = harvestInto(dom.byId['app'], [], '#app');
+const actCtlHits = verdictHitsIn(actCtlText);
+const actCtlBand = refBandLines().map((n) => n.textContent).join(' | ');
+A.ops.removeAction('cats', actCtlMade);
+A.ops.renameAction('mechs', 'lasers', actCtlWas);
+A.state.flush();
+
+check(
+  '47e. an ACTION a student named after a comparative word — one renamed, one '
+    + 'created — does NOT redden the run, and the band naming the renamed one '
+    + 'moved with it. The card marker and the band marker are load-bearing, not '
+    + 'decorative, and the band half is what proves the rename reached a '
+    + 'sentence rather than only a label',
+  actCtlHits.length === 0
+    && actCtlText.length > 117
+    && actCtlBand.indexOf('Winner') !== -1,
+  actCtlHits.length === 0
+    ? 'clean across ' + actCtlText.length + ' #app strings under the two names; '
+      + 'band read ' + JSON.stringify(actCtlBand)
+    : actCtlHits.join(' | ')
 );
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.

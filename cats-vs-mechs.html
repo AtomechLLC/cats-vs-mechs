@@ -3819,16 +3819,62 @@ App.render = (function () {
          script block out of the document. Renaming or removing either marker
          turns that row into a scan of nothing. ---- */
 
-  // Read from the FROZEN board rather than from state.build[side].actions,
-  // which buildColumn already has in hand. Two reasons, both about the same
-  // boundary: reference material is static and is not part of the slice a
-  // student edits or Phase 4 encodes, and from Phase 4 an actions array could
-  // arrive from a pasted build code — at which point somebody else's typing
-  // would be painting this page's reference copy, outside the [data-lbl]
-  // channel Layer C exempts for student names. The day actions become
-  // student-editable, this read is the line that has to change on purpose.
-  function refActions(side) {
-    return App.data.DEFAULTS[side].actions;
+  // THE READ THIS FUNCTION SPENT TWO PHASES PREDICTING, now changed on
+  // purpose. It used to hand back the frozen board's list, and it said in
+  // writing that the day actions became student-editable was the day this line
+  // had to move. Phase 3.1 is that day: [S05] ships create, rename and remove,
+  // so an action a student authors is live in the build slice, and a column
+  // still reading the frozen list would leave it invisible on the page — which
+  // is the whole of what ACT-01 asks for.
+  //
+  // BOTH ORIGINAL REASONS ARE STILL TRUE AND NEITHER SURVIVES AS A BOUNDARY,
+  // which is why they are described here rather than deleted without trace.
+  // The first was that reference material is static and outside the slice a
+  // student edits or Phase 4 encodes: actions are no longer static, and D-09
+  // put them in that slice deliberately so a re-authoring and a restyle are
+  // the same kind of undoable edit. The second was the sharper one — from
+  // Phase 4 an actions array can arrive from a pasted build code, so somebody
+  // else's typing paints this copy. That hazard is not removed by this change;
+  // it is ADMITTED and handled. Every name a card paints now travels the same
+  // exemption channel a token type's name already travels, so a student who
+  // names an action after a comparative word does not redden a gate about what
+  // the ARTIFACT says, and no name reaches the page except through textContent.
+  //
+  // Named refActions still, and still handed the state rather than reading the
+  // singleton, because [S06] takes its state as an argument everywhere.
+  function refActions(state, side) {
+    return state.build[side].actions;
+  }
+
+  // The live name of one action, for the per-frame pass below. An id-equality
+  // scan over the build slice, never a bare index into an object keyed by id,
+  // for the reason styleFor and labelFor each state at length: from Phase 4 an
+  // id can arrive from a pasted build code, and a bare lookup for a prototype
+  // key resolves on the prototype and hands the page a function where a word
+  // belongs. Comparing a record's own `id` field cannot do that whatever
+  // string it is handed.
+  //
+  // THE SIDE IS NOT OPTIONAL FOR A CARD, and that is a fact about ids rather
+  // than a preference. nextActionId numbers a side's own list, so `x1` on the
+  // Cats and `x1` on the Mechs are two different actions with one id. A scan
+  // that ignored the side would paint one column's name into the other's card
+  // the moment a student authored a first action on each. The side is left out
+  // only where the ids are known unique across both — [S06.4]'s band names the
+  // six the board ships with, and nothing else.
+  //
+  // Falling back to the raw id rather than to a shipped action, for the reason
+  // [S06.4] already gives about its own fall-through: a dangling id is a data
+  // defect, and printing it names the defect on the page instead of quietly
+  // printing somebody else's action.
+  function actionNameFor(state, side, actionId) {
+    var lists = (side === 'cats' || side === 'mechs')
+      ? [state.build[side].actions]
+      : [state.build.cats.actions, state.build.mechs.actions];
+    for (var i = 0; i < lists.length; i++) {
+      var found = lists[i].find(function (a) { return a.id === actionId; });
+      if (found !== undefined) { return found.name; }
+    }
+    return actionId;
   }
 
   // An Array.find over the frozen list, never a bare index into an object
@@ -3900,12 +3946,32 @@ App.render = (function () {
   // constructor takes the SVG namespace URI, and a URI of that shape is
   // refused document-wide by the dev gate. A shape here is a CSS clip-path,
   // which is what [C05] already does for the board's triangles and hexagons.
-  function refCard(action) {
+  //
+  // THE ONE ATTRIBUTE A CARD GAINED IN PHASE 3.1, and why it is not a control.
+  // The name on the head is now a word a student typed, so it is a per-frame
+  // read exactly as a token type's label already is: the marker below names
+  // the action whose live name this node's whole text is, and sync()'s pass
+  // writes it. It is neither of the two the interaction layer dispatches on
+  // and it is not the one the value pass writes a number into, so nothing
+  // presses it and nothing paints a figure over it — the card still has
+  // nothing to press. It is asserted from the rendered page rather than
+  // promised here: the gate walks every built card for the dispatch and value
+  // attributes, and names this one as the single admitted exception.
+  //
+  // The damage figure comes off [S02]'s per-use derivation rather than the raw
+  // field beside it, so an action a student authored shows the damage its own
+  // transformation states rather than a zero that means "nobody filled in the
+  // old field". The six the board ships with carry no transformation list and
+  // the derivation falls back to that field for them, so their cards read
+  // exactly what they always read.
+  function refCard(action, side) {
     var card = el('article', 'ref-card');
 
     var head = el('div', 'ref-card-head');
-    head.appendChild(text('span', 'ref-action', action.name));
-    head.appendChild(text('span', 'ref-dmg num', dmgText(action.dmg)));
+    var name = text('span', 'ref-action', action.name);
+    setData(name, { anm: action.id, aside: side });
+    head.appendChild(name);
+    head.appendChild(text('span', 'ref-dmg num', dmgText(App.model.actionDamage(action))));
     card.appendChild(head);
 
     // REF-02: the effect cards attach to the action that CARRIES them, read
@@ -3964,8 +4030,8 @@ App.render = (function () {
            a re-layout. It is asserted by starting a fight and reading the cards
            back, in [S09.9] and in the interaction gate, rather than left
            resting on this paragraph. --- */
-    refActions(side).forEach(function (action) {
-      parts.push(refCard(action));
+    refActions(state, side).forEach(function (action) {
+      parts.push(refCard(action, side));
     });
 
     col.replaceChildren();
@@ -4203,6 +4269,37 @@ App.render = (function () {
     for (i = 0; i < arias.length; i++) {
       arias[i].setAttribute('aria-label',
         (arias[i].dataset.ablPre || '') + labelFor(state, arias[i].dataset.albl));
+    }
+
+    // THE SECOND EXEMPTION CHANNEL, and it is a second one rather than a reuse
+    // of the first. The pass above writes a TOKEN TYPE's label and reads it
+    // from labelFor; an action's name is neither that record nor that read, and
+    // routing one through the other would put the token vocabulary's fall-
+    // through behaviour on an action's card. Two records, two reads, two
+    // channels — the same conclusion [S06.1] already reached about a keyword
+    // beside a token type of the same id.
+    //
+    // A per-frame read for the reason the label pass gives about itself: a
+    // rename is a plain commit, so structure() never runs for one, and a name
+    // baked into the built card would sit there until something unrelated
+    // forced a rebuild. ACT-01's rename is this phase's headline and it has to
+    // land on the frame it happens.
+    //
+    // THE EMPTY VALUE IS A SECOND, DELIBERATE MEANING and not a missing id. A
+    // node carrying the marker with an id is a node whose WHOLE text is that
+    // action's live name, and this pass owns it. A node carrying the marker
+    // with no id is a node whose text is a SENTENCE the region that built it
+    // assembles out of student names — [S06.3]'s admission line and [S06.4]'s
+    // relationship lines are both that shape — so this pass leaves it alone and
+    // its own region writes it. One marker either way, because the thing the
+    // marker is for is the gate that reads the page: a leaf carrying it holds a
+    // word a student typed, and the gate skips its text for exactly that reason
+    // and for no other. A static title on such a node is still read.
+    var anames = board.querySelectorAll('[data-anm]');
+    for (i = 0; i < anames.length; i++) {
+      if (anames[i].dataset.anm === '') { continue; }
+      anames[i].textContent =
+        actionNameFor(state, anames[i].dataset.aside, anames[i].dataset.anm);
     }
 
     var rows = board.querySelectorAll('.tok-row');
@@ -4905,44 +5002,59 @@ App.render = (function () {
    * paint a confident zero over it; no .brd-line--opt, because the hide pass
    * reads amountFor and would pin the line shut for good; and build once,
    * because structure() never touches this node. So everything below carries
-   * .ref- classes and no data attribute except the build flag on the band
-   * itself, which is the bookkeeping #strip's dataset.built already does.
+   * .ref- classes, the build flag on the band itself — the bookkeeping
+   * #strip's dataset.built already does — and, since Phase 3.1, [S06.1]'s
+   * action-name marker with no id on it. That marker is none of the four
+   * things above: it is read by the gate that walks the page for a word a
+   * student typed, and, carried with no id, it tells [S06.1]'s own pass that
+   * the region below owns this text rather than that pass.
    *
-   * NOTHING HERE IS STORED AND NOTHING HERE IS STATE. The contents come from
-   * App.data.REFERENCE and App.data.DEFAULTS, both frozen, so there is nothing
-   * to re-sync. The hook is registered anyway and returns early once the band
-   * is built: every page region this file owns is reconciled by the same frame,
-   * which is the whole reason SYNC_HOOKS exists, and a region that opted out of
-   * it because it happened to be static today is a region that silently stops
-   * being reconciled on the day it stops being static.
+   * THE DAY THIS REGION STOPPED BEING STATIC, and it is the day the banner
+   * below it predicted. The contents used to come from two frozen objects, so
+   * there was nothing to re-sync and the hook returned early forever. Phase
+   * 3.1 lets a student RENAME an action, and the relationship lines are built
+   * out of action names — so a band that never repainted would keep naming an
+   * action by a word the student had already changed, which is the Damage bug
+   * (e7f14ef) again with a different record underneath it. The pairs are still
+   * frozen and still built once; only the two sentences are read again each
+   * frame. The hook was registered before it was needed for exactly this
+   * reason: a region that opts out of the seam because it happens to be static
+   * today is a region that silently stops being reconciled on the day it stops
+   * being static, and that day arrived.
    * deps: App.data, [S06.1]'s helpers
    * owner: Phase 3, plan 03-05
    * ======================================================================= */
   // #region [S06.4] RENDER — REFERENCE
 
   // The action's NAME is read here rather than duplicated into REFERENCE, so
-  // there is one definition of what an action is called and a rename in
-  // DEFAULTS travels to the band on its own. REFERENCE carries only ids.
+  // there is one definition of what an action is called. REFERENCE carries
+  // only ids.
   //
-  // An id-equality scan, never a bare index into an object keyed by id: the
-  // rule styleFor and labelFor state at length, because from Phase 4 an id can
-  // arrive from a pasted build code and a bare lookup for 'constructor'
-  // resolves on the prototype. Comparing against a record's own `id` field
-  // cannot do that whatever string it is handed.
+  // THIS READ FOLLOWED refActions INTO THE BUILD SLICE, and the choice is
+  // written down rather than left to be inferred from the code. The
+  // one-definition rule stated above is PRESERVED, not broken: the one
+  // definition is simply no longer the frozen board, it is the slice the
+  // student edits. The argument for moving is the band's own subject — these
+  // sentences name ACTIONS, and a student who renames one and then reads a
+  // relationship line still calling it by the old word is being told the
+  // rename did not take. The argument against was that REFERENCE's pairs are
+  // static, which is true and unchanged: the PAIRS are static, the NAMES in
+  // them never were. So the pair records stay frozen and only the naming moves.
+  //
+  // It delegates to [S06.1]'s reader rather than carrying a second scan of the
+  // same slice, so there is one place that decides what an action is called on
+  // this page — which is the same argument this comment opens with, applied one
+  // level down. No side is passed, and that is correct HERE and only here: the
+  // ids REFERENCE names are the six the board ships with, which are unique
+  // across both sides, and [S06.1]'s reader states the rule for the case that
+  // is not.
   //
   // Falling back to the raw id rather than to a shipped action, because a
   // dangling pair is a data defect and printing the id names it on the page
   // instead of quietly printing somebody else's action. [S09.9] already
-  // refuses to let one ship.
-  function actionNameById(id) {
-    var sides = ['cats', 'mechs'];
-    for (var s = 0; s < sides.length; s++) {
-      var actions = App.data.DEFAULTS[sides[s]].actions;
-      for (var a = 0; a < actions.length; a++) {
-        if (actions[a].id === id) { return actions[a].name; }
-      }
-    }
-    return id;
+  // refuses to let one ship. That fall-through now lives in the reader below.
+  function actionNameById(state, id) {
+    return actionNameFor(state, undefined, id);
   }
 
   // The connective comes out of the record, one per pair. "Fly beats Slash"
@@ -4950,8 +5062,9 @@ App.render = (function () {
   // action's name reads as plural, which is a fact about English and not a
   // fact this renderer can derive. Putting it in the data is what keeps the
   // guessing out of here entirely.
-  function beatsLine(rec) {
-    return actionNameById(rec.over) + ' ' + rec.verb + ' ' + actionNameById(rec.under);
+  function beatsLine(state, rec) {
+    return actionNameById(state, rec.over) + ' ' + rec.verb + ' '
+      + actionNameById(state, rec.under);
   }
 
   // The heading is the approved wording and it cannot be the obvious one: the
@@ -4961,28 +5074,58 @@ App.render = (function () {
   // is not named after itself anywhere — not here, not in the id, not in the
   // classes, not in [C11]. The same constraint produced "Matchups" in
   // [S06.3]'s ignores list.
-  function buildRefBand(band) {
+  // One line per pair, built once, in the order REFERENCE states them. The
+  // marker with no id on it says two things at once, both of them true of this
+  // node. Its text holds words a student typed, so the gate that walks the page
+  // for the words the ARTIFACT may not use skips it. And [S06.1]'s per-frame
+  // pass, which owns every node carrying the marker WITH an id, leaves it to
+  // the region that built it. The line below is that region, writing it.
+  function buildRefBand(band, state) {
     band.replaceChildren();
     band.appendChild(text('h2', 'ref-band-head', 'What beats what'));
 
     var list = el('div', 'ref-band-list');
     App.data.REFERENCE.beats.forEach(function (rec) {
-      list.appendChild(text('p', 'ref-beats', beatsLine(rec)));
+      var line = text('p', 'ref-beats', beatsLine(state, rec));
+      setData(line, { anm: '' });
+      list.appendChild(line);
     });
     band.appendChild(list);
   }
 
   // Registered on the seam in syncPicker's and syncProjection's exact shape,
-  // and deliberately taking no state argument: it reads none, and a parameter
-  // it ignored would suggest to the next reader that there is a per-frame read
-  // in here somewhere to be found. There is not — see the region banner.
-  function syncReference() {
+  // and it now takes the state, because since Phase 3.1 it reads one. The
+  // parameter used to be left off deliberately, to say to the next reader that
+  // there was no per-frame read in here to go looking for. There is one now:
+  // the two sentences name actions and an action can be renamed.
+  //
+  // BUILD ONCE, WRITE EVERY FRAME — the division [S06.3] already keeps. The
+  // pairs and their connectives come out of a frozen record and cannot change,
+  // so the nodes are made once and never made again; the words in them come out
+  // of the build slice, so they are written on every frame like every other
+  // per-frame read on this page. Walked by position rather than by an index
+  // stored on each node: the list is built from REFERENCE.beats in order in the
+  // very function above, one node per record, so position IS the pairing, and a
+  // stored index would be a second copy of that fact to keep in step.
+  //
+  // The length guard is what makes the position safe to trust rather than
+  // merely likely: if the two ever disagree, this writes the pairs it can
+  // account for and leaves the rest as built, instead of reading past the end
+  // of the record list and printing the word `undefined` on a projector.
+  function syncReference(state) {
     if (typeof document === 'undefined') { return; }
     var band = document.getElementById('refband');
     if (!band) { return; }
-    if (band.dataset.built === '1') { return; }
-    buildRefBand(band);
-    band.dataset.built = '1';
+    if (band.dataset.built !== '1') {
+      buildRefBand(band, state);
+      band.dataset.built = '1';
+    }
+    var lines = band.querySelectorAll('.ref-beats');
+    var recs = App.data.REFERENCE.beats;
+    var n = Math.min(lines.length, recs.length);
+    for (var i = 0; i < n; i++) {
+      lines[i].textContent = beatsLine(state, recs[i]);
+    }
   }
 
   SYNC_HOOKS.push(syncReference);
@@ -9577,10 +9720,17 @@ App.selftest = (function () {
   // rows below compare the renderer's output against the DATA rather than
   // against the renderer's own helper. Reusing [S06.4]'s function would make
   // those rows agree with themselves.
+  //
+  // It follows [S06.4] into the BUILD SLICE, and that is not a reversal of the
+  // independence above. The point of this helper is to name the source of
+  // truth the renderer is supposed to be reading, in this suite's own words; a
+  // helper still reading the frozen board would be asserting the renderer
+  // against a definition the renderer was correct to stop using, which is a
+  // row that fails for being right.
   function actionNameFor(id) {
     var name = '(no such action: ' + id + ')';
     ['cats', 'mechs'].forEach(function (side) {
-      App.data.DEFAULTS[side].actions.forEach(function (action) {
+      App.state.get().build[side].actions.forEach(function (action) {
         if (action.id === id) { name = action.name; }
       });
     });
@@ -9708,35 +9858,26 @@ App.selftest = (function () {
       + 'is never called for a keyword',
       named.indexOf('shield') !== -1 && App.data.TOKEN_IDS.indexOf('shield') !== -1);
 
-    /* --- TWO READS OF ONE FACT, held together. The action cards read the
-           FROZEN board: refActions returns App.data.DEFAULTS[side].actions.
-           The projection reads the deep COPY in the build slice, because
-           bestDamage is handed state.build[side]. So the Lasers card prints
-           3 damage from one object while the worked line beside it divides by
-           a 9 derived from another, a column apart on the same screen.
+    /* --- THE TRIPWIRE THAT WAS SET HERE HAS BEEN TRIPPED, ON PURPOSE, AND
+           THE ROW IS NOW SOMEWHERE ELSE. What stood here compared the actions
+           the cards read against the actions the projection reads and went red
+           the moment the two diverged. That was the right row while the cards
+           read the frozen board and the projection read the build slice: it
+           was set to make the day those two stopped agreeing loud rather than
+           silent. Plan 03.1-04 is that day. The cards now read the build slice
+           too, so the two reads are ONE read, and a row asserting that two
+           reads agree would from here on be a row asserting nothing — it would
+           be comparing a value with itself.
 
-           That boundary is deliberate, and refActions says so in its own
-           comment: the day actions become student-editable is the day that
-           read has to change on purpose. The decision is sound. What was
-           missing is the tripwire that makes the day loud.
-
-           [S09.1] already asserts the actions on defaults() — but defaults()
-           is a JSON round trip of DEFAULTS, so that row agrees with itself by
-           construction and says nothing whatever about the build slice. Phase
-           4 decodes a build code INTO that slice, and a code carrying an
-           altered damage figure would put a card reading one number beside a
-           worked line dividing by another, with nothing red anywhere in this
-           repo. This row is that day alarming rather than silent.
-
-           Compared as ONE serialised pair rather than as six scalar rows, the
-           idiom [S09.1] uses: a field that drifted names itself in the failure
-           detail instead of being hunted across rows that each pass. --- */
-    t.eq('the actions the cards read and the actions the projection reads are '
-      + 'the same actions',
-      JSON.stringify([App.state.get().build.cats.actions,
-        App.state.get().build.mechs.actions]),
-      JSON.stringify([App.data.DEFAULTS.cats.actions,
-        App.data.DEFAULTS.mechs.actions]));
+           A ROW COMPARING TWO SPELLINGS WAS NOT THE REPLACEMENT EITHER. The
+           obvious rewrite is to assert that the card builder's source names
+           the build slice, and Phase 3's WR-01 is the standing finding against
+           it: a check written against source spelling cannot see behaviour
+           expressed through a helper, and this file reaches the page through
+           helpers everywhere. So the replacement is a DOM WALK — drive a real
+           create, read the new card off the page; drive a real rename, read
+           the changed text off the page — and it lives in the rendered half
+           below, under the heading that names it, because it needs a page. --- */
 
     /* --- The rendered half, plan 03-05's. Everything below needs a page.
            tests/selftest-node.cjs runs these suites in a bare sandbox with no
@@ -9930,6 +10071,70 @@ App.selftest = (function () {
     t.eq('while the setup-only Add button is gone, which is what makes the row '
       + 'above a statement about the branch rather than about nothing',
       document.querySelectorAll('.brd-add').length, 0);
+
+    /* --- THE REPLACEMENT TRIPWIRE, promised in the DOM-free half above and
+           written here because it needs a page. The claim is one sentence —
+           THE CARDS READ THE BUILD SLICE — and it is asserted by walking the
+           rendered page rather than by reading this file's own source, which
+           is Phase 3's WR-01 applied: a check written against source spelling
+           cannot see behaviour expressed through a helper.
+
+           BOTH HALVES ARE REQUIRED AND THEY ARE NOT THE SAME HALF. A create is
+           a STRUCTURAL commit, so it runs the builder; a rename is a PLAIN one,
+           so it runs the sync passes and never the builder. [S05] says so in
+           writing beside renameAction, and states the consequence this pair
+           exists to hold: a structural-frame behaviour cannot be asserted
+           through a rename, and — the direction that bites here — a per-frame
+           behaviour cannot be asserted through a create, because a create
+           rebuilds the card and would paint the right name from the wrong
+           mechanism. So the create half catches a builder still reading the
+           frozen board, and the rename half catches a card whose name was
+           baked in at build time with no per-frame read behind it.
+
+           The rename half deliberately runs with NO structural commit between
+           the write and the read. Adding one would make it pass on a builder
+           that had no sync channel at all. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+
+    var madeId = App.ops.createAction('cats', 'Pounce');
+    App.state.flush();
+    t.eq('an action a student creates arrives as a card in that side\'s column '
+      + '— the read the card builder spent two phases predicting would have to '
+      + 'change, asserted by walking the page rather than by reading the source',
+      textsOf(Array.prototype.map.call(cardsIn('cats'), function (c) {
+        return c.querySelector('.ref-action');
+      })), ['Slash', 'Hairball', 'Screech', 'Pounce']);
+    t.eq('and it is the only column that grew, so the row above is about the '
+      + 'side the action was authored on and not about both columns rebuilding',
+      cardsIn('mechs').length, 3);
+
+    var renamed = App.ops.renameAction('cats', madeId, 'Prowl');
+    App.state.flush();
+    t.ok('the rename reported that it changed something, so the read below is '
+      + 'not passing on a write that never happened', renamed === true);
+    t.eq('and renaming it changes the card WITHOUT a structural frame between '
+      + 'the write and the read — a name baked in by the builder would still '
+      + 'read the old word here',
+      textsOf(Array.prototype.map.call(cardsIn('cats'), function (c) {
+        return c.querySelector('.ref-action');
+      })), ['Slash', 'Hairball', 'Screech', 'Prowl']);
+
+    /* --- The band follows a rename too, and that is a THIRD path: the band is
+           built once and its sentences are assembled from action names, so it
+           needs a per-frame read of its own. Its keyword cards must not move,
+           for the reason the shield rows above give at length. --- */
+    App.ops.renameAction('mechs', 'lasers', 'Pew');
+    App.state.flush();
+    t.eq('renaming a SHIPPED action moves the relationship line that names it, '
+      + 'with no structural frame in between',
+      textsOf(bandLines()), ['Fly beats Slash', 'Pew beat Hairball']);
+    t.eq('and the keyword cards on that side are untouched by it, because a '
+      + 'rule is not a name — the same division the Shield rows above make '
+      + 'between a resource and the rule that spends it',
+      textsOf(Array.prototype.map.call(cardsIn('mechs'), function (c) {
+        return c.querySelector('.ref-effect');
+      })).join(','), 'Evade,Range,Shield');
 
     App.state.restore(savedAll);
     App.state.flush();
