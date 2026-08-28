@@ -487,21 +487,26 @@
     <div class="brd-brand">Cats vs Mechs</div>
     <div class="brd-cluster">
       <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
-      <!-- Static markup, and that is the point. A data-k has to be unique
+      <!-- ONE button, and that is the whole of D-05. What was here was a row of
+           them, one per type the board ships with, and it does not survive a
+           student inventing types: the bar grows by one control per invention,
+           on a projector, which is the one place UX-02 says it must not. One
+           button bounds the topbar permanently, and reaching a type a student
+           made is solved INSIDE the picker — every type is a row in one list —
+           rather than by bolting a second mechanism onto the board (D-08).
+
+           Static markup, and that is still the point. A data-k has to be unique
            because the structural rebuild restores focus by taking the FIRST
            [data-k="..."] match; one of these rendered inside a unit card would
-           produce nine tok/hp keys and silently break focus restore, which is
-           half of "twenty clicks make twenty changes". Four buttons here, one
-           per board token type, unique by construction. The fifth vocabulary
-           entry, dead, has no renderer consumer yet, so it gets no button.
+           produce nine identical keys and silently break focus restore, which
+           is half of "twenty clicks make twenty changes". One button here,
+           unique by construction, and it names no type at all — which is what
+           lets [S07.2] hand the focus back through a CONSTANT selector.
            openTokenPicker is page work, not a state transformation: [S07]
            routes it and [S05] never sees it. -->
       <div class="brd-tokedit" role="group" aria-labelledby="tokedit-label">
         <span class="brd-tokedit-label" id="tokedit-label">Token appearance</span>
-        <button class="brd-btn" type="button" data-k="tok/hp" data-act="openTokenPicker" data-tok="hp">Health</button>
-        <button class="brd-btn" type="button" data-k="tok/ap" data-act="openTokenPicker" data-tok="ap">Action</button>
-        <button class="brd-btn" type="button" data-k="tok/shield" data-act="openTokenPicker" data-tok="shield">Shield</button>
-        <button class="brd-btn" type="button" data-k="tok/dmg" data-act="openTokenPicker" data-tok="dmg">Damage</button>
+        <button class="brd-btn" type="button" data-k="tok" data-act="openTokenPicker">Tokens</button>
       </div>
     </div>
   </div>
@@ -3809,7 +3814,7 @@ App.interactions = (function () {
 
     // #app and #board are static markup and survive every structural rebuild;
     // per-node listeners would not. #topbar lives inside #app, so the Undo
-    // button and the four token-appearance buttons need no separate binding.
+    // button and the token button beside it need no separate binding.
     var root = document.getElementById('app');
     if (!root) { return; }
 
@@ -3868,11 +3873,22 @@ App.interactions = (function () {
    * ==================================================================== */
   // #region [S07.2] INTERACTIONS — PICKER
 
-  // Which type is being edited. Transient interaction state, so it lives here
-  // beside the hold timer rather than in the `ui` slice — [S09.3] asserts that
-  // slice holds exactly its documented keys, and "which dialog is open" is not
-  // one of them and should never become one.
-  var pickerTok = null;
+  // The type the picker opens on when it is opened cold. One button cannot
+  // carry a type the way the row of them used to, so the surface needs a
+  // starting selection and this is it, named once rather than spelled at each
+  // of the three places that need it (open, remove, and the gate).
+  var FIRST_TOK = 'hp';
+
+  // Which type is being edited. Held in dlg.dataset.tok, which plan 02.1-04
+  // made THE source of truth for it, and read back through here — a private
+  // variable beside it would be a second place for the same answer to live and
+  // the two would disagree the first time a repaint changed one of them. It
+  // stays out of the `ui` slice for the reason it always did: [S09.3] asserts
+  // that slice holds exactly its documented keys, and "which dialog is showing
+  // what" is not one of them and should never become one.
+  function pickedTok(dlg) {
+    return String(dlg.dataset.tok || '');
+  }
 
   // Null rather than a throw when the surface is absent. The Node gate drives a
   // stub page that has no dialog at all, and an error panel raised on a button
@@ -3894,11 +3910,18 @@ App.interactions = (function () {
   // detail === 0 keyboard path, so Enter on the button behaves exactly like a
   // click. The button is not in HOLD_ACTS, so holding it starts no ramp and
   // opens the dialog exactly once.
-  UI_HANDLERS.openTokenPicker = function (btn) {
+  //
+  // The button no longer names a type (D-05), so the selection is decided here:
+  // an already-open dialog keeps whatever it is showing, and a cold open starts
+  // on FIRST_TOK. The one thing this must NOT do is take a type off the button
+  // again — a hidden data-tok put back to keep the old line working would be
+  // the collapse undone in private, which is exactly what D-07 forbids.
+  UI_HANDLERS.openTokenPicker = function () {
     var dlg = pickerDialog();
     if (dlg === null) { return; }
-    pickerTok = btn.dataset.tok;
-    App.render.picker(App.state.get(), pickerTok);
+    var id = (dlg.open === true) ? pickedTok(dlg) : '';
+    if (id === '') { id = FIRST_TOK; }
+    App.render.picker(App.state.get(), id);
     if (dlg.open !== true) { dlg.showModal(); }
   };
 
@@ -3912,12 +3935,18 @@ App.interactions = (function () {
   // opener itself, but only for the element that held focus at the moment the
   // modal opened — a student who reached the button with the pointer was never
   // focused on it, so the platform has nothing to go back to. This names the
-  // opener explicitly. The id is checked against the allowlist first, so no
-  // caller-shaped string is ever built into a selector.
+  // opener explicitly, and a rehearsal signed the behaviour off, so it must
+  // keep working with one button exactly as it did with a row of them.
+  //
+  // The selector is now a CONSTANT. What was here built it out of whichever
+  // type was open and had to check that type against the shipped allowlist
+  // first, so that no caller-shaped string reached a selector. With one static
+  // button there is no caller-shaped string left to guard: the allowlist test
+  // is DELETED rather than widened, because the thing it protected no longer
+  // exists. That is a guard removed, not a guard forgotten.
   function onPickerClose() {
     if (typeof document === 'undefined') { return; }
-    if (App.data.TOKEN_IDS.indexOf(pickerTok) === -1) { return; }
-    var opener = document.querySelector('[data-k="tok/' + pickerTok + '"]');
+    var opener = document.querySelector('[data-k="tok"]');
     if (opener && typeof opener.focus === 'function') { opener.focus(); }
   }
 
@@ -3933,6 +3962,9 @@ App.interactions = (function () {
     if (!node || typeof node.closest !== 'function') { return; }
 
     if (node.closest('[data-pk="done"]') !== null) { closePicker(); return; }
+
+    var dlg = pickerDialog();
+    if (dlg === null) { return; }
 
     var sw = node.closest('[data-act="setTokenStyle"]');
     if (sw === null) { return; }
@@ -3952,7 +3984,7 @@ App.interactions = (function () {
     // board's token classes in place — a restyle changes no unit count, so
     // invalidate({structural:true}) would be a rebuild nobody needs. This
     // second call is only the dialog's own selection marks.
-    App.render.picker(App.state.get(), pickerTok);
+    App.render.picker(App.state.get(), pickedTok(dlg));
   }
 
   // The same anti-double-fire rule [S07.1] uses on #app, for the same measured

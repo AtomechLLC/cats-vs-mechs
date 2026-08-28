@@ -402,9 +402,18 @@ function makeStubDom() {
   panel.appendChild(idNode('err-reset', 'button'));
 
   // A hand-made stand-in for the STATIC #topbar markup, which this stub cannot
-  // produce because it has no HTML parser. These five controls ship in
+  // produce because it has no HTML parser. These two controls ship in
   // cats-vs-mechs.html as literal markup and must be kept in step with it: the
-  // Undo button, and one token-appearance button per board token type.
+  // Undo button, and the one token button beside it.
+  //
+  // There used to be a row of token buttons here, built from a hardcoded list
+  // of the types the board ships with, and every selector below reached for the
+  // one that named Health. D-05 collapsed that row to a single button carrying
+  // no type at all, so the list is gone and the selectors are keyed on the act
+  // alone. The alternative — keeping a type on the stub button so the old
+  // selectors kept matching — would have made this page disagree with the
+  // markup it stands in for, which is the exact drift the gate below exists to
+  // make impossible.
   function topbarButton(k, act, extra) {
     const b = createElement('button');
     b.dataset.k = k;
@@ -415,9 +424,7 @@ function makeStubDom() {
   }
   topbarButton('undo', 'undo', null);
   topbar.appendChild(idNode('tokedit-label', 'span'));
-  ['hp', 'ap', 'shield', 'dmg'].forEach((tok) => {
-    topbarButton('tok/' + tok, 'openTokenPicker', { tok: tok });
-  });
+  topbarButton('tok', 'openTokenPicker', null);
 
   // The token-appearance <dialog>, likewise hand-made from the static markup.
   // Exactly three members beyond a plain element, because that is all [S06.2]
@@ -694,8 +701,11 @@ if (plusHp !== null) {
   );
 }
 
-/* --- 10. a UI-only act is claimed and ignored, on the pointer path --- */
-const tokBtn = stub.querySelector('[data-act="openTokenPicker"][data-tok="hp"]');
+/* --- 10. a UI-only act is claimed and ignored, on the pointer path. The
+       selector names the act and nothing else: after D-05 the topbar carries
+       one token button and it carries no type, so there is no longer a type to
+       select it by. --- */
+const tokBtn = stub.querySelector('[data-act="openTokenPicker"]');
 const beforeTok = commits();
 if (tokBtn !== null) {
   press(tokBtn);
@@ -895,7 +905,7 @@ check(
        deleted. Nothing anywhere asserted that the picker opens, that a swatch
        moves state, or that the board follows. These three do. --- */
 const dlg = dom.byId['tok-picker'];
-const openBtn = stub.querySelector('[data-act="openTokenPicker"][data-tok="hp"]');
+const openBtn = stub.querySelector('[data-act="openTokenPicker"]');
 if (dlg.open === true) { dlg.close(); }
 
 let gridSizes = [];
@@ -907,13 +917,18 @@ if (openBtn !== null) {
   );
 }
 const wantSizes = [A.data.SHAPES.length, A.data.COLORS.length, A.data.GLYPHS.length];
+// The opened-on-hp half is now ASSERTED rather than incidental. It used to
+// follow from which of four buttons was pressed; with one button that names no
+// type, the starting selection is a decision [S07.2] makes, and checks 18, 21
+// and 23 below all restyle tokens.hp on the strength of it.
 check(
-  '17. a token-appearance press opens the picker and fills all three grids from '
-    + 'the vocabulary allowlists',
-  openBtn !== null && dlg.open === true
+  '17. a token-appearance press opens the picker on the default type and fills '
+    + 'all three grids from the vocabulary allowlists',
+  openBtn !== null && dlg.open === true && dlg.dataset.tok === 'hp'
     && String(gridSizes) === String(wantSizes)
     && dom.byId['tok-pick-preview'].children.length === 3,
-  'open=' + dlg.open + ' grids=' + JSON.stringify(gridSizes)
+  'open=' + dlg.open + ' tok=' + JSON.stringify(dlg.dataset.tok)
+    + ' grids=' + JSON.stringify(gridSizes)
     + ' expected=' + JSON.stringify(wantSizes)
     + ' preview=' + dom.byId['tok-pick-preview'].children.length
 );
