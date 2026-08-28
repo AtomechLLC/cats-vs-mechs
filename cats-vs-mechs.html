@@ -4845,6 +4845,7 @@ App.boot = (function () {
  *   [S09.5] interaction contract                              (plan 02-02)
  *   [S09.6] token appearance                                  (plan 02-03)
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
+ *   [S09.8] projection — the two bounds, DOM-free half     (plan 03-02)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -7065,6 +7066,102 @@ App.selftest = (function () {
     App.state.flush();
     t.eq('the token-authoring suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.8] SUITE: projection — owner plan 03-02 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('projection', function (t) {
+    // Every row below is DOM-free on purpose: the two bounds are arithmetic
+    // over a faction object and proving them needs no page at all, so the
+    // terminal harness gets the whole of this half. Plan 03-03 adds the rows
+    // that read the rendered strip to this same suite.
+
+    var d = App.data.defaults();
+
+    /* --- The shipped board, both directions, compared as whole objects
+           rather than as six scalar rows each: a change to any field of the
+           returned shape should cost one red row and name the whole shape,
+           not six rows naming one number apiece. --- */
+    t.eq('cats into mechs', App.model.turnsToWipe(d.cats, d.mechs),
+      { perTurn: 3, hit: 1, ehp: 27, soak: 27, fast: 9, slow: 9 });
+    t.eq('mechs into cats', App.model.turnsToWipe(d.mechs, d.cats),
+      { perTurn: 9, hit: 3, ehp: 27, soak: 27, fast: 3, slow: 3 });
+
+    // Nothing spills on the shipped board at 1 and at 3 damage against 3- and
+    // 9-health units, so the soak total and the plain health total agree.
+    t.eq('soak at the mechs hit', App.model.soakTotal(d.cats, 3), 27);
+    t.eq('soak at the cats hit', App.model.soakTotal(d.cats, 1), 27);
+
+    /* --- The two refusals. Both are reachable through shipped ops, not
+           hypothetical: the action-point stepper's floor is 0, and a faction
+           whose actions are all status effects has a best damage of 0. --- */
+    var noAp = App.data.defaults();
+    noAp.mechs.ap = 0;
+    t.eq('a side with no action points projects nothing rather than the word '
+      + 'that ceil(27 / 0) produces',
+      App.model.turnsToWipe(noAp.mechs, noAp.cats), null);
+
+    var noDmg = App.data.defaults();
+    noDmg.mechs.actions.forEach(function (a) { a.dmg = 0; });
+    t.eq('nor does a side whose actions all do nothing to health',
+      App.model.turnsToWipe(noDmg.mechs, noDmg.cats), null);
+
+    /* --- The ordering row. This is the one that catches a refusal placed
+           after the health of the target is read: at zero throughput against a
+           target already at zero health the division is 0 by 0, which is not
+           infinite, it is NaN, and it survives a finiteness check written the
+           obvious way round. --- */
+    var bothZero = App.data.defaults();
+    bothZero.mechs.ap = 0;
+    bothZero.cats.units.forEach(function (u) { u.maxHp = 0; u.shield = 0; });
+    t.eq('no throughput against nothing left to take is still nothing to '
+      + 'project, because the throughput refusal runs before the health read',
+      App.model.turnsToWipe(bothZero.mechs, bothZero.cats), null);
+
+    t.eq('a hit of zero soaks nothing instead of producing NaN',
+      App.model.soakTotal(d.cats, 0), 0);
+    t.eq('and a hit below zero is refused the same way',
+      App.model.soakTotal(d.cats, -1), 0);
+
+    /* --- The range appears. Raising every Cat to 4 health makes a 3-damage
+           hit throw two points away on each of them, and the two bounds
+           separate for the first time. --- */
+    var hp4 = App.data.defaults();
+    hp4.cats.units.forEach(function (u) { u.maxHp = 4; u.shield = 0; });
+    t.eq('every Cat at 4 health turns the single bound into a real range',
+      App.model.turnsToWipe(hp4.mechs, hp4.cats),
+      { perTurn: 9, hit: 3, ehp: 36, soak: 54, fast: 4, slow: 6 });
+
+    var gone = App.data.defaults();
+    gone.cats.units.forEach(function (u) { u.maxHp = 0; u.shield = 0; });
+    t.eq('a live attacker against a roster with no health left projects zero '
+      + 'turns, a finite number, rather than NaN',
+      App.model.turnsToWipe(gone.mechs, gone.cats),
+      { perTurn: 9, hit: 3, ehp: 0, soak: 0, fast: 0, slow: 0 });
+
+    // The same shape check [S09.2] runs over the older derivations, applied to
+    // every field of both directions at once.
+    var pair = [App.model.turnsToWipe(d.cats, d.mechs),
+      App.model.turnsToWipe(d.mechs, d.cats)];
+    t.ok('every field of every bound is a finite whole number, none of them '
+      + 'below zero', pair.every(function (r) {
+      return Object.keys(r).every(function (k) {
+        return Number.isInteger(r[k]) && r[k] >= 0;
+      });
+    }));
+    t.ok('and the slow bound is never below the fast one',
+      pair.every(function (r) { return r.slow >= r.fast; }));
+
+    var snapshot = JSON.stringify(d.cats);
+    App.model.soakTotal(d.cats, 3);
+    App.model.soakTotal(d.cats, 3);
+    App.model.turnsToWipe(d.mechs, d.cats);
+    App.model.turnsToWipe(d.mechs, d.cats);
+    t.eq('the projection reads the roster and never writes to it',
+      JSON.stringify(d.cats), snapshot);
   });
 })();
 // #endregion [S09] SELFTEST
