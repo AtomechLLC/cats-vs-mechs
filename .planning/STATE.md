@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2.1 executed (6/6 plans + 2 post-rehearsal fixes); awaiting verification
-last_updated: "2026-08-28T06:58:55.071Z"
+stopped_at: Phase 2.1 code-verified (5/5); awaiting browser rehearsal
+last_updated: "2026-08-28T07:57:09.105Z"
 last_activity: 2026-08-28 -- Phase 02.1 execution started
 progress:
   total_phases: 6
@@ -86,6 +86,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T06:58:55.061Z
-Stopped at: Phase 2.1 executed (6/6 plans + 2 post-rehearsal fixes); awaiting verification
+Last session: 2026-08-28T07:57:09.095Z
+Stopped at: Phase 2.1 code-verified (5/5); awaiting browser rehearsal
 Resume file: .planning/phases/02.1-token-authoring-inserted/02.1-HUMAN-UAT.md
