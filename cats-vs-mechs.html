@@ -1070,6 +1070,9 @@ App.model = (function () {
   // activeUnits is forwarded untouched so Phase 5 can project a fight in
   // progress. Every Phase 3 caller leaves it undefined, because during setup
   // there is no fight slice to count survivors from.
+  //
+  // [S09.8] holds both refusals to account, including the one that catches
+  // a throughput check moved below the health read.
   function turnsToWipe(attacker, target, activeUnits) {
     var perTurn = factionDps(attacker, activeUnits);
     if (!(perTurn > 0)) { return null; }
@@ -4914,7 +4917,7 @@ App.boot = (function () {
  *   [S09.5] interaction contract                              (plan 02-02)
  *   [S09.6] token appearance                                  (plan 02-03)
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
- *   [S09.8] projection — the two bounds, DOM-free half     (plan 03-02)
+ *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -7223,6 +7226,153 @@ App.selftest = (function () {
     }));
     t.ok('and the slow bound is never below the fast one',
       pair.every(function (r) { return r.slow >= r.fast; }));
+
+    /* --- What a roster absorbs equals what it is worth exactly when nothing
+           spills, which is the shipped board on both sides. D-05 says that
+           agreement should reach a student as one number rather than as a
+           range whose two halves happen to match, and the rows below are why
+           that is a finding about the board and not a band modelling nothing:
+           the two halves are separate quantities, read off the roster
+           independently, and they come apart the moment a hit carries past a
+           unit's last point of health. --- */
+    t.eq('the cats absorb what they are worth against a 3-damage hit',
+      App.model.soakTotal(d.cats, 3), App.model.factionEhp(d.cats));
+    t.eq('and the mechs absorb what they are worth against a 1-damage hit',
+      App.model.soakTotal(d.mechs, 1), App.model.factionEhp(d.mechs));
+
+    /* --- The range appearing, driven rather than asserted. Three
+           allocations, each one a real edit a student could make on the
+           board, each read back through the same derivation the page will
+           use. At 4 health a 3-damage hit throws 2 away on every Cat; at 5 it
+           throws 1 away; at 1 it throws 2 away and the spread is at its
+           widest relative to the health present. --- */
+    var hp5 = App.data.defaults();
+    hp5.cats.units.forEach(function (u) { u.maxHp = 5; u.shield = 0; });
+    t.eq('every Cat at 5 health narrows the range rather than closing it',
+      App.model.turnsToWipe(hp5.mechs, hp5.cats),
+      { perTurn: 9, hit: 3, ehp: 45, soak: 54, fast: 5, slow: 6 });
+
+    var hp1 = App.data.defaults();
+    hp1.cats.units.forEach(function (u) { u.maxHp = 1; u.shield = 0; });
+    t.eq('every Cat at 1 health opens it as far as it goes on this board',
+      App.model.turnsToWipe(hp1.mechs, hp1.cats),
+      { perTurn: 9, hit: 3, ehp: 9, soak: 27, fast: 1, slow: 3 });
+
+    /* --- And the measured fact that goes with it, stated here rather than
+           left for a student to trip over: on this board a range is a
+           mechs-attacking phenomenon only. Slash does 1 damage, and a
+           1-damage hit throws nothing away by construction, so the cats
+           direction collapses to one number for every mechs roster there is.
+           A student who wants to see the two halves come apart has to give
+           the attacker a hit that does not divide the target. --- */
+    t.ok('the cats direction cannot open a range while Slash does 1 damage, '
+      + 'whatever the mechs are built from',
+      [1, 2, 3, 5, 6, 7, 11, 12].every(function (hp) {
+        var c = App.data.defaults();
+        c.mechs.units.forEach(function (u) { u.maxHp = hp; u.shield = 0; });
+        var r = App.model.turnsToWipe(c.cats, c.mechs);
+        return r.hit === 1 && r.soak === r.ehp && r.slow === r.fast;
+      }));
+
+    /* --- The per-unit ceiling, which is the reason soakTotal is not one
+           division over a faction total. A roster of mixed sizes throws away
+           a different amount on each unit, and a faction-total ceiling hides
+           every one of them. --- */
+    var mixed = App.data.defaults();
+    mixed.cats.units.forEach(function (u, i) { u.maxHp = (i % 3) + 1; u.shield = 0; });
+    t.eq('a roster at 1, 2 and 3 health repeated is worth 18',
+      App.model.factionEhp(mixed.cats), 18);
+    t.eq('and absorbs 27 against a 3-damage hit — one ceiling over the '
+      + 'faction total would report 18 and understate the waste threefold',
+      App.model.soakTotal(mixed.cats, 3), 27);
+
+    // Shield is inside effective health, not beside it, so the projection
+    // never has to remember to add it.
+    t.eq('a shipped Mech is worth 9 across both pools',
+      App.model.unitEhp(d.mechs.units[0]), 9);
+    t.eq('and the three of them are worth 27',
+      App.model.factionEhp(d.mechs), 27);
+
+    /* --- ALLOC-11, asserted rather than assumed: a number a student writes
+           down beside a token type of their own counts for nothing on its
+           own. The projection reads the two pools the board is built on and
+           no other field, at either scope. --- */
+    var tallied = App.data.defaults();
+    var unitBefore = App.model.unitEhp(tallied.cats.units[0]);
+    var factionBefore = App.model.factionEhp(tallied.cats);
+    tallied.cats.units[0].tally = { t1: 99 };
+    tallied.cats.tally = { t1: 50 };
+    t.eq('a tally written at unit scope stays out of the unit total',
+      App.model.unitEhp(tallied.cats.units[0]), unitBefore);
+    t.eq('and one written at side scope stays out of the faction total',
+      App.model.factionEhp(tallied.cats), factionBefore);
+
+    // Throughput is already held to the unit count upstream, so the
+    // projection needs no ceiling of its own on top of it.
+    var loaded = App.data.defaults();
+    loaded.mechs.ap = 99;
+    t.eq('action points past the unit count buy no throughput',
+      App.model.factionDps(loaded.mechs), 9);
+    t.eq('and the projection reads that same held throughput',
+      App.model.turnsToWipe(loaded.mechs, loaded.cats).perTurn, 9);
+
+    /* --- The sweep. Every axis crossed: an attacker over hit 1-4 by action
+           points 1-4 by unit count 1-4, against a target over health 1-6 by
+           shield 0-3 by unit count 1-4. Not a simulation of anything — it is
+           the same two divisions run over a wide grid, to show that neither
+           can produce a value a projector cannot print.
+
+           The case count is reported below and floored, because the failure
+           mode of a sweep that generated nothing is a green run rather than a
+           red one — the same reason [S09.7]'s id gate and check 47's harvest
+           carry floors. --- */
+    function sweepFaction(hp, shield, hit, ap, n) {
+      var units = [];
+      var i = 0;
+      while (i < n) {
+        units.push({ id: 'sw' + i, name: 'Sweep ' + i, maxHp: hp, shield: shield });
+        i++;
+      }
+      return {
+        id: 'sw', name: 'Sweep', ap: ap, units: units,
+        actions: [{ id: 'swa', name: 'Sweep hit', dmg: hit, keywords: [] }]
+      };
+    }
+
+    var sweepCases = 0;
+    var sweepReal = 0;
+    var sweepUnprintable = 0;
+    var sweepInverted = 0;
+    [1, 2, 3, 4].forEach(function (hit) {
+      [1, 2, 3, 4].forEach(function (ap) {
+        [1, 2, 3, 4].forEach(function (an) {
+          var attacker = sweepFaction(1, 0, hit, ap, an);
+          [1, 2, 3, 4, 5, 6].forEach(function (hp) {
+            [0, 1, 2, 3].forEach(function (shield) {
+              [1, 2, 3, 4].forEach(function (tn) {
+                var r = App.model.turnsToWipe(attacker, sweepFaction(hp, shield, 1, 1, tn));
+                sweepCases++;
+                if (r === null) { return; }
+                sweepReal++;
+                var printable = Object.keys(r).every(function (k) {
+                  return Number.isFinite(r[k]) && Number.isInteger(r[k]) && r[k] >= 0;
+                });
+                if (!printable) { sweepUnprintable++; }
+                if (r.slow < r.fast) { sweepInverted++; }
+              });
+            });
+          });
+        });
+      });
+    });
+
+    t.info('pairs the sweep put through the projection', sweepCases);
+    t.ok('the sweep generated a grid rather than nothing at all, and every '
+      + 'pair in it produced a real projection', sweepReal > 500);
+    t.eq('not one pair produced a value a projector cannot print: every field '
+      + 'finite, whole, and not below zero', sweepUnprintable, 0);
+    t.eq('and not one pair put the slow bound below the fast one',
+      sweepInverted, 0);
 
     var snapshot = JSON.stringify(d.cats);
     App.model.soakTotal(d.cats, 3);
