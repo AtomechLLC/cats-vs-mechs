@@ -3503,6 +3503,19 @@ App.boot = (function () {
  * echoed back, so there is no markup-parsing path anywhere in this renderer.
  * deps: App.data, App.model
  * owner: plan 01-01
+ *
+ * The suites, in file order. Each is a sub-region with its own owner plan, and
+ * this list is the only index of them — the table of contents at the top of
+ * the script names sections, not sub-regions, and listing one sub-region there
+ * and not the rest would make it less honest rather than more.
+ *   [S09.0] the assertion harness itself                      (plan 01-01)
+ *   [S09.1] board defaults                                    (plan 01-01)
+ *   [S09.2] model derivations                                 (plan 01-01)
+ *   [S09.3] state contract                                    (plan 01-02)
+ *   [S09.4] render contract                                   (plan 02-01)
+ *   [S09.5] interaction contract                              (plan 02-02)
+ *   [S09.6] token appearance                                  (plan 02-03)
+ *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -4434,6 +4447,50 @@ App.selftest = (function () {
     // harness gets the whole suite rather than a skip row. Same reason
     // [S09.6] above gives.
 
+    // The refusal rows reach the live board's write path, so the whole state
+    // is recorded here and handed back as this suite's last act, exactly as
+    // [S09.3] and [S09.6] do.
+    var savedAll = JSON.stringify(App.state.get());
+
+    /* --- ALLOC-10. Every record the board ships with carries a label a
+           student can read, and renaming one changes that field and nothing
+           else — the KEY stays the identity (D-09). --- */
+    var allNamed = App.data.TOKEN_IDS.every(function (id) {
+      var rec = App.data.DEFAULTS.tokens[id];
+      return typeof rec.name === 'string' && rec.name.length > 0;
+    });
+    t.ok('every shipped token type carries a non-empty display name', allNamed);
+    t.eq('and health ships as Health', App.data.DEFAULTS.tokens.hp.name, 'Health');
+
+    /* --- an allowlist a caller can push onto is not an allowlist, and a cap
+           with no assertion is a comment. Asserted against the NAMED constant,
+           so a dial moved in [S01] moves the assertion with it. --- */
+    t.ok('the refusal list is frozen', Object.isFrozen(App.data.RESERVED_KEYS));
+    t.ok('and the scope list is frozen', Object.isFrozen(App.data.TOKEN_SCOPES));
+    t.eq('the scope list is exactly the two render sites the board already has',
+      App.data.TOKEN_SCOPES, ['unit', 'side']);
+    t.eq('the cap on types of a student\'s own is six (D-18)',
+      App.data.MAX_CUSTOM_TYPES, 6);
+    t.eq('and a name is capped at twenty-four code points (D-12)',
+      App.data.MAX_TOKEN_NAME, 24);
+
+    /* --- the produced-id shape, asserted against the exported pattern rather
+           than a re-typed copy of it. `hp` is refused here on purpose: a
+           built-in is admitted by TOKEN_IDS membership, never by the pattern,
+           and the pattern is narrow precisely so that no name reachable from
+           Object.prototype or Function.prototype can satisfy it. --- */
+    var idPattern = App.data.TOKEN_ID_PATTERN;
+    t.ok('the pattern accepts a produced id',
+      idPattern.test('t1') && idPattern.test('t12') && idPattern.test('t0'));
+    t.ok('it refuses an id with a trailing newline, because JavaScript\'s `$` '
+      + 'is not Perl\'s — this row records that it was checked, not assumed',
+      idPattern.test('t1\n') === false);
+    var patternRefuses = ['T1', 't1 ', 't100', 'hp', 'sparkle', '', '__proto__',
+      'constructor', 'prototype', 'toString', 'valueOf']
+      .every(function (bad) { return idPattern.test(bad) === false; });
+    t.ok('and it refuses uppercase, a trailing space, three digits, a built-in, '
+      + 'a bare word and every prototype name', patternRefuses);
+
     /* --- the guards exist and are exported. This suite asserts against the
            exported function, never against a re-typed copy of the pattern —
            the reason [S01]'s allowlist banner gives for exporting at all. --- */
@@ -4554,15 +4611,84 @@ App.selftest = (function () {
     t.throws('at the ceiling of the sequence it refuses rather than wrapping',
       function () { App.ops.nextTokenTypeId({ t99: 1 }); });
 
-    /* --- Pitfall 11: setTokenStyle runs through the same gate now, so the
-           membership check it used to open with is gone rather than widened,
-           and the CR-02 shape it was closing stays closed. --- */
-    t.throws('a prototype key is still refused as a token type', function () {
-      App.ops.setTokenStyle('__proto__', { shape: 'sq' });
+    /* --- ROADMAP criterion 5, and it is a SECURITY criterion. TWO distinct
+           corruption shapes reach the vocabulary's key position, both measured
+           inside this artifact's own realm, and gating one but not the other
+           ships the worse of the two. That is why there is a row per reserved
+           key per shape rather than one row total: 'constructor' fails with a
+           different TypeError than '__proto__' does, so a single case does not
+           cover the class. --- */
+
+    var depth0 = App.state.undoDepth();
+
+    /* --- SHAPE ONE, create: `tokens[id] = rec` invokes the setter and
+           REPARENTS the vocabulary instead of adding a key. Own keys, JSON
+           output and deepFreeze all read green while it is true, and it
+           evaporates on the next unrelated commit's thaw() — so the check that
+           catches it is on the vocabulary's prototype, not on its keys. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('a new type may not be created as ' + k, function () {
+        App.ops.requireNewTokenId(k);
+      });
+      t.ok('and that refusal names ' + k + ' rather than dropping it silently',
+        (function () {
+          try { App.ops.requireNewTokenId(k); } catch (e) {
+            return String(e.message).indexOf(k) !== -1;
+          }
+          return false;
+        })());
     });
-    t.ok('and nothing leaked onto the shared object prototype',
-      ({}).shape === undefined
-        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'shape'));
+    t.ok('the live vocabulary still has the ordinary object prototype, so '
+      + 'nothing reparented it',
+      Object.getPrototypeOf(App.state.get().build.tokens) === Object.prototype);
+
+    /* --- SHAPE TWO, rename: `var rec = tokens[id]; rec.name = x` resolves rec
+           to Object.prototype and writes onto it. This is the CR-02 shape
+           exactly, and it is the worse of the two — persistent, global, and
+           invisible to JSON.stringify and deepFreeze alike. So the check is on
+           Object.prototype itself and not on the board, which would read clean
+           either way. setTokenStyle's mutator is that read-then-write path. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('restyling through the ' + k + ' key is refused', function () {
+        App.ops.setTokenStyle(k, { shape: 'sq' });
+      });
+      t.ok('and nothing leaked onto the shared object prototype through ' + k,
+        ({}).shape === undefined
+          && !Object.prototype.hasOwnProperty.call(Object.prototype, 'shape'));
+    });
+
+    /* --- the second half of the gate. requireTokenId rules on the SHAPE of an
+           id; this rules on whether it names anything here. Without it,
+           setTokenStyle('t7', ...) passes the pattern and then dies inside the
+           mutator as a nameless TypeError. --- */
+    t.throws('an id that fits the pattern but names no live type is refused',
+      function () { App.ops.setTokenStyle('t7', { shape: 'sq' }); });
+    t.ok('and that refusal names the id it refused', (function () {
+      try { App.ops.setTokenStyle('t7', { shape: 'sq' }); } catch (e) {
+        return String(e.message).indexOf('t7') !== -1;
+      }
+      return false;
+    })());
+    t.throws('a word that is not an id at all is still refused, so [S09.6] '
+      + 'keeps its meaning under the new gate', function () {
+      App.ops.setTokenStyle('sparkle', { shape: 'sq' });
+    });
+
+    /* --- Pitfall 10: every guard runs outside every commit, so not one of the
+           refusals above may leave a phantom step between the student and the
+           edit they want back. --- */
+    t.eq('and not one of those refusals left an undo entry behind it',
+      App.state.undoDepth(), depth0);
+
+    /* --- the build slice's key set is a contract [S09.3] asserts exactly, and
+           nothing in this phase may add a top-level key to it. --- */
+    t.eq('the build slice still holds exactly the four keys it shipped with',
+      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the token-authoring suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
   });
 })();
 // #endregion [S09] SELFTEST
