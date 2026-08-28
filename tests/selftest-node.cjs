@@ -2084,6 +2084,188 @@ check(
 clearPanel();
 if (dlg.open === true) { dlg.close(); }
 
+/* --- 49-57. the projection strip, mirrored into the half that runs in CI ------
+       [S09.8]'s document-gated rows are the primary home for this behaviour and
+       they are richer than these. But `node tests/selftest-node.cjs` loads the
+       artifact into a sandbox with no document at all, so that half is SKIPPED
+       there and only a browser run ever sees it. These rows read the same nodes
+       off the stub page, so the highest-value ones cannot rot unnoticed between
+       one rehearsal and the next.
+
+       Two of [S09.8]'s rows are deliberately RE-SPELLED here rather than
+       copied, because copying them would have produced two passes that mean
+       nothing. The stub's selector engine understands a class and a [data-*]
+       test and nothing else, so `#strip [style]` matches no node here for a
+       reason that has nothing to do with the artifact. And the stub's
+       textContent is a plain own property rather than a value computed over
+       descendants, so `strip.textContent` is the empty string no matter what
+       the page holds. Both are written out longhand below so they are about the
+       page rather than about this file's limits.
+
+       Every drive is bracketed: the board is put back to the shipped one before
+       each assertion that names a shipped number, and the whole state recorded
+       here is handed back at the end so Layer C's walk reads the same page it
+       has always read. --- */
+const prjSaved = JSON.stringify(A.state.get());
+const strip = dom.byId['strip'];
+
+function prjNode(kind, side) {
+  if (!strip) { return null; }
+  return strip.querySelectorAll('[data-prj="' + kind + '"][data-side="' + side + '"]')[0] || null;
+}
+function prjText(kind, side) {
+  const n = prjNode(kind, side);
+  return n ? n.textContent : '(no node)';
+}
+function stripLeafText() {
+  const out = [];
+  (function walk(n) {
+    if (!n) { return; }
+    if (n.children.length === 0) {
+      if (typeof n.textContent === 'string' && n.textContent !== '') { out.push(n.textContent); }
+      return;
+    }
+    n.children.forEach(walk);
+  })(strip);
+  return out;
+}
+
+A.ops.resetToDefaults();
+A.state.flush();
+
+check(
+  '49. the shipped board puts one figure per side in the strip, and each names '
+    + 'the side it wipes rather than leaving a bare number to be read either way',
+  prjText('turns', 'cats') === '≈9 turns to wipe Mechs'
+    && prjText('turns', 'mechs') === '≈3 turns to wipe Cats',
+  'cats=' + JSON.stringify(prjText('turns', 'cats'))
+    + ' mechs=' + JSON.stringify(prjText('turns', 'mechs'))
+);
+
+check(
+  '50. and the arithmetic behind each figure is on the page as text, both '
+    + 'operands and the operator, with nothing to hover and nothing to open',
+  prjText('work', 'cats') === '27 health ÷ 3 per turn'
+    && prjText('work', 'mechs') === '27 health ÷ 9 per turn',
+  'cats=' + JSON.stringify(prjText('work', 'cats'))
+    + ' mechs=' + JSON.stringify(prjText('work', 'mechs'))
+);
+
+/* PROJ-01 on the page. The DOM-free half proved the model can produce a spread;
+   this is the spread ARRIVING on the surface a student looks at. */
+A.state.get().build.cats.units
+  .map((u) => u.id)
+  .forEach((id) => A.ops.setUnitMaxHp('cats', id, 4));
+A.state.flush();
+const soakNode = prjNode('soak', 'mechs');
+check(
+  '51. raising every Cat to 4 health makes the mechs panel read a two-bound '
+    + 'RANGE on the page, and brings up the line that explains its second bound',
+  prjText('turns', 'mechs') === '≈4–6 turns to wipe Cats'
+    && prjText('soak', 'mechs') === '54 soaked ÷ 9 per turn with overkill'
+    && soakNode !== null && soakNode.hidden === false,
+  'figure=' + JSON.stringify(prjText('turns', 'mechs'))
+    + ' soak line=' + JSON.stringify(prjText('soak', 'mechs'))
+    + ' soak line hidden=' + (soakNode ? soakNode.hidden : '(no node)')
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+A.ops.setFactionAp('cats', 0);
+A.state.flush();
+const zeroApStrip = stripLeafText().join(' | ');
+check(
+  '52. a side with nothing to spend reads as WORDS, and neither of the two '
+    + 'things a raw division would otherwise have put on a projector appears '
+    + 'anywhere in the strip',
+  prjText('turns', 'cats') === 'no damage to spend'
+    && prjText('work', 'cats') === '0 per turn'
+    && zeroApStrip.indexOf('Infinity') === -1
+    && zeroApStrip.indexOf('NaN') === -1,
+  'figure=' + JSON.stringify(prjText('turns', 'cats'))
+    + ' worked=' + JSON.stringify(prjText('work', 'cats'))
+    + ' strip text=' + JSON.stringify(zeroApStrip)
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+const builtBeforeAdd = strip ? strip.dataset.built : '(no strip)';
+A.ops.addUnit('mechs');
+A.state.flush();
+check(
+  '53. a structural rebuild leaves the strip standing and its figures moved '
+    + 'with the roster — #strip is a child of #board and structure() replaces '
+    + 'only the two column interiors, which is a fact about another function '
+    + 'and therefore exactly the kind that changes quietly',
+  builtBeforeAdd === '1'
+    && (strip ? strip.dataset.built : null) === '1'
+    && prjText('turns', 'cats') === '≈12 turns to wipe Mechs',
+  'built before=' + JSON.stringify(builtBeforeAdd)
+    + ' after=' + JSON.stringify(strip ? strip.dataset.built : '(no strip)')
+    + ' cats figure=' + JSON.stringify(prjText('turns', 'cats'))
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+
+/* --- D-13 held by SHAPE. One panel per side, and no figure without a side. --- */
+const prjPanels = strip ? strip.querySelectorAll('.prj-panel[data-side]') : [];
+check(
+  '54. the strip holds exactly two panels, one per side, with no third box for '
+    + 'a figure about both of them',
+  prjPanels.length === 2
+    && prjPanels.map((p) => p.dataset.side).join(',') === 'cats,mechs',
+  'panels=' + prjPanels.length
+    + ' sides=' + JSON.stringify(prjPanels.map((p) => p.dataset.side))
+);
+
+const prjNums = strip ? strip.querySelectorAll('.num') : [];
+const prjOrphans = prjNums.filter((n) => {
+  let up = n.parentNode;
+  while (up && up !== strip) {
+    if (up.dataset && up.dataset.side !== undefined) { return false; }
+    up = up.parentNode;
+  }
+  return true;
+});
+check(
+  '55. and every figure in it sits under a panel naming ONE side. A figure with '
+    + 'no side is, by construction, a figure about both sides, which is the '
+    + 'comparison the tool never performs. Floored, because a walk that found '
+    + 'no figures at all would report no orphans and pass spotlessly',
+  prjNums.length >= 6 && prjOrphans.length === 0,
+  'figures=' + prjNums.length + ' (floor 6) without a sided ancestor='
+    + prjOrphans.length
+);
+
+const prjStyled = [];
+(function walkForStyle(n) {
+  if (!n) { return; }
+  n.children.forEach((c) => {
+    if (c.getAttribute && c.getAttribute('style') !== null) { prjStyled.push(c.className); }
+    walkForStyle(c);
+  });
+})(strip);
+check(
+  '56. nothing in the strip carries an inline style attribute',
+  prjStyled.length === 0,
+  'nodes carrying one: ' + JSON.stringify(prjStyled)
+);
+
+const styleAccesses = html.split('.style').length - 1;
+check(
+  '57. and .style appears exactly once in the whole artifact, which is the '
+    + 'topbar measurement. A proportional bar, a shared scale and a midpoint '
+    + 'marker each need an inline length or a per-frame custom property, and '
+    + 'both of those are that one access — so this count is the cheapest '
+    + 'available proof that none of the three exists anywhere on the page',
+  styleAccesses === 1,
+  'occurrences: ' + styleAccesses
+);
+
+A.state.restore(prjSaved);
+A.state.flush();
+
 /* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
        Layers A and B, up at the top of this file, read the SOURCE. This one
        reads the PAGE, for two reasons. The roadmap's criterion is written about
@@ -2150,11 +2332,25 @@ renderedText.forEach((s) => {
 console.log('scan: ' + renderedText.length + ' rendered strings read from #app (Layer C, '
   + RENDERED_VERDICT_WORDS.length + ' words)');
 
+// The floor was 100 against a measurement of 102 — a margin of two, which plan
+// 03-01 shipped and then flagged in its own summary as too thin to survive a
+// roster edit. Plan 03-03's projection strip raised the harvest to 115, so the
+// floor is raised with it rather than left to drift further from what it is
+// meant to catch.
+//
+// 105 is chosen against three measurements rather than picked. The shipped
+// board harvests 115 here and 111 on a board with no gate drives behind it; a
+// board shrunk to one unit a side harvests 41; and each unit card is worth
+// about 7 strings, measured by adding three Mechs and watching 111 become 132.
+// So 105 leaves more than one unit card of headroom against a legitimate change
+// to the shipped roster, while sitting far above the zero a walk reading the
+// wrong node would report. The strip's own 13 strings are roster-independent
+// and are separately pinned by checks 49-55, which assert them one by one.
 check(
   '47. the rendered-page walk actually reaches the page, so a clean result is a '
     + 'read page rather than an empty one',
-  renderedText.length > 100,
-  'harvested ' + renderedText.length + ' strings from #app; the floor is 100'
+  renderedText.length > 105,
+  'harvested ' + renderedText.length + ' strings from #app; the floor is 105'
 );
 
 check(
@@ -2196,7 +2392,20 @@ check(
             shell: the stub is a hand-made stand-in and not a parser, so text
             written directly into the HTML is empty here and only the text the
             artifact renders is read. Layers A and B still read all of those in
-            the source; it is only the assembled-at-render case that waits. --- */
+            the source; it is only the assembled-at-render case that waits.
+         6. Whether the strip's content still STICKS on a short viewport. Its
+            reserved minimum height is gone and the content sets the height now,
+            and a sticky box taller than the space between the bar and the
+            bottom of the window behaves as though it were not sticky for the
+            part that does not fit. There is no layout engine here to measure it.
+         7. Whether the three characters the projection prints — the almost-equal
+            sign, the division sign and the en dash — reach a screen as glyphs
+            rather than as replacement boxes in the shipped font stack. Checks
+            49 to 52 assert the code points; only a display asserts the glyphs.
+         8. Whether a four-digit turn count is legible from the back of a room at
+            .brd-value's 24px. The figure is SIZED for four digits, which is an
+            arithmetic claim about the widest realistic roster and not a claim
+            about anybody's eyes. Same rehearsal, same afternoon. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
