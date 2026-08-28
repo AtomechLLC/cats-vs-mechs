@@ -5356,7 +5356,21 @@ fcField.focus();
 fcField.value = '-4';
 fcField.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
 const fcTyped = fcField.value;
-// A repaint raised from OUTSIDE, on a field the student has changed.
+// FOCUS IS MOVED OFF THE FIELD FIRST, AND THAT LINE IS THE WHOLE ROW.
+//
+// Written without it, this clause was VACUOUS and probe Y proved it: the fill
+// already skips a field that holds focus — showAmount's rule (D-19), which
+// every field on this surface keeps — so a repaint driven while the caret is
+// still in the field is skipped for a reason that has nothing to do with the
+// edit. Removing the edited-field guard entirely left this row green.
+//
+// The case that MATTERS is the one a student actually reaches: type -4, press
+// Enter, click away, and then something elsewhere moves the board. Focus is
+// gone by then, so the only thing standing between the student's number and
+// the rule's own is the edited flag.
+stub.body.focus();
+// A repaint raised from OUTSIDE, on a field the student has changed and is no
+// longer standing in.
 A.ops.setFactionAp('cats', 2);
 A.state.flush();
 const fcSurvived = fcField.value;
@@ -5366,7 +5380,6 @@ fcField.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
 const fcReverted = fcField.value;
 const fcStillOpen = apDlg.open === true && apPane.hidden === false;
 
-stub.body.focus();
 press(nlCloseBtn); release(nlCloseBtn);
 A.state.flush();
 press(nlOpenBtn); release(nlOpenBtn);
