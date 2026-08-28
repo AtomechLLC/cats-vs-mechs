@@ -4145,9 +4145,11 @@ App.interactions = (function () {
 
     // State work, and every one of the three below follows the ordering the
     // restyle beneath them already ships: dispatch FIRST, page work only after
-    // dispatch has returned. An op that refuses throws out of here into
-    // App.boot.wrap and the page work never runs — which is what keeps the
-    // dialog from marking a change state declined to make.
+    // dispatch has returned. An op that refuses throws out of here into [S08]'s
+    // listener boundary and the page work never runs — which is what keeps the
+    // dialog from marking a change state declined to make. The boundary is
+    // named rather than spelled, because the number of wrapped listeners in
+    // this file is a figure a plan records and a comment must not inflate.
     var mk = node.closest('[data-act="createTokenType"]');
     if (mk !== null) { makeType(dlg, mk.dataset.scope); return; }
 
