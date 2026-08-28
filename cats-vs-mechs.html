@@ -753,7 +753,23 @@ App.data = (function () {
   // comes from a sequence and is never derived from the name they typed
   // (D-13), because deriving an id from student text is how a reserved name
   // reaches the key position in the first place.
-  var TOKEN_ID_PATTERN = /^t[0-9]{1,2}$/;
+  // The width is written ONCE, and both readings of the id shape are built from
+  // it. There were two spellings: this pattern, and a second copy inside
+  // nextTokenTypeId that had to capture the sequence number. Widening this one
+  // — a plausible edit the first time the cap moves — would have left that
+  // scanner blind to every id past the old width, so it would compute a highest
+  // that was already in use and hand back a colliding id. The id gate turns
+  // that into a thrown error rather than a silent overwrite, which makes it a
+  // hazard rather than a live defect, and exactly the drift the rest of this
+  // section is written to prevent.
+  var TOKEN_ID_DIGITS = '[0-9]{1,2}';
+  var TOKEN_ID_PATTERN = new RegExp('^t' + TOKEN_ID_DIGITS + '$');
+
+  // The same shape with the sequence number captured. Built beside the pattern
+  // from the same source rather than derived from it by rewriting its text: a
+  // rewrite that stopped matching would fail silently, into a scanner that
+  // reads undefined for every id and never says so.
+  var TOKEN_ID_CAPTURE = new RegExp('^t(' + TOKEN_ID_DIGITS + ')$');
 
   // The named refusal list. It is the MESSAGE, not the defence: the pattern
   // above is what actually keeps these out of the key position, and this array
@@ -941,6 +957,7 @@ App.data = (function () {
     COLORS: COLORS,
     TOKEN_IDS: TOKEN_IDS,
     TOKEN_ID_PATTERN: TOKEN_ID_PATTERN,
+    TOKEN_ID_CAPTURE: TOKEN_ID_CAPTURE,
     RESERVED_KEYS: RESERVED_KEYS,
     MAX_CUSTOM_TYPES: MAX_CUSTOM_TYPES,
     TOKEN_SCOPES: TOKEN_SCOPES,
@@ -1473,13 +1490,19 @@ App.ops = (function () {
   // and add one. Prefix-plus-count collides after any removal, and a duplicate
   // key in the vocabulary is silent in every direction at once.
   //
-  // It refuses at the ceiling rather than wrapping. TOKEN_ID_PATTERN allows
+  // It refuses at the ceiling rather than wrapping. The width [S01] declares is
   // two digits, so t99 is the last id in the sequence, and a wrapped id would
   // quietly overwrite a type the student still has on the board.
+  //
+  // The scanner reads through the exported CAPTURING form of that same width
+  // rather than through a second copy of it written here. A copy is how this
+  // goes wrong quietly: widen the width and a stale scanner stops seeing the
+  // ids past the old one, computes a highest that is already in use, and hands
+  // back a colliding key.
   function nextTokenTypeId(vocab) {
     var highest = 0;
     Object.keys(vocab || {}).forEach(function (id) {
-      var m = /^t([0-9]{1,2})$/.exec(id);
+      var m = App.data.TOKEN_ID_CAPTURE.exec(id);
       if (m !== null && Number(m[1]) > highest) { highest = Number(m[1]); }
     });
     var made = 't' + (highest + 1);
@@ -5821,6 +5844,23 @@ App.selftest = (function () {
       .every(function (bad) { return idPattern.test(bad) === false; });
     t.ok('and it refuses uppercase, a trailing space, three digits, a built-in, '
       + 'a bare word and every prototype name', patternRefuses);
+
+    /* --- the capturing form, which is the id shape read the OTHER way. There
+           were two spellings of the width and nextTokenTypeId held the second
+           one, so widening the pattern would have left the scanner blind past
+           the old width and it would have produced an id already in use. Both
+           are now built from one string, and this row is what says so: the two
+           must agree on what they accept, and the capture must actually hand
+           back the sequence number rather than undefined. --- */
+    var idCapture = App.data.TOKEN_ID_CAPTURE;
+    var formsAgree = ['t1', 't9', 't12', 't99', 't100', 't0', 'T1', 'hp', '', 't']
+      .every(function (id) {
+        return idPattern.test(id) === (idCapture.exec(id) !== null);
+      });
+    t.ok('the capturing form of the id shape accepts exactly what the pattern '
+      + 'does', formsAgree);
+    t.eq('and it hands back the sequence number', idCapture.exec('t99')[1], '99');
+    t.eq('including a single digit', idCapture.exec('t7')[1], '7');
 
     /* --- the guards exist and are exported. This suite asserts against the
            exported function, never against a re-typed copy of the pattern —
