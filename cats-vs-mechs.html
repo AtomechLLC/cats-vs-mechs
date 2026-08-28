@@ -1052,10 +1052,14 @@ App.model = (function () {
   // Zero throughput is reachable through the shipped stepper, whose floor is
   // 0, and ceil(27 / 0) is Infinity, which reaches a projector as the word
   // itself. A target already at zero health with an attacker at zero
-  // throughput is worse still: that divides zero by zero and gives NaN, which
-  // survives a check written only against Infinity. So the throughput refusal
-  // runs FIRST, before the target's health is so much as read — a refusal
-  // placed after that read has already done the division it exists to stop.
+  // throughput is worse still: that divides zero by zero and gives NaN.
+  //
+  // So the refusal is taken on the DIVISOR, above both divisions, rather than
+  // on the result below them. Both can be written correctly; only one of them
+  // is hard to write incorrectly. A check on the result has to catch Infinity
+  // AND NaN, and the obvious `=== Infinity` catches only the first, letting
+  // the zero-against-zero case through as three letters on a projector.
+  // Refusing the divisor has no second case left to forget.
   //
   // The refusal is null rather than a clamp. Substituting 1 for a throughput
   // of 0 would print a confident number of turns for a side that cannot
@@ -7181,16 +7185,18 @@ App.selftest = (function () {
     t.eq('nor does a side whose actions all do nothing to health',
       App.model.turnsToWipe(noDmg.mechs, noDmg.cats), null);
 
-    /* --- The ordering row. This is the one that catches a refusal placed
-           after the health of the target is read: at zero throughput against a
-           target already at zero health the division is 0 by 0, which is not
-           infinite, it is NaN, and it survives a finiteness check written the
-           obvious way round. --- */
+    /* --- The ordering row. This is the one that catches a refusal moved off
+           the divisor and onto the result: at zero throughput against a target
+           already at zero health the division is 0 by 0, which is not infinite
+           — it is NaN, and it walks straight through a check written only
+           against Infinity. Every other refusal row here still passes under
+           that mistake, which is what makes this row worth its own paragraph. --- */
     var bothZero = App.data.defaults();
     bothZero.mechs.ap = 0;
     bothZero.cats.units.forEach(function (u) { u.maxHp = 0; u.shield = 0; });
     t.eq('no throughput against nothing left to take is still nothing to '
-      + 'project, because the throughput refusal runs before the health read',
+      + 'project, because the refusal is taken on the divisor and not on the '
+      + 'result of dividing by it',
       App.model.turnsToWipe(bothZero.mechs, bothZero.cats), null);
 
     t.eq('a hit of zero soaks nothing instead of producing NaN',
