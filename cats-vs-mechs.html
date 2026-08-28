@@ -1952,6 +1952,173 @@ App.ops = (function () {
     });
   }
 
+  // ALLOC-10. A name is a display label and nothing more (D-09) — the id
+  // stays the identity, so this writes one field and touches nothing else.
+  // Built-ins are renameable on purpose (D-10): a student calling Health
+  // "Vigor" is exactly the authorship this phase exists for. Names need not be
+  // unique (D-11), because the id already tells two of them apart.
+  //
+  // THE GUARD ORDER IS THE WHOLE PITFALL-2 DEFENCE. The mutator below is the
+  // read-then-write shape `var t = tokens[id]; t.name = x`, which for a
+  // reserved id resolves `t` to Object.prototype and writes onto it —
+  // persistent, global, and invisible to JSON.stringify and deepFreeze alike.
+  // It is the worse of the two corruption shapes, and gating create but not
+  // rename would ship precisely it. Both guards run before the commit, and the
+  // existence check is the third layer behind them.
+  //
+  // A plain commit, NOT a structural one: a rename changes a label, and plan
+  // 02.1-03 makes labels a per-frame sync pass. A structural frame here would
+  // rebuild both columns on every keystroke of a name being typed.
+  function renameTokenType(tokenId, name) {
+    requireTokenId(tokenId);
+    var next = requireTokenName(name);
+    var vocab = App.state.get().build.tokens;
+    if (!Object.prototype.hasOwnProperty.call(vocab, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+    }
+    // The same no-op contract setTokenStyle states above, and for the same
+    // reason: a name field commits on every keystroke, and a rename that
+    // changes nothing would put a do-nothing Ctrl+Z step between the student
+    // and the edit they actually want back. requireTokenName has already
+    // trimmed, so padding alone compares equal.
+    if (vocab[tokenId].name === next) { return false; }
+    App.state.commit('token rename ' + tokenId, function (s) {
+      s.build.tokens[tokenId].name = next;
+    });
+    return true;
+  }
+
+  /* ---- the tally: the number a student writes down beside their own
+   * invention (D-00e). The tool stores it and never infers what it means, and
+   * nothing anywhere in this file acts on it — a type a student made counts
+   * nothing on its own. That is the boundary this artifact is built around.
+   *
+   * TWO sparse-storage rules, and both are worth stating rather than leaving
+   * to be inferred from the code (D-04):
+   *   1. A tally of zero deletes its key.
+   *   2. A bag with no keys left deletes itself.
+   * Nine cats by six types is fifty-four potential numbers, and almost all of
+   * them are zero in a real build — which is what Phase 4's 512-character
+   * budget cares about.
+   *
+   * hasOwnProperty on every read. A bare `owner.tally[id]` lookup for
+   * 'constructor' resolves on the prototype and hands back a function instead
+   * of failing, and from Phase 4 a bag can arrive from a pasted build code
+   * rather than from this file.
+   */
+  function tallyBag(owner, create) {
+    if (!Object.prototype.hasOwnProperty.call(owner, 'tally')) {
+      if (!create) { return null; }
+      owner.tally = {};
+    }
+    return owner.tally;
+  }
+
+  function readTally(owner, tokenId) {
+    if (!owner || !Object.prototype.hasOwnProperty.call(owner, 'tally')) { return 0; }
+    return Object.prototype.hasOwnProperty.call(owner.tally, tokenId)
+      ? owner.tally[tokenId] : 0;
+  }
+
+  function writeTally(owner, tokenId, n) {
+    // Rule 1 and rule 2 both live in dropTally, which removeTokenType already
+    // needs — one place that knows how a tally disappears, rather than two
+    // that have to agree.
+    if (n === 0) { dropTally(owner, tokenId); return; }
+    tallyBag(owner, true)[tokenId] = n;
+  }
+
+  // Which type, and is a tally even the right question for it? The five the
+  // board is built on have no tally: their quantity is the health, shield or
+  // action points already on the board, and giving them a second number would
+  // create a purely mechanical reason for the two to disagree.
+  function tallyType(vocab, tokenId) {
+    if (!Object.prototype.hasOwnProperty.call(vocab, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+    }
+    if (App.data.TOKEN_IDS.indexOf(tokenId) !== -1) {
+      throw new Error('"' + String(vocab[tokenId].name) + '" is one of the five token '
+        + 'types the board is built on, and its quantity is the health, shield or '
+        + 'action points already there rather than a tally of its own.');
+    }
+    return vocab[tokenId];
+  }
+
+  // And WHICH record carries the number, which is what the scope chosen at
+  // creation decides (D-01). Both render sites already exist on the board —
+  // health and shield are per-unit, action points are per-faction — so a
+  // scoped type reuses whichever its scope names. Called once on the live
+  // board to rule on the arguments, and again on the detached copy inside the
+  // mutator, where it cannot throw because the first call already ruled.
+  function tallyOwner(build, side, unitId, rec) {
+    var named = (unitId !== null && unitId !== undefined);
+    if (rec.scope === 'side') {
+      if (named) {
+        throw new Error('"' + String(rec.name) + '" is kept on the whole side, so it '
+          + 'has no number of its own on a single unit.');
+      }
+      return build[side];
+    }
+    if (!named) {
+      throw new Error('"' + String(rec.name) + '" is kept on each unit, so it has to '
+        + 'be told which one.');
+    }
+    return findUnit(side, unitId, build[side].units);
+  }
+
+  // The absolute set. Every guard outside the commit, and the current value is
+  // read outside it too — unlike the nudge sibling below. Those must read and
+  // write inside one mutator because a 40ms ramp could otherwise act on a
+  // number it read a step ago; this one compares against a value the caller
+  // handed over whole, which nothing can change underneath it.
+  //
+  // Plain commit, not structural: the stat line this number is shown on
+  // already exists by the time anyone can set it, so a tally change is
+  // sync-only. MAX_ALLOC is reused rather than a second ceiling invented for
+  // tallies, so int() clamps a whole number that is merely out of range and
+  // throws on anything that is not a whole number at all.
+  function setTally(side, unitId, tokenId, n) {
+    requireSide(side);
+    requireTokenId(tokenId);
+    var rec = tallyType(App.state.get().build.tokens, tokenId);
+    var live = tallyOwner(App.state.get().build, side, unitId, rec);
+    var next = int(n, 0, MAX_ALLOC, 'a tally of "' + rec.name + '"');
+    if (readTally(live, tokenId) === next) { return false; }
+    App.state.commit(tallyLabel(side, unitId, tokenId), function (s) {
+      writeTally(tallyOwner(s.build, side, unitId, rec), tokenId, next);
+    });
+    return true;
+  }
+
+  // The delta sibling, held to the three properties the shipped nudges hold:
+  // the guards run outside the commit, the read and the write share one
+  // mutator, and the label is IDENTICAL to the absolute-set sibling's so a
+  // press-and-hold collapses into one Ctrl+Z instead of forty. The boolean is
+  // the ramp's sixth stop condition — returning it rather than throwing keeps
+  // an over-press during a live demo from flashing the error panel.
+  function nudgeTally(side, unitId, tokenId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'a tally');
+    requireTokenId(tokenId);
+    var rec = tallyType(App.state.get().build.tokens, tokenId);
+    tallyOwner(App.state.get().build, side, unitId, rec);
+    var moved = false;
+    App.state.commit(tallyLabel(side, unitId, tokenId), function (s) {
+      var owner = tallyOwner(s.build, side, unitId, rec);
+      var current = readTally(owner, tokenId);
+      var next = int(current + delta, 0, MAX_ALLOC, 'a tally of "' + rec.name + '"');
+      moved = (next !== current);
+      writeTally(owner, tokenId, next);
+    });
+    return moved;
+  }
+
+  // One spelling of the label, so the two ops above cannot drift apart and
+  // quietly stop coalescing.
+  function tallyLabel(side, unitId, tokenId) {
+    return 'tally ' + tokenId + ' ' + side + '/' + String(unitId);
+  }
+
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
   // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
   function undo() {
@@ -1985,6 +2152,9 @@ App.ops = (function () {
         name: p.name, shape: p.shape, color: p.color, glyph: p.glyph, scope: p.scope
       });
       case 'removeTokenType': return removeTokenType(p.tokenId);
+      case 'renameTokenType': return renameTokenType(p.tokenId, p.name);
+      case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
+      case 'nudgeTally': return nudgeTally(p.side, p.unitId, p.tokenId, p.delta);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -2017,6 +2187,9 @@ App.ops = (function () {
     setTokenStyle: setTokenStyle,
     createTokenType: createTokenType,
     removeTokenType: removeTokenType,
+    renameTokenType: renameTokenType,
+    setTally: setTally,
+    nudgeTally: nudgeTally,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
