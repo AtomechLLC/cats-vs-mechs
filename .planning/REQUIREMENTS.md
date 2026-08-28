@@ -27,7 +27,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ACT-02**: An action carries a cost — a token type and an amount that is **consumed** when it fires (default: one action point)
 - [x] **ACT-03**: An action carries requirements — token types and amounts that must be present but are **not** consumed
 - [x] **ACT-04**: An action carries transformations — each names the caster or the target, a token type, and the amount that token changes by
-- [ ] **ACT-05**: The tool proposes what an authored action would do and the student accepts, edits the numbers, or overrides it entirely before anything lands — the tool never applies a transformation on its own
+- [x] **ACT-05**: The tool proposes what an authored action would do and the student accepts, edits the numbers, or overrides it entirely before anything lands — the tool never applies a transformation on its own
 - [x] **ACT-06**: The tool reports whether a cost is affordable and a requirement met, and never decides whether the action happens
 - [x] **ACT-07**: An action whose cost, requirement or transformation names a token type that has since been removed is refused by name with a message, and never silently skipped
 
@@ -149,7 +149,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACT-02 | Phase 3.1 | Complete |
 | ACT-03 | Phase 3.1 | Complete |
 | ACT-04 | Phase 3.1 | Complete |
-| ACT-05 | Phase 3.1 | Pending |
+| ACT-05 | Phase 3.1 | Complete |
 | ACT-06 | Phase 3.1 | Complete |
 | ACT-07 | Phase 3.1 | Complete |
 | FIGHT-01 | Phase 5 | Pending |

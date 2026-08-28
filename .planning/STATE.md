@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 03.1-06-PLAN.md
-last_updated: "2026-08-28T20:53:17.928Z"
+last_updated: "2026-08-28T21:31:09.315Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 24
-  completed_plans: 23
+  completed_plans: 24
   percent: 57
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
-Plan: 7 of 8
+Plan: 8 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [██████████] 96%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -58,6 +58,7 @@ Progress: [██████████] 96%
 | Phase 03.1 P04 | 105min | 3 tasks | 2 files |
 | Phase 03.1 P05 | 118min | 3 tasks | 2 files |
 | Phase 03.1 P06 | 132min | 3 tasks | 2 files |
+| Phase 03.1 P07 | 148min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -91,6 +92,9 @@ Recent decisions affecting current work:
 - [Phase 03.1]: Emptying a term slot is a write with nothing in it (CLEAR_TERM) through the same op, so the slot bound lives in one place rather than two
 - [Phase 03.1]: The slot index is part of the commit label: a key held in one amount field is one Ctrl+Z step, and two slots stay two
 - [Phase 03.1]: The empty slot is the affordance — the action editor carries no Add control anywhere, and the emptying entry at the head of a chooser is the one named path for removing a term
+- [Phase ?]: 03.1-07: the proposal is a FORM on the dialog, never a slice — there is then no state in which a proposal exists and has not been accepted, so undo, the build code and the projection can never read one
+- [Phase ?]: 03.1-07: ACT-05 is half-delivered on purpose (D-05b) — confirm writes on Advance in Phase 5, and the absence of an applier is asserted by two numbered checks rather than left as an intention
+- [Phase ?]: 03.1-07: every assembled proposal line is built one node per fragment, so Layer C reads the artifact's words and skips the student's inside a single sentence
 
 ### Pending Todos
 
@@ -112,6 +116,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T20:53:17.917Z
+Last session: 2026-08-28T21:30:52.303Z
 Stopped at: Completed 03.1-06-PLAN.md
 Resume file: None
