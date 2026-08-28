@@ -1250,7 +1250,7 @@
          PAGE WORK and there is no op behind it — see [S07.3]'s proposal
          block, which owns every data-ap on this surface. -->
     <div class="ae-actions">
-      <button class="brd-btn" type="button" id="act-edit-prop-open" data-ap="open" data-k="ap/open">Proposal</button>
+      <button class="brd-btn" type="button" id="act-prop-open" data-ap="open" data-k="ap/open">Proposal</button>
       <button class="brd-btn" type="button" id="act-edit-done" data-ae="done">Done</button>
     </div>
   </div>
@@ -1304,34 +1304,34 @@
        this pane exists not to make. -->
   <section class="ae-pane" id="act-edit-propose" hidden>
     <div class="eyebrow">Proposal</div>
-    <h2 class="ae-title" id="act-edit-prop-title"></h2>
+    <h2 class="ae-title" id="act-prop-title"></h2>
     <p class="ae-note">What your rule says would happen. Change any number in it, or add a line your rule did not state. Nothing here is applied.</p>
 
     <!-- ACT-07's refusal. Empty and hidden while the action's terms all name
          a token type this board still holds; when one does not, this is the
          only thing on the pane. -->
-    <p class="ae-prop-refuse" id="act-edit-prop-refuse" hidden></p>
+    <p class="ae-prop-refuse" id="act-prop-refuse" hidden></p>
 
-    <p class="ae-prop-says" id="act-edit-prop-says"></p>
+    <p class="ae-prop-says" id="act-prop-says"></p>
 
     <div class="ae-group">
-      <h3 class="ae-legend" id="act-edit-prop-caster-label">Caster</h3>
-      <div class="ae-prop-picks ae-prop-caster" role="group" aria-labelledby="act-edit-prop-caster-label"></div>
+      <h3 class="ae-legend" id="act-prop-caster-label">Caster</h3>
+      <div class="ae-prop-picks ae-prop-caster" role="group" aria-labelledby="act-prop-caster-label"></div>
     </div>
 
     <div class="ae-group">
-      <h3 class="ae-legend" id="act-edit-prop-target-label">Target</h3>
-      <div class="ae-prop-picks ae-prop-target" role="group" aria-labelledby="act-edit-prop-target-label"></div>
+      <h3 class="ae-legend" id="act-prop-target-label">Target</h3>
+      <div class="ae-prop-picks ae-prop-target" role="group" aria-labelledby="act-prop-target-label"></div>
     </div>
 
     <!-- ACT-06. What the action costs and what the side has, and per
          requirement what is needed and what is present. NOTHING ON THIS PANE
          IS DISABLED ON WHAT THESE LINES SAY — see [S06.5]'s proposal block,
          which states the rule beside the code that writes them. -->
-    <p class="ae-prop-report" id="act-edit-prop-cost"></p>
-    <div class="ae-prop-reports" id="act-edit-prop-reqs"></div>
+    <p class="ae-prop-report" id="act-prop-cost"></p>
+    <div class="ae-prop-reports" id="act-prop-reqs"></div>
 
-    <div class="ae-prop-rows" id="act-edit-prop-rows">
+    <div class="ae-prop-rows" id="act-prop-rows">
       <h3 class="ae-legend">Changes</h3>
       <div class="ae-prop-row" hidden>
         <span class="ae-prop-lbl"></span>
@@ -1357,7 +1357,7 @@
     <p class="ae-prop-nothing">Nothing here has been applied. Your edits stay on this pane. A declared action lands when the round advances.</p>
 
     <div class="ae-actions">
-      <button class="brd-btn" type="button" id="act-edit-prop-close" data-ap="close" data-k="ap/close">Done</button>
+      <button class="brd-btn" type="button" id="act-prop-close" data-ap="close" data-k="ap/close">Done</button>
     </div>
   </section>
 </dialog>
@@ -6436,10 +6436,14 @@ App.render = (function () {
   /* ---- ACT-05's first half, ACT-06 and ACT-07: the proposal pane —
    *      plan 03.1-07 ------------------------------------------------------
    *
-   * THIS IS THE ONE SURFACE IN THIS FILE WITH NO PRECEDENT, and saying so is
-   * the first thing this block does, in the shape App.ops.clampTokenName uses
-   * for the same situation one region away. Nothing else in this document
-   * stages a change for approval. A swatch dispatches on the press. A field
+   * THIS IS THE ONE SURFACE IN THIS FILE WITH NO PRECEDENT. Saying so is the
+   * first thing this block does, in the shape App.ops.clampTokenName uses for
+   * the same situation one region away: that function opens by declaring
+   * itself the one technique in its phase with no precedent anywhere else in
+   * the file, and then explains itself at length.
+   *
+   * Nothing else in this document stages a change for approval, so there was
+   * no shape here to copy. A swatch dispatches on the press. A field
    * commits on Enter or on blur. Remove commits with no confirmation at all,
    * and its comment says out loud that undo is the reason. There was no shape
    * here to copy, so the shape chosen is a FORM — and the shell comment on
@@ -6688,7 +6692,7 @@ App.render = (function () {
     var faction = state.build[side];
     var report = App.model.affordability(faction, live);
     var cost = termList(live, 'cost')[0];
-    var costNode = document.getElementById('act-edit-prop-cost');
+    var costNode = document.getElementById('act-prop-cost');
 
     if (costNode) {
       if (!cost) {
@@ -6716,7 +6720,7 @@ App.render = (function () {
       }
     }
 
-    var reqNode = document.getElementById('act-edit-prop-reqs');
+    var reqNode = document.getElementById('act-prop-reqs');
     if (!reqNode) { return; }
     reqNode.replaceChildren();
     report.met.forEach(function (m) {
@@ -6810,12 +6814,12 @@ App.render = (function () {
   // pane up reads no proposal string, so the proposal's own floor measures
   // the proposal rather than whatever the last visit left behind.
   function emptyProposal(pane) {
-    ['act-edit-prop-title', 'act-edit-prop-says', 'act-edit-prop-cost',
-      'act-edit-prop-reqs'].forEach(function (id) {
+    ['act-prop-title', 'act-prop-says', 'act-prop-cost',
+      'act-prop-reqs'].forEach(function (id) {
       var node = document.getElementById(id);
       if (node) { node.replaceChildren(); }
     });
-    var refuse = document.getElementById('act-edit-prop-refuse');
+    var refuse = document.getElementById('act-prop-refuse');
     if (refuse) { refuse.replaceChildren(); refuse.hidden = true; }
     ['.ae-prop-caster', '.ae-prop-target'].forEach(function (sel) {
       var box = pane.querySelector(sel);
@@ -6887,7 +6891,7 @@ App.render = (function () {
     pane.hidden = !showing;
     if (!showing) { emptyProposal(pane); return; }
 
-    sayOver(document.getElementById('act-edit-prop-title'),
+    sayOver(document.getElementById('act-prop-title'),
       [{ word: live.name, act: live.id }]);
 
     // ACT-07, and it runs BEFORE a single line of the proposal is drawn. A
@@ -6903,10 +6907,10 @@ App.render = (function () {
     // by surprise; this refusal is what stops a rule firing with a term the
     // board no longer holds.
     var gone = missingTerm(state, live);
-    var refuse = document.getElementById('act-edit-prop-refuse');
+    var refuse = document.getElementById('act-prop-refuse');
     if (gone !== null) {
       emptyProposal(pane);
-      sayOver(document.getElementById('act-edit-prop-title'),
+      sayOver(document.getElementById('act-prop-title'),
         [{ word: live.name, act: live.id }]);
       sayOver(refuse, [
         { said: 'Cannot fire ' },
@@ -6919,7 +6923,7 @@ App.render = (function () {
     }
     if (refuse) { refuse.replaceChildren(); refuse.hidden = true; }
 
-    fillSays(document.getElementById('act-edit-prop-says'), state, live);
+    fillSays(document.getElementById('act-prop-says'), state, live);
     fillPicks(pane.querySelector('.ae-prop-caster'), 'caster',
       [state.build[side]], String(pane.dataset.apCaster || ''));
     fillPicks(pane.querySelector('.ae-prop-target'), 'target',

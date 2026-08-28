@@ -513,11 +513,11 @@ function makeStubDom() {
     // the whole distance between a field that proposes and a field that
     // dispatches an op, and a typo here would be a green run over a pane
     // nothing is listening to.
-    'act-edit-propose', 'act-edit-prop-open',
-    'act-edit-prop-title', 'act-edit-prop-refuse', 'act-edit-prop-says',
-    'act-edit-prop-caster-label', 'act-edit-prop-target-label',
-    'act-edit-prop-cost', 'act-edit-prop-reqs',
-    'act-edit-prop-rows', 'act-edit-prop-close'
+    'act-edit-propose', 'act-prop-open',
+    'act-prop-title', 'act-prop-refuse', 'act-prop-says',
+    'act-prop-caster-label', 'act-prop-target-label',
+    'act-prop-cost', 'act-prop-reqs',
+    'act-prop-rows', 'act-prop-close'
   ];
 
   const byId = Object.create(null);
@@ -1022,7 +1022,7 @@ function makeStubDom() {
   // plan 03.1-07's pane switch. data-ap and NOT data-act: it is page work with
   // no op behind it, and the proposal pane's own delegated listener is what
   // reads it.
-  const aePropOpen = idNode('act-edit-prop-open', 'button');
+  const aePropOpen = idNode('act-prop-open', 'button');
   aePropOpen.dataset.ap = 'open';
   aePropOpen.dataset.k = 'ap/open';
   aeActions.appendChild(aePropOpen);
@@ -1048,19 +1048,19 @@ function makeStubDom() {
   aePropose.hidden = true;
   editor.appendChild(aePropose);
 
-  aePropose.appendChild(idNode('act-edit-prop-title', 'h2'));
+  aePropose.appendChild(idNode('act-prop-title', 'h2'));
 
-  const aePropRefuse = idNode('act-edit-prop-refuse', 'p');
+  const aePropRefuse = idNode('act-prop-refuse', 'p');
   aePropRefuse.className = 'ae-prop-refuse';
   aePropRefuse.hidden = true;
   aePropose.appendChild(aePropRefuse);
 
-  const aePropSays = idNode('act-edit-prop-says', 'p');
+  const aePropSays = idNode('act-prop-says', 'p');
   aePropSays.className = 'ae-prop-says';
   aePropose.appendChild(aePropSays);
 
-  [['caster', 'act-edit-prop-caster-label'],
-    ['target', 'act-edit-prop-target-label']].forEach(([kind, labelId]) => {
+  [['caster', 'act-prop-caster-label'],
+    ['target', 'act-prop-target-label']].forEach(([kind, labelId]) => {
     const group = createElement('div');
     aePropose.appendChild(group);
     group.appendChild(idNode(labelId, 'h3'));
@@ -1069,14 +1069,14 @@ function makeStubDom() {
     group.appendChild(box);
   });
 
-  const aePropCost = idNode('act-edit-prop-cost', 'p');
+  const aePropCost = idNode('act-prop-cost', 'p');
   aePropCost.className = 'ae-prop-report';
   aePropose.appendChild(aePropCost);
-  const aePropReqs = idNode('act-edit-prop-reqs');
+  const aePropReqs = idNode('act-prop-reqs');
   aePropReqs.className = 'ae-prop-reports';
   aePropose.appendChild(aePropReqs);
 
-  const aePropRows = idNode('act-edit-prop-rows');
+  const aePropRows = idNode('act-prop-rows');
   aePropRows.className = 'ae-prop-rows';
   aePropose.appendChild(aePropRows);
 
@@ -1116,7 +1116,7 @@ function makeStubDom() {
   aePropOverAmt.setAttribute('aria-label', 'How much the added line is');
   aePropOver.appendChild(aePropOverAmt);
 
-  const aePropClose = idNode('act-edit-prop-close', 'button');
+  const aePropClose = idNode('act-prop-close', 'button');
   aePropClose.dataset.ap = 'close';
   aePropClose.dataset.k = 'ap/close';
   aePropose.appendChild(aePropClose);
@@ -4946,11 +4946,11 @@ const apHave = A.state.get().build.cats.ap;
 const apHp = A.state.get().build.cats.units.reduce((n, u) => n + u.maxHp, 0);
 const apUnits = A.state.get().build.cats.units.length;
 
-const apSays = paneText(dom.byId['act-edit-prop-says']);
-const apCostLine = paneText(dom.byId['act-edit-prop-cost']);
-const apReqLine = paneText(dom.byId['act-edit-prop-reqs']);
+const apSays = paneText(dom.byId['act-prop-says']);
+const apCostLine = paneText(dom.byId['act-prop-cost']);
+const apReqLine = paneText(dom.byId['act-prop-reqs']);
 const apFields = apAmounts();
-const apTitle = paneText(dom.byId['act-edit-prop-title']);
+const apTitle = paneText(dom.byId['act-prop-title']);
 const apCasterPicks = apPane.querySelectorAll('[data-ap="caster"]').length;
 const apTargetPicks = apPane.querySelectorAll('[data-ap="target"]').length;
 const apChosen = apPane.querySelectorAll('[data-ap="target"]')
@@ -4989,8 +4989,8 @@ const apRowWas = apRowNodes[0];
 const apAmtWas = apRowWas.querySelectorAll('.ae-prop-amt')[0];
 A.ops.renameTokenType('hp', 'Vigor');
 A.state.flush();
-const apSaysV = paneText(dom.byId['act-edit-prop-says']);
-const apReqV = paneText(dom.byId['act-edit-prop-reqs']);
+const apSaysV = paneText(dom.byId['act-prop-says']);
+const apReqV = paneText(dom.byId['act-prop-reqs']);
 const apRowLblV = paneText(apRowWas.querySelectorAll('.ae-prop-lbl')[0]);
 const apSameNodes = apPane.querySelectorAll('.ae-prop-row')[0] === apRowWas
   && apRowWas.querySelectorAll('.ae-prop-amt')[0] === apAmtWas;
@@ -5024,18 +5024,18 @@ check(
 A.ops.setActionReq('cats', apAct, 0, 'hp', 99);
 A.state.flush();
 const apDisabledWas = disabledIn(apPane);
-const apCostWas = paneText(dom.byId['act-edit-prop-cost']);
-const apReqWas = paneText(dom.byId['act-edit-prop-reqs']);
+const apCostWas = paneText(dom.byId['act-prop-cost']);
+const apReqWas = paneText(dom.byId['act-prop-reqs']);
 
 A.ops.setFactionAp('cats', 0);
 A.state.flush();
 const apDisabledPoor = disabledIn(apPane);
-const apCostPoor = paneText(dom.byId['act-edit-prop-cost']);
+const apCostPoor = paneText(dom.byId['act-prop-cost']);
 
 A.state.get().build.cats.units.forEach((u) => { A.ops.setUnitMaxHp('cats', u.id, 1); });
 A.state.flush();
 const apDisabledThin = disabledIn(apPane);
-const apReqThin = paneText(dom.byId['act-edit-prop-reqs']);
+const apReqThin = paneText(dom.byId['act-prop-reqs']);
 
 check(
   '71c. the affordability report rules on NOTHING. Driving the side to no '
@@ -5076,12 +5076,12 @@ apShow('cats', apGoneAct);
 const apDrewBefore = apRows().length;
 A.ops.removeTokenType(apGoneTok);
 A.state.flush();
-const apRefuseNode = dom.byId['act-edit-prop-refuse'];
+const apRefuseNode = dom.byId['act-prop-refuse'];
 const apRefuseText = paneText(apRefuseNode);
 const apDrewAfter = apRows().length;
-const apSaysAfter = paneText(dom.byId['act-edit-prop-says']);
-const apReportAfter = paneText(dom.byId['act-edit-prop-cost'])
-  + paneText(dom.byId['act-edit-prop-reqs']);
+const apSaysAfter = paneText(dom.byId['act-prop-says']);
+const apReportAfter = paneText(dom.byId['act-prop-cost'])
+  + paneText(dom.byId['act-prop-reqs']);
 
 check(
   '71d. an action naming a token type that has since been removed is REFUSED '
@@ -5128,7 +5128,7 @@ A.state.flush();
 apShow('mechs', apCAct);
 const apCText = harvestInto(apPane, [], '#act-edit-propose');
 const apCHits = verdictHitsIn(apCText);
-const apCSays = paneText(dom.byId['act-edit-prop-says']);
+const apCSays = paneText(dom.byId['act-prop-says']);
 apHide();
 A.state.restore(apSaved);
 A.state.flush();
@@ -5251,7 +5251,7 @@ const nlBefore = JSON.stringify(A.state.get());
 const nlDepthBefore = A.state.undoDepth();
 const nlCommitsBefore = commits();
 
-const nlOpenBtn = dom.byId['act-edit-prop-open'];
+const nlOpenBtn = dom.byId['act-prop-open'];
 press(nlOpenBtn); release(nlOpenBtn);
 A.state.flush();
 const nlShown = apDlg.dataset.edPane === 'propose'
@@ -5297,7 +5297,7 @@ const nlPageMoved = nlOn('[data-ap="caster"]', 'apUnit') === nlCasterId
   && apPane.querySelectorAll('.ae-prop-amt').map((f) => f.value).join(',')
     === nlTyped.join(',');
 
-const nlCloseBtn = dom.byId['act-edit-prop-close'];
+const nlCloseBtn = dom.byId['act-prop-close'];
 press(nlCloseBtn); release(nlCloseBtn);
 A.state.flush();
 
@@ -5509,9 +5509,9 @@ const accProjected = [prjText('turns', 'cats'), prjText('work', 'cats')].join(' 
 
 press(nlOpenBtn); release(nlOpenBtn);
 A.state.flush();
-const accSays = paneText(dom.byId['act-edit-prop-says']);
-const accCost = paneText(dom.byId['act-edit-prop-cost']);
-const accReq = paneText(dom.byId['act-edit-prop-reqs']);
+const accSays = paneText(dom.byId['act-prop-says']);
+const accCost = paneText(dom.byId['act-prop-cost']);
+const accReq = paneText(dom.byId['act-prop-reqs']);
 
 const accBefore = JSON.stringify(A.state.get());
 const accField = apPane.querySelectorAll('.ae-prop-row')
@@ -5603,7 +5603,7 @@ A.data.XF_WHO.forEach((who, i) => {
 });
 A.state.flush();
 apShow('cats', wsAct);
-const wsSaid = paneText(dom.byId['act-edit-prop-says']);
+const wsSaid = paneText(dom.byId['act-prop-says']);
 const wsRowWords = apPane.querySelectorAll('.ae-prop-row')
   .filter((r) => r.hidden === false)
   .map((r) => paneText(r.querySelectorAll('.ae-prop-lbl')[0]).split(' ')[0]);
