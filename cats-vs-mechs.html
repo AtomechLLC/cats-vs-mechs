@@ -2362,8 +2362,17 @@ App.render = (function () {
     minus.type = 'button';
     minus.textContent = '−';   // MINUS SIGN, not a hyphen
     minus.setAttribute('aria-label', 'Decrease ' + spec.label);
+    // The two buttons carry `amt` for the same reason the field does, and it
+    // is load-bearing only for a tally: [S07.1]'s fire() reads data-amt off
+    // whichever node the press arrived on to say WHICH type is being stepped,
+    // and a press arrives on a button. Without it, + and − on a student-made
+    // stepper would dispatch a nudge naming no type at all. The three shipped
+    // steppers carry it too and nothing reads it there — sync()'s passes key
+    // off the field, the readout and the token row by class, and a stepper
+    // button is none of the three.
     setData(minus, {
-      k: spec.key + '-', act: spec.nudge, side: spec.side, unit: spec.unitId, step: '-1'
+      k: spec.key + '-', act: spec.nudge, amt: spec.amt,
+      side: spec.side, unit: spec.unitId, step: '-1'
     });
     wrap.appendChild(minus);
 
@@ -2383,7 +2392,8 @@ App.render = (function () {
     plus.textContent = '+';
     plus.setAttribute('aria-label', 'Increase ' + spec.label);
     setData(plus, {
-      k: spec.key + '+', act: spec.nudge, side: spec.side, unit: spec.unitId, step: '1'
+      k: spec.key + '+', act: spec.nudge, amt: spec.amt,
+      side: spec.side, unit: spec.unitId, step: '1'
     });
     wrap.appendChild(plus);
 
@@ -3073,7 +3083,12 @@ App.interactions = (function () {
   // This array is the landing place for EVERY future UI-only act: Phase 3's
   // reference cards, Phase 4's share dialog, Phase 5's fight controls. Nothing
   // UI-only may be added to [S05] to serve a dialog.
-  var UI_ACTS = ['openTokenPicker'];
+  // 'selectTokenType' is claimed here by plan 02.1-03 and handled by plan
+  // 02.1-05, for the reason spelled out directly above: picking which type the
+  // editor is showing is page work, and routing page work into [S05] dispatch
+  // would meet its `default: throw` arm and put the styled error panel in
+  // front of a student on a first click.
+  var UI_ACTS = ['openTokenPicker', 'selectTokenType'];
 
   // act name -> function (btn, e). This plan registers NONE of them. Plan 02-03
   // assigns UI_HANDLERS.openTokenPicker from its own [S07.N] sub-region, which
@@ -3096,7 +3111,11 @@ App.interactions = (function () {
   // return undefined, so the ramp would run until release and then throw
   // non-terminally on the first bound it met (roster full, one unit left, empty
   // undo stack), flashing the error panel mid-demo.
-  var HOLD_ACTS = ['nudgeAp', 'nudgeMaxHp', 'nudgeShield'];
+  // 'nudgeTally' is here for plan 02.1-03's tally stepper, and it has to be
+  // named here rather than inferred: without an entry the press-and-hold ramp
+  // simply never starts for it, and a control a student made would be the one
+  // stepper on the board that cannot be held down.
+  var HOLD_ACTS = ['nudgeAp', 'nudgeMaxHp', 'nudgeShield', 'nudgeTally'];
 
   // Extra delegated roots that live OUTSIDE #app. bind() walks this list after
   // binding its own roots and runs each entry through the same error boundary.
@@ -3211,12 +3230,20 @@ App.interactions = (function () {
   // hiding inside the value boundary. Returns the op's boolean so the ramp can
   // read it. dataset is re-read off the element the event actually arrived on,
   // never cached across frames.
+  // The `tokenId` key is plan 02.1-03's one recorded exception to the section
+  // banner above, which promises later plans attach through the seams rather
+  // than edit [S07.1]. A tally stepper needs a fourth thing said about it —
+  // WHICH type it steps — and there is no seam through which a payload key can
+  // be added. It is one key, read off the node's own data-amt, and it is
+  // ignored by every act that shipped before it: dispatch's arms each read the
+  // payload keys they need and nothing else.
   function fire(btn) {
     var d = btn.dataset;
     return App.ops.dispatch(d.act, {
       side: d.side,
       unitId: d.unit,
-      delta: Number(d.step)
+      delta: Number(d.step),
+      tokenId: d.amt
     });
   }
 
@@ -3268,11 +3295,20 @@ App.interactions = (function () {
   // reset, startFight, removeUnit or undo on blur instead of failing at the
   // page boundary where the mistake is. A guard that runs in only one
   // direction is not a guard.
+  //
+  // `tally` is a table ROW, deliberately, and not a widening of the check: a
+  // field a student made is bounded by exactly the same allowlist the three
+  // shipped ones are. Its `amt` is null because this table cannot know which
+  // type a given field steps — one row here stands for every type a student
+  // will ever invent — so a tally field names its own quantity through its
+  // data-amt and the two lookups below fall back to it.
   var FIELD_OPS = {
     ap:     { set: 'ap',     nudge: 'nudgeAp',    amt: 'ap' },
     maxHp:  { set: 'maxHp',  nudge: 'nudgeMaxHp', amt: 'hp' },
-    shield: { set: 'shield', nudge: 'nudgeShield', amt: 'shield' }
+    shield: { set: 'shield', nudge: 'nudgeShield', amt: 'shield' },
+    tally:  { set: 'setTally', nudge: 'nudgeTally', amt: null }
   };
+
 
   function fieldOp(el, which) {
     var act = el.dataset.act;
@@ -3304,8 +3340,12 @@ App.interactions = (function () {
   function showFieldValue(el) {
     var d = el.dataset;
     if (!Object.prototype.hasOwnProperty.call(FIELD_OPS, d.act)) { return; }
+    // `|| d.amt` is the tally case and only the tally case: the three shipped
+    // rows carry a fixed, non-empty string and never reach the fallback, so
+    // they read back exactly as they did. A tally row cannot carry one,
+    // because one row there stands for every type a student will invent.
     el.value = String(
-      App.render.amountFor(App.state.get(), FIELD_OPS[d.act].amt, d.side, d.unit)
+      App.render.amountFor(App.state.get(), FIELD_OPS[d.act].amt || d.amt, d.side, d.unit)
     );
 
     // dataset.was is what commitField compares against and what Escape puts
@@ -3319,7 +3359,7 @@ App.interactions = (function () {
     var op = fieldOp(el, 'nudge');
     var d = el.dataset;
     var moved = App.ops.dispatch(op, {
-      side: d.side, unitId: d.unit, delta: delta
+      side: d.side, unitId: d.unit, delta: delta, tokenId: d.amt
     });
     showFieldValue(el);
     return moved;
@@ -3333,7 +3373,7 @@ App.interactions = (function () {
     var op = fieldOp(el, 'set');
     var d = el.dataset;
     return App.ops.dispatch(op, {
-      side: d.side, unitId: d.unit, value: parsed.n
+      side: d.side, unitId: d.unit, value: parsed.n, tokenId: d.amt
     });
   }
 
@@ -3731,6 +3771,18 @@ App.interactions = (function () {
     holdSource: holdSource,
     UI_ACTS: Object.freeze(UI_ACTS.slice()),
     HOLD_ACTS: Object.freeze(HOLD_ACTS.slice()),
+    // Exported read-only so [S09.7] asserts the table a field is actually
+    // bounded by rather than a re-typed copy of it — the same reason UI_ACTS
+    // and HOLD_ACTS are here. Frozen a level DOWN, not just at the top: a
+    // shallow freeze would hand every caller a mutable row of the one
+    // allowlist that stands between a data-act read off the page and an op it
+    // was never meant to reach.
+    FIELD_OPS: Object.freeze(Object.keys(FIELD_OPS).reduce(function (acc, k) {
+      acc[k] = Object.freeze({
+        set: FIELD_OPS[k].set, nudge: FIELD_OPS[k].nudge, amt: FIELD_OPS[k].amt
+      });
+      return acc;
+    }, {})),
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
@@ -5670,6 +5722,24 @@ App.selftest = (function () {
     t.eq('action points still read the faction pool',
       App.render.amountFor(App.state.get(), 'ap', 'cats', null),
       App.state.get().build.cats.ap);
+
+    /* --- plan 02.1-03's four recorded exceptions to [S07.1]'s banner. Each
+           one is additive, and each is asserted here rather than trusted to
+           the comment beside it. --- */
+    t.eq('a field may drive exactly four ops, and not one more',
+      Object.keys(App.interactions.FIELD_OPS).sort(),
+      ['ap', 'maxHp', 'shield', 'tally']);
+    t.eq('the tally row names no fixed quantity, because one row there stands '
+      + 'for every type a student will invent',
+      App.interactions.FIELD_OPS.tally.amt, null);
+    t.eq('and it names the real op rather than a spelling of its own',
+      App.interactions.FIELD_OPS.tally.set, 'setTally');
+    t.ok('the press-and-hold ramp is allowed to run for a tally stepper',
+      App.interactions.HOLD_ACTS.indexOf('nudgeTally') !== -1);
+    t.ok('picking which type the editor shows is claimed by the UI layer',
+      App.interactions.UI_ACTS.indexOf('selectTokenType') !== -1);
+    t.ok('alongside the act that opens it, which is unmoved',
+      App.interactions.UI_ACTS.indexOf('openTokenPicker') !== -1);
 
     /* --- the rows below need a page. The terminal harness loads this file
            into a bare sandbox with no document, so they say so and stop,
