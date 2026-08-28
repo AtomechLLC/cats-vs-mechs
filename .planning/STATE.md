@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 2.1 planned (6 plans, verified)
-last_updated: "2026-08-28T02:05:06.349Z"
-last_activity: 2026-08-27 -- Phase 02 execution started
+stopped_at: Phase 2.1 executed (6/6 plans + 2 post-rehearsal fixes); awaiting verification
+last_updated: "2026-08-28T06:58:55.071Z"
+last_activity: 2026-08-28 -- Phase 02.1 execution started
 progress:
   total_phases: 6
-  completed_phases: 2
+  completed_phases: 3
   total_plans: 11
-  completed_plans: 5
-  percent: 33
+  completed_plans: 12
+  percent: 50
 ---
 
 # Project State
@@ -21,14 +21,14 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A student builds two factions that look nothing alike and discovers they can still be balanced — and discovers it by playing, not by being told a number.
-**Current focus:** Phase 02 — allocation-surface
+**Current focus:** Phase 02.1 — token-authoring-inserted
 
 ## Current Position
 
-Phase: 02 (allocation-surface) — EXECUTING
-Plan: 1 of 3
-Status: Executing Phase 02
-Last activity: 2026-08-27 -- Phase 02 execution started
+Phase: 02.1 (token-authoring-inserted) — EXECUTING
+Plan: 1 of 6
+Status: Executing Phase 02.1
+Last activity: 2026-08-28 -- Phase 02.1 execution started
 
 Progress: [░░░░░░░░░░] 0%
 
@@ -86,6 +86,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T02:05:06.338Z
-Stopped at: Phase 2.1 planned (6 plans, verified)
-Resume file: .planning/phases/02.1-token-authoring-inserted/02.1-01-PLAN.md
+Last session: 2026-08-28T06:58:55.061Z
+Stopped at: Phase 2.1 executed (6/6 plans + 2 post-rehearsal fixes); awaiting verification
+Resume file: .planning/phases/02.1-token-authoring-inserted/02.1-HUMAN-UAT.md
