@@ -142,16 +142,28 @@
 
   .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
-  /* D-02: reserved, and visibly so. An instructor demoing Phase 2 should see
-     where the projection lands rather than watch the layout jump when Phase 3
-     arrives. align-self:start is load-bearing: a grid item stretches to the
-     row height by default, and a stretched sticky item has nowhere to move,
-     so sticky appears to do nothing at all. */
+  /* A [C03] EDIT BY PLAN 03-03, named as one because this rule was written by
+     plan 02-01 for a different job. D-02 reserved this box and drew it dashed
+     so an instructor demoing Phase 2 could see where the projection would land
+     rather than watch the layout jump when it arrived. [S06.3] paints it now,
+     so the dashed reservation becomes the solid panel treatment the rest of the
+     board already uses, and the centring becomes a row stack — two panels and
+     the permanent list that qualifies them, in reading order.
+
+     align-self:start stays, and stays load-bearing: a grid item stretches to
+     the row height by default, and a stretched sticky item has nowhere to move,
+     so sticky appears to do nothing at all.
+
+     The reserved minimum height is gone, because the content sets the height
+     now. Whether the whole stack still fits between the bar and the bottom of a
+     short viewport is a layout question no gate in this repo can answer, and it
+     is on the phase's rehearsal list rather than guessed at here. */
   #strip{
     position:sticky;top:var(--topbar-now, var(--topbar-h));align-self:start;
-    border:1px dashed var(--ink-faint);border-radius:var(--radius);
-    padding:22px 18px;min-height:180px;
-    display:grid;place-items:center;text-align:center;
+    background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px;
+    display:grid;grid-auto-flow:row;place-items:start stretch;gap:12px;
     color:var(--ink-dim);font-size:18px;
   }
 
@@ -469,6 +481,60 @@
   .st-row--pass b{color:var(--green)}
   .st-row--fail b{color:var(--coral)}
   .st-detail{color:var(--ink-dim);font-family:ui-monospace,Consolas,monospace;font-size:12.5px}
+
+  /* ===================== [C10] PROJECTION ===================== */
+  /* The advisory projection [S06.3] paints into the centre strip. Every class
+     here carries the .prj- prefix, which is fake scoping and entirely
+     deliberate, for the reason [C07] gives about .pk-: a single stylesheet has
+     no real scope, so a Phase 5 rule for a generic class name would otherwise
+     restyle this surface from two thousand lines away.
+
+     D-13 is held here by ABSENCE, and the absences are the point of this
+     comment rather than an accident of it. No rule below declares a custom
+     property, and no rule below sets a width from a percentage, a calc() or a
+     var(). A shared axis, a paired bar and a midpoint marker each need a shared
+     LENGTH to be drawn along, and there is none here to draw one along. Said
+     with the honesty the dev gate's own scans use about themselves: this
+     catches a surface drifting toward a chart. It does not stop an author who
+     has decided to build one — nothing written in a stylesheet could — and the
+     rows in [S09.8] are the half that does.
+
+     D-15, colour: --ink, --ink-dim, --line and --panel, and nothing else. The
+     token-identity colours are deliberately unused here, because beside a
+     projection figure a colour that means "this is health" reads instead as
+     "this is the one to have", which is the single thing this surface may never
+     say.
+
+     D-10: the arithmetic WRAPS rather than running off sideways. Nothing below
+     suppresses wrapping on the worked line, and nothing below turns any part of
+     this region into a scrolling box — [C03]'s sticky note explains at length
+     what a scrolling box anywhere above #strip silently costs.
+
+     Sizes come off [C04]'s projector floor: the figure at .brd-value's 24px and
+     weight 700, every label and worked line at .brd-note's 18px. Nothing at or
+     below 14px may carry information, so .eyebrow and .ex are unavailable here
+     however neatly they would have fitted. The figure is sized for four digits:
+     a 24-unit roster at 99 health and 99 shield, against one action point of 3
+     damage, projects a four-figure turn count. */
+  .prj-panel{
+    display:grid;grid-auto-flow:row;gap:4px;
+    padding:0 0 12px;border-bottom:1px solid var(--line);
+  }
+  .prj-owner{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .prj-turns{font-size:24px;font-weight:700;color:var(--ink)}
+  .prj-work{font-size:18px;color:var(--ink-dim)}
+  /* The soak line is built once and carried hidden while the two bounds agree.
+     Spelled out for the same reason .brd-line--opt[hidden] is spelled out in
+     [C04]: [hidden]{display:none} is a user-agent rule, and an author rule
+     giving this class a display of its own would beat it. */
+  .prj-work[hidden]{display:none}
+  .prj-ignores{display:grid;grid-auto-flow:row;gap:6px}
+  .prj-ignores-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .prj-ignores-list{display:flex;flex-wrap:wrap;gap:0 9px;font-size:18px;color:var(--ink)}
+  /* The separators are drawn rather than written into the page, so the ignores
+     list holds exactly five nouns in the document and [S09.8] can assert five. */
+  .prj-ignore + .prj-ignore::before{content:'\00B7';margin-right:9px;color:var(--ink-dim)}
+  .prj-note{margin:0;font-size:18px;color:var(--ink-dim)}
 </style>
 </head>
 <body>
