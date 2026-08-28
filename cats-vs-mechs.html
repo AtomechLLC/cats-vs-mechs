@@ -139,6 +139,12 @@
     margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
   #board-empty{grid-column:1 / -1}
+  /* A [C03] EDIT BY PLAN 03-05, named as one. The reference band spans both
+     columns and the strip between them, exactly as #board-empty above already
+     does — same declaration, same reason, so it sits beside its precedent
+     rather than inventing a second way to say the same thing. The band's own
+     chrome is [C11]'s, in the way #strip's children are [C10]'s. */
+  #refband{grid-column:1 / -1}
 
   .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
@@ -535,6 +541,86 @@
      list holds exactly five nouns in the document and [S09.8] can assert five. */
   .prj-ignore + .prj-ignore::before{content:'\00B7';margin-right:9px;color:var(--ink-dim)}
   .prj-note{margin:0;font-size:18px;color:var(--ink-dim)}
+
+  /* ===================== [C11] REFERENCE ===================== */
+  /* The reference material [S06.4] paints into the band below both columns,
+     and [S06.1] paints into each column. Every class here carries the .ref-
+     prefix, which is fake scoping and entirely deliberate, for the reason
+     [C07] gives about .pk- and [C10] repeats about .prj-: a single stylesheet
+     has no real scope, so a Phase 5 rule for a generic class name would
+     otherwise restyle this surface from two thousand lines away.
+
+     D-15, colour, and it bites harder here than anywhere else on the page.
+     The band states which of two actions comes out ahead of the other, so a
+     colour on either half of one of those lines would be a ruling wearing a
+     palette — the tool would have started doing the adjudication that is the
+     students' exercise. So this region draws on the four neutrals [C10] limits
+     itself to, the ink, the dim ink, the hairline and the panel surface, and
+     on NONE of the token-identity custom properties [C00] declares. Both
+     halves of a line are the same colour and the same weight, and the only
+     thing distinguishing them is the connective between them, which is a word
+     and not a decoration.
+
+     Those identity properties are DESCRIBED here rather than spelled, and that
+     is deliberate: the acceptance check on this region is a grep for them, and
+     a comment promising not to use them would be the thing that failed it.
+     [S06.1] and [S06.3] each face the same problem about a rejected attribute
+     of their own and resolve it the same way. The rows in [S09.9] and the
+     interaction gate are the half that actually holds the rule.
+
+     The COLUMN cards may carry a faction tint, because a card sitting inside a
+     faction's own column is already about that faction and a tint there says
+     nothing about quality. They do not carry one today: the column head above
+     them does not either, so a tint would be this region inventing a treatment
+     the board does not use.
+
+     Sizes come off [C04]'s projector floor. The band heading and the card
+     headings sit at .brd-note's 18px and above; the lines a student actually
+     reads sit at .brd-value's 24px and weight 700. Nothing at or below 14px
+     carries information anywhere below, so .eyebrow and .ex are unavailable
+     however neatly they would have fitted.
+
+     Nothing below turns any part of this region into a box that clips or
+     scrolls its content, and that is a rule rather than an accident. [C03]'s
+     note explains at length what such a box anywhere above #strip silently
+     costs — the band is a SIBLING of #strip inside the same grid, so one
+     introduced here would be a further ancestor between the sticky panel and
+     the scrollport. Content wraps instead. Named, again, rather than spelled,
+     for the reason two paragraphs up. */
+  #refband{
+    background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;
+    display:grid;grid-auto-flow:row;gap:12px;
+    color:var(--ink-dim);
+  }
+  .ref-band-head{margin:0;font-size:20px;font-weight:600;color:var(--ink-dim)}
+  .ref-band-list{display:flex;flex-wrap:wrap;gap:12px 36px}
+  /* Both halves of the line are the same colour and the same weight. See the
+     D-15 paragraph above: this is the one rule in the file where an emphasis
+     on half a sentence would read as a ruling. */
+  .ref-beats{margin:0;font-size:24px;font-weight:700;color:var(--ink)}
+
+  /* The column cards. The chrome is .unit-card's, deliberately: an action card
+     and a unit card sit in the same column one above the other, and two panel
+     treatments a few pixels apart would read as a difference that means
+     something. The one thing NOT copied is :focus-within — these cards hold
+     nothing focusable, so the rule would be dead on arrival. */
+  .ref-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;display:flex;flex-direction:column;gap:10px;user-select:none;
+  }
+  .ref-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .ref-action{font-size:24px;font-weight:700}
+  .ref-dmg{font-size:18px;color:var(--ink-dim)}
+  .ref-effects{display:flex;flex-wrap:wrap;gap:8px}
+  /* A pill, not a swatch. [C05]'s token shapes each mean a quantity of
+     something countable, and a keyword is not countable — borrowing one of
+     those shapes here would say the two are the same kind of thing. */
+  .ref-effect{
+    border:1px solid var(--line);border-radius:999px;padding:4px 12px;
+    font-size:18px;color:var(--ink-dim);
+  }
 </style>
 </head>
 <body>
@@ -577,15 +663,23 @@
     </div>
   </div>
 
-  <!-- The four children below are static siblings, never built by
+  <!-- The five children below are static siblings, never built by
        render.structure(): a delegated listener bound to a root that outlives
        every rebuild is the only arrangement that survives one. #board-empty
        stays because [S08] boot.start()'s #throwhandler rehearsal reads it by
-       id; render.structure() hides it rather than removing it. -->
+       id; render.structure() hides it rather than removing it.
+
+       #refband is plan 03-05's, and it is empty on purpose: [S06.4] builds it
+       once and flags it, the same bookkeeping #strip uses and for the same
+       reason — structure() replaces only the two column interiors, so neither
+       of these two is ever thrown away. Adding an id here without teaching
+       tests/selftest-node.cjs about it fails the run in both directions, which
+       is why the id, the KNOWN_IDS entry and the stub node arrived together. -->
   <div class="board" id="board">
     <section class="brd-col" id="col-cats"></section>
     <aside class="brd-strip" id="strip">The projection renders here.</aside>
     <section class="brd-col" id="col-mechs"></section>
+    <section id="refband"></section>
     <p class="muted" id="board-empty">The allocation board renders here.</p>
   </div>
 
@@ -704,6 +798,7 @@
  *     [S06.1] the board renderer, both tiers                               (plan 02-01)
  *     [S06.2] the token-appearance picker                                  (plan 02-03)
  *     [S06.3] the advisory projection in the centre strip                  (plan 03-03)
+ *     [S06.4] the reference band below both columns                        (plan 03-05)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
@@ -953,8 +1048,16 @@ App.data = (function () {
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
-  // Effect keyword ids live here; their card copy and the action-versus-action
-  // reference table are data.reference, owned by Phase 3 plan 03-02.
+  // Effect keyword ids live here. Their NAMES, and the action-versus-action
+  // table of what beats what, are NOT here: they are REFERENCE, declared below
+  // beside this literal and deliberately outside it. That constant's own
+  // comment is the one place the reasoning is written down. (The ROADMAP's
+  // original split named a different plan number for that table; plans 03-04
+  // and 03-05 are that unit.)
+  //
+  // REFERENCE transcribes TWO of the three relationships the whiteboard
+  // carries. The third was left out on the developer's instruction rather than
+  // corrected, and PROJECT.md's transcription still records all three.
   //
   // `tokens` is the drawing vocabulary for those rows (D-08). It sits in the
   // board rather than beside it because D-13 puts it in `build`: a restyled
@@ -1011,6 +1114,68 @@ App.data = (function () {
     }
   });
 
+  // REF-01 and REF-02. The reference material the shipped board comes with:
+  // the five effect keyword names, and what beats what.
+  //
+  // OUTSIDE DEFAULTS, and that placement is the load-bearing part rather than a
+  // tidiness preference. defaults() below is a deep copy of DEFAULTS into
+  // state.build, and Phase 4 encodes that slice into a share code. Static copy a
+  // student cannot edit has no business travelling in a link, and a build slice
+  // that grew a key would turn [S09.3]'s key-set row red. So this sits BESIDE
+  // the board rather than in it, and [S09.9] asserts that defaults() never
+  // gained a key for it.
+  //
+  // NAMES ONLY on the effect entries, and that is a decision rather than an
+  // omission. The Workshop 16 board supplies these five ids and no definitions
+  // at all, and PROJECT.md's Out of Scope section is explicit that the
+  // adjudication IS the exercise. A definition shipped here would be this file
+  // writing a workshop rule an instructor then has to teach against. The record
+  // shape is { id, name } and [S09.9] asserts there is no third field, so a
+  // later helpful sentence cannot be added without the run going red and this
+  // paragraph being read first. The decision is recorded verbatim in
+  // 03-04-SUMMARY.md under THE APPROVED COPY.
+  //
+  // An ARRAY rather than an object keyed by id, for two reasons that point the
+  // same way: the render order is the data's, and a lookup is an Array.find
+  // rather than a bare index -- the rule styleFor and labelFor state at length
+  // further down, because from Phase 4 a keyword id can arrive from a pasted
+  // build code and a bare lookup for 'constructor' resolves on the prototype.
+  //
+  // THE KEYWORD ID `shield` COLLIDES BY NAME WITH THE TOKEN ID `shield`, AND
+  // THAT IS NOT A BUG. A keyword is a rule; a token is a resource; they live in
+  // different objects and answer different questions. A student renaming the
+  // Shield TOKEN to Barrier has not renamed the Recharge KEYWORD, so labelFor
+  // is never called for anything in here. Plan 03-05 holds that at source level
+  // and by driving a real rename, because a rule stated only in a comment is a
+  // rule that gets helpfully undone.
+  //
+  // `beats` carries action IDS and a connective, never action NAMES. The names
+  // are read at render time from DEFAULTS[side].actions[].name, so there is one
+  // definition of what an action is called and a renamed action cannot leave a
+  // stale copy of itself down here. The connective is DATA, one per pair --
+  // Fly beats Slash, Lasers beat Hairball -- so no rendering code anywhere has
+  // to guess whether an action name is plural.
+  //
+  // TWO records, not the three PROJECT.md transcribes from the whiteboard. The
+  // third -- Recharge over Fly -- was dropped on the developer's instruction,
+  // and it was LEFT OUT rather than called a transcription error: it was the
+  // one intra-Mechs pair, and dropping it also removed the short loop where Fly
+  // sat on both sides of the chain. PROJECT.md still records all three. A later
+  // phase restoring it should read this paragraph and 03-04-SUMMARY.md first.
+  var REFERENCE = deepFreeze({
+    effects: [
+      { id: 'shield', name: 'Shield' },
+      { id: 'slowdown', name: 'Slowdown' },
+      { id: 'confuse', name: 'Confuse' },
+      { id: 'evade', name: 'Evade' },
+      { id: 'range', name: 'Range' }
+    ],
+    beats: [
+      { over: 'fly', verb: 'beats', under: 'slash' },
+      { over: 'lasers', verb: 'beat', under: 'hairball' }
+    ]
+  });
+
   // A fresh, unfrozen deep copy on every call. The JSON round-trip is both
   // faster than the platform's deep-clone call on this payload and a free guard: anything
   // that is not JSON-clonable disappears loudly instead of surviving silently.
@@ -1020,6 +1185,7 @@ App.data = (function () {
 
   return Object.freeze({
     DEFAULTS: DEFAULTS,
+    REFERENCE: REFERENCE,
     defaults: defaults,
     deepFreeze: deepFreeze,
     SHAPES: SHAPES,
@@ -2857,6 +3023,125 @@ App.render = (function () {
     return card;
   }
 
+// #region [S06.1] the reference cards — plan 03-05
+  /* ---- REF-02's action and effect cards. Built here beside unitCard because
+         they are appended into a faction column by buildColumn below, and a
+         second card builder living in another sub-region would be a second
+         place the column's card treatment could drift.
+         Added by plan 03-05 into plan 02-01's [S06.1]; the append itself is
+         named as a cross-plan edit at its site.
+
+         The #region markers around this builder are LOAD-BEARING, not
+         decoration: [S09.9] slices the script block between them and scans the
+         result for a labelFor call, the way the dev gate already slices the
+         script block out of the document. Renaming or removing either marker
+         turns that row into a scan of nothing. ---- */
+
+  // Read from the FROZEN board rather than from state.build[side].actions,
+  // which buildColumn already has in hand. Two reasons, both about the same
+  // boundary: reference material is static and is not part of the slice a
+  // student edits or Phase 4 encodes, and from Phase 4 an actions array could
+  // arrive from a pasted build code — at which point somebody else's typing
+  // would be painting this page's reference copy, outside the [data-lbl]
+  // channel Layer C exempts for student names. The day actions become
+  // student-editable, this read is the line that has to change on purpose.
+  function refActions(side) {
+    return App.data.DEFAULTS[side].actions;
+  }
+
+  // An Array.find over the frozen list, never a bare index into an object
+  // keyed by id — the rule styleFor and labelFor each state at length, for the
+  // reason they give: from Phase 4 a keyword id can arrive from a pasted build
+  // code, and a bare lookup for 'constructor' resolves on the prototype and
+  // hands the page a function where a word belongs. Comparing a record's own
+  // `id` field cannot do that whatever string it is handed.
+  function effectRecord(keywordId) {
+    return App.data.REFERENCE.effects.find(function (rec) {
+      return rec.id === keywordId;
+    }) || null;
+  }
+
+  // THE labelFor RULE, IN BOTH DIRECTIONS, because half of it is the opposite
+  // of the other half and a reader who learns only one will "fix" the other.
+  //
+  //   A TOKEN TYPE must be named through labelFor. ALLOC-10 lets a student
+  //   rename one, and the Damage bug (e7f14ef) was exactly a literal used
+  //   where labelFor belonged — the board printed a name the student had
+  //   already changed.
+  //
+  //   A KEYWORD must NOT be. It is named from REFERENCE.effects, full stop.
+  //   The keyword id `shield` and the token id `shield` are the same string in
+  //   two different objects: one is a rule the table adjudicates, the other is
+  //   a resource on a card. A student renaming the Shield TOKEN to Barrier has
+  //   not renamed the Recharge KEYWORD, and a card that followed that rename
+  //   would be reporting that a workshop rule changed when nothing about the
+  //   rule did.
+  //
+  // Both are correct and they apply to different things. There is no call to
+  // labelFor anywhere in this builder, [S09.9] scans this region's source for
+  // one, and the interaction gate drives a real rename and reads the card back.
+  function effectChip(keywordId) {
+    var rec = effectRecord(keywordId);
+    return text('span', 'ref-effect', rec ? rec.name : keywordId);
+  }
+
+  // A zero is not printed as a figure. Four of the six shipped actions do no
+  // damage at all, and "0" beside a keyword reads as "this action does
+  // nothing" — when in fact it does precisely the thing the keyword names, and
+  // what that is worth is the table's ruling and not this tool's. So the
+  // absence is stated in words, in the register [S06.3] already uses when the
+  // model has no number to give ("no damage to spend"), and the same
+  // presentation is applied to all four of them rather than one being special.
+  function dmgText(dmg) {
+    return (dmg > 0) ? (dmg + ' damage') : 'no damage';
+  }
+
+  // NO CONTROL OF ANY KIND, and that is what makes this the cheap answer
+  // rather than a cheap shortcut: no button, no stepper, and neither of the
+  // two data attributes [S07] dispatches on. [S07.1]'s banner names Phase 3's
+  // reference cards as a future consumer of its seams; a card with nothing to
+  // press consumes none of them, so [S07] is owed no edit and the next reader
+  // should not go looking for a handler that was never needed. If a card ever
+  // grows a control it goes through UI_ACTS / UI_HANDLERS / LATE_BINDERS,
+  // never into [S05].
+  //
+  // Those two attributes are described rather than spelled, for the reason
+  // [C11] gives about the colour properties it forbids: the check on this
+  // region is a scan for them, and a comment promising not to use them would
+  // be the thing that failed it. The scan reads this region with its comments
+  // stripped, so the one word below that IS spelled — the label reader, whose
+  // rule has to be findable by name — costs nothing.
+  //
+  // Every string reaches the page through text() -> textContent, like
+  // everything else this file draws. No inline SVG anywhere: an SVG element
+  // can only be made through the namespaced element constructor, that
+  // constructor takes the SVG namespace URI, and a URI of that shape is
+  // refused document-wide by the dev gate. A shape here is a CSS clip-path,
+  // which is what [C05] already does for the board's triangles and hexagons.
+  function refCard(action) {
+    var card = el('article', 'ref-card');
+
+    var head = el('div', 'ref-card-head');
+    head.appendChild(text('span', 'ref-action', action.name));
+    head.appendChild(text('span', 'ref-dmg num', dmgText(action.dmg)));
+    card.appendChild(head);
+
+    // REF-02: the effect cards attach to the action that CARRIES them, read
+    // off the action record's own keywords array. Nothing here knows or
+    // hardcodes which action has which effect — that is the board's data, and
+    // a keyword moved from one action to another moves on the page for free.
+    if (action.keywords.length > 0) {
+      var box = el('div', 'ref-effects');
+      action.keywords.forEach(function (keywordId) {
+        box.appendChild(effectChip(keywordId));
+      });
+      card.appendChild(box);
+    }
+
+    return card;
+  }
+// #endregion [S06.1] the reference cards — plan 03-05
+
   // D-05: the roster controls are setup-only. A null fight slice IS setup --
   // mode is derived, never stored, and [S05] fightOf already establishes that.
   // Roster shaping and fight bookkeeping are different activities and the page
@@ -2880,6 +3165,26 @@ App.render = (function () {
       setData(add, { k: side + '/add', act: 'addUnit', side: side });
       parts.push(add);
     }
+
+    /* --- A CROSS-PLAN EDIT into this function, by plan 03-05, named as one
+           rather than done quietly: section ownership is the only thing keeping
+           a single-file project's plans from colliding, and this function is
+           plan 02-01's. The edit is additive and sits at exactly this one
+           place. Nothing above it is modified, reordered or removed, and
+           structure(), withPreservedFocus, unitCard and factionHead are
+           untouched.
+
+           OUTSIDE the setup branch above, deliberately and not by oversight.
+           The Add button is a roster CONTROL and belongs to setup; these cards
+           are reference MATERIAL, and a student reading what Lasers does needs
+           it at least as much mid-fight as mid-build — which is REF-03, in
+           Phase 5. One branch placement now costs nothing and saves that phase
+           a re-layout. It is asserted by starting a fight and reading the cards
+           back, in [S09.9] and in the interaction gate, rather than left
+           resting on this paragraph. --- */
+    refActions(side).forEach(function (action) {
+      parts.push(refCard(action));
+    });
 
     col.replaceChildren();
     parts.forEach(function (part) { col.appendChild(part); });
@@ -3752,6 +4057,113 @@ App.render = (function () {
 
   SYNC_HOOKS.push(syncProjection);
   // #endregion [S06.3] RENDER — PROJECTION
+
+  /* ===================== [S06.4] RENDER — REFERENCE =====================
+   * REF-01 on the page: what beats what, in a full-width band below both
+   * columns. A SUB-REGION of [S06] for the mechanical reason [S06.3] states
+   * about itself — it reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure
+   * variable of this IIFE, and the surface returned below is frozen, so there
+   * is no route to the seam from a top-level section.
+   *
+   * WHY A BAND RATHER THAN A PER-FACTION PANEL (D-12). These relationships are
+   * cross-faction: they are about one side's action against the other's, so
+   * they belong to neither column. The board's transcription also carried a
+   * third pair that was intra-Mechs, both halves of it Mechs actions — that
+   * pair is not rendered here, having been dropped on the developer's
+   * instruction and left out rather than corrected, but it is the reason the
+   * placement question was asked at all and PROJECT.md still records it.
+   * REF-02's effect cards go the other way, into the columns, because they
+   * attach to the actions that carry them and an action belongs to a faction.
+   *
+   * The four rules [S06.3] states about anything appended to #strip apply here
+   * WORD FOR WORD, because #refband is a child of #board too and sync() walks
+   * it on every frame: no data-k, because keyed() takes the first document
+   * match; no data-amt on a .brd-value, because sync()'s value pass would
+   * paint a confident zero over it; no .brd-line--opt, because the hide pass
+   * reads amountFor and would pin the line shut for good; and build once,
+   * because structure() never touches this node. So everything below carries
+   * .ref- classes and no data attribute except the build flag on the band
+   * itself, which is the bookkeeping #strip's dataset.built already does.
+   *
+   * NOTHING HERE IS STORED AND NOTHING HERE IS STATE. The contents come from
+   * App.data.REFERENCE and App.data.DEFAULTS, both frozen, so there is nothing
+   * to re-sync. The hook is registered anyway and returns early once the band
+   * is built: every page region this file owns is reconciled by the same frame,
+   * which is the whole reason SYNC_HOOKS exists, and a region that opted out of
+   * it because it happened to be static today is a region that silently stops
+   * being reconciled on the day it stops being static.
+   * deps: App.data, [S06.1]'s helpers
+   * owner: Phase 3, plan 03-05
+   * ======================================================================= */
+  // #region [S06.4] RENDER — REFERENCE
+
+  // The action's NAME is read here rather than duplicated into REFERENCE, so
+  // there is one definition of what an action is called and a rename in
+  // DEFAULTS travels to the band on its own. REFERENCE carries only ids.
+  //
+  // An id-equality scan, never a bare index into an object keyed by id: the
+  // rule styleFor and labelFor state at length, because from Phase 4 an id can
+  // arrive from a pasted build code and a bare lookup for 'constructor'
+  // resolves on the prototype. Comparing against a record's own `id` field
+  // cannot do that whatever string it is handed.
+  //
+  // Falling back to the raw id rather than to a shipped action, because a
+  // dangling pair is a data defect and printing the id names it on the page
+  // instead of quietly printing somebody else's action. [S09.9] already
+  // refuses to let one ship.
+  function actionNameById(id) {
+    var sides = ['cats', 'mechs'];
+    for (var s = 0; s < sides.length; s++) {
+      var actions = App.data.DEFAULTS[sides[s]].actions;
+      for (var a = 0; a < actions.length; a++) {
+        if (actions[a].id === id) { return actions[a].name; }
+      }
+    }
+    return id;
+  }
+
+  // The connective comes out of the record, one per pair. "Fly beats Slash"
+  // and "Lasers beat Hairball" differ by a letter that depends on whether an
+  // action's name reads as plural, which is a fact about English and not a
+  // fact this renderer can derive. Putting it in the data is what keeps the
+  // guessing out of here entirely.
+  function beatsLine(rec) {
+    return actionNameById(rec.over) + ' ' + rec.verb + ' ' + actionNameById(rec.under);
+  }
+
+  // The heading is the approved wording and it cannot be the obvious one: the
+  // word this feature would naturally be named after is a banned substring
+  // under this project's oldest acceptance grep, case-insensitively, over the
+  // whole file, in code and in comments as well as on screen. So the feature
+  // is not named after itself anywhere — not here, not in the id, not in the
+  // classes, not in [C11]. The same constraint produced "Matchups" in
+  // [S06.3]'s ignores list.
+  function buildRefBand(band) {
+    band.replaceChildren();
+    band.appendChild(text('h2', 'ref-band-head', 'What beats what'));
+
+    var list = el('div', 'ref-band-list');
+    App.data.REFERENCE.beats.forEach(function (rec) {
+      list.appendChild(text('p', 'ref-beats', beatsLine(rec)));
+    });
+    band.appendChild(list);
+  }
+
+  // Registered on the seam in syncPicker's and syncProjection's exact shape,
+  // and deliberately taking no state argument: it reads none, and a parameter
+  // it ignored would suggest to the next reader that there is a per-frame read
+  // in here somewhere to be found. There is not — see the region banner.
+  function syncReference() {
+    if (typeof document === 'undefined') { return; }
+    var band = document.getElementById('refband');
+    if (!band) { return; }
+    if (band.dataset.built === '1') { return; }
+    buildRefBand(band);
+    band.dataset.built = '1';
+  }
+
+  SYNC_HOOKS.push(syncReference);
+  // #endregion [S06.4] RENDER — REFERENCE
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -5220,6 +5632,7 @@ App.boot = (function () {
  *   [S09.6] token appearance                                  (plan 02-03)
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
  *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
+ *   [S09.9] reference material — names, what beats what, both halves (03-04/05)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -7818,6 +8231,356 @@ App.selftest = (function () {
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
+/* --- [S09.9] SUITE: reference material — owner plan 03-04 --- */
+(function () {
+  'use strict';
+
+  // The [S09.1] idiom: a table of records asserted as ONE row, so a field that
+  // drifted names itself in the failure detail instead of being hunted for
+  // across five separate rows that each pass.
+  function effectTuple(rec) {
+    return [rec.id, rec.name];
+  }
+  function beatsTuple(rec) {
+    return [rec.over, rec.verb, rec.under];
+  }
+
+  // The same read [S06.4] does, written here independently on purpose: this is
+  // the suite's own way of getting from an action id to an action name, so the
+  // rows below compare the renderer's output against the DATA rather than
+  // against the renderer's own helper. Reusing [S06.4]'s function would make
+  // those rows agree with themselves.
+  function actionNameFor(id) {
+    var name = '(no such action: ' + id + ')';
+    ['cats', 'mechs'].forEach(function (side) {
+      App.data.DEFAULTS[side].actions.forEach(function (action) {
+        if (action.id === id) { name = action.name; }
+      });
+    });
+    return name;
+  }
+
+  App.selftest.suite('reference material', function (t) {
+    var R = App.data.REFERENCE;
+    var d = App.data.defaults();
+
+    t.eq('the five effect keywords the board ships, in the order they render',
+      R.effects.map(effectTuple), [
+        ['shield', 'Shield'],
+        ['slowdown', 'Slowdown'],
+        ['confuse', 'Confuse'],
+        ['evade', 'Evade'],
+        ['range', 'Range']
+      ]);
+
+    /* --- NAMES ONLY, asserted mechanically rather than left to the comment at
+           the constant. The whiteboard supplies these five ids and no
+           definitions, and PROJECT.md says the adjudication IS the exercise, so
+           a third field appearing on one of these records is this file having
+           started to write workshop rules an instructor would then teach
+           against. That should turn the run red and send whoever added it to
+           REFERENCE's comment, not slip past a reviewer as a helpful sentence.
+           --- */
+    t.eq('and each carries an id and a name and nothing else — no definition '
+      + 'is shipped for any of them, which is a decision and not a gap',
+      R.effects.map(function (rec) { return Object.keys(rec).sort().join(','); }).join(' | '),
+      'id,name | id,name | id,name | id,name | id,name');
+    t.ok('every name is a non-empty string a card can print',
+      R.effects.every(function (rec) {
+        return typeof rec.name === 'string' && rec.name.length > 0;
+      }));
+
+    /* --- What beats what. TWO pairs, and the shortfall against PROJECT.md's
+           three-relationship transcription is deliberate: the third was the one
+           intra-Mechs pair and it was left out rather than corrected. This row
+           pins the count, so restoring it is a decision somebody makes on
+           purpose rather than a diff nobody notices. --- */
+    t.eq('what beats what, in board order, and two pairs rather than three',
+      R.beats.map(beatsTuple), [
+        ['fly', 'beats', 'slash'],
+        ['lasers', 'beat', 'hairball']
+      ]);
+
+    /* --- REF-02 in BOTH directions. A keyword shipped on an action with no
+           name here, and a name here for a keyword no action carries, are
+           different defects and each needs its own row: one row can only ever
+           catch one of them. Floored first, for the reason check 47's harvest
+           and [S09.7]'s id gate are floored — a walk that collected nothing
+           would report no gaps at all and pass spotlessly. --- */
+    var carried = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      d[side].actions.forEach(function (action) {
+        action.keywords.forEach(function (k) {
+          if (carried.indexOf(k) === -1) { carried.push(k); }
+        });
+      });
+    });
+    var named = R.effects.map(function (rec) { return rec.id; });
+
+    t.ok('the board carries keywords for the two rows below to be about',
+      carried.length >= 5);
+    t.eq('DIRECTION ONE — every keyword any action carries is named here, so a '
+      + 'keyword added to the board with no entry turns this red',
+      carried.filter(function (k) { return named.indexOf(k) === -1; }), []);
+    t.eq('DIRECTION TWO — every entry here is carried by at least one action, '
+      + 'so an orphan entry for a keyword nobody has turns this red',
+      named.filter(function (k) { return carried.indexOf(k) === -1; }), []);
+
+    /* --- The pairs name actions, and they name them by ID. The NAMES are read
+           at render time from DEFAULTS, so there is one definition of what an
+           action is called; these rows are what stops an id from dangling. --- */
+    var actionIds = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      d[side].actions.forEach(function (action) { actionIds.push(action.id); });
+    });
+    var dangling = [];
+    R.beats.forEach(function (rec) {
+      [rec.over, rec.under].forEach(function (id) {
+        if (actionIds.indexOf(id) === -1) { dangling.push(id); }
+      });
+    });
+    t.eq('every pair names two actions that exist on the board, on either side',
+      dangling, []);
+    t.ok('and every pair carries a connective of its own, because Fly beats and '
+      + 'Lasers beat differ and no rendering code should be guessing which',
+      R.beats.every(function (rec) {
+        return typeof rec.verb === 'string' && rec.verb.length > 0;
+      }));
+
+    /* --- Frozen, in the pair [S09.1] uses: the write must throw AND the value
+           must be what it was. A throw alone would pass on a mutation that
+           landed and then threw on something else. --- */
+    t.throws('REFERENCE is deep-frozen', function () {
+      App.data.REFERENCE.effects[0].name = 'Barrier';
+    });
+    t.eq('REFERENCE survived the frozen write',
+      App.data.REFERENCE.effects[0].name, 'Shield');
+    t.ok('and the freeze reaches the records rather than stopping at the top',
+      Object.isFrozen(App.data.REFERENCE)
+        && Object.isFrozen(App.data.REFERENCE.effects)
+        && Object.isFrozen(App.data.REFERENCE.effects[0])
+        && Object.isFrozen(App.data.REFERENCE.beats)
+        && Object.isFrozen(App.data.REFERENCE.beats[0]));
+
+    /* --- T-03-16. The build slice Phase 4 encodes is exactly what it was.
+           REFERENCE is declared beside DEFAULTS and not inside it, and this is
+           the row that holds that placement: static copy a student cannot edit
+           has no business travelling in a share code. --- */
+    t.eq('defaults() gained no key for any of this',
+      Object.keys(d).sort().join(','), 'cats,mechs,schema,tokens');
+    t.ok('and none of it reached the build slice under another name',
+      d.reference === undefined && d.effects === undefined && d.beats === undefined);
+
+    /* --- The collision, asserted rather than described. The keyword id shield
+           and the token id shield are the same string in two different objects.
+           Plan 03-05 proves it harmless on the rendered page by driving a real
+           rename; this row is what stops the collision from quietly going away
+           and taking that proof's subject with it. --- */
+    t.ok('the keyword id shield and the token id shield are the same string in '
+      + 'two different objects — a rule and a resource, which is why labelFor '
+      + 'is never called for a keyword',
+      named.indexOf('shield') !== -1 && App.data.TOKEN_IDS.indexOf('shield') !== -1);
+
+    /* --- The rendered half, plan 03-05's. Everything below needs a page.
+           tests/selftest-node.cjs runs these suites in a bare sandbox with no
+           document at all, so the suite says so and stops rather than painting
+           a terminal run red for something that is not a defect — the bracket
+           [S09.4] and [S09.8] both use. The gate in that file mirrors the
+           highest-value rows below against its own stub page, which is what
+           keeps this behaviour reachable from CI at all. --- */
+    if (typeof document === 'undefined') {
+      t.info('reference material', 'skipped — no DOM');
+      return;
+    }
+
+    // Same contract as [S09.3], [S09.4] and [S09.8]: everything below drives
+    // the live board through real ops, so the whole state is recorded here and
+    // handed back as this suite's last act.
+    var savedAll = JSON.stringify(App.state.get());
+
+    App.render.structure(App.state.get());
+    App.render.sync(App.state.get());
+
+    var band = document.getElementById('refband');
+
+    function bandLines() {
+      return band ? band.querySelectorAll('.ref-beats') : [];
+    }
+    function textsOf(nodes) {
+      return Array.prototype.map.call(nodes, function (n) { return n.textContent; });
+    }
+    function cardsIn(side) {
+      var col = document.getElementById('col-' + side);
+      return col ? col.querySelectorAll('.ref-card') : [];
+    }
+    function cardNamed(side, actionName) {
+      var found = null;
+      Array.prototype.forEach.call(cardsIn(side), function (card) {
+        var head = card.querySelector('.ref-action');
+        if (head && head.textContent === actionName) { found = card; }
+      });
+      return found;
+    }
+
+    /* --- REF-01 on the page. TWO rows about the same two sentences, on
+           purpose and not by accident, because they fail for different
+           reasons. The first compares against strings ASSEMBLED here from
+           DEFAULTS, so a renderer that hand-typed the sentences instead of
+           reading the data goes red. The second compares against the approved
+           wording written out literally, so a change to the DATA that the
+           renderer faithfully followed goes red too. Either row alone leaves
+           one of those two ways to break it uncovered. --- */
+    var expected = App.data.REFERENCE.beats.map(function (rec) {
+      return actionNameFor(rec.over) + ' ' + rec.verb + ' ' + actionNameFor(rec.under);
+    });
+
+    t.ok('the band is on the page, built, and not hidden',
+      band !== null && band.dataset.built === '1' && band.hidden !== true);
+    t.eq('it is headed with the wording this feature has to use, because the '
+      + 'word it would naturally be named after is banned across the whole file',
+      band && band.querySelector('.ref-band-head')
+        ? band.querySelector('.ref-band-head').textContent : '(no node)',
+      'What beats what');
+    t.eq('it states TWO relationships, not the three the board was transcribed '
+      + 'with — the intra-Mechs pair was left out on instruction',
+      bandLines().length, 2);
+    t.eq('and each line reads as the data assembles it, so a sentence typed '
+      + 'into the renderer by hand turns this red',
+      textsOf(bandLines()), expected);
+    t.eq('and the approved wording, written out, so a change to the data the '
+      + 'renderer faithfully followed turns this red too',
+      textsOf(bandLines()), ['Fly beats Slash', 'Lasers beat Hairball']);
+
+    /* --- REF-02 on the page: the cards, in the columns, one per action. --- */
+    t.eq('each column carries one card per action of its own faction',
+      [cardsIn('cats').length, cardsIn('mechs').length], [3, 3]);
+    t.eq('the cats column names the Cats actions, in board order',
+      textsOf(Array.prototype.map.call(cardsIn('cats'), function (c) {
+        return c.querySelector('.ref-action');
+      })), ['Slash', 'Hairball', 'Screech']);
+    t.eq('and the mechs column names the Mechs actions',
+      textsOf(Array.prototype.map.call(cardsIn('mechs'), function (c) {
+        return c.querySelector('.ref-action');
+      })), ['Fly', 'Lasers', 'Recharge']);
+
+    /* --- REF-02 IN BOTH DIRECTIONS, at the DOM level this time. The DOM-free
+           rows above hold the DATA to account; these hold the PAGE to account,
+           which is a different claim: data can be complete while the renderer
+           drops half of it, and a renderer can paint a card the data never
+           described. Each direction is its own row for the reason the pair
+           above is: one row can only catch one of them. --- */
+    var missingOnPage = [];
+    var unknownOnPage = [];
+    var namesInData = App.data.REFERENCE.effects.map(function (r) { return r.name; });
+
+    ['cats', 'mechs'].forEach(function (side) {
+      App.data.DEFAULTS[side].actions.forEach(function (action) {
+        var card = cardNamed(side, action.name);
+        var painted = card ? textsOf(card.querySelectorAll('.ref-effect')) : [];
+        action.keywords.forEach(function (id) {
+          var rec = App.data.REFERENCE.effects.filter(function (r) {
+            return r.id === id;
+          })[0];
+          if (!rec || painted.indexOf(rec.name) === -1) {
+            missingOnPage.push(action.id + '/' + id);
+          }
+        });
+        painted.forEach(function (name) {
+          if (namesInData.indexOf(name) === -1) { unknownOnPage.push(action.id + '/' + name); }
+        });
+      });
+    });
+
+    // Floored first, for the reason check 47's harvest and [S09.7]'s id gate
+    // are floored: a walk that found no cards at all would report no gaps in
+    // either direction and pass spotlessly twice over.
+    var paintedTotal = 0;
+    ['cats', 'mechs'].forEach(function (side) {
+      Array.prototype.forEach.call(cardsIn(side), function (card) {
+        paintedTotal += card.querySelectorAll('.ref-effect').length;
+      });
+    });
+    t.ok('the page carries effect cards for the two rows below to be about',
+      paintedTotal >= 5 && namesInData.length === 5);
+    t.eq('DIRECTION ONE, rendered — every keyword an action carries has a card '
+      + 'inside THAT action\'s card', missingOnPage, []);
+    t.eq('DIRECTION TWO, rendered — every card on the page names an entry in '
+      + 'the data, so a card built from a literal turns this red',
+      unknownOnPage, []);
+
+    /* --- T-03-20, the collision, proven by DRIVING the rename rather than by
+           reading the source. The keyword id shield and the token id shield are
+           the same string in two different objects; a student renaming the
+           TOKEN has not renamed the KEYWORD.
+
+           READ THIS BEFORE SIMPLIFYING IT. The card is read TWICE, and the
+           second read is the one that does the work. A rename is a plain
+           commit, so it runs sync() and NOT structure(); the cards are built by
+           buildColumn, which only structure() calls, and they carry no
+           attribute the sync pass writes. A rename alone therefore cannot
+           repaint a card whatever the builder does — so a row that stopped
+           after the first read would pass just as happily on a builder that
+           called labelFor at BUILD time, which is the drift this row is for. It
+           was measured passing on exactly that mutation before the second read
+           was added. The board's own row is read too, so a rename that never
+           landed cannot make the card rows true for the wrong reason. --- */
+    App.ops.renameTokenType('shield', 'Barrier');
+    App.state.flush();
+    var recharge = cardNamed('mechs', 'Recharge');
+    var boardLabel = document.querySelector('[data-lbl="shield"]');
+    t.eq('renaming the Shield TOKEN does not rename the Recharge KEYWORD',
+      recharge ? textsOf(recharge.querySelectorAll('.ref-effect')).join(',') : '(no card)',
+      'Shield');
+    App.ops.addUnit('mechs');   // structural: the builder runs again, under the rename
+    App.state.flush();
+    var rebuilt = cardNamed('mechs', 'Recharge');
+    t.eq('and it still does not after a structural rebuild re-runs the builder '
+      + 'while the rename is in force — which is the read that catches a label '
+      + 'lookup done at BUILD time rather than on the sync pass',
+      rebuilt ? textsOf(rebuilt.querySelectorAll('.ref-effect')).join(',') : '(no card)',
+      'Shield');
+    t.eq('and the rename did reach the board, so neither row above is passing '
+      + 'on a rename that never happened',
+      boardLabel ? boardLabel.textContent : '(no node)', 'Barrier');
+
+    /* --- The band survives a structural rebuild, for the reason [S09.8] gives
+           about the strip: structure() replaces only the two column interiors,
+           which is a fact about another function and therefore exactly the kind
+           that changes quietly. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.ops.addUnit('cats');
+    App.state.flush();
+    t.eq('a structural rebuild leaves the band standing and still built',
+      band ? band.dataset.built : '(no node)', '1');
+    t.eq('and its lines intact', textsOf(bandLines()),
+      ['Fly beats Slash', 'Lasers beat Hairball']);
+    t.eq('and the columns rebuilt their cards rather than losing them',
+      [cardsIn('cats').length, cardsIn('mechs').length], [3, 3]);
+
+    /* --- REF-03 PRE-SATISFIED, and asserted rather than assumed. The cards are
+           appended OUTSIDE buildColumn's setup-only branch, so they are on the
+           page during a fight as well as during a build. Moving that append
+           inside the branch turns this row red, which is the whole reason the
+           row is written. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.ops.startFight();
+    App.state.flush();
+    t.eq('starting a fight leaves every action card on the page — REF-03, in '
+      + 'Phase 5, is pre-satisfied by where the append sits and not by a plan',
+      [cardsIn('cats').length, cardsIn('mechs').length], [3, 3]);
+    t.eq('while the setup-only Add button is gone, which is what makes the row '
+      + 'above a statement about the branch rather than about nothing',
+      document.querySelectorAll('.brd-add').length, 0);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the reference suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
 // #endregion [S09] SELFTEST
 
 /* ===================== [S10] LAUNCH =====================
