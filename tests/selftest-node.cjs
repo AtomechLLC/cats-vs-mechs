@@ -3957,24 +3957,38 @@ check(
    Driven on the QUIET path, which is a blur: clicking away from a half-typed
    value is not an error and must not open a panel. Escape gets its own clause
    for the same reason it does on the name field. */
+//
+// DRIVEN ON A REQUIREMENT AS WELL AS ON A TRANSFORMATION, and probe S is what
+// forced that. A transformation amount of zero is refused by [S05] outright — a
+// change of nothing is not a change — so the empty string, the single most
+// dangerous entry in this table, is caught one layer BELOW the parser on that
+// field and the row read green with the parser swapped for Number(). On a
+// REQUIREMENT zero is a legal value a student may write, so there is no second
+// layer there and the parser is the only thing standing between a cleared field
+// and a silent requirement of nothing. A row driven on one field kind would
+// have been blind to exactly the case its own label calls the worst.
 const exBad = [];
-['abc', '1e3', '0x5', '5.5', 'Infinity', '', '   ', '+', '-', '1000', '--3', '3px']
-  .forEach((bad) => {
-    const f = aeAmtOf('xf', 0);
-    if (stub.activeElement !== f) { f.focus(); }
-    const wasText = f.dataset.was;
-    const wroteBefore = JSON.stringify(aeRecordOf(exMade).xf);
-    f.value = bad;
-    f.dispatchEvent(dom.event('input'));
-    f.dispatchEvent(dom.event('focusout'));
-    A.state.flush();
-    if (f.value !== wasText || JSON.stringify(aeRecordOf(exMade).xf) !== wroteBefore) {
-      exBad.push(JSON.stringify(bad) + ' -> field=' + JSON.stringify(f.value)
-        + ' record=' + JSON.stringify(aeRecordOf(exMade).xf));
-    }
-    f.blur();
-    A.state.flush();
-  });
+[['xf', 0], ['req', 0]].forEach(([exField, exSlot]) => {
+  ['abc', '1e3', '0x5', '5.5', 'Infinity', '', '   ', '+', '-', '1000', '--3', '3px']
+    .forEach((bad) => {
+      const f = aeAmtOf(exField, exSlot);
+      if (stub.activeElement !== f) { f.focus(); }
+      const wasText = f.dataset.was;
+      const wroteBefore = JSON.stringify(aeRecordOf(exMade)[exField]);
+      f.value = bad;
+      f.dispatchEvent(dom.event('input'));
+      f.dispatchEvent(dom.event('focusout'));
+      A.state.flush();
+      if (f.value !== wasText
+        || JSON.stringify(aeRecordOf(exMade)[exField]) !== wroteBefore) {
+        exBad.push(exField + '/' + exSlot + ' ' + JSON.stringify(bad)
+          + ' -> field=' + JSON.stringify(f.value)
+          + ' record=' + JSON.stringify(aeRecordOf(exMade)[exField]));
+      }
+      f.blur();
+      A.state.flush();
+    });
+});
 // Padding alone is TRIMMED and taken, not refused, which is the same kindness
 // [S07.1]'s own parser extends: trim() runs first and every test runs on the
 // trimmed result, so a stray space is not a rule a student has to debug.
