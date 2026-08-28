@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03.1-05-PLAN.md
-last_updated: "2026-08-28T20:16:27.319Z"
+stopped_at: Completed 03.1-06-PLAN.md
+last_updated: "2026-08-28T20:53:17.928Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 24
-  completed_plans: 22
+  completed_plans: 23
   percent: 57
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
-Plan: 6 of 8
+Plan: 7 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [█████████░] 92%
+Progress: [██████████] 96%
 
 ## Performance Metrics
 
@@ -57,6 +57,7 @@ Progress: [█████████░] 92%
 | Phase 03.1 P03 | 95min | 3 tasks | 1 files |
 | Phase 03.1 P04 | 105min | 3 tasks | 2 files |
 | Phase 03.1 P05 | 118min | 3 tasks | 2 files |
+| Phase 03.1 P06 | 132min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -86,6 +87,10 @@ Recent decisions affecting current work:
 - [Phase 3.1]: 03.1-05: no second fire() payload-key exception was needed — the editor's own delegated listener builds each patch field by field from the pressed control
 - [Phase 3.1]: 03.1-05: the editor fingerprint carries cost/req/xf BEFORE plan 03.1-06 draws them, so the surface cannot be born stale
 - [Phase 3.1]: 03.1-05: DIALOG_FLOOR 84 -> 91 — a floor over the total of two roots, left at 84, would have stopped bounding either of them
+- [Phase 03.1]: int() alone bounds a signed transformation amount — requireDelta applies no bound, and int() compares rather than coerces, so a signed floor needs no new machinery
+- [Phase 03.1]: Emptying a term slot is a write with nothing in it (CLEAR_TERM) through the same op, so the slot bound lives in one place rather than two
+- [Phase 03.1]: The slot index is part of the commit label: a key held in one amount field is one Ctrl+Z step, and two slots stay two
+- [Phase 03.1]: The empty slot is the affordance — the action editor carries no Add control anywhere, and the emptying entry at the head of a chooser is the one named path for removing a term
 
 ### Pending Todos
 
@@ -107,6 +112,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T20:15:57.463Z
-Stopped at: Completed 03.1-04-PLAN.md
+Last session: 2026-08-28T20:53:17.917Z
+Stopped at: Completed 03.1-06-PLAN.md
 Resume file: None
