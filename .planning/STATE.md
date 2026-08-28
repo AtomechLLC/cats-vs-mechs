@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03.1-01-PLAN.md
-last_updated: "2026-08-28T18:44:37.002Z"
+stopped_at: Completed 03.1-02-PLAN.md
+last_updated: "2026-08-28T18:58:01.311Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 7
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
-Plan: 2 of 8
+Plan: 3 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
@@ -53,6 +53,7 @@ Progress: [████████░░] 75%
 
 *Updated after each plan completion*
 | Phase 03.1 P01 | 78 | 3 tasks | 2 files |
+| Phase 03.1 P02 | 62min | 3 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -69,6 +70,9 @@ Recent decisions affecting current work:
 - [Phase 03.1]: Dialog strings feed the same PROJ-06 word list and the same check 48 as #app; DIALOG_ROOTS is gated in both directions against the stub page — A second word list is a second thing to keep in step; a dialog that escapes the harvest must fail the run rather than pass silently
 - [Phase 03.1]: MAX_ALLOC's literal moved from [S05] to [S01] so MIN_XF_DELTA and MAX_XF_DELTA derive from it once; [S05] still exports it — [S01] runs before [S05], so deriving the signed bound in App.data required the magnitude to live there; re-typing 99 was the one thing the plan forbade
 - [Phase 03.1]: cost, req and xf are arrays of records carrying tok as a FIELD, never objects keyed by token id — A keyed bag re-opens the key position requireTokenId exists to close, and Object.create(null) does not survive the JSON round trip
+- [Phase 3.1]: DAMAGE_KEYS ships health-only: a bounded shield pool read as unbounded throughput would overstate, the one direction PROJ-06 forbids
+- [Phase 3.1]: turnsToWipe reads ONE bestPair call, so the hit and the per-turn always describe the same swing
+- [Phase 3.1]: CONTEXT D-14a corrected by measurement: the shipped board does not move under either shield reading, because no shipped action carries a shield transformation
 
 ### Pending Todos
 
@@ -90,6 +94,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T18:44:36.991Z
-Stopped at: Completed 03.1-01-PLAN.md
+Last session: 2026-08-28T18:58:01.301Z
+Stopped at: Completed 03.1-02-PLAN.md
 Resume file: None
