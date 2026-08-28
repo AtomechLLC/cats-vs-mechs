@@ -2260,10 +2260,14 @@ App.ops = (function () {
 
   // The LIVE record's name rather than the shipped one, which is the technique
   // removeTokenType already states: a student who renamed Lasers to Beam is
-  // told about Beam rather than about a word they have never chosen. It scans
-  // both sides because an id is unique across the board, and it hands the id
-  // straight back when nothing on the board carries it — a refusal that names
-  // a raw id is still a refusal that names something.
+  // told about Beam rather than about a word they have never chosen. It hands
+  // the id straight back when nothing on the board carries it — a refusal that
+  // names a raw id is still a refusal that names something.
+  //
+  // It walks BOTH sides because its only callers refuse one of the six the
+  // board ships with, and those six sit three per side and appear exactly once
+  // each. An id a student authors is only unique WITHIN its side, which is why
+  // every op below that takes one takes a side alongside it.
   function liveActionName(actionId) {
     var found = actionId;
     var build = App.state.get().build;
@@ -2875,6 +2879,16 @@ App.ops = (function () {
   // mutator does happens in ONE commit, so one Ctrl+Z brings the type and
   // every number back together (D-16), and a modal would cost an instructor a
   // click mid-demo to guard against something undo already covers.
+  //
+  // IT DOES NOT REWRITE AN ACTION'S TERMS (D-11, ACT-07). From plan 03.1-03 an
+  // action can name a token type in its cost, its requirements or its
+  // transformations, and the tempting thing to do here is to reach into those
+  // lists and drop the terms that named the departed type. That is refused:
+  // a rewritten rule is a silently changed rule, which is worse than a refused
+  // one — the student would be left holding an action that no longer says what
+  // they wrote, with no step to undo and nothing on screen to notice. The
+  // answer is actionsNaming below, which lets the surface say what a removal
+  // will break BEFORE it happens (D-12), and a refusal by name at fire time.
   function removeTokenType(tokenId) {
     if (typeof tokenId === 'string' && App.data.TOKEN_IDS.indexOf(tokenId) !== -1) {
       var vocab = App.state.get().build.tokens;
@@ -2937,6 +2951,189 @@ App.ops = (function () {
       s.build.tokens[tokenId].name = next;
     });
     return true;
+  }
+
+  /* ---- actions a student authors for themselves (ACT-01) ----
+   * D-07: a shipped action and a student's own action are the SAME KIND of
+   * thing. One list, one editor, no second tier — the principle plan 02.1
+   * settled for token types, and the reason its picker shows built-ins and
+   * invented types identically. Removal is the one exception, and its reason
+   * is written on removeAction below rather than left to be inferred.
+   *
+   * NOTHING HERE APPLIES ANYTHING. All three ops edit the DEFINITION of a
+   * rule. Not one of them spends a cost, tests a requirement against a unit or
+   * moves a token: a declared action lands on Advance, in Phase 5. This
+   * section's banner already reserves the fight semantics to that phase, and
+   * this block adds nothing to that list and takes nothing off it.
+   *
+   * AN AUTHORED RULE IS A DATA RECORD, NEVER A PROGRAM. Every record below is
+   * written field by field from the fields named here, so there is no `when:`
+   * predicate, no condition text and no supplied callback for anything
+   * downstream to interpret. That is what keeps the two dynamic-code entry
+   * points this project bans — the ones the harness scans for by name —
+   * absent by construction rather than by promise, and the freedom is spent
+   * instead on a signed delta over a token type (D-08), which covers
+   * harm, repair and every token a student invents with no vocabulary of
+   * effects at all.
+   *
+   * All three carry the whole three-layer id gate stated above, not the one
+   * layer that happens to fire first.
+   */
+
+  // The live record on ONE side, or null. Rename and remove both need it, and
+  // both need the refusal that follows it, so the read is written once.
+  function findAction(side, actionId) {
+    var found = App.state.get().build[side].actions.find(function (a) {
+      return a.id === actionId;
+    });
+    return found === undefined ? null : found;
+  }
+
+  // Every guard runs BEFORE the commit is entered, matching createTokenType
+  // above, so a refusal leaves no phantom undo step over a board that never
+  // changed — with exactly one documented exception, called out below.
+  //
+  // The id comes from the sequence and is never derived from the name the
+  // student typed (D-13). The double call is deliberate — nextActionId
+  // produces the id and requireNewActionId confirms it — so a produced id goes
+  // through the same gate a supplied one does, and a later change to either
+  // one cannot quietly widen the other.
+  //
+  // Structural, because [S06.4] decides whether this action's card exists at
+  // all, and sync() can neither build a card nor take one away. That is
+  // commitStructural's own stated trigger.
+  function createAction(side, name) {
+    requireSide(side);
+    var label = requireActionName(name);
+    var made = requireNewActionId(nextActionId(App.state.get().build[side].actions));
+
+    commitStructural('action new ' + side + '/' + made, function (s) {
+      // THE ONE GUARD INSIDE THE COMMIT, and it is the same documented
+      // exception createTokenType carries for the cap on types: it needs the
+      // count from the detached copy. It is safe for the same reason — a
+      // mutator that throws leaves no trace, because commit() runs the mutator
+      // before it records anything. Every other guard above stays outside.
+      var own = s.build[side].actions.filter(function (a) {
+        return App.data.ACTION_IDS.indexOf(a.id) === -1;
+      });
+      if (own.length >= App.data.MAX_CUSTOM_ACTIONS) {
+        throw new Error('This side already has ' + App.data.MAX_CUSTOM_ACTIONS
+          + ' actions of your own. Remove one before adding another.');
+      }
+      // Layer 3 of the gate, against the detached list. The sequence should
+      // never hand back an id that is already here, and this is what makes
+      // "should never" checkable rather than assumed.
+      var taken = s.build[side].actions.some(function (a) { return a.id === made; });
+      if (taken) {
+        throw new Error('There is already an action "' + String(made) + '" on this side.');
+      }
+      // Field by field, never a merge helper, for the reason createTokenType's
+      // mutator already gives: a merge copies whatever keys the caller
+      // supplied, which is how a reserved key slips past an allowlist that
+      // only inspected the values. It holds INSIDE a term too — every cost,
+      // requirement and transformation entry is built from named fields.
+      //
+      // The default is D-01's: one action point, which is what the shipped
+      // board already implies. Damage and keywords ship at their empty values
+      // so a new action is the same SHAPE as a shipped one (D-07), and the
+      // three term lists start empty because a rule with no terms does
+      // nothing, which is the honest starting point for one nobody has
+      // written yet.
+      s.build[side].actions.push({
+        id: made,
+        name: label,
+        dmg: 0,
+        keywords: [],
+        cost: [{ tok: 'ap', n: 1 }],
+        req: [],
+        xf: []
+      });
+    });
+    // Handed back so the surface can select the new action in the list the
+    // moment dispatch returns, rather than re-deriving which id was just made.
+    return made;
+  }
+
+  // A name is a display label and nothing more — the id stays the identity, so
+  // this writes one field and touches nothing else. A SHIPPED action may be
+  // renamed (D-07): a student calling Lasers "Beam" is exactly the authorship
+  // this phase exists for, and it is the same latitude a built-in token type
+  // already has.
+  //
+  // A plain commit, NOT a structural one: a rename changes a label, and plan
+  // 03.1-04 makes an action's name a per-frame read on its card, exactly as a
+  // token type's name already is. A structural frame here would rebuild both
+  // columns on every keystroke of a name being typed. The consequence is worth
+  // stating for whoever writes the next suite: a structural-frame behaviour
+  // cannot be asserted through a rename, because a rename runs the sync pass
+  // and never the structural one.
+  function renameAction(side, actionId, name) {
+    requireSide(side);
+    requireActionId(actionId);
+    var next = requireActionName(name);
+    var live = findAction(side, actionId);
+    if (live === null) {
+      throw new Error('There is no action "' + String(actionId) + '" on this side.');
+    }
+    // The same no-op contract renameTokenType states, and for the same reason:
+    // a name field commits on every keystroke, and a rename that changes
+    // nothing would put a do-nothing Ctrl+Z step between the student and the
+    // edit they actually want back. requireActionName has already trimmed, so
+    // padding alone compares equal.
+    if (live.name === next) { return false; }
+    App.state.commit('action rename ' + side + '/' + actionId, function (s) {
+      var rec = s.build[side].actions.find(function (a) { return a.id === actionId; });
+      // Layer 3, on the detached copy. The read above is of the live board and
+      // this one is of the copy the commit will keep, and only the second one
+      // can speak for what is about to be written.
+      if (rec === undefined) {
+        throw new Error('There is no action "' + String(actionId) + '" on this side.');
+      }
+      rec.name = next;
+    });
+    return true;
+  }
+
+  // The six the board ships with cannot be removed, and the reason is the one
+  // the five shipped token types give: the reference band's relationship
+  // records name those six BY ID, so a removed one would leave the band naming
+  // nothing. That refusal fires FIRST and reads the LIVE record's name, so a
+  // student who renamed Lasers to Beam is told about Beam, and it offers the
+  // supported alternative — a shipped action can be renamed and re-costed.
+  //
+  // There is no confirmation dialog here, on purpose, for the reason plan 02.1
+  // gives for the same choice: everything the mutator does happens in ONE
+  // commit, so one Ctrl+Z brings the action back whole, and a modal would cost
+  // an instructor a click mid-demo to guard against something undo covers.
+  //
+  // IT REWRITES NO OTHER ACTION. Taking one action away may not quietly edit
+  // the terms of another, for the reason removeTokenType states in the same
+  // words: a rewritten rule is a silently changed rule, which is worse than a
+  // refused one. Nothing else on the board names an action, so there is
+  // nothing here to tidy up — and if something ever does, the answer is a
+  // refusal that names it, never an edit nobody asked for.
+  function removeAction(side, actionId) {
+    requireSide(side);
+    if (typeof actionId === 'string' && App.data.ACTION_IDS.indexOf(actionId) !== -1) {
+      throw new Error('"' + String(liveActionName(actionId)) + '" is one of the six '
+        + 'actions the board ships with, so it cannot be removed. You can rename '
+        + 'it instead.');
+    }
+    requireActionId(actionId);
+
+    commitStructural('action remove ' + side + '/' + actionId, function (s) {
+      var list = s.build[side].actions;
+      // Layer 3 again. Without it a removal of an id that names nothing would
+      // succeed silently and report a removal that never happened.
+      var at = -1;
+      list.forEach(function (a, i) { if (a.id === actionId) { at = i; } });
+      if (at === -1) {
+        throw new Error('There is no action "' + String(actionId) + '" on this side.');
+      }
+      // One mutator is one snapshot is one Ctrl+Z. Anything that ever has to
+      // go with an action goes in HERE, not in a second commit beside it.
+      list.splice(at, 1);
+    });
   }
 
   /* ---- the tally: the number a student writes down beside their own
@@ -3104,6 +3301,12 @@ App.ops = (function () {
       });
       case 'removeTokenType': return removeTokenType(p.tokenId);
       case 'renameTokenType': return renameTokenType(p.tokenId, p.name);
+      // The action arms, read key by key for the same reason the create arm
+      // above is: the op's own guards would refuse a stray key's VALUE, but
+      // they would never see a key nobody meant to send.
+      case 'createAction': return createAction(p.side, p.name);
+      case 'renameAction': return renameAction(p.side, p.actionId, p.name);
+      case 'removeAction': return removeAction(p.side, p.actionId);
       case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
       case 'nudgeTally': return nudgeTally(p.side, p.unitId, p.tokenId, p.delta);
       case 'undo': return undo();
@@ -3139,6 +3342,9 @@ App.ops = (function () {
     createTokenType: createTokenType,
     removeTokenType: removeTokenType,
     renameTokenType: renameTokenType,
+    createAction: createAction,
+    renameAction: renameAction,
+    removeAction: removeAction,
     setTally: setTally,
     nudgeTally: nudgeTally,
     setUi: setUi,
