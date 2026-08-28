@@ -119,33 +119,61 @@ console.log('scan: no forbidden patterns');
 // `judgment` here is the US spelling on purpose: the UK spelling the artifact
 // uses in that comment is handled by Layer B, where it is checked only against
 // rendered strings.
+// WHAT BELONGS IN THIS LAYER, and what does not.
+//
+// This layer reads the WHOLE document -- markup, CSS, comments and code alike
+// -- so a word in it is banned from prose as well as from copy. That reach is
+// the right instrument for a word that NAMES THE BANNED FEATURE: `verdict`,
+// `rating`, the `balanc` and `difficult` stems, `counter`, a traffic light, a
+// good or bad build. None of those has an innocent reading in this codebase,
+// and a CSS class or a comment carrying one is evidence the feature itself is
+// arriving, which is worth catching before any copy exists.
+//
+// It is the WRONG instrument for a comparative adjective. `better`, `weak`,
+// `stronger`, `advantage`, `dominat`, `optimal` are ordinary engineering
+// prose, and a gate that reddens on them tells its reader
+//   "comparative language reached cats-vs-mechs.html ... The artifact reports
+//    what a build costs and what it can take"
+// -- a diagnosis about RENDERED COPY for something that is not rendered copy.
+// This phase already paid that toll once: a comment reading "the weaker half
+// of the same guarantee" was reworded to "the narrower half" for no reason but
+// this list. The stem also bans `text-wrap: balance`, which the project's own
+// stack notes list as a progressive enhancement to use.
+//
+// So those thirteen move to VERDICT_LITERAL_WORDS below. That is not a new
+// idea -- it is the split this file already invented for `score`, `grade`,
+// `judgement` and `worse`, for a reason stated a few lines up that applies to
+// them word for word. Keeping `judgment` here while `judgement` sat there, and
+// `better` here while `worse` sat there, was an inconsistency rather than a
+// policy.
+//
+// WHAT THE MOVE GIVES UP, stated exactly, because narrowing a PROJ-06 layer is
+// a real trade and not a tidy-up:
+//   RETAINED for all thirteen -- every string literal in the script block,
+//     via Layer B; and the whole rendered page, via Layer C, which scans
+//     VERDICT_WORDS.concat(VERDICT_LITERAL_WORDS) and is therefore completely
+//     unaffected by which of the two lists a word sits in.
+//   GIVEN UP for those thirteen only -- the CSS block, and static markup
+//     outside the script block that Layer C's walk does not reach, which is
+//     #err-panel and the <dialog> (Layer C harvests #app). A verdict feature
+//     wearing a `.better-build` class in CSS with no matching literal and no
+//     rendered word would now pass. That is the hole, and it is accepted
+//     because a feature of that shape would have to avoid all sixteen words
+//     below as well, every one of which still reads the whole document.
 const VERDICT_WORDS = [
   { label: 'verdict', re: /verdict/i },
   { label: 'balance stem', re: /balanc/i },
   { label: 'rating', re: /rating/i },
   { label: 'difficulty stem', re: /difficult/i },
   { label: 'counter', re: /counter/i },
-  { label: 'stronger', re: /stronger/i },
-  { label: 'strongest', re: /strongest/i },
-  { label: 'weak stem', re: /weak/i },
-  { label: 'weakest', re: /weakest/i },
-  { label: 'advantage', re: /advantage/i },
   { label: 'outmatch', re: /outmatch/i },
   { label: 'outclass', re: /outclass/i },
-  { label: 'favoured', re: /favou?red/i },
   { label: 'winner', re: /winner/i },
   { label: 'loser', re: /loser/i },
   { label: 'traffic light', re: /traffic light/i },
   { label: 'overpowered', re: /overpowered/i },
   { label: 'underpowered', re: /underpowered/i },
   { label: 'unfair', re: /unfair/i },
-  { label: 'fair', re: /\bfair\b/i },
-  { label: 'superior', re: /superior/i },
-  { label: 'inferior', re: /inferior/i },
-  { label: 'dominate stem', re: /dominat/i },
-  { label: 'optimal', re: /optimal/i },
-  { label: 'better', re: /better/i },
-  { label: 'judgment', re: /judgment/i },
   { label: 'good build', re: /good build/i },
   { label: 'bad build', re: /bad build/i },
   { label: 'should aim', re: /should aim/i }
@@ -210,6 +238,19 @@ if (literals.length < 1500) {
     'extractor scanning nothing, not a clean file.');
 }
 
+// Two groups, one rule: a comment may discuss the concept, a rendered string
+// may not carry the word.
+//
+// The first ten are the original set -- words the artifact uses in its own
+// prose about the anti-verdict rule, which a document-wide ban would redden on.
+//
+// The last thirteen arrived from VERDICT_WORDS, for the reasoning written out
+// above that list: they are comparative adjectives with ordinary engineering
+// readings, not names for the banned feature. Nothing about their coverage of
+// RENDERED output changed in the move -- Layer C concatenates both lists -- and
+// nothing about their coverage of string literals changed either, because this
+// layer reads every literal in the script block. What changed is that a comment
+// may now say "the weaker half of the guarantee" and mean it.
 const VERDICT_LITERAL_WORDS = [
   { label: 'score', re: /score/i },
   { label: 'grade', re: /grade/i },
@@ -220,7 +261,20 @@ const VERDICT_LITERAL_WORDS = [
   { label: 'win', re: /\bwin\b/i },
   { label: 'edge', re: /\bedge\b/i },
   { label: 'lead', re: /\blead\b/i },
-  { label: 'worse', re: /worse/i }
+  { label: 'worse', re: /worse/i },
+  { label: 'stronger', re: /stronger/i },
+  { label: 'strongest', re: /strongest/i },
+  { label: 'weak stem', re: /weak/i },
+  { label: 'weakest', re: /weakest/i },
+  { label: 'advantage', re: /advantage/i },
+  { label: 'favoured', re: /favou?red/i },
+  { label: 'fair', re: /\bfair\b/i },
+  { label: 'superior', re: /superior/i },
+  { label: 'inferior', re: /inferior/i },
+  { label: 'dominate stem', re: /dominat/i },
+  { label: 'optimal', re: /optimal/i },
+  { label: 'better', re: /better/i },
+  { label: 'judgment', re: /judgment/i }
 ];
 
 const literalHits = [];
