@@ -5598,6 +5598,101 @@ App.selftest = (function () {
 
       App.ops.renameTokenType('hp', 'Health');
       App.state.flush();
+
+      /* --- ALLOC-11, D-01 and D-02. A type a student made draws at the site
+             its scope names and at no other: 'unit' puts a line on every unit
+             card, 'side' puts one on each faction head. --- */
+      var board = document.getElementById('board');
+      t.eq('a unit-scope type a student made draws on every unit card',
+        board.querySelectorAll('.brd-line--opt[data-amt="' + rUnit + '"]').length,
+        App.state.get().build.cats.units.length
+          + App.state.get().build.mechs.units.length);
+      t.eq('and a side-scope one draws once per faction head',
+        board.querySelectorAll('.brd-line--opt[data-amt="' + rSide + '"]').length, 2);
+      t.eq('with no side-scope line anywhere on a unit card', (function () {
+        var n = 0;
+        Array.prototype.forEach.call(board.querySelectorAll('.unit-card'), function (c) {
+          n += c.querySelectorAll('[data-amt="' + rSide + '"]').length;
+        });
+        return n;
+      })(), 0);
+
+      /* --- data-k is IDENTITY and unique document-wide, because focus restore
+             takes the FIRST match for it. Both shapes are unique by
+             construction for the same reason the shipped keys are: a side key
+             names a side and a type, a unit key names a side, a unit and a
+             type, and no unit is on two sides. --- */
+      t.eq('the unit line is keyed by side, unit and type',
+        board.querySelectorAll('[data-k="cats/c1/' + rUnit + '"]').length, 1);
+      t.eq('and the side line by side and type',
+        board.querySelectorAll('[data-k="mechs/' + rSide + '"]').length, 1);
+
+      /* --- T-02.1-18 and UX-02. Six types across twenty-four units is 144
+             labelled boxes, almost every one of them zero. A zero draws
+             NOTHING — no empty box, no orphan label. --- */
+      var lineOn = board.querySelector(
+        '.brd-line--opt[data-amt="' + rUnit + '"][data-unit="c1"]');
+      var lineOff = board.querySelector(
+        '.brd-line--opt[data-amt="' + rUnit + '"][data-unit="c2"]');
+      t.eq('the line for a number a student has written is on screen',
+        lineOn ? lineOn.hidden : '(no line)', false);
+      t.eq('and the line for a number nobody has written shows nothing at all',
+        lineOff ? lineOff.hidden : '(no line)', true);
+
+      App.ops.setTally('cats', 'c2', rUnit, 1);
+      App.state.flush();
+      t.eq('writing one onto it brings the line back on a plain commit — the '
+        + 'line already exists, so a sync is all it takes',
+        lineOff ? lineOff.hidden : '(no line)', false);
+      t.eq('and the row underneath it holds exactly one token',
+        lineOff ? lineOff.querySelectorAll('.tok').length : -1, 1);
+
+      /* --- a line the board is built on is NEVER hidden. A unit at zero
+             health is something a student meant, and it stays legible. --- */
+      App.ops.setUnitMaxHp('cats', 'c2', 0);
+      App.state.flush();
+      t.ok('a health line at zero stays on screen', (function () {
+        var hpRow = board.querySelector('.tok-row[data-amt="hp"][data-unit="c2"]');
+        return hpRow !== null && hpRow.parentNode.hidden !== true
+          && String(hpRow.parentNode.className).indexOf('brd-line--opt') === -1;
+      })());
+
+      /* --- D-20 and D-21. A student-made row compacts exactly as a shipped
+             one does, because it IS the shipped builder reading the shipped
+             threshold. --- */
+      App.ops.setTally('cats', 'c2', rUnit, App.render.COMPACT_AT - 1);
+      App.state.flush();
+      t.eq('one under the threshold the row draws a token per point',
+        lineOff.querySelectorAll('.tok').length, App.render.COMPACT_AT - 1);
+      App.ops.setTally('cats', 'c2', rUnit, App.render.COMPACT_AT);
+      App.state.flush();
+      t.eq('and at the threshold it draws a count and exactly one token',
+        lineOff.querySelectorAll('.tok').length, 1);
+      t.eq('with the count spelled the way every other row spells it',
+        lineOff.querySelector('.tok-count').textContent,
+        String(App.render.COMPACT_AT) + '×');
+
+      /* --- T-02.1-16. The tokens are the same objects a shipped type draws:
+             same builder, same enum-id-to-class-suffix mapping, so nothing a
+             student chose is ever pasted into a class name. --- */
+      t.eq('a student-made token carries the shipped shape and colour classes',
+        lineOff.querySelector('.tok').className, 'tok tok--circ tok--violet');
+
+      /* --- create and remove change which lines EXIST, so they are structural
+             frames; writing a number onto a line that already exists is not.
+             sync() can neither build a line nor take one away. --- */
+      var cardBefore = board.querySelector('.unit-card');
+      App.ops.nudgeTally('cats', 'c2', rUnit, -1);
+      App.state.flush();
+      t.ok('writing a number rebuilds no card',
+        board.querySelector('.unit-card') === cardBefore);
+      App.ops.createTokenType({
+        name: 'Rust', shape: 'dia', color: 'coral', glyph: '', scope: 'unit'
+      });
+      App.state.flush();
+      t.ok('while making a new type rebuilds the columns, because sync() can '
+        + 'neither build a line nor take one away',
+        board.querySelector('.unit-card') !== cardBefore);
     }
 
     App.state.restore(savedAll);
