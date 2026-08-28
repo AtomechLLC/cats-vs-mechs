@@ -1045,6 +1045,120 @@ App.data = (function () {
     '\u{1F3C6}'      // trophy
   ]);
 
+  /* ---- the action record (ACT-01 through ACT-04) ---------------------------
+     An action is `{ id, name, dmg, keywords }` on the shipped board, and it
+     gains three lists here: what it SPENDS, what it NEEDS, and what it CHANGES.
+     The four original fields stay (D-06) — the reference cards and the model's
+     damage read `dmg` and `keywords`, and Phase 5's adjudication still needs the
+     keywords. The three are ADDED, never swapped in.
+
+     A shipped action and a student's action are THE SAME KIND OF THING (D-07),
+     which is why all six below are rewritten into the new form rather than
+     handed a compatibility shim. Same principle the token vocabulary settled in
+     Phase 2.1, for the same reason: a second tier for "real" entries is a
+     special case every surface downstream then has to know about.
+
+     EVERY TERM IS AN ARRAY OF RECORDS CARRYING `tok` AS A FIELD, never an object
+     keyed by the token id. This is the one shape decision in here that is a
+     safety property rather than a preference. A bag keyed by a caller-supplied
+     string re-opens the key position requireTokenId exists to close —
+     `bag['__proto__']` reparents the object and `bag['constructor']` resolves to
+     a function on the prototype — and `Object.create(null)` cannot be the
+     mitigation, because defaults() and the state funnel both round-trip through
+     JSON and a null prototype does not survive that. An array has NO key
+     position at all, and the lookup is an Array.find over a field, which is the
+     rule styleFor, labelFor, effectRecord and actionNameById each state at
+     length. From Phase 4 a term arrives out of somebody else's pasted build
+     code, so this is the shape that has to hold under a hostile value.
+
+     THE TOOL READS THESE RECORDS AND NEVER EXECUTES ONE. There is no predicate
+     field, no expression string and no callback: a function would be dropped by
+     the JSON round trip in any case, and `eval` and the Function constructor are
+     both refused outright by the repo's forbidden-pattern scan. An authored rule
+     is data this file reads back to the student, which is the whole of the line
+     this feature walks — the tool proposes, the student disposes, and nothing
+     lands until they say so.
+     ------------------------------------------------------------------------ */
+
+  // The action-id shape, mirroring the TOKEN_ID_* trio structure for structure
+  // and for the reasons that trio states above: the width is written ONCE, and
+  // the capturing sibling is BUILT from the same source rather than derived by
+  // rewriting the pattern's text — a rewrite that stopped matching would fail
+  // silently, into a scanner that reads undefined for every id and hands back a
+  // colliding one. The prefix is `x` so the two id spaces read apart at a glance
+  // inside a build code, and the leading letter does the same second job it does
+  // for a token id: Object.keys puts integer-like keys first and in numeric
+  // order, so a bare number would reshuffle an ordered structure that a
+  // positional Phase 4 codec then encodes in the reshuffled order.
+  var ACTION_ID_DIGITS = '[0-9]{1,2}';
+  var ACTION_ID_PATTERN = new RegExp('^x' + ACTION_ID_DIGITS + '$');
+  var ACTION_ID_CAPTURE = new RegExp('^x(' + ACTION_ID_DIGITS + ')$');
+
+  // The six the board ships with, in board order — the analog of TOKEN_IDS,
+  // doing the same job. A shipped action is admitted by MEMBERSHIP of this list
+  // and never by the pattern above, which is narrow precisely so that nothing
+  // reachable from Object.prototype or Function.prototype can satisfy it.
+  // RESERVED_KEYS is REUSED for the refusal message rather than copied: one
+  // refusal list, one place, is why it was named in the first place.
+  var ACTION_IDS = deepFreeze([
+    'slash', 'hairball', 'screech', 'fly', 'lasers', 'recharge'
+  ]);
+
+  // How many actions of their own a student may keep per side (D-10), and the
+  // two term caps. Each is a named exported constant in the MAX_CUSTOM_TYPES
+  // idiom, and each is a PHASE 4 CODEC DIAL rather than a taste call — so the
+  // arithmetic is written down here and the next plan to move one moves it
+  // against measured cost instead of a feeling:
+  //   a compact positional spelling of one authored action carrying one cost,
+  //     one requirement and one transformation measured about 20 characters at
+  //     a six-character name; a name at MAX_TOKEN_NAME adds up to 18 more, and
+  //     each extra term about 6 — call it 50 worst case;
+  //   three per side, both sides, is about 300 against SHARE-04's 512-character
+  //     budget, of which the token vocabulary already claims roughly 180. Four
+  //     per side is tight at worst case and six is over budget outright;
+  //   three also matches the three each faction already ships, which is what
+  //     makes D-07 concrete on screen: three shipped plus three authored is six
+  //     cards in a column, all the same kind of thing.
+  //   If a dial has to move, the escalation path is the one CLAUDE.md names:
+  //     CompressionStream('deflate-raw') plus base64url, measured at 1,165
+  //     characters of JSON down to 167, for zero library bytes.
+  var MAX_CUSTOM_ACTIONS = 3;
+  var MAX_ACTION_REQ = 2;
+  var MAX_ACTION_XF = 2;
+
+  // The ceiling on every allocated quantity — health, shield, the faction
+  // action-point pool and a token tally. It is DEFINED here, in the data tier,
+  // and [S05] reads it rather than holding a second copy, for exactly the reason
+  // [S05]'s named-bounds paragraph gives for naming it at all: 99 was a bare
+  // literal at three call sites and would have been at seven, which is one
+  // number in seven places quietly waiting to drift apart. It moved because of
+  // the two bounds below — deriving their magnitude from it is what keeps the
+  // number written once instead of twice. [S05] still EXPORTS it, so every
+  // existing assertion against App.ops.MAX_ALLOC still reads the same constant.
+  var MAX_ALLOC = 99;
+
+  // The signed bound (ACT-04, D-08). A transformation is a SIGNED DELTA over a
+  // token type — "target Health − 3", not "damage 3" — which is what lets
+  // one mechanism cover harm, repair, shield and every token a student invents,
+  // with no vocabulary of effects for the tool to interpret. This is the first
+  // bound in the file that is not floored at zero: every int() call site today
+  // passes 0 as its minimum, because until now every quantity was an amount
+  // rather than a change to one. int() compares rather than coerces, so
+  // int(d, MIN_XF_DELTA, MAX_XF_DELTA, what) needs no new machinery and still
+  // refuses a fraction with this file's own named message.
+  var MAX_XF_DELTA = MAX_ALLOC;
+  var MIN_XF_DELTA = -MAX_XF_DELTA;
+
+  // Who a transformation lands on (D-03): the unit acting, or the unit acted
+  // on. Two entries, because the shipped model is one caster and one target;
+  // actions reaching several units at once are recorded as deferred.
+  //
+  // INDEX STABILITY — the same rule TOKEN_SCOPES and GLYPHS carry, for the same
+  // reason. Phase 4 may encode a `who` as its POSITION here. Entries may be
+  // APPENDED to the end. They may never be reordered, and never removed,
+  // without bumping the build code's schema version.
+  var XF_WHO = deepFreeze(['caster', 'target']);
+
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
@@ -1072,9 +1186,13 @@ App.data = (function () {
       ap: 3,
       units: makeUnits('c', 'Cat', 9, { maxHp: 3, shield: 0 }),
       actions: [
-        { id: 'slash', name: 'Slash', dmg: 1, keywords: [] },
-        { id: 'hairball', name: 'Hairball', dmg: 0, keywords: ['slowdown'] },
-        { id: 'screech', name: 'Screech', dmg: 0, keywords: ['confuse'] }
+        { id: 'slash', name: 'Slash', dmg: 1, keywords: [],
+          cost: [{ tok: 'ap', n: 1 }], req: [],
+          xf: [{ who: 'target', tok: 'hp', d: -1 }] },
+        { id: 'hairball', name: 'Hairball', dmg: 0, keywords: ['slowdown'],
+          cost: [{ tok: 'ap', n: 1 }], req: [], xf: [] },
+        { id: 'screech', name: 'Screech', dmg: 0, keywords: ['confuse'],
+          cost: [{ tok: 'ap', n: 1 }], req: [], xf: [] }
       ]
     },
     mechs: {
@@ -1083,9 +1201,23 @@ App.data = (function () {
       ap: 3,
       units: makeUnits('m', 'Mech', 3, { maxHp: 6, shield: 3 }),
       actions: [
-        { id: 'fly', name: 'Fly', dmg: 0, keywords: ['evade'] },
-        { id: 'lasers', name: 'Lasers', dmg: 3, keywords: ['range'] },
-        { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'] }
+        { id: 'fly', name: 'Fly', dmg: 0, keywords: ['evade'],
+          cost: [{ tok: 'ap', n: 1 }], req: [], xf: [] },
+        { id: 'lasers', name: 'Lasers', dmg: 3, keywords: ['range'],
+          cost: [{ tok: 'ap', n: 1 }], req: [],
+          xf: [{ who: 'target', tok: 'hp', d: -3 }] },
+        // RECHARGE'S SHIELD GAIN IS DELIBERATELY ABSENT, and the absence is the
+        // decision rather than an oversight. The `shield` KEYWORD on this record
+        // already carries that meaning and the table adjudicates it, which is
+        // the arrangement PROJECT.md's Out of Scope entry protects. Writing the
+        // gain in here would make Recharge the one shipped action the projection
+        // has to admit it cannot model, on a board where the student has
+        // authored nothing at all — the first thing they would read about their
+        // own board would be a caveat this file invented for them. A later plan
+        // restoring it should read this paragraph, and the row in [S09.1] that
+        // states the same thing in its own label, before it does.
+        { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'],
+          cost: [{ tok: 'ap', n: 1 }], req: [], xf: [] }
       ]
     },
     // The first four are the workshop board read literally, unchanged in
@@ -1198,7 +1330,21 @@ App.data = (function () {
     TOKEN_SCOPES: TOKEN_SCOPES,
     MAX_TOKEN_NAME: MAX_TOKEN_NAME,
     TOKEN_NAME_REFUSE: TOKEN_NAME_REFUSE,
-    GLYPHS: GLYPHS
+    GLYPHS: GLYPHS,
+    // The action record. The digit-width source string behind the two patterns
+    // is deliberately NOT exported: it is written once and read twice, both
+    // readings sit two lines from the definition, and a reader outside this
+    // tier would be one more place for it to drift.
+    ACTION_ID_PATTERN: ACTION_ID_PATTERN,
+    ACTION_ID_CAPTURE: ACTION_ID_CAPTURE,
+    ACTION_IDS: ACTION_IDS,
+    MAX_CUSTOM_ACTIONS: MAX_CUSTOM_ACTIONS,
+    MAX_ACTION_REQ: MAX_ACTION_REQ,
+    MAX_ACTION_XF: MAX_ACTION_XF,
+    MAX_ALLOC: MAX_ALLOC,
+    MAX_XF_DELTA: MAX_XF_DELTA,
+    MIN_XF_DELTA: MIN_XF_DELTA,
+    XF_WHO: XF_WHO
   });
 })();
 // #endregion [S01] DATA
@@ -1679,7 +1825,14 @@ App.ops = (function () {
   //     page disables the Add button at the cap, and this throws if anything
   //     reaches the op regardless. A guard that lives only in the page is not a
   //     guard. [S09.3] asserts the two agree rather than trusting this note.
-  var MAX_ALLOC = 99;
+  //
+  // MAX_ALLOC's VALUE now lives in [S01] and is read here rather than re-typed,
+  // because the signed transformation bounds MIN_XF_DELTA / MAX_XF_DELTA are
+  // derived from the same magnitude and [S01] is the tier both of them can see.
+  // It is still exported from here, so every assertion written against
+  // App.ops.MAX_ALLOC keeps reading the constant it always read; [S09] asserts
+  // the two agree rather than trusting this note.
+  var MAX_ALLOC = App.data.MAX_ALLOC;
   var MIN_UNITS = 1;
   var MAX_UNITS = 24;
 
