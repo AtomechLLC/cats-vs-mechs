@@ -18,8 +18,8 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ALLOC-07**: Rapid stepper clicks and press-and-hold register every input without losing keyboard focus, scroll position, or restarting token animations
 - [x] **ALLOC-08**: Cats and Mechs load prebuilt with the Workshop 16 board's actions, damage, keywords and starting allocation
 - [x] **ALLOC-09**: Student can edit a token type's appearance — shape, color and emoji — from the UI, with the shape and color carrying the meaning independently of the emoji
-- [ ] **ALLOC-10**: Student can give a token type a name, shown wherever that token type is presented
-- [ ] **ALLOC-11**: Student can create and remove their own token types, which count nothing on their own — a free annotation the student increments by hand to track a mechanic they invented
+- [x] **ALLOC-10**: Student can give a token type a name, shown wherever that token type is presented
+- [ ] **ALLOC-11**: Student can create and remove their own token types, which count nothing on their own — a free annotation the student increments by hand to track a mechanic they invented — **partially delivered; the "increments by hand" half is blocked, see F-02.1-A**
 
 ### Fight
 
@@ -128,8 +128,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALLOC-07 | Phase 2 | Complete — automated gate 14/14 (twenty `pointerdown` → twenty commits, one undo entry); the human hand-count was approved in aggregate but never recorded as a number (gap G-02-A) |
 | ALLOC-08 | Phase 1 | Complete |
 | ALLOC-09 | Phase 2 | Complete |
-| ALLOC-10 | Phase 2.1 | Pending |
-| ALLOC-11 | Phase 2.1 | Pending |
+| ALLOC-10 | Phase 2.1 | Complete — every token record carries a `name`; rename commits through the op, and gate check 30 asserts the picker list row, the picker heading and the board label all repaint from the same rename. Confirmed by a human in aggregate ("token config works"), not itemised. |
+| ALLOC-11 | Phase 2.1 | **Partial** — create, remove (with one undoable step) and the appearance surface all work and are covered by gate checks 31, 33 and 35. The **"increments by hand"** half is **not delivered**: a tally that has never been written cannot be raised from the page at all. Measured — 24 nudge buttons and 12 tally fields exist for a fresh unit-scope type and 0 of the 36 are reachable, both scopes affected. See F-02.1-A / G-02.1-A in `02.1-HUMAN-UAT.md`. Left unticked deliberately. |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
@@ -183,4 +183,5 @@ becomes observable once the fight view exists.
 
 ---
 *Requirements defined: 2026-08-26*
-*Last updated: 2026-08-26 after roadmap creation (traceability mapped)*
+*Last updated: 2026-08-27 after the Phase 2.1 closing rehearsal — ALLOC-10 complete; ALLOC-11 left
+unticked as partial, its "increments by hand" half blocked by F-02.1-A*
