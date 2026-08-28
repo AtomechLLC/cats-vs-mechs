@@ -166,7 +166,7 @@ range back, so the feature is demonstrated rather than argued.
 **UI hint**: yes
 
 Plans:
-- [ ] 03.1-01-PLAN.md — Layer C's verdict harvest extended over every dialog (bidirectionally gated, with its own floor), plus the `[S01]` action record — `cost` / `req` / `xf` on all six shipped actions, the action-id trio, the three caps, the signed bound — and the rows that would go red without them (wave 1)
+- [x] 03.1-01-PLAN.md — Layer C's verdict harvest extended over every dialog (bidirectionally gated, with its own floor), plus the `[S01]` action record — `cost` / `req` / `xf` on all six shipped actions, the action-id trio, the three caps, the signed bound — and the rows that would go red without them (wave 1)
 - [ ] 03.1-02-PLAN.md — `[S02]` D-14 answered: `actionApCost` / `actionDamage` / `bestPair` generalise `bestDamage` and `factionDps`; `actionModelled` / `unmodelled` name what the figures leave out; `affordability` is ACT-06's read; the shield reading written down beside `DAMAGE_KEYS` (wave 2)
 - [ ] 03.1-03-PLAN.md — `[S05]` the three-layer action-id gate, `createAction` / `renameAction` / `removeAction`, `actionsNaming`, and a new `[S09.10]` suite with a row per reserved key per write shape (wave 3)
 - [ ] 03.1-04-PLAN.md — the page reads the student's rules: `refActions` points at the build slice and the tripwire turns on purpose, action names get their own gate exemption, the strip gains the admission line, the picker gains the line beside Remove (wave 4)

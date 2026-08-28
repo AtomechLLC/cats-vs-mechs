@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Phase 3.1 planned (8 plans, verified)
-last_updated: "2026-08-28T18:19:59.102Z"
-last_activity: 2026-08-28 -- Phase 02.1 execution started
+stopped_at: Completed 03.1-01-PLAN.md
+last_updated: "2026-08-28T18:44:37.002Z"
+last_activity: 2026-08-28
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 24
-  completed_plans: 17
+  completed_plans: 18
   percent: 57
 ---
 
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A student builds two factions that look nothing alike and discovers they can still be balanced — and discovers it by playing, not by being told a number.
-**Current focus:** Phase 02.1 — token-authoring-inserted
+**Current focus:** Phase 03.1 — action-authoring-inserted
 
 ## Current Position
 
-Phase: 02.1 (token-authoring-inserted) — EXECUTING
-Plan: 1 of 6
-Status: Executing Phase 02.1
-Last activity: 2026-08-28 -- Phase 02.1 execution started
+Phase: 03.1 (action-authoring-inserted) — EXECUTING
+Plan: 2 of 8
+Status: Ready to execute
+Last activity: 2026-08-28
 
-Progress: [░░░░░░░░░░] 0%
+Progress: [████████░░] 75%
 
 ## Performance Metrics
 
@@ -52,6 +52,7 @@ Progress: [░░░░░░░░░░] 0%
 - Trend: —
 
 *Updated after each plan completion*
+| Phase 03.1 P01 | 78 | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -65,6 +66,9 @@ Recent decisions affecting current work:
 - [Roadmap]: PROJ-05, REF-03 and SHARE-07 pulled into Phase 5 because their observable behaviour requires the fight view to exist.
 - [Roadmap]: FIGHT-11 is a scheduled playtest activity (plan 05-03), gating Phase 5 — not a code-review item.
 - [Research]: Sharing is a compact build code, not a `file://` URL (leaks the student's home directory path, useless to recipients, not linkified by Discord).
+- [Phase 03.1]: Dialog strings feed the same PROJ-06 word list and the same check 48 as #app; DIALOG_ROOTS is gated in both directions against the stub page — A second word list is a second thing to keep in step; a dialog that escapes the harvest must fail the run rather than pass silently
+- [Phase 03.1]: MAX_ALLOC's literal moved from [S05] to [S01] so MIN_XF_DELTA and MAX_XF_DELTA derive from it once; [S05] still exports it — [S01] runs before [S05], so deriving the signed bound in App.data required the magnitude to live there; re-typing 99 was the one thing the plan forbade
+- [Phase 03.1]: cost, req and xf are arrays of records carrying tok as a FIELD, never objects keyed by token id — A keyed bag re-opens the key position requireTokenId exists to close, and Object.create(null) does not survive the JSON round trip
 
 ### Pending Todos
 
@@ -86,6 +90,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T18:19:59.094Z
-Stopped at: Phase 3.1 planned (8 plans, verified)
-Resume file: .planning/phases/03.1-action-authoring-inserted/03.1-01-PLAN.md
+Last session: 2026-08-28T18:44:36.991Z
+Stopped at: Completed 03.1-01-PLAN.md
+Resume file: None
