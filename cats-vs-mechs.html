@@ -487,21 +487,26 @@
     <div class="brd-brand">Cats vs Mechs</div>
     <div class="brd-cluster">
       <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
-      <!-- Static markup, and that is the point. A data-k has to be unique
+      <!-- ONE button, and that is the whole of D-05. What was here was a row of
+           them, one per type the board ships with, and it does not survive a
+           student inventing types: the bar grows by one control per invention,
+           on a projector, which is the one place UX-02 says it must not. One
+           button bounds the topbar permanently, and reaching a type a student
+           made is solved INSIDE the picker — every type is a row in one list —
+           rather than by bolting a second mechanism onto the board (D-08).
+
+           Static markup, and that is still the point. A data-k has to be unique
            because the structural rebuild restores focus by taking the FIRST
            [data-k="..."] match; one of these rendered inside a unit card would
-           produce nine tok/hp keys and silently break focus restore, which is
-           half of "twenty clicks make twenty changes". Four buttons here, one
-           per board token type, unique by construction. The fifth vocabulary
-           entry, dead, has no renderer consumer yet, so it gets no button.
+           produce nine identical keys and silently break focus restore, which
+           is half of "twenty clicks make twenty changes". One button here,
+           unique by construction, and it names no type at all — which is what
+           lets [S07.2] hand the focus back through a CONSTANT selector.
            openTokenPicker is page work, not a state transformation: [S07]
            routes it and [S05] never sees it. -->
       <div class="brd-tokedit" role="group" aria-labelledby="tokedit-label">
         <span class="brd-tokedit-label" id="tokedit-label">Token appearance</span>
-        <button class="brd-btn" type="button" data-k="tok/hp" data-act="openTokenPicker" data-tok="hp">Health</button>
-        <button class="brd-btn" type="button" data-k="tok/ap" data-act="openTokenPicker" data-tok="ap">Action</button>
-        <button class="brd-btn" type="button" data-k="tok/shield" data-act="openTokenPicker" data-tok="shield">Shield</button>
-        <button class="brd-btn" type="button" data-k="tok/dmg" data-act="openTokenPicker" data-tok="dmg">Damage</button>
+        <button class="brd-btn" type="button" data-k="tok" data-act="openTokenPicker">Tokens</button>
       </div>
     </div>
   </div>
@@ -3809,7 +3814,7 @@ App.interactions = (function () {
 
     // #app and #board are static markup and survive every structural rebuild;
     // per-node listeners would not. #topbar lives inside #app, so the Undo
-    // button and the four token-appearance buttons need no separate binding.
+    // button and the token button beside it need no separate binding.
     var root = document.getElementById('app');
     if (!root) { return; }
 
@@ -3868,11 +3873,31 @@ App.interactions = (function () {
    * ==================================================================== */
   // #region [S07.2] INTERACTIONS — PICKER
 
-  // Which type is being edited. Transient interaction state, so it lives here
-  // beside the hold timer rather than in the `ui` slice — [S09.3] asserts that
-  // slice holds exactly its documented keys, and "which dialog is open" is not
-  // one of them and should never become one.
-  var pickerTok = null;
+  // The type the picker opens on when it is opened cold. One button cannot
+  // carry a type the way the row of them used to, so the surface needs a
+  // starting selection and this is it, named once rather than spelled at each
+  // of the three places that need it (open, remove, and the gate).
+  var FIRST_TOK = 'hp';
+
+  // The name a type arrives with. It is a placeholder the student is expected
+  // to replace in the field directly below the button they just pressed, so it
+  // has to read as an invitation rather than as an answer — and it has to be a
+  // name App.ops.requireTokenName accepts, because a default the op refuses
+  // would put the styled error panel in front of a student on the one press
+  // this whole phase exists for. [S09.7] asserts exactly that, against this
+  // constant rather than against a re-typed copy of it.
+  var NEW_TOKEN_NAME = 'New type';
+
+  // Which type is being edited. Held in dlg.dataset.tok, which plan 02.1-04
+  // made THE source of truth for it, and read back through here — a private
+  // variable beside it would be a second place for the same answer to live and
+  // the two would disagree the first time a repaint changed one of them. It
+  // stays out of the `ui` slice for the reason it always did: [S09.3] asserts
+  // that slice holds exactly its documented keys, and "which dialog is showing
+  // what" is not one of them and should never become one.
+  function pickedTok(dlg) {
+    return String(dlg.dataset.tok || '');
+  }
 
   // Null rather than a throw when the surface is absent. The Node gate drives a
   // stub page that has no dialog at all, and an error panel raised on a button
@@ -3894,13 +3919,45 @@ App.interactions = (function () {
   // detail === 0 keyboard path, so Enter on the button behaves exactly like a
   // click. The button is not in HOLD_ACTS, so holding it starts no ramp and
   // opens the dialog exactly once.
-  UI_HANDLERS.openTokenPicker = function (btn) {
+  //
+  // The button no longer names a type (D-05), so the selection is decided here:
+  // an already-open dialog keeps whatever it is showing, and a cold open starts
+  // on FIRST_TOK. The one thing this must NOT do is take a type off the button
+  // again — a hidden data-tok put back to keep the old line working would be
+  // the collapse undone in private, which is exactly what D-07 forbids.
+  UI_HANDLERS.openTokenPicker = function () {
     var dlg = pickerDialog();
     if (dlg === null) { return; }
-    pickerTok = btn.dataset.tok;
-    App.render.picker(App.state.get(), pickerTok);
+    var id = (dlg.open === true) ? pickedTok(dlg) : '';
+    if (id === '') { id = FIRST_TOK; }
+    App.render.picker(App.state.get(), id);
     if (dlg.open !== true) { dlg.showModal(); }
   };
+
+  // THE OTHER authorized UI-only handler, and the reason it is one. Choosing
+  // which type the editor is showing writes nothing to state: it moves an
+  // attribute and asks for a repaint. [S05]'s banner says that layer never
+  // reads or writes the page, so giving this act an arm in dispatch would be
+  // wrong in both directions at once — and with no arm at all it would land on
+  // dispatch's `default: throw` and show a student the styled error panel on
+  // their first press in the list. There is a must-not-regress grep on the arm
+  // this act must never grow, and one on the picker-opening act beside it, for
+  // exactly that reason. Neither spelling appears anywhere in this file,
+  // including here, or the grep would assert the opposite of the truth.
+  //
+  // Registered on the seam rather than merely called from onPickerPress below,
+  // so that the seam is the definition: a list row that ever appears inside
+  // #app routes identically, and [S09.7] can read the registration back.
+  function selectType(btn) {
+    var dlg = pickerDialog();
+    if (dlg === null) { return; }
+    var id = btn.dataset.tok;
+    if (typeof id !== 'string' || id === '') { return; }
+    dlg.dataset.tok = id;
+    App.render.picker(App.state.get(), id);
+  }
+
+  UI_HANDLERS.selectTokenType = selectType;
 
   function closePicker() {
     var dlg = pickerDialog();
@@ -3912,13 +3969,156 @@ App.interactions = (function () {
   // opener itself, but only for the element that held focus at the moment the
   // modal opened — a student who reached the button with the pointer was never
   // focused on it, so the platform has nothing to go back to. This names the
-  // opener explicitly. The id is checked against the allowlist first, so no
-  // caller-shaped string is ever built into a selector.
+  // opener explicitly, and a rehearsal signed the behaviour off, so it must
+  // keep working with one button exactly as it did with a row of them.
+  //
+  // The selector is now a CONSTANT. What was here built it out of whichever
+  // type was open and had to check that type against the shipped allowlist
+  // first, so that no caller-shaped string reached a selector. With one static
+  // button there is no caller-shaped string left to guard: the allowlist test
+  // is DELETED rather than widened, because the thing it protected no longer
+  // exists. That is a guard removed, not a guard forgotten.
   function onPickerClose() {
     if (typeof document === 'undefined') { return; }
-    if (App.data.TOKEN_IDS.indexOf(pickerTok) === -1) { return; }
-    var opener = document.querySelector('[data-k="tok/' + pickerTok + '"]');
+    var opener = document.querySelector('[data-k="tok"]');
     if (opener && typeof opener.focus === 'function') { opener.focus(); }
+  }
+
+  // The look the editor is showing right now, which is the look a new type
+  // inherits. hasOwnProperty rather than a bare lookup, for the reason every
+  // other read of this object gives: from Phase 4 the vocabulary can arrive
+  // from a pasted build code, and a bare read for a name JavaScript keeps for
+  // itself resolves on the prototype and hands three fields of nonsense to an
+  // op that would then refuse them one at a time.
+  function liveLook(id) {
+    var vocab = App.state.get().build.tokens;
+    if (Object.prototype.hasOwnProperty.call(vocab, id)) {
+      var rec = vocab[id];
+      return { shape: rec.shape, color: rec.color, glyph: rec.glyph };
+    }
+    return {
+      shape: App.data.SHAPES[0], color: App.data.COLORS[0], glyph: App.data.GLYPHS[0]
+    };
+  }
+
+  // The scope is read off the BUTTON, because it is a property of the act and
+  // not of the editor: it is fixed at creation and cannot be changed afterwards
+  // (D-03), so the two New buttons are two acts rather than one act plus a
+  // control the student would then find greyed out forever.
+  //
+  // createTokenType hands back the id it produced, so the student lands in
+  // their new type's editor rather than being dropped back on whatever they
+  // were looking at when they pressed New.
+  function makeType(dlg, scope) {
+    var look = liveLook(pickedTok(dlg));
+    var made = App.ops.dispatch('createTokenType', {
+      name: NEW_TOKEN_NAME,
+      shape: look.shape, color: look.color, glyph: look.glyph, scope: scope
+    });
+    dlg.dataset.tok = made;
+    App.render.picker(App.state.get(), made);
+  }
+
+  // The selected type's own row is what disappears here, and that is the whole
+  // trap: keyed() has nothing to restore focus to, and fallbackTarget cannot
+  // help either because it resolves through data-side and no node in this
+  // dialog carries one. Focus would land on <body> — the same failure
+  // peerOrdinal solved for the board's remove control — so this places it.
+  //
+  // The list's first row is the target rather than the Remove button, because
+  // Remove is about to be disabled: the selection moves to one of the types the
+  // board is built on, and those refuse removal (D-15). A disabled control
+  // holding focus drops it, which is the failure wearing a different hat.
+  function dropType(dlg) {
+    App.ops.dispatch('removeTokenType', { tokenId: pickedTok(dlg) });
+    dlg.dataset.tok = FIRST_TOK;
+    App.render.picker(App.state.get(), FIRST_TOK);
+    var list = document.getElementById('tok-pick-list');
+    var first = list ? list.firstElementChild : null;
+    if (first && typeof first.focus === 'function') { first.focus(); }
+  }
+
+  /* ---- the name field. Four small functions in the spirit of [S07.1]'s
+         commitField / revertField, and deliberately NOT that machinery: the
+         stepper field's class is what isField keys on and everything
+         downstream of it is numeric by construction, so a name typed into one
+         would be parsed as a figure and refused on Enter. The PATTERN is what
+         is reused — a baseline recorded on focus, Enter commits loudly, Escape
+         puts the recorded text back, blur commits quietly. ---- */
+
+  function isNameField(el) {
+    return !!el && !!el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('pk-name');
+  }
+
+  function revertName(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // The one place D-12a's cut actually runs. A 30-emoji paste is cut to the cap
+  // on the code-point array, so no cut can leave half an astral pair for Phase
+  // 4's encoder to throw URIError on — far from the paste that caused it. The
+  // input's own maxlength counts UTF-16 units and cannot do this job.
+  function clampName(el) {
+    var cut = App.ops.clampTokenName(el.value);
+    if (cut !== el.value) { el.value = cut; }
+  }
+
+  // `loud` is Enter, which is an explicit request and earns a readable refusal.
+  // Blur is quiet: a student clicking away from a half-typed name is not an
+  // error, so the recorded text goes back and no panel opens.
+  //
+  // The value-versus-was test is not a micro-optimisation, and it is the same
+  // one commitField carries for the same measured reason: without it, typing a
+  // name, pressing Enter and then clicking away applies the rename TWICE.
+  function commitName(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var dlg = pickerDialog();
+    if (dlg === null) { return; }
+    try {
+      App.ops.dispatch('renameTokenType', { tokenId: pickedTok(dlg), name: el.value });
+    } catch (refused) {
+      revertName(el);
+      if (loud) { throw refused; }
+      return;
+    }
+    // The baseline moves with the committed text or both of them start lying —
+    // the rule showFieldValue states, applied to text.
+    el.dataset.was = el.value;
+  }
+
+  function onPickerFocusIn(e) {
+    var el = e.target;
+    if (!isNameField(el)) { return; }
+    el.dataset.was = el.value;
+  }
+
+  function onPickerFocusOut(e) {
+    var el = e.target;
+    if (!isNameField(el)) { return; }
+    commitName(el, false);
+  }
+
+  function onPickerInput(e) {
+    var el = e.target;
+    if (!isNameField(el)) { return; }
+    clampName(el);
+  }
+
+  function onPickerKeyDown(e) {
+    var el = e.target;
+    if (!isNameField(el)) { return; }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitName(el, true);
+      return;
+    }
+
+    // Escape puts the recorded text back. Keeping the dialog OPEN while it does
+    // is a separate job and belongs to the cancel listener in bindPicker, which
+    // is the only place a close request can be declined.
+    if (e.key === 'Escape') { revertName(el); }
   }
 
   // One delegated listener on the dialog, never one per swatch: the grids are
@@ -3933,6 +4133,32 @@ App.interactions = (function () {
     if (!node || typeof node.closest !== 'function') { return; }
 
     if (node.closest('[data-pk="done"]') !== null) { closePicker(); return; }
+
+    var dlg = pickerDialog();
+    if (dlg === null) { return; }
+
+    // Page work, and it stops here. Nothing is dispatched, nothing is
+    // committed, and the row a student presses is the only thing that decides
+    // which type the editor shows next.
+    var row = node.closest('[data-act="selectTokenType"]');
+    if (row !== null) { selectType(row); return; }
+
+    // State work, and every one of the three below follows the ordering the
+    // restyle beneath them already ships: dispatch FIRST, page work only after
+    // dispatch has returned. An op that refuses throws out of here into [S08]'s
+    // listener boundary and the page work never runs — which is what keeps the
+    // dialog from marking a change state declined to make. The boundary is
+    // named rather than spelled, because the number of wrapped listeners in
+    // this file is a figure a plan records and a comment must not inflate.
+    var mk = node.closest('[data-act="createTokenType"]');
+    if (mk !== null) { makeType(dlg, mk.dataset.scope); return; }
+
+    // No confirmation dialog, deliberately (D-17). D-16 makes a removal one
+    // undoable step that brings the type and every tally back together, and a
+    // modal in front of it would cost an instructor a click mid-demo to protect
+    // against something Ctrl+Z already covers.
+    var rm = node.closest('[data-act="removeTokenType"]');
+    if (rm !== null) { dropType(dlg); return; }
 
     var sw = node.closest('[data-act="setTokenStyle"]');
     if (sw === null) { return; }
@@ -3952,7 +4178,7 @@ App.interactions = (function () {
     // board's token classes in place — a restyle changes no unit count, so
     // invalidate({structural:true}) would be a rebuild nobody needs. This
     // second call is only the dialog's own selection marks.
-    App.render.picker(App.state.get(), pickerTok);
+    App.render.picker(App.state.get(), pickedTok(dlg));
   }
 
   // The same anti-double-fire rule [S07.1] uses on #app, for the same measured
@@ -3976,6 +4202,37 @@ App.interactions = (function () {
     // <dialog> fires close for the Done button and for Escape alike, so the
     // focus hand-back has one home rather than two.
     dlg.addEventListener('close', App.boot.wrap('picker close', onPickerClose));
+
+    // focusin / focusout rather than focus / blur, for the reason [S07.1]
+    // gives: only the first pair bubbles, and a delegated root is the only
+    // arrangement that survives the list underneath it being rebuilt.
+    dlg.addEventListener('focusin', App.boot.wrap('picker field focus', onPickerFocusIn));
+    dlg.addEventListener('focusout', App.boot.wrap('picker field blur', onPickerFocusOut));
+    dlg.addEventListener('input', App.boot.wrap('picker typing', onPickerInput));
+    dlg.addEventListener('keydown', App.boot.wrap('picker keydown', onPickerKeyDown));
+
+    // Escape inside the name field must put the old text back WITHOUT taking
+    // the picker away underneath it. <dialog> fires cancel on a close request
+    // and preventDefault() on that event keeps the dialog open and suppresses
+    // close; the event does not bubble, so it has to be bound on the dialog
+    // itself, which is where this binder already binds.
+    //
+    // The test is narrow on purpose: Escape anywhere ELSE in the picker still
+    // closes it, which is behaviour a rehearsal already signed off. The revert
+    // below is the same call the keydown handler makes and is a no-op when it
+    // has already run — belt and braces for a close request that arrives from
+    // something other than a key.
+    //
+    // NOT EXERCISED by the Node gate. The stub <dialog> there has .open,
+    // showModal() and close() and no close-request behaviour at all, so this
+    // path cannot be driven without a browser. It is carried to the phase's
+    // closing rehearsal as a numbered check.
+    dlg.addEventListener('cancel', App.boot.wrap('picker close request', function (e) {
+      var el = (typeof document === 'undefined') ? null : document.activeElement;
+      if (!isNameField(el)) { return; }
+      e.preventDefault();
+      revertName(el);
+    }));
   }
 
   LATE_BINDERS.push(bindPicker);
@@ -3998,6 +4255,17 @@ App.interactions = (function () {
       });
       return acc;
     }, {})),
+    // Which UI-only acts actually have a handler, read off the live
+    // registration at the moment the section closes — which is AFTER every
+    // [S07.N] sub-region has attached, so it describes the seam as it finally
+    // is. UI_ACTS above says what the router will CLAIM; this says what is
+    // handled, and the gap between the two lists is the "claimed and ignored"
+    // window a plan may deliberately sit in. Exported for the same reason
+    // FIELD_OPS is: a suite that re-types the list checks the copy.
+    UI_HANDLED: Object.freeze(Object.keys(UI_HANDLERS).sort()),
+    // The default name a new type arrives with, exported so [S09.7] can assert
+    // it is a name the op will take rather than assert a re-typed copy of it.
+    NEW_TOKEN_NAME: NEW_TOKEN_NAME,
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
@@ -5955,6 +6223,59 @@ App.selftest = (function () {
       App.interactions.UI_ACTS.indexOf('selectTokenType') !== -1);
     t.ok('alongside the act that opens it, which is unmoved',
       App.interactions.UI_ACTS.indexOf('openTokenPicker') !== -1);
+
+    /* ========== plan 02.1-05, the seam contract and the create payload =====
+       Claimed is not the same as handled. Between plan 02.1-03 and this one,
+       'selectTokenType' sat in UI_ACTS with nothing registered against it —
+       CLAIMED AND IGNORED, which the seam's own comment describes as the
+       honest behaviour for that window. These rows are what closes the window,
+       and they are read off the live registration rather than off a re-typed
+       list, for the same reason FIELD_OPS is exported above.
+
+       T-02.1-25 is the threat underneath them: an act with page work to do and
+       no handler falls through to [S05] dispatch's `default: throw` arm and
+       shows a student the styled error panel on a first click. Two
+       must-not-regress greps guard the other half of the same rule — neither
+       of these two acts may ever grow an arm in dispatch — and this comment
+       deliberately does not spell either arm, because a comment that trips one
+       of those greps makes the gate assert the opposite of the truth.
+       ------------------------------------------------------------------- */
+    t.eq('the acts the UI layer actually handles are readable, not re-typed',
+      Array.isArray(App.interactions.UI_HANDLED), true);
+    t.ok('opening the picker is handled where it is claimed',
+      App.interactions.UI_HANDLED.indexOf('openTokenPicker') !== -1);
+    t.ok('and so is picking which type the editor shows, which was claimed and '
+      + 'ignored until now',
+      App.interactions.UI_HANDLED.indexOf('selectTokenType') !== -1);
+    t.ok('nothing is handled that the router would not claim', (function () {
+      return App.interactions.UI_HANDLED.every(function (act) {
+        return App.interactions.UI_ACTS.indexOf(act) !== -1;
+      });
+    })());
+
+    /* --- the payload the create button builds, asserted where it can be read
+           without a page: the name it arrives with has to be one the op will
+           take, and the look it inherits is the look the editor was showing.
+           A default the op refuses would put the error panel in front of a
+           student on the one press this whole phase is for. --- */
+    t.eq('a new type arrives with a name the name gate accepts',
+      App.ops.requireTokenName(App.interactions.NEW_TOKEN_NAME),
+      App.interactions.NEW_TOKEN_NAME);
+    var lookOf = App.state.get().build.tokens.hp;
+    var madeId = App.ops.dispatch('createTokenType', {
+      name: App.interactions.NEW_TOKEN_NAME,
+      shape: lookOf.shape, color: lookOf.color, glyph: lookOf.glyph, scope: 'unit'
+    });
+    t.eq('and the payload the button builds lands as a real type',
+      typeof madeId, 'string');
+    t.eq('carrying the look the editor was showing when it was pressed',
+      [App.state.get().build.tokens[madeId].shape,
+        App.state.get().build.tokens[madeId].color,
+        App.state.get().build.tokens[madeId].glyph].join('/'),
+      [lookOf.shape, lookOf.color, lookOf.glyph].join('/'));
+    t.eq('and the scope the button itself named, which cannot be edited later '
+      + '(D-03)', App.state.get().build.tokens[madeId].scope, 'unit');
+    App.ops.removeTokenType(madeId);
 
     /* --- the rows below need a page. The terminal harness loads this file
            into a bare sandbox with no document, so they say so and stop,
