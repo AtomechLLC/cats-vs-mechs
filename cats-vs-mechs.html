@@ -173,6 +173,18 @@
   }
   .brd-faction{margin:0;font-size:26px;font-weight:700;letter-spacing:-.2px}
   .brd-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  /* A stat line for a type a student made, which shows nothing until they
+     actually write a number on it. The rule is needed because `hidden` alone
+     collapses nothing here: [hidden]{display:none} is a USER-AGENT rule and
+     .brd-line{display:flex} directly above is an AUTHOR rule, so the author
+     wins and a hidden line keeps its box. Same fix, same shape, as
+     .err-panel[hidden] and .st-report[hidden] further down.
+     Deliberately NOT paired with a matching rule on .unit-line: statLine
+     builds .brd-line for BOTH the faction head and the unit card, and
+     .unit-line has no builder anywhere in this file, so the twin selector the
+     research proposed would ship dead on arrival. An acceptance grep keeps it
+     from being helpfully added back. */
+  .brd-line--opt[hidden]{display:none}
   .brd-label{font-size:18px;color:var(--ink-dim);min-width:128px}
   .brd-value{font-size:24px;font-weight:700}
   .brd-note{font-size:18px;color:var(--ink-dim)}
@@ -2350,8 +2362,17 @@ App.render = (function () {
     minus.type = 'button';
     minus.textContent = '−';   // MINUS SIGN, not a hyphen
     minus.setAttribute('aria-label', 'Decrease ' + spec.label);
+    // The two buttons carry `amt` for the same reason the field does, and it
+    // is load-bearing only for a tally: [S07.1]'s fire() reads data-amt off
+    // whichever node the press arrived on to say WHICH type is being stepped,
+    // and a press arrives on a button. Without it, + and − on a student-made
+    // stepper would dispatch a nudge naming no type at all. The three shipped
+    // steppers carry it too and nothing reads it there — sync()'s passes key
+    // off the field, the readout and the token row by class, and a stepper
+    // button is none of the three.
     setData(minus, {
-      k: spec.key + '-', act: spec.nudge, side: spec.side, unit: spec.unitId, step: '-1'
+      k: spec.key + '-', act: spec.nudge, amt: spec.amt,
+      side: spec.side, unit: spec.unitId, step: '-1'
     });
     wrap.appendChild(minus);
 
@@ -2371,7 +2392,8 @@ App.render = (function () {
     plus.textContent = '+';
     plus.setAttribute('aria-label', 'Increase ' + spec.label);
     setData(plus, {
-      k: spec.key + '+', act: spec.nudge, side: spec.side, unit: spec.unitId, step: '1'
+      k: spec.key + '+', act: spec.nudge, amt: spec.amt,
+      side: spec.side, unit: spec.unitId, step: '1'
     });
     wrap.appendChild(plus);
 
@@ -2387,9 +2409,19 @@ App.render = (function () {
     return row;
   }
 
-  function statLine(cls, label, valueNode, row) {
+  // `tokenId` is optional and names the type whose label this line carries.
+  // When it is there the span gets data-lbl and sync() owns the text from the
+  // first frame on; when it is not, the literal stands as it always has.
+  // setData already skips undefined, so the four-argument call sites below are
+  // unchanged in behaviour. The literal is still passed either way, so the
+  // first painted frame is never blank — the sync pass overwrites it
+  // immediately, and for the shipped five it overwrites it with the same
+  // words.
+  function statLine(cls, label, valueNode, row, tokenId) {
     var line = el('div', 'brd-line');
-    line.appendChild(text('span', cls, label));
+    var name = text('span', cls, label);
+    setData(name, { lbl: tokenId });
+    line.appendChild(name);
     line.appendChild(valueNode);
     if (row) { line.appendChild(row); }
     return line;
@@ -2401,7 +2433,67 @@ App.render = (function () {
     return node;
   }
 
-  function factionHead(faction, side) {
+  // ALLOC-11. One builder for both scopes, because the two differ in exactly
+  // two values — the key and the unit id — and a second copy would be a second
+  // place for the data-k contract above to drift away from.
+  //
+  // data-k is IDENTITY and has to be unique document-wide, because focus
+  // restore takes the FIRST match for it. Both shapes below are unique by
+  // construction for the same reason the shipped keys are: a side key names a
+  // side and a type, a unit key names a side, a unit and a type, and no unit
+  // is on two sides.
+  //
+  // The line itself carries enough data-* for sync()'s hide pass to read its
+  // quantity straight back off the page — the type, the side, and for a unit
+  // line the unit. setData skips the undefined one, so the faction line needs
+  // no special case.
+  //
+  // The value is read through amountFor rather than off the record here. The
+  // rebuilt field is the one case sync() is forbidden to write over (D-19
+  // skips the focused field), so a build-time number of its own would be the
+  // one number on the board with a second source.
+  function tallyLine(state, tokenId, rec, side, unitId, ownerName) {
+    var key = (unitId === null)
+      ? side + '/' + tokenId
+      : side + '/' + unitId + '/' + tokenId;
+    var line = statLine(
+      (unitId === null) ? 'brd-label' : 'unit-label',
+      rec.name,
+      stepper({
+        key: key, act: 'tally', nudge: 'nudgeTally', amt: tokenId,
+        side: side, unitId: unitId,
+        label: ownerName + ' ' + rec.name,
+        value: amountFor(state, tokenId, side, unitId)
+      }),
+      tokenRow(tokenId, side, unitId),
+      tokenId
+    );
+    line.classList.add('brd-line--opt');
+    setData(line, { amt: tokenId, side: side, unit: unitId });
+    return line;
+  }
+
+  // D-01 and D-02: the scope a student chose at creation decides the site, and
+  // the record is where that choice already lives — so this reads it rather
+  // than deciding again. A null unit id IS the faction site.
+  //
+  // The five the board is built on are skipped: their quantity is the health,
+  // shield or action points already on the card, and a second number beside
+  // one of them would be a purely mechanical reason for the two to disagree.
+  function tallyLines(state, side, unitId, ownerName) {
+    var vocab = state.build.tokens;
+    var want = (unitId === null) ? 'side' : 'unit';
+    var lines = [];
+    if (!vocab) { return lines; }
+    Object.keys(vocab).forEach(function (tokenId) {
+      if (App.data.TOKEN_IDS.indexOf(tokenId) !== -1) { return; }
+      if (vocab[tokenId].scope !== want) { return; }
+      lines.push(tallyLine(state, tokenId, vocab[tokenId], side, unitId, ownerName));
+    });
+    return lines;
+  }
+
+  function factionHead(state, faction, side) {
     var head = el('section', 'brd-col-head');
     head.appendChild(text('h2', 'brd-faction', faction.name));
 
@@ -2410,7 +2502,15 @@ App.render = (function () {
     head.appendChild(statLine('brd-label', 'Action points', stepper({
       key: side + '/ap', act: 'ap', nudge: 'nudgeAp', amt: 'ap',
       side: side, label: faction.name + ' action points', value: faction.ap
-    }), tokenRow('ap', side, null)));
+    }), tokenRow('ap', side, null), 'ap'));
+
+    // Directly after the action points, and before the two derivations below,
+    // because this is the other thing on this head a student ALLOCATES. The
+    // damage and total-health lines are projections of what they allocated,
+    // and keeping the two groups apart is the whole reading of the column.
+    tallyLines(state, side, null, faction.name).forEach(function (line) {
+      head.appendChild(line);
+    });
 
     // Q-2 -- where the red diamonds live. App.model.bestDamage is a shipped
     // pure derivation that until now had no consumer at all, so this needs no
@@ -2425,7 +2525,7 @@ App.render = (function () {
     return head;
   }
 
-  function unitCard(faction, unit, side, setup) {
+  function unitCard(state, faction, unit, side, setup) {
     var card = el('article', 'unit-card');
 
     var head = el('div', 'unit-head');
@@ -2444,12 +2544,22 @@ App.render = (function () {
     card.appendChild(statLine('unit-label', 'Health', stepper({
       key: side + '/' + unit.id + '/maxHp', act: 'maxHp', nudge: 'nudgeMaxHp', amt: 'hp',
       side: side, unitId: unit.id, label: unit.name + ' health', value: unit.maxHp
-    }), tokenRow('hp', side, unit.id)));
+    }), tokenRow('hp', side, unit.id), 'hp'));
 
     card.appendChild(statLine('unit-label', 'Shield', stepper({
       key: side + '/' + unit.id + '/shield', act: 'shield', nudge: 'nudgeShield', amt: 'shield',
       side: side, unitId: unit.id, label: unit.name + ' shield', value: unit.shield
-    }), tokenRow('shield', side, unit.id)));
+    }), tokenRow('shield', side, unit.id), 'shield'));
+
+    // Every type a student made and scoped to a unit gets a line here, on
+    // every card, whether or not this unit carries a number for it — the hide
+    // pass in sync() is what keeps a zero off the screen, and it needs the
+    // line to exist to hide it. Building only the non-zero ones would make a
+    // tally going 0 -> 1 a structural change, and a rebuild throws away the
+    // caret and every token node on the board.
+    tallyLines(state, side, unit.id, unit.name).forEach(function (line) {
+      card.appendChild(line);
+    });
 
     return card;
   }
@@ -2463,10 +2573,10 @@ App.render = (function () {
   function buildColumn(col, state, side) {
     var faction = state.build[side];
     var setup = (state.fight === null);
-    var parts = [factionHead(faction, side)];
+    var parts = [factionHead(state, faction, side)];
 
     faction.units.forEach(function (unit) {
-      parts.push(unitCard(faction, unit, side, setup));
+      parts.push(unitCard(state, faction, unit, side, setup));
     });
 
     if (setup) {
@@ -2523,6 +2633,30 @@ App.render = (function () {
     if (amt === 'ap') { return faction.ap; }
     if (amt === 'dmg') { return App.model.bestDamage(faction); }
     if (amt === 'ehp') { return App.model.factionEhp(faction); }
+
+    // ALLOC-11, and a REORDER rather than an append: this arm has to run
+    // ABOVE the `if (!unit) { return 0; }` below it. A type a student made
+    // with scope 'side' is asked for with a null unit id by construction, so
+    // anywhere under that early return it would be unreachable and a faction
+    // tally would draw as zero forever.
+    //
+    // Nothing here is stored: the number is read off the build slice on every
+    // frame, like every other number this function hands back. hasOwnProperty
+    // three times over — on the vocabulary for the same reason styleFor gives,
+    // and on the bag because a tally is stored sparsely, so "no key" is the
+    // ordinary case rather than the odd one. The TOKEN_IDS test is what keeps
+    // the five the board is built on out: their quantity is the health, shield
+    // or action points already on the card, and a second number beside it
+    // would be a purely mechanical reason for the two to disagree.
+    var vocab = state.build.tokens;
+    if (vocab && App.data.TOKEN_IDS.indexOf(amt) === -1
+      && Object.prototype.hasOwnProperty.call(vocab, amt)) {
+      var owner = (vocab[amt].scope === 'side') ? faction : findUnit(faction, unitId);
+      if (!owner || !owner.tally) { return 0; }
+      if (!Object.prototype.hasOwnProperty.call(owner.tally, amt)) { return 0; }
+      return owner.tally[amt];
+    }
+
     var unit = findUnit(faction, unitId);
     if (!unit) { return 0; }
     if (amt === 'hp') { return unit.maxHp; }
@@ -2538,6 +2672,22 @@ App.render = (function () {
     var vocab = state.build.tokens;
     if (vocab && Object.prototype.hasOwnProperty.call(vocab, amt)) { return vocab[amt]; }
     return App.data.DEFAULTS.tokens.hp;
+  }
+
+  // ALLOC-10. The label half of styleFor, and deliberately written as its
+  // twin: same hasOwnProperty guard, for the same reason spelled out above it
+  // — from Phase 4 this object can arrive from a pasted build code, and a bare
+  // lookup for 'constructor' resolves on the prototype and hands the page a
+  // function where a line of text belongs. The typeof check is the second half
+  // of that: a record that survived a decode with no name field must still
+  // paint something a student can read.
+  function labelFor(state, tokenId) {
+    var vocab = state.build.tokens;
+    if (vocab && Object.prototype.hasOwnProperty.call(vocab, tokenId)
+      && typeof vocab[tokenId].name === 'string') {
+      return vocab[tokenId].name;
+    }
+    return App.data.DEFAULTS.tokens.hp.name;
   }
 
   // T-02-01. Shape and colour are enum ids checked against the exported
@@ -2650,6 +2800,18 @@ App.render = (function () {
       values[i].textContent = String(amountFor(state, values[i].dataset.amt, values[i].dataset.side, values[i].dataset.unit));
     }
 
+    // ALLOC-10 and D-10. A label is a per-frame read for the same reason every
+    // number beside it is, and NOT a string baked into structure(): a rename
+    // is a plain commit, so making it structural would rebuild both columns on
+    // every keystroke of a name being typed, throwing away the caret and every
+    // token node with it. It is also what lets a rename of one of the five the
+    // board is built on travel exactly the same single path a student-made
+    // type's rename travels — one write, one read, no second place to update.
+    var labels = board.querySelectorAll('[data-lbl]');
+    for (i = 0; i < labels.length; i++) {
+      labels[i].textContent = labelFor(state, labels[i].dataset.lbl);
+    }
+
     var rows = board.querySelectorAll('.tok-row');
     for (i = 0; i < rows.length; i++) {
       syncRow(
@@ -2657,6 +2819,28 @@ App.render = (function () {
         amountFor(state, rows[i].dataset.amt, rows[i].dataset.side, rows[i].dataset.unit),
         styleFor(state, rows[i].dataset.amt)
       );
+    }
+
+    // T-02.1-18 and UX-02. Six types across twenty-four units is 144 labelled
+    // boxes on a projector, almost every one of them zero. A line for a type a
+    // student made shows NOTHING until they write a number on it — no empty
+    // box, no orphan label — so the board stays clean until their invention is
+    // actually in play.
+    //
+    // Three things this depends on, each checked rather than assumed:
+    //   nothing animates when a line comes back. A hidden line holds zero
+    //     children by construction, and syncRow reads `animate` off
+    //     row.children.length BEFORE its loop, so 0 -> 1 appends without the
+    //     entry class and no token pops for a line that was merely revealed;
+    //   the line already exists, so a tally going 0 -> 1 is a plain commit and
+    //     a sync-only frame reveals it. structure() is not involved, and no
+    //     caret or token node is thrown away to show one number;
+    //   a line the board is built on is never touched here, because only the
+    //     student-made ones carry the class. A unit at zero health is
+    //     something a student meant, and it stays on screen.
+    var opt = board.querySelectorAll('.brd-line--opt');
+    for (i = 0; i < opt.length; i++) {
+      opt[i].hidden = amountFor(state, opt[i].dataset.amt, opt[i].dataset.side, opt[i].dataset.unit) === 0;
     }
 
     // The seam, and the reason it is a seam rather than a named call: #board is
@@ -2845,6 +3029,11 @@ App.render = (function () {
     // the op clamps, and a local copy of that sum would be a second, mechanical
     // reason for the field and the tokens beside it to disagree.
     amountFor: amountFor,
+    // Exported for the same reason and to the same standard: [S09.7] asserts
+    // the function the board actually paints with rather than a re-typed copy
+    // of it, and plan 02.1-05's editor reads the label it is about to change
+    // through this one read.
+    labelFor: labelFor,
     COMPACT_AT: COMPACT_AT,
     MAX_UNITS: MAX_UNITS
   });
@@ -2894,7 +3083,12 @@ App.interactions = (function () {
   // This array is the landing place for EVERY future UI-only act: Phase 3's
   // reference cards, Phase 4's share dialog, Phase 5's fight controls. Nothing
   // UI-only may be added to [S05] to serve a dialog.
-  var UI_ACTS = ['openTokenPicker'];
+  // 'selectTokenType' is claimed here by plan 02.1-03 and handled by plan
+  // 02.1-05, for the reason spelled out directly above: picking which type the
+  // editor is showing is page work, and routing page work into [S05] dispatch
+  // would meet its `default: throw` arm and put the styled error panel in
+  // front of a student on a first click.
+  var UI_ACTS = ['openTokenPicker', 'selectTokenType'];
 
   // act name -> function (btn, e). This plan registers NONE of them. Plan 02-03
   // assigns UI_HANDLERS.openTokenPicker from its own [S07.N] sub-region, which
@@ -2917,7 +3111,11 @@ App.interactions = (function () {
   // return undefined, so the ramp would run until release and then throw
   // non-terminally on the first bound it met (roster full, one unit left, empty
   // undo stack), flashing the error panel mid-demo.
-  var HOLD_ACTS = ['nudgeAp', 'nudgeMaxHp', 'nudgeShield'];
+  // 'nudgeTally' is here for plan 02.1-03's tally stepper, and it has to be
+  // named here rather than inferred: without an entry the press-and-hold ramp
+  // simply never starts for it, and a control a student made would be the one
+  // stepper on the board that cannot be held down.
+  var HOLD_ACTS = ['nudgeAp', 'nudgeMaxHp', 'nudgeShield', 'nudgeTally'];
 
   // Extra delegated roots that live OUTSIDE #app. bind() walks this list after
   // binding its own roots and runs each entry through the same error boundary.
@@ -3032,12 +3230,20 @@ App.interactions = (function () {
   // hiding inside the value boundary. Returns the op's boolean so the ramp can
   // read it. dataset is re-read off the element the event actually arrived on,
   // never cached across frames.
+  // The `tokenId` key is plan 02.1-03's one recorded exception to the section
+  // banner above, which promises later plans attach through the seams rather
+  // than edit [S07.1]. A tally stepper needs a fourth thing said about it —
+  // WHICH type it steps — and there is no seam through which a payload key can
+  // be added. It is one key, read off the node's own data-amt, and it is
+  // ignored by every act that shipped before it: dispatch's arms each read the
+  // payload keys they need and nothing else.
   function fire(btn) {
     var d = btn.dataset;
     return App.ops.dispatch(d.act, {
       side: d.side,
       unitId: d.unit,
-      delta: Number(d.step)
+      delta: Number(d.step),
+      tokenId: d.amt
     });
   }
 
@@ -3089,11 +3295,20 @@ App.interactions = (function () {
   // reset, startFight, removeUnit or undo on blur instead of failing at the
   // page boundary where the mistake is. A guard that runs in only one
   // direction is not a guard.
+  //
+  // `tally` is a table ROW, deliberately, and not a widening of the check: a
+  // field a student made is bounded by exactly the same allowlist the three
+  // shipped ones are. Its `amt` is null because this table cannot know which
+  // type a given field steps — one row here stands for every type a student
+  // will ever invent — so a tally field names its own quantity through its
+  // data-amt and the two lookups below fall back to it.
   var FIELD_OPS = {
     ap:     { set: 'ap',     nudge: 'nudgeAp',    amt: 'ap' },
     maxHp:  { set: 'maxHp',  nudge: 'nudgeMaxHp', amt: 'hp' },
-    shield: { set: 'shield', nudge: 'nudgeShield', amt: 'shield' }
+    shield: { set: 'shield', nudge: 'nudgeShield', amt: 'shield' },
+    tally:  { set: 'setTally', nudge: 'nudgeTally', amt: null }
   };
+
 
   function fieldOp(el, which) {
     var act = el.dataset.act;
@@ -3125,8 +3340,12 @@ App.interactions = (function () {
   function showFieldValue(el) {
     var d = el.dataset;
     if (!Object.prototype.hasOwnProperty.call(FIELD_OPS, d.act)) { return; }
+    // `|| d.amt` is the tally case and only the tally case: the three shipped
+    // rows carry a fixed, non-empty string and never reach the fallback, so
+    // they read back exactly as they did. A tally row cannot carry one,
+    // because one row there stands for every type a student will invent.
     el.value = String(
-      App.render.amountFor(App.state.get(), FIELD_OPS[d.act].amt, d.side, d.unit)
+      App.render.amountFor(App.state.get(), FIELD_OPS[d.act].amt || d.amt, d.side, d.unit)
     );
 
     // dataset.was is what commitField compares against and what Escape puts
@@ -3140,7 +3359,7 @@ App.interactions = (function () {
     var op = fieldOp(el, 'nudge');
     var d = el.dataset;
     var moved = App.ops.dispatch(op, {
-      side: d.side, unitId: d.unit, delta: delta
+      side: d.side, unitId: d.unit, delta: delta, tokenId: d.amt
     });
     showFieldValue(el);
     return moved;
@@ -3154,7 +3373,7 @@ App.interactions = (function () {
     var op = fieldOp(el, 'set');
     var d = el.dataset;
     return App.ops.dispatch(op, {
-      side: d.side, unitId: d.unit, value: parsed.n
+      side: d.side, unitId: d.unit, value: parsed.n, tokenId: d.amt
     });
   }
 
@@ -3552,6 +3771,18 @@ App.interactions = (function () {
     holdSource: holdSource,
     UI_ACTS: Object.freeze(UI_ACTS.slice()),
     HOLD_ACTS: Object.freeze(HOLD_ACTS.slice()),
+    // Exported read-only so [S09.7] asserts the table a field is actually
+    // bounded by rather than a re-typed copy of it — the same reason UI_ACTS
+    // and HOLD_ACTS are here. Frozen a level DOWN, not just at the top: a
+    // shallow freeze would hand every caller a mutable row of the one
+    // allowlist that stands between a data-act read off the page and an op it
+    // was never meant to reach.
+    FIELD_OPS: Object.freeze(Object.keys(FIELD_OPS).reduce(function (acc, k) {
+      acc[k] = Object.freeze({
+        set: FIELD_OPS[k].set, nudge: FIELD_OPS[k].nudge, amt: FIELD_OPS[k].amt
+      });
+      return acc;
+    }, {})),
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
@@ -5413,6 +5644,238 @@ App.selftest = (function () {
         var json = JSON.stringify(App.state.get().build);
         return JSON.stringify(JSON.parse(json)) === json;
       })());
+
+    /* ========== plan 02.1-03, the read the board draws from ==========
+       The board is handed back again here, so the rows below start from the
+       shipped vocabulary rather than from the full cap the block above left.
+       Everything down to the DOM gate is a pure read over a state object,
+       which is exactly why labelFor and amountFor are exported rather than
+       re-typed here: a suite that re-types the function it is checking checks
+       the copy.
+       -------------------------------------------------------------------- */
+    App.state.restore(savedAll);
+    App.state.flush();
+
+    /* --- ALLOC-10. The label a student reads is a field of state, so one read
+           serves every site on the board that names a type, and a rename has
+           no second place to reach. --- */
+    t.eq('the label read is exported', typeof App.render.labelFor, 'function');
+    t.eq('a shipped type reads its label out of the live vocabulary',
+      App.render.labelFor(App.state.get(), 'hp'), 'Health');
+    App.ops.renameTokenType('hp', 'Vigor');
+    t.eq('and a rename moves it', App.render.labelFor(App.state.get(), 'hp'), 'Vigor');
+    App.ops.renameTokenType('hp', 'Health');
+
+    /* --- T-02.1-14, and the same reason styleFor gives beside it: from
+           Phase 4 the vocabulary can arrive from a pasted build code, and a
+           bare lookup for 'constructor' resolves on the prototype and hands
+           the page a function where it expects a line of text. --- */
+    t.eq('a name JavaScript keeps for itself reads back the shipped health '
+      + 'label rather than a function',
+      App.render.labelFor(App.state.get(), 'constructor'),
+      App.data.DEFAULTS.tokens.hp.name);
+    t.eq('and so does an id that names nothing on this board',
+      App.render.labelFor(App.state.get(), 'nope'),
+      App.data.DEFAULTS.tokens.hp.name);
+    t.eq('and so does a state with no vocabulary at all',
+      App.render.labelFor({ build: {} }, 'hp'),
+      App.data.DEFAULTS.tokens.hp.name);
+
+    /* --- ALLOC-11. amountFor is the ONE read every number on the board goes
+           through, so a type a student made has to resolve there or it draws
+           nothing. The side-scope arm sits ABOVE the point where amountFor
+           gives up for want of a unit: a side tally is asked for with a null
+           unit id, so below that point it would be unreachable. --- */
+    var rUnit = App.ops.createTokenType({
+      name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+    });
+    var rSide = App.ops.createTokenType({
+      name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+    });
+
+    t.eq('a unit tally nobody has written reads zero',
+      App.render.amountFor(App.state.get(), rUnit, 'cats', 'c1'), 0);
+    App.ops.setTally('cats', 'c1', rUnit, 4);
+    t.eq('and once written it reads back through the board\'s one read',
+      App.render.amountFor(App.state.get(), rUnit, 'cats', 'c1'), 4);
+    t.eq('while the cat beside it still reads zero',
+      App.render.amountFor(App.state.get(), rUnit, 'cats', 'c2'), 0);
+
+    App.ops.setTally('mechs', null, rSide, 7);
+    t.eq('a side tally resolves with no unit id at all',
+      App.render.amountFor(App.state.get(), rSide, 'mechs', null), 7);
+    t.eq('and the other side reads zero for it',
+      App.render.amountFor(App.state.get(), rSide, 'cats', null), 0);
+
+    t.eq('a name JavaScript keeps for itself reads zero rather than a function',
+      App.render.amountFor(App.state.get(), 'constructor', 'cats', 'c1'), 0);
+    t.eq('and an id that names nothing reads zero too',
+      App.render.amountFor(App.state.get(), 'nope', 'cats', 'c1'), 0);
+
+    /* --- the five the board is built on are untouched by the new arm. --- */
+    t.eq('health still reads the unit\'s health',
+      App.render.amountFor(App.state.get(), 'hp', 'cats', 'c1'),
+      App.state.get().build.cats.units[0].maxHp);
+    t.eq('shield still reads the unit\'s shield',
+      App.render.amountFor(App.state.get(), 'shield', 'cats', 'c1'),
+      App.state.get().build.cats.units[0].shield);
+    t.eq('action points still read the faction pool',
+      App.render.amountFor(App.state.get(), 'ap', 'cats', null),
+      App.state.get().build.cats.ap);
+
+    /* --- plan 02.1-03's four recorded exceptions to [S07.1]'s banner. Each
+           one is additive, and each is asserted here rather than trusted to
+           the comment beside it. --- */
+    t.eq('a field may drive exactly four ops, and not one more',
+      Object.keys(App.interactions.FIELD_OPS).sort(),
+      ['ap', 'maxHp', 'shield', 'tally']);
+    t.eq('the tally row names no fixed quantity, because one row there stands '
+      + 'for every type a student will invent',
+      App.interactions.FIELD_OPS.tally.amt, null);
+    t.eq('and it names the real op rather than a spelling of its own',
+      App.interactions.FIELD_OPS.tally.set, 'setTally');
+    t.ok('the press-and-hold ramp is allowed to run for a tally stepper',
+      App.interactions.HOLD_ACTS.indexOf('nudgeTally') !== -1);
+    t.ok('picking which type the editor shows is claimed by the UI layer',
+      App.interactions.UI_ACTS.indexOf('selectTokenType') !== -1);
+    t.ok('alongside the act that opens it, which is unmoved',
+      App.interactions.UI_ACTS.indexOf('openTokenPicker') !== -1);
+
+    /* --- the rows below need a page. The terminal harness loads this file
+           into a bare sandbox with no document, so they say so and stop,
+           exactly as [S09.4] does. A browser run gains the real coverage. --- */
+    if (typeof document === 'undefined') {
+      t.info('the board rows of the token-authoring suite', 'skipped — no DOM');
+    } else {
+      // Through invalidate + flush rather than by calling structure() and
+      // sync() by hand. The two calls paint the same board, but they leave the
+      // structural flag the createTokenType calls above set still standing, so
+      // the NEXT flush rebuilds the columns for a reason that has nothing to
+      // do with the rename below — and the no-rebuild row underneath would
+      // then be reading a debt this suite ran up rather than the frame the
+      // rename asked for. Measured: it read red for exactly that reason.
+      App.state.invalidate({ structural: true });
+      App.state.flush();
+
+      var heldCard = document.querySelector('.unit-card');
+      var hpLabels = document.querySelectorAll('[data-lbl="hp"]');
+      t.eq('every unit card names health through the label key rather than '
+        + 'through a literal baked into the rebuild',
+        hpLabels.length,
+        App.state.get().build.cats.units.length
+          + App.state.get().build.mechs.units.length);
+
+      App.ops.renameTokenType('hp', 'Vigor');
+      App.state.flush();
+      t.ok('a rename repaints every one of them', (function () {
+        var live = document.querySelectorAll('[data-lbl="hp"]');
+        return live.length === hpLabels.length
+          && Array.prototype.every.call(live, function (n) {
+            return n.textContent === 'Vigor';
+          });
+      })());
+      t.ok('and rebuilt no unit card doing it — the frame a rename asks for is '
+        + 'a sync, so the card that held the label is the same node',
+        document.querySelector('.unit-card') === heldCard);
+
+      App.ops.renameTokenType('hp', 'Health');
+      App.state.flush();
+
+      /* --- ALLOC-11, D-01 and D-02. A type a student made draws at the site
+             its scope names and at no other: 'unit' puts a line on every unit
+             card, 'side' puts one on each faction head. --- */
+      var board = document.getElementById('board');
+      t.eq('a unit-scope type a student made draws on every unit card',
+        board.querySelectorAll('.brd-line--opt[data-amt="' + rUnit + '"]').length,
+        App.state.get().build.cats.units.length
+          + App.state.get().build.mechs.units.length);
+      t.eq('and a side-scope one draws once per faction head',
+        board.querySelectorAll('.brd-line--opt[data-amt="' + rSide + '"]').length, 2);
+      t.eq('with no side-scope line anywhere on a unit card', (function () {
+        var n = 0;
+        Array.prototype.forEach.call(board.querySelectorAll('.unit-card'), function (c) {
+          n += c.querySelectorAll('[data-amt="' + rSide + '"]').length;
+        });
+        return n;
+      })(), 0);
+
+      /* --- data-k is IDENTITY and unique document-wide, because focus restore
+             takes the FIRST match for it. Both shapes are unique by
+             construction for the same reason the shipped keys are: a side key
+             names a side and a type, a unit key names a side, a unit and a
+             type, and no unit is on two sides. --- */
+      t.eq('the unit line is keyed by side, unit and type',
+        board.querySelectorAll('[data-k="cats/c1/' + rUnit + '"]').length, 1);
+      t.eq('and the side line by side and type',
+        board.querySelectorAll('[data-k="mechs/' + rSide + '"]').length, 1);
+
+      /* --- T-02.1-18 and UX-02. Six types across twenty-four units is 144
+             labelled boxes, almost every one of them zero. A zero draws
+             NOTHING — no empty box, no orphan label. --- */
+      var lineOn = board.querySelector(
+        '.brd-line--opt[data-amt="' + rUnit + '"][data-unit="c1"]');
+      var lineOff = board.querySelector(
+        '.brd-line--opt[data-amt="' + rUnit + '"][data-unit="c2"]');
+      t.eq('the line for a number a student has written is on screen',
+        lineOn ? lineOn.hidden : '(no line)', false);
+      t.eq('and the line for a number nobody has written shows nothing at all',
+        lineOff ? lineOff.hidden : '(no line)', true);
+
+      App.ops.setTally('cats', 'c2', rUnit, 1);
+      App.state.flush();
+      t.eq('writing one onto it brings the line back on a plain commit — the '
+        + 'line already exists, so a sync is all it takes',
+        lineOff ? lineOff.hidden : '(no line)', false);
+      t.eq('and the row underneath it holds exactly one token',
+        lineOff ? lineOff.querySelectorAll('.tok').length : -1, 1);
+
+      /* --- a line the board is built on is NEVER hidden. A unit at zero
+             health is something a student meant, and it stays legible. --- */
+      App.ops.setUnitMaxHp('cats', 'c2', 0);
+      App.state.flush();
+      t.ok('a health line at zero stays on screen', (function () {
+        var hpRow = board.querySelector('.tok-row[data-amt="hp"][data-unit="c2"]');
+        return hpRow !== null && hpRow.parentNode.hidden !== true
+          && String(hpRow.parentNode.className).indexOf('brd-line--opt') === -1;
+      })());
+
+      /* --- D-20 and D-21. A student-made row compacts exactly as a shipped
+             one does, because it IS the shipped builder reading the shipped
+             threshold. --- */
+      App.ops.setTally('cats', 'c2', rUnit, App.render.COMPACT_AT - 1);
+      App.state.flush();
+      t.eq('one under the threshold the row draws a token per point',
+        lineOff.querySelectorAll('.tok').length, App.render.COMPACT_AT - 1);
+      App.ops.setTally('cats', 'c2', rUnit, App.render.COMPACT_AT);
+      App.state.flush();
+      t.eq('and at the threshold it draws a count and exactly one token',
+        lineOff.querySelectorAll('.tok').length, 1);
+      t.eq('with the count spelled the way every other row spells it',
+        lineOff.querySelector('.tok-count').textContent,
+        String(App.render.COMPACT_AT) + '×');
+
+      /* --- T-02.1-16. The tokens are the same objects a shipped type draws:
+             same builder, same enum-id-to-class-suffix mapping, so nothing a
+             student chose is ever pasted into a class name. --- */
+      t.eq('a student-made token carries the shipped shape and colour classes',
+        lineOff.querySelector('.tok').className, 'tok tok--circ tok--violet');
+
+      /* --- create and remove change which lines EXIST, so they are structural
+             frames; writing a number onto a line that already exists is not.
+             sync() can neither build a line nor take one away. --- */
+      var cardBefore = board.querySelector('.unit-card');
+      App.ops.nudgeTally('cats', 'c2', rUnit, -1);
+      App.state.flush();
+      t.ok('writing a number rebuilds no card',
+        board.querySelector('.unit-card') === cardBefore);
+      App.ops.createTokenType({
+        name: 'Rust', shape: 'dia', color: 'coral', glyph: '', scope: 'unit'
+      });
+      App.state.flush();
+      t.ok('while making a new type rebuilds the columns, because sync() can '
+        + 'neither build a line nor take one away',
+        board.querySelector('.unit-card') !== cardBefore);
+    }
 
     App.state.restore(savedAll);
     App.state.flush();
