@@ -2796,6 +2796,56 @@ App.ops = (function () {
     if (Object.keys(owner.tally).length === 0) { delete owner.tally; }
   }
 
+  // Which actions name a given token type, on both sides (ACT-07, D-12). The
+  // one referential read this phase needs, and the answer to a question the
+  // board could not previously be asked: an action's cost, requirements and
+  // transformations all name a token type by id, so removing that type has a
+  // consequence a student deserves to see BEFORE it happens.
+  //
+  // A PURE read, placed here beside the other small helper: it takes a build
+  // slice as an argument, reads no singleton, writes nothing and produces no
+  // sentence. The warning a student sees is RENDERED by the surface, never
+  // thrown from here, for the reason this section's banner gives — [S05] does
+  // not touch the page. It hands back the SIDE, the id and the LIVE name, so
+  // whoever writes the line writes it about the name the student chose.
+  //
+  // hasOwnProperty on every step, for the reason dropTally gives above: from
+  // Phase 4 a record can arrive from a pasted build code rather than from this
+  // file, and a bare `a.cost` test would read an inherited name as a present
+  // list. Every list is confirmed to be an array before it is walked, for the
+  // same reason.
+  //
+  // Measured under two microseconds for a full scan at fifty-four actions,
+  // against a sixteen-millisecond frame budget — so a surface may recompute it
+  // on every repaint rather than holding a copy, which is what lets an undo
+  // move the line along with everything else it moves.
+  function actionsNaming(build, tokenId) {
+    var out = [];
+    if (build === null || typeof build !== 'object') { return out; }
+    SIDES.forEach(function (side) {
+      if (!Object.prototype.hasOwnProperty.call(build, side)) { return; }
+      var faction = build[side];
+      if (faction === null || typeof faction !== 'object') { return; }
+      if (!Object.prototype.hasOwnProperty.call(faction, 'actions')) { return; }
+      if (!Array.isArray(faction.actions)) { return; }
+      faction.actions.forEach(function (a) {
+        if (a === null || typeof a !== 'object') { return; }
+        var names = false;
+        ['cost', 'req', 'xf'].forEach(function (kind) {
+          if (!Object.prototype.hasOwnProperty.call(a, kind)) { return; }
+          if (!Array.isArray(a[kind])) { return; }
+          a[kind].forEach(function (term) {
+            if (term === null || typeof term !== 'object') { return; }
+            if (!Object.prototype.hasOwnProperty.call(term, 'tok')) { return; }
+            if (term.tok === tokenId) { names = true; }
+          });
+        });
+        if (names) { out.push({ side: side, id: a.id, name: a.name }); }
+      });
+    });
+    return out;
+  }
+
   // Every guard runs BEFORE the commit is entered, matching setTokenStyle
   // above, so a refusal leaves no phantom undo step over a board that never
   // changed — with exactly one documented exception, called out below.
@@ -3081,15 +3131,17 @@ App.ops = (function () {
     // edit they actually want back. requireActionName has already trimmed, so
     // padding alone compares equal.
     if (live.name === next) { return false; }
+    // Layer 3 for THIS op is the refusal above, not a second copy of it inside
+    // the mutator. The no-op contract forces a read of the live record before
+    // the commit is entered, commit() runs its mutator once and synchronously
+    // on a copy of that same state, and so a second existence test in here
+    // could never be the one that fires. Plan 03.1-02's probe H is the
+    // precedent: an arm whose deletion changes nothing is an arm no probe can
+    // hold to account, and shipping one makes a gate look thicker than it is.
     App.state.commit('action rename ' + side + '/' + actionId, function (s) {
-      var rec = s.build[side].actions.find(function (a) { return a.id === actionId; });
-      // Layer 3, on the detached copy. The read above is of the live board and
-      // this one is of the copy the commit will keep, and only the second one
-      // can speak for what is about to be written.
-      if (rec === undefined) {
-        throw new Error('There is no action "' + String(actionId) + '" on this side.');
-      }
-      rec.name = next;
+      s.build[side].actions.find(function (a) {
+        return a.id === actionId;
+      }).name = next;
     });
     return true;
   }
@@ -3365,6 +3417,11 @@ App.ops = (function () {
     requireNewActionId: requireNewActionId,
     requireActionName: requireActionName,
     nextActionId: nextActionId,
+    // Exported for the page rather than for the suite alone: plan 03.1-04
+    // renders the line beside the picker's Remove button from this, and it is
+    // the only way a surface can ask the question without writing a second
+    // walk of the term lists.
+    actionsNaming: actionsNaming,
     MAX_ALLOC: MAX_ALLOC,
     MIN_UNITS: MIN_UNITS,
     MAX_UNITS: MAX_UNITS
@@ -6390,6 +6447,7 @@ App.boot = (function () {
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
  *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
  *   [S09.9] reference material — names, what beats what, both halves (03-04/05)
+ *   [S09.10] action authoring — the action id gate and the three ops (03.1-03)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -9867,6 +9925,617 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the reference suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.10] SUITE: action authoring — owner plan 03.1-03 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('action authoring', function (t) {
+    // Every row below is DOM-free on purpose, the same choice [S09.7] made for
+    // the token half: an id gate, a name gate and three write paths are state
+    // work and proving them needs no page at all, so the terminal harness gets
+    // the whole suite rather than a skip row.
+
+    // The rows below reach the live board's write path, so the whole state is
+    // recorded here and handed back as this suite's last act, exactly as
+    // [S09.3], [S09.6] and [S09.7] do.
+    var savedAll = JSON.stringify(App.state.get());
+
+    // Which side each of the six the board ships with sits on. Written once
+    // here and read by every row that needs it, rather than three literals
+    // repeated down the suite.
+    var SIDE_OF = {
+      slash: 'cats', hairball: 'cats', screech: 'cats',
+      fly: 'mechs', lasers: 'mechs', recharge: 'mechs'
+    };
+
+    function liveName(side, actionId) {
+      var found = App.state.get().build[side].actions.find(function (a) {
+        return a.id === actionId;
+      });
+      return found === undefined ? null : found.name;
+    }
+    function ownActions(side) {
+      return App.state.get().build[side].actions.filter(function (a) {
+        return App.data.ACTION_IDS.indexOf(a.id) === -1;
+      });
+    }
+    // The prototype is checked after every path below rather than at the end.
+    // Both corruption shapes evaporate or hide, so a single check at the
+    // bottom would read clean over a run that had already gone wrong.
+    function protoIntact() {
+      return Object.getPrototypeOf({}) === Object.prototype
+        && Object.prototype.polluted === undefined
+        && Object.prototype.name === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'dmg');
+    }
+
+    /* --- the guards exist and are exported. Every row in this suite asserts
+           against the EXPORTED function and the NAMED constant, never against
+           a re-typed copy of either — a copy drifts away from what the op
+           actually runs, and then the suite is green about the copy. --- */
+    t.eq('the action id gate is exported', typeof App.ops.requireActionId, 'function');
+    t.eq('the new-action id gate is exported', typeof App.ops.requireNewActionId, 'function');
+    t.eq('the action name gate is exported', typeof App.ops.requireActionName, 'function');
+    t.eq('the produced-id helper is exported', typeof App.ops.nextActionId, 'function');
+    t.eq('the referential read is exported', typeof App.ops.actionsNaming, 'function');
+    t.eq('the create op is exported', typeof App.ops.createAction, 'function');
+    t.eq('the rename op is exported', typeof App.ops.renameAction, 'function');
+    t.eq('the remove op is exported', typeof App.ops.removeAction, 'function');
+
+    /* --- the produced-id shape, against the exported pattern. A shipped
+           action is admitted by ACTION_IDS membership and never by the
+           pattern, and the pattern is narrow precisely so that no name
+           reachable from Object.prototype or Function.prototype fits it. --- */
+    var idPattern = App.data.ACTION_ID_PATTERN;
+    t.ok('the pattern accepts a produced action id',
+      idPattern.test('x1') && idPattern.test('x12'));
+    t.ok('it refuses an id with a trailing newline, because JavaScript\'s `$` '
+      + 'is not Perl\'s — this row records that it was checked, not assumed',
+      idPattern.test('x1\n') === false);
+    t.ok('and it refuses uppercase, a trailing space, three digits, a shipped '
+      + 'id, a bare word and every name JavaScript keeps for itself',
+      ['X1', 'x1 ', 'x100', 'lasers', 'pounce', '', '__proto__',
+        'constructor', 'prototype', 'toString', 'valueOf']
+        .every(function (bad) { return idPattern.test(bad) === false; }));
+    t.ok('the two id spaces do not overlap, so a token id can never be read as '
+      + 'an action id', App.data.TOKEN_ID_PATTERN.test('x1') === false
+      && idPattern.test('t1') === false);
+
+    var idCapture = App.data.ACTION_ID_CAPTURE;
+    t.ok('the capturing form of the action id accepts exactly what the pattern '
+      + 'does, which is what stops a widened width from being applied once',
+      ['x1', 'x9', 'x12', 'x99', 'x100', 'X1', 'lasers', '', 'x']
+        .every(function (id) {
+          return idPattern.test(id) === (idCapture.exec(id) !== null);
+        }));
+    t.eq('and it hands back the sequence number', idCapture.exec('x99')[1], '99');
+    t.eq('including a single digit', idCapture.exec('x7')[1], '7');
+
+    /* --- the six the board ships with, and the produced shape, both pass --- */
+    t.ok('every shipped action id passes the gate unchanged',
+      App.data.ACTION_IDS.every(function (id) {
+        return App.ops.requireActionId(id) === id;
+      }));
+    t.eq('a produced id passes', App.ops.requireActionId('x1'), 'x1');
+    t.eq('and so does a two-digit one', App.ops.requireActionId('x12'), 'x12');
+
+    /* ================= the three layers, per key, per write shape ==========
+       Plan 02.1-01 measured that peeling any single layer off the token gate
+       left its whole suite green, which is how a one-layer gate ships looking
+       proven. So there is a row per name JavaScript keeps for itself PER WRITE
+       SHAPE rather than one row for the class: 'constructor' fails with a
+       different TypeError than '__proto__' does, so a single case does not
+       cover it. The four shapes an action id reaches are the gate itself, the
+       create path, the rename path and the remove path.
+       ------------------------------------------------------------------- */
+
+    var depth0 = App.state.undoDepth();
+
+    /* --- SHAPE ZERO, the gate on its own --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('the ' + k + ' key is refused as an action id', function () {
+        App.ops.requireActionId(k);
+      });
+      t.ok('and the ' + k + ' refusal names what it refused', (function () {
+        try { App.ops.requireActionId(k); } catch (e) {
+          return String(e.message).indexOf(k) !== -1;
+        }
+        return false;
+      })());
+      /* --- THE ORDER, not just the refusal. Both layers refuse this key; only
+             the first one EXPLAINS it. Naming the key is not enough to tell
+             the two apart, because the fall-through message quotes the id as
+             well — so this row compares the two sentences with their subjects
+             blanked out, and it is what goes red if the named refusal is ever
+             moved behind the shape test. --- */
+      t.ok('and the ' + k + ' refusal says what actually happened rather than '
+        + 'reporting that the board holds no such action', (function () {
+          var named = null;
+          var unknown = null;
+          try { App.ops.requireActionId(k); } catch (e) { named = String(e.message); }
+          try { App.ops.requireActionId('pounce'); } catch (e) { unknown = String(e.message); }
+          return named !== null && unknown !== null
+            && named.split(k).join('@') !== unknown.split('pounce').join('@');
+        })());
+    });
+    t.ok('the shared object prototype is intact after the gate refused every '
+      + 'one of them', protoIntact());
+
+    /* --- SHAPE ONE, create. createAction never takes an id from the caller,
+           so the exposure is the confirmation it runs on the id the sequence
+           produced — which is why that call is asserted here directly. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('a new action may not be confirmed as ' + k, function () {
+        App.ops.requireNewActionId(k);
+      });
+      t.ok('and that refusal names ' + k + ' rather than dropping it silently',
+        (function () {
+          try { App.ops.requireNewActionId(k); } catch (e) {
+            return String(e.message).indexOf(k) !== -1;
+          }
+          return false;
+        })());
+    });
+    t.ok('the shared object prototype is intact after the create path refused '
+      + 'every one of them', protoIntact());
+
+    /* --- SHAPE TWO, rename. `var rec = list.find(...); rec.name = x` is the
+           read-then-write shape, and for a name JavaScript keeps for itself it
+           is the shape that writes onto the shared prototype — persistent,
+           global, and invisible to JSON.stringify and deepFreeze alike. So the
+           check is on Object.prototype itself and not on the board, which
+           would read clean either way. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('renaming through the ' + k + ' key is refused', function () {
+        App.ops.renameAction('cats', k, 'Pounce');
+      });
+      t.ok('and the ' + k + ' rename refusal names what it refused',
+        (function () {
+          try { App.ops.renameAction('cats', k, 'Pounce'); } catch (e) {
+            return String(e.message).indexOf(k) !== -1;
+          }
+          return false;
+        })());
+      t.ok('and nothing leaked onto the shared object prototype through ' + k,
+        protoIntact());
+    });
+
+    /* --- SHAPE THREE, remove --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('removing through the ' + k + ' key is refused', function () {
+        App.ops.removeAction('mechs', k);
+      });
+      t.ok('and the ' + k + ' removal refusal names what it refused',
+        (function () {
+          try { App.ops.removeAction('mechs', k); } catch (e) {
+            return String(e.message).indexOf(k) !== -1;
+          }
+          return false;
+        })());
+      t.ok('and the shared object prototype survived the removal path for ' + k,
+        protoIntact());
+    });
+
+    /* --- everything the pattern itself must refuse, driven through every
+           write shape rather than through the gate alone. A gate that is only
+           reached from one of three call sites is a gate over one call
+           site. --- */
+    ['X1', 'x1 ', 'x1\n', 'x100', 'pounce', '', 5, null, {}]
+      .forEach(function (bad) {
+        t.throws('an action id of ' + JSON.stringify(bad) + ' is refused by the gate',
+          function () { App.ops.requireActionId(bad); });
+        t.throws('and refused on the rename path', function () {
+          App.ops.renameAction('cats', bad, 'Pounce');
+        });
+        t.throws('and refused on the remove path', function () {
+          App.ops.removeAction('cats', bad);
+        });
+      });
+
+    /* --- an id that fits the pattern but names nothing here. requireActionId
+           rules on the SHAPE of an id; this rules on whether it names anything
+           on that side, and it is the third layer on both write paths. --- */
+    t.throws('renaming an id that fits the shape but names nothing is refused',
+      function () { App.ops.renameAction('cats', 'x9', 'Pounce'); });
+    t.ok('and that refusal names the id it refused', (function () {
+      try { App.ops.renameAction('cats', 'x9', 'Pounce'); } catch (e) {
+        return String(e.message).indexOf('x9') !== -1;
+      }
+      return false;
+    })());
+    t.throws('removing an id that fits the shape but names nothing is refused',
+      function () { App.ops.removeAction('cats', 'x9'); });
+    t.ok('and that refusal names the id it refused too', (function () {
+      try { App.ops.removeAction('cats', 'x9'); } catch (e) {
+        return String(e.message).indexOf('x9') !== -1;
+      }
+      return false;
+    })());
+    t.eq('and a removal that was refused took nothing off the board — without '
+      + 'that layer a splice at a position nothing was found at would quietly '
+      + 'take the LAST action on the side instead',
+      App.state.get().build.cats.actions.map(function (a) { return a.id; }),
+      ['slash', 'hairball', 'screech']);
+
+    /* --- an unknown side is refused before any of it --- */
+    ['dogs', '__proto__', '', null].forEach(function (bad) {
+      t.throws('an action cannot be created on side ' + JSON.stringify(bad),
+        function () { App.ops.createAction(bad, 'Pounce'); });
+    });
+
+    /* --- the name gate, which is requireName with a different noun rather
+           than a second gate. These rows are what says the noun actually
+           reaches the message a student reads. --- */
+    t.eq('an action name is trimmed rather than refused for its spaces',
+      App.ops.requireActionName('  Pounce  '), 'Pounce');
+    t.throws('an empty action name is refused', function () {
+      App.ops.requireActionName('');
+    });
+    t.throws('a whitespace-only action name is refused', function () {
+      App.ops.requireActionName('   ');
+    });
+    t.ok('and the refusal is about an action rather than about a token type, '
+      + 'which is the whole reason the noun is a parameter', (function () {
+        try { App.ops.requireActionName(''); } catch (e) {
+          return String(e.message).indexOf('action') !== -1;
+        }
+        return false;
+      })());
+    t.ok('the token half of the same gate still says token type', (function () {
+      try { App.ops.requireTokenName(''); } catch (e) {
+        return String(e.message).indexOf('token type') !== -1;
+      }
+      return false;
+    })());
+    var overLong = 'a'.repeat(App.data.MAX_TOKEN_NAME + 1);
+    t.throws('an action name one code point over the cap is refused', function () {
+      App.ops.requireActionName(overLong);
+    });
+    t.ok('and that refusal carries the measured length', (function () {
+      try { App.ops.requireActionName(overLong); } catch (e) {
+        return String(e.message).indexOf(String(App.data.MAX_TOKEN_NAME + 1)) !== -1;
+      }
+      return false;
+    })());
+    t.eq('an action name of twenty-four emoji is twenty-four CODE POINTS and '
+      + 'is accepted, so the two name gates cut the same way',
+      App.ops.requireActionName('\u{1F480}'.repeat(App.data.MAX_TOKEN_NAME)),
+      '\u{1F480}'.repeat(App.data.MAX_TOKEN_NAME));
+    t.throws('a control character in an action name is refused', function () {
+      App.ops.requireActionName('Poun' + String.fromCharCode(7) + 'ce');
+    });
+
+    /* --- the produced id (D-13). Never derived from the name a student typed:
+           deriving an id from student text is how a name JavaScript keeps for
+           itself reaches a record's identity in the first place. --- */
+    t.eq('a side holding only the actions it shipped with produces x1',
+      App.ops.nextActionId(App.state.get().build.cats.actions), 'x1');
+    t.eq('and the sequence takes the largest suffix in use and adds one',
+      App.ops.nextActionId([{ id: 'x1' }, { id: 'x9' }]), 'x10');
+    t.eq('a list holding nothing at all still produces the first id',
+      App.ops.nextActionId([]), 'x1');
+    t.throws('at the ceiling of the sequence it refuses rather than wrapping',
+      function () { App.ops.nextActionId([{ id: 'x99' }]); });
+
+    /* --- Pitfall 10, and it is the reason every guard above sits outside its
+           commit: not one of those refusals may leave a phantom step between
+           the student and the edit they want back. --- */
+    t.eq('and not one of the refusals above left an undo entry behind it',
+      App.state.undoDepth(), depth0);
+    t.eq('nor did any of them move the board',
+      JSON.stringify(App.state.get()), savedAll);
+
+    /* ================= the three write paths ============================= */
+
+    /* --- ACT-01. An action of the student's own, under an id from the
+           sequence and never from the text they typed. --- */
+    var made = App.ops.dispatch('createAction', { side: 'cats', name: 'Pounce' });
+    t.eq('an action of the student\'s own takes the first id in the sequence',
+      made, 'x1');
+    t.ok('and that id fits the exported pattern',
+      App.data.ACTION_ID_PATTERN.test(made));
+    var madeRec = App.state.get().build.cats.actions.find(function (a) {
+      return a.id === made;
+    });
+    t.eq('the record holds exactly the seven fields an action is made of, which '
+      + 'is the same shape a shipped one has — one list, no second tier (D-07)',
+      Object.keys(madeRec).sort(),
+      ['cost', 'dmg', 'id', 'keywords', 'name', 'req', 'xf']);
+    t.eq('carrying the name the student typed', madeRec.name, 'Pounce');
+    t.eq('a cost of one action point, which is what the shipped board already '
+      + 'implies (D-01)', madeRec.cost, [{ tok: 'ap', n: 1 }]);
+    t.eq('an empty requirement list', madeRec.req, []);
+    t.eq('an empty transformation list', madeRec.xf, []);
+    t.eq('no damage of its own yet', madeRec.dmg, 0);
+    t.eq('and no keywords yet', madeRec.keywords, []);
+    t.eq('the side now holds one action more than it shipped with',
+      App.state.get().build.cats.actions.length, 4);
+    t.eq('the other side is untouched by it',
+      App.state.get().build.mechs.actions.length, 3);
+    t.eq('and the faction slice grew no key doing it',
+      Object.keys(App.state.get().build.cats),
+      ['id', 'name', 'ap', 'units', 'actions']);
+    t.ok('the shared object prototype is intact after a real create',
+      protoIntact());
+
+    /* --- one op is one commit is one Ctrl+Z (D-16). The comparison is on the
+           whole serialised state, so a field moved anywhere would show. --- */
+    var beforeUndo = JSON.stringify(App.state.get());
+    App.state.undo();
+    t.eq('one undo after a create hands the whole board back exactly',
+      JSON.stringify(App.state.get()), savedAll);
+    App.ops.createAction('cats', 'Pounce');
+    t.eq('and making it again reproduces the same board',
+      JSON.stringify(App.state.get()), beforeUndo);
+
+    /* --- the sequence takes the largest suffix in use, never the count.
+           Prefix-plus-count would hand a later action an id a removal had
+           already freed, and two records answering to one id is silent in
+           every direction at once. --- */
+    t.eq('a second action of the student\'s own takes the next id',
+      App.ops.createAction('cats', 'Prowl'), 'x2');
+    App.ops.removeAction('cats', 'x1');
+    t.eq('and after a removal the sequence still moves forward rather than '
+      + 're-using the id that was freed',
+      App.ops.createAction('cats', 'Stalk'), 'x3');
+    t.eq('each side runs its own sequence, because an action lives inside the '
+      + 'faction that performs it (D-09)',
+      App.ops.createAction('mechs', 'Overcharge'), 'x1');
+
+    /* --- D-10, asserted against the NAMED constant so a Phase 4 dial moved in
+           [S01] moves this row with it. The cap is checked INSIDE the mutator
+           because it needs the count from the detached copy — the same
+           documented exception createTokenType already carries, and it is safe
+           for the same reason: a mutator that throws leaves no trace. --- */
+    while (ownActions('cats').length < App.data.MAX_CUSTOM_ACTIONS) {
+      App.ops.createAction('cats', 'Spare ' + ownActions('cats').length);
+    }
+    t.eq('the side now holds exactly the cap of actions of a student\'s own',
+      ownActions('cats').length, App.data.MAX_CUSTOM_ACTIONS);
+    var depthAtCap = App.state.undoDepth();
+    t.throws('one more is refused', function () {
+      App.ops.createAction('cats', 'One too many');
+    });
+    t.ok('and the refusal carries the cap the constant names, rather than a '
+      + 'number typed into a sentence', (function () {
+        try { App.ops.createAction('cats', 'One too many'); } catch (e) {
+          return String(e.message).indexOf(String(App.data.MAX_CUSTOM_ACTIONS)) !== -1;
+        }
+        return false;
+      })());
+    t.eq('the guard inside the commit still left no undo entry behind it, '
+      + 'because a mutator that throws leaves no trace',
+      App.state.undoDepth(), depthAtCap);
+    /* --- guard PLACEMENT, not merely guard presence, and this is the row that
+           holds it. At the cap there are TWO true refusals available and where
+           the name gate sits decides which one a student reads. It sits
+           outside the commit; the cap check is the one documented guard
+           inside, and it is the first thing the mutator does. Move the name
+           gate in beside it and this row goes red while every other row in the
+           suite stays green — an undo-depth row cannot catch the move, because
+           commit() runs its mutator before it records anything. --- */
+    t.ok('at the cap, a name that cannot be stored is still refused AS A NAME, '
+      + 'which is what says the name gate runs outside the commit rather than '
+      + 'behind the one guard that is inside it', (function () {
+        try { App.ops.createAction('cats', '   '); } catch (e) {
+          return String(e.message).indexOf('needs a name') !== -1;
+        }
+        return false;
+      })());
+    t.eq('and that refusal left no undo entry behind it either',
+      App.state.undoDepth(), depthAtCap);
+    t.eq('the other side is still free to make one, because the cap is per '
+      + 'side', typeof App.ops.createAction('mechs', 'Vent'), 'string');
+
+    /* --- the rename path, and the no-op contract on it --- */
+    var target = ownActions('cats')[0].id;
+    var depthRename = App.state.undoDepth();
+    t.eq('renaming an action to the name it already has returns false',
+      App.ops.renameAction('cats', target, liveName('cats', target)), false);
+    t.eq('and adds no undo entry, which is the measured defence against a '
+      + 'rename applying twice', App.state.undoDepth(), depthRename);
+    t.eq('padding alone compares equal, because the name gate trimmed first',
+      App.ops.renameAction('cats', target, '  ' + liveName('cats', target) + '  '),
+      false);
+    var priorFields = JSON.stringify(App.state.get().build.cats.actions
+      .find(function (a) { return a.id === target; }));
+    t.eq('renaming it to something else returns true',
+      App.ops.renameAction('cats', target, 'Pouncing'), true);
+    var afterRename = App.state.get().build.cats.actions.find(function (a) {
+      return a.id === target;
+    });
+    t.eq('and changes exactly one field', afterRename.name, 'Pouncing');
+    t.eq('leaving every other field of the record as it was',
+      JSON.stringify(Object.assign({}, afterRename,
+        { name: JSON.parse(priorFields).name })), priorFields);
+    t.ok('the shared object prototype is intact after a real rename',
+      protoIntact());
+
+    /* --- THE FIRST OF THE TWO DECISIONS THIS PLAN RESTS ON, with its reason
+           in the label: a shipped action and a student's action are the same
+           kind of thing (D-07), so a shipped one can be renamed and re-costed
+           exactly as a shipped token type can. --- */
+    App.data.ACTION_IDS.forEach(function (id) {
+      var side = SIDE_OF[id];
+      var was = liveName(side, id);
+      t.eq('a shipped action can be renamed, because a shipped action and an '
+        + 'action of a student\'s own are the same kind of thing — ' + id,
+        App.ops.renameAction(side, id, 'Renamed ' + id), true);
+      t.eq('and the rename is what the record now carries',
+        liveName(side, id), 'Renamed ' + id);
+      App.ops.renameAction(side, id, was);
+    });
+
+    /* --- THE SECOND DECISION, and its reason: the reference band's
+           relationship records name the six shipped actions BY ID, so a
+           removed one would leave the band naming nothing. That is the same
+           argument the five shipped token types make, and the refusal reads
+           the LIVE record's name so it follows a rename. --- */
+    App.data.ACTION_IDS.forEach(function (id) {
+      var side = SIDE_OF[id];
+      t.throws('a shipped action cannot be removed, because the reference band '
+        + 'names it by id — ' + id,
+        function () { App.ops.removeAction(side, id); });
+      t.ok('and the refusal names the LIVE record rather than the id',
+        (function () {
+          try { App.ops.removeAction(side, id); } catch (e) {
+            return String(e.message).indexOf(liveName(side, id)) !== -1;
+          }
+          return false;
+        })());
+    });
+    var renamedSide = SIDE_OF.lasers;
+    App.ops.renameAction(renamedSide, 'lasers', 'Beam');
+    t.ok('and after a student renames one, the refusal follows the name they '
+      + 'chose rather than the one the board shipped', (function () {
+        try { App.ops.removeAction(renamedSide, 'lasers'); } catch (e) {
+          return String(e.message).indexOf('Beam') !== -1
+            && String(e.message).indexOf('Lasers') === -1;
+        }
+        return false;
+      })());
+    App.ops.renameAction(renamedSide, 'lasers', 'Lasers');
+
+    /* --- the remove path, and its own one-commit-one-undo contract --- */
+    var beforeRemove = JSON.stringify(App.state.get());
+    var doomed = ownActions('cats')[0].id;
+    var survivors = App.state.get().build.cats.actions
+      .map(function (a) { return a.id; })
+      .filter(function (id) { return id !== doomed; });
+    var termsBefore = JSON.stringify(App.state.get().build.cats.actions
+      .filter(function (a) { return a.id !== doomed; })
+      .map(function (a) { return [a.id, a.cost, a.req, a.xf]; }));
+    App.ops.removeAction('cats', doomed);
+    t.eq('a removal takes exactly the action it was asked for and rewrites no '
+      + 'other — a rewritten rule is a rule the student never wrote, with no '
+      + 'step to undo and nothing on screen to notice',
+      App.state.get().build.cats.actions.map(function (a) { return a.id; }),
+      survivors);
+    t.eq('every surviving action still carries the terms it carried before the '
+      + 'removal, down to the last one',
+      JSON.stringify(App.state.get().build.cats.actions
+        .map(function (a) { return [a.id, a.cost, a.req, a.xf]; })),
+      termsBefore);
+    App.state.undo();
+    t.eq('and one undo after a removal hands the whole board back exactly',
+      JSON.stringify(App.state.get()), beforeRemove);
+
+    /* ================= ACT-07, the referential read ======================= */
+
+    /* --- the shipped board first: nothing on it names a type a student has
+           not made yet, which is the reading a surface will do most often. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('on the shipped board no action names a type a student has yet to make',
+      App.ops.actionsNaming(App.state.get().build, 't1'), []);
+    t.eq('nor one that is not a token type at all',
+      App.ops.actionsNaming(App.state.get().build, 'sparkle'), []);
+    t.eq('and asking about a name JavaScript keeps for itself finds nothing '
+      + 'rather than reaching the prototype',
+      App.ops.actionsNaming(App.state.get().build, 'constructor'), []);
+    t.ok('the shared object prototype is intact after that read', protoIntact());
+    t.eq('every action on the shipped board names the action-point pool in its '
+      + 'cost, which is the one term all six share',
+      App.ops.actionsNaming(App.state.get().build, 'ap').length, 6);
+    t.eq('and the read hands back the side, the id and the LIVE name for each',
+      Object.keys(App.ops.actionsNaming(App.state.get().build, 'ap')[0]).sort(),
+      ['id', 'name', 'side']);
+
+    /* --- one row per term kind, because an action names a token type in three
+           different places and a walk that read two of them would look right
+           and answer wrong. Each is built as a detached copy, so the read is
+           held to taking its argument rather than the singleton. --- */
+    var probe = JSON.parse(JSON.stringify(App.state.get().build));
+    probe.cats.actions.push({
+      id: 'x1', name: 'Pounce', dmg: 0, keywords: [],
+      cost: [{ tok: 't7', n: 1 }], req: [], xf: []
+    });
+    t.eq('an action naming a type in its COST is found',
+      App.ops.actionsNaming(probe, 't7'), [{ side: 'cats', id: 'x1', name: 'Pounce' }]);
+    probe.cats.actions[3].cost = [{ tok: 'ap', n: 1 }];
+    probe.cats.actions[3].req = [{ tok: 't7', n: 2 }];
+    t.eq('an action naming a type in its REQUIREMENTS is found',
+      App.ops.actionsNaming(probe, 't7'), [{ side: 'cats', id: 'x1', name: 'Pounce' }]);
+    probe.cats.actions[3].req = [];
+    probe.cats.actions[3].xf = [{ who: 'target', tok: 't7', d: -1 }];
+    t.eq('an action naming a type in its TRANSFORMATIONS is found',
+      App.ops.actionsNaming(probe, 't7'), [{ side: 'cats', id: 'x1', name: 'Pounce' }]);
+    probe.cats.actions[3].name = 'Pouncing';
+    t.eq('and the read follows a rename, because it hands back the live record',
+      App.ops.actionsNaming(probe, 't7')[0].name, 'Pouncing');
+    probe.mechs.actions.push({
+      id: 'x1', name: 'Vent', dmg: 0, keywords: [],
+      cost: [{ tok: 'ap', n: 1 }], req: [], xf: [{ who: 'caster', tok: 't7', d: 1 }]
+    });
+    t.eq('the read walks BOTH sides, so a removal is told about every action it '
+      + 'would reach', App.ops.actionsNaming(probe, 't7').map(function (r) {
+        return r.side + '/' + r.id;
+      }), ['cats/x1', 'mechs/x1']);
+    t.eq('and it read the copy it was handed rather than the board, which is '
+      + 'what makes it a derivation rather than a second reader of state',
+      App.ops.actionsNaming(App.state.get().build, 't7'), []);
+
+    /* --- a record that arrived from somewhere other than this file. From
+           Phase 4 that is a pasted build code, which is exactly why every step
+           of the walk asks hasOwnProperty and confirms an array. --- */
+    var ragged = JSON.parse(JSON.stringify(App.state.get().build));
+    ragged.cats.actions.push({ id: 'x1', name: 'Bare' });
+    ragged.cats.actions.push({
+      id: 'x2', name: 'Wrong shape', cost: 'ap', req: null, xf: 7
+    });
+    ragged.cats.actions.push({
+      id: 'x3', name: 'Ragged terms', cost: [null, 5, { n: 1 }], req: [], xf: []
+    });
+    t.eq('a record with the fields missing, the fields of the wrong type, or a '
+      + 'term list holding rubbish is walked past rather than thrown over',
+      App.ops.actionsNaming(ragged, 't7'), []);
+    t.ok('the shared object prototype is intact after that walk', protoIntact());
+    t.eq('and a build that is not an object at all hands back an empty list',
+      [App.ops.actionsNaming(null, 't7'), App.ops.actionsNaming(7, 't7')], [[], []]);
+
+    /* --- the promise this plan makes to plan 03.1-04: removing a token type
+           an action names does NOT rewrite that action, so the surface can
+           show what a removal will break and the record survives it
+           untouched. --- */
+    var tokId = App.ops.createTokenType({
+      name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+    });
+    var xid = App.ops.createAction('cats', 'Envenom');
+    App.state.commit('probe terms', function (s) {
+      s.build.cats.actions.find(function (a) { return a.id === xid; })
+        .xf = [{ who: 'target', tok: tokId, d: 1 }];
+    });
+    t.eq('before the removal the board can say which actions name the type',
+      App.ops.actionsNaming(App.state.get().build, tokId),
+      [{ side: 'cats', id: xid, name: 'Envenom' }]);
+    var termsWere = JSON.stringify(App.state.get().build.cats.actions
+      .find(function (a) { return a.id === xid; }).xf);
+    App.ops.removeTokenType(tokId);
+    t.eq('and taking the type away leaves the action\'s terms exactly as the '
+      + 'student wrote them, rather than editing a rule nobody asked to edit',
+      JSON.stringify(App.state.get().build.cats.actions
+        .find(function (a) { return a.id === xid; }).xf),
+      termsWere);
+    t.eq('so the read still names the action afterwards, which is what lets a '
+      + 'refusal at fire time say which action and which token',
+      App.ops.actionsNaming(App.state.get().build, tokId)
+        .map(function (r) { return r.id; }), [xid]);
+
+    /* --- and nothing in this plan applies anything: the ops shipped here edit
+           a rule's definition, and the whole of ACT-05 lands on Advance in
+           Phase 5. This row is the export block read back. --- */
+    t.eq('no op exported by [S05] applies a transformation',
+      Object.keys(App.ops).filter(function (k) {
+        return /^(apply|resolve|advance|spend|fire)/.test(k);
+      }), []);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the action-authoring suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
