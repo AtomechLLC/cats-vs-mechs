@@ -4685,6 +4685,207 @@ App.selftest = (function () {
     t.eq('the build slice still holds exactly the four keys it shipped with',
       Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
 
+    /* ============ plan 02.1-02, the create and remove write paths ============
+       Two more paths now index build.tokens with a key the caller supplied,
+       and plan 02.1-01 measured that the id gate is THREE independent layers
+       rather than one — the named refusal list, the id shape, and a
+       hasOwnProperty existence check. Removing any single layer still left
+       that plan's suite fully green, which means a one-layer gate would ship
+       looking proven. So every path below carries all three, and the rows are
+       written per reserved key per path rather than one row for the class.
+       ------------------------------------------------------------------- */
+
+    t.eq('the create op is exported', typeof App.ops.createTokenType, 'function');
+    t.eq('the remove op is exported', typeof App.ops.removeTokenType, 'function');
+
+    /* --- ALLOC-11. A type of the student's own, under an id that comes from a
+           sequence and never from the text they typed (D-13). --- */
+    var madeId = App.ops.createTokenType({
+      name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+    });
+    t.eq('a type of the student\'s own takes the first id in the sequence',
+      madeId, 't1');
+    var madeRec = App.state.get().build.tokens.t1;
+    t.eq('and the record holds exactly the five fields a type is made of',
+      Object.keys(madeRec).sort(), ['color', 'glyph', 'name', 'scope', 'shape']);
+    t.eq('carrying the name the student typed', madeRec.name, 'Poison');
+    t.eq('the shape they picked', madeRec.shape, 'circ');
+    t.eq('the colour they picked', madeRec.color, 'violet');
+    t.eq('the glyph they picked', madeRec.glyph, '');
+    t.eq('and the scope they chose, which is fixed from here on (D-03)',
+      madeRec.scope, 'unit');
+
+    /* --- the sequence takes the largest suffix in use, never the count of
+           types. Prefix-plus-count would hand a later type an id a removal
+           had already freed, and a duplicate key in the vocabulary is silent
+           in every direction at once. --- */
+    t.eq('a second type takes the next id in the sequence',
+      App.ops.createTokenType({
+        name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+      }), 't2');
+    App.ops.removeTokenType('t1');
+    t.eq('and after a removal the sequence still moves forward rather than '
+      + 're-using the id that was freed',
+      App.ops.createTokenType({
+        name: 'Rust', shape: 'dia', color: 'coral', glyph: '', scope: 'unit'
+      }), 't3');
+
+    /* --- the value allowlists. Each refusal names the value it refused,
+           because the audience is a student who picked something reasonable,
+           not a developer reading a stack trace. --- */
+    var depthCreate = App.state.undoDepth();
+    [
+      { what: 'shape', bad: 'blob',
+        spec: { name: 'X', shape: 'blob', color: 'gold', glyph: '', scope: 'unit' } },
+      { what: 'colour', bad: 'puce',
+        spec: { name: 'X', shape: 'sq', color: 'puce', glyph: '', scope: 'unit' } },
+      { what: 'glyph', bad: 'zz',
+        spec: { name: 'X', shape: 'sq', color: 'gold', glyph: 'zz', scope: 'unit' } },
+      { what: 'scope', bad: 'faction',
+        spec: { name: 'X', shape: 'sq', color: 'gold', glyph: '', scope: 'faction' } }
+    ].forEach(function (c) {
+      t.throws('a token type with an unknown ' + c.what + ' is refused',
+        function () { App.ops.createTokenType(c.spec); });
+      t.ok('and the ' + c.what + ' refusal names the value it refused',
+        (function () {
+          try { App.ops.createTokenType(c.spec); } catch (e) {
+            return String(e.message).indexOf(c.bad) !== -1;
+          }
+          return false;
+        })());
+    });
+    t.throws('a name that fails the name gate is refused, and the name gate '
+      + 'runs before anything else', function () {
+      App.ops.createTokenType({
+        name: '   ', shape: 'sq', color: 'gold', glyph: '', scope: 'unit'
+      });
+    });
+    t.eq('and not one of those refusals left an undo entry behind it',
+      App.state.undoDepth(), depthCreate);
+
+    /* --- D-18, asserted against the NAMED constant so a Phase 4 dial moved in
+           [S01] moves this row with it. The cap is checked INSIDE the mutator,
+           because it needs the key count from the detached copy — the same
+           documented exception addUnit's MAX_UNITS check already is, and it is
+           safe for the same reason: a mutator that throws leaves no trace. --- */
+    var ownCount = Object.keys(App.state.get().build.tokens).filter(function (id) {
+      return App.data.TOKEN_IDS.indexOf(id) === -1;
+    }).length;
+    while (ownCount < App.data.MAX_CUSTOM_TYPES) {
+      App.ops.createTokenType({
+        name: 'Spare ' + ownCount, shape: 'sq', color: 'gold', glyph: '', scope: 'unit'
+      });
+      ownCount++;
+    }
+    t.eq('the board now holds exactly the cap of types of a student\'s own',
+      Object.keys(App.state.get().build.tokens).filter(function (id) {
+        return App.data.TOKEN_IDS.indexOf(id) === -1;
+      }).length, App.data.MAX_CUSTOM_TYPES);
+    var depthCap = App.state.undoDepth();
+    var overCap = { name: 'One too many', shape: 'sq', color: 'gold', glyph: '', scope: 'unit' };
+    t.throws('one type past the cap is refused',
+      function () { App.ops.createTokenType(overCap); });
+    t.ok('and that refusal names the cap rather than a bare number', (function () {
+      try { App.ops.createTokenType(overCap); } catch (e) {
+        return String(e.message).indexOf(String(App.data.MAX_CUSTOM_TYPES)) !== -1;
+      }
+      return false;
+    })());
+    t.eq('a refusal raised from inside the mutator leaves no phantom undo step '
+      + 'either, which is the property that makes the exception safe',
+      App.state.undoDepth(), depthCap);
+
+    /* --- D-15. The five the board is built on refuse removal, and they refuse
+           it by the label the student reads, so somebody who renamed Health to
+           Vigor is told about Vigor rather than about a key they never saw. --- */
+    var depthRemove = App.state.undoDepth();
+    App.data.TOKEN_IDS.forEach(function (id) {
+      t.throws('the ' + id + ' type refuses removal',
+        function () { App.ops.removeTokenType(id); });
+      t.ok('and the ' + id + ' refusal names the label a student reads, and '
+        + 'says the board is built on it', (function () {
+        var label = App.state.get().build.tokens[id].name;
+        try { App.ops.removeTokenType(id); } catch (e) {
+          return String(e.message).indexOf(label) !== -1
+            && String(e.message).indexOf('the board is built on') !== -1;
+        }
+        return false;
+      })());
+    });
+
+    /* --- the CREATE-shape family reaches the remove path too, through
+           `delete tokens[id]` and `delete owner.tally[id]`. One row per
+           reserved key, because 'constructor' fails with a different
+           TypeError than '__proto__' does. --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('removing through the ' + k + ' key is refused',
+        function () { App.ops.removeTokenType(k); });
+      t.ok('and the live vocabulary still has the ordinary object prototype '
+        + 'after ' + k + ' reached the remove path',
+        Object.getPrototypeOf(App.state.get().build.tokens) === Object.prototype);
+    });
+
+    /* --- the third layer, on the remove path: an id that satisfies the shape
+           but names nothing here. Without it the delete would succeed
+           silently on a type that was never there. --- */
+    t.throws('an id that fits the pattern but names no live type is refused '
+      + 'on the remove path too',
+      function () { App.ops.removeTokenType('t9'); });
+    t.ok('and that refusal names the id it refused', (function () {
+      try { App.ops.removeTokenType('t9'); } catch (e) {
+        return String(e.message).indexOf('t9') !== -1;
+      }
+      return false;
+    })());
+    t.eq('and not one of the removal refusals left an undo entry behind it',
+      App.state.undoDepth(), depthRemove);
+
+    /* --- D-16. Removal takes every tally with it, inside ONE mutator, so one
+           Ctrl+Z brings the type and all of its numbers back together. The
+           numbers are seeded through App.state.commit directly rather than
+           through setTally, which arrives in the next task of this plan;
+           [S09.3] writes to the live board the same way for the same reason.
+           There is deliberately no confirmation dialog anywhere near this
+           (D-17) — undo already covers it, and a modal would cost an
+           instructor a click mid-demo. --- */
+    App.state.commit('tally seed for the removal row', function (s) {
+      s.build.cats.units[0].tally = { t6: 2 };
+      s.build.cats.units[1].tally = { t6: 5 };
+      s.build.mechs.tally = { t6: 4 };
+    });
+    var depthSeed = App.state.undoDepth();
+    App.ops.removeTokenType('t6');
+    t.ok('removing a type takes it out of the vocabulary',
+      !Object.prototype.hasOwnProperty.call(App.state.get().build.tokens, 't6'));
+    t.ok('and takes its numbers with it, on both scopes and both sides — and '
+      + 'the emptied bags go too, because a bag with no keys left deletes '
+      + 'itself', (function () {
+        var b = App.state.get().build;
+        return !Object.prototype.hasOwnProperty.call(b.cats.units[0], 'tally')
+          && !Object.prototype.hasOwnProperty.call(b.cats.units[1], 'tally')
+          && !Object.prototype.hasOwnProperty.call(b.mechs, 'tally');
+      })());
+    t.eq('the whole removal is exactly one undo entry',
+      App.state.undoDepth(), depthSeed + 1);
+    App.state.undo();
+    t.ok('and one undo brings the type itself back', (function () {
+      var v = App.state.get().build.tokens;
+      return Object.prototype.hasOwnProperty.call(v, 't6');
+    })());
+    t.eq('together with the number on the first cat',
+      App.state.get().build.cats.units[0].tally.t6, 2);
+    t.eq('the number on the second cat',
+      App.state.get().build.cats.units[1].tally.t6, 5);
+    t.eq('and the number the mechs carried as a side',
+      App.state.get().build.mechs.tally.t6, 4);
+
+    /* --- Pattern 2's measured finding: the nested shape is the ONLY tally
+           shape that costs no shipped assertion. A top-level build.tally key
+           turns [S09.3]'s 'the board has its build keys' row red. --- */
+    t.eq('and six types of a student\'s own plus their numbers still add no '
+      + 'top-level key to the build slice',
+      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the token-authoring suite handed the board back untouched',
