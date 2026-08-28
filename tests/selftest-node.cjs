@@ -468,9 +468,11 @@ function makeStubDom() {
     // too. Their COUNT is asserted against App.data.MAX_ACTION_REQ and
     // App.data.MAX_ACTION_XF further down, because a hand-written row count and
     // a constant that can move are two places for one number to live.
-    'act-edit-terms', 'act-edit-cost',
-    'act-edit-req-0', 'act-edit-req-1',
-    'act-edit-xf-0', 'act-edit-xf-1',
+    'act-edit-terms', 'act-edit-cost', 'act-edit-cost-amt',
+    'act-edit-req-0', 'act-edit-req-0-amt',
+    'act-edit-req-1', 'act-edit-req-1-amt',
+    'act-edit-xf-0', 'act-edit-xf-0-amt',
+    'act-edit-xf-1', 'act-edit-xf-1-amt',
     'act-edit-done',
     // The proposal pane. Reserved and empty on purpose (D-05b): nothing in plan
     // 03.1-05 proposes, applies or resolves anything, and this stub builds the
@@ -922,20 +924,58 @@ function makeStubDom() {
   aeName.dataset.k = 'ae/name';
   aeNameGroup.appendChild(aeName);
 
-  // The reserved term rows. Hidden as a block here exactly as in the shell,
-  // because plan 03.1-05 draws nothing into them and a stub that showed them
-  // would be a stub standing in for markup that has not shipped.
+  /* ---- plan 03.1-06's term rows (ACT-02, ACT-03, ACT-04) ------------------
+     No longer hidden as a block: plan 03.1-05 reserved it and plan 03.1-06
+     fills it. Every row is STATIC here exactly as it is in the shell, and so is
+     the amount field inside it — a rebuilt field throws away a half-typed
+     number, which is the whole reason [S06.5] writes into these rather than
+     building them.
+
+     EVERY CLASS AND EVERY DATASET SPELLING IS COPIED FROM THE SHELL, and the
+     amount field's class is the load-bearing one: [S07.3] tells an amount field
+     apart by .ae-amt exactly as it tells the name field apart by .ae-name, so
+     without it every keystroke, Enter, Escape and blur handler declines on its
+     first line and a gate check driving them reads green over a field nothing
+     is listening to. The two chooser boxes are found by class from inside the
+     row, so they are classed rather than given ids of their own — the id budget
+     is a line in this file per entry, and five amount fields was the whole of
+     what a term row genuinely needs to be reachable by. */
   const aeTerms = idNode('act-edit-terms');
   aeTerms.className = 'ae-terms';
-  aeTerms.hidden = true;
   authorPane.appendChild(aeTerms);
-  aeTerms.appendChild(idNode('act-edit-cost'));
-  ['act-edit-req-0', 'act-edit-req-1', 'act-edit-xf-0', 'act-edit-xf-1']
-    .forEach((id) => {
-      const row = idNode(id);
-      row.hidden = true;
-      aeTerms.appendChild(row);
-    });
+
+  function aeTermRow(id, field, slot, withWho) {
+    const row = idNode(id);
+    row.className = 'ae-term';
+    if (field !== 'cost') { row.hidden = true; }
+    if (withWho) {
+      const who = createElement('div');
+      who.className = 'ae-term-who';
+      row.appendChild(who);
+    } else {
+      const lbl = createElement('span');
+      lbl.className = 'ae-term-lbl';
+      row.appendChild(lbl);
+    }
+    const toks = createElement('div');
+    toks.className = 'ae-term-toks';
+    row.appendChild(toks);
+    const amt = idNode(id + '-amt', 'input');
+    amt.type = 'text';
+    amt.className = 'ae-amt';
+    amt.dataset.aeField = field;
+    amt.dataset.aeSlot = String(slot);
+    amt.dataset.k = 'ae/amt/' + field + '/' + slot;
+    row.appendChild(amt);
+    aeTerms.appendChild(row);
+    return row;
+  }
+
+  aeTermRow('act-edit-cost', 'cost', 0, false);
+  aeTermRow('act-edit-req-0', 'req', 0, false);
+  aeTermRow('act-edit-req-1', 'req', 1, false);
+  aeTermRow('act-edit-xf-0', 'xf', 0, true);
+  aeTermRow('act-edit-xf-1', 'xf', 1, true);
 
   const aeDone = idNode('act-edit-done', 'button');
   aeDone.dataset.ae = 'done';
@@ -3792,6 +3832,316 @@ check(
       && stub.activeElement.dataset.k)
 );
 
+/* --- 69-69f. plan 03.1-06's term editors (ACT-02, ACT-03, ACT-04) ------------
+
+   Everything below goes through a REAL control — a chooser button, an amount
+   field, Enter, Escape, a blur — for the reason 67-68e give: a row that drove
+   App.render or App.ops directly would assert what the region paints and say
+   nothing about whether a student pressing something reaches it. Plan
+   03.1-04's probe L-1 is why these live here rather than only in [S09]: a row
+   behind the artifact's own no-DOM bracket does not run in CI, and CI runs
+   this file. */
+A.state.restore(aeSaved);
+A.state.flush();
+clearPanel();
+aePress(aeOpenBtn);
+
+const aeTermRowOf = (field, slot) => dom.byId[field === 'cost'
+  ? 'act-edit-cost' : 'act-edit-' + field + '-' + slot];
+const aeAmtOf = (field, slot) => dom.byId[(field === 'cost'
+  ? 'act-edit-cost' : 'act-edit-' + field + '-' + slot) + '-amt'];
+const aePills = (field, slot) =>
+  aeTermRowOf(field, slot).querySelectorAll('.ae-pill');
+const aePillFor = (field, slot, key, value) =>
+  aePills(field, slot).filter((b) => b.dataset[key] === value)[0];
+
+function aeTypeAmount(field, text) {
+  if (stub.activeElement !== field) { field.focus(); }
+  field.value = text;
+  field.dispatchEvent(dom.event('input'));
+  field.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+}
+function aeRecordOf(id) {
+  return A.state.get().build.cats.actions.filter((a) => a.id === id)[0];
+}
+
+/* 69. THE DEVELOPER'S OWN EXAMPLE, AUTHORED ON SCREEN. One action point spent,
+   two Health needed and not spent, the target losing three Health — and then a
+   second transformation on the caster over a token type the student invented
+   during the same visit. If this can be authored the phase works, so the record
+   is read back and compared WHOLE rather than field by field: a comparison of
+   parts passes over a stray key, and a stray key one nesting level from a token
+   id is the thing this phase is most exposed to. */
+const exMade = (() => { aePress(aeNew); return aeDialog.dataset.edPick; })();
+aePress(aePillFor('cost', 0, 'edTok', 'ap'));
+aeTypeAmount(aeAmtOf('cost', 0), '1');
+
+aePress(aePillFor('req', 0, 'edTok', 'hp'));
+aeTypeAmount(aeAmtOf('req', 0), '2');
+
+aePress(aePillFor('xf', 0, 'edTok', 'hp'));
+aePress(aePillFor('xf', 0, 'edWho', 'target'));
+aeTypeAmount(aeAmtOf('xf', 0), '-3');
+
+const exTok = A.ops.createTokenType({
+  name: 'Rage', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+});
+A.state.flush();
+aePress(aePillFor('xf', 1, 'edTok', exTok));
+aePress(aePillFor('xf', 1, 'edWho', 'caster'));
+aeTypeAmount(aeAmtOf('xf', 1), '2');
+aeAmtOf('xf', 1).blur();
+A.state.flush();
+
+const exExpected = JSON.stringify({
+  id: exMade, name: A.interactions.NEW_ACTION_NAME, dmg: 0, keywords: [],
+  cost: [{ tok: 'ap', n: 1 }],
+  req: [{ tok: 'hp', n: 2 }],
+  xf: [{ who: 'target', tok: 'hp', d: -3 }, { who: 'caster', tok: exTok, d: 2 }]
+});
+const exActual = JSON.stringify(aeRecordOf(exMade));
+// The chooser is drawn from the LIVE vocabulary, so the type made mid-visit is
+// choosable and a rename reaches every row. Read back by NAME, because the name
+// is what a student picks from.
+const exRenamed = (() => {
+  A.ops.renameTokenType(exTok, 'Fury');
+  A.state.flush();
+  const pill = aePillFor('xf', 1, 'edTok', exTok);
+  return pill ? pill.textContent + pill.children.map((c) => c.textContent).join('') : '(no pill)';
+})();
+check(
+  '69. the developer\'s own example is authorable on screen through real '
+    + 'controls — one action point spent, two Health needed and not spent, the '
+    + 'target losing three Health, and a second change on the caster over a '
+    + 'token type invented during the same visit. The record is read back WHOLE '
+    + 'rather than field by field, because a comparison of parts passes over a '
+    + 'stray key one nesting level from a token id',
+  exActual === exExpected && exRenamed.indexOf('Fury') !== -1
+    && errPanel.hidden === true,
+  'authored=' + exActual + ' expected=' + exExpected
+    + ' the chooser after the type was renamed=' + JSON.stringify(exRenamed)
+);
+A.ops.renameTokenType(exTok, 'Rage');
+A.state.flush();
+
+/* 69b. A LEADING SIGN IS PART OF THE VALUE, NEVER A MODE. [S07.1]'s stepper
+   field reads "+5" as "step by five" and "5" as "set to five"; a transformation
+   amount is signed by nature (D-08), so "-3" typed over a 5 must write -3 and
+   not 2. The two fields look identical on the page, which is exactly why this
+   is driven rather than assumed. */
+aeTypeAmount(aeAmtOf('xf', 0), '5');
+const exAfterFive = aeRecordOf(exMade).xf[0].d;
+aeTypeAmount(aeAmtOf('xf', 0), '-3');
+const exAfterMinus = aeRecordOf(exMade).xf[0].d;
+aeTypeAmount(aeAmtOf('xf', 0), '+4');
+const exAfterPlus = aeRecordOf(exMade).xf[0].d;
+aeTypeAmount(aeAmtOf('xf', 0), '-3');
+aeAmtOf('xf', 0).blur();
+A.state.flush();
+check(
+  '69b. a leading sign in an amount is part of the VALUE and never the '
+    + 'delta-versus-absolute mode the board\'s steppers use — typing -3 over a 5 '
+    + 'writes -3, not 2, and +4 writes 4, not 9',
+  exAfterFive === 5 && exAfterMinus === -3 && exAfterPlus === 4
+    && errPanel.hidden === true,
+  'after typing 5=' + exAfterFive + ' after -3=' + exAfterMinus
+    + ' (a delta reading would give 2) after +4=' + exAfterPlus
+    + ' (a delta reading would give 9)'
+);
+
+/* 69c. THE PARSER IS A REGEX AND NOT Number(). All of these fail SILENTLY
+   through Number() / parseInt() / Math.trunc() — '' and '   ' become 0, '1e3'
+   becomes 1000, '0x5' becomes 5, 'Infinity' becomes Infinity, '5.5' becomes
+   5.5 — and the empty-string case is the dangerous one, because a student who
+   selects all, presses Delete and clicks away would write a cost of nothing.
+   Driven on the QUIET path, which is a blur: clicking away from a half-typed
+   value is not an error and must not open a panel. Escape gets its own clause
+   for the same reason it does on the name field. */
+const exBad = [];
+['abc', '1e3', '0x5', '5.5', 'Infinity', '', '   ', '+', '-', '1000', '--3', '3px']
+  .forEach((bad) => {
+    const f = aeAmtOf('xf', 0);
+    if (stub.activeElement !== f) { f.focus(); }
+    const wasText = f.dataset.was;
+    const wroteBefore = JSON.stringify(aeRecordOf(exMade).xf);
+    f.value = bad;
+    f.dispatchEvent(dom.event('input'));
+    f.dispatchEvent(dom.event('focusout'));
+    A.state.flush();
+    if (f.value !== wasText || JSON.stringify(aeRecordOf(exMade).xf) !== wroteBefore) {
+      exBad.push(JSON.stringify(bad) + ' -> field=' + JSON.stringify(f.value)
+        + ' record=' + JSON.stringify(aeRecordOf(exMade).xf));
+    }
+    f.blur();
+    A.state.flush();
+  });
+// Padding alone is TRIMMED and taken, not refused, which is the same kindness
+// [S07.1]'s own parser extends: trim() runs first and every test runs on the
+// trimmed result, so a stray space is not a rule a student has to debug.
+const exPadded = (() => {
+  const f = aeAmtOf('xf', 0);
+  f.focus();
+  f.value = ' 3 ';
+  f.dispatchEvent(dom.event('input'));
+  f.dispatchEvent(dom.event('focusout'));
+  A.state.flush();
+  const out = aeRecordOf(exMade).xf[0].d;
+  f.blur();
+  A.state.flush();
+  aeTypeAmount(aeAmtOf('xf', 0), '-3');
+  aeAmtOf('xf', 0).blur();
+  A.state.flush();
+  return out;
+})();
+const exEscField = (() => {
+  const f = aeAmtOf('xf', 0);
+  f.focus();
+  f.value = '-9';
+  f.dispatchEvent(dom.event('input'));
+  const before = commits();
+  f.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+  const out = [f.value, commits() - before, aeDialog.open];
+  f.blur();
+  A.state.flush();
+  return out;
+})();
+check(
+  '69c. an amount that is not a whole number changes nothing and leaves the '
+    + 'field holding the text it recorded on focus — every one of these is a '
+    + 'value Number(), parseInt() and Math.trunc() would each have taken '
+    + 'SILENTLY, the empty string most dangerously of all. Escape puts the '
+    + 'recorded text back, commits nothing, and leaves the dialog open. A '
+    + 'number with padding around it is TRIMMED and taken, which is the same '
+    + 'kindness the parser on the board extends',
+  exBad.length === 0 && exPadded === 3
+    && exEscField[0] === '-3' && exEscField[1] === 0
+    && exEscField[2] === true && errPanel.hidden === true,
+  'values that got through: ' + (exBad.join(' | ') || 'none')
+    + ' | a padded number is trimmed and taken, and wrote=' + exPadded
+    + ' | field after Escape=' + JSON.stringify(exEscField[0])
+    + ' commits from Escape=' + exEscField[1]
+    + ' dialog still open=' + exEscField[2]
+);
+
+/* 69d. THE REPAINT DOES NOT WRITE A FOCUSED AMOUNT FIELD, and an undo DOES
+   repaint the row it is not standing in. Both are D-19 on this surface: the
+   dialog rides SYNC_HOOKS, so it repaints on every frame while it is open, and
+   a student halfway through typing "-4" must not be handed "-3" back — while a
+   row nobody is standing in must follow state wherever state goes, including
+   backwards. The undo is measured against a write that cannot have coalesced
+   with the one before it, because commit() folds same-label writes inside its
+   window and a probe that let the two touch would measure nothing. */
+const exFocusField = aeAmtOf('xf', 0);
+exFocusField.focus();
+exFocusField.value = '-4';
+A.ops.renameAction('cats', 'slash', 'Rake');
+A.state.flush();
+const exMidTyping = exFocusField.value;
+exFocusField.value = exFocusField.dataset.was;
+exFocusField.blur();
+A.state.flush();
+A.ops.renameAction('cats', 'slash', 'Slash');
+A.state.flush();
+
+A.ops.renameAction('cats', exMade, 'Prowl');
+A.state.flush();
+aeTypeAmount(aeAmtOf('xf', 0), '-8');
+aeAmtOf('xf', 0).blur();
+A.state.flush();
+const exBeforeUndo = aeAmtOf('xf', 0).value;
+A.ops.undo();
+A.state.flush();
+const exAfterUndo = aeAmtOf('xf', 0).value;
+const exUndoAgrees = exAfterUndo === String(aeRecordOf(exMade).xf[0].d);
+check(
+  '69d. a repaint raised from outside leaves a FOCUSED amount field untouched, '
+    + 'and an undo repaints a row nobody is standing in back to the value state '
+    + 'now holds — the first is why the field is static markup, the second is '
+    + 'why the fill runs from the record on every frame rather than from '
+    + 'whoever last pressed something',
+  exMidTyping === '-4' && exBeforeUndo === '-8' && exAfterUndo !== '-8'
+    && exUndoAgrees === true && errPanel.hidden === true,
+  'field mid-typing under an outside commit=' + JSON.stringify(exMidTyping)
+    + ' field after the write=' + JSON.stringify(exBeforeUndo)
+    + ' after the undo=' + JSON.stringify(exAfterUndo)
+    + ' record now=' + JSON.stringify(aeRecordOf(exMade).xf[0])
+);
+
+/* 69e. EMPTYING A SLOT SHORTENS THE LIST, AND THE SURPLUS ROW IS HIDDEN RATHER
+   THAN DESTROYED. The empty entry at the head of a chooser is the one named
+   path [S05] gives for removing a term, so there is no second control and no
+   second spelling. A destroyed static row is a row the next repaint cannot
+   find, which is why the parent is read back too. */
+const exXfWas = aeRecordOf(exMade).xf.length;
+aePress(aePillFor('xf', 1, 'edTok', ''));
+A.state.flush();
+const exXfOne = aeRecordOf(exMade).xf.length;
+aePress(aePillFor('xf', 0, 'edTok', ''));
+A.state.flush();
+const exXfNone = aeRecordOf(exMade).xf.length;
+const exSurplus = dom.byId['act-edit-xf-1'];
+const exFirstRow = dom.byId['act-edit-xf-0'];
+check(
+  '69e. the empty entry at the head of a chooser takes a term out of the list '
+    + 'and the list gets SHORTER, the row that is now surplus is hidden rather '
+    + 'than destroyed, and one empty slot is always left to write into — that '
+    + 'empty slot is the whole affordance, so there is no Add control anywhere '
+    + 'and no second spelling of a removal',
+  exXfWas === 2 && exXfOne === 1 && exXfNone === 0
+    && exSurplus.hidden === true
+    && exSurplus.parentNode === dom.byId['act-edit-terms']
+    && exFirstRow.hidden === false
+    && aeAmtOf('xf', 0).hidden === true
+    && errPanel.hidden === true,
+  'transformations before=' + exXfWas + ' after one removal=' + exXfOne
+    + ' after both=' + exXfNone
+    + ' surplus row hidden=' + exSurplus.hidden
+    + ' still in the terms block=' + (exSurplus.parentNode === dom.byId['act-edit-terms'])
+    + ' the empty slot is shown=' + (exFirstRow.hidden === false)
+    + ' with its amount hidden=' + aeAmtOf('xf', 0).hidden
+);
+
+/* 69f. THE PARTY CHOOSER IS THE EXPORTED ALLOWLIST, AND THE AMOUNT FIELD
+   CARRIES NO data-act. The first half is T-03.1-27: `who` is checked against
+   XF_WHO by [S05] and turned into one of the page's own two words here, so the
+   id never reaches a class, a selector or a rendered string — and a word
+   missing from the page's map would silently drop a party from the chooser,
+   which is why the two lists are compared rather than eyeballed.
+
+   The second half is a trap this dialog sets for itself. Every other control in
+   here is routed by data-act on pointerdown, so a data-act on an INPUT would
+   fire the very op the field exists to send on Enter, the moment a student
+   clicked into it to type. */
+aePress(aePillFor('xf', 0, 'edTok', 'hp'));
+A.state.flush();
+const exWhoPills = aePills('xf', 0).filter((b) => typeof b.dataset.edWho === 'string');
+const exWhoIds = exWhoPills.map((b) => b.dataset.edWho).join(',');
+const exWhoWords = exWhoPills.map((b) =>
+  b.children.map((c) => c.textContent).join('')).join('|');
+const exAmtActs = ['cost', 'req', 'xf'].map((field) => {
+  const slots = field === 'cost' ? [0] : [0, 1];
+  return slots.map((slot) => aeAmtOf(field, slot))
+    .filter((f) => typeof f.dataset.act === 'string').length;
+}).reduce((a, b) => a + b, 0);
+check(
+  '69f. the party chooser is the EXPORTED XF_WHO allowlist turned into the '
+    + 'page\'s own two words — the id never reaches a class, a selector or a '
+    + 'rendered string, and a party with no word here would be dropped from the '
+    + 'chooser silently, so the two lists are compared. And no amount field '
+    + 'carries a data-act: every other control in this dialog is routed by one '
+    + 'on pointerdown, so an input wearing one would fire its op the moment a '
+    + 'student clicked in to type',
+  exWhoIds === A.data.XF_WHO.join(',')
+    && exWhoWords === 'Caster✓|Target✓'
+    && exAmtActs === 0
+    && errPanel.hidden === true,
+  'party ids on the chooser=' + JSON.stringify(exWhoIds)
+    + ' allowlist=' + JSON.stringify(A.data.XF_WHO.join(','))
+    + ' words on the page=' + JSON.stringify(exWhoWords)
+    + ' amount fields carrying a data-act=' + exAmtActs
+);
+
+if (aeDialog.open === true) { aeDialog.close(); }
 clearPanel();
 A.state.restore(aeSaved);
 A.state.flush();
@@ -4073,7 +4423,26 @@ check(
 // not moved when a root is added is a floor that quietly stops bounding
 // anything, which is the same silent shrink every other floor in this file
 // carries a history note to prevent.
-const DIALOG_FLOOR = 91;
+//
+// 91 IS RAISED TO 134 BY PLAN 03.1-06, AND THE RULE ABOVE IS WHY. That plan
+// added no root, but it filled the action editor's term rows, and the total
+// went from 98 to 141 in one change. The rows are worth 43 strings between
+// them: three legends and three notes that are the artifact's own words, two
+// party pills and a token pill per row per token type on the board, each with
+// its tick, and an aria-label on each of the five amount fields. Left at 91,
+// every one of those could have gone dark and the picker's 91 alone would
+// still have cleared the floor. The arithmetic is the one this note has kept
+// twice already: seven below the measured total.
+const DIALOG_FLOOR = 134;
+
+// The floor for a harvest of the PICKER ALONE, which check 47g takes because it
+// opens one dialog rather than every one. It was reading DIALOG_FLOOR, and that
+// was wrong in a way that was invisible while the two numbers happened to be
+// close: DIALOG_FLOOR is over the TOTAL of every root, and a one-root harvest
+// compared against it passed by a single string. Raising the total floor for
+// plan 03.1-06 is what surfaced it. This is the original one-dialog arithmetic,
+// kept: seven below the picker's measured 91.
+const PICKER_FLOOR = 84;
 console.log('scan: ' + dialogText.length + ' rendered strings read from '
   + DIALOG_ROOTS.length + ' dialog root(s) — '
   + DIALOG_ROOTS.map((r) => '#' + r.id).join(', ')
@@ -4267,11 +4636,68 @@ check(
   bothHits.length === 0
     && bothLine === 'Winner is named by Overpowered. Removing it will leave '
       + 'that action without a term.'
-    && bothText.length > DIALOG_FLOOR,
+    && bothText.length > PICKER_FLOOR,
   bothHits.length === 0
     ? 'line read ' + JSON.stringify(bothLine) + ', clean across '
-      + bothText.length + ' dialog strings'
+      + bothText.length + ' picker strings (floor ' + PICKER_FLOOR + ')'
     : bothHits.join(' | ')
+);
+
+/* --- 69g. LAYER C OVER THE ACTION EDITOR WITH EVERY TERM ROW POPULATED, and
+       with a comparative word in every channel a student can reach: the action
+       name, a token type name, and therefore every chooser pill and the editor
+       heading at once. This is the row plan 03.1-06 owes, and it is separate
+       from 47d and 47e because it exercises a THIRD channel — the term rows
+       draw a token type's name once per pill per row, which is five rows times
+       the whole vocabulary, and not one of those nodes existed when 47d was
+       written.
+
+       The editor is driven directly rather than through openDialogs(), because
+       that helper opens each root through its own opener and the editor opens
+       COLD on the first side and that side's first action — which is not the
+       action this row populated. --- */
+const fullSaved = JSON.stringify(A.state.get());
+const fullTok = A.ops.createTokenType({
+  name: 'Superior', shape: 'hex', color: 'coral', glyph: '', scope: 'unit'
+});
+const fullAct = A.ops.createAction('mechs', 'Unfair');
+A.ops.setActionCost('mechs', fullAct, fullTok, 2);
+A.ops.setActionReq('mechs', fullAct, 0, 'hp', 2);
+A.ops.setActionReq('mechs', fullAct, 1, fullTok, 1);
+A.ops.setActionXf('mechs', fullAct, 0, A.data.XF_WHO[1], 'hp', -3);
+A.ops.setActionXf('mechs', fullAct, 1, A.data.XF_WHO[0], fullTok, 2);
+A.state.flush();
+
+const fullDlg = dom.byId['act-edit'];
+if (fullDlg.open !== true) { fullDlg.showModal(); }
+A.render.editor(A.state.get(), 'mechs', fullAct);
+A.state.flush();
+const fullRowsShown = ['act-edit-cost', 'act-edit-req-0', 'act-edit-req-1',
+  'act-edit-xf-0', 'act-edit-xf-1'].filter((id) => dom.byId[id].hidden === false);
+const fullAmountsShown = ['act-edit-cost-amt', 'act-edit-req-0-amt',
+  'act-edit-req-1-amt', 'act-edit-xf-0-amt', 'act-edit-xf-1-amt']
+  .filter((id) => dom.byId[id].hidden === false && dom.byId[id].value !== '');
+const fullText = harvestInto(fullDlg, [], '#act-edit');
+const fullHits = verdictHitsIn(fullText);
+if (fullDlg.open === true) { fullDlg.close(); }
+A.state.restore(fullSaved);
+A.state.flush();
+clearPanel();
+
+check(
+  '69g. every term row of the action editor is populated at once — a cost, two '
+    + 'requirements and two transformations, over an action and a token type a '
+    + 'student named after comparative words — and the rendered-page walk over '
+    + 'the whole dialog stays clean. The token name reaches the page once per '
+    + 'chooser pill per row, which is a channel that did not exist when the '
+    + 'first exemption control was written',
+  fullHits.length === 0 && fullRowsShown.length === 5
+    && fullAmountsShown.length === 5,
+  fullHits.length === 0
+    ? 'clean across ' + fullText.length + ' strings harvested from #act-edit '
+      + 'with all ' + fullRowsShown.length + ' term rows shown and all '
+      + fullAmountsShown.length + ' amounts filled'
+    : fullHits.join(' | ')
 );
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.

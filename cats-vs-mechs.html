@@ -740,16 +740,53 @@
   .ae-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
   .ae-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
 
-  /* RESERVED, EMPTY AND HIDDEN until plan 03.1-06 fills it. It carries its own
+  /* THE TERM ROWS (ACT-02, ACT-03, ACT-04 — plan 03.1-06). Each carries its own
      hidden rule for the reason .pk-warn[hidden], .prj-note[hidden] and
      .brd-line--opt[hidden] each have one: [hidden]{display:none} is a
      user-agent rule and the margins here would not have beaten it, but a later
      author rule giving one of these classes a display would, and the next
-     reader should not have to know which of those is true today. */
+     reader should not have to know which of those is true today.
+
+     A row WRAPS rather than scrolls. A transformation carries a party chooser,
+     a token chooser over a vocabulary a student can grow to six entries, and an
+     amount, and at the board's type scale that is wider than the dialog on a
+     laptop. Wrapping keeps every control reachable with no horizontal scroll,
+     which is the one interaction a projector audience cannot follow. */
   .ae-terms{margin:0 0 18px;display:flex;flex-direction:column;gap:14px}
   .ae-terms[hidden]{display:none}
-  .ae-term{display:flex;align-items:center;gap:10px;min-height:44px}
+  .ae-term{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:44px}
   .ae-term[hidden]{display:none}
+  .ae-term-lbl{color:var(--ink-dim);font-size:16px;min-width:66px}
+  .ae-term-note{margin:-6px 0 2px;color:var(--ink-dim);font-size:15px;max-width:60ch}
+
+  /* The two choosers are one shape said twice, which is deliberate: a party and
+     a token type are both a CHOICE FROM AN ALLOWLIST, and [C07]'s swatch grid
+     is where this file settled what that looks like. The tick and the outline
+     say the live one together, never colour alone. */
+  .ae-term-who,.ae-term-toks{display:flex;flex-wrap:wrap;gap:6px}
+  .ae-pill{
+    display:flex;align-items:center;gap:6px;
+    min-height:38px;padding:6px 11px;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:9px;color:var(--ink);
+    font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  .ae-pill--on{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* The amount. Narrow, tabular, and NOT one of the board's stepper fields —
+     .stp-field is what [S07.1]'s isField keys on, and a node wearing that class
+     in here would be read by a handler that knows nothing about slots. */
+  .ae-amt{
+    width:5.5ch;box-sizing:content-box;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:8px 10px;font:inherit;font-size:17px;
+    font-variant-numeric:tabular-nums;text-align:right;
+    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  }
+  .ae-amt[hidden]{display:none}
 
   /* The proposal pane, reserved by plan 03.1-05 and filled by plan 03.1-07.
      Empty and hidden, and the dialog's own data-ed-pane attribute is what will
@@ -1052,18 +1089,67 @@
       <input class="ae-name" id="act-edit-name" type="text" autocomplete="off" maxlength="24" aria-labelledby="act-edit-name-label" data-k="ae/name">
     </div>
 
-    <!-- RESERVED FOR PLAN 03.1-06 and hidden until it arrives. Empty rows with
-         nothing in them are not a surface, so the block carries `hidden` as a
-         whole rather than showing three legends over nothing. -->
-    <div class="ae-terms" id="act-edit-terms" hidden>
+    <!-- THE TERM ROWS (ACT-02, ACT-03 and ACT-04 — plan 03.1-06). The block is
+         no longer hidden: plan 03.1-05 reserved it empty and this plan fills
+         it.
+
+         EVERY ROW IS STATIC, and so is the amount field inside it, for the
+         reason #act-edit-name is static (D-19): the dialog repaints on every
+         frame while it is open, and a number a student is halfway through
+         typing is exactly the text a rebuilt node throws away. A node that is
+         never rebuilt can simply be skipped while it holds focus, which is the
+         rule the whole surface already keeps. What [S06.5] DOES rebuild on
+         every repaint is the two chooser boxes, because a button carries no
+         text of the student's own and the focus contract puts the keyboard back
+         on the row's data-k.
+
+         THE AMOUNT FIELD CARRIES NO data-act, deliberately. Every other control
+         in this dialog is routed by one, and a data-act on an input would be
+         read by the delegated listener on pointerdown — so clicking into the
+         field to type would fire the very op the field exists to send on Enter.
+         It is told apart by its CLASS, exactly as #act-edit-name and
+         #tok-pick-name are, and the class is in the stub page too or every
+         handler would decline on its first line over a field nothing listens
+         to.
+
+         data-ae-field and data-ae-slot are STATIC because the row IS the slot.
+         They can never go stale under a repaint, which is what lets the commit
+         path read them at blur time rather than recording them at focus time
+         the way the side and the action have to be. -->
+    <div class="ae-terms" id="act-edit-terms">
       <h3 class="ae-legend">Cost</h3>
-      <div class="ae-term" id="act-edit-cost"></div>
+      <p class="ae-note ae-term-note">Spent when the action is used.</p>
+      <div class="ae-term" id="act-edit-cost">
+        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-cost-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="0" data-k="ae/amt/cost/0">
+      </div>
+
       <h3 class="ae-legend">Needs</h3>
-      <div class="ae-term" id="act-edit-req-0" hidden></div>
-      <div class="ae-term" id="act-edit-req-1" hidden></div>
+      <p class="ae-note ae-term-note">Must be there for the action to be used. It is not spent.</p>
+      <div class="ae-term" id="act-edit-req-0" hidden>
+        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-req-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="0" data-k="ae/amt/req/0">
+      </div>
+      <div class="ae-term" id="act-edit-req-1" hidden>
+        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-req-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="1" data-k="ae/amt/req/1">
+      </div>
+
       <h3 class="ae-legend">Changes</h3>
-      <div class="ae-term" id="act-edit-xf-0" hidden></div>
-      <div class="ae-term" id="act-edit-xf-1" hidden></div>
+      <p class="ae-note ae-term-note">What the action changes, and by how much. Put a minus in front for a change downward.</p>
+      <div class="ae-term" id="act-edit-xf-0" hidden>
+        <div class="ae-term-who"></div>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-xf-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="0" data-k="ae/amt/xf/0">
+      </div>
+      <div class="ae-term" id="act-edit-xf-1" hidden>
+        <div class="ae-term-who"></div>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-xf-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="1" data-k="ae/amt/xf/1">
+      </div>
     </div>
 
     <div class="ae-actions">
@@ -5979,6 +6065,175 @@ App.render = (function () {
     list.scrollTop = scrolled;
   }
 
+  /* ---- ACT-02, ACT-03 and ACT-04: the term rows — plan 03.1-06 ----------
+   *
+   * The rows and the amount field inside each of them are STATIC markup, for
+   * the reason the name field is (D-19): this dialog repaints on every frame
+   * while it is open, and a number a student is halfway through typing is
+   * exactly the text a rebuilt node throws away. What is rebuilt here is the
+   * two CHOOSER boxes, because a button carries no text of the student's own
+   * and the focus contract puts the keyboard back on the pressed row's data-k.
+   *
+   * WHICH ROWS ARE SHOWN: the ones the action uses, plus ONE empty slot to add
+   * to, capped at MAX_ACTION_REQ / MAX_ACTION_XF, and the surplus is HIDDEN
+   * rather than destroyed — a destroyed static row is a row the next repaint
+   * cannot find. The empty slot is the whole affordance: it is what says a
+   * requirement is a thing a student may write, without a control anywhere
+   * that reads like "add".
+   */
+
+  // The two words the page says for the two ids the data holds. XF_WHO is the
+  // allowlist [S05] refuses against; this is where it becomes English, and the
+  // id itself never reaches a class, a selector or a rendered string. Read
+  // through hasOwnProperty for labelFor's stated reason, and an id with no word
+  // here is left out of the chooser rather than pasted through — [S09.10]
+  // asserts the two lists agree, so that path is a guard and not a gap.
+  var WHO_NAMES = { caster: 'Caster', target: 'Target' };
+
+  function whoName(who) {
+    return Object.prototype.hasOwnProperty.call(WHO_NAMES, who) ? WHO_NAMES[who] : '';
+  }
+
+  // The word on the entry that empties a slot. It is the FIRST entry of a
+  // requirement or a transformation chooser, and it is the one named path [S05]
+  // gives for removing a term — a Remove button beside the row would be a
+  // second spelling of the same write, and the two would drift.
+  var NO_TERM_WORD = 'None';
+
+  // A missing list is an empty list, everywhere: the same rule [S05]'s term ops
+  // keep, for the same measured reason about what the state's own clone does to
+  // an absent field.
+  function termList(record, field) {
+    var list = record[field];
+    return Array.isArray(list) ? list : [];
+  }
+
+  // The allowlisted-choice control, in pickerSwatch's idiom and for its three
+  // reasons: it is a real <button> carrying the same data-act the board's
+  // controls carry, so [S07.3] routes it through App.ops.dispatch and there is
+  // still no second mutation entry point in the file; data-k names the SLOT and
+  // the ID and never a word a student typed; and the live one is marked by an
+  // outline AND a tick, never by colour alone.
+  function choicePill(act, slot, kind, dataKey, value, label, on) {
+    var b = el('button', 'ae-pill' + (on ? ' ae-pill--on' : ''));
+    b.type = 'button';
+    var pairs = {
+      act: act,
+      edSlot: String(slot),
+      k: 'ae/' + act + '/' + slot + '/' + kind + '/' + value
+    };
+    pairs[dataKey] = value;
+    setData(b, pairs);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+
+    // The token name is a word a student can type, so the node carries the
+    // action-name marker's sibling for the same reason the list rows do: the
+    // rendered-page walk skips the text of a node carrying it, and a student
+    // who names a token type after a comparative word must not redden CI.
+    var nameNode = text('span', 'ae-pill-name', label);
+    if (kind === 'tok' && value !== '') { setData(nameNode, { lbl: value }); }
+    b.appendChild(nameNode);
+
+    b.appendChild(text('span', 'ae-check', '✓'));
+    return b;
+  }
+
+  // Drawn from the LIVE vocabulary, so a type a student invented is choosable
+  // and a type they renamed shows its new name. The label comes from [S06.1]'s
+  // labelFor for the reason [S06.2] gives about its own rows: a name here and a
+  // name on the board must come from the same place or they drift the first
+  // time one of them is changed.
+  function fillTokenChoices(box, state, act, slot, current, clearable) {
+    if (!box) { return; }
+    box.replaceChildren();
+    if (clearable) {
+      box.appendChild(choicePill(act, slot, 'tok', 'edTok', '', NO_TERM_WORD,
+        current === ''));
+    }
+    Object.keys(state.build.tokens).forEach(function (id) {
+      box.appendChild(choicePill(act, slot, 'tok', 'edTok', id,
+        labelFor(state, id), id === current));
+    });
+  }
+
+  // Two entries, and the words are the page's while the ids are the data's.
+  // An empty slot gets no party chooser at all rather than two dead buttons:
+  // there is no term for either of them to name yet, so pressing one could only
+  // do nothing.
+  function fillWhoChoices(box, slot, current, live) {
+    if (!box) { return; }
+    box.replaceChildren();
+    if (!live) { return; }
+    App.data.XF_WHO.forEach(function (who) {
+      var word = whoName(who);
+      if (word === '') { return; }
+      box.appendChild(choicePill('setActionXf', slot, 'who', 'edWho', who, word,
+        who === current));
+    });
+  }
+
+  // NEVER WRITTEN WHILE IT HOLDS FOCUS. This is setValue's rule (D-19) applied
+  // to a figure rather than to text, and it is the whole reason the field is
+  // static markup: a student halfway through typing "-3" must not be handed "1"
+  // back on the next frame.
+  //
+  // dataset.was moves with the displayed value for showFieldValue's stated
+  // reason — it is what a revert puts back, so left stale it would restore a
+  // number state no longer holds. The token and the party ride along on the
+  // same write, because the commit path reads them off the field and they must
+  // describe the same term the value does.
+  function showAmount(field, amount, tok, who) {
+    if (!field || field === document.activeElement) { return; }
+    field.value = String(amount);
+    field.dataset.was = field.value;
+    field.dataset.aeTok = tok;
+    field.dataset.aeWho = who;
+  }
+
+  function fillSlotRows(state, field, act, cap, list) {
+    // The rows in use plus one empty slot, never past the cap.
+    var shown = Math.min(list.length + 1, cap);
+    for (var i = 0; i < cap; i++) {
+      var row = document.getElementById('act-edit-' + field + '-' + i);
+      if (!row) { continue; }
+      row.hidden = (i >= shown);
+      if (i >= shown) { continue; }
+
+      var term = list[i];
+      var amt = row.querySelector('.ae-amt');
+      fillWhoChoices(row.querySelector('.ae-term-who'), i,
+        term ? term.who : '', !!term);
+      fillTokenChoices(row.querySelector('.ae-term-toks'), state, act, i,
+        term ? term.tok : '', true);
+      if (amt) { amt.hidden = !term; }
+      if (term) {
+        showAmount(amt, (field === 'xf') ? term.d : term.n, term.tok,
+          (field === 'xf') ? term.who : '');
+      }
+    }
+  }
+
+  function fillTerms(state, live) {
+    var costRow = document.getElementById('act-edit-cost');
+    if (costRow) {
+      var cost = termList(live, 'cost')[0];
+      // A cost chooser carries no emptying entry, and that is a decision rather
+      // than an omission: an action costing nothing is a rule a student may
+      // write, and the honest way to say it is an amount of nothing rather than
+      // a control sitting among the token types reading like one of them.
+      fillTokenChoices(costRow.querySelector('.ae-term-toks'), state,
+        'setActionCost', 0, cost ? cost.tok : '', false);
+      var costField = costRow.querySelector('.ae-amt');
+      if (costField) { costField.hidden = !cost; }
+      if (cost) { showAmount(costField, cost.n, cost.tok, ''); }
+    }
+
+    fillSlotRows(state, 'req', 'setActionReq', App.data.MAX_ACTION_REQ,
+      termList(live, 'req'));
+    fillSlotRows(state, 'xf', 'setActionXf', App.data.MAX_ACTION_XF,
+      termList(live, 'xf'));
+  }
+
   // THE REPAINT GATE, and it fingerprints everything this surface draws.
   //
   // JSON.stringify of an ARRAY, never a joined string, for the reason
@@ -6008,9 +6263,22 @@ App.render = (function () {
   // Here every field named is a field of an action THIS surface is listing, and
   // the rows to draw it into are already in the shell. The cost is one repaint
   // that touches no node, on an edit no surface in this phase can make.
+  //
+  // AND THE TOKEN VOCABULARY, added by plan 03.1-06 beside the code that draws
+  // it, which is the one case where that is the correct order rather than the
+  // pre-02.1-04 defect. Everything above is a field of an ACTION on this side,
+  // and those were fingerprinted a plan early precisely so the term rows could
+  // not be born stale. The vocabulary is a different record entirely: nothing
+  // in this surface drew a token type's NAME until the term choosers existed,
+  // so there was nothing here to be stale about. Now there is — a student who
+  // renames Health to Vigor with the editor open must see it on every chooser
+  // in every row — and the id rides along beside the name because a type
+  // created or removed changes how many entries a chooser holds.
   function editorSig(state, side, actionId) {
     return JSON.stringify([side, actionId, refActions(state, side).map(function (a) {
       return [a.id, a.name, a.dmg, a.keywords, a.cost, a.req, a.xf];
+    }), Object.keys(state.build.tokens).map(function (id) {
+      return [id, labelFor(state, id)];
     })]);
   }
 
@@ -6100,6 +6368,13 @@ App.render = (function () {
       // pass keeps one region up. Both are re-decided from state on every
       // repaint rather than toggled by whoever last pressed something, so an
       // undo moves them too.
+      // ACT-02, ACT-03 and ACT-04. The rows are filled from the record on
+      // every repaint, so a change made anywhere — a token type renamed, a
+      // term written from the keyboard, an undo — reaches them on the frame it
+      // happens. Any amount field holding focus is skipped inside, which is
+      // why this is a call rather than a rebuild.
+      fillTerms(state, live);
+
       setEditorEnabled('act-edit-remove', !isShippedAction(actionId));
       setEditorEnabled('act-edit-new',
         ownActions(state, side).length < App.data.MAX_CUSTOM_ACTIONS);
@@ -7639,11 +7914,215 @@ App.interactions = (function () {
     el.dataset.was = el.value;
   }
 
+  /* ---- the term controls (ACT-02, ACT-03, ACT-04 — plan 03.1-06) --------
+   *
+   * A chooser press and an amount are two halves of one write, and both go
+   * through App.ops.dispatch. Nothing here decides anything: the control the
+   * student presses is the only thing that says which token, which party and
+   * which slot, and the op refuses whatever it refuses.
+   */
+
+  // What a term starts as when a student presses a token into an EMPTY slot.
+  // Named rather than written at the press sites, for the reason
+  // NEW_ACTION_NAME is named: a default the op would refuse puts the styled
+  // error panel in front of a student on the one press the feature exists for,
+  // so these are held to the same bounds [S05] enforces and asserted against
+  // the constants rather than against re-typed copies.
+  //
+  // A new transformation starts on the TARGET and takes one away, because that
+  // is the developer's own example — "target Health minus 3" — and because a
+  // change of nothing is a change [S05] refuses outright.
+  var NEW_COST_AMOUNT = 1;
+  var NEW_REQ_AMOUNT = 1;
+  var NEW_XF_DELTA = -1;
+  var NEW_XF_WHO = App.data.XF_WHO[1];
+
+  /* ---- the amount field.
+   *
+   * The same four-function contract the name field keeps, for the same
+   * reasons: a baseline recorded on focus, Enter commits loudly, Escape puts
+   * the recorded text back, blur commits quietly, and the value-versus-`was`
+   * test stays because without it a value committed by Enter is applied a
+   * second time on the blur that follows.
+   *
+   * ITS PARSER IS NOT [S07.1]'s, AND THE DIFFERENCE IS ONE LINE OF BEHAVIOUR
+   * THE TWO SPELLINGS HIDE. There, a leading sign selects a MODE: "+5" means
+   * step by five and "5" means set to five. Here a transformation amount is
+   * SIGNED BY NATURE (D-08) — "target Health -3" IS the rule — so the sign is
+   * part of the VALUE and is never read as a mode. The two fields look
+   * identical on the page and behave differently, which is exactly why this is
+   * written down rather than left to be inferred from a regex two regions
+   * apart.
+   *
+   * A regex, and not Number() / parseInt() / Math.trunc(), because all three
+   * fail SILENTLY: '' and '  ' become 0, '1e3' becomes 1000, '0x5' becomes 5,
+   * 'Infinity' becomes Infinity and '5.5' becomes 5.5. The empty-string case is
+   * the dangerous one here too — a student who selects all, presses Delete and
+   * clicks away would otherwise write a cost of zero. \d without the u flag is
+   * ASCII-only, which is what is wanted; {1,3} caps at 999 and [S05]'s int()
+   * then clamps to the named bound, so parse and clamp stay separate. ---- */
+  var AMOUNT = /^([+-]?)(\d{1,3})$/;
+
+  function parseAmount(raw) {
+    var typed = String(raw).trim();
+    if (typed === '') {
+      return { ok: false, why: 'that field was empty' };
+    }
+    var m = AMOUNT.exec(typed);
+    if (m === null) {
+      return {
+        ok: false,
+        why: 'type a whole number, with a minus in front for a change downward'
+      };
+    }
+    return { ok: true, n: (m[1] === '-' ? -1 : 1) * Number(m[2]) };
+  }
+
+  // The three ops an amount field is ALLOWED to drive, as a table read by key.
+  // An allowlist by construction, for the reason [S07.1]'s FIELD_OPS table is
+  // one: data-ae-field is a value read off the page, and a field whose
+  // attribute drifted would otherwise fall through to whichever arm happened to
+  // be written last.
+  var AMOUNT_OPS = {
+    cost: 'setActionCost',
+    req: 'setActionReq',
+    xf: 'setActionXf'
+  };
+
+  function isAmountField(el) {
+    return !!el && !!el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('ae-amt');
+  }
+
+  function revertAmount(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // THE STRING BECOMES A NUMBER HERE, at this one call site, and the op checks
+  // it again. That is the split [S05] states beside int() itself: the
+  // conversion stays visible where the DOM hands text across, instead of
+  // hiding inside the guard.
+  //
+  // WHICH SLOT AND WHICH FIELD are read off the FIELD, and they can never go
+  // stale because the row IS the slot — they are static markup. Which SIDE and
+  // which ACTION cannot be read that way, because every control in this dialog
+  // moves the selection on pointerdown, ahead of the focus change; those two
+  // are recorded on the field at focus time, exactly as the name field records
+  // them.
+  function sendAmount(el, side, actionId, n) {
+    var field = el.dataset.aeField;
+    if (!Object.prototype.hasOwnProperty.call(AMOUNT_OPS, field)) {
+      throw new Error('No amount op for "' + String(field) + '"');
+    }
+    var slot = Number(el.dataset.aeSlot);
+    if (field === 'cost') {
+      return App.ops.dispatch(AMOUNT_OPS.cost, {
+        side: side, actionId: actionId, tokenId: el.dataset.aeTok, n: n
+      });
+    }
+    if (field === 'req') {
+      return App.ops.dispatch(AMOUNT_OPS.req, {
+        side: side, actionId: actionId, index: slot,
+        tokenId: el.dataset.aeTok, n: n
+      });
+    }
+    return App.ops.dispatch(AMOUNT_OPS.xf, {
+      side: side, actionId: actionId, index: slot,
+      who: el.dataset.aeWho, tokenId: el.dataset.aeTok, d: n
+    });
+  }
+
+  function commitAmount(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var side = el.dataset.forSide;
+    var target = el.dataset.forAct;
+    // Nothing recorded means nothing may be written. An amount with no action
+    // behind it goes back rather than being guessed at.
+    if (side !== 'cats' && side !== 'mechs') { revertAmount(el); return; }
+    if (typeof target !== 'string' || target === '') { revertAmount(el); return; }
+
+    var parsed = parseAmount(el.value);
+    if (!parsed.ok) {
+      revertAmount(el);
+      if (loud) { throw new Error(parsed.why); }
+      return;
+    }
+    try {
+      sendAmount(el, side, target, parsed.n);
+    } catch (refused) {
+      revertAmount(el);
+      if (loud) { throw refused; }
+      return;
+    }
+    // The baseline moves with the committed text or both of them start lying.
+    el.dataset.was = el.value;
+  }
+
+  function rememberAmountTarget(el) {
+    el.dataset.was = el.value;
+    var dlg = editorDialog();
+    el.dataset.forSide = (dlg === null) ? '' : pickedSide(dlg);
+    el.dataset.forAct = (dlg === null) ? '' : pickedAct(dlg);
+  }
+
+  /* ---- the choosers. Each press reads its slot off the pressed control and
+         the REST of the term off the live record, so pressing Target on a
+         transformation keeps the token and the amount the student already
+         wrote, and pressing a token keeps the party and the amount. ---- */
+
+  function liveTerms(side, actionId, field) {
+    var rec = App.state.get().build[side].actions.find(function (a) {
+      return a.id === actionId;
+    });
+    if (rec === undefined) { return []; }
+    return Array.isArray(rec[field]) ? rec[field] : [];
+  }
+
+  function pressCost(dlg, side, btn) {
+    var id = pickedAct(dlg);
+    var was = liveTerms(side, id, 'cost')[0];
+    App.ops.dispatch('setActionCost', {
+      side: side, actionId: id, tokenId: btn.dataset.edTok,
+      n: (was && typeof was.n === 'number') ? was.n : NEW_COST_AMOUNT
+    });
+  }
+
+  // The empty entry carries an empty id and means "take this term away". It is
+  // mapped to App.ops.CLEAR_TERM HERE rather than being spelled as a second
+  // null anywhere, so the page and the op read the same signal.
+  function pressReq(dlg, side, btn) {
+    var id = pickedAct(dlg);
+    var slot = Number(btn.dataset.edSlot);
+    var tok = btn.dataset.edTok;
+    var was = liveTerms(side, id, 'req')[slot];
+    App.ops.dispatch('setActionReq', {
+      side: side, actionId: id, index: slot,
+      tokenId: (tok === '') ? App.ops.CLEAR_TERM : tok,
+      n: (was && typeof was.n === 'number') ? was.n : NEW_REQ_AMOUNT
+    });
+  }
+
+  function pressXf(dlg, side, btn) {
+    var id = pickedAct(dlg);
+    var slot = Number(btn.dataset.edSlot);
+    var was = liveTerms(side, id, 'xf')[slot];
+    var tok = (typeof btn.dataset.edTok === 'string')
+      ? btn.dataset.edTok : (was ? was.tok : '');
+    var who = (typeof btn.dataset.edWho === 'string')
+      ? btn.dataset.edWho : (was ? was.who : NEW_XF_WHO);
+    App.ops.dispatch('setActionXf', {
+      side: side, actionId: id, index: slot, who: who,
+      tokenId: (tok === '') ? App.ops.CLEAR_TERM : tok,
+      d: (was && typeof was.d === 'number') ? was.d : NEW_XF_DELTA
+    });
+  }
+
   // Three facts, recorded together, because they are only useful together: what
   // the text was when the student arrived, and which side and which action they
   // arrived on.
   function onEditorFocusIn(e) {
     var el = e.target;
+    if (isAmountField(el)) { rememberAmountTarget(el); return; }
     if (!isActionNameField(el)) { return; }
     el.dataset.was = el.value;
     var dlg = editorDialog();
@@ -7653,6 +8132,7 @@ App.interactions = (function () {
 
   function onEditorFocusOut(e) {
     var el = e.target;
+    if (isAmountField(el)) { commitAmount(el, false); return; }
     if (!isActionNameField(el)) { return; }
     commitActionName(el, false);
   }
@@ -7687,6 +8167,20 @@ App.interactions = (function () {
     }
 
     var el = e.target;
+
+    // The amount fields keep the same three keys the name field does, and the
+    // arm sits ahead of it because the two are told apart by class and a field
+    // can only be one of them.
+    if (isAmountField(el)) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitAmount(el, true);
+        return;
+      }
+      if (e.key === 'Escape') { revertAmount(el); }
+      return;
+    }
+
     if (!isActionNameField(el)) { return; }
 
     if (e.key === 'Enter') {
@@ -7740,6 +8234,19 @@ App.interactions = (function () {
 
     var rm = node.closest('[data-act="removeAction"]');
     if (rm !== null) { dropAction(dlg, side); return; }
+
+    // The three term choosers, in the same order the rows appear. Each carries
+    // a real op's name in its data-act rather than a UI act of its own, which
+    // is what keeps the acts collected off this dialog partitioned cleanly
+    // against UI_ACTS and App.ops — the gate reads that partition back.
+    var costPill = node.closest('[data-act="setActionCost"]');
+    if (costPill !== null) { pressCost(dlg, side, costPill); return; }
+
+    var reqPill = node.closest('[data-act="setActionReq"]');
+    if (reqPill !== null) { pressReq(dlg, side, reqPill); return; }
+
+    var xfPill = node.closest('[data-act="setActionXf"]');
+    if (xfPill !== null) { pressXf(dlg, side, xfPill); return; }
   }
 
   // The same anti-double-fire rule [S07.1] and [S07.2] each use, for the same
