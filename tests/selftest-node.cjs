@@ -219,22 +219,56 @@ if (!match) {
 //
 // Same honesty clause as the two scans above. This catches the literal
 // spelling inside a literal, which is the shape an accidental reintroduction
-// takes. It does NOT catch a string built by concatenation, a word arriving
-// through a template, or text assembled at render time -- that is Layer C's
-// job. It also cannot see the CSS or the markup outside the script block,
-// which Layer A already reads in full.
+// takes. It does NOT catch a string built by concatenation, a value arriving
+// through a ${...} substitution, or text assembled at render time -- that is
+// Layer C's job. It also cannot see the CSS or the markup outside the script
+// block, which Layer A already reads in full.
+//
+// Backticks ARE read, as of this row. They were not, and that was a hole
+// rather than a scope decision: this layer is the ONLY one that scans code for
+// `score`, `grade`, `judgement`, `rank`, `ahead`, `wins`, `win`, `edge`,
+// `lead` and `worse` -- Layer A deliberately excludes them so the file can
+// discuss its own rule -- so a backtick string carrying one of those passed
+// Layer A because it is not on that list and passed Layer B because it was
+// never extracted. Layer C would have caught it only if that particular string
+// reached #app on the stub page in setup mode, which the closing note down in
+// Layer C lists five reasons it might not.
+//
+// A template literal with no substitution IS a plain literal and has to be
+// read as one. One WITH a substitution is read for its static halves, which is
+// strictly more than not reading it at all.
+//
+// The backtick arm deliberately does NOT exclude newlines, because a real
+// template literal may span lines and excluding them would silently truncate
+// the one thing this arm exists to read.
+//
+// Measured before shipping, because an extractor that swallows more than it
+// should is the same kind of silent shrink the floor below exists to catch:
+// the artifact uses no template literal in code today and all 192 backticks
+// sit in comments, paired, none spanning a line. Adding the arm takes the
+// count from 2466 to 2555, of which 94 are backtick-delimited. Five
+// single-quoted literals stop being extracted separately -- every one of them
+// a duplicate occurrence sitting INSIDE a comment's backtick span, such as
+// `default: throw new Error('Unknown op: ' + act)`, which is itself scanned as
+// one chunk. So the swallowed text is still read; it is read as a larger
+// string. No word coverage is given up.
 //
 // The extraction is escape-aware so a literal containing \' does not truncate
 // and leave the rest of the file misparsed as code. The count is printed on a
 // clean run and floored below, because the failure mode of a broken extractor
 // is not a red run -- it is a green one that scanned nothing, which is exactly
 // the vacuous pass the stub-drift gate was added to close.
-const STRING_LITERAL = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g;
+const STRING_LITERAL =
+  /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"|`(?:[^`\\]|\\.)*`/g;
 const literals = match[1].match(STRING_LITERAL) || [];
 
-if (literals.length < 1500) {
+// The floor moves with the extractor. It was 1500 against a measured 2466 when
+// this layer read two quote characters; the backtick arm takes the measurement
+// to 2555, so 2000 keeps the same job -- catching an extractor that silently
+// scans nothing or nearly nothing -- with room for a legitimate deletion.
+if (literals.length < 2000) {
   fail('Layer B extracted only ' + literals.length + ' string literals from the ' +
-    'script block. The artifact carries well over 1500, so this is a broken ' +
+    'script block. The artifact carries well over 2000, so this is a broken ' +
     'extractor scanning nothing, not a clean file.');
 }
 
