@@ -2815,10 +2815,19 @@ App.ops = (function () {
   // list. Every list is confirmed to be an array before it is walked, for the
   // same reason.
   //
-  // Measured under two microseconds for a full scan at fifty-four actions,
-  // against a sixteen-millisecond frame budget — so a surface may recompute it
-  // on every repaint rather than holding a copy, which is what lets an undo
-  // move the line along with everything else it moves.
+  // MEASURED, in this file, rather than carried over from the research sketch.
+  // Full scan: 7.9 µs over the shipped six actions, 25 µs at eighteen, 42 µs at
+  // thirty and 76 µs at fifty-four — against a sixteen-MILLISECOND frame
+  // budget, so the worst of those is half a percent of one frame and a surface
+  // may recompute it on every repaint rather than holding a copy. That is what
+  // lets an undo move the line along with everything else it moves.
+  //
+  // The research proposed the same walk at 0.75–2.0 µs. Its sketch carried none
+  // of the guards above; the hardened version costs roughly four times as much,
+  // and the numbers here were taken from the shipped function rather than from
+  // that sketch. Recorded so the next plan sizes against what this file does.
+  // (Read under Node; a browser will differ, and the conclusion has three
+  // orders of magnitude of room either way.)
   function actionsNaming(build, tokenId) {
     var out = [];
     if (build === null || typeof build !== 'object') { return out; }
