@@ -3273,6 +3273,14 @@ check(
 //     list row's label and the editor heading take their exemption marker. The
 //     difference is exactly six: one label per live token type, of which the
 //     shipped board has five, plus the heading.
+//   plan 03.1-04 adds ACT-07's line beside Remove and the figure does NOT move:
+//     91 before, 91 after. Two reasons at once, and both are worth having
+//     written down. On the shipped board the line is empty, and the walk's own
+//     non-empty test skips it. Once a student's own type has an action naming
+//     it the line fills — and it carries the action-name marker, so it is
+//     skipped for text either way. Check 47g drives exactly that state and
+//     reads this same harvest off it, so the zero here is a measured zero
+//     rather than an untested surface.
 //
 // 84 is chosen against three measurements taken this session rather than picked.
 // The shipped board harvests 91; adding one type of a student's own takes it to
@@ -3429,6 +3437,58 @@ check(
       + ', put back as ' + JSON.stringify(admitAfter)
       + ', clean across ' + admitText.length + ' #app strings'
     : admitHits.join(' | ')
+);
+
+/* --- 47g. THE FOURTH SURFACE, and the only one where a student's two records
+       appear in the SAME sentence: ACT-07's line beside Remove names a token
+       type and the actions that name it, both read live. 47d covered a type in
+       the dialog and 47e an action on the board; neither covers the line that
+       holds both at once, which is the string a student would actually be
+       looking at when they named a type one comparative word and an action
+       another.
+
+       Driven the way 40b-40g drive it — the real opener, the real create, the
+       real renames — and read off the open dialog through the same harvest the
+       gate uses, not off the node by hand. The board is put back after. --- */
+const bothSaved = JSON.stringify(A.state.get());
+if (dlg.open === true) { dlg.close(); }
+press(openBtn);
+release(openBtn);
+A.state.flush();
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const bothTok = dlg.dataset.tok;
+A.ops.renameTokenType(bothTok, 'Winner');
+const bothAct = A.ops.createAction('cats', 'Overpowered');
+A.state.flush();
+const bothState = JSON.parse(JSON.stringify(A.state.get()));
+bothState.build.cats.actions.forEach((a) => {
+  if (a.id === bothAct) { a.xf = [{ who: 'target', tok: bothTok, d: -1 }]; }
+});
+A.state.restore(JSON.stringify(bothState));
+A.state.flush();
+const bothLine = pkLine();
+const bothText = harvestInto(dlg, [], '#tok-picker');
+const bothHits = verdictHitsIn(bothText);
+if (dlg.open === true) { dlg.close(); }
+A.state.restore(bothSaved);
+A.state.flush();
+clearPanel();
+
+check(
+  '47g. a type named after one comparative word and an action named after '
+    + 'another meet in ACT-07\'s line beside Remove, and the run stays clean — '
+    + 'the line carries the action-name marker, which is what keeps a gate '
+    + 'about what the ARTIFACT says from reddening on what a STUDENT typed',
+  bothHits.length === 0
+    && bothLine === 'Winner is named by Overpowered. Removing it will leave '
+      + 'that action without a term.'
+    && bothText.length > DIALOG_FLOOR,
+  bothHits.length === 0
+    ? 'line read ' + JSON.stringify(bothLine) + ', clean across '
+      + bothText.length + ' dialog strings'
+    : bothHits.join(' | ')
 );
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
