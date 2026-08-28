@@ -3972,6 +3972,16 @@ App.interactions = (function () {
   // returns early when its fingerprint has not moved and would then never
   // reach its own write. That early return is why the shape below existed as
   // two statements at each site before this collected them.
+  // DELIBERATELY NOT flushing the name field here. It was the obvious repair
+  // for the wrong-type rename below and it is the wrong one: committing the
+  // rename BEFORE this function's own repaint means the repaint computes its
+  // fingerprint from a vocabulary that already carries the new name, so the
+  // frame that follows sees nothing moved and never rewrites the field the
+  // repaint had to skip while it held focus. The student would be left looking
+  // at one type's editor with another type's text in the box. Binding the
+  // pending text to the type it was typed for — see commitName — fixes the
+  // corruption without moving when the commit happens, so the ordinary
+  // repaint-after-commit still puts the right name in the box.
   function showType(dlg, id) {
     dlg.dataset.tok = id;
     setReveal(id);
@@ -4160,12 +4170,27 @@ App.interactions = (function () {
   // The value-versus-was test is not a micro-optimisation, and it is the same
   // one commitField carries for the same measured reason: without it, typing a
   // name, pressing Enter and then clicking away applies the rename TWICE.
+  // The target is read off the FIELD, never off the dialog. What was here
+  // resolved it as the dialog's live selection at commit time, and measured:
+  // every control in this picker moves the selection on pointerdown, which the
+  // spec puts ahead of the focus change, so the focusout that runs this arrived
+  // with the attribute already pointing somewhere else. Typing a name and then
+  // pressing Remove renamed HEALTH — silently, with no panel — because
+  // dropType's own focus() call fires focusout after it has repointed the
+  // selection at the type the board is built on.
+  //
+  // So the pending text carries the type it was typed for, recorded at the
+  // moment the student started typing it. That fact cannot go stale under a
+  // repaint, because the repaint does not touch a focused field (D-19) — the
+  // same rule that keeps the text itself from being replaced mid-word.
   function commitName(el, loud) {
     if (el.value === el.dataset.was) { return; }
-    var dlg = pickerDialog();
-    if (dlg === null) { return; }
+    var target = el.dataset.forTok;
+    // Nothing recorded means nothing may be spent. A name with no type behind
+    // it goes back rather than being guessed at.
+    if (typeof target !== 'string' || target === '') { revertName(el); return; }
     try {
-      App.ops.dispatch('renameTokenType', { tokenId: pickedTok(dlg), name: el.value });
+      App.ops.dispatch('renameTokenType', { tokenId: target, name: el.value });
     } catch (refused) {
       revertName(el);
       if (loud) { throw refused; }
@@ -4176,10 +4201,14 @@ App.interactions = (function () {
     el.dataset.was = el.value;
   }
 
+  // Two facts, recorded together, because they are only useful together: what
+  // the text was when the student arrived, and which type they arrived on.
   function onPickerFocusIn(e) {
     var el = e.target;
     if (!isNameField(el)) { return; }
     el.dataset.was = el.value;
+    var dlg = pickerDialog();
+    el.dataset.forTok = (dlg === null) ? '' : pickedTok(dlg);
   }
 
   function onPickerFocusOut(e) {

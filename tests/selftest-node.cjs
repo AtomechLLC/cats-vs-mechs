@@ -317,8 +317,35 @@ function makeStubDom() {
     };
     node.dispatchEvent = (evt) => dispatch(node, evt);
 
-    node.focus = () => { doc.activeElement = node; };
-    node.blur = () => { if (doc.activeElement === node) { doc.activeElement = doc.body; } };
+    // Moving focus DISPATCHES, and that is the single most load-bearing line
+    // in this stub. What was here assigned doc.activeElement and fired nothing,
+    // so every path that moves focus programmatically — the dialog's focus
+    // hand-back, the removed-row placement, withPreservedFocus's restore —
+    // ran here with no focusin and no focusout behind it. Two defects of the
+    // authoring surface lived in exactly that hole and the gate below reported
+    // green over both of them, because the only way a focusout ever reached a
+    // handler was a check dispatching one by hand, which no check did ACROSS a
+    // change of selection. A programmatic focus() fires blur/focusout on the
+    // previously focused element synchronously in every engine, so the stub
+    // that stands in for one has to as well.
+    //
+    // Re-focusing the node that already holds focus dispatches nothing, which
+    // is also what a browser does — and it is what keeps withPreservedFocus's
+    // restore of an untouched field from looking like the student left it.
+    node.focus = () => {
+      const prev = doc.activeElement;
+      if (prev === node) { return; }
+      doc.activeElement = node;
+      if (prev && typeof prev.dispatchEvent === 'function') {
+        dispatch(prev, event('focusout', { relatedTarget: node }));
+      }
+      dispatch(node, event('focusin', { relatedTarget: prev || null }));
+    };
+    node.blur = () => {
+      if (doc.activeElement !== node) { return; }
+      doc.activeElement = doc.body;
+      dispatch(node, event('focusout', { relatedTarget: doc.body }));
+    };
     node.select = () => {};
     node.setSelectionRange = () => {};
     node.setPointerCapture = () => {};
@@ -1422,9 +1449,12 @@ if (dlg.open === true) { dlg.close(); }
        refused on Enter — so the PATTERN is reused and the plumbing is not, and
        that means the pattern needs coverage of its own here. --- */
 
+// focus() is now the whole of it. The hand-written focusin that used to follow
+// this line was the harness compensating for a stub that dispatched nothing,
+// and keeping it beside a stub that does would fire the handler twice — which
+// is not what a browser does and not what these checks should be reading.
 function nameFocus() {
   pkName.focus();
-  pkName.dispatchEvent(dom.event('focusin'));
 }
 function nameType(text) {
   pkName.value = text;
@@ -1441,7 +1471,6 @@ function nameBlur() {
 // leave both the text and the recorded baseline standing — correct behaviour,
 // and a trap for any check that sets up its next case with one.
 function nameLeave() {
-  nameBlur();
   pkName.blur();
   A.state.flush();
 }
@@ -1527,6 +1556,97 @@ check(
 );
 clearPanel();
 nameLeave();
+if (dlg.open === true) { dlg.close(); }
+
+/* --- 39. THE ONE THE 39-CHECK GREEN RUN ABOVE COULD NOT SEE. Every control in
+       this dialog that moves the selection moves it on pointerdown, which the
+       spec puts BEFORE the focus change — so the focusout that commits a
+       half-typed name arrives after the editor has already moved to a different
+       type. Checks 36-38 each drive a focusout, and every one of them does it
+       without changing the selection in between, which is precisely the case
+       that works.
+
+       Three presses, each one a shape a student makes without trying:
+         a row press must land the text on the type it was typed for;
+         New must do the same, and the newly made type must keep its own name;
+         Remove must take the half-typed name away with the type it removes and
+           must not put it on one of the five the board is built on. That third
+           one needs no emulated ordering at all — dropType calls focus()
+           explicitly inside its own pointerdown handler, and a programmatic
+           focus() fires focusout synchronously in every engine. --- */
+
+// A press that moves focus, in the order the browser does it: the pointerdown
+// handler runs first, and only then does the default action move focus — which
+// is what fires focusout on whatever the student was typing in.
+function pressMovingFocus(node) {
+  press(node);
+  node.focus();
+  release(node);
+  A.state.flush();
+}
+
+press(openBtn);
+release(openBtn);
+clearPanel();
+
+// CASE A — a name typed for a student-made type, then a press on another row.
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const caseAId = dlg.dataset.tok;
+nameFocus();
+nameType('Poison');
+pressMovingFocus(pkRowFor('dmg'));
+const caseAName = A.state.get().build.tokens[caseAId].name;
+const caseADmg = A.state.get().build.tokens.dmg.name;
+
+// CASE C — a name typed for one type, then New. The text belongs to the type it
+// was typed for; the type that did not exist when it was typed keeps the
+// placeholder it arrives with.
+const caseCFor = dlg.dataset.tok;
+nameFocus();
+nameType('Frost');
+pressMovingFocus(pkNewUnit);
+const caseCId = dlg.dataset.tok;
+const caseCName = A.state.get().build.tokens[caseCFor].name;
+const caseCMade = A.state.get().build.tokens[caseCId].name;
+
+// CASE B — a name typed for a student-made type, then Remove. This is the one
+// that renamed Health.
+nameFocus();
+nameType('Venom');
+press(pkRemove);
+release(pkRemove);
+A.state.flush();
+const caseBHealth = A.state.get().build.tokens.hp.name;
+const caseBGone = Object.prototype.hasOwnProperty.call(A.state.get().build.tokens, caseCId) === false;
+
+check(
+  '39. a half-typed name commits to the type it was typed for, and never to '
+    + 'whichever type the editor moved to under it',
+  caseAName === 'Poison' && caseADmg === 'Damage'
+    && caseCName === 'Frost' && caseCMade === A.interactions.NEW_TOKEN_NAME
+    && caseBHealth === 'Health' && caseBGone === true
+    && errPanel.hidden === true,
+  'row press: typed-for type=' + JSON.stringify(caseAName) + ' (want "Poison")'
+    + ' dmg=' + JSON.stringify(caseADmg) + ' (want "Damage")'
+    + ' | New: typed-for type=' + JSON.stringify(caseCName) + ' (want "Frost")'
+    + ' made type=' + JSON.stringify(caseCMade)
+    + ' (want ' + JSON.stringify(A.interactions.NEW_TOKEN_NAME) + ')'
+    + ' | Remove: health=' + JSON.stringify(caseBHealth) + ' (want "Health")'
+    + ' removed type gone=' + caseBGone
+    + ' panel hidden=' + errPanel.hidden
+);
+clearPanel();
+nameLeave();
+// Put the board back for anything added after this point: the two types made
+// above that were not removed, and the reveal one of them left standing.
+[caseAId].forEach((id) => {
+  if (Object.prototype.hasOwnProperty.call(A.state.get().build.tokens, id)) {
+    A.ops.removeTokenType(id);
+  }
+});
+A.state.flush();
 if (dlg.open === true) { dlg.close(); }
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
