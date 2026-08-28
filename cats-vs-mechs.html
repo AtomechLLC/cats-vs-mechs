@@ -12373,6 +12373,29 @@ App.selftest = (function () {
         return Object.keys(term).sort().join(',') === 'd,tok,who';
       }));
 
+    /* --- THE STRAY KEY, DRIVEN THROUGH dispatch, because that is the shape the
+           corruption actually arrives in: a page that assembled a patch with one
+           key too many, and an op that spread it instead of naming its fields.
+           Two independent things stand in the way — the arm reads key by key,
+           and the op builds field by field — and this row is what says so. --- */
+    App.ops.dispatch('setActionXf', {
+      side: 'cats', actionId: termId, index: 0, who: App.data.XF_WHO[1],
+      tok: 'hp', tokenId: 'hp', d: -7, n: 99, name: 'nope', polluted: true,
+      constructor: 'nope', dmg: 4
+    });
+    t.eq('a term written through dispatch with stray keys in the payload holds '
+      + 'exactly its three named fields, and the stray keys reach neither the '
+      + 'term nor the record around it',
+      [Object.keys(termsNow('xf')[0]).sort().join(','),
+        termsNow('xf')[0].d,
+        Object.keys(App.state.get().build.cats.actions.find(function (a) {
+          return a.id === termId;
+        })).sort().join(',')],
+      ['d,tok,who', -7, 'cost,dmg,id,keywords,name,req,xf']);
+    t.ok('and the shared object prototype is intact after that dispatch',
+      protoIntact());
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
+
     /* --- ONE WRITE, ONE UNDO. Each of the three is its own commit, so each is
            its own Ctrl+Z step and none of them is half a step. --- */
     var beforeOneWrite = JSON.stringify(App.state.get());
@@ -12390,6 +12413,11 @@ App.selftest = (function () {
            different slots stay two. Both halves are driven, because a label
            that carried only the action would pass the first and fail the second
            silently — the second edit would simply have no step of its own. --- */
+    // A write to another field first, so the entry the burst is measured against
+    // is not itself a write to this slot — coalescing reads the LAST entry, and
+    // a probe that let the two touch would measure nothing.
+    App.ops.setActionReq('cats', termId, 0, 'hp', 3);
+    App.ops.setActionReq('cats', termId, 0, 'hp', 2);
     var depthBurst = App.state.undoDepth();
     App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -4);
     App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -5);
