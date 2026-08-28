@@ -953,8 +953,16 @@ App.data = (function () {
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
   // retunes these, and this object is the single place that edit happens.
-  // Effect keyword ids live here; their card copy and the action-versus-action
-  // reference table are data.reference, owned by Phase 3 plan 03-02.
+  // Effect keyword ids live here. Their NAMES, and the action-versus-action
+  // table of what beats what, are NOT here: they are REFERENCE, declared below
+  // beside this literal and deliberately outside it. That constant's own
+  // comment is the one place the reasoning is written down. (The ROADMAP's
+  // original split named a different plan number for that table; plans 03-04
+  // and 03-05 are that unit.)
+  //
+  // REFERENCE transcribes TWO of the three relationships the whiteboard
+  // carries. The third was left out on the developer's instruction rather than
+  // corrected, and PROJECT.md's transcription still records all three.
   //
   // `tokens` is the drawing vocabulary for those rows (D-08). It sits in the
   // board rather than beside it because D-13 puts it in `build`: a restyled
@@ -1011,6 +1019,68 @@ App.data = (function () {
     }
   });
 
+  // REF-01 and REF-02. The reference material the shipped board comes with:
+  // the five effect keyword names, and what beats what.
+  //
+  // OUTSIDE DEFAULTS, and that placement is the load-bearing part rather than a
+  // tidiness preference. defaults() below is a deep copy of DEFAULTS into
+  // state.build, and Phase 4 encodes that slice into a share code. Static copy a
+  // student cannot edit has no business travelling in a link, and a build slice
+  // that grew a key would turn [S09.3]'s key-set row red. So this sits BESIDE
+  // the board rather than in it, and [S09.9] asserts that defaults() never
+  // gained a key for it.
+  //
+  // NAMES ONLY on the effect entries, and that is a decision rather than an
+  // omission. The Workshop 16 board supplies these five ids and no definitions
+  // at all, and PROJECT.md's Out of Scope section is explicit that the
+  // adjudication IS the exercise. A definition shipped here would be this file
+  // writing a workshop rule an instructor then has to teach against. The record
+  // shape is { id, name } and [S09.9] asserts there is no third field, so a
+  // later helpful sentence cannot be added without the run going red and this
+  // paragraph being read first. The decision is recorded verbatim in
+  // 03-04-SUMMARY.md under THE APPROVED COPY.
+  //
+  // An ARRAY rather than an object keyed by id, for two reasons that point the
+  // same way: the render order is the data's, and a lookup is an Array.find
+  // rather than a bare index -- the rule styleFor and labelFor state at length
+  // further down, because from Phase 4 a keyword id can arrive from a pasted
+  // build code and a bare lookup for 'constructor' resolves on the prototype.
+  //
+  // THE KEYWORD ID `shield` COLLIDES BY NAME WITH THE TOKEN ID `shield`, AND
+  // THAT IS NOT A BUG. A keyword is a rule; a token is a resource; they live in
+  // different objects and answer different questions. A student renaming the
+  // Shield TOKEN to Barrier has not renamed the Recharge KEYWORD, so labelFor
+  // is never called for anything in here. Plan 03-05 holds that at source level
+  // and by driving a real rename, because a rule stated only in a comment is a
+  // rule that gets helpfully undone.
+  //
+  // `beats` carries action IDS and a connective, never action NAMES. The names
+  // are read at render time from DEFAULTS[side].actions[].name, so there is one
+  // definition of what an action is called and a renamed action cannot leave a
+  // stale copy of itself down here. The connective is DATA, one per pair --
+  // Fly beats Slash, Lasers beat Hairball -- so no rendering code anywhere has
+  // to guess whether an action name is plural.
+  //
+  // TWO records, not the three PROJECT.md transcribes from the whiteboard. The
+  // third -- Recharge over Fly -- was dropped on the developer's instruction,
+  // and it was LEFT OUT rather than called a transcription error: it was the
+  // one intra-Mechs pair, and dropping it also removed the short loop where Fly
+  // sat on both sides of the chain. PROJECT.md still records all three. A later
+  // phase restoring it should read this paragraph and 03-04-SUMMARY.md first.
+  var REFERENCE = deepFreeze({
+    effects: [
+      { id: 'shield', name: 'Shield' },
+      { id: 'slowdown', name: 'Slowdown' },
+      { id: 'confuse', name: 'Confuse' },
+      { id: 'evade', name: 'Evade' },
+      { id: 'range', name: 'Range' }
+    ],
+    beats: [
+      { over: 'fly', verb: 'beats', under: 'slash' },
+      { over: 'lasers', verb: 'beat', under: 'hairball' }
+    ]
+  });
+
   // A fresh, unfrozen deep copy on every call. The JSON round-trip is both
   // faster than the platform's deep-clone call on this payload and a free guard: anything
   // that is not JSON-clonable disappears loudly instead of surviving silently.
@@ -1020,6 +1090,7 @@ App.data = (function () {
 
   return Object.freeze({
     DEFAULTS: DEFAULTS,
+    REFERENCE: REFERENCE,
     defaults: defaults,
     deepFreeze: deepFreeze,
     SHAPES: SHAPES,
@@ -5220,6 +5291,7 @@ App.boot = (function () {
  *   [S09.6] token appearance                                  (plan 02-03)
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
  *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
+ *   [S09.9] reference material — effect names and what beats what (plan 03-04)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -7818,6 +7890,143 @@ App.selftest = (function () {
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
+/* --- [S09.9] SUITE: reference material — owner plan 03-04 --- */
+(function () {
+  'use strict';
+
+  // The [S09.1] idiom: a table of records asserted as ONE row, so a field that
+  // drifted names itself in the failure detail instead of being hunted for
+  // across five separate rows that each pass.
+  function effectTuple(rec) {
+    return [rec.id, rec.name];
+  }
+  function beatsTuple(rec) {
+    return [rec.over, rec.verb, rec.under];
+  }
+
+  App.selftest.suite('reference material', function (t) {
+    var R = App.data.REFERENCE;
+    var d = App.data.defaults();
+
+    t.eq('the five effect keywords the board ships, in the order they render',
+      R.effects.map(effectTuple), [
+        ['shield', 'Shield'],
+        ['slowdown', 'Slowdown'],
+        ['confuse', 'Confuse'],
+        ['evade', 'Evade'],
+        ['range', 'Range']
+      ]);
+
+    /* --- NAMES ONLY, asserted mechanically rather than left to the comment at
+           the constant. The whiteboard supplies these five ids and no
+           definitions, and PROJECT.md says the adjudication IS the exercise, so
+           a third field appearing on one of these records is this file having
+           started to write workshop rules an instructor would then teach
+           against. That should turn the run red and send whoever added it to
+           REFERENCE's comment, not slip past a reviewer as a helpful sentence.
+           --- */
+    t.eq('and each carries an id and a name and nothing else — no definition '
+      + 'is shipped for any of them, which is a decision and not a gap',
+      R.effects.map(function (rec) { return Object.keys(rec).sort().join(','); }).join(' | '),
+      'id,name | id,name | id,name | id,name | id,name');
+    t.ok('every name is a non-empty string a card can print',
+      R.effects.every(function (rec) {
+        return typeof rec.name === 'string' && rec.name.length > 0;
+      }));
+
+    /* --- What beats what. TWO pairs, and the shortfall against PROJECT.md's
+           three-relationship transcription is deliberate: the third was the one
+           intra-Mechs pair and it was left out rather than corrected. This row
+           pins the count, so restoring it is a decision somebody makes on
+           purpose rather than a diff nobody notices. --- */
+    t.eq('what beats what, in board order, and two pairs rather than three',
+      R.beats.map(beatsTuple), [
+        ['fly', 'beats', 'slash'],
+        ['lasers', 'beat', 'hairball']
+      ]);
+
+    /* --- REF-02 in BOTH directions. A keyword shipped on an action with no
+           name here, and a name here for a keyword no action carries, are
+           different defects and each needs its own row: one row can only ever
+           catch one of them. Floored first, for the reason check 47's harvest
+           and [S09.7]'s id gate are floored — a walk that collected nothing
+           would report no gaps at all and pass spotlessly. --- */
+    var carried = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      d[side].actions.forEach(function (action) {
+        action.keywords.forEach(function (k) {
+          if (carried.indexOf(k) === -1) { carried.push(k); }
+        });
+      });
+    });
+    var named = R.effects.map(function (rec) { return rec.id; });
+
+    t.ok('the board carries keywords for the two rows below to be about',
+      carried.length >= 5);
+    t.eq('DIRECTION ONE — every keyword any action carries is named here, so a '
+      + 'keyword added to the board with no entry turns this red',
+      carried.filter(function (k) { return named.indexOf(k) === -1; }), []);
+    t.eq('DIRECTION TWO — every entry here is carried by at least one action, '
+      + 'so an orphan entry for a keyword nobody has turns this red',
+      named.filter(function (k) { return carried.indexOf(k) === -1; }), []);
+
+    /* --- The pairs name actions, and they name them by ID. The NAMES are read
+           at render time from DEFAULTS, so there is one definition of what an
+           action is called; these rows are what stops an id from dangling. --- */
+    var actionIds = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      d[side].actions.forEach(function (action) { actionIds.push(action.id); });
+    });
+    var dangling = [];
+    R.beats.forEach(function (rec) {
+      [rec.over, rec.under].forEach(function (id) {
+        if (actionIds.indexOf(id) === -1) { dangling.push(id); }
+      });
+    });
+    t.eq('every pair names two actions that exist on the board, on either side',
+      dangling, []);
+    t.ok('and every pair carries a connective of its own, because Fly beats and '
+      + 'Lasers beat differ and no rendering code should be guessing which',
+      R.beats.every(function (rec) {
+        return typeof rec.verb === 'string' && rec.verb.length > 0;
+      }));
+
+    /* --- Frozen, in the pair [S09.1] uses: the write must throw AND the value
+           must be what it was. A throw alone would pass on a mutation that
+           landed and then threw on something else. --- */
+    t.throws('REFERENCE is deep-frozen', function () {
+      App.data.REFERENCE.effects[0].name = 'Barrier';
+    });
+    t.eq('REFERENCE survived the frozen write',
+      App.data.REFERENCE.effects[0].name, 'Shield');
+    t.ok('and the freeze reaches the records rather than stopping at the top',
+      Object.isFrozen(App.data.REFERENCE)
+        && Object.isFrozen(App.data.REFERENCE.effects)
+        && Object.isFrozen(App.data.REFERENCE.effects[0])
+        && Object.isFrozen(App.data.REFERENCE.beats)
+        && Object.isFrozen(App.data.REFERENCE.beats[0]));
+
+    /* --- T-03-16. The build slice Phase 4 encodes is exactly what it was.
+           REFERENCE is declared beside DEFAULTS and not inside it, and this is
+           the row that holds that placement: static copy a student cannot edit
+           has no business travelling in a share code. --- */
+    t.eq('defaults() gained no key for any of this',
+      Object.keys(d).sort().join(','), 'cats,mechs,schema,tokens');
+    t.ok('and none of it reached the build slice under another name',
+      d.reference === undefined && d.effects === undefined && d.beats === undefined);
+
+    /* --- The collision, asserted rather than described. The keyword id shield
+           and the token id shield are the same string in two different objects.
+           Plan 03-05 proves it harmless on the rendered page by driving a real
+           rename; this row is what stops the collision from quietly going away
+           and taking that proof's subject with it. --- */
+    t.ok('the keyword id shield and the token id shield are the same string in '
+      + 'two different objects — a rule and a resource, which is why labelFor '
+      + 'is never called for a keyword',
+      named.indexOf('shield') !== -1 && App.data.TOKEN_IDS.indexOf('shield') !== -1);
+  });
+})();
+
 // #endregion [S09] SELFTEST
 
 /* ===================== [S10] LAUNCH =====================
