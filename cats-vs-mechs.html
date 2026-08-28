@@ -4733,7 +4733,7 @@ App.boot = (function () {
       return;
     }
     // The fallback catches the window resize but not a reflow from a content
-    // change, which is the weaker half of the same guarantee. ResizeObserver is
+    // change, which is the narrower half of the same guarantee. ResizeObserver is
     // Baseline widely available, so this is the path nothing is expected to
     // take.
     window.addEventListener('resize', wrap('topbar measure', publishTopbarHeight));
