@@ -3500,6 +3500,245 @@ App.ops = (function () {
     });
   }
 
+  /* ---- ACT-02, ACT-03, ACT-04: the three field mutators ------------------
+   *
+   * WRITING A RULE IS NOT RUNNING ONE. Each of these sets one field on an
+   * action's DEFINITION. Not one of them spends a cost, tests a requirement
+   * against a unit, or moves a token on the board — a declared action lands on
+   * Advance, in Phase 5 (D-05b). The banner above this whole group says why an
+   * authored rule stays a data record, and these three are where that promise
+   * is either kept or quietly spent.
+   *
+   * EVERY AMOUNT PASSES THE VALUE BOUNDARY, and this is the place in the file
+   * where that rule earns its keep twice over. Measured: an amount that reaches
+   * state as NaN survives one commit as NaN and comes back from the next
+   * unrelated commit's clone as null, and [S09.3]'s whole-number walk reads
+   * null as acceptable. So a spoiled amount is silent, one frame late, in a
+   * figure a projector is showing. int() at THIS boundary is the only defence.
+   *
+   * int() RATHER THAN requireDelta() FOR THE SIGNED AMOUNT, deliberately.
+   * requireDelta refuses a fraction in the file's own words and accepts a
+   * negative already, but it applies no bound at all, and a transformation is
+   * the one amount in this file that needs a bound on BOTH sides. int() tests
+   * the type before it compares, and it COMPARES rather than coerces, so
+   * handing it MIN_XF_DELTA as its floor needs no new machinery — which is
+   * exactly why the signed pair was named in [S01] rather than written here.
+   *
+   * EVERY ID PASSES THE ID GATE, and every term carries the token id as a
+   * VALUE inside a record. Nothing here puts a student-reachable string in a
+   * KEY position. A bag keyed by token id would re-open the reparenting
+   * requireTokenId exists to refuse, and Object.create(null) is not the answer
+   * because it does not survive the state's own clone: a null prototype comes
+   * back as Object's, measured.
+   *
+   * AN ABSENT FIELD AND A PRESENT-BUT-UNDEFINED ONE ARE THE SAME THING one
+   * commit later, because { cost: undefined } loses the key entirely through
+   * the clone. So nothing below distinguishes them: a missing list is an empty
+   * list, everywhere.
+   */
+
+  // D-01 in one number: a cost is A token type and AN amount. It is named
+  // rather than written as a bare 1 at the places that need it, for the reason
+  // the named-bounds paragraph gives about 99 — and because [S06.5] draws
+  // exactly this many cost rows and [S09.10] asserts against the constant.
+  // Its siblings MAX_ACTION_REQ and MAX_ACTION_XF live in [S01] because the
+  // static shell counts rows against them; this one has no shell twin to keep
+  // in step, so it stays beside the op that enforces it.
+  var MAX_ACTION_COST = 1;
+
+  // The floors, named for the same reason. A cost of nothing is not a cost, so
+  // its floor is one; a requirement of zero is a requirement every unit meets,
+  // which is a thing a student may legitimately write down.
+  var MIN_ACTION_COST = 1;
+  var MIN_ACTION_REQ = 0;
+
+  // Emptying a slot is a write with nothing in it, and this is the ONE spelling
+  // of that. A remove op beside each setter would be a second place to keep the
+  // slot bound in step, and the first plan to raise a cap would raise it in one
+  // of them. It is exported so the page and the suite spell it the same way.
+  var CLEAR_TERM = null;
+
+  // A missing list is an empty list. See the banner: the clone cannot tell an
+  // absent field from a present-but-undefined one, so neither may anything
+  // here — and from Phase 4 a record can arrive from a pasted build code with
+  // the field holding something that is not a list at all.
+  function termsOf(record, field) {
+    var list = record[field];
+    return Array.isArray(list) ? list : [];
+  }
+
+  function actionIn(s, side, actionId) {
+    return s.build[side].actions.find(function (a) { return a.id === actionId; });
+  }
+
+  // The action this write is for. Every one of the three needs it and every one
+  // needs the refusal behind it, so the read is written once — findAction's own
+  // stated reason, one field mutator later.
+  function requireLiveAction(side, actionId) {
+    var live = findAction(side, actionId);
+    if (live === null) {
+      throw new Error('There is no action "' + String(actionId) + '" on this side.');
+    }
+    return live;
+  }
+
+  // The slot. REFUSED when it is outside, never clamped, and that choice is the
+  // whole of this guard: a clamp would write slot 0 for a caller that asked for
+  // slot 5 and then report success, so the student's rule would be changed
+  // somewhere they were not looking. The type test runs before the comparison
+  // for int()'s own stated reason — '0', null and false all survive a bare
+  // comparison and none of them is a slot.
+  function requireSlot(index, cap, phrase) {
+    if (typeof index !== 'number' || !Number.isInteger(index)) {
+      throw new TypeError('Expected a whole number for the ' + phrase
+        + ' slot, got ' + JSON.stringify(index));
+    }
+    if (index < 0 || index >= cap) {
+      throw new Error('There is no ' + phrase + ' slot ' + index
+        + ' — an action carries at most ' + cap + '.');
+    }
+    return index;
+  }
+
+  // The list stays dense, so a write at the end appends and a write inside
+  // replaces. A write PAST the end is refused here rather than left to open a
+  // hole the walk would meet as undefined one commit later.
+  function requireReachable(list, index, phrase) {
+    if (index > list.length) {
+      throw new Error('This action has no ' + phrase + ' slot ' + index
+        + ' to write yet — it carries ' + list.length + '.');
+    }
+    return index;
+  }
+
+  // `who` names the caster or the target and nothing else. Checked against the
+  // EXPORTED allowlist and refused by name, and never interpolated into a class
+  // or a selector anywhere: the page holds its own two words and maps this id
+  // to one of them, which is the same treatment SHAPES and COLORS already get.
+  function requireXfWho(who) {
+    if (App.data.XF_WHO.indexOf(who) === -1) {
+      throw new Error('A change names the ' + App.data.XF_WHO.join(' or the ')
+        + ', and "' + String(who) + '" is neither.');
+    }
+    return who;
+  }
+
+  // The slot write itself, shared by all three fields, which is what keeps the
+  // cap, the dense-list rule and the field-by-field build in ONE place instead
+  // of three that drift. It never mutates what it is handed.
+  function writeSlot(list, index, term, cap) {
+    var next = list.slice(0, cap);
+    if (term === CLEAR_TERM) {
+      next.splice(index, 1);
+      return next;
+    }
+    next[index] = term;
+    return next.slice(0, cap);
+  }
+
+  // The commit half, also shared. The no-op contract is renameAction's, for the
+  // same reason: these fields are driven from a keystroke surface, and a write
+  // that changes nothing would put a do-nothing Ctrl+Z step between the student
+  // and the edit they actually want back.
+  //
+  // The list is rebuilt INSIDE the mutator from the detached record rather than
+  // handed in whole from outside, so no frozen term from the previous state is
+  // carried across into the next one.
+  function writeTerms(side, actionId, live, field, index, cap, term, label) {
+    var was = termsOf(live, field);
+    if (JSON.stringify(writeSlot(was, index, term, cap)) === JSON.stringify(was)) {
+      return false;
+    }
+    // THE SLOT IS IN THE LABEL, and that is what decides which edits are one
+    // Ctrl+Z step. commit() coalesces same-label writes inside its window, so a
+    // student holding a key in ONE amount field is one step (D-10) — while a
+    // write to a different slot, or to a different field, is a step of its own.
+    // Left off, editing two transformations in quick succession would rewind as
+    // one and the second edit would have no step of its own.
+    App.state.commit(label + ' ' + side + '/' + actionId + '/' + index, function (s) {
+      var rec = actionIn(s, side, actionId);
+      rec[field] = writeSlot(termsOf(rec, field), index, term, cap);
+    });
+    return true;
+  }
+
+  // ACT-02. What the action spends, consumed when it fires — in a phase where
+  // nothing fires. Every guard is outside the commit, so a refusal leaves no
+  // phantom undo step over a board that never changed.
+  function setActionCost(side, actionId, tokenId, n) {
+    requireSide(side);
+    requireActionId(actionId);
+    var live = requireLiveAction(side, actionId);
+
+    var term = CLEAR_TERM;
+    if (tokenId !== CLEAR_TERM) {
+      requireTokenId(tokenId);
+      // FIELD BY FIELD, never a merge helper and never a spread of a caller's
+      // object, for the reason createTokenType's mutator gives in full: a
+      // spread copies whatever keys the caller supplied, which is how a
+      // reserved key slips past an allowlist that only inspected the values.
+      term = {
+        tok: tokenId,
+        n: int(n, MIN_ACTION_COST, MAX_ALLOC, 'what an action costs')
+      };
+    }
+    return writeTerms(side, actionId, live, 'cost', 0, MAX_ACTION_COST, term,
+      'action cost');
+  }
+
+  // ACT-03. What must be present and is NOT consumed. The example the developer
+  // gave is two health, and that is the acceptance case the surface is built to
+  // reach.
+  function setActionReq(side, actionId, index, tokenId, n) {
+    requireSide(side);
+    requireActionId(actionId);
+    requireSlot(index, App.data.MAX_ACTION_REQ, 'requirement');
+    var live = requireLiveAction(side, actionId);
+
+    var term = CLEAR_TERM;
+    if (tokenId !== CLEAR_TERM) {
+      requireTokenId(tokenId);
+      requireReachable(termsOf(live, 'req'), index, 'requirement');
+      term = {
+        tok: tokenId,
+        n: int(n, MIN_ACTION_REQ, MAX_ALLOC, 'what an action needs')
+      };
+    }
+    return writeTerms(side, actionId, live, 'req', index,
+      App.data.MAX_ACTION_REQ, term, 'action needs');
+  }
+
+  // ACT-04. What the action changes: the caster or the target, a token type,
+  // and a SIGNED amount (D-08). One mechanism covers harm, repair, a shield and
+  // every token a student invents, with no vocabulary of effects for anything
+  // downstream to interpret.
+  function setActionXf(side, actionId, index, who, tokenId, d) {
+    requireSide(side);
+    requireActionId(actionId);
+    requireSlot(index, App.data.MAX_ACTION_XF, 'transformation');
+    var live = requireLiveAction(side, actionId);
+
+    var term = CLEAR_TERM;
+    if (tokenId !== CLEAR_TERM) {
+      requireXfWho(who);
+      requireTokenId(tokenId);
+      requireReachable(termsOf(live, 'xf'), index, 'transformation');
+      var amount = int(d, App.data.MIN_XF_DELTA, App.data.MAX_XF_DELTA,
+        'a change an action makes');
+      // Zero is refused rather than clamped away, and it is refused HERE rather
+      // than by the bound, because it sits in the middle of that bound and not
+      // at either end of it. A term that changes nothing is a term a student
+      // would read back as a rule and watch do nothing.
+      if (amount === 0) {
+        throw new Error('A change of nothing is not a change — give it an '
+          + 'amount, with a minus in front for a change downward.');
+      }
+      term = { who: who, tok: tokenId, d: amount };
+    }
+    return writeTerms(side, actionId, live, 'xf', index,
+      App.data.MAX_ACTION_XF, term, 'action changes');
+  }
+
   /* ---- the tally: the number a student writes down beside their own
    * invention (D-00e). The tool stores it and never infers what it means, and
    * nothing anywhere in this file acts on it — a type a student made counts
@@ -3671,6 +3910,14 @@ App.ops = (function () {
       case 'createAction': return createAction(p.side, p.name);
       case 'renameAction': return renameAction(p.side, p.actionId, p.name);
       case 'removeAction': return removeAction(p.side, p.actionId);
+      // The three field mutators, read key by key for the same reason again —
+      // and here the reason has teeth: a term is a RECORD, so a payload
+      // forwarded whole is a caller-supplied key set arriving one nesting level
+      // from a token id. Naming every key here is what keeps the page's payload
+      // and the op's contract the same list.
+      case 'setActionCost': return setActionCost(p.side, p.actionId, p.tokenId, p.n);
+      case 'setActionReq': return setActionReq(p.side, p.actionId, p.index, p.tokenId, p.n);
+      case 'setActionXf': return setActionXf(p.side, p.actionId, p.index, p.who, p.tokenId, p.d);
       case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
       case 'nudgeTally': return nudgeTally(p.side, p.unitId, p.tokenId, p.delta);
       case 'undo': return undo();
@@ -3709,6 +3956,9 @@ App.ops = (function () {
     createAction: createAction,
     renameAction: renameAction,
     removeAction: removeAction,
+    setActionCost: setActionCost,
+    setActionReq: setActionReq,
+    setActionXf: setActionXf,
     setTally: setTally,
     nudgeTally: nudgeTally,
     setUi: setUi,
@@ -3734,6 +3984,16 @@ App.ops = (function () {
     // the only way a surface can ask the question without writing a second
     // walk of the term lists.
     actionsNaming: actionsNaming,
+    // The term half of the same boundary. requireXfWho is exported so [S09.10]
+    // asserts the allowlist the op actually runs against, and CLEAR_TERM so the
+    // page and the suite spell "empty this slot" the way the op reads it — a
+    // re-typed null at either site is a second spelling waiting to drift into
+    // something truthy.
+    requireXfWho: requireXfWho,
+    CLEAR_TERM: CLEAR_TERM,
+    MAX_ACTION_COST: MAX_ACTION_COST,
+    MIN_ACTION_COST: MIN_ACTION_COST,
+    MIN_ACTION_REQ: MIN_ACTION_REQ,
     MAX_ALLOC: MAX_ALLOC,
     MIN_UNITS: MIN_UNITS,
     MAX_UNITS: MAX_UNITS
@@ -12019,6 +12279,347 @@ App.selftest = (function () {
     App.state.undo();
     t.eq('and one undo after a removal hands the whole board back exactly',
       JSON.stringify(App.state.get()), beforeRemove);
+
+    /* ================= ACT-02, ACT-03, ACT-04: the three field mutators ====
+
+       Every row below drives the LIVE board, restores it, and asks the same
+       three questions of each refusal: did it throw, did it leave the state
+       byte-identical, and did it leave the undo depth where it was. A guard
+       that throws and still commits is the failure this whole group exists to
+       make impossible, and a row that only asserts the throw would read green
+       over it. --- */
+
+    App.state.restore(savedAll);
+    App.state.flush();
+
+    t.eq('the cost mutator is exported', typeof App.ops.setActionCost, 'function');
+    t.eq('the requirement mutator is exported', typeof App.ops.setActionReq, 'function');
+    t.eq('the transformation mutator is exported', typeof App.ops.setActionXf, 'function');
+    t.eq('the party allowlist gate is exported', typeof App.ops.requireXfWho, 'function');
+    t.eq('the empty-slot signal is exported and is not something truthy',
+      App.ops.CLEAR_TERM, null);
+    t.eq('a cost holds at most one term, against the named constant',
+      App.ops.MAX_ACTION_COST, 1);
+    t.eq('and its floor is one, because a cost of nothing is not a cost',
+      App.ops.MIN_ACTION_COST, 1);
+    t.eq('a requirement may be zero, which is a requirement every unit meets',
+      App.ops.MIN_ACTION_REQ, 0);
+
+    // A term of a student's own to write on, so nothing below edits one of the
+    // six the board ships with and then has to put it back.
+    var termId = App.ops.createAction('cats', 'Pounce');
+
+    function termsNow(field) {
+      var rec = App.state.get().build.cats.actions.find(function (a) {
+        return a.id === termId;
+      });
+      return JSON.parse(JSON.stringify(rec[field]));
+    }
+
+    // The three questions, asked together. A refusal that committed would leave
+    // the state moved; a guard inside a commit would leave the depth moved.
+    function refuses(fn) {
+      var before = JSON.stringify(App.state.get());
+      var depth = App.state.undoDepth();
+      var threw = false;
+      var message = '';
+      try { fn(); } catch (e) { threw = true; message = String(e.message); }
+      return {
+        threw: threw,
+        message: message,
+        still: JSON.stringify(App.state.get()) === before,
+        depth: App.state.undoDepth() === depth,
+        clean: protoIntact()
+      };
+    }
+    function refusedWell(fn) {
+      var r = refuses(fn);
+      return r.threw && r.still && r.depth && r.clean;
+    }
+
+    /* --- the happy paths first, so every refusal below is a refusal of
+           something the op would otherwise have taken. --- */
+    t.eq('a new action already costs one action point, which is the D-01 default '
+      + 'and what the shipped board implies', termsNow('cost'),
+      [{ tok: 'ap', n: 1 }]);
+    t.eq('so writing that same cost again changes nothing and commits nothing — '
+      + 'a keystroke surface cannot stack do-nothing undo steps',
+      App.ops.setActionCost('cats', termId, 'ap', 1), false);
+    t.eq('a cost is one token type and one amount',
+      App.ops.setActionCost('cats', termId, 'hp', 2), true);
+    t.eq('and a cost never grows past the one term D-01 describes',
+      termsNow('cost'), [{ tok: 'hp', n: 2 }]);
+    App.ops.setActionCost('cats', termId, 'ap', 1);
+
+    t.eq('a requirement is checked and not consumed, and two health is the '
+      + 'example this phase is built to reach',
+      App.ops.setActionReq('cats', termId, 0, 'hp', 2), true);
+    t.eq('and that is what the record carries', termsNow('req'),
+      [{ tok: 'hp', n: 2 }]);
+    t.eq('a transformation names the caster or the target, a token type and a '
+      + 'signed amount',
+      App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3), true);
+    t.eq('and that is what the record carries', termsNow('xf'),
+      [{ who: 'target', tok: 'hp', d: -3 }]);
+    t.eq('an action may carry more than one transformation',
+      (function () {
+        App.ops.setActionXf('cats', termId, 1, App.data.XF_WHO[0], 'shield', 1);
+        return termsNow('xf');
+      })(), [{ who: 'target', tok: 'hp', d: -3 }, { who: 'caster', tok: 'shield', d: 1 }]);
+    t.ok('and every term is a plain record whose token id is a VALUE — there is '
+      + 'no key position anywhere in the shape, which is what a bag keyed by '
+      + 'token id would have re-opened',
+      termsNow('xf').every(function (term) {
+        return Object.keys(term).sort().join(',') === 'd,tok,who';
+      }));
+
+    /* --- ONE WRITE, ONE UNDO. Each of the three is its own commit, so each is
+           its own Ctrl+Z step and none of them is half a step. --- */
+    var beforeOneWrite = JSON.stringify(App.state.get());
+    var depthOneWrite = App.state.undoDepth();
+    App.ops.setActionReq('cats', termId, 1, 'shield', 1);
+    t.eq('a term write into a slot nothing has just written is exactly one undo '
+      + 'entry', App.state.undoDepth() - depthOneWrite, 1);
+    App.state.undo();
+    t.eq('and one undo after it hands the whole board back exactly',
+      JSON.stringify(App.state.get()), beforeOneWrite);
+
+    /* --- WHICH EDITS ARE ONE STEP. commit() coalesces same-label writes inside
+           its window, and the slot is part of the label, so a student holding a
+           key in one amount field rewinds as one step (D-10) while two
+           different slots stay two. Both halves are driven, because a label
+           that carried only the action would pass the first and fail the second
+           silently — the second edit would simply have no step of its own. --- */
+    var depthBurst = App.state.undoDepth();
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -4);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -5);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -6);
+    t.eq('three amounts typed into ONE transformation slot rewind as one step',
+      App.state.undoDepth() - depthBurst, 1);
+    var depthTwoSlots = App.state.undoDepth();
+    App.ops.setActionXf('cats', termId, 1, App.data.XF_WHO[0], 'shield', 4);
+    t.eq('and a write to a DIFFERENT slot is a step of its own',
+      App.state.undoDepth() - depthTwoSlots, 1);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
+    App.ops.setActionXf('cats', termId, 1, App.data.XF_WHO[0], 'shield', 1);
+
+    /* --- the id gate on every term write. requireTokenId refuses a reserved
+           key BY NAME before it refuses an unknown id, and the message carries
+           the key, so a student reading it is told what actually happened. --- */
+    App.data.RESERVED_KEYS.forEach(function (key) {
+      var costR = refuses(function () { App.ops.setActionCost('cats', termId, key, 1); });
+      t.ok('a cost naming ' + key + ' is refused, the message names the key, and '
+        + 'the board and the undo depth both stand still',
+        costR.threw && costR.message.indexOf(key) !== -1
+          && costR.still && costR.depth && costR.clean);
+      t.ok('so is a requirement naming ' + key,
+        refusedWell(function () { App.ops.setActionReq('cats', termId, 0, key, 1); }));
+      t.ok('so is a transformation naming ' + key,
+        refusedWell(function () {
+          App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], key, -1);
+        }));
+    });
+
+    /* --- the value boundary, one row per shape of bad amount. Each of these
+           reaches state as something [S09.3]'s whole-number walk would accept
+           one commit later, which is why they are refused here rather than
+           anywhere downstream. --- */
+    [NaN, null, undefined, '3', '', 1.5, Infinity, -Infinity, true, [3], {}]
+      .forEach(function (bad) {
+        t.ok('a cost amount of ' + JSON.stringify(bad) + ' is refused at the op '
+          + 'boundary and never reaches state',
+          refusedWell(function () { App.ops.setActionCost('cats', termId, 'ap', bad); }));
+        t.ok('so is a requirement amount of ' + JSON.stringify(bad),
+          refusedWell(function () { App.ops.setActionReq('cats', termId, 0, 'hp', bad); }));
+        t.ok('so is a transformation amount of ' + JSON.stringify(bad),
+          refusedWell(function () {
+            App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', bad);
+          }));
+      });
+
+    /* --- the floors and the signed bound, at the edges and one past them. int()
+           CLAMPS a whole number that is merely out of range and THROWS a value
+           that is not one, which is the split the file already keeps. --- */
+    App.ops.setActionCost('cats', termId, 'ap', 0);
+    t.eq('a cost amount of zero lands on the floor of one and never writes zero',
+      termsNow('cost'), [{ tok: 'ap', n: App.ops.MIN_ACTION_COST }]);
+    App.ops.setActionCost('cats', termId, 'ap', 1000);
+    t.eq('and one past the ceiling lands on the ceiling',
+      termsNow('cost'), [{ tok: 'ap', n: App.ops.MAX_ALLOC }]);
+    App.ops.setActionCost('cats', termId, 'ap', 1);
+
+    App.ops.setActionReq('cats', termId, 0, 'hp', -5);
+    t.eq('a requirement amount below zero lands on zero',
+      termsNow('req'), [{ tok: 'hp', n: App.ops.MIN_ACTION_REQ }]);
+    App.ops.setActionReq('cats', termId, 0, 'hp', 2);
+
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp',
+      App.data.MIN_XF_DELTA);
+    t.eq('a transformation at the signed floor is written as it stands',
+      termsNow('xf')[0].d, App.data.MIN_XF_DELTA);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp',
+      App.data.MAX_XF_DELTA);
+    t.eq('and one at the ceiling too', termsNow('xf')[0].d, App.data.MAX_XF_DELTA);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp',
+      App.data.MIN_XF_DELTA - 1);
+    t.eq('one past the floor lands ON the floor and never writes an out-of-bound '
+      + 'amount', termsNow('xf')[0].d, App.data.MIN_XF_DELTA);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp',
+      App.data.MAX_XF_DELTA + 1);
+    t.eq('and one past the ceiling lands ON the ceiling',
+      termsNow('xf')[0].d, App.data.MAX_XF_DELTA);
+    t.ok('a transformation of zero is refused, because a change of nothing is '
+      + 'not a change', refusedWell(function () {
+        App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', 0);
+      }));
+    t.ok('and the refusal says so in the file\'s own words', (function () {
+      try { App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', 0); }
+      catch (e) { return String(e.message).indexOf('change of nothing') !== -1; }
+      return false;
+    })());
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
+
+    /* --- `who` against the exported allowlist. It is refused BY NAME and never
+           interpolated anywhere, so a party that is not one of the two cannot
+           reach a class, a selector or a record. --- */
+    App.data.XF_WHO.forEach(function (who) {
+      t.eq('the allowlist admits ' + who, App.ops.requireXfWho(who), who);
+    });
+    ['both', 'either', '__proto__', 'constructor', '', 'Caster', 'CASTER',
+      5, null, undefined, true, {}, []].forEach(function (bad) {
+        t.ok('a transformation whose party is ' + JSON.stringify(bad) + ' is '
+          + 'refused and nothing is written',
+          refusedWell(function () {
+            App.ops.setActionXf('cats', termId, 0, bad, 'hp', -1);
+          }));
+      });
+    t.ok('and the refusal names the allowlist rather than shrugging', (function () {
+      try { App.ops.setActionXf('cats', termId, 0, 'both', 'hp', -1); }
+      catch (e) {
+        return App.data.XF_WHO.every(function (who) {
+          return String(e.message).indexOf(who) !== -1;
+        });
+      }
+      return false;
+    })());
+
+    /* --- the slot index, refused rather than clamped. A clamp would write slot
+           0 for a caller that asked for slot 5 and report success, which is a
+           rule changed where the student was not looking. --- */
+    var termsBeforeSlots = JSON.stringify(
+      [termsNow('cost'), termsNow('req'), termsNow('xf')]);
+    [-1, App.data.MAX_ACTION_REQ, App.data.MAX_ACTION_REQ + 7, 0.5, '0', null,
+      undefined, NaN, true, [0]].forEach(function (bad) {
+        t.ok('a requirement slot of ' + JSON.stringify(bad) + ' is refused and '
+          + 'no out-of-range index quietly writes slot 0',
+          refusedWell(function () {
+            App.ops.setActionReq('cats', termId, bad, 'hp', 1);
+          }));
+      });
+    [-1, App.data.MAX_ACTION_XF, App.data.MAX_ACTION_XF + 7, 0.5, '0', null,
+      undefined, NaN, true, [0]].forEach(function (bad) {
+        t.ok('a transformation slot of ' + JSON.stringify(bad) + ' is refused too',
+          refusedWell(function () {
+            App.ops.setActionXf('cats', termId, bad, App.data.XF_WHO[1], 'hp', -1);
+          }));
+      });
+    t.eq('and after that whole table the terms are exactly as they were',
+      JSON.stringify([termsNow('cost'), termsNow('req'), termsNow('xf')]),
+      termsBeforeSlots);
+
+    /* --- a write past the end of a dense list is refused rather than left to
+           open a hole the walk would meet as undefined one commit later. --- */
+    t.ok('writing the second requirement slot while the first is empty is '
+      + 'refused, because the list stays dense',
+      (function () {
+        var scratch = App.ops.createAction('cats', 'Gap');
+        var r = refusedWell(function () {
+          App.ops.setActionReq('cats', scratch, 1, 'hp', 1);
+        });
+        App.ops.removeAction('cats', scratch);
+        return r;
+      })());
+
+    /* --- emptying a slot: ONE named path, and the list gets shorter rather
+           than growing a hole. --- */
+    App.ops.setActionCost('cats', termId, 'ap', 1);
+    App.ops.setActionReq('cats', termId, 0, 'hp', 2);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
+    App.ops.setActionXf('cats', termId, 1, App.data.XF_WHO[0], 'shield', 1);
+    t.eq('emptying a transformation slot takes it out of the list',
+      (function () {
+        App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1],
+          App.ops.CLEAR_TERM, -1);
+        return termsNow('xf');
+      })(), [{ who: 'caster', tok: 'shield', d: 1 }]);
+    t.eq('emptying a slot that is already empty commits nothing',
+      App.ops.setActionXf('cats', termId, 1, App.data.XF_WHO[1],
+        App.ops.CLEAR_TERM, -1), false);
+    t.eq('emptying a requirement slot takes it out of the list too',
+      (function () {
+        App.ops.setActionReq('cats', termId, 0, App.ops.CLEAR_TERM, 1);
+        return termsNow('req');
+      })(), []);
+    t.eq('and emptying a cost leaves the action costing nothing at all, which is '
+      + 'a rule a student is allowed to write',
+      (function () {
+        App.ops.setActionCost('cats', termId, App.ops.CLEAR_TERM, 1);
+        return termsNow('cost');
+      })(), []);
+
+    /* --- an action that names nothing on the side, and a side that is not one:
+           both refused before anything is written, on all three ops. --- */
+    ['setActionCost', 'setActionReq', 'setActionXf'].forEach(function (op) {
+      var args = (op === 'setActionCost')
+        ? ['cats', 'x99', 'ap', 1]
+        : (op === 'setActionReq')
+          ? ['cats', 'x99', 0, 'hp', 1]
+          : ['cats', 'x99', 0, App.data.XF_WHO[1], 'hp', -1];
+      t.ok(op + ' refuses an action id that names nothing on the side',
+        refusedWell(function () { App.ops[op].apply(null, args); }));
+      args[0] = '__proto__';
+      args[1] = termId;
+      t.ok(op + ' refuses a side that is not one of the two',
+        refusedWell(function () { App.ops[op].apply(null, args); }));
+    });
+
+    /* --- EVERY NUMBER REACHABLE INSIDE cost, req AND xf ON BOTH SIDES IS A
+           WHOLE NUMBER, AND NONE OF THEM IS null. This is the walk that Pitfall
+           5 is about: a NaN that reached state would come back from the next
+           unrelated commit as null, and [S09.3]'s walk accepts null. So this
+           one refuses it by name. --- */
+    App.ops.setActionCost('cats', termId, 'ap', 2);
+    App.ops.setActionReq('cats', termId, 0, 'hp', 2);
+    App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
+    App.state.commit('probe unrelated', function (s) { s.build.cats.ap = 5; });
+    function termNumbers() {
+      var found = [];
+      ['cats', 'mechs'].forEach(function (side) {
+        App.state.get().build[side].actions.forEach(function (a) {
+          ['cost', 'req'].forEach(function (field) {
+            (Array.isArray(a[field]) ? a[field] : []).forEach(function (term) {
+              found.push(term.n);
+            });
+          });
+          (Array.isArray(a.xf) ? a.xf : []).forEach(function (term) {
+            found.push(term.d);
+          });
+        });
+      });
+      return found;
+    }
+    t.ok('after a term write and an unrelated commit behind it, every number '
+      + 'inside every cost, requirement and transformation on BOTH sides is a '
+      + 'whole number and not one of them is null',
+      termNumbers().length > 0 && termNumbers().every(function (v) {
+        return v !== null && typeof v === 'number' && Number.isInteger(v);
+      }));
+    t.ok('and the shared object prototype is intact after the whole table',
+      protoIntact());
+
+    App.ops.removeAction('cats', termId);
+    App.state.restore(savedAll);
+    App.state.flush();
 
     /* ================= ACT-07, the referential read ======================= */
 
