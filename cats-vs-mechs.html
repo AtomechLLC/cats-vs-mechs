@@ -541,6 +541,11 @@
      list holds exactly five nouns in the document and [S09.8] can assert five. */
   .prj-ignore + .prj-ignore::before{content:'\00B7';margin-right:9px;color:var(--ink-dim)}
   .prj-note{margin:0;font-size:18px;color:var(--ink-dim)}
+  /* The admission line is built once and carried hidden while the projection
+     has nothing it cannot model, which is the whole of the shipped board. Its
+     own hidden rule for the same reason .prj-work[hidden] has one, and NOT
+     .brd-line--opt, whose hide pass reads a tally and would pin it shut. */
+  .prj-note[hidden]{display:none}
 
   /* ===================== [C11] REFERENCE ===================== */
   /* The reference material [S06.4] paints into the band below both columns,
@@ -4926,7 +4931,59 @@ App.render = (function () {
       'One number means nothing is wasted at this damage. A range appears when '
       + 'a hit spills past a unit\'s last point of health.'));
 
+    // D-16, THE ADMISSION. [S02] can refuse to model an authored action —
+    // a cost that is not in action points, a heal, a delta on the caster, a
+    // strip of some token a student invented — and a projection that quietly
+    // left those out of its figures would be reporting on half a board while
+    // looking like it reported on all of it. So it says which ones, by name.
+    // The names come from the model; the sentence around them is the page's,
+    // which is the division of labour every other read in this region keeps.
+    //
+    // NOT A SIXTH NOUN in the list above, and that is a decision rather than a
+    // convenience. [S09.8] asserts the list names exactly five things and
+    // [C11]'s separator rule is written for five, but neither is the argument:
+    // naming the specific actions is stronger compliance with D-16 than
+    // gesturing at a category, and a category noun would sit there permanently
+    // saying something untrue of a board where nothing has been authored.
+    //
+    // BUILT ONCE AND CARRIED HIDDEN, the idiom the soak line already uses and
+    // for the reason it states: a line that exists is a line the sync pass
+    // writes in one branch, and this region is built once by construction.
+    // Empty and hidden is the whole of the shipped board.
+    //
+    // All four of this region's silent-failure rules bind this node and it
+    // breaks none of them: no data-k, so keyed() cannot take its first
+    // document match here; no data-amt and it is not a .brd-value, so the
+    // value pass cannot paint a confident zero over it; not the optional-line
+    // class, whose hide pass reads a tally and would pin it shut for good; and
+    // built once. The row that walks this region for all four covers it
+    // without being told about it, which is the point of walking.
+    //
+    // The marker with no id on it is [S06.1]'s action-name channel in its
+    // sentence form: the words in here are names a student typed, so the gate
+    // that walks the page skips its text; and carried with no id, it tells
+    // that section's per-frame pass that this region writes this node.
+    var admit = text('p', 'prj-note', '');
+    setData(admit, { prj: 'ignored', anm: '' });
+    admit.hidden = true;
+    box.appendChild(admit);
+
     return box;
+  }
+
+  // The names [S02] refuses to model, both sides, in board order — Cats first,
+  // then Mechs, which is the order the columns are in. One sentence for the
+  // whole strip rather than one per panel, because the list above it is one
+  // list for the whole strip and this line qualifies the same figures.
+  //
+  // The empty case hands back the empty string rather than a sentence with
+  // nothing after the colon, and the caller hides the node on it. There is one
+  // decision about emptiness and it is made here.
+  function ignoredText(state) {
+    var names = App.model.unmodelled(state.build.cats)
+      .concat(App.model.unmodelled(state.build.mechs));
+    if (names.length === 0) { return ''; }
+    return 'Not shown in these figures: ' + names.join(', ') + '.';
   }
 
   // The per-frame half, attached to [S06.1]'s seam in syncPicker's exact shape.
@@ -4954,6 +5011,20 @@ App.render = (function () {
     var nodes = strip.querySelectorAll('[data-prj]');
     for (var i = 0; i < nodes.length; i++) {
       var node = nodes[i];
+      // THE ONE NODE IN HERE THAT IS NOT ABOUT ONE SIDE, taken above the side
+      // read rather than folded into the chain below it. Every other node in
+      // this region carries a side and the lines below all read one; this
+      // sentence names actions from both columns, so it has no side to carry —
+      // and a node with no side falls out of the guard below as though its
+      // faction were missing, which would leave it silently never written.
+      // D-13's prohibition is untouched: the rule is that no FIGURE may be
+      // about both sides, and this is words about what the figures leave out.
+      if (node.dataset.prj === 'ignored') {
+        var admission = ignoredText(state);
+        node.textContent = admission;
+        node.hidden = (admission === '');
+        continue;
+      }
       var side = node.dataset.side;
       var foe = (side === 'cats') ? 'mechs' : 'cats';
       if (!state.build[side] || !state.build[foe]) { continue; }
@@ -9634,6 +9705,88 @@ App.selftest = (function () {
     t.eq('and the first is the matchup noun, which PROJ-04 itself spells with a '
       + 'word this file is not allowed to contain',
       nouns.length > 0 ? nouns[0].textContent : '(no node)', 'Matchups');
+
+    /* --- D-16, THE ADMISSION. A projection that quietly left an action it
+           cannot model out of its figures would be reporting on half a board
+           while looking like it reported on all of it. These rows hold both
+           states of that line, because a line asserted only when it is showing
+           is a line that can appear on a board it has nothing to say about —
+           and an admission on an untouched board is noise the permanent list
+           above already covers with one noun.
+
+           SELECTED BY [data-*] AND READ OFF THE NODE ITSELF, both deliberate.
+           The stub's selector engine understands a class and a [data-*] test
+           and nothing else; and its textContent is a plain own property rather
+           than a value computed over descendants, so reading a parent's text
+           would report the empty string whatever the child said. This node has
+           no children by construction, which is what makes the read sound.
+
+           The board is driven through restore() rather than through an op,
+           because no op in this phase writes a transformation — ACT-05 is
+           half-delivered on purpose (D-05b) and the editor is another plan's.
+           restore() is [S09]'s documented writer and exists for exactly this. */
+    function admitNode() {
+      return strip ? strip.querySelector('[data-prj="ignored"]') : null;
+    }
+    function admitText() {
+      var n = admitNode();
+      return n ? n.textContent : '(no node)';
+    }
+
+    t.ok('the admission line is on the page on the shipped board',
+      admitNode() !== null);
+    t.eq('and it says nothing, because the six the board ships with are all '
+      + 'modelled and an admission about nothing is noise', admitText(), '');
+    t.ok('and it is hidden, so an untouched board carries no empty line',
+      admitNode() !== null && admitNode().hidden === true);
+
+    // A cats action whose transformation strips SHIELD rather than health.
+    // [S02] models a negative target delta on health and nothing else, so this
+    // is the smallest authored rule the figures cannot carry.
+    var withXf = JSON.parse(savedAll);
+    withXf.build.cats.actions.push({
+      id: 'x1', name: 'Rend', dmg: 0, keywords: [],
+      cost: [{ tok: 'ap', n: 1 }], req: [],
+      xf: [{ who: 'target', tok: 'shield', d: -2 }]
+    });
+    App.state.restore(JSON.stringify(withXf));
+    App.state.flush();
+    t.eq('an authored action the figures cannot carry is NAMED, in the words '
+      + 'the page owns rather than in a list the model handed over',
+      admitText(), 'Not shown in these figures: Rend.');
+    t.ok('and the line is showing now', admitNode() !== null && admitNode().hidden === false);
+    t.eq('while the figures themselves did not move, because an action that is '
+      + 'not modelled is not counted either — which is what makes the sentence '
+      + 'above an admission rather than a footnote',
+      [prj('turns', 'cats'), prj('work', 'cats')],
+      ['≈9 turns to wipe Mechs', '27 health ÷ 3 per turn']);
+
+    // A second one, on the OTHER side, to hold the order and the separator.
+    var withTwo = JSON.parse(JSON.stringify(withXf));
+    withTwo.build.mechs.actions.push({
+      id: 'x1', name: 'Sacrifice', dmg: 0, keywords: [],
+      cost: [{ tok: 'hp', n: 2 }], req: [],
+      xf: [{ who: 'target', tok: 'hp', d: -6 }]
+    });
+    App.state.restore(JSON.stringify(withTwo));
+    App.state.flush();
+    t.eq('two of them read as one sentence, both names, Cats first — the order '
+      + 'the columns are in',
+      admitText(), 'Not shown in these figures: Rend, Sacrifice.');
+
+    /* --- AND THE LIST ABOVE DID NOT GROW. The admission is a conditional
+           LINE, not a sixth noun: a noun would sit there permanently saying
+           something untrue of a board where nothing has been authored, and
+           naming the specific actions is stronger D-16 compliance than
+           gesturing at a category. [C11]'s separator rule is written for five
+           and the row below is what keeps that true while the line is up. --- */
+    t.eq('and the permanent list still names exactly five things with the '
+      + 'admission showing',
+      (strip ? strip.querySelectorAll('.prj-ignore') : []).length, 5);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('and it goes quiet again when the board does', admitText(), '');
 
     /* --- PROJ-01, THE RANGE ON SCREEN. Its own named row, because this is the
            behaviour a verifier is looking for: the model was shown to produce a

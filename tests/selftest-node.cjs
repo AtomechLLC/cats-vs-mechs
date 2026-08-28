@@ -3219,6 +3219,55 @@ check(
     : actCtlHits.join(' | ')
 );
 
+/* --- 47f. THE THIRD SURFACE A STUDENT'S ACTION NAME REACHES, and the one that
+       was easiest to miss: D-16's admission line names the actions the figures
+       leave out, so it prints a student's word into the strip. If that line
+       were read by this walk, an action a student named after a comparative
+       word and then wrote a rule the projection cannot carry would redden CI
+       for saying exactly what D-16 requires it to say.
+
+       The line is driven into its VISIBLE state on purpose. Empty it is
+       excluded by the walk's own non-empty test and this row would prove
+       nothing — which is the vacuous shape this repo has now found four times.
+
+       restore() rather than an op, because no op in this phase writes a
+       transformation: ACT-05 is half-delivered by design and the editor is
+       another plan's. restore() is the suite's documented writer. --- */
+const admitSaved = JSON.stringify(A.state.get());
+const admitDriven = JSON.parse(admitSaved);
+admitDriven.build.cats.actions.push({
+  id: 'x1', name: 'Better', dmg: 0, keywords: [],
+  cost: [{ tok: 'ap', n: 1 }], req: [],
+  xf: [{ who: 'target', tok: 'shield', d: -2 }]
+});
+A.state.restore(JSON.stringify(admitDriven));
+A.state.flush();
+const admitNode = strip ? strip.querySelectorAll('[data-prj="ignored"]')[0] : null;
+const admitRead = admitNode ? admitNode.textContent : '(no node)';
+const admitHidden = admitNode ? admitNode.hidden : '(no node)';
+const admitText = harvestInto(dom.byId['app'], [], '#app');
+const admitHits = verdictHitsIn(admitText);
+A.state.restore(admitSaved);
+A.state.flush();
+const admitAfter = admitNode ? admitNode.textContent : '(no node)';
+
+check(
+  '47f. the strip NAMES the actions its figures leave out, and a student who '
+    + 'named one after a comparative word does not redden the run for it — the '
+    + 'admission carries the same marker the cards do, and the line goes quiet '
+    + 'again when the board does',
+  admitHits.length === 0
+    && admitRead === 'Not shown in these figures: Better.'
+    && admitHidden === false
+    && admitAfter === ''
+    && admitText.length > 117,
+  admitHits.length === 0
+    ? 'line read ' + JSON.stringify(admitRead) + ', hidden=' + admitHidden
+      + ', put back as ' + JSON.stringify(admitAfter)
+      + ', clean across ' + admitText.length + ' #app strings'
+    : admitHits.join(' | ')
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. The behaviours numbered
