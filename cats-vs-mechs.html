@@ -13433,9 +13433,15 @@ App.selftest = (function () {
 
     var frozenTerm = App.state.get().build.cats.actions
       .find(function (a) { return a.id === contractId; }).xf[0];
-    t.ok('a write to a term the state has frozen throws', (function () {
-      try { frozenTerm.d = 99; return false; } catch (refused) { return true; }
-    })());
+    t.ok('a write to a term the state has frozen throws, AND the subject of that '
+      + 'write is a real record rather than nothing — probe U measured the row '
+      + 'without that clause going green over null and over undefined, because '
+      + 'a write to either of those throws as well',
+      (function () {
+        if (frozenTerm === null || typeof frozenTerm !== 'object') { return false; }
+        if (Object.keys(frozenTerm).sort().join(',') !== 'd,tok,who') { return false; }
+        try { frozenTerm.d = 99; return false; } catch (refused) { return true; }
+      })());
     t.eq('and the term is unchanged after it', frozenTerm.d, -1);
     t.ok('THE NEGATIVE CONTROL: the SAME write on an unfrozen copy does not '
       + 'throw and does land — without this the row above passes on a term that '
