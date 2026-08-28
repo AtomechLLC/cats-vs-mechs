@@ -345,7 +345,11 @@ function makeStubDom() {
     // type, the name field, and the make-one / take-one-away row.
     'tok-pick-list', 'tok-pick-list-label',
     'tok-pick-name', 'tok-pick-name-label',
-    'tok-pick-new-unit', 'tok-pick-new-side', 'tok-pick-remove'
+    'tok-pick-new-unit', 'tok-pick-new-side', 'tok-pick-remove',
+    // plan 03-05 — the reference band, full width below both columns. The
+    // node is built a dozen lines below in the same change: this list and the
+    // stub page disagreeing in EITHER direction fails the run at section 5b.
+    'refband'
   ];
 
   const byId = Object.create(null);
@@ -570,6 +574,11 @@ function makeStubDom() {
   const board = idNode('board');
   app.appendChild(board);
   ['col-cats', 'strip', 'col-mechs'].forEach((id) => board.appendChild(idNode(id, 'section')));
+  // plan 03-05's band, in the shell's own order: after both columns and before
+  // #board-empty. The order matters to nothing the stub does today and matters
+  // to any future assertion that reads #board's children, which is the cheaper
+  // moment to get it right.
+  board.appendChild(idNode('refband', 'section'));
   board.appendChild(idNode('board-empty', 'p'));
 
   const report = idNode('selftest-report', 'section');

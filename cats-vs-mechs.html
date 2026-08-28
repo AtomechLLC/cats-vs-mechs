@@ -139,6 +139,12 @@
     margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
   #board-empty{grid-column:1 / -1}
+  /* A [C03] EDIT BY PLAN 03-05, named as one. The reference band spans both
+     columns and the strip between them, exactly as #board-empty above already
+     does — same declaration, same reason, so it sits beside its precedent
+     rather than inventing a second way to say the same thing. The band's own
+     chrome is [C11]'s, in the way #strip's children are [C10]'s. */
+  #refband{grid-column:1 / -1}
 
   .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
@@ -535,6 +541,65 @@
      list holds exactly five nouns in the document and [S09.8] can assert five. */
   .prj-ignore + .prj-ignore::before{content:'\00B7';margin-right:9px;color:var(--ink-dim)}
   .prj-note{margin:0;font-size:18px;color:var(--ink-dim)}
+
+  /* ===================== [C11] REFERENCE ===================== */
+  /* The reference material [S06.4] paints into the band below both columns,
+     and [S06.1] paints into each column. Every class here carries the .ref-
+     prefix, which is fake scoping and entirely deliberate, for the reason
+     [C07] gives about .pk- and [C10] repeats about .prj-: a single stylesheet
+     has no real scope, so a Phase 5 rule for a generic class name would
+     otherwise restyle this surface from two thousand lines away.
+
+     D-15, colour, and it bites harder here than anywhere else on the page.
+     The band states which of two actions comes out ahead of the other, so a
+     colour on either half of one of those lines would be a ruling wearing a
+     palette — the tool would have started doing the adjudication that is the
+     students' exercise. So this region draws on the four neutrals [C10] limits
+     itself to, the ink, the dim ink, the hairline and the panel surface, and
+     on NONE of the token-identity custom properties [C00] declares. Both
+     halves of a line are the same colour and the same weight, and the only
+     thing distinguishing them is the connective between them, which is a word
+     and not a decoration.
+
+     Those identity properties are DESCRIBED here rather than spelled, and that
+     is deliberate: the acceptance check on this region is a grep for them, and
+     a comment promising not to use them would be the thing that failed it.
+     [S06.1] and [S06.3] each face the same problem about a rejected attribute
+     of their own and resolve it the same way. The rows in [S09.9] and the
+     interaction gate are the half that actually holds the rule.
+
+     The COLUMN cards may carry a faction tint, because a card sitting inside a
+     faction's own column is already about that faction and a tint there says
+     nothing about quality. They do not carry one today: the column head above
+     them does not either, so a tint would be this region inventing a treatment
+     the board does not use.
+
+     Sizes come off [C04]'s projector floor. The band heading and the card
+     headings sit at .brd-note's 18px and above; the lines a student actually
+     reads sit at .brd-value's 24px and weight 700. Nothing at or below 14px
+     carries information anywhere below, so .eyebrow and .ex are unavailable
+     however neatly they would have fitted.
+
+     Nothing below turns any part of this region into a box that clips or
+     scrolls its content, and that is a rule rather than an accident. [C03]'s
+     note explains at length what such a box anywhere above #strip silently
+     costs — the band is a SIBLING of #strip inside the same grid, so one
+     introduced here would be a further ancestor between the sticky panel and
+     the scrollport. Content wraps instead. Named, again, rather than spelled,
+     for the reason two paragraphs up. */
+  #refband{
+    background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:18px 20px;
+    display:grid;grid-auto-flow:row;gap:12px;
+    color:var(--ink-dim);
+  }
+  .ref-band-head{margin:0;font-size:20px;font-weight:600;color:var(--ink-dim)}
+  .ref-band-list{display:flex;flex-wrap:wrap;gap:12px 36px}
+  /* Both halves of the line are the same colour and the same weight. See the
+     D-15 paragraph above: this is the one rule in the file where an emphasis
+     on half a sentence would read as a ruling. */
+  .ref-beats{margin:0;font-size:24px;font-weight:700;color:var(--ink)}
 </style>
 </head>
 <body>
@@ -577,15 +642,23 @@
     </div>
   </div>
 
-  <!-- The four children below are static siblings, never built by
+  <!-- The five children below are static siblings, never built by
        render.structure(): a delegated listener bound to a root that outlives
        every rebuild is the only arrangement that survives one. #board-empty
        stays because [S08] boot.start()'s #throwhandler rehearsal reads it by
-       id; render.structure() hides it rather than removing it. -->
+       id; render.structure() hides it rather than removing it.
+
+       #refband is plan 03-05's, and it is empty on purpose: [S06.4] builds it
+       once and flags it, the same bookkeeping #strip uses and for the same
+       reason — structure() replaces only the two column interiors, so neither
+       of these two is ever thrown away. Adding an id here without teaching
+       tests/selftest-node.cjs about it fails the run in both directions, which
+       is why the id, the KNOWN_IDS entry and the stub node arrived together. -->
   <div class="board" id="board">
     <section class="brd-col" id="col-cats"></section>
     <aside class="brd-strip" id="strip">The projection renders here.</aside>
     <section class="brd-col" id="col-mechs"></section>
+    <section id="refband"></section>
     <p class="muted" id="board-empty">The allocation board renders here.</p>
   </div>
 
@@ -704,6 +777,7 @@
  *     [S06.1] the board renderer, both tiers                               (plan 02-01)
  *     [S06.2] the token-appearance picker                                  (plan 02-03)
  *     [S06.3] the advisory projection in the centre strip                  (plan 03-03)
+ *     [S06.4] the reference band below both columns                        (plan 03-05)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
@@ -3823,6 +3897,113 @@ App.render = (function () {
 
   SYNC_HOOKS.push(syncProjection);
   // #endregion [S06.3] RENDER — PROJECTION
+
+  /* ===================== [S06.4] RENDER — REFERENCE =====================
+   * REF-01 on the page: what beats what, in a full-width band below both
+   * columns. A SUB-REGION of [S06] for the mechanical reason [S06.3] states
+   * about itself — it reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure
+   * variable of this IIFE, and the surface returned below is frozen, so there
+   * is no route to the seam from a top-level section.
+   *
+   * WHY A BAND RATHER THAN A PER-FACTION PANEL (D-12). These relationships are
+   * cross-faction: they are about one side's action against the other's, so
+   * they belong to neither column. The board's transcription also carried a
+   * third pair that was intra-Mechs, both halves of it Mechs actions — that
+   * pair is not rendered here, having been dropped on the developer's
+   * instruction and left out rather than corrected, but it is the reason the
+   * placement question was asked at all and PROJECT.md still records it.
+   * REF-02's effect cards go the other way, into the columns, because they
+   * attach to the actions that carry them and an action belongs to a faction.
+   *
+   * The four rules [S06.3] states about anything appended to #strip apply here
+   * WORD FOR WORD, because #refband is a child of #board too and sync() walks
+   * it on every frame: no data-k, because keyed() takes the first document
+   * match; no data-amt on a .brd-value, because sync()'s value pass would
+   * paint a confident zero over it; no .brd-line--opt, because the hide pass
+   * reads amountFor and would pin the line shut for good; and build once,
+   * because structure() never touches this node. So everything below carries
+   * .ref- classes and no data attribute except the build flag on the band
+   * itself, which is the bookkeeping #strip's dataset.built already does.
+   *
+   * NOTHING HERE IS STORED AND NOTHING HERE IS STATE. The contents come from
+   * App.data.REFERENCE and App.data.DEFAULTS, both frozen, so there is nothing
+   * to re-sync. The hook is registered anyway and returns early once the band
+   * is built: every page region this file owns is reconciled by the same frame,
+   * which is the whole reason SYNC_HOOKS exists, and a region that opted out of
+   * it because it happened to be static today is a region that silently stops
+   * being reconciled on the day it stops being static.
+   * deps: App.data, [S06.1]'s helpers
+   * owner: Phase 3, plan 03-05
+   * ======================================================================= */
+  // #region [S06.4] RENDER — REFERENCE
+
+  // The action's NAME is read here rather than duplicated into REFERENCE, so
+  // there is one definition of what an action is called and a rename in
+  // DEFAULTS travels to the band on its own. REFERENCE carries only ids.
+  //
+  // An id-equality scan, never a bare index into an object keyed by id: the
+  // rule styleFor and labelFor state at length, because from Phase 4 an id can
+  // arrive from a pasted build code and a bare lookup for 'constructor'
+  // resolves on the prototype. Comparing against a record's own `id` field
+  // cannot do that whatever string it is handed.
+  //
+  // Falling back to the raw id rather than to a shipped action, because a
+  // dangling pair is a data defect and printing the id names it on the page
+  // instead of quietly printing somebody else's action. [S09.9] already
+  // refuses to let one ship.
+  function actionNameById(id) {
+    var sides = ['cats', 'mechs'];
+    for (var s = 0; s < sides.length; s++) {
+      var actions = App.data.DEFAULTS[sides[s]].actions;
+      for (var a = 0; a < actions.length; a++) {
+        if (actions[a].id === id) { return actions[a].name; }
+      }
+    }
+    return id;
+  }
+
+  // The connective comes out of the record, one per pair. "Fly beats Slash"
+  // and "Lasers beat Hairball" differ by a letter that depends on whether an
+  // action's name reads as plural, which is a fact about English and not a
+  // fact this renderer can derive. Putting it in the data is what keeps the
+  // guessing out of here entirely.
+  function beatsLine(rec) {
+    return actionNameById(rec.over) + ' ' + rec.verb + ' ' + actionNameById(rec.under);
+  }
+
+  // The heading is the approved wording and it cannot be the obvious one: the
+  // word this feature would naturally be named after is a banned substring
+  // under this project's oldest acceptance grep, case-insensitively, over the
+  // whole file, in code and in comments as well as on screen. So the feature
+  // is not named after itself anywhere — not here, not in the id, not in the
+  // classes, not in [C11]. The same constraint produced "Matchups" in
+  // [S06.3]'s ignores list.
+  function buildRefBand(band) {
+    band.replaceChildren();
+    band.appendChild(text('h2', 'ref-band-head', 'What beats what'));
+
+    var list = el('div', 'ref-band-list');
+    App.data.REFERENCE.beats.forEach(function (rec) {
+      list.appendChild(text('p', 'ref-beats', beatsLine(rec)));
+    });
+    band.appendChild(list);
+  }
+
+  // Registered on the seam in syncPicker's and syncProjection's exact shape,
+  // and deliberately taking no state argument: it reads none, and a parameter
+  // it ignored would suggest to the next reader that there is a per-frame read
+  // in here somewhere to be found. There is not — see the region banner.
+  function syncReference() {
+    if (typeof document === 'undefined') { return; }
+    var band = document.getElementById('refband');
+    if (!band) { return; }
+    if (band.dataset.built === '1') { return; }
+    buildRefBand(band);
+    band.dataset.built = '1';
+  }
+
+  SYNC_HOOKS.push(syncReference);
+  // #endregion [S06.4] RENDER — REFERENCE
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
