@@ -4304,6 +4304,28 @@ App.interactions = (function () {
   }
 
   function onPickerKeyDown(e) {
+    // The same rule [S07.1] applies at #app, and it has to be written twice
+    // because the two roots are disjoint by construction: this dialog is a
+    // SIBLING of #app, so no key pressed in here ever reaches that listener.
+    // The reason is [S07.1]'s own measured one — a held Enter on a focused
+    // button makes the browser synthesise one click{detail:0} per repeat, and
+    // onPickerClick has no e.repeat to test because click events do not carry
+    // one. Held on New that is one createTokenType per OS auto-repeat until the
+    // cap disables the button, and six undo entries to rewind one at a time.
+    //
+    // The scope is a BUTTON rather than [S07.1]'s data-act test, because in
+    // this dialog those are the same set said two ways: every control that can
+    // change anything — the list rows, the swatches, New, Remove and Done — is
+    // a real button by construction, and the one thing that is not is the name
+    // field. So a held Space in the field still types spaces and a held Enter
+    // there still reaches the commit arm below. Only a button is silenced, and
+    // only on a repeat: the first press is untouched.
+    if (e.repeat === true && (e.key === 'Enter' || e.key === ' ')) {
+      var node = e.target;
+      var btn = (node && typeof node.closest === 'function') ? node.closest('button') : null;
+      if (btn !== null) { e.preventDefault(); return; }
+    }
+
     var el = e.target;
     if (!isNameField(el)) { return; }
 

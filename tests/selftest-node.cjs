@@ -1803,6 +1803,52 @@ check(
     + ' hidden once focus left=' + downGoneAfterLeaving
 );
 
+/* --- 43. check 22's guard, asserted on the OTHER root. The dialog is a sibling
+       of #app, so nothing pressed inside it ever reaches the listener check 22
+       drives, and this phase put six act-carrying buttons plus every swatch and
+       every list row in here. Held Enter on New would make one type per OS
+       auto-repeat until the cap disabled the button, and leave that many undo
+       entries to rewind one at a time. Same three assertions as check 22, and
+       the same caveat: this stub does not synthesise clicks from keydowns, so
+       what is asserted is the guard, and one more thing check 22 has no need
+       of — that a held key inside the NAME FIELD is not silenced, because that
+       is a student typing. --- */
+press(openBtn);
+release(openBtn);
+A.state.flush();
+clearPanel();
+const pkVocabBeforeHold = vocabIds().length;
+const pkFirst = dom.event('keydown', { key: 'Enter', repeat: false });
+pkNewUnit.dispatchEvent(pkFirst);
+let pkRepeatCancelled = null;
+for (let i = 0; i < 10; i++) {
+  const rep = dom.event('keydown', { key: 'Enter', repeat: true });
+  pkNewUnit.dispatchEvent(rep);
+  pkRepeatCancelled = rep.defaultPrevented;
+}
+A.state.flush();
+// A held Space in the name field is a student holding the space bar, not a
+// button being hammered, and must survive untouched.
+nameFocus();
+const heldSpace = dom.event('keydown', { key: ' ', repeat: true });
+pkName.dispatchEvent(heldSpace);
+nameLeave();
+check(
+  '43. a repeated Enter keydown on a picker button is cancelled before it can '
+    + 'become a click, the first press is not, and a held key in the name '
+    + 'field is left alone',
+  pkRepeatCancelled === true && pkFirst.defaultPrevented === false
+    && vocabIds().length === pkVocabBeforeHold
+    && heldSpace.defaultPrevented === false
+    && errPanel.hidden === true,
+  'repeat cancelled=' + pkRepeatCancelled
+    + ' first press cancelled=' + pkFirst.defaultPrevented
+    + ' types made by the hold=' + (vocabIds().length - pkVocabBeforeHold)
+    + ' held space in the field cancelled=' + heldSpace.defaultPrevented
+);
+clearPanel();
+if (dlg.open === true) { dlg.close(); }
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the
