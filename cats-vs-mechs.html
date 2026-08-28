@@ -461,6 +461,19 @@
      rule for it would be a second place for the two to disagree. */
   .pk-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
 
+  /* ACT-07's line beside Remove. Carried hidden while nothing names the type,
+     with its own hidden rule for the reason .prj-work[hidden] and
+     .brd-line--opt[hidden] each have one: [hidden]{display:none} is a
+     user-agent rule and the margin below would not have beaten it, but a later
+     author rule giving this class a display would, and the next reader should
+     not have to know which of those is true today. It sits directly under the
+     row it qualifies, against the row's own bottom margin, so the sentence and
+     the button it is about are one block. Dimmed like every other line of
+     consequence on this surface — it states a fact, and nothing here is
+     coloured to alarm anybody. */
+  .pk-warn{margin:-14px 0 18px;font-size:18px;color:var(--ink-dim)}
+  .pk-warn[hidden]{display:none}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -749,6 +762,26 @@
     <button class="brd-btn" type="button" id="tok-pick-new-side" data-act="createTokenType" data-scope="side" data-k="pk/new-side">New type on the whole side</button>
     <button class="brd-btn" type="button" id="tok-pick-remove" data-act="removeTokenType" data-k="pk/remove">Remove this type</button>
   </div>
+
+  <!-- ACT-07 and D-12: what a removal will break, said BEFORE it happens.
+       Empty and hidden here, written by [S06.2] on every repaint from
+       App.ops.actionsNaming. A LINE and not a dialog, which is D-12 and phase
+       2.1's D-17 reconciled rather than one overruling the other: D-17 chose no
+       confirmation because a modal costs an instructor a click mid-demo to
+       guard against something undo already covers, and that is still true — a
+       line costs no click, adds no surface and leaves removal one undoable
+       commit, while saying the thing D-17 had nothing to say.
+
+       IT REPORTS AND IT DISABLES NOTHING. The button beside it is enabled by
+       exactly the rule it was enabled by before, which is a bound on what the
+       TOOL may do to itself. Whether a rule that names a departing type is a
+       rule worth keeping is the student's ruling, and adjudicating it is the
+       exercise.
+
+       data-anm with no id is [S06.1]'s action-name marker in its sentence form:
+       the words in here are names a student typed. Empty, and hidden with it,
+       so nothing is on screen for a type no rule names. -->
+  <p class="pk-warn" id="tok-pick-names" data-anm="" hidden></p>
 
   <!-- Deliberately NOT one of the board's stepper fields. isField() keys on
        the stepper input's own class and every reader downstream of it is
@@ -4563,12 +4596,36 @@ App.render = (function () {
   // JSON.stringify of an ARRAY, never a joined string: a name is text a student
   // types, so any delimiter is a character they can enter, and a joined
   // fingerprint could be made to report "nothing changed" for a change.
+  //
+  // WIDENED A SECOND TIME, for the reason it was widened the first: the
+  // fingerprint has to name everything this dialog draws or the surface is born
+  // stale. ACT-07's line beside Remove draws the actions that name the open
+  // type, and every one of the three ways that line can change — an action
+  // authored that names it, an action renamed, an action removed — leaves the
+  // whole token vocabulary above untouched. Without this third element the line
+  // is written once and then frozen for as long as the dialog stays open, which
+  // is precisely the pre-02.1-04 defect with a different record in it.
+  //
+  // WHAT IT FINGERPRINTS IS THE SENTENCE THE LINE DRAWS, not the record behind
+  // it, and that is the exact form rather than the lazy one. The record moves
+  // for changes the line does not show — an action naming a type the picker is
+  // not open on, or naming one of the five the board is built on, for which
+  // the line stays deliberately silent — and a fingerprint that moved for
+  // those would repaint a dialog nothing on which had changed, which is the
+  // one thing this gate exists to prevent. Fingerprinting the drawn string
+  // makes "the sig moves exactly when the line moves" true by construction
+  // instead of by two lists being kept in step.
+  //
+  // ONE ELEMENT OF THE ARRAY, never appended to a joined string. The sentence
+  // holds names a student typed, so it holds any character they can enter;
+  // JSON.stringify escapes it inside its own slot, which is the whole reason
+  // this fingerprint was an array in the first place.
   function pickerSig(state, tokenId) {
     var vocab = state.build.tokens;
     return JSON.stringify([tokenId, Object.keys(vocab).map(function (id) {
       var rec = vocab[id];
       return [id, rec.name, rec.shape, rec.color, rec.glyph, rec.scope];
-    })]);
+    }), namedByText(state, tokenId)]);
   }
 
   // A type the board is built on cannot be removed (D-15) and does not count
@@ -4581,6 +4638,62 @@ App.render = (function () {
   function setEnabled(id, on) {
     var node = document.getElementById(id);
     if (node) { node.disabled = !on; }
+  }
+
+  // setEnabled's sibling, in the same shape and for the same stated reason: it
+  // is re-decided from state on every repaint rather than toggled by whoever
+  // last pressed something, so an undo moves it too.
+  //
+  // Emptiness and hiddenness are ONE decision, made here, so no caller can
+  // leave a blank line standing on the surface. The empty string is the caller
+  // saying "nothing to report", and nothing to report is nothing on screen.
+  function setText(id, s) {
+    var node = document.getElementById(id);
+    if (!node) { return; }
+    node.textContent = s;
+    node.hidden = (s === '');
+  }
+
+  // ACT-07 and D-12: which actions name this type, said before it is taken
+  // away. The read is App.ops.actionsNaming; the sentence is this region's, on
+  // the division of labour every other read on this page keeps.
+  //
+  // BOTH NAMES ARE READ LIVE. The type's comes through labelFor and each
+  // action's off the record actionsNaming hands back, so a student who renamed
+  // either is told about the word THEY chose — which is removeTokenType's own
+  // stated technique, applied one tier up.
+  //
+  // Arithmetic and factual: it says what names the type and what a removal
+  // will leave behind, and stops. It does not say whether the rule is worth
+  // keeping, because that ruling is the exercise. And it disables nothing —
+  // the button beside it is enabled by exactly the rule it always was.
+  //
+  // The noun agrees with the count, for the reason [S06.3]'s turn noun does:
+  // one action named on a projector under a plural reads as a defect in the
+  // tool. Two branches, no guessing, and the agreement is over a number this
+  // function has in hand rather than over anything authored.
+  //
+  // SILENT FOR A TYPE THE BOARD IS BUILT ON, and this arm is load-bearing
+  // rather than tidy. Measured on the shipped board: Slash and Lasers both
+  // carry a health term, so without it the picker opens cold on a permanent
+  // sentence about removing Health — a removal the surface does not offer,
+  // because Remove is disabled for exactly these five. A consequence stated
+  // for something that cannot happen is noise, and it is the same noise
+  // [S06.3]'s admission line refuses on the same grounds one region over.
+  //
+  // It asks isShippedType, which is the question the enable pass beside it
+  // asks, and that is the point rather than a coincidence: this line is about
+  // a removal, so it says something exactly when there is a removal to say it
+  // about. It still DISABLES nothing — the button's own rule is untouched, and
+  // a row holds the two apart.
+  function namedByText(state, tokenId) {
+    if (isShippedType(tokenId)) { return ''; }
+    var naming = App.ops.actionsNaming(state.build, tokenId);
+    if (naming.length === 0) { return ''; }
+    var names = naming.map(function (rec) { return rec.name; });
+    return labelFor(state, tokenId) + ' is named by ' + names.join(', ') + '. '
+      + 'Removing it will leave ' + (names.length === 1 ? 'that action' : 'those actions')
+      + ' without a term.';
   }
 
   // The one entry point, and the argument is deliberate: WHICH picker is open
@@ -4652,6 +4765,9 @@ App.render = (function () {
       setEnabled('tok-pick-remove', !isShippedType(id));
       setEnabled('tok-pick-new-unit', made.length < App.data.MAX_CUSTOM_TYPES);
       setEnabled('tok-pick-new-side', made.length < App.data.MAX_CUSTOM_TYPES);
+      // Written in the same pass as the three above and from the same state,
+      // so the line and the button can never describe two different boards.
+      setText('tok-pick-names', namedByText(state, id));
 
       fillGrid(document.getElementById('tok-pick-shapes'), id, 'shape',
         App.data.SHAPES, base.shape, base, function (v) { return SHAPE_NAMES[v] || v; });

@@ -441,7 +441,12 @@ function makeStubDom() {
     // plan 03-05 — the reference band, full width below both columns. The
     // node is built a dozen lines below in the same change: this list and the
     // stub page disagreeing in EITHER direction fails the run at section 5b.
-    'refband'
+    'refband',
+    // plan 03.1-04 — ACT-07's line beside Remove, saying which actions name
+    // the open type before it is taken away. Same rule as every entry above:
+    // the id, this entry and the stub node arrive together or the run fails in
+    // one direction or the other.
+    'tok-pick-names'
   ];
 
   const byId = Object.create(null);
@@ -758,6 +763,18 @@ function makeStubDom() {
     Object.keys(extra).forEach((key) => { b.dataset[key] = extra[key]; });
     newRow.appendChild(b);
   });
+
+  // ACT-07's line beside Remove. Empty and hidden in the shell and here, with
+  // the action-name marker on it, because [S06.2] writes a student's words into
+  // it and the rendered-page walk must skip its text for the same reason it
+  // skips a token type's label. The class matters: [C07] hides it while it is
+  // empty, and a check reading it selects on the class rather than on a
+  // structure this stub does not reproduce.
+  const namesLine = idNode('tok-pick-names', 'p');
+  namesLine.className = 'pk-warn';
+  namesLine.dataset.anm = '';
+  namesLine.hidden = true;
+  picker.appendChild(namesLine);
 
   // The name field is STATIC in the shell and static here, which is the whole
   // point of it: [S06.2] skips it while it holds focus rather than rebuilding
@@ -1951,6 +1968,152 @@ check(
 );
 clearPanel();
 if (dlg.open === true) { dlg.close(); }
+
+/* --- 40b-40g. ACT-07 and D-12: the line beside Remove, saying which actions
+       name this type BEFORE it is taken away. Phase 2.1's D-17 chose no
+       confirmation on removal because a modal costs an instructor a click
+       mid-demo to guard against something undo already covers; D-12 says
+       something references a type now. A LINE reconciles them — no click, no
+       surface, removal still one undoable commit.
+
+       Every row below drives the real ops and reads the real node. The term is
+       written through restore() because no op in this phase writes a
+       transformation — ACT-05 is half-delivered by design (D-05b) and the
+       editor is another plan's — and restore() is the documented writer for
+       exactly this. The board is put back at the end. --- */
+const pkNames = dom.byId['tok-pick-names'];
+function pkLine() {
+  return pkNames ? pkNames.textContent : '(no node)';
+}
+function pkLineHidden() {
+  return pkNames ? pkNames.hidden : '(no node)';
+}
+
+const warnSaved = JSON.stringify(A.state.get());
+press(openBtn);
+release(openBtn);
+A.state.flush();
+
+check(
+  '40b. the line beside Remove says nothing on the shipped board. Measured '
+    + 'while writing this row: Slash and Lasers both carry a health term, so '
+    + 'without the arm that keeps it silent for a type the board is BUILT on, '
+    + 'the picker would open cold on a permanent sentence about removing '
+    + 'Health — a removal this surface does not offer, because Remove is '
+    + 'disabled for exactly those five',
+  pkLine() === '' && pkLineHidden() === true && pkRemove.disabled === true,
+  'line=' + JSON.stringify(pkLine()) + ' hidden=' + pkLineHidden()
+    + ' open on=' + JSON.stringify(dlg.dataset.tok)
+    + ' remove disabled=' + pkRemove.disabled
+);
+
+// A type of the student's own, and an action of the student's own with a term
+// naming it. The action is authored through the real op and the term is
+// written through restore(), for the reason stated above the block.
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const warnTok = dlg.dataset.tok;
+const warnRemoveBefore = pkRemove.disabled;
+const warnLineBefore = pkLine();
+const warnSigBefore = dlg.dataset.sig;
+
+const warnMade = A.ops.createAction('cats', 'Pounce');
+A.state.flush();
+const warnLineAfterCreate = pkLine();
+
+const warnState = JSON.parse(JSON.stringify(A.state.get()));
+warnState.build.cats.actions.forEach((a) => {
+  if (a.id === warnMade) { a.xf = [{ who: 'target', tok: warnTok, d: -1 }]; }
+});
+A.state.restore(JSON.stringify(warnState));
+A.state.flush();
+const warnLineNamed = pkLine();
+const warnSigNamed = dlg.dataset.sig;
+const warnRemoveNamed = pkRemove.disabled;
+
+check(
+  '40c. authoring an action that names a student-made type puts both names on '
+    + 'the line, read live — an action whose terms do NOT name it leaves the '
+    + 'line alone, which is what says the row is about the reference and not '
+    + 'merely about an action existing',
+  warnLineBefore === ''
+    && warnLineAfterCreate === ''
+    && warnLineNamed === 'New type is named by Pounce. Removing it will leave '
+      + 'that action without a term.'
+    && pkLineHidden() === false,
+  'before=' + JSON.stringify(warnLineBefore)
+    + ' after a create that names nothing=' + JSON.stringify(warnLineAfterCreate)
+    + ' once it names the type=' + JSON.stringify(warnLineNamed)
+    + ' hidden=' + pkLineHidden()
+);
+
+// Both names are read LIVE, so a student who renamed either is told about the
+// word they chose. Two renames, one of each record, each a PLAIN commit — so
+// the line moves on a sync-only frame with no rebuild behind it.
+A.ops.renameTokenType(warnTok, 'Venom');
+A.state.flush();
+const warnLineTokRenamed = pkLine();
+A.ops.renameAction('cats', warnMade, 'Prowl');
+A.state.flush();
+const warnLineActRenamed = pkLine();
+
+check(
+  '40d. renaming either record moves the line, on a plain commit with no '
+    + 'structural frame behind it — a student who renamed one is told about '
+    + 'the word THEY chose, which is removeTokenType\'s own stated technique '
+    + 'applied one tier up',
+  warnLineTokRenamed === 'Venom is named by Pounce. Removing it will leave '
+      + 'that action without a term.'
+    && warnLineActRenamed === 'Venom is named by Prowl. Removing it will leave '
+      + 'that action without a term.',
+  'after the type rename=' + JSON.stringify(warnLineTokRenamed)
+    + ' after the action rename=' + JSON.stringify(warnLineActRenamed)
+);
+
+check(
+  '40e. the signature moved when the line did, so the surface is not born '
+    + 'stale. Every one of these three changes leaves the whole token '
+    + 'vocabulary the fingerprint used to read untouched, which is exactly the '
+    + 'pre-02.1-04 defect with a different record in it',
+  typeof warnSigBefore === 'string' && warnSigBefore !== ''
+    && warnSigNamed !== warnSigBefore
+    && dlg.dataset.sig !== warnSigNamed,
+  'before=' + JSON.stringify(String(warnSigBefore).slice(-60))
+    + ' once named=' + JSON.stringify(String(warnSigNamed).slice(-60))
+    + ' after the renames=' + JSON.stringify(String(dlg.dataset.sig).slice(-60))
+);
+
+A.ops.removeAction('cats', warnMade);
+A.state.flush();
+const warnLineAfterRemove = pkLine();
+const warnRemoveAfter = pkRemove.disabled;
+
+check(
+  '40f. removing the action clears the line, and the Remove button\'s enabled '
+    + 'state is IDENTICAL through every state above. This line reports; it does '
+    + 'not disable. Whether a rule that names a departing type is worth keeping '
+    + 'is the student\'s ruling, and adjudicating it is the exercise',
+  warnLineAfterRemove === ''
+    && pkLineHidden() === true
+    && warnRemoveBefore === false
+    && warnRemoveNamed === false
+    && warnRemoveAfter === false,
+  'line=' + JSON.stringify(warnLineAfterRemove) + ' hidden=' + pkLineHidden()
+    + ' remove disabled: before=' + warnRemoveBefore
+    + ' while named=' + warnRemoveNamed + ' after=' + warnRemoveAfter
+);
+
+if (dlg.open === true) { dlg.close(); }
+A.state.restore(warnSaved);
+A.state.flush();
+clearPanel();
+
+check(
+  '40g. and the board was handed back untouched by all of it',
+  JSON.stringify(A.state.get()) === warnSaved,
+  'state matches the snapshot: ' + (JSON.stringify(A.state.get()) === warnSaved)
+);
 
 /* --- 41. the accessible name follows a rename, on all three stepper nodes and
        for a type the board is built on as well as one a student made. The
