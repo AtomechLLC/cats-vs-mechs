@@ -1748,6 +1748,61 @@ check(
     + ' after=' + JSON.stringify(madeAriaAfter)
 );
 
+/* --- 42. the other end of the trap check 32 covers. The stepper that writes a
+       tally is built INSIDE the line a zero hides, so the last press of the −
+       that reaches zero puts the button under the student's finger inside a
+       display:none ancestor and there is no route back to it on the page. The
+       line has to survive while the student is standing on it, and collapse on
+       the next frame after they leave. Driven with the reveal moved OFF the
+       type, which is the state a student is in whenever the editor is closed or
+       showing something else. --- */
+press(openBtn);
+release(openBtn);
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const downTok = dlg.dataset.tok;
+if (dlg.open === true) { dlg.close(); }
+// Move the reveal off it, exactly as opening the editor on another type does.
+A.ops.setUi('revealTok', '');
+A.ops.nudgeTally('cats', 'c1', downTok, 3);
+A.state.flush();
+const downLine = stub.querySelector('.brd-line--opt[data-amt="' + downTok + '"][data-unit="c1"]');
+const downMinus = stub.querySelector('[data-k="cats/c1/' + downTok + '-"]');
+const downShownAtThree = downLine ? downLine.hidden === false : '(no line)';
+// Step it to zero from the keyboard, with focus on the button being pressed —
+// which is where a student's focus is by construction.
+if (downMinus !== null) {
+  downMinus.focus();
+  for (let n = 0; n < 3; n++) { press(downMinus); release(downMinus); }
+}
+A.state.flush();
+const downAmount = A.render.amountFor(A.state.get(), downTok, 'cats', 'c1');
+const downStillThere = downLine ? downLine.hidden === false : '(no line)';
+const downFocusHeld = stub.activeElement === downMinus;
+// And it goes away on the NEXT FRAME after focus leaves it — not at the moment
+// focus moves, which raises no frame of its own. That is the whole shape of the
+// fix: the line lingers rather than vanishing under the finger.
+if (downMinus !== null) { downMinus.blur(); }
+A.state.invalidate();
+A.state.flush();
+const downGoneAfterLeaving = downLine ? downLine.hidden === true : '(no line)';
+A.ops.removeTokenType(downTok);
+A.state.flush();
+check(
+  '42. stepping a tally to zero keeps the line while the student is standing '
+    + 'on it, and collapses it on the frame after they leave',
+  downLine !== null && downMinus !== null
+    && downShownAtThree === true && downAmount === 0
+    && downStillThere === true && downFocusHeld === true
+    && downGoneAfterLeaving === true,
+  'line found=' + (downLine !== null) + ' minus found=' + (downMinus !== null)
+    + ' shown at 3=' + downShownAtThree + ' amount after three presses=' + downAmount
+    + ' line shown at 0 while focused=' + downStillThere
+    + ' focus still on the minus=' + downFocusHeld
+    + ' hidden once focus left=' + downGoneAfterLeaving
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the

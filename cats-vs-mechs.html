@@ -2991,12 +2991,32 @@ App.render = (function () {
     // about the page rather than by two that could drift. The resting value is
     // the empty string and no line carries an empty type, so at rest this term
     // is false everywhere and the rule is exactly what it was.
+    // The THIRD input, and it closes the other end of the same trap. The
+    // stepper that writes a tally is built inside the line a zero hides, so the
+    // rule above took the control away on the last press of the − that reached
+    // zero: the button under the student's finger went inside a display:none
+    // ancestor, which drops keyboard focus to the body, and the only route back
+    // to the control was to reopen the editor and re-select the type. The
+    // reveal solves the way IN to a fresh type; this solves the way DOWN out of
+    // an old one, and it is the same idea — a line the student is standing on
+    // is a line the board is being asked to keep on screen.
+    //
+    // A line collapses on the next frame after focus leaves it rather than
+    // under the finger, which is the behaviour wanted: nothing lingers, and
+    // nothing vanishes mid-press. Read through closest() off the live focus
+    // rather than off a recorded key, because the node holding focus is the
+    // button, the field or nothing, and only the line above it is being asked
+    // about.
     var reveal = String(state.ui.revealTok || '');
+    var focused = document.activeElement;
+    var focusedLine = (focused && typeof focused.closest === 'function')
+      ? focused.closest('.brd-line--opt') : null;
     var opt = board.querySelectorAll('.brd-line--opt');
     for (i = 0; i < opt.length; i++) {
       opt[i].hidden =
         amountFor(state, opt[i].dataset.amt, opt[i].dataset.side, opt[i].dataset.unit) === 0
-        && opt[i].dataset.amt !== reveal;
+        && opt[i].dataset.amt !== reveal
+        && opt[i] !== focusedLine;
     }
 
     // The seam, and the reason it is a seam rather than a named call: #board is
