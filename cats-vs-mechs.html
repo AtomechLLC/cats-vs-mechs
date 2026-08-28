@@ -1498,6 +1498,99 @@ App.model = (function () {
     return bestPair(faction, activeUnits).perTurn;
   }
 
+  // WHAT THIS DERIVATION COVERS, and the arm that keeps a quiet board quiet.
+  //
+  // A record carrying no cost, no requirement list and no transformation list
+  // is a bare shipped record, and it IS covered: the `dmg` scalar is exactly
+  // what bestPair reads off it. That arm is load-bearing rather than tidy.
+  // Without it, four of the six actions this file ships would be named to a
+  // student who has authored nothing at all, and the first thing they would
+  // read about their own board would be a caveat this file invented — noise
+  // the permanent ignores list already covers with one noun.
+  //
+  // A cost that is not in action points is not covered, because bestPair has
+  // no denominator for it. A transformation other than a negative target delta
+  // on a token in DAMAGE_KEYS is not covered either: a heal, a delta on the
+  // caster, a shield strip, a dead marker and a token a student made all land
+  // here. Not covered means NAMED, never dropped in silence.
+  function actionModelled(a) {
+    if (!a.cost && !a.req && !a.xf) { return true; }
+    if (actionApCost(a) === null) { return false; }
+    if (a.xf === undefined || a.xf === null) { return true; }
+    if (!Array.isArray(a.xf)) { return false; }
+    return a.xf.every(function (x) {
+      return !!x && x.who === 'target'
+        && DAMAGE_KEYS.indexOf(x.tok) !== -1
+        && Number.isInteger(x.d) && x.d < 0;
+    });
+  }
+
+  // The NAMES of this faction's actions the derivation above refuses, in board
+  // order. A list, never a sentence: [S06.3] owns the wording, on the same
+  // division of labour every other read in here keeps.
+  function unmodelled(faction) {
+    return faction.actions.filter(function (a) {
+      return !actionModelled(a);
+    }).map(function (a) {
+      return a.name;
+    });
+  }
+
+  // ACT-06. What this action spends and what the side has of it, and for each
+  // requirement the token named, the amount needed and the amount present.
+  //
+  // THE RULE THAT BINDS EVERY CONSUMER OF THIS RECORD, stated here because it
+  // is the whole reason the function hands back numbers instead of a decision:
+  // this report may NEVER disable a control on the grounds that a cost is
+  // unaffordable or a requirement unmet, because the tool never decides
+  // whether an action happens — the student does, and adjudicating that is the
+  // exercise PROJECT.md's Out of Scope entry protects. Contrast the picker's
+  // Remove button, which IS disabled: that is a bound on what the TOOL can do
+  // to itself, not a ruling on what the STUDENT may do on the board.
+  //
+  // REQUIREMENTS ARE READ ON THE CASTER. The target is only ever read for a
+  // transformation, never for a requirement, so this takes one faction and
+  // never a pair.
+  //
+  // Every term is found by an Array.find over the record's own `tok` field,
+  // never by a bare index and never by a keyed lookup — the rule styleFor,
+  // labelFor, the keyword table and actionApCost all state: from Phase 4 an id
+  // can arrive from a pasted build code, and a bare lookup for `constructor`
+  // resolves on the prototype.
+  //
+  // Numbers, booleans and token ids only. No prose leaves [S02].
+  function affordability(faction, action) {
+    var cost = actionApCost(action);
+    var terms = Array.isArray(action.req) ? action.req : [];
+    return {
+      apCost: cost,
+      apHave: faction.ap,
+      met: terms.map(function (r) {
+        var tok = (r && typeof r.tok === 'string') ? r.tok : null;
+        var need = (r && Number.isInteger(r.n)) ? r.n : 0;
+        return { tok: tok, need: need, have: presentOnCaster(faction, tok) };
+      })
+    };
+  }
+
+  // How much of one token the CASTER side has to show for a requirement. The
+  // three the board is built on are read off the faction; anything else is a
+  // tally a student keeps at side scope. A token this faction holds nothing of
+  // reads zero, which is a number rather than a refusal — the caller compares,
+  // and nobody here rules.
+  function presentOnCaster(faction, tok) {
+    if (tok === 'ap') { return faction.ap; }
+    if (tok === 'hp') {
+      return faction.units.reduce(function (n, u) { return n + u.maxHp; }, 0);
+    }
+    if (tok === 'shield') {
+      return faction.units.reduce(function (n, u) { return n + u.shield; }, 0);
+    }
+    var bag = faction.tally;
+    if (!bag || !Object.prototype.hasOwnProperty.call(bag, tok)) { return 0; }
+    return Number.isInteger(bag[tok]) ? bag[tok] : 0;
+  }
+
   // Reads the stored flag. Death is never inferred from hp === 0 — a unit a
   // student ruled "survived via Shield" has to stay representable.
   function aliveCount(fightSide) {
@@ -1602,6 +1695,9 @@ App.model = (function () {
     bestPair: bestPair,
     bestDamage: bestDamage,
     factionDps: factionDps,
+    actionModelled: actionModelled,
+    unmodelled: unmodelled,
+    affordability: affordability,
     aliveCount: aliveCount,
     apSpent: apSpent,
     soakTotal: soakTotal,
