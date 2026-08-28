@@ -5565,8 +5565,15 @@ App.selftest = (function () {
     if (typeof document === 'undefined') {
       t.info('the board rows of the token-authoring suite', 'skipped — no DOM');
     } else {
-      App.render.structure(App.state.get());
-      App.render.sync(App.state.get());
+      // Through invalidate + flush rather than by calling structure() and
+      // sync() by hand. The two calls paint the same board, but they leave the
+      // structural flag the createTokenType calls above set still standing, so
+      // the NEXT flush rebuilds the columns for a reason that has nothing to
+      // do with the rename below — and the no-rebuild row underneath would
+      // then be reading a debt this suite ran up rather than the frame the
+      // rename asked for. Measured: it read red for exactly that reason.
+      App.state.invalidate({ structural: true });
+      App.state.flush();
 
       var heldCard = document.querySelector('.unit-card');
       var hpLabels = document.querySelectorAll('[data-lbl="hp"]');
