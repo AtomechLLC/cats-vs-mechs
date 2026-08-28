@@ -183,3 +183,54 @@ STATE.md and ROADMAP.md deliberately untouched — the orchestrator owns those.
 ---
 *Phase: 03-advisory-projection-reference-material*
 *Status: PAUSED at Task 1 — blocking decision checkpoint*
+
+---
+
+## THE APPROVED COPY
+
+**Decided by the developer, 2026-08-28.** Task 2 reads this section and nothing else. The drafted
+five-line register above was **not** approved and must not be used.
+
+### Effect cards — NAMES ONLY
+
+No descriptive text. The five cards carry the keyword name and nothing more:
+
+| id | rendered name |
+|---|---|
+| `shield` | Shield |
+| `slowdown` | Slowdown |
+| `confuse` | Confuse |
+| `evade` | Evade |
+| `range` | Range |
+
+**Why:** the developer chose the option that puts no words in the workshop's mouth. These five
+keywords are what students adjudicate with, and a shipped definition would be the tool doing the
+adjudicating. A student who was not in the room has less to go on — that is the accepted cost, and
+it is the same trade the artifact already makes by refusing to resolve combat.
+
+### Matchups — TWO lines, not three
+
+**"Recharge beats Fly" is dropped for now**, on the developer's instruction. The remaining pair are
+the two cross-faction relationships:
+
+```
+Fly beats Slash
+Lasers beat Hairball
+```
+
+**Why:** the third relationship was intra-Mechs, and dropping it also removes the short loop where
+`Fly` sat on both sides of the chain. Left out rather than corrected — the developer did not call it
+a transcription error, so `PROJECT.md`'s source transcription is unchanged and still records all
+three. A later phase restoring it should read this note first.
+
+### Band heading
+
+`What beats what` — unchanged. The word this feature would naturally be named after is banned
+file-wide, so it cannot be named after itself.
+
+### Carried forward, NOT part of Task 2
+
+The developer's stated priority: **"the key part is that they can describe counters via an editable
+tab."** That is student-authored matchup text, which is a new capability with a Phase 4 codec
+dependency, and it is not in REF-01/REF-02 as written. It is being handled by the orchestrator as a
+scope decision rather than folded into this plan. Task 2 ships the static, names-only band above.
