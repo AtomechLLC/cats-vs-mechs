@@ -3,7 +3,7 @@ phase: 03-advisory-projection-reference-material
 plan: 04
 subsystem: data
 tags: [reference-material, ref-01, ref-02, checkpoint, blocking-decision, proj-06]
-status: PAUSED — Task 1 blocking checkpoint, awaiting a human decision
+status: COMPLETE — Task 1 decided by the developer, Task 2 executed
 
 # Dependency graph
 requires:
@@ -14,28 +14,38 @@ requires:
     plan: 03
     provides: "the assertion floors (395 without a DOM, 481 with one), interaction gate 57 of 57, and the Layer C harvest baseline of 115"
 provides:
-  - "NOTHING YET — Task 2 is not started. Task 1 is a blocking decision checkpoint and no file has been edited."
+  - "[S01] REFERENCE — a deep-frozen { effects, beats } declared beside DEFAULTS and outside it, exported on App.data"
+  - "the five effect keyword NAMES, with no shipped definition, and a suite row that turns red if one is ever added"
+  - "two matchup pairs carrying action ids and a per-pair connective, never action names"
+  - "[S09.9] SUITE: reference material — 15 DOM-free rows, including REF-02 coverage in BOTH directions"
 affects: [03-05]
 
 # Tech tracking
 tech-stack:
   added: []
-  patterns: []
+  patterns:
+    - "static reference copy lives BESIDE the frozen board and never inside it, so the build slice Phase 4 encodes cannot grow a key the student cannot edit"
+    - "a shape row (Object.keys of every record) beside a value row, so a field ADDED to a record turns the run red rather than being silently ignored by a tuple comparison"
+    - "coverage asserted in both directions as two separate rows, because one row can only ever catch one of the two defects"
 key-files:
   created: []
-  modified: []
+  modified:
+    - cats-vs-mechs.html
 
 key-decisions:
-  - "PENDING — the five effect definitions and the three matchup lines are awaiting a human decision; nothing has been written into the artifact"
+  - "NAMES ONLY on the effect cards — the developer's decision, and now mechanically enforced by a row asserting each record's key set is exactly id,name"
+  - "TWO matchup pairs, not three. The intra-Mechs pair was left OUT rather than corrected, and PROJECT.md's transcription is unchanged and still records all three"
+  - "the connective is per-pair DATA (beats / beat), so no rendering code has to decide whether an action name is plural"
+  - "REFERENCE holds action IDS and never action names, so DEFAULTS stays the one definition of what an action is called"
 
-requirements-completed: []
+requirements-completed: [REF-01, REF-02]
 
 # Metrics
-duration: 15min (to checkpoint)
-completed: null
+duration: 15min (to checkpoint) + 25min (Task 2)
+completed: 2026-08-28
 ---
 
-# Phase 3 Plan 04: Reference Material — CHECKPOINT, NOT COMPLETE
+# Phase 3 Plan 04: Reference Material Summary
 
 **Task 1 is a blocking `checkpoint:decision` and it has been reached, not passed. `cats-vs-mechs.html` is byte-for-byte unchanged (`git diff --quiet` exit 0). No effect copy has been written into the artifact, because the words do not exist in this repository and an agent inventing them would be inventing the content of a workshop.**
 
@@ -234,3 +244,150 @@ The developer's stated priority: **"the key part is that they can describe count
 tab."** That is student-authored matchup text, which is a new capability with a Phase 4 codec
 dependency, and it is not in REF-01/REF-02 as written. It is being handled by the orchestrator as a
 scope decision rather than folded into this plan. Task 2 ships the static, names-only band above.
+
+
+---
+
+# TASK 2 — EXECUTED
+
+*Appended after the developer's decision was recorded above. Everything before this
+line is the record as it stood at the checkpoint and has not been rewritten; the
+`## THE APPROVED COPY` section was Task 2's only source, and the drafted five-line
+register above it was not used.*
+
+**The approved copy is in the artifact, frozen, outside the build slice, and covered in
+both directions by assertions that fail when the data and the copy disagree — including
+one that fails if a definition is ever added to a card that the developer decided should
+carry a name and nothing else.**
+
+## Task Commit
+
+**Task 2 — `[S01] REFERENCE` and `[S09.9]`'s DOM-free half** — `cfee711` (feat).
+
+## Measured Results
+
+| Gate | Checkpoint baseline | After Task 2 |
+|---|---|---|
+| `node tests/selftest-node.cjs` exit | 0 | **0** |
+| assertions (Node, no DOM) | 395 passed, 0 failed | **410 passed, 0 failed** |
+| `reference material` suite rows | did not exist | **15, all PASS** |
+| interaction gate | 57 of 57 | **57 of 57** |
+| stub-drift gate | 35 shell ids | **35 shell ids** (this plan adds no shell node) |
+| Layer A | clean, 29 words | **clean, 29 words** |
+| Layer B literal count | 2,222 | **2,293, clean** |
+| Layer C harvest | 115 | **115** (this plan renders nothing) |
+| `grep -ci "counter\|rating\|balanced\|difficulty"` | 0 | **0** |
+| `grep -c "verdict\|balanced\|rating\|difficulty"` | 0 | **0** |
+| `grep -c "REFERENCE: REFERENCE"` | 0 | **1** |
+| `reference` (case-insensitive) inside the brace-matched `DEFAULTS` literal | n/a | **0** |
+| CRLF lines / total lines | 7,834 / 7,834 | **8,043 / 8,043** |
+
+**410 is 395 + 15.** The plan asked for no fewer than 8 above the floor; the suite carries
+fifteen rows because the coverage requirement is bidirectional and the names-only decision
+needed a row of its own.
+
+The `reference` check was run by brace-matching the `DEFAULTS` literal out of the source
+rather than by grepping a line range, because `REFERENCE`'s comment block sits immediately
+after that literal and a range-based slice reported two hits that were entirely the
+comment. The matched literal is 49 lines and contains none of `reference`, `REFERENCE`,
+`effects` or `beats`.
+
+## What Was Written
+
+Exactly the approved copy, and nothing that was not approved:
+
+```
+effects: shield/Shield, slowdown/Slowdown, confuse/Confuse, evade/Evade, range/Range
+beats  : fly  "beats" slash
+         lasers "beat" hairball
+```
+
+No `text` field on any effect record. No third pair. The heading is not in `[S01]` at all —
+it is [S06.4]'s, added by plan 03-05.
+
+## Deliberate-Failure Probes
+
+Three run, all recorded, all reverted. `git status --short` was empty after the last.
+
+**Probe 1 — a keyword on the board with no entry.** Added `'stun'` to Screech's `keywords`
+in `DEFAULTS`.
+Result: **exit 1**, `408 passed / 2 failed`. `DIRECTION ONE` FAILED with
+`actual: ["stun"] expected: []`, and `[S09.1]`'s own `cats actions` row failed alongside it.
+**`DIRECTION TWO` PASSED throughout** — which is the point of writing them as two rows.
+Reverted.
+
+**Probe 2 — copy for a keyword nobody carries.** Added `{ id: 'stun', name: 'Stun' }` to
+`REFERENCE.effects`.
+Result: **exit 1**, `407 passed / 3 failed`. `DIRECTION TWO` FAILED with
+`actual: ["stun"] expected: []`. **`DIRECTION ONE` PASSED**, mirroring probe 1 exactly.
+The two rows catch disjoint defects and each was demonstrated to catch the one the other
+misses. Reverted.
+
+**Probe 3 — a shipped definition, which is the developer's decision made mechanical.** Added
+`text: 'Soaks damage before health.'` to the `shield` record.
+Result: **exit 1**, `409 passed / 1 failed`. The shape row FAILED with
+`actual: id,name,text | id,name | ... expected: id,name | id,name | ...`.
+
+**The finding worth recording: the effects TUPLE row passed under probe 3.** It compares
+`[id, name]` pairs, so a record that grew a third field compares equal. Had the suite
+carried only the tuple row — which is what `[S09.1]`'s idiom suggests — a future agent
+could have added a definition to all five cards and the run would have stayed green. The
+shape row is the one that holds the developer's decision, and it exists because this probe
+was run rather than assumed. Reverted.
+
+## Deviations from Plan
+
+**1. The plan's Task 2 describes `{ id, name, text }` and THREE `beats` records.** The
+approved copy is `{ id, name }` and TWO. `03-04-SUMMARY.md`'s `## THE APPROVED COPY` is
+Task 2's stated source and the plan's own acceptance criterion 5 anticipates this exactly
+("or, under a names-only decision, every entry has a name and the suite asserts that shape
+instead"). Implemented as approved.
+
+**2. Fifteen suite rows rather than the eight the plan floors at.** Bidirectional coverage
+is two rows not one, the names-only decision needs its own row, the frozen check is the
+`t.throws` + survived pair plus a deep-freeze row, and the build-slice check is two rows
+(the key set, and the three names it must not have arrived under). Each addition is a
+distinct claim rather than a restatement.
+
+**3. A third probe was added beyond the two the plan names.** The plan asks for the two
+coverage directions. The names-only decision is the thing the checkpoint existed to
+protect, and nothing in the plan's two probes touches it — so it was probed, and the probe
+found that the obvious row does not catch it. Same reasoning waves 1, 2 and 3 each used
+for their own added probes.
+
+## Threat Register Outcomes
+
+| Threat ID | Disposition | Evidence |
+|---|---|---|
+| T-03-15 | mitigated | The checkpoint stopped before a word was written; `## THE APPROVED COPY` was Task 2's only source; probe 3 shows a shipped definition now turns the run red |
+| T-03-16 | mitigated | `REFERENCE` is declared beside `DEFAULTS`; two rows assert `defaults()`'s key set is exactly `cats,mechs,schema,tokens` and that none of it arrived under `reference`, `effects` or `beats` |
+| T-03-17 | mitigated | `beats` and `effects` are arrays; the constant's comment states the `Array.find` rule; plan 03-05 enforces it at the consumer and at source level |
+| T-03-18 | mitigated | Two coverage rows, each probed to fail on its own direction and to pass on the other's |
+| T-03-19 | documented here, enforced in 03-05 | The collision is asserted as a fact by a row of its own, so it cannot quietly go away and take 03-05's rename proof's subject with it |
+| T-03-SC | n/a | No packages |
+
+## Known Stubs
+
+None. `REFERENCE` is complete as the developer approved it. The absence of definition text
+is a recorded decision, not a stub: it is asserted, commented at the constant, and named in
+`## THE APPROVED COPY` above.
+
+## Threat Flags
+
+None. No network endpoint, auth path, file access or trust-boundary schema change. The plan
+adds one frozen constant and the assertions over it.
+
+## Self-Check: PASSED
+
+- `cats-vs-mechs.html` — FOUND, modified
+- `.planning/phases/03-advisory-projection-reference-material/03-04-SUMMARY.md` — FOUND
+- commit `cfee711` — FOUND
+- `node tests/selftest-node.cjs` — exit 0, 410 passed / 0 failed, gate 57 of 57, stub-drift 35, Layer C 115
+- both acceptance greps — 0 and 0
+- `git status --short` — empty after every probe revert
+
+STATE.md and ROADMAP.md deliberately untouched — the orchestrator owns those.
+
+---
+*Phase: 03-advisory-projection-reference-material*
+*Task 1 decided 2026-08-28 · Task 2 completed 2026-08-28*
