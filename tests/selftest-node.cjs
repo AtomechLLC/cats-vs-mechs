@@ -189,7 +189,12 @@ function makeStubDom() {
     'tok-pick-shapes', 'tok-pick-shapes-label',
     'tok-pick-colors', 'tok-pick-colors-label',
     'tok-pick-glyphs', 'tok-pick-glyphs-label',
-    'tok-pick-done'
+    'tok-pick-done',
+    // plan 02.1-04 — the picker as list-plus-editor (D-05). The list of every
+    // type, the name field, and the make-one / take-one-away row.
+    'tok-pick-list', 'tok-pick-list-label',
+    'tok-pick-name', 'tok-pick-name-label',
+    'tok-pick-new-unit', 'tok-pick-new-side', 'tok-pick-remove'
   ];
 
   const byId = Object.create(null);
@@ -435,6 +440,42 @@ function makeStubDom() {
   };
   body.appendChild(picker);
   picker.appendChild(idNode('tok-pick-title', 'h2'));
+
+  // The list of every token type (D-05), empty exactly as it ships: its rows
+  // are built from the LIVE vocabulary at render time, which is what makes a
+  // type a student invented appear in it without a second tier.
+  const listGroup = createElement('div');
+  picker.appendChild(listGroup);
+  listGroup.appendChild(idNode('tok-pick-list-label', 'h3'));
+  listGroup.appendChild(idNode('tok-pick-list'));
+
+  // The make-one / take-one-away row. The dataset spellings are copied from
+  // the static markup and must be kept in step with it, exactly as the topbar
+  // buttons above are: plan 02.1-05 registers the handlers these names route
+  // to, and a typo here would make that plan's gate checks green over nothing.
+  const newRow = createElement('div');
+  picker.appendChild(newRow);
+  [
+    ['tok-pick-new-unit', 'createTokenType', { scope: 'unit', k: 'pk/new-unit' }],
+    ['tok-pick-new-side', 'createTokenType', { scope: 'side', k: 'pk/new-side' }],
+    ['tok-pick-remove', 'removeTokenType', { k: 'pk/remove' }]
+  ].forEach(([id, act, extra]) => {
+    const b = idNode(id, 'button');
+    b.dataset.act = act;
+    Object.keys(extra).forEach((key) => { b.dataset[key] = extra[key]; });
+    newRow.appendChild(b);
+  });
+
+  // The name field is STATIC in the shell and static here, which is the whole
+  // point of it: [S06.2] skips it while it holds focus rather than rebuilding
+  // it, so a half-typed name survives the per-frame repaint (D-19).
+  const nameGroup = createElement('div');
+  picker.appendChild(nameGroup);
+  nameGroup.appendChild(idNode('tok-pick-name-label', 'h3'));
+  const nameField = idNode('tok-pick-name', 'input');
+  nameField.type = 'text';
+  nameField.dataset.k = 'pk/name';
+  nameGroup.appendChild(nameField);
 
   const previewLine = createElement('div');
   picker.appendChild(previewLine);
@@ -910,12 +951,30 @@ const shapeUndone = A.state.get().build.tokens.hp.shape;
 const markedOn = dlg.querySelectorAll('[data-act="setTokenStyle"][data-shape]')
   .filter((n) => String(n.className).indexOf('pk-sw--on') !== -1)
   .map((n) => n.dataset.shape);
+// D-07: a shipped test that asserts the OLD shape is updated by the plan that
+// changes the shape, in the same commit. This check used to read
+//   String(dlg.dataset.sig).indexOf('hp/' + shapeUndone + '/') === 0
+// against the four-field id/shape/color/glyph signature. Plan 02.1-04 replaced
+// that gate with a JSON fingerprint of the whole drawn vocabulary — because the
+// four-field one moved for neither a rename nor a new type — and moved the
+// selected id into dlg.dataset.tok so no id is ever parsed back out of a
+// delimiter-joined string a student can type into. What is asserted is
+// unchanged and slightly stronger: the dialog repainted, it still knows which
+// type it is showing, and the fingerprint carries the undone shape (read out of
+// the structure rather than prefix-matched).
+const sigParsed = (() => {
+  try { return JSON.parse(dlg.dataset.sig); } catch (e) { return null; }
+})();
+const sigHpShape = sigParsed
+  ? ((sigParsed[1] || []).filter((r) => r[0] === 'hp')[0] || [])[2]
+  : '(unparsable)';
 check(
   '23. an undo taken while the picker is open repaints its selection marks',
   shapeUndone === shapeBefore && String(markedOn) === shapeUndone
-    && String(dlg.dataset.sig).indexOf('hp/' + shapeUndone + '/') === 0,
+    && dlg.dataset.tok === 'hp' && sigHpShape === shapeUndone,
   'state shape=' + shapeUndone + ' (wanted ' + shapeBefore + '), swatches marked live='
-    + JSON.stringify(markedOn) + ', dialog sig=' + JSON.stringify(dlg.dataset.sig)
+    + JSON.stringify(markedOn) + ', dialog tok=' + JSON.stringify(dlg.dataset.tok)
+    + ', fingerprint shape for hp=' + JSON.stringify(sigHpShape)
 );
 
 /* --- 21. the same non-primary rule on the picker's own root, while the dialog

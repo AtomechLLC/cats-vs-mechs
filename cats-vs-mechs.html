@@ -393,6 +393,56 @@
   .pk-preview{display:flex;flex-wrap:wrap;gap:var(--tok-gap);align-items:center;min-height:var(--tok)}
   .pk-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 
+  /* The list of every type on the board (D-05). It SCROLLS rather than
+     shrinking its type: the whole reason the dialog is this size is that a
+     room reads it off a projector, so a longer list is allowed to cost height
+     and is never allowed to cost legibility. The cap is 5 shipped types plus
+     MAX_CUSTOM_TYPES of the student's own, so the scroll is the tail case
+     rather than the usual one. */
+  .pk-list{
+    display:flex;flex-direction:column;gap:6px;
+    max-height:236px;overflow-y:auto;
+    padding:2px;   /* room for .pk-sw--on's outline, which draws outside the box */
+  }
+  /* A ROW, where .pk-sw is a tile — same chrome, same --tok override, same
+     selected-state idiom, laid out along the line because the thing being read
+     here is a name and names are read horizontally. Reusing .pk-sw--on and
+     .pk-check rather than inventing a second way to say "this is the one" is
+     what keeps the outline-AND-a-tick rule (never colour alone) true on both
+     surfaces at once. */
+  .pk-list-item{
+    --tok:24px;
+    display:flex;align-items:center;gap:10px;
+    min-height:44px;padding:7px 11px;width:100%;
+    background:color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 32%, transparent);
+    border-radius:10px;color:var(--ink);
+    font:inherit;font-size:16px;line-height:1.2;text-align:left;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  /* The name takes the slack so the tick lands in the same column on every
+     row, which is what makes the live one findable by scanning down an edge. */
+  .pk-list-item .pk-sw-label{flex:1 1 auto;text-align:left}
+
+  /* Full width, board-legible, and deliberately not a stepper field — see
+     the markup comment on #tok-pick-name for why.
+     The chrome is .err-detail's, which is the file's only other free-text
+     input, so there is one look for "type words here". */
+  .pk-name{
+    display:block;width:100%;box-sizing:border-box;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:9px 12px;font:inherit;font-size:18px;
+    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  }
+
+  /* The making-and-taking-away row sits at the START of the line, because it
+     acts on the list above it. .pk-actions on its own pushes to the end, where
+     Done lives, and Done is the only control that ends the visit. No disabled
+     styling is written here: .brd-btn already carries &:disabled, and a second
+     rule for it would be a second place for the two to disagree. */
+  .pk-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -489,7 +539,8 @@
 
 <!-- The token-appearance picker (ALLOC-09, D-11). Static markup and a sibling
      of #err-panel, outside #app, so nothing about it depends on a rebuild:
-     [S06.2] fills the three grids and [S07.2] opens it and reads the presses.
+     [S06.2] fills the list and the three grids, and [S07.2] opens it and reads
+     the presses.
      Its own delegated root is bound through [S07]'s LATE_BINDERS seam.
 
      <dialog> IS THE FIRST ONE IN THIS REPO and there is none in either sibling
@@ -500,11 +551,47 @@
 
      The three grids are EMPTY here on purpose. Their contents are built from
      App.data.SHAPES / COLORS / GLYPHS at render time, which is what makes it
-     impossible for this surface to offer a value [S05] would refuse. -->
+     impossible for this surface to offer a value [S05] would refuse. The list
+     below them is empty for the same reason: its rows come from the live
+     vocabulary, so a type a student invents appears in it with no second tier
+     and no special case (D-05).
+
+     #tok-pick-name is STATIC, and that is the whole reason it lives here and
+     not in a builder. The dialog repaints on every frame while it is open, and
+     a field rebuilt or overwritten mid-typing loses the half-typed text; a node
+     that is never rebuilt can simply be skipped while it holds focus (D-19). -->
 <dialog class="pk" id="tok-picker" aria-labelledby="tok-pick-title">
-  <div class="eyebrow">Token appearance</div>
+  <div class="eyebrow">Token types</div>
   <h2 class="pk-title" id="tok-pick-title"></h2>
   <p class="pk-note">The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-list-label">Every type on this board</h3>
+    <div class="pk-list" id="tok-pick-list" role="group" aria-labelledby="tok-pick-list-label"></div>
+  </div>
+
+  <!-- Making a type and taking one away sit beside the list they change, and
+       apart from Done, which ends the whole visit. The scope is chosen HERE
+       because it is fixed at creation and cannot be edited afterwards (D-03) —
+       so it is a property of the act, not of the editor below. -->
+  <div class="pk-actions pk-actions--new">
+    <button class="brd-btn" type="button" id="tok-pick-new-unit" data-act="createTokenType" data-scope="unit" data-k="pk/new-unit">New type on each unit</button>
+    <button class="brd-btn" type="button" id="tok-pick-new-side" data-act="createTokenType" data-scope="side" data-k="pk/new-side">New type on the whole side</button>
+    <button class="brd-btn" type="button" id="tok-pick-remove" data-act="removeTokenType" data-k="pk/remove">Remove this type</button>
+  </div>
+
+  <!-- Deliberately NOT one of the board's stepper fields. isField() keys on
+       the stepper input's own class and every reader downstream of it is
+       numeric by construction, so a name typed here would be parsed as a
+       figure and refused on Enter. maxlength is ergonomic only: it
+       stops a student typing past the cap and then being told off, and it
+       counts UTF-16 code units while App.data.MAX_TOKEN_NAME counts CODE
+       POINTS, so the two legitimately disagree for an emoji name. The guard is
+       App.ops.requireTokenName and the safe cut is App.ops.clampTokenName. -->
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-name-label">Name</h3>
+    <input class="pk-name" id="tok-pick-name" type="text" autocomplete="off" maxlength="24" aria-labelledby="tok-pick-name-label" data-k="pk/name">
+  </div>
 
   <div class="pk-preview-line">
     <span class="pk-legend pk-legend--inline" id="tok-pick-preview-label">On the board</span>
@@ -2865,22 +2952,26 @@ App.render = (function () {
    * safeColor and withPreservedFocus — because a swatch that were built by a
    * second, parallel token builder could drift away from the board's, and the
    * whole point of a swatch is that it is the same object as a board token.
+   *
+   * It is a LIST plus an editor (D-05): every type on the board is a row, a
+   * student's invention and one of the five the board is built on alike, and
+   * the row that is live decides what the editor below it is showing. It also
+   * reuses labelFor, because the name on a row and the name on the board must
+   * come from the same place or they will drift the first time one is changed.
    * deps: App.data, [S06.1]'s helpers
-   * owner: Phase 2, plan 02-03
+   * owner: Phase 2, plan 02-03; list-plus-editor by plan 02.1-04
    * =================================================================== */
   // #region [S06.2] RENDER — PICKER
 
-  // Plain names, because the dialog's heading is the only place a student is
-  // told which of the four types they are editing. `dead` is here for
-  // completeness even though Phase 2 ships no button for it: the map is data,
-  // and a missing entry would render an empty heading in Phase 5.
-  var TOKEN_NAMES = {
-    hp: 'Health tokens',
-    ap: 'Action point tokens',
-    shield: 'Shield tokens',
-    dmg: 'Damage tokens',
-    dead: 'Dead marker'
-  };
+  // DELIBERATELY ABSENT: a second table of token names. There was one here, a
+  // literal id-to-label map, and its own comment said "the dialog's heading is
+  // the only place a student is told which type they are editing". That
+  // stopped being true the moment `name` became a field of every record: the
+  // board's labels, the list rows below and the refusal messages in [S05] all
+  // read the record, and a second table beside it would be a second place for
+  // the two to disagree about what a student called their own invention. The
+  // one label source is [S06.1]'s labelFor, which is hasOwnProperty-guarded and
+  // falls back to the shipped health name for a record a Phase 4 paste damaged.
 
   // One entry per SHAPES id and per COLORS id. These are the visible text that
   // makes UX-02 true on this surface: the swatch is not the only signal, and
@@ -2938,6 +3029,83 @@ App.render = (function () {
     });
   }
 
+  // D-05's list row. Built with pickerSwatch's idiom rather than a builder of
+  // its own, and for the same three reasons: it is a real <button> carrying the
+  // same data-act the board's controls carry, so [S07.2] routes it through
+  // App.ops.dispatch and there is still no second mutation entry point in the
+  // file; the token beside the name comes from the shipped makeToken, so a
+  // student's invention and one of the five look identical here by
+  // construction; and data-k names the TYPE and never the name, so a string a
+  // student typed never has to survive a round trip through a CSS attribute
+  // selector during focus restore.
+  //
+  // The selected state is pk-sw--on plus the tick, not a class of its own:
+  // half of this dialog IS colours, so "the live one" is never said in colour
+  // alone, and saying it twice in two different ways would be two rules to keep
+  // in step.
+  function pickerListRow(state, selectedId, id) {
+    var rec = styleFor(state, id);
+    var demo = { shape: safeShape(rec.shape), color: safeColor(rec.color), glyph: safeGlyph(rec.glyph) };
+    var on = (id === selectedId);
+
+    var b = el('button', 'pk-list-item tok--' + demo.color + (on ? ' pk-sw--on' : ''));
+    b.type = 'button';
+    setData(b, { act: 'selectTokenType', tok: id, k: 'pk/list/' + id });
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+
+    b.appendChild(makeToken(demo, false));
+    b.appendChild(text('span', 'pk-sw-label', labelFor(state, id)));
+    b.appendChild(text('span', 'pk-check', '✓'));
+    return b;
+  }
+
+  // EVERY entry, `dead` included. D-05 says the picker shows every type, and
+  // excluding one would rebuild exactly the special case a single list exists
+  // to delete. Object.keys is own-enumerable by definition, and the two reads
+  // inside the row builder are labelFor and styleFor, which are both
+  // hasOwnProperty-guarded — so no bare vocabulary lookup happens here.
+  function fillList(list, state, selectedId) {
+    if (!list) { return; }
+    list.replaceChildren();
+    Object.keys(state.build.tokens).forEach(function (id) {
+      list.appendChild(pickerListRow(state, selectedId, id));
+    });
+  }
+
+  // THE REPAINT GATE, and the reason it is a JSON fingerprint of the whole
+  // drawn vocabulary rather than four fields of one record.
+  //
+  // What was here read `id + '/' + shape + '/' + color + '/' + glyph`, and
+  // research measured it blind to everything this phase adds: with the picker
+  // open, renaming a type left dlg.dataset.sig and the heading untouched, and
+  // making a new type moved nothing at all. A list-plus-editor built on that
+  // string is born stale. So the input widens to everything the dialog draws
+  // and the idiom itself is unchanged — a repaint that changes nothing must
+  // still touch no nodes.
+  //
+  // JSON.stringify of an ARRAY, never a joined string: a name is text a student
+  // types, so any delimiter is a character they can enter, and a joined
+  // fingerprint could be made to report "nothing changed" for a change.
+  function pickerSig(state, tokenId) {
+    var vocab = state.build.tokens;
+    return JSON.stringify([tokenId, Object.keys(vocab).map(function (id) {
+      var rec = vocab[id];
+      return [id, rec.name, rec.shape, rec.color, rec.glyph, rec.scope];
+    })]);
+  }
+
+  // A type the board is built on cannot be removed (D-15) and does not count
+  // against the cap on types of the student's own (D-18). Both readings ask the
+  // same question, so it is asked in one place.
+  function isShippedType(id) {
+    return App.data.TOKEN_IDS.indexOf(id) !== -1;
+  }
+
+  function setEnabled(id, on) {
+    var node = document.getElementById(id);
+    if (node) { node.disabled = !on; }
+  }
+
   // The one entry point, and the argument is deliberate: WHICH picker is open
   // is transient interaction state, so it lives in a private variable in
   // [S07.2] and is passed in. Putting it in the `ui` slice would add a key to
@@ -2947,14 +3115,23 @@ App.render = (function () {
     var dlg = document.getElementById('tok-picker');
     if (!dlg) { return; }
 
-    var id = (App.data.TOKEN_IDS.indexOf(tokenId) === -1) ? App.data.TOKEN_IDS[0] : tokenId;
+    // What was here tested the argument for MEMBERSHIP of the five shipped ids
+    // and, on a miss, quietly swapped in the first of them. That was harmless
+    // while the five were the only types that could exist. It is not
+    // now — a student who opened a type of their own would have been handed the
+    // Health editor and told nothing about it, and then every press in the
+    // dialog would have restyled Health. The membership test is replaced by the
+    // existence test the rest of the file uses, so a made-up type resolves to
+    // itself; an id that names NOTHING paints no dialog at all rather than
+    // painting the wrong one, which is the same refusal `if (!dlg)` above makes.
+    var vocab = state.build.tokens;
+    if (!vocab || !Object.prototype.hasOwnProperty.call(vocab, tokenId)) { return; }
+    var id = tokenId;
+
     var raw = styleFor(state, id);
     var base = { shape: safeShape(raw.shape), color: safeColor(raw.color), glyph: safeGlyph(raw.glyph) };
 
-    // The same signature idiom syncRow uses, for the same reason: a repaint
-    // that changes nothing must touch no nodes, so clicking the swatch that is
-    // already live does not rebuild the grid under the student's finger.
-    var sig = id + '/' + base.shape + '/' + base.color + '/' + base.glyph;
+    var sig = pickerSig(state, id);
     if (dlg.dataset.sig === sig) { return; }
 
     // A restyle DOES rebuild all three grids, because every swatch is drawn in
@@ -2963,7 +3140,33 @@ App.render = (function () {
     // board's own focus contract — the swatch data-k is what it lands back on.
     withPreservedFocus(dlg, function () {
       var heading = document.getElementById('tok-pick-title');
-      if (heading) { heading.textContent = TOKEN_NAMES[id] || id; }
+      if (heading) { heading.textContent = labelFor(state, id); }
+
+      fillList(document.getElementById('tok-pick-list'), state, id);
+
+      // NOT rebuilt, and never written while it holds focus. This is setValue's
+      // rule (D-19) applied to text instead of a figure, and it is the whole
+      // reason the field is static markup: the dialog rides SYNC_HOOKS, so it
+      // repaints on every frame while it is open, and a student halfway through
+      // typing "Poison" must not be handed "Poi" back — or "Health".
+      //
+      // dataset.was moves with the displayed text for the reason showFieldValue
+      // gives: it is what a revert puts back, so left stale it would restore a
+      // name state no longer holds.
+      var nameField = document.getElementById('tok-pick-name');
+      if (nameField && nameField !== document.activeElement) {
+        nameField.value = labelFor(state, id);
+        nameField.dataset.was = nameField.value;
+      }
+
+      // A bound the student can see coming is a disabled button, not an error
+      // panel they have to read their way out of. Both are re-decided from
+      // state on every repaint rather than toggled by whoever last pressed
+      // something, so an undo moves them too.
+      var made = Object.keys(vocab).filter(function (k) { return !isShippedType(k); });
+      setEnabled('tok-pick-remove', !isShippedType(id));
+      setEnabled('tok-pick-new-unit', made.length < App.data.MAX_CUSTOM_TYPES);
+      setEnabled('tok-pick-new-side', made.length < App.data.MAX_CUSTOM_TYPES);
 
       fillGrid(document.getElementById('tok-pick-shapes'), id, 'shape',
         App.data.SHAPES, base.shape, base, function (v) { return SHAPE_NAMES[v] || v; });
@@ -2986,6 +3189,14 @@ App.render = (function () {
       }
     });
 
+    // Two attributes, written together, because they answer two questions.
+    // dataset.tok is WHICH type the editor is showing, and it is an attribute
+    // of its own rather than the head of a joined string: the shape this
+    // replaces recovered the id by splitting the signature on its delimiter,
+    // which parsed a selector-bound id back out of text a student can type.
+    // dataset.sig is WHETHER anything drawn here has moved since the last
+    // frame, and nothing ever reads a value out of it.
+    dlg.dataset.tok = id;
     dlg.dataset.sig = sig;
   }
 
@@ -2997,16 +3208,20 @@ App.render = (function () {
   // on Triangle. It self-healed on close-and-reopen, which is to say it was
   // wrong for exactly as long as the student was using the surface.
   //
-  // Which type is open is read back out of the signature picker() itself wrote,
+  // Which type is open is read out of the attribute picker() itself wrote,
   // rather than reaching across into [S07.2]'s private variable: [S06] owns
-  // that string, so this stays one tier reading its own bookkeeping. The id is
-  // checked against the allowlist before it is used, and picker()'s own sig
-  // comparison keeps a repaint that changes nothing free.
+  // that attribute, so this stays one tier reading its own bookkeeping. It is
+  // checked before it is used, and against the LIVE vocabulary rather than
+  // against the five the board is built on — the allowlist test that used to be
+  // here would have stopped repainting the moment a student opened a type of
+  // their own. picker()'s own fingerprint keeps a repaint that changes nothing
+  // free, and refuses an id that names nothing a second time.
   function syncPicker(state) {
     var dlg = document.getElementById('tok-picker');
     if (!dlg || dlg.open !== true) { return; }
-    var id = String(dlg.dataset.sig || '').split('/')[0];
-    if (App.data.TOKEN_IDS.indexOf(id) === -1) { return; }
+    var id = String(dlg.dataset.tok || '');
+    var vocab = state.build.tokens;
+    if (!vocab || !Object.prototype.hasOwnProperty.call(vocab, id)) { return; }
     picker(state, id);
   }
 
@@ -5875,6 +6090,176 @@ App.selftest = (function () {
       t.ok('while making a new type rebuilds the columns, because sync() can '
         + 'neither build a line nor take one away',
         board.querySelector('.unit-card') !== cardBefore);
+
+      /* ========== plan 02.1-04, the picker as list-plus-editor ==========
+         The board is handed back first, so these rows start from the shipped
+         five rather than from whatever the block above left standing, and
+         through invalidate + flush for the reason recorded at the top of this
+         block: a structural flag left by an earlier createTokenType is
+         otherwise paid for by the next frame and blamed on whatever asked
+         for it.
+
+         Every selector below is a tag, a class or a [data-*]. That is the
+         whole grammar the Node harness's stub page parses, and a row written
+         with #id or [aria-pressed="true"] would silently match nothing there
+         and pass for the wrong reason.
+         ------------------------------------------------------------------ */
+      App.state.restore(savedAll);
+      App.state.invalidate({ structural: true });
+      App.state.flush();
+
+      var dlg = document.getElementById('tok-picker');
+      var pkList = document.getElementById('tok-pick-list');
+      var pkName = document.getElementById('tok-pick-name');
+      var pkTitle = document.getElementById('tok-pick-title');
+      var pkRemove = document.getElementById('tok-pick-remove');
+      var pkNewUnit = document.getElementById('tok-pick-new-unit');
+      var pkNewSide = document.getElementById('tok-pick-new-side');
+
+      // Every read below goes through these, so a surface that has not been
+      // built yet reads as a legible miss on one row instead of throwing and
+      // taking the rest of the suite down with it.
+      function rowFor(tokenId) {
+        return pkList ? pkList.querySelector('[data-tok="' + tokenId + '"]') : null;
+      }
+      function rowLabel(tokenId) {
+        var row = rowFor(tokenId);
+        var span = row ? row.querySelector('.pk-sw-label') : null;
+        return span ? span.textContent : '(no row)';
+      }
+      function liveRowTok() {
+        var row = pkList ? pkList.querySelector('.pk-sw--on') : null;
+        return row ? row.dataset.tok : '(nothing marked)';
+      }
+      function rowCount() { return pkList ? pkList.children.length : -1; }
+
+      // syncPicker is what carries a rename or a new type into this surface
+      // and it returns at once on a closed dialog, so the rows below are
+      // measuring nothing unless it is genuinely open.
+      if (dlg && dlg.open !== true) { dlg.showModal(); }
+      App.render.picker(App.state.get(), 'hp');
+
+      /* --- D-05. ONE list, no second tier: a type a student invented and a
+             type the board is built on are the same kind of row in it. --- */
+      t.eq('the picker lists every token type on the board',
+        rowCount(), Object.keys(App.state.get().build.tokens).length);
+      t.eq('the dead marker among them, because leaving it out would rebuild '
+        + 'the very special case one list exists to delete',
+        rowFor('dead') === null ? '(no row)' : rowFor('dead').dataset.tok, 'dead');
+      t.eq('exactly one row is marked as the one being edited', (function () {
+        return pkList ? pkList.querySelectorAll('.pk-sw--on').length : -1;
+      })(), 1);
+      t.eq('and it is the type the picker was opened on', liveRowTok(), 'hp');
+      t.eq('each row reads its label through the one label source in the file',
+        rowLabel('shield'), App.render.labelFor(App.state.get(), 'shield'));
+
+      /* --- T-02.1-19. The selected id has an attribute of its own. It used to
+             be recovered by splitting the signature on its delimiter, which is
+             a parse of a joined string a student can type into. --- */
+      t.eq('the selected id lives in its own attribute rather than being '
+        + 'parsed back out of a delimiter-joined signature',
+        dlg ? dlg.dataset.tok : '(no dialog)', 'hp');
+
+      /* --- D-19, and the reason the field is static markup. --- */
+      t.eq('the name field opens on the selected type’s name',
+        pkName ? pkName.value : '(no field)',
+        App.render.labelFor(App.state.get(), 'hp'));
+      t.eq('and records it as the baseline Escape puts back',
+        pkName ? pkName.dataset.was : '(no field)',
+        pkName ? pkName.value : '(no field)');
+
+      /* --- PITFALL 4, measured: the shipped four-field signature
+             (id/shape/color/glyph) moved for NEITHER a rename nor a new type,
+             so the heading, the grids and the list all stayed stale under a
+             student who had just renamed something. These four rows are the
+             regression test for that measurement. --- */
+      var sigBeforeRename = dlg ? dlg.dataset.sig : null;
+      App.ops.renameTokenType('hp', 'Vigor');
+      App.state.flush();
+      t.ok('a rename moves the repaint gate, which the four-field signature '
+        + 'this replaces never did',
+        dlg ? dlg.dataset.sig !== sigBeforeRename : false);
+      t.eq('the heading follows the new name',
+        pkTitle ? pkTitle.textContent : '(no heading)', 'Vigor');
+      t.eq('and so does the list row', rowLabel('hp'), 'Vigor');
+      t.eq('and so does the name field',
+        pkName ? pkName.value : '(no field)', 'Vigor');
+      App.ops.renameTokenType('hp', 'Health');
+      App.state.flush();
+
+      var sigBeforeNew = dlg ? dlg.dataset.sig : null;
+      var rowsBefore = rowCount();
+      var pkMade = App.ops.createTokenType({
+        name: 'Ash', shape: 'hex', color: 'gold', glyph: '', scope: 'unit'
+      });
+      App.state.flush();
+      t.ok('and so does a type that did not exist a moment ago',
+        dlg ? dlg.dataset.sig !== sigBeforeNew : false);
+      t.eq('which arrives as one more row in the list', rowCount(), rowsBefore + 1);
+      App.ops.removeTokenType(pkMade);
+      App.state.flush();
+      t.eq('and leaves as one fewer', rowCount(), rowsBefore);
+
+      /* --- the half of the idiom that is NOT changing: a repaint that changes
+             nothing must still touch no nodes, so pressing the row that is
+             already live does not rebuild the list under the finger. --- */
+      var heldRow = pkList ? pkList.firstElementChild : null;
+      App.render.picker(App.state.get(), 'hp');
+      t.ok('a repaint with nothing changed leaves every node where it was',
+        heldRow !== null && pkList.firstElementChild === heldRow);
+
+      /* --- D-19 again, and this is why the field is static: the dialog
+             repaints on EVERY frame while it is open, so a field that were
+             rebuilt or overwritten would hand a half-typed name back the
+             stored one mid-keystroke. --- */
+      if (pkName) {
+        pkName.focus();
+        pkName.value = 'Poi';
+      }
+      App.ops.renameTokenType('shield', 'Barrier');
+      App.state.flush();
+      t.eq('a repaint leaves the name field alone while it holds focus',
+        pkName ? pkName.value : '(no field)', 'Poi');
+      if (pkName) { pkName.blur(); }
+      App.ops.renameTokenType('shield', 'Shield');
+      App.state.flush();
+      t.eq('and picks the stored name back up the moment focus leaves it',
+        pkName ? pkName.value : '(no field)',
+        App.render.labelFor(App.state.get(), 'hp'));
+
+      /* --- D-15 and D-18. A bound the student can see coming is a disabled
+             button, not an error panel they have to read their way out of. --- */
+      t.eq('Remove is closed for a type the board is built on',
+        pkRemove ? pkRemove.disabled : '(no button)', true);
+      var pkOwn = App.ops.createTokenType({
+        name: 'Ash', shape: 'hex', color: 'gold', glyph: '', scope: 'unit'
+      });
+      App.state.flush();
+      App.render.picker(App.state.get(), pkOwn);
+      t.eq('and open for one the student made',
+        pkRemove ? pkRemove.disabled : '(no button)', false);
+      t.eq('while both New buttons are open below the cap',
+        (pkNewUnit && pkNewSide) ? (pkNewUnit.disabled || pkNewSide.disabled) : '(no buttons)',
+        false);
+
+      var pkSpares = 1;
+      while (pkSpares < App.data.MAX_CUSTOM_TYPES) {
+        App.ops.createTokenType({
+          name: 'Spare ' + pkSpares, shape: 'sq', color: 'green', glyph: '', scope: 'side'
+        });
+        pkSpares++;
+      }
+      App.state.flush();
+      App.render.picker(App.state.get(), pkOwn);
+      t.eq('and both close at the cap rather than throwing at it',
+        (pkNewUnit && pkNewSide) ? (pkNewUnit.disabled && pkNewSide.disabled) : '(no buttons)',
+        true);
+      t.eq('with every one of them on the list beside the five shipped',
+        rowCount(), App.data.TOKEN_IDS.length + App.data.MAX_CUSTOM_TYPES);
+
+      // Closed before the hand-back, so syncPicker takes no interest in the
+      // restore below and this suite leaves the page as it found it.
+      if (dlg && dlg.open === true) { dlg.close(); }
     }
 
     App.state.restore(savedAll);
