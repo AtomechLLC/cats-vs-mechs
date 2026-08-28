@@ -87,11 +87,162 @@ if (hits.length > 0) {
 }
 console.log('scan: no forbidden patterns');
 
-// --- 2. load the single script body into a bare sandbox -----------------------
+// --- 1b. comparative-language scan, whole document (Layer A) ------------------
+// PROJ-06: the artifact never judges a build. No verdict, no traffic light, no
+// meter, no colour-coded rating, no comparison of one side against the other.
+// Two greps have carried that promise since Phase 1 and nothing has ever run
+// them; this is the first place it is mechanical rather than documentary.
+//
+// This is a sibling of FORBIDDEN rather than an entry in it, deliberately.
+// FORBIDDEN means "an unsafe sink is present". A comparative word is not a
+// sink, and folding the two together would make one failure message speak for
+// two unrelated kinds of breakage -- the reader of a red run would be told a
+// security pattern had appeared when what actually happened is that somebody
+// wrote a sentence.
+//
+// Stated as plainly as the scan above states its own limits: this catches the
+// literal spelling, in comments, in CSS and in rendered copy alike, which is
+// the shape an accidental reintroduction takes. It does NOT catch a sentence
+// assembled from fragments at run time, and it does NOT catch a synonym nobody
+// thought of. Layer C, in the interaction gate, walks the rendered page for the
+// first of those; the second is a review problem, not a grep problem.
+//
+// Every entry below was counted against the artifact and measured zero before
+// it was added here. Words the artifact legitimately uses in its own prose
+// about this very rule -- score, grade, judgement, worse -- are deliberately
+// absent from this layer and live in VERDICT_LITERAL_WORDS instead. The file
+// carries a comment reading "never a score, a grade or a judgement", which is
+// the anti-verdict rule stated in three of the words a naive widening would
+// ban. A gate that reddened on the file's own statement of the rule would be a
+// gate asserting the opposite of the truth. Hence two layers, not one.
+//
+// `judgment` here is the US spelling on purpose: the UK spelling the artifact
+// uses in that comment is handled by Layer B, where it is checked only against
+// rendered strings.
+const VERDICT_WORDS = [
+  { label: 'verdict', re: /verdict/i },
+  { label: 'balance stem', re: /balanc/i },
+  { label: 'rating', re: /rating/i },
+  { label: 'difficulty stem', re: /difficult/i },
+  { label: 'counter', re: /counter/i },
+  { label: 'stronger', re: /stronger/i },
+  { label: 'strongest', re: /strongest/i },
+  { label: 'weak stem', re: /weak/i },
+  { label: 'weakest', re: /weakest/i },
+  { label: 'advantage', re: /advantage/i },
+  { label: 'outmatch', re: /outmatch/i },
+  { label: 'outclass', re: /outclass/i },
+  { label: 'favoured', re: /favou?red/i },
+  { label: 'winner', re: /winner/i },
+  { label: 'loser', re: /loser/i },
+  { label: 'traffic light', re: /traffic light/i },
+  { label: 'overpowered', re: /overpowered/i },
+  { label: 'underpowered', re: /underpowered/i },
+  { label: 'unfair', re: /unfair/i },
+  { label: 'fair', re: /\bfair\b/i },
+  { label: 'superior', re: /superior/i },
+  { label: 'inferior', re: /inferior/i },
+  { label: 'dominate stem', re: /dominat/i },
+  { label: 'optimal', re: /optimal/i },
+  { label: 'better', re: /better/i },
+  { label: 'judgment', re: /judgment/i },
+  { label: 'good build', re: /good build/i },
+  { label: 'bad build', re: /bad build/i },
+  { label: 'should aim', re: /should aim/i }
+];
+
+const verdictHits = [];
+VERDICT_WORDS.forEach((rule) => {
+  const re = new RegExp(rule.re.source, rule.re.flags.replace('g', '') + 'g');
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    const line = html.slice(0, m.index).split('\n').length;
+    verdictHits.push('  line ' + line + ' [' + rule.label + ']: ' + m[0]);
+    if (m[0] === '') { re.lastIndex++; }
+  }
+});
+
+if (verdictHits.length > 0) {
+  console.error('PROJ-06 VIOLATION: comparative language reached cats-vs-mechs.html (' +
+    verdictHits.length + '):');
+  console.error('  The artifact reports what a build costs and what it can take.');
+  console.error('  It never says which build is the better one. Reword or remove:');
+  verdictHits.forEach((h) => console.error(h));
+  process.exit(1);
+}
+console.log('scan: no comparative language in the document (Layer A, ' +
+  VERDICT_WORDS.length + ' words)');
+
+// --- 2. locate the single classic script block --------------------------------
 const match = html.match(/<script>([\s\S]*?)<\/script>/);
 if (!match) {
   fail('Could not find a classic script block in cats-vs-mechs.html');
 }
+
+// --- 2b. comparative-language scan, string literals only (Layer B) ------------
+// The second half of the PROJ-06 gate. These words the artifact does use, and
+// should keep using, when its comments discuss the rule or reason about the
+// arithmetic -- `worse` appears eleven times in prose, `score` and `grade` and
+// `judgement` in the very comment that states the anti-verdict rule. What must
+// never happen is one of them reaching a string the page can render.
+//
+// So this layer reads only the quoted string literals of the script block: a
+// comment may discuss the concept, a rendered string may not carry the word.
+//
+// Same honesty clause as the two scans above. This catches the literal
+// spelling inside a literal, which is the shape an accidental reintroduction
+// takes. It does NOT catch a string built by concatenation, a word arriving
+// through a template, or text assembled at render time -- that is Layer C's
+// job. It also cannot see the CSS or the markup outside the script block,
+// which Layer A already reads in full.
+//
+// The extraction is escape-aware so a literal containing \' does not truncate
+// and leave the rest of the file misparsed as code. The count is printed on a
+// clean run and floored below, because the failure mode of a broken extractor
+// is not a red run -- it is a green one that scanned nothing, which is exactly
+// the vacuous pass the stub-drift gate was added to close.
+const STRING_LITERAL = /'(?:[^'\\\n]|\\.)*'|"(?:[^"\\\n]|\\.)*"/g;
+const literals = match[1].match(STRING_LITERAL) || [];
+
+if (literals.length < 1500) {
+  fail('Layer B extracted only ' + literals.length + ' string literals from the ' +
+    'script block. The artifact carries well over 1500, so this is a broken ' +
+    'extractor scanning nothing, not a clean file.');
+}
+
+const VERDICT_LITERAL_WORDS = [
+  { label: 'score', re: /score/i },
+  { label: 'grade', re: /grade/i },
+  { label: 'judgement', re: /judgement/i },
+  { label: 'rank', re: /rank/i },
+  { label: 'ahead', re: /ahead/i },
+  { label: 'wins', re: /\bwins\b/i },
+  { label: 'win', re: /\bwin\b/i },
+  { label: 'edge', re: /\bedge\b/i },
+  { label: 'lead', re: /\blead\b/i },
+  { label: 'worse', re: /worse/i }
+];
+
+const literalHits = [];
+literals.forEach((lit) => {
+  VERDICT_LITERAL_WORDS.forEach((rule) => {
+    if (rule.re.test(lit)) {
+      literalHits.push('  [' + rule.label + ']: ' + lit);
+    }
+  });
+});
+
+if (literalHits.length > 0) {
+  console.error('PROJ-06 VIOLATION: a comparative word reached a rendered string, ' +
+    'not a comment (' + literalHits.length + '):');
+  console.error('  These words are allowed in prose about the rule and nowhere else.');
+  literalHits.forEach((h) => console.error(h));
+  process.exit(1);
+}
+console.log('scan: no comparative language in the ' + literals.length +
+  ' string literals (Layer B, ' + VERDICT_LITERAL_WORDS.length + ' words)');
+
+// --- 2c. load the single script body into a bare sandbox ----------------------
 
 // Deliberately no `document` and no `location`: [S10] LAUNCH stays inert and
 // App.hasFlag takes its undefined-location path.
@@ -1933,6 +2084,88 @@ check(
 clearPanel();
 if (dlg.open === true) { dlg.close(); }
 
+/* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
+       Layers A and B, up at the top of this file, read the SOURCE. This one
+       reads the PAGE, for two reasons. The roadmap's criterion is written about
+       reading the rendered artifact top to bottom and finding no judgement on
+       it, which is a statement about output. And a sentence assembled at render
+       time out of fragments no single literal contains passes both source
+       layers while failing the requirement outright.
+
+       The walk collects the textContent of every LEAF node under #app plus the
+       aria-label, title and placeholder of every node it passes. Leaves are the
+       exact set rather than an approximation: the stub's textContent is a plain
+       own property, not a concatenation computed over descendants, so a parent
+       carries no copy of its children's words and collecting parents too would
+       add nothing while risking nothing being missed either way.
+
+       The recursion shape is lifted from allIntegers in [S09.1] — scalar case
+       first, then recurse into children — rather than invented here.
+
+       ALLOC-10 lets a student name a token type anything they like, and a
+       student who names one `Winner` must not redden CI. The requirement is
+       about what the ARTIFACT says, not about what a student typed into their
+       own build. So the two attributes through which a student's word reaches
+       the page are excluded at exactly the place it lands: sync() writes
+       [data-lbl] nodes' text from labelFor, and [data-albl] nodes' aria-label
+       from the same call, so the first is skipped for text and the second for
+       aria-label. Each is skipped only for the channel labelFor actually
+       writes, so a static title on a relabelled node is still read. */
+A.state.flush();
+
+const renderedText = [];
+const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
+
+(function harvest(node) {
+  if (!node) { return; }
+  if (node.children.length === 0
+    && typeof node.textContent === 'string' && node.textContent !== ''
+    && !('lbl' in node.dataset)) {
+    renderedText.push(node.textContent);
+  }
+  LABEL_ATTRS.forEach((attr) => {
+    if (attr === 'aria-label' && ('albl' in node.dataset)) { return; }
+    const value = node.getAttribute ? node.getAttribute(attr) : null;
+    if (typeof value === 'string' && value !== '') { renderedText.push(value); }
+  });
+  node.children.forEach(harvest);
+})(dom.byId['app']);
+
+const RENDERED_VERDICT_WORDS = VERDICT_WORDS.concat(VERDICT_LITERAL_WORDS);
+const renderedHits = [];
+renderedText.forEach((s) => {
+  RENDERED_VERDICT_WORDS.forEach((rule) => {
+    if (rule.re.test(s)) {
+      renderedHits.push('[' + rule.label + '] in ' + JSON.stringify(s));
+    }
+  });
+});
+
+// A walk that silently collects nothing would report a spotlessly clean page
+// forever. That is precisely the defect KNOWN_IDS carried before section 5b
+// existed: a gate failing in the direction of green. So the harvest is floored
+// rather than merely searched, and the number is printed on a clean run as well
+// as a failing one, because a baseline nobody can read is a baseline nobody
+// notices collapsing.
+console.log('scan: ' + renderedText.length + ' rendered strings read from #app (Layer C, '
+  + RENDERED_VERDICT_WORDS.length + ' words)');
+
+check(
+  '47. the rendered-page walk actually reaches the page, so a clean result is a '
+    + 'read page rather than an empty one',
+  renderedText.length > 100,
+  'harvested ' + renderedText.length + ' strings from #app; the floor is 100'
+);
+
+check(
+  '48. PROJ-06 — nothing on the rendered page judges a build, and a student who '
+    + 'names their own type after a comparative word does not trip it',
+  renderedHits.length === 0,
+  renderedHits.length === 0
+    ? 'clean across ' + renderedText.length + ' rendered strings'
+    : renderedHits.join(' | ')
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the
@@ -1954,7 +2187,16 @@ if (dlg.open === true) { dlg.close(); }
             emoji name. Check 38 covers the code-point cut, which is the guard.
          4. Whether eleven rows of the type list are legible on a projector.
             That is an empirical question a rehearsal answers and nothing else
-            does. --- */
+            does.
+         5. Any words Layer C's page does not currently show. The walk reads
+            #app as the stub page renders it in setup mode, so a string that
+            appears only once the fight has started, or only inside an open
+            dialog, is outside its reach until that surface is built and the
+            walk is pointed at it. The same goes for the static markup of the
+            shell: the stub is a hand-made stand-in and not a parser, so text
+            written directly into the HTML is empty here and only the text the
+            artifact renders is read. Layers A and B still read all of those in
+            the source; it is only the assembled-at-render case that waits. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
