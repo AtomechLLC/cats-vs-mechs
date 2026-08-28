@@ -1258,6 +1258,134 @@ App.ops = (function () {
     return value;
   }
 
+  // The token vocabulary's KEY boundary, and it is the security-sensitive
+  // guard in this file (ROADMAP criterion 5). Until this phase the five-item
+  // TOKEN_IDS allowlist WAS the defence; letting students add types of their
+  // own replaces membership validation with shape validation, and shape
+  // validation is worth only what it refuses (D-14).
+  //
+  // TWO distinct corruption shapes reach this key position, and gating one but
+  // not the other ships the worse of the two. Both were measured inside this
+  // artifact's own realm:
+  //   CREATE — `tokens[id] = rec` with an id of '__proto__' invokes the setter
+  //     and REPARENTS the vocabulary instead of adding a key. Own keys, JSON
+  //     output and deepFreeze all read green, and the whole thing evaporates
+  //     on the next unrelated commit's thaw(), so a student sees one wrong
+  //     frame and has nothing left to report.
+  //   RENAME — `var rec = tokens[id]; rec.name = x` resolves rec to
+  //     Object.prototype and writes onto it. That one is persistent, global,
+  //     and invisible to JSON.stringify and deepFreeze alike. It is the CR-02
+  //     shape exactly, and 'constructor' fails it with a DIFFERENT TypeError
+  //     than '__proto__' does — which is why [S09.7] carries a row per key per
+  //     write shape rather than one row total.
+  //
+  // Every guard below is pure: none of them touches the page or App.state's
+  // writer, and none of them runs inside a commit, so a refusal leaves no
+  // phantom undo step over a board that never changed. String() inside every
+  // message is there so a symbol or an object cannot throw while the error is
+  // being built, exactly as setTokenStyle already does.
+  //
+  // ORDER IS LOAD-BEARING. The named refusal fires BEFORE the pattern. Reverse
+  // the two and a student who reaches __proto__ reads "that is not a token
+  // type on this board", which explains nothing about what actually happened.
+  function requireTokenId(tokenId) {
+    if (typeof tokenId !== 'string') {
+      throw new TypeError('A token type is named by a short id, and this one is a '
+        + (typeof tokenId) + '.');
+    }
+    if (App.data.RESERVED_KEYS.indexOf(tokenId) !== -1) {
+      throw new Error('"' + String(tokenId) + '" is a name JavaScript keeps for '
+        + 'itself, so a token type cannot use it — it would corrupt the board '
+        + 'rather than name anything on it.');
+    }
+    if (App.data.TOKEN_IDS.indexOf(tokenId) !== -1) { return tokenId; }
+    if (!App.data.TOKEN_ID_PATTERN.test(tokenId)) {
+      throw new Error('"' + String(tokenId) + '" is not a token type on this board.');
+    }
+    return tokenId;
+  }
+
+  // The same gate with one extra refusal in front of it. The five types the
+  // board is built on are load-bearing in [S02], [S05] and [S06], so a new
+  // type may not take one of their ids. The id it is handed comes from
+  // nextTokenTypeId below and never from the name a student typed (D-13).
+  function requireNewTokenId(tokenId) {
+    if (typeof tokenId === 'string' && App.data.TOKEN_IDS.indexOf(tokenId) !== -1) {
+      throw new Error('"' + String(tokenId) + '" is one of the five token types '
+        + 'the board is built on, so a new type cannot re-use it.');
+    }
+    return requireTokenId(tokenId);
+  }
+
+  // The name boundary (ALLOC-10, D-12). trim() runs FIRST and every test runs
+  // on the trimmed result, because a whitespace-only name is a label a student
+  // can neither see nor tell apart from the next one — refusing it is kinder
+  // than storing it, and trimming the ordinary case is kinder than refusing a
+  // stray leading space.
+  //
+  // The cap is counted with Array.from, which spreads by CODE POINT. A skull
+  // is one code point and two UTF-16 units, so counting with .length would
+  // refuse a twelve-emoji name for being twenty-four long. Names MAY carry BMP
+  // symbols and emoji (D-12); what is left to refuse is control characters and
+  // lone surrogates, and TOKEN_NAME_REFUSE's comment in [S01] says why each.
+  function requireTokenName(name) {
+    if (typeof name !== 'string') {
+      throw new TypeError('A token type\'s name must be text, and this one is a '
+        + (typeof name) + '.');
+    }
+    var trimmed = name.trim();
+    if (trimmed === '') {
+      throw new Error('A token type needs a name.');
+    }
+    var points = Array.from(trimmed).length;
+    if (points > App.data.MAX_TOKEN_NAME) {
+      throw new Error('That name is ' + points + ' characters long, and a token '
+        + 'type name can be at most ' + App.data.MAX_TOKEN_NAME + '.');
+    }
+    if (App.data.TOKEN_NAME_REFUSE.test(trimmed)) {
+      throw new Error('That name carries a character that cannot be shown on the '
+        + 'board or carried in a build code. Letters, numbers, punctuation and '
+        + 'symbols are all fine.');
+    }
+    return trimmed;
+  }
+
+  // The surgical half of D-12a, and the one technique in this phase with no
+  // precedent anywhere else in the file. It never throws, because the
+  // authoring surface calls it while the student is still typing — which makes
+  // requireTokenName's cap refusal a backstop rather than a message anyone
+  // meets mid-keystroke.
+  //
+  // The cut lands on the CODE POINT array, never on the string. Measured: a
+  // naive slice(0, 24) landing in the middle of an astral pair leaves half a
+  // pair behind, and encodeURIComponent of half a pair throws URIError — at
+  // Phase 4 share time, a long way from the code that caused it.
+  function clampTokenName(raw) {
+    return Array.from(String(raw)).slice(0, App.data.MAX_TOKEN_NAME).join('');
+  }
+
+  // The produced id (D-13), with the same shape and the same reasoning as
+  // nextUnitId below: scan every id already in use, take the largest suffix
+  // and add one. Prefix-plus-count collides after any removal, and a duplicate
+  // key in the vocabulary is silent in every direction at once.
+  //
+  // It refuses at the ceiling rather than wrapping. TOKEN_ID_PATTERN allows
+  // two digits, so t99 is the last id in the sequence, and a wrapped id would
+  // quietly overwrite a type the student still has on the board.
+  function nextTokenTypeId(vocab) {
+    var highest = 0;
+    Object.keys(vocab || {}).forEach(function (id) {
+      var m = /^t([0-9]{1,2})$/.exec(id);
+      if (m !== null && Number(m[1]) > highest) { highest = Number(m[1]); }
+    });
+    var made = 't' + (highest + 1);
+    if (!App.data.TOKEN_ID_PATTERN.test(made)) {
+      throw new Error('This board has run out of ids for token types of your own. '
+        + 'Remove one before adding another.');
+    }
+    return made;
+  }
+
   function findUnit(side, unitId, collection) {
     for (var i = 0; i < collection.length; i++) {
       if (collection[i].id === unitId) { return collection[i]; }
@@ -1601,13 +1729,26 @@ App.ops = (function () {
   //
   // The tokenId test is the load-bearing one: s.build.tokens[tokenId] has
   // exactly the shape that CR-02 and WR-02 already had to close twice in this
-  // file. Without the allowlist, setTokenStyle('__proto__', ...) reparents the
+  // file. Without the gate, setTokenStyle('__proto__', ...) reparents the
   // whole vocabulary instead of styling anything. String() inside the message
   // is there so a symbol or an object cannot throw while the error is being
   // built.
+  //
+  // That gate used to be TOKEN_IDS.indexOf right here, and it was replaced —
+  // not widened — by requireTokenId above. Membership would have refused every
+  // student-made type, so a student could invent one and then never restyle
+  // it, which is the opposite of what this phase is for.
   function setTokenStyle(tokenId, patch) {
-    if (App.data.TOKEN_IDS.indexOf(tokenId) === -1) {
-      throw new Error('Unknown token type "' + String(tokenId) + '"');
+    requireTokenId(tokenId);
+    // requireTokenId rules on the SHAPE of an id; this rules on whether it
+    // names anything here. Without it, setTokenStyle('t5', ...) passes the
+    // pattern and then dies inside the mutator as "cannot read properties of
+    // undefined" — the nameless failure style requireSide exists to prevent.
+    // hasOwnProperty rather than a bare lookup, because a bare lookup for an
+    // inherited name resolves on the prototype instead of failing, and from
+    // Phase 4 this vocabulary can arrive from a pasted build code.
+    if (!Object.prototype.hasOwnProperty.call(App.state.get().build.tokens, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
     }
     var p = patch || {};
     if (p.shape !== undefined && App.data.SHAPES.indexOf(p.shape) === -1) {
@@ -1718,6 +1859,14 @@ App.ops = (function () {
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
+    // Exported for the same reason MAX_ALLOC is: [S09.7] asserts against the
+    // guard itself rather than against a re-typed copy of it that can drift
+    // away, and [S07.2] needs clampTokenName at the keystroke boundary.
+    requireTokenId: requireTokenId,
+    requireNewTokenId: requireNewTokenId,
+    requireTokenName: requireTokenName,
+    clampTokenName: clampTokenName,
+    nextTokenTypeId: nextTokenTypeId,
     MAX_ALLOC: MAX_ALLOC,
     MIN_UNITS: MIN_UNITS,
     MAX_UNITS: MAX_UNITS
