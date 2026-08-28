@@ -3572,6 +3572,64 @@ check(
     + ' commits from Escape=' + aeEscCommits
 );
 
+/* 67e. THE ROW PROBE Q FORCED, AND THE FINDING IS WORTH MORE THAN THE ROW.
+   The obvious way to hold the value-versus-`was` test is to type a name, press
+   Enter, blur, and assert the blur produced no second commit. That row is
+   VACUOUS in this file and 67d above says so by carrying it as one clause among
+   several rather than as its own claim: renameAction has a no-op contract, so a
+   second dispatch of the same name returns false and commits nothing whether
+   the guard is there or not. Measured — the guard was deleted and every row in
+   this file stayed green.
+
+   What the guard actually prevents is a SILENT UNDO OF SOMEBODY ELSE'S EDIT.
+   The repaint deliberately does not write a focused field (D-19), so while the
+   student stands in the name box the field holds the text that was there when
+   they arrived — and a rename raised from anywhere else, an undo included,
+   moves state and leaves that text standing. Without the guard, the focusout
+   that follows dispatches the STALE text as a fresh rename and puts the old
+   word back, with an extra commit and an extra undo step behind it. The student
+   pressed nothing and lost an edit.
+
+   Reported rather than exploited: [S07.2]'s check 36 carries the weaker form of
+   this row for the picker's own name field, and renameTokenType has the same
+   no-op contract, so the same hole is open there. It is another plan's region
+   and no copy this plan ships depends on it, so it is named here and not
+   widened. A plan that touches check 36 should carry this row across. */
+clearPanel();
+aeOpen('cats', 'slash');
+aeNameFocus();
+const aeStaleWas = aeName.dataset.was;
+A.ops.renameAction('cats', 'slash', 'Rake');
+A.state.flush();
+const aeStaleField = aeName.value;
+const aeCommitsBeforeStaleBlur = commits();
+aeNameBlur();
+const aeStaleAfterBlur = A.state.get().build.cats.actions
+  .filter((a) => a.id === 'slash')[0].name;
+const aeStaleCommits = commits() - aeCommitsBeforeStaleBlur;
+aeName.blur();
+A.state.flush();
+A.ops.renameAction('cats', 'slash', 'Slash');
+A.state.flush();
+check(
+  '67e. a rename raised from OUTSIDE while the name field holds focus survives '
+    + 'the blur that follows. The repaint may not write a focused field, so the '
+    + 'field is left holding the old word — and without the value-versus-`was` '
+    + 'test the blur dispatches that stale text as a fresh rename and silently '
+    + 'puts the old word back, taking an edit the student made elsewhere with '
+    + 'it. This is what that guard is load-bearing for HERE; the second-commit '
+    + 'row everyone writes for it is vacuous, because the op refuses a no-op',
+  aeStaleWas === 'Slash' && aeStaleField === 'Slash'
+    && aeStaleAfterBlur === 'Rake' && aeStaleCommits === 0
+    && errPanel.hidden === true,
+  'baseline on focus=' + JSON.stringify(aeStaleWas)
+    + ' field after the outside rename=' + JSON.stringify(aeStaleField)
+    + ' (the repaint skips a focused field, so it is deliberately stale)'
+    + ' name after the blur=' + JSON.stringify(aeStaleAfterBlur)
+    + ' (expected the outside rename to stand)'
+    + ' commits from the blur=' + aeStaleCommits
+);
+
 /* 68. A REFUSAL REACHES THE ERROR BOUNDARY AND LEAVES THE SURFACE CONSISTENT.
    Every state-changing press in this dialog dispatches FIRST and does page work
    only after dispatch has returned, so an op that refuses throws out of the
