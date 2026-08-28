@@ -4714,6 +4714,136 @@ check(
     : fullHits.join(' | ')
 );
 
+/* --- 70-70b. THE RULE IS A RECORD, AND THAT IS NOW A CHECK -------------------
+
+   These two are the phase's defining constraint made mechanical. A student
+   authoring an action is one small step from authoring code: a condition, a
+   formula field, a "when" expression would each be a string the tool would have
+   to interpret, and the moment one exists the artifact is running whatever a
+   pasted build code says. Both halves are needed and neither implies the other
+   — an artifact with no interpreter can still be handed a term holding a
+   function, and a term walk cannot see an interpreter that has not been fed
+   one yet. */
+
+// 70. The source half. The abort at the top of this file already scans for
+// these two patterns and exits before a single suite runs, and this row is NOT
+// a duplicate of it: that scan is a shipping gate over a list of fourteen
+// unrelated hazards, and this one is a NUMBERED check whose message names what
+// it protects, so a plan that ever loosened the list would have to answer this
+// row as well. Read off the artifact source rather than off anything in here.
+const DYNAMIC_CODE = [
+  { label: 'eval', re: /\beval\s*\(/g },
+  { label: 'the Function constructor', re: /\bnew\s+Function\b|\bFunction\s*\(/g },
+  { label: 'a string handed to setTimeout', re: /setTimeout\s*\(\s*['"]/g },
+  { label: 'a string handed to setInterval', re: /setInterval\s*\(\s*['"]/g }
+];
+const dynamicHits = [];
+DYNAMIC_CODE.forEach((rule) => {
+  const re = new RegExp(rule.re.source, 'g');
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    dynamicHits.push('line ' + html.slice(0, m.index).split('\n').length
+      + ' [' + rule.label + ']: ' + m[0]);
+  }
+});
+check(
+  '70. the artifact carries no way to turn a string into code — no eval, no '
+    + 'Function constructor, no string handed to a timer. This phase lets a '
+    + 'student write a RULE, which is one small step from writing code, and the '
+    + 'whole of it rests on that rule staying a record the tool READS. An '
+    + 'authored term is an id, an allowlisted word and a whole number, and the '
+    + 'day one of these appears is the day a pasted build code can run whatever '
+    + 'it likes on a workshop laptop',
+  dynamicHits.length === 0,
+  dynamicHits.length === 0
+    ? 'none across ' + html.split('\n').length + ' lines of the artifact'
+    : dynamicHits.join(' | ')
+);
+
+/* 70b. The data half, driven rather than read off the shipped board: every
+   authored term in a state with all three field kinds populated on an action of
+   a student's own, walked value by value. Every value must be a string from a
+   list the board itself holds — a live token id, or a party on the exported
+   XF_WHO allowlist — or a whole number. A function, an object, an array or a
+   string naming nothing is a term the tool would have to interpret rather than
+   read, and that is the line this phase does not cross. */
+const walkSaved = JSON.stringify(A.state.get());
+const walkTok = A.ops.createTokenType({
+  name: 'Venom', shape: 'dia', color: 'violet', glyph: '', scope: 'unit'
+});
+const walkAct = A.ops.createAction('cats', 'Walked');
+A.ops.setActionCost('cats', walkAct, walkTok, 3);
+A.ops.setActionReq('cats', walkAct, 0, 'hp', 2);
+A.ops.setActionReq('cats', walkAct, 1, walkTok, 0);
+A.ops.setActionXf('cats', walkAct, 0, A.data.XF_WHO[1], 'hp', -3);
+A.ops.setActionXf('cats', walkAct, 1, A.data.XF_WHO[0], walkTok, 5);
+A.state.flush();
+
+const TERM_KEYS = { cost: 'n,tok', req: 'n,tok', xf: 'd,tok,who' };
+const walkVocab = Object.keys(A.state.get().build.tokens);
+const walkBad = [];
+let walkSeen = 0;
+['cats', 'mechs'].forEach((side) => {
+  A.state.get().build[side].actions.forEach((a) => {
+    ['cost', 'req', 'xf'].forEach((field) => {
+      const list = a[field];
+      if (!Array.isArray(list)) {
+        walkBad.push(side + '/' + a.id + '/' + field + ' is not a list');
+        return;
+      }
+      list.forEach((term, i) => {
+        const where = side + '/' + a.id + '/' + field + '[' + i + ']';
+        walkSeen++;
+        if (term === null || typeof term !== 'object' || Array.isArray(term)) {
+          walkBad.push(where + ' is not a record: ' + typeof term);
+          return;
+        }
+        const keys = Object.keys(term).sort().join(',');
+        if (keys !== TERM_KEYS[field]) {
+          walkBad.push(where + ' holds keys ' + JSON.stringify(keys)
+            + ' rather than ' + JSON.stringify(TERM_KEYS[field]));
+        }
+        Object.keys(term).forEach((k) => {
+          const v = term[k];
+          if (typeof v === 'function') { walkBad.push(where + '.' + k + ' is a function'); return; }
+          if (v !== null && typeof v === 'object') { walkBad.push(where + '.' + k + ' is an object'); return; }
+          if (k === 'tok') {
+            if (walkVocab.indexOf(v) === -1) {
+              walkBad.push(where + '.tok names no token type on the board: ' + JSON.stringify(v));
+            }
+            return;
+          }
+          if (k === 'who') {
+            if (A.data.XF_WHO.indexOf(v) === -1) {
+              walkBad.push(where + '.who is not on the allowlist: ' + JSON.stringify(v));
+            }
+            return;
+          }
+          if (!Number.isInteger(v)) {
+            walkBad.push(where + '.' + k + ' is not a whole number: ' + JSON.stringify(v));
+          }
+        });
+      });
+    });
+  });
+});
+A.state.restore(walkSaved);
+A.state.flush();
+check(
+  '70b. every value in every authored term, in a driven state with a cost, two '
+    + 'requirements and two transformations on an action of a student\'s own, '
+    + 'is either a string the board itself holds — a live token id, or a party '
+    + 'on the exported XF_WHO allowlist — or a whole number. Not a function, '
+    + 'not an object, not an array, and not a string naming nothing. A rule the '
+    + 'tool READS is the whole of what this phase ships; a term holding '
+    + 'anything else is a rule it would have to interpret',
+  walkBad.length === 0 && walkSeen >= 11,
+  walkBad.length === 0
+    ? walkSeen + ' terms walked, every value an allowlisted string or a whole number'
+    : walkBad.join(' | ')
+);
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. The behaviours numbered

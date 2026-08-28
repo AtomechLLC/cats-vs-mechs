@@ -13257,6 +13257,207 @@ App.selftest = (function () {
       App.ops.actionsNaming(App.state.get().build, tokId)
         .map(function (r) { return r.id; }), [xid]);
 
+    /* ============ THE FIELD CONTRACT, ASSERTED RATHER THAN DESCRIBED =======
+
+       One row per line of the contract, and every bound read from the NAMED
+       exported constant rather than from a number re-typed here. A suite that
+       asserts 2 where the file says MAX_ACTION_REQ is a suite that goes green
+       about its own copy on the day the cap moves.
+
+       The walk covers BOTH sides and EVERY action, the six the board ships with
+       included, because D-07 says a shipped action and a student's action are
+       the same kind of thing — so a contract that held for one and not the
+       other would not be a contract at all. --- */
+
+    App.state.restore(savedAll);
+    App.state.flush();
+
+    var BOTH_SIDES = ['cats', 'mechs'];
+
+    var contractId = App.ops.createAction('cats', 'Contract');
+    App.ops.setActionCost('cats', contractId, 'ap', 1);
+    App.ops.setActionReq('cats', contractId, 0, 'hp', 2);
+    App.ops.setActionReq('cats', contractId, 1, 'shield', 0);
+    App.ops.setActionXf('cats', contractId, 0, App.data.XF_WHO[1], 'hp', -3);
+    App.ops.setActionXf('cats', contractId, 1, App.data.XF_WHO[0], 'shield', 1);
+
+    function eachAction(fn) {
+      BOTH_SIDES.forEach(function (side) {
+        App.state.get().build[side].actions.forEach(function (a) { fn(a, side); });
+      });
+    }
+    function everyTerm(field, fn) {
+      var ok = true;
+      var seen = 0;
+      eachAction(function (a) {
+        (Array.isArray(a[field]) ? a[field] : []).forEach(function (term) {
+          seen++;
+          if (!fn(term)) { ok = false; }
+        });
+      });
+      return ok && seen > 0;
+    }
+    function everyList(field, fn) {
+      var ok = true;
+      eachAction(function (a) {
+        if (!fn(Array.isArray(a[field]) ? a[field] : [])) { ok = false; }
+      });
+      return ok;
+    }
+
+    /* --- a cost: an id and a whole number of at least one, at most one term --- */
+    t.ok('every cost term is an id and a whole number, and nothing else',
+      everyTerm('cost', function (term) {
+        return Object.keys(term).sort().join(',') === 'n,tok'
+          && typeof term.tok === 'string' && Number.isInteger(term.n);
+      }));
+    t.ok('every cost amount is at least MIN_ACTION_COST, read from the constant',
+      everyTerm('cost', function (term) {
+        return term.n >= App.ops.MIN_ACTION_COST && term.n <= App.ops.MAX_ALLOC;
+      }));
+    t.ok('and no action carries more cost terms than MAX_ACTION_COST',
+      everyList('cost', function (list) {
+        return list.length <= App.ops.MAX_ACTION_COST;
+      }));
+
+    /* --- a requirement: an id and a whole number of at least zero --- */
+    t.ok('every requirement term is an id and a whole number, and nothing else',
+      everyTerm('req', function (term) {
+        return Object.keys(term).sort().join(',') === 'n,tok'
+          && typeof term.tok === 'string' && Number.isInteger(term.n);
+      }));
+    t.ok('every requirement amount is at least MIN_ACTION_REQ, read from the '
+      + 'constant', everyTerm('req', function (term) {
+        return term.n >= App.ops.MIN_ACTION_REQ && term.n <= App.ops.MAX_ALLOC;
+      }));
+    t.ok('and no action carries more requirement terms than MAX_ACTION_REQ',
+      everyList('req', function (list) {
+        return list.length <= App.data.MAX_ACTION_REQ;
+      }));
+
+    /* --- a transformation: an allowlisted party, an id, and a non-zero whole
+           number inside the signed bound --- */
+    t.ok('every transformation term is a party, an id and a whole number, and '
+      + 'nothing else', everyTerm('xf', function (term) {
+        return Object.keys(term).sort().join(',') === 'd,tok,who'
+          && typeof term.tok === 'string' && Number.isInteger(term.d);
+      }));
+    t.ok('every transformation party is on the exported XF_WHO allowlist',
+      everyTerm('xf', function (term) {
+        return App.data.XF_WHO.indexOf(term.who) !== -1;
+      }));
+    t.ok('every transformation amount sits inside MIN_XF_DELTA and '
+      + 'MAX_XF_DELTA, read from the constants, and none of them is zero',
+      everyTerm('xf', function (term) {
+        return term.d !== 0 && term.d >= App.data.MIN_XF_DELTA
+          && term.d <= App.data.MAX_XF_DELTA;
+      }));
+    t.ok('and no action carries more transformation terms than MAX_ACTION_XF',
+      everyList('xf', function (list) {
+        return list.length <= App.data.MAX_ACTION_XF;
+      }));
+
+    /* ================= THE ROUND TRIP ====================================
+
+       The state's own clone is a JSON round trip, and it is where the two
+       measured hazards of this phase live: NaN comes back as null and the
+       whole-number walk accepts null, and a key position would be a key
+       position on the way back in as well as on the way out. Both are driven
+       through an UNRELATED commit, because that is what forces the clone — a
+       term written and read back in the same frame has not been round-tripped
+       at all, and a row that read it there would prove nothing. --- */
+
+    var rtTerms = JSON.stringify(App.state.get().build.cats.actions
+      .find(function (a) { return a.id === contractId; }));
+    App.ops.setFactionAp('cats', 4);
+    App.ops.setFactionAp('cats', 3);
+    t.eq('an authored action with every field populated survives the clone '
+      + 'whole', JSON.stringify(App.state.get().build.cats.actions
+        .find(function (a) { return a.id === contractId; })), rtTerms);
+    t.ok('with every number inside it still a whole number, and not one of them '
+      + 'turned into null on the way through', (function () {
+        var rec = App.state.get().build.cats.actions
+          .find(function (a) { return a.id === contractId; });
+        var nums = rec.cost.map(function (x) { return x.n; })
+          .concat(rec.req.map(function (x) { return x.n; }))
+          .concat(rec.xf.map(function (x) { return x.d; }));
+        return nums.length === 5 && nums.every(function (v) {
+          return v !== null && Number.isInteger(v);
+        });
+      })());
+
+    /* --- THE MEASURED PROOF THAT THE TERM SHAPE HAS NO KEY POSITION. The id
+           is planted through App.state.restore, which is [S09]'s documented
+           writer and the only way to put a term the ops refuse in front of the
+           clone. That is the whole point: requireTokenId will not let this id
+           through the front door, and this row is about what happens if one
+           ever arrives another way — from a pasted build code, in Phase 4.
+           A bag keyed by token id would reparent the vocabulary here. An array
+           of records has no key position at all, so the reserved word rides
+           through as an ordinary string and comes back one. --- */
+    var keyProbe = JSON.parse(JSON.stringify(App.state.get()));
+    keyProbe.build.cats.actions.find(function (a) {
+      return a.id === contractId;
+    }).xf = [{ who: App.data.XF_WHO[1], tok: '__proto__', d: -1 },
+      { who: App.data.XF_WHO[0], tok: 'constructor', d: 2 }];
+    App.state.restore(JSON.stringify(keyProbe));
+    App.state.flush();
+    App.ops.setFactionAp('cats', 5);
+    App.ops.setFactionAp('cats', 3);
+    t.eq('a transformation naming a reserved word as its token id survives the '
+      + 'round trip AS A VALUE, unchanged',
+      JSON.stringify(App.state.get().build.cats.actions
+        .find(function (a) { return a.id === contractId; }).xf),
+      JSON.stringify([{ who: App.data.XF_WHO[1], tok: '__proto__', d: -1 },
+        { who: App.data.XF_WHO[0], tok: 'constructor', d: 2 }]));
+    t.ok('and the shared object prototype is untouched by it, which is what a '
+      + 'bag keyed by token id could not have said', protoIntact());
+    t.eq('the referential read finds it by walking records rather than by '
+      + 'indexing a bag, so it hands back the action rather than a function off '
+      + 'the prototype',
+      App.ops.actionsNaming(App.state.get().build, 'constructor')
+        .map(function (r) { return r.id; }), [contractId]);
+    t.ok('and that read left the prototype intact too', protoIntact());
+
+    /* ================= THE FREEZE, IN STRICT MODE, WITH A CONTROL =========
+
+       Both halves are required and neither is decoration. A write to a frozen
+       field fails SILENTLY outside strict mode — measured — so a row written in
+       sloppy mode reports the opposite of what it looks like it reports. And a
+       row that only asserts "the write threw" passes on a term that is null,
+       undefined or missing, because those throw too. The negative control is
+       what tells a frozen object apart from nothing at all. --- */
+    t.ok('this suite runs in strict mode, which is what makes the two rows '
+      + 'below mean anything at all',
+      (function () { return this; })() === undefined);
+
+    var frozenTerm = App.state.get().build.cats.actions
+      .find(function (a) { return a.id === contractId; }).xf[0];
+    t.ok('a write to a term the state has frozen throws', (function () {
+      try { frozenTerm.d = 99; return false; } catch (refused) { return true; }
+    })());
+    t.eq('and the term is unchanged after it', frozenTerm.d, -1);
+    t.ok('THE NEGATIVE CONTROL: the SAME write on an unfrozen copy does not '
+      + 'throw and does land — without this the row above passes on a term that '
+      + 'is null, undefined or simply absent, all of which throw as well',
+      (function () {
+        var copy = JSON.parse(JSON.stringify(frozenTerm));
+        try { copy.d = 99; } catch (refused) { return false; }
+        return copy.d === 99;
+      })());
+    t.ok('the term LIST is frozen too, so a push cannot slip a term past the '
+      + 'ops that bound them', (function () {
+        var list = App.state.get().build.cats.actions
+          .find(function (a) { return a.id === contractId; }).xf;
+        try {
+          list.push({ who: App.data.XF_WHO[0], tok: 'hp', d: 1 });
+          return false;
+        } catch (refused) { return true; }
+      })());
+
+    App.state.restore(savedAll);
+    App.state.flush();
+
     /* --- and nothing in this plan applies anything: the ops shipped here edit
            a rule's definition, and the whole of ACT-05 lands on Advance in
            Phase 5. This row is the export block read back. --- */
