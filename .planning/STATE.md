@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03.1-04-PLAN.md
-last_updated: "2026-08-28T19:51:15.496Z"
+stopped_at: Completed 03.1-05-PLAN.md
+last_updated: "2026-08-28T20:16:27.319Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 24
-  completed_plans: 21
+  completed_plans: 22
   percent: 57
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -56,6 +56,7 @@ Progress: [█████████░] 88%
 | Phase 03.1 P02 | 62min | 3 tasks | 1 files |
 | Phase 03.1 P03 | 95min | 3 tasks | 1 files |
 | Phase 03.1 P04 | 105min | 3 tasks | 2 files |
+| Phase 03.1 P05 | 118min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -81,6 +82,10 @@ Recent decisions affecting current work:
 - [Phase 3.1]: 03.1-04: the cards, the band, the admission line and the picker line all read the BUILD SLICE through one exemption channel (data-anm) — an id means the shared sync pass owns the text, an empty value means the region that built the node does
 - [Phase 3.1]: 03.1-04: ACT-07's line beside Remove stays silent for a type the board is built on — a consequence stated for a removal the surface does not offer is noise
 - [Phase 3.1]: 03.1-04: a build-once rule is held by NODE COUNT, not by the built flag — probe M measured the flag vacuous for a per-node create/destroy
+- [Phase 3.1]: 03.1-05: ONE dialog with two panes, not two — one button, one binder, one root, one fingerprint, and 20 shell ids rather than near forty
+- [Phase 3.1]: 03.1-05: no second fire() payload-key exception was needed — the editor's own delegated listener builds each patch field by field from the pressed control
+- [Phase 3.1]: 03.1-05: the editor fingerprint carries cost/req/xf BEFORE plan 03.1-06 draws them, so the surface cannot be born stale
+- [Phase 3.1]: 03.1-05: DIALOG_FLOOR 84 -> 91 — a floor over the total of two roots, left at 84, would have stopped bounding either of them
 
 ### Pending Todos
 
@@ -102,6 +107,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T19:51:15.485Z
+Last session: 2026-08-28T20:15:57.463Z
 Stopped at: Completed 03.1-04-PLAN.md
 Resume file: None
