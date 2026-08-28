@@ -1026,7 +1026,7 @@ App.model = (function () {
  * Shape — integers only, JSON-clonable, no DOM nodes, no functions:
  *   { build: { schema, cats, mechs },
  *     fight: null | { round, turn, cats, mechs, log },
- *     ui:    { kbdNav } }
+ *     ui:    { kbdNav, revealTok } }
  *   fight side shape: { ap, units: [ { id, hp, shield, alive } ] }
  *
  * `shield` is carried into the fight slice, not left as a build-only eHP
@@ -1065,7 +1065,7 @@ App.state = (function () {
     return App.data.deepFreeze({
       build: App.data.defaults(),
       fight: null,
-      ui: { kbdNav: false }
+      ui: { kbdNav: false, revealTok: '' }
     });
   }
 
@@ -1814,7 +1814,17 @@ App.ops = (function () {
   // `cur` until the next commit, then thaw() drops it silently, so the value
   // is there and then simply is not, one commit later. `__proto__` as a key
   // reparented the whole slice instead of setting anything on it.
-  var UI_KEYS = ['kbdNav'];
+  // revealTok names ONE student-made type whose stat line the board must keep
+  // on screen even at zero. It is the empty string when there is none, which
+  // is the resting value and the only one a fresh board ever holds.
+  //
+  // It is here rather than in a private variable beside the editor because the
+  // hide pass is in [S06] and the editor is in [S07.2], and state is the only
+  // legal channel between two tiers. Note what it is NOT: it does not say
+  // which surface is open. [S06.2]'s own comment turns that fact away from
+  // this slice for good reason, and this key would be mistaken for it at a
+  // glance. What it says is a fact about the BOARD.
+  var UI_KEYS = ['kbdNav', 'revealTok'];
 
   function setUi(key, value) {
     if (UI_KEYS.indexOf(key) === -1) {
@@ -2930,9 +2940,27 @@ App.render = (function () {
     //   a line the board is built on is never touched here, because only the
     //     student-made ones carry the class. A unit at zero health is
     //     something a student meant, and it stays on screen.
+    //
+    // The second input is the reveal, and it exists because the rule above,
+    // left alone, hid the only way to escape it: the stepper that would write
+    // a type's first number is built INSIDE the line a zero hides, so a type
+    // a student had just invented offered no control anywhere on the page.
+    // While the editor is showing one of their types, that type's lines stay
+    // on screen at zero. Every other zero still shows nothing, and closing the
+    // editor puts the board back to clean, which is the whole point of doing
+    // it this way instead of leaving a faint row up for every type ever made.
+    //
+    // Read off dataset.amt, the same attribute the quantity above is read
+    // through, so a revealed line and a hidden one are decided by one fact
+    // about the page rather than by two that could drift. The resting value is
+    // the empty string and no line carries an empty type, so at rest this term
+    // is false everywhere and the rule is exactly what it was.
+    var reveal = String(state.ui.revealTok || '');
     var opt = board.querySelectorAll('.brd-line--opt');
     for (i = 0; i < opt.length; i++) {
-      opt[i].hidden = amountFor(state, opt[i].dataset.amt, opt[i].dataset.side, opt[i].dataset.unit) === 0;
+      opt[i].hidden =
+        amountFor(state, opt[i].dataset.amt, opt[i].dataset.side, opt[i].dataset.unit) === 0
+        && opt[i].dataset.amt !== reveal;
     }
 
     // The seam, and the reason it is a seam rather than a named call: #board is
@@ -3858,12 +3886,20 @@ App.interactions = (function () {
    * the code above.
    *
    * Two acts, two different routes, and the difference is the whole seam:
-   *   openTokenPicker  is PAGE WORK ONLY. It opens a dialog and writes nothing
-   *                    to state, so it is claimed by UI_ACTS and handled here.
-   *                    [S05]'s banner says that layer never reads or writes the
-   *                    page, so it has no legal home there — and with no case
-   *                    for it, dispatch's `default: throw` arm would have shown
-   *                    a student the styled error panel on their first click.
+   *   openTokenPicker  is PAGE WORK. It opens a dialog and reaches no op, so
+   *                    it is claimed by UI_ACTS and handled here. [S05]'s
+   *                    banner says that layer never reads or writes the page,
+   *                    so it has no legal home there — and with no case for it,
+   *                    dispatch's `default: throw` arm would have shown a
+   *                    student the styled error panel on their first click.
+   *                    It touches exactly ONE thing in state, and only through
+   *                    setReveal below: which student-made type the board is
+   *                    holding on screen. Opening cold lands on a type the
+   *                    board is built on, for which the reveal is already at
+   *                    its resting value, so nothing is written and the commit
+   *                    total does not move. Two gate rows hold that total at
+   *                    zero, which is what makes the skip-when-unchanged test
+   *                    in setReveal a contract rather than an optimisation.
    *   setTokenStyle    is STATE WORK ONLY. It validates and writes and touches
    *                    no node, so it is a real op and goes through
    *                    App.ops.dispatch like everything else. It is deliberately
@@ -3899,6 +3935,49 @@ App.interactions = (function () {
     return String(dlg.dataset.tok || '');
   }
 
+  // What the board is asked to keep on screen for a given selection, and the
+  // empty string for the five types the board is built on. That is not a
+  // special case being dodged: those five draw no optional line at all, so
+  // there is nothing a reveal could name, and sending their ids through would
+  // write a value that could never change a single pixel. Health, action
+  // points and shield already carry their own steppers, and a unit at zero
+  // health stays on screen regardless — the hide pass never touches them.
+  function revealFor(id) {
+    return (App.data.TOKEN_IDS.indexOf(id) === -1) ? String(id) : '';
+  }
+
+  // commitUi, never commit. D-09 keeps the ui slice off the undo stack, and
+  // that is the behaviour wanted here: Ctrl+Z steps back through edits a
+  // student made to their build, not through the types they merely looked at.
+  // It is the deliberate mirror of setTokenStyle, which takes the OTHER route
+  // for the reason its own comment gives — the vocabulary lives in the build
+  // slice, so a restyle is a real edit and is undoable. Two neighbours, two
+  // routes, and the difference between them is which slice the fact lives in.
+  //
+  // The write is skipped when nothing would change. That is not a saving, it
+  // is a contract: [S07.2]'s banner says opening this editor commits nothing,
+  // and the resting selection is a type the board is built on, so the guard is
+  // what keeps that sentence true rather than nearly true.
+  function setReveal(id) {
+    var want = revealFor(id);
+    if (App.state.get().ui.revealTok !== want) { App.ops.setUi('revealTok', want); }
+  }
+
+  // THE one place that says "the editor is now showing this type", and every
+  // caller below goes through it. Four call sites each doing the same three
+  // things in their own order is how the reveal and the marked row would end
+  // up disagreeing on some path nobody thought to check.
+  //
+  // dataset.tok is written here rather than left to picker(), because picker()
+  // returns early when its fingerprint has not moved and would then never
+  // reach its own write. That early return is why the shape below existed as
+  // two statements at each site before this collected them.
+  function showType(dlg, id) {
+    dlg.dataset.tok = id;
+    setReveal(id);
+    App.render.picker(App.state.get(), id);
+  }
+
   // Null rather than a throw when the surface is absent. The Node gate drives a
   // stub page that has no dialog at all, and an error panel raised on a button
   // that ships in every build is the one outcome worse than nothing happening.
@@ -3930,7 +4009,7 @@ App.interactions = (function () {
     if (dlg === null) { return; }
     var id = (dlg.open === true) ? pickedTok(dlg) : '';
     if (id === '') { id = FIRST_TOK; }
-    App.render.picker(App.state.get(), id);
+    showType(dlg, id);
     if (dlg.open !== true) { dlg.showModal(); }
   };
 
@@ -3953,8 +4032,7 @@ App.interactions = (function () {
     if (dlg === null) { return; }
     var id = btn.dataset.tok;
     if (typeof id !== 'string' || id === '') { return; }
-    dlg.dataset.tok = id;
-    App.render.picker(App.state.get(), id);
+    showType(dlg, id);
   }
 
   UI_HANDLERS.selectTokenType = selectType;
@@ -3979,6 +4057,13 @@ App.interactions = (function () {
   // is DELETED rather than widened, because the thing it protected no longer
   // exists. That is a guard removed, not a guard forgotten.
   function onPickerClose() {
+    // First, and above the page guard, because it is the one thing here that
+    // is not page work. D-04: the board is clean at rest, and this is the
+    // moment "at rest" begins again. It runs on the Done button and on Escape
+    // alike, and it also runs when [S08] closes this dialog to get an error
+    // panel in front of a student — a reveal left standing through a recovery
+    // would be a line nobody could explain.
+    setReveal('');
     if (typeof document === 'undefined') { return; }
     var opener = document.querySelector('[data-k="tok"]');
     if (opener && typeof opener.focus === 'function') { opener.focus(); }
@@ -4015,8 +4100,7 @@ App.interactions = (function () {
       name: NEW_TOKEN_NAME,
       shape: look.shape, color: look.color, glyph: look.glyph, scope: scope
     });
-    dlg.dataset.tok = made;
-    App.render.picker(App.state.get(), made);
+    showType(dlg, made);
   }
 
   // The selected type's own row is what disappears here, and that is the whole
@@ -4031,8 +4115,7 @@ App.interactions = (function () {
   // holding focus drops it, which is the failure wearing a different hat.
   function dropType(dlg) {
     App.ops.dispatch('removeTokenType', { tokenId: pickedTok(dlg) });
-    dlg.dataset.tok = FIRST_TOK;
-    App.render.picker(App.state.get(), FIRST_TOK);
+    showType(dlg, FIRST_TOK);
     var list = document.getElementById('tok-pick-list');
     var first = list ? list.firstElementChild : null;
     if (first && typeof first.focus === 'function') { first.focus(); }
@@ -5043,7 +5126,32 @@ App.selftest = (function () {
     t.eq('the ui change still landed', App.state.get().ui.kbdNav, true);
     t.throws('an unknown ui key is refused', function () { App.ops.setUi('anythingAtAll', true); });
     t.throws('a non-primitive ui value is refused', function () { App.ops.setUi('kbdNav', { deep: true }); });
-    t.eq('the ui slice holds exactly its documented keys', Object.keys(App.state.get().ui), ['kbdNav']);
+    t.eq('the ui slice holds exactly its documented keys',
+      Object.keys(App.state.get().ui), ['kbdNav', 'revealTok']);
+
+    /* --- F-02.1-A. The reveal is the second ui key, and it takes the same
+           route the first one does for the same reason: which type a student
+           is looking at is a view preference, so Ctrl+Z must step back through
+           the numbers they wrote and never through the types they opened. The
+           rows below are the whole of that promise — the value lands, the
+           stack does not move, and an undo taken afterwards leaves it alone
+           because undo() restores build and fight and never ui. --- */
+    App.ops.setUi('revealTok', '');
+    t.eq('the reveal starts empty, which is the resting board',
+      App.state.get().ui.revealTok, '');
+    var apBeforeV = App.state.get().build.cats.ap;
+    App.state.commit('something to rewind to', function (s) { s.build.cats.ap = 5; });
+    var depthV = App.state.undoDepth();
+    App.ops.setUi('revealTok', 't99');
+    t.eq('revealing a type is not undoable', App.state.undoDepth(), depthV);
+    t.eq('and the reveal still landed', App.state.get().ui.revealTok, 't99');
+    App.state.undo();
+    t.eq('an undo rewinds the build', App.state.get().build.cats.ap, apBeforeV);
+    t.eq('and leaves the reveal exactly where it was, so Ctrl+Z never toggles '
+      + 'a line on and off the board', App.state.get().ui.revealTok, 't99');
+    App.ops.setUi('revealTok', '');
+    t.throws('a non-primitive reveal is refused like any other ui value',
+      function () { App.ops.setUi('revealTok', { deep: true }); });
 
     /* --- reset is one entry, and is itself undoable (D-12) --- */
     App.state.commit('before the reset', function (s) { s.build.cats.ap = 11; });
@@ -6389,6 +6497,62 @@ App.selftest = (function () {
       t.eq('and the line for a number nobody has written shows nothing at all',
         lineOff ? lineOff.hidden : '(no line)', true);
 
+      /* --- F-02.1-A, and the measurement that raised it: with the rule above
+             standing alone, a type a student had just invented put 24 nudge
+             buttons and 12 fields on the page and left every one of the 36
+             behind a hidden ancestor, because the stepper is built INSIDE the
+             line the zero hides. So the first number could be written from a
+             console and from nowhere else, and the workshop step that asks a
+             student to raise a tally by hand had no path through the page.
+             The reveal is the second input to that rule. --- */
+      App.ops.setUi('revealTok', rUnit);
+      App.state.flush();
+      t.eq('while the editor is showing a type, its zero line is on screen so '
+        + 'the stepper that writes the first number can be reached',
+        lineOff ? lineOff.hidden : '(no line)', false);
+      // Written as "reached of built" so a regression reads as the finding's
+      // own table did rather than as a bare false. Both halves of the stepper
+      // are counted: the two nudge buttons carry one act and the field
+      // between them carries another, and the finding counted all three per
+      // card. Nothing here is a fixed number — the roster decides it.
+      t.eq('and every control inside those lines has no hidden ancestor left '
+        + 'between it and the page, which is what nothing had before',
+        (function () {
+          var live = board.querySelectorAll('[data-amt="' + rUnit + '"][data-k]');
+          var reached = Array.prototype.filter.call(live, function (node) {
+            return node.closest('[hidden]') === null;
+          });
+          return reached.length + ' of ' + live.length;
+        })(),
+        (function () {
+          var n = board.querySelectorAll('[data-amt="' + rUnit + '"][data-k]').length;
+          return n + ' of ' + n;
+        })());
+
+      /* --- both scopes, because the finding covers both: a side-scope type's
+             two faction lines go through the same one rule. --- */
+      App.ops.setUi('revealTok', rSide);
+      App.state.flush();
+      t.eq('a side-scope type at zero is revealed on each faction head',
+        (function () {
+          var live = board.querySelectorAll(
+            '.brd-line--opt[data-amt="' + rSide + '"]');
+          return live.length + ':' + Array.prototype.filter.call(live, function (el) {
+            return el.hidden === false;
+          }).length;
+        })(), '2:2');
+      t.eq('and revealing one type does not bring any other zero back with it',
+        lineOff ? lineOff.hidden : '(no line)', true);
+
+      /* --- D-04. Closing the editor is what puts the board back to clean, and
+             an empty reveal is the resting value that says so. --- */
+      App.ops.setUi('revealTok', '');
+      App.state.flush();
+      t.eq('with nothing revealed the zero line shows nothing again',
+        lineOff ? lineOff.hidden : '(no line)', true);
+      t.eq('and the line for a number a student did write is untouched by all '
+        + 'of it', lineOn ? lineOn.hidden : '(no line)', false);
+
       App.ops.setTally('cats', 'c2', rUnit, 1);
       App.state.flush();
       t.eq('writing one onto it brings the line back on a plain commit — the '
@@ -6591,6 +6755,62 @@ App.selftest = (function () {
       App.render.picker(App.state.get(), pkOwn);
       t.eq('and open for one the student made',
         pkRemove ? pkRemove.disabled : '(no button)', false);
+
+      /* --- F-02.1-A, the wiring half. The board rule is asserted further up;
+             these rows are what turns it on and off. The press goes through
+             the delegated root exactly as a student's does — nothing below
+             calls a handler by name, because a control reachable only from a
+             test is the shape of the finding being closed here. --- */
+      (function () {
+        function pkPointer(type) {
+          if (typeof PointerEvent === 'function') {
+            return new PointerEvent(type, { bubbles: true, pointerId: 1 });
+          }
+          return new MouseEvent(type, { bubbles: true });
+        }
+        function pkPress(node) {
+          if (node === null) { return; }
+          node.dispatchEvent(pkPointer('pointerdown'));
+          node.dispatchEvent(pkPointer('pointerup'));
+        }
+
+        var ownLine = board.querySelector(
+          '.brd-line--opt[data-amt="' + pkOwn + '"][data-unit="c1"]');
+        pkPress(rowFor(pkOwn));
+        App.state.flush();
+        t.eq('choosing a student-made type in the list reveals it',
+          App.state.get().ui.revealTok, pkOwn);
+        t.eq('and its zero line is on the board, where the stepper a student '
+          + 'needs has been all along', ownLine ? ownLine.hidden : '(no line)',
+          false);
+
+        pkPress(rowFor('hp'));
+        App.state.flush();
+        t.eq('moving to a type the board is built on reveals nothing, because '
+          + 'those draw no optional line for a reveal to name',
+          App.state.get().ui.revealTok, '');
+        t.eq('and the zero line goes away with it',
+          ownLine ? ownLine.hidden : '(no line)', true);
+
+        /* --- D-04, the moment the board goes back to clean. The close event
+               is dispatched here rather than reached through close(): the
+               platform queues that event as a task, so a synchronous suite
+               cannot see it. What is being asserted is this file's listener
+               and what it does — that the platform fires the event at all is
+               the platform's promise, not this artifact's. --- */
+        pkPress(rowFor(pkOwn));
+        App.state.flush();
+        t.eq('the reveal is standing again before the editor is shut',
+          App.state.get().ui.revealTok, pkOwn);
+        if (dlg) { dlg.dispatchEvent(new Event('close')); }
+        App.state.flush();
+        t.eq('shutting the editor puts the reveal back to its resting value',
+          App.state.get().ui.revealTok, '');
+        t.eq('so the board is clean the moment a student is done with it',
+          ownLine ? ownLine.hidden : '(no line)', true);
+        App.render.picker(App.state.get(), pkOwn);
+      }());
+
       t.eq('while both New buttons are open below the cap',
         (pkNewUnit && pkNewSide) ? (pkNewUnit.disabled || pkNewSide.disabled) : '(no buttons)',
         false);
