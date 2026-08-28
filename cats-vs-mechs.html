@@ -8477,6 +8477,36 @@ App.selftest = (function () {
       + 'is never called for a keyword',
       named.indexOf('shield') !== -1 && App.data.TOKEN_IDS.indexOf('shield') !== -1);
 
+    /* --- TWO READS OF ONE FACT, held together. The action cards read the
+           FROZEN board: refActions returns App.data.DEFAULTS[side].actions.
+           The projection reads the deep COPY in the build slice, because
+           bestDamage is handed state.build[side]. So the Lasers card prints
+           3 damage from one object while the worked line beside it divides by
+           a 9 derived from another, a column apart on the same screen.
+
+           That boundary is deliberate, and refActions says so in its own
+           comment: the day actions become student-editable is the day that
+           read has to change on purpose. The decision is sound. What was
+           missing is the tripwire that makes the day loud.
+
+           [S09.1] already asserts the actions on defaults() — but defaults()
+           is a JSON round trip of DEFAULTS, so that row agrees with itself by
+           construction and says nothing whatever about the build slice. Phase
+           4 decodes a build code INTO that slice, and a code carrying an
+           altered damage figure would put a card reading one number beside a
+           worked line dividing by another, with nothing red anywhere in this
+           repo. This row is that day alarming rather than silent.
+
+           Compared as ONE serialised pair rather than as six scalar rows, the
+           idiom [S09.1] uses: a field that drifted names itself in the failure
+           detail instead of being hunted across rows that each pass. --- */
+    t.eq('the actions the cards read and the actions the projection reads are '
+      + 'the same actions',
+      JSON.stringify([App.state.get().build.cats.actions,
+        App.state.get().build.mechs.actions]),
+      JSON.stringify([App.data.DEFAULTS.cats.actions,
+        App.data.DEFAULTS.mechs.actions]));
+
     /* --- The rendered half, plan 03-05's. Everything below needs a page.
            tests/selftest-node.cjs runs these suites in a bare sandbox with no
            document at all, so the suite says so and stops rather than painting
