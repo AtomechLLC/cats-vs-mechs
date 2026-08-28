@@ -4274,6 +4274,148 @@ App.selftest = (function () {
     }
   });
 })();
+
+/* --- [S09.7] SUITE: token authoring — owner plan 02.1-01 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('token authoring', function (t) {
+    // Every row below is DOM-free on purpose: the id gate and the name gate
+    // are state work and proving them needs no page at all, so the terminal
+    // harness gets the whole suite rather than a skip row. Same reason
+    // [S09.6] above gives.
+
+    /* --- the guards exist and are exported. This suite asserts against the
+           exported function, never against a re-typed copy of the pattern —
+           the reason [S01]'s allowlist banner gives for exporting at all. --- */
+    t.eq('the id gate is exported', typeof App.ops.requireTokenId, 'function');
+    t.eq('the new-id gate is exported', typeof App.ops.requireNewTokenId, 'function');
+    t.eq('the name gate is exported', typeof App.ops.requireTokenName, 'function');
+    t.eq('the surgical name cut is exported', typeof App.ops.clampTokenName, 'function');
+    t.eq('the produced-id helper is exported', typeof App.ops.nextTokenTypeId, 'function');
+
+    /* --- the five the board is built on, and the produced shape, both pass --- */
+    var builtinsPass = App.data.TOKEN_IDS.every(function (id) {
+      return App.ops.requireTokenId(id) === id;
+    });
+    t.ok('every built-in id passes the gate unchanged', builtinsPass);
+    t.eq('a produced id passes', App.ops.requireTokenId('t1'), 't1');
+    t.eq('and so does a two-digit one', App.ops.requireTokenId('t12'), 't12');
+
+    /* --- refusal BY NAME, and it fires before the pattern ever runs (D-14).
+           Order matters: a student who reaches __proto__ must read a sentence
+           that explains something, not "that is not a token type here". --- */
+    App.data.RESERVED_KEYS.forEach(function (k) {
+      t.throws('the ' + k + ' key is refused as a token id', function () {
+        App.ops.requireTokenId(k);
+      });
+      t.ok('and the ' + k + ' refusal names what it refused', (function () {
+        try { App.ops.requireTokenId(k); } catch (e) {
+          return String(e.message).indexOf(k) !== -1;
+        }
+        return false;
+      })());
+    });
+
+    /* --- everything the pattern itself must refuse. 't1\n' is listed
+           explicitly: JavaScript's `$` does not behave like Perl's here, and
+           this row is what records that it was checked rather than assumed. --- */
+    ['sparkle', 'T1', 't1 ', 't1\n', 't100', '', 5, null, {}].forEach(function (bad) {
+      t.throws('an id of ' + JSON.stringify(bad) + ' is refused', function () {
+        App.ops.requireTokenId(bad);
+      });
+    });
+
+    /* --- a NEW id may not re-use one of the five (D-15's other half) --- */
+    t.throws('a new type may not re-use a built-in id', function () {
+      App.ops.requireNewTokenId('hp');
+    });
+    t.eq('but a produced id is accepted for a new type',
+      App.ops.requireNewTokenId('t1'), 't1');
+
+    /* --- names. D-12 is the user's decision, taken after research priced it,
+           that a name MAY carry BMP symbols and emoji. 02.1-RESEARCH.md
+           proposed an ASCII allowlist; the symbol row below is deliberately
+           the one that flips against it. --- */
+    t.eq('a name is trimmed rather than refused for its spaces',
+      App.ops.requireTokenName('  Poison  '), 'Poison');
+    t.throws('an empty name is refused', function () {
+      App.ops.requireTokenName('');
+    });
+    t.throws('a whitespace-only name is refused, because it cannot be told '
+      + 'apart from the next one', function () {
+      App.ops.requireTokenName('   ');
+    });
+
+    var over = 'a'.repeat(App.data.MAX_TOKEN_NAME + 1);
+    t.throws('a name one code point over the cap is refused', function () {
+      App.ops.requireTokenName(over);
+    });
+    t.ok('and the refusal carries the measured length', (function () {
+      try { App.ops.requireTokenName(over); } catch (e) {
+        return String(e.message).indexOf(String(App.data.MAX_TOKEN_NAME + 1)) !== -1;
+      }
+      return false;
+    })());
+
+    t.eq('a name carrying a BMP symbol is ACCEPTED (D-12, over RESEARCH)',
+      App.ops.requireTokenName('Poison \u{2620}'), 'Poison \u{2620}');
+    var skulls24 = '\u{1F480}'.repeat(App.data.MAX_TOKEN_NAME);
+    t.eq('twenty-four emoji is twenty-four CODE POINTS, so it is accepted',
+      App.ops.requireTokenName(skulls24), skulls24);
+    t.eq('and the very same name is forty-eight UTF-16 units, which is why the '
+      + 'cap is not counted with .length', skulls24.length, 48);
+    // Built with fromCharCode and written as an escape rather than pasted as
+    // literals, for the reason GLYPHS gives above: a raw control character in
+    // the source is invisible to whoever reads it, and an escape is the one
+    // form no editor or clipboard can quietly mangle.
+    t.throws('a control character in a name is refused', function () {
+      App.ops.requireTokenName('Poi' + String.fromCharCode(7) + 'son');
+    });
+    t.throws('a lone surrogate in a name is refused', function () {
+      App.ops.requireTokenName('Poison \uD83D');
+    });
+
+    /* --- D-12a, the surgical half, and the only technique in this phase with
+           no in-file precedent. A naive slice(0,24) through the middle of an
+           astral pair leaves half a pair, and encodeURIComponent of half a
+           pair throws URIError at Phase 4 share time. --- */
+    var cut = App.ops.clampTokenName('\u{1F480}'.repeat(30));
+    t.eq('a long emoji name is cut to the cap BY CODE POINT',
+      Array.from(cut).length, App.data.MAX_TOKEN_NAME);
+    t.ok('and the cut leaves nothing for Phase 4 to choke on', (function () {
+      try { encodeURIComponent(cut); return true; } catch (e) { return false; }
+    })());
+    t.ok('the cut never throws, whatever it is handed', (function () {
+      try {
+        App.ops.clampTokenName(null);
+        App.ops.clampTokenName(5);
+        App.ops.clampTokenName(undefined);
+        return true;
+      } catch (e) { return false; }
+    })());
+
+    /* --- the produced id (D-13). Never derived from the name a student typed:
+           deriving an id from student text is how a reserved name reaches the
+           key position in the first place. --- */
+    t.eq('a vocabulary of built-ins only produces t1',
+      App.ops.nextTokenTypeId({ hp: 1, ap: 1, shield: 1, dmg: 1, dead: 1 }), 't1');
+    t.eq('and the sequence takes the largest suffix in use and adds one',
+      App.ops.nextTokenTypeId({ hp: 1, t1: 1, t3: 1 }), 't4');
+    t.throws('at the ceiling of the sequence it refuses rather than wrapping',
+      function () { App.ops.nextTokenTypeId({ t99: 1 }); });
+
+    /* --- Pitfall 11: setTokenStyle runs through the same gate now, so the
+           membership check it used to open with is gone rather than widened,
+           and the CR-02 shape it was closing stays closed. --- */
+    t.throws('a prototype key is still refused as a token type', function () {
+      App.ops.setTokenStyle('__proto__', { shape: 'sq' });
+    });
+    t.ok('and nothing leaked onto the shared object prototype',
+      ({}).shape === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'shape'));
+  });
+})();
 // #endregion [S09] SELFTEST
 
 /* ===================== [S10] LAUNCH =====================
