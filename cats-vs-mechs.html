@@ -2387,9 +2387,19 @@ App.render = (function () {
     return row;
   }
 
-  function statLine(cls, label, valueNode, row) {
+  // `tokenId` is optional and names the type whose label this line carries.
+  // When it is there the span gets data-lbl and sync() owns the text from the
+  // first frame on; when it is not, the literal stands as it always has.
+  // setData already skips undefined, so the four-argument call sites below are
+  // unchanged in behaviour. The literal is still passed either way, so the
+  // first painted frame is never blank — the sync pass overwrites it
+  // immediately, and for the shipped five it overwrites it with the same
+  // words.
+  function statLine(cls, label, valueNode, row, tokenId) {
     var line = el('div', 'brd-line');
-    line.appendChild(text('span', cls, label));
+    var name = text('span', cls, label);
+    setData(name, { lbl: tokenId });
+    line.appendChild(name);
     line.appendChild(valueNode);
     if (row) { line.appendChild(row); }
     return line;
@@ -2410,7 +2420,7 @@ App.render = (function () {
     head.appendChild(statLine('brd-label', 'Action points', stepper({
       key: side + '/ap', act: 'ap', nudge: 'nudgeAp', amt: 'ap',
       side: side, label: faction.name + ' action points', value: faction.ap
-    }), tokenRow('ap', side, null)));
+    }), tokenRow('ap', side, null), 'ap'));
 
     // Q-2 -- where the red diamonds live. App.model.bestDamage is a shipped
     // pure derivation that until now had no consumer at all, so this needs no
@@ -2444,12 +2454,12 @@ App.render = (function () {
     card.appendChild(statLine('unit-label', 'Health', stepper({
       key: side + '/' + unit.id + '/maxHp', act: 'maxHp', nudge: 'nudgeMaxHp', amt: 'hp',
       side: side, unitId: unit.id, label: unit.name + ' health', value: unit.maxHp
-    }), tokenRow('hp', side, unit.id)));
+    }), tokenRow('hp', side, unit.id), 'hp'));
 
     card.appendChild(statLine('unit-label', 'Shield', stepper({
       key: side + '/' + unit.id + '/shield', act: 'shield', nudge: 'nudgeShield', amt: 'shield',
       side: side, unitId: unit.id, label: unit.name + ' shield', value: unit.shield
-    }), tokenRow('shield', side, unit.id)));
+    }), tokenRow('shield', side, unit.id), 'shield'));
 
     return card;
   }
@@ -2523,6 +2533,30 @@ App.render = (function () {
     if (amt === 'ap') { return faction.ap; }
     if (amt === 'dmg') { return App.model.bestDamage(faction); }
     if (amt === 'ehp') { return App.model.factionEhp(faction); }
+
+    // ALLOC-11, and a REORDER rather than an append: this arm has to run
+    // ABOVE the `if (!unit) { return 0; }` below it. A type a student made
+    // with scope 'side' is asked for with a null unit id by construction, so
+    // anywhere under that early return it would be unreachable and a faction
+    // tally would draw as zero forever.
+    //
+    // Nothing here is stored: the number is read off the build slice on every
+    // frame, like every other number this function hands back. hasOwnProperty
+    // three times over — on the vocabulary for the same reason styleFor gives,
+    // and on the bag because a tally is stored sparsely, so "no key" is the
+    // ordinary case rather than the odd one. The TOKEN_IDS test is what keeps
+    // the five the board is built on out: their quantity is the health, shield
+    // or action points already on the card, and a second number beside it
+    // would be a purely mechanical reason for the two to disagree.
+    var vocab = state.build.tokens;
+    if (vocab && App.data.TOKEN_IDS.indexOf(amt) === -1
+      && Object.prototype.hasOwnProperty.call(vocab, amt)) {
+      var owner = (vocab[amt].scope === 'side') ? faction : findUnit(faction, unitId);
+      if (!owner || !owner.tally) { return 0; }
+      if (!Object.prototype.hasOwnProperty.call(owner.tally, amt)) { return 0; }
+      return owner.tally[amt];
+    }
+
     var unit = findUnit(faction, unitId);
     if (!unit) { return 0; }
     if (amt === 'hp') { return unit.maxHp; }
@@ -2538,6 +2572,22 @@ App.render = (function () {
     var vocab = state.build.tokens;
     if (vocab && Object.prototype.hasOwnProperty.call(vocab, amt)) { return vocab[amt]; }
     return App.data.DEFAULTS.tokens.hp;
+  }
+
+  // ALLOC-10. The label half of styleFor, and deliberately written as its
+  // twin: same hasOwnProperty guard, for the same reason spelled out above it
+  // — from Phase 4 this object can arrive from a pasted build code, and a bare
+  // lookup for 'constructor' resolves on the prototype and hands the page a
+  // function where a line of text belongs. The typeof check is the second half
+  // of that: a record that survived a decode with no name field must still
+  // paint something a student can read.
+  function labelFor(state, tokenId) {
+    var vocab = state.build.tokens;
+    if (vocab && Object.prototype.hasOwnProperty.call(vocab, tokenId)
+      && typeof vocab[tokenId].name === 'string') {
+      return vocab[tokenId].name;
+    }
+    return App.data.DEFAULTS.tokens.hp.name;
   }
 
   // T-02-01. Shape and colour are enum ids checked against the exported
@@ -2648,6 +2698,18 @@ App.render = (function () {
     var values = board.querySelectorAll('.brd-value');
     for (i = 0; i < values.length; i++) {
       values[i].textContent = String(amountFor(state, values[i].dataset.amt, values[i].dataset.side, values[i].dataset.unit));
+    }
+
+    // ALLOC-10 and D-10. A label is a per-frame read for the same reason every
+    // number beside it is, and NOT a string baked into structure(): a rename
+    // is a plain commit, so making it structural would rebuild both columns on
+    // every keystroke of a name being typed, throwing away the caret and every
+    // token node with it. It is also what lets a rename of one of the five the
+    // board is built on travel exactly the same single path a student-made
+    // type's rename travels — one write, one read, no second place to update.
+    var labels = board.querySelectorAll('[data-lbl]');
+    for (i = 0; i < labels.length; i++) {
+      labels[i].textContent = labelFor(state, labels[i].dataset.lbl);
     }
 
     var rows = board.querySelectorAll('.tok-row');
@@ -2845,6 +2907,11 @@ App.render = (function () {
     // the op clamps, and a local copy of that sum would be a second, mechanical
     // reason for the field and the tokens beside it to disagree.
     amountFor: amountFor,
+    // Exported for the same reason and to the same standard: [S09.7] asserts
+    // the function the board actually paints with rather than a re-typed copy
+    // of it, and plan 02.1-05's editor reads the label it is about to change
+    // through this one read.
+    labelFor: labelFor,
     COMPACT_AT: COMPACT_AT,
     MAX_UNITS: MAX_UNITS
   });
