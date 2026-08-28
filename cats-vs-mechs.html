@@ -7685,6 +7685,137 @@ App.selftest = (function () {
     App.model.turnsToWipe(d.mechs, d.cats);
     t.eq('the projection reads the roster and never writes to it',
       JSON.stringify(d.cats), snapshot);
+
+    /* --- The rendered strip, plan 03-03's half. Everything below needs a
+           page. tests/selftest-node.cjs loads this file into a bare sandbox
+           with no document at all, so the suite says so and stops rather than
+           painting a terminal run red for something that is not a defect — the
+           same bracket [S09.4] uses. The gate in that file mirrors the
+           highest-value rows below against its own stub page, which is what
+           keeps this behaviour reachable from CI at all. --- */
+    if (typeof document === 'undefined') {
+      t.info('projection', 'skipped — no DOM');
+      return;
+    }
+
+    // Same contract as [S09.3] and [S09.4]: everything below drives the live
+    // board through real ops, so the whole state is recorded here and handed
+    // back as this suite's last act.
+    var savedAll = JSON.stringify(App.state.get());
+
+    App.render.structure(App.state.get());
+    App.render.sync(App.state.get());
+
+    var strip = document.getElementById('strip');
+
+    // node ? node.textContent : '(no node)' throughout, because t.eq refuses a
+    // comparison where both sides are undefined and a missing node has to read
+    // as a distinct string rather than quietly matching one.
+    function prj(kind, side) {
+      var n = strip
+        ? strip.querySelector('[data-prj="' + kind + '"][data-side="' + side + '"]')
+        : null;
+      return n ? n.textContent : '(no node)';
+    }
+
+    /* --- D-13 held by SHAPE rather than by the note in [S06.3] that promises
+           it. One panel per side and no figure without a side: a figure with no
+           side is, by construction, a figure about both sides, which is the
+           comparison this tool never performs. --- */
+    var panels = strip ? strip.querySelectorAll('.prj-panel[data-side]') : [];
+    t.eq('the strip holds exactly two panels', panels.length, 2);
+    t.eq('one per side, in the order the board reads',
+      Array.prototype.map.call(panels, function (p) { return p.dataset.side; }).join(','),
+      'cats,mechs');
+
+    var nums = strip ? strip.querySelectorAll('.num') : [];
+    var orphans = 0;
+    Array.prototype.forEach.call(nums, function (n) {
+      var up = n.parentNode;
+      var sided = false;
+      while (up && up !== strip) {
+        if (up.dataset && up.dataset.side !== undefined) { sided = true; break; }
+        up = up.parentNode;
+      }
+      if (!sided) { orphans++; }
+    });
+    // Floored first, for the reason check 47's harvest is floored: a walk that
+    // found no figures at all would report zero orphans and pass spotlessly.
+    t.ok('the strip carries figures for the row below to be about', nums.length >= 6);
+    t.eq('and every one of them sits under a panel naming ONE side', orphans, 0);
+
+    // The cheapest available proof that no proportional bar, shared scale or
+    // midpoint marker has been drawn: none of them can exist without an inline
+    // length or a per-frame custom property, and both are an inline style.
+    t.eq('nothing in the strip carries an inline style attribute',
+      document.querySelectorAll('#strip [style]').length, 0);
+
+    /* --- PROJ-02 and PROJ-03 on the shipped board. The worked lines are
+           asserted as WHOLE strings rather than by looking for the operator in
+           them, so a line that lost an operand still turns this red. --- */
+    t.eq('the cats figure names the side it wipes',
+      prj('turns', 'cats'), '\u22489 turns to wipe Mechs');
+    t.eq('and the mechs figure names the other one',
+      prj('turns', 'mechs'), '\u22483 turns to wipe Cats');
+    t.eq('the cats arithmetic is on screen, both operands and the operator',
+      prj('work', 'cats'), '27 health \u00f7 3 per turn');
+    t.eq('and the mechs arithmetic beside it',
+      prj('work', 'mechs'), '27 health \u00f7 9 per turn');
+
+    /* --- PROJ-04. Permanent, adjacent, five plain nouns. --- */
+    var ignores = strip ? strip.querySelector('.prj-ignores') : null;
+    var nouns = ignores ? ignores.querySelectorAll('.prj-ignore') : [];
+    t.ok('the list of what the projection ignores is on the page and not hidden',
+      ignores !== null && ignores.hidden !== true);
+    t.eq('it names exactly five things', nouns.length, 5);
+    t.eq('and the first is the matchup noun, which PROJ-04 itself spells with a '
+      + 'word this file is not allowed to contain',
+      nouns.length > 0 ? nouns[0].textContent : '(no node)', 'Matchups');
+
+    /* --- PROJ-01, THE RANGE ON SCREEN. Its own named row, because this is the
+           behaviour a verifier is looking for: the model was shown to produce a
+           spread in the DOM-free half above, and this is the spread arriving on
+           the page a student is actually looking at. --- */
+    App.state.get().build.cats.units.map(function (u) { return u.id; })
+      .forEach(function (id) { App.ops.setUnitMaxHp('cats', id, 4); });
+    App.state.flush();
+    t.eq('PROJ-01 — every Cat at 4 health puts a two-bound RANGE on the screen',
+      prj('turns', 'mechs'), '\u22484\u20136 turns to wipe Cats');
+    t.eq('and the second bound is explained on screen rather than left bare',
+      prj('soak', 'mechs'), '54 soaked \u00f7 9 per turn with overkill');
+
+    /* --- The refusal, rendered. [S02] hands back null; this is the page
+           saying so in words. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.ops.setFactionAp('cats', 0);
+    App.state.flush();
+    t.eq('a side with nothing to spend reads as words',
+      prj('turns', 'cats'), 'no damage to spend');
+    t.eq('and its worked line says the same thing arithmetically',
+      prj('work', 'cats'), '0 per turn');
+    var stripText = strip ? String(strip.textContent) : '';
+    t.ok('neither of the two things a raw division would have put on a '
+      + 'projector appears anywhere in the strip',
+      stripText.indexOf('Infinity') === -1 && stripText.indexOf('NaN') === -1);
+
+    /* --- The strip survives structure(). It is a CHILD of #board, and
+           structure() replaces only the two column interiors, so the build-once
+           flag is sound — but that is a fact about another function, and a fact
+           about another function is exactly the kind that changes quietly. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.ops.addUnit('mechs');
+    App.state.flush();
+    t.eq('a structural rebuild leaves the strip standing',
+      strip ? strip.dataset.built : '(no node)', '1');
+    t.eq('and the projection it holds moved with the roster',
+      prj('turns', 'cats'), '\u224812 turns to wipe Mechs');
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the projection suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
   });
 })();
 // #endregion [S09] SELFTEST
