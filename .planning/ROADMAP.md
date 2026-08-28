@@ -120,12 +120,34 @@ single context window. Waves are strictly sequential for the same reason: every 
   3. A permanent, always-visible list sits next to the projection naming what it ignores: counters, effects, focus fire, overkill, and the student's own rulings.
   4. **No verdict exists anywhere on screen.** No traffic light, no difficulty badge, no balance meter, no colour-coded rating, no "balanced / unbalanced / fair" wording, and no shared midpoint bar comparing the two sides against a threshold. Reading the rendered page top to bottom, a student cannot find a place where the tool tells them whether their build is good.
   5. The counter map (Slash < Fly, Hairball < Lasers, Fly < Recharge) and the effect cards (Shield, Slowdown, Confuse, Evade, Range) are visible attached to the actions that carry them, without navigating away from the build.
-**Plans**: 2 plans
+**Plans**: 5 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 03-01: Projection panel — eHP/turns-to-wipe range derivations, visible arithmetic, permanent "this ignores:" list, no-verdict assertion in `selftest` — owns the `model` derivations and the `render.projection` block
-- [ ] 03-02: Reference material — counter-map and effect-keyword card data + stateless render, laid out mode-agnostically so it survives into fight mode — owns the `data.reference` and `render.reference` blocks
+- [ ] 03-01-PLAN.md — The no-verdict gate made mechanical: `VERDICT_WORDS` whole-file scan, a string-literal-only scan, and a rendered-page walk in the interaction gate — owns `tests/selftest-node.cjs` plus one comment reword (wave 1)
+- [ ] 03-02-PLAN.md — `soakTotal` + `turnsToWipe` in `[S02] MODEL`, guarded against Infinity and NaN, and `[S09.8]`'s DOM-free half including the proof that a range actually appears — owns `[S02]` and `[S09.8]` (wave 2)
+- [ ] 03-03-PLAN.md — `[S06.3] RENDER — PROJECTION` on `SYNC_HOOKS`, `[C10]` styles plus the one `[C03]` `#strip` edit, the permanent "this projection ignores" list, and the DOM assertions — owns `[S06.3]`, `[C10]`, `[S09.8]`'s DOM half (wave 3)
+- [ ] 03-04-PLAN.md — Human-approved effect-card copy, then the frozen `REFERENCE` constant in `[S01]` and `[S09.9]`'s DOM-free half — owns `[S01].REFERENCE` and `[S09.9]` (wave 4, blocking decision checkpoint)
+- [ ] 03-05-PLAN.md — `#refband` + `[S06.4] RENDER — REFERENCE`, action and effect cards appended by `buildColumn`, `[C11]` styles, and `[S09.9]`'s DOM half — owns `[S06.4]`, `[C11]`, the shell band and `KNOWN_IDS` (wave 5)
+
+**Plan-split note (set during planning):** ROADMAP named two work units and assigned section
+ownership between them. That ownership is preserved — 03-02 and 03-03 are the projection unit,
+03-04 and 03-05 are the reference-material unit, and 03-01 is the PROJ-06 gate split out in front of
+both so every later plan is policed the moment it writes a word. The unit count grew from 2 to 5
+because everything lands in one HTML file: plans cannot run in parallel, waves are strictly
+sequential, and each is capped at 2–3 tasks to stay inside a single context window. One cross-plan
+edit is declared rather than hidden — plan 03-05 appends to `[S06.1] buildColumn`, which plan 02-01
+owns; wave ordering, not overlapping ownership, is what makes it safe.
+
+**Two naming facts settled during planning:** PROJ-04's own noun ("counters") and REF-01's own name
+("counter map") are both unwritable — `counter` is a zero-hit acceptance grep and the feature cannot
+be named after itself. The list renders **Matchups**; the band heading renders **What beats what**.
+
+**D-05 versus PITFALLS.md Pitfall 2, resolved:** D-05 is later and locked, so a collapsed single
+number is a feature, not a defect. The bounds are two independently derived quantities rather than a
+decorative ±, and they agree on the shipped board because nothing is wasted at 1 and 3 damage. Plans
+03-02 and 03-03 each carry an assertion that drives a real overkill allocation and reads a real
+range back, so the feature is demonstrated rather than argued.
 
 **Design decision to settle before code** (flagged by research): the projection's unit and its visual weight relative to the fight's own output. Turns-to-wipe is chosen so the post-fight comparison lands as "you guessed 3–5, it took 8". The live number must never be the loudest element on screen.
 
@@ -180,7 +202,7 @@ parallel if desired.
 |-------|----------------|--------|-----------|
 | 1. Foundation — Data, State Funnel & Undo | 0/2 | Not started | - |
 | 2. Allocation Surface | 0/3 | Not started | - |
-| 3. Advisory Projection & Reference Material | 0/2 | Not started | - |
+| 3. Advisory Projection & Reference Material | 0/5 | Not started | - |
 | 4. Share & Reset | 0/2 | Not started | - |
 | 5. Fight Loop & Playtest | 0/3 | Not started | - |
 

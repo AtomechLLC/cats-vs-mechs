@@ -985,9 +985,14 @@ a correctness bug reaching a classroom, not a compromise.
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
 
-1. **D-05 versus PITFALLS.md Pitfall 2 — a real, documented contradiction.**
+**All five were resolved during planning.** Dispositions below; the original text is left as
+written so the reasoning that produced each answer stays readable. Question 5 is legitimately
+*deferred* rather than answered — it needs a browser this repo does not have.
+
+
+1. **D-05 versus PITFALLS.md Pitfall 2 — a real, documented contradiction.** — **RESOLVED: D-05 wins, and the plans prove the range rather than asserting it.** 03-02 drives an artificial overkill state and asserts a real spread in the model; 03-03 does the same through the DOM and additionally reverts `turnsText`'s equal-bounds branch to prove the single-number path is asserted, not assumed. The reconciliation is recorded in 03-02 and echoed in ROADMAP so a verifier reading PITFALLS does not file the shipped default as a defect.
    D-05 says: when the bounds are equal, show one number, and *"This is a feature."*
    PITFALLS.md Pitfall 2's warning-sign list says: *"The band collapses to a single value for the
    default build (means the band isn't modelling anything)."*
@@ -999,15 +1004,15 @@ a correctness bug reaching a classroom, not a compromise.
    agree because nothing is wasted at this damage"*), and the phase's verification does not treat the
    collapse as a bug.
 
-2. **Effect card copy (A1).** Not derivable from any source in this repository. Needs the user or the
+2. **Effect card copy (A1).** — **RESOLVED: gated behind a blocking checkpoint in plan 03-04 Task 1** (not 03-02 as recommended here — the plan set grew to five and the reference unit moved). Task 1's acceptance includes `git diff --quiet cats-vs-mechs.html`, and Task 2 reads the approved text from `03-04-SUMMARY.md` rather than the plan's draft, so no agent can write a workshop rule. Not derivable from any source in this repository. Needs the user or the
    Workshop 16 board. **Recommend a `checkpoint:human-verify` in plan 03-02 before the copy is
    written.**
 
-3. **`Recharge` beats `Fly` is intra-Mechs.** Faithful to `PROJECT.md`'s transcription of the board.
+3. **`Recharge` beats `Fly` is intra-Mechs.** — **RESOLVED: transcribed as given and flagged, not fixed**, in plan 03-04. It is folded into that plan's blocking checkpoint so the user sees it at the same moment they approve the effect copy. Faithful to `PROJECT.md`'s transcription of the board.
    Render as given; flag rather than fix. Worth one question to the user, since it changes whether the
    band reads as cross-faction.
 
-4. **Does the widened Layer A list belong in `FORBIDDEN` or beside it?** `FORBIDDEN` currently means
+4. **Does the widened Layer A list belong in `FORBIDDEN` or beside it?** — **RESOLVED: beside it.** Plan 03-01 adds a sibling `VERDICT_WORDS` array with its own failure message, because a verdict word is not a sink and conflating the two would make the failure text lie about what went wrong. `FORBIDDEN` currently means
    "unsafe sink". A verdict word is not a sink. **Recommendation:** a second named array in the same
    file — `VERDICT_WORDS` — with its own message, so a failure says *"PROJ-06: comparative language
    reached the artifact"* rather than *"forbidden pattern"*. Same file, same CI gate, honest labels.
