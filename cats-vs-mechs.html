@@ -5414,6 +5414,118 @@ App.selftest = (function () {
         return JSON.stringify(JSON.parse(json)) === json;
       })());
 
+    /* ========== plan 02.1-03, the read the board draws from ==========
+       The board is handed back again here, so the rows below start from the
+       shipped vocabulary rather than from the full cap the block above left.
+       Everything down to the DOM gate is a pure read over a state object,
+       which is exactly why labelFor and amountFor are exported rather than
+       re-typed here: a suite that re-types the function it is checking checks
+       the copy.
+       -------------------------------------------------------------------- */
+    App.state.restore(savedAll);
+    App.state.flush();
+
+    /* --- ALLOC-10. The label a student reads is a field of state, so one read
+           serves every site on the board that names a type, and a rename has
+           no second place to reach. --- */
+    t.eq('the label read is exported', typeof App.render.labelFor, 'function');
+    t.eq('a shipped type reads its label out of the live vocabulary',
+      App.render.labelFor(App.state.get(), 'hp'), 'Health');
+    App.ops.renameTokenType('hp', 'Vigor');
+    t.eq('and a rename moves it', App.render.labelFor(App.state.get(), 'hp'), 'Vigor');
+    App.ops.renameTokenType('hp', 'Health');
+
+    /* --- T-02.1-14, and the same reason styleFor gives beside it: from
+           Phase 4 the vocabulary can arrive from a pasted build code, and a
+           bare lookup for 'constructor' resolves on the prototype and hands
+           the page a function where it expects a line of text. --- */
+    t.eq('a name JavaScript keeps for itself reads back the shipped health '
+      + 'label rather than a function',
+      App.render.labelFor(App.state.get(), 'constructor'),
+      App.data.DEFAULTS.tokens.hp.name);
+    t.eq('and so does an id that names nothing on this board',
+      App.render.labelFor(App.state.get(), 'nope'),
+      App.data.DEFAULTS.tokens.hp.name);
+    t.eq('and so does a state with no vocabulary at all',
+      App.render.labelFor({ build: {} }, 'hp'),
+      App.data.DEFAULTS.tokens.hp.name);
+
+    /* --- ALLOC-11. amountFor is the ONE read every number on the board goes
+           through, so a type a student made has to resolve there or it draws
+           nothing. The side-scope arm sits ABOVE the point where amountFor
+           gives up for want of a unit: a side tally is asked for with a null
+           unit id, so below that point it would be unreachable. --- */
+    var rUnit = App.ops.createTokenType({
+      name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+    });
+    var rSide = App.ops.createTokenType({
+      name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+    });
+
+    t.eq('a unit tally nobody has written reads zero',
+      App.render.amountFor(App.state.get(), rUnit, 'cats', 'c1'), 0);
+    App.ops.setTally('cats', 'c1', rUnit, 4);
+    t.eq('and once written it reads back through the board\'s one read',
+      App.render.amountFor(App.state.get(), rUnit, 'cats', 'c1'), 4);
+    t.eq('while the cat beside it still reads zero',
+      App.render.amountFor(App.state.get(), rUnit, 'cats', 'c2'), 0);
+
+    App.ops.setTally('mechs', null, rSide, 7);
+    t.eq('a side tally resolves with no unit id at all',
+      App.render.amountFor(App.state.get(), rSide, 'mechs', null), 7);
+    t.eq('and the other side reads zero for it',
+      App.render.amountFor(App.state.get(), rSide, 'cats', null), 0);
+
+    t.eq('a name JavaScript keeps for itself reads zero rather than a function',
+      App.render.amountFor(App.state.get(), 'constructor', 'cats', 'c1'), 0);
+    t.eq('and an id that names nothing reads zero too',
+      App.render.amountFor(App.state.get(), 'nope', 'cats', 'c1'), 0);
+
+    /* --- the five the board is built on are untouched by the new arm. --- */
+    t.eq('health still reads the unit\'s health',
+      App.render.amountFor(App.state.get(), 'hp', 'cats', 'c1'),
+      App.state.get().build.cats.units[0].maxHp);
+    t.eq('shield still reads the unit\'s shield',
+      App.render.amountFor(App.state.get(), 'shield', 'cats', 'c1'),
+      App.state.get().build.cats.units[0].shield);
+    t.eq('action points still read the faction pool',
+      App.render.amountFor(App.state.get(), 'ap', 'cats', null),
+      App.state.get().build.cats.ap);
+
+    /* --- the rows below need a page. The terminal harness loads this file
+           into a bare sandbox with no document, so they say so and stop,
+           exactly as [S09.4] does. A browser run gains the real coverage. --- */
+    if (typeof document === 'undefined') {
+      t.info('the board rows of the token-authoring suite', 'skipped — no DOM');
+    } else {
+      App.render.structure(App.state.get());
+      App.render.sync(App.state.get());
+
+      var heldCard = document.querySelector('.unit-card');
+      var hpLabels = document.querySelectorAll('[data-lbl="hp"]');
+      t.eq('every unit card names health through the label key rather than '
+        + 'through a literal baked into the rebuild',
+        hpLabels.length,
+        App.state.get().build.cats.units.length
+          + App.state.get().build.mechs.units.length);
+
+      App.ops.renameTokenType('hp', 'Vigor');
+      App.state.flush();
+      t.ok('a rename repaints every one of them', (function () {
+        var live = document.querySelectorAll('[data-lbl="hp"]');
+        return live.length === hpLabels.length
+          && Array.prototype.every.call(live, function (n) {
+            return n.textContent === 'Vigor';
+          });
+      })());
+      t.ok('and rebuilt no unit card doing it — the frame a rename asks for is '
+        + 'a sync, so the card that held the label is the same node',
+        document.querySelector('.unit-card') === heldCard);
+
+      App.ops.renameTokenType('hp', 'Health');
+      App.state.flush();
+    }
+
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the token-authoring suite handed the board back untouched',
