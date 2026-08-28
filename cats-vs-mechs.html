@@ -5632,7 +5632,7 @@ App.boot = (function () {
  *   [S09.6] token appearance                                  (plan 02-03)
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
  *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
- *   [S09.9] reference material — effect names and what beats what (plan 03-04)
+ *   [S09.9] reference material — names, what beats what, both halves (03-04/05)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -8245,6 +8245,21 @@ App.selftest = (function () {
     return [rec.over, rec.verb, rec.under];
   }
 
+  // The same read [S06.4] does, written here independently on purpose: this is
+  // the suite's own way of getting from an action id to an action name, so the
+  // rows below compare the renderer's output against the DATA rather than
+  // against the renderer's own helper. Reusing [S06.4]'s function would make
+  // those rows agree with themselves.
+  function actionNameFor(id) {
+    var name = '(no such action: ' + id + ')';
+    ['cats', 'mechs'].forEach(function (side) {
+      App.data.DEFAULTS[side].actions.forEach(function (action) {
+        if (action.id === id) { name = action.name; }
+      });
+    });
+    return name;
+  }
+
   App.selftest.suite('reference material', function (t) {
     var R = App.data.REFERENCE;
     var d = App.data.defaults();
@@ -8365,6 +8380,204 @@ App.selftest = (function () {
       + 'two different objects — a rule and a resource, which is why labelFor '
       + 'is never called for a keyword',
       named.indexOf('shield') !== -1 && App.data.TOKEN_IDS.indexOf('shield') !== -1);
+
+    /* --- The rendered half, plan 03-05's. Everything below needs a page.
+           tests/selftest-node.cjs runs these suites in a bare sandbox with no
+           document at all, so the suite says so and stops rather than painting
+           a terminal run red for something that is not a defect — the bracket
+           [S09.4] and [S09.8] both use. The gate in that file mirrors the
+           highest-value rows below against its own stub page, which is what
+           keeps this behaviour reachable from CI at all. --- */
+    if (typeof document === 'undefined') {
+      t.info('reference material', 'skipped — no DOM');
+      return;
+    }
+
+    // Same contract as [S09.3], [S09.4] and [S09.8]: everything below drives
+    // the live board through real ops, so the whole state is recorded here and
+    // handed back as this suite's last act.
+    var savedAll = JSON.stringify(App.state.get());
+
+    App.render.structure(App.state.get());
+    App.render.sync(App.state.get());
+
+    var band = document.getElementById('refband');
+
+    function bandLines() {
+      return band ? band.querySelectorAll('.ref-beats') : [];
+    }
+    function textsOf(nodes) {
+      return Array.prototype.map.call(nodes, function (n) { return n.textContent; });
+    }
+    function cardsIn(side) {
+      var col = document.getElementById('col-' + side);
+      return col ? col.querySelectorAll('.ref-card') : [];
+    }
+    function cardNamed(side, actionName) {
+      var found = null;
+      Array.prototype.forEach.call(cardsIn(side), function (card) {
+        var head = card.querySelector('.ref-action');
+        if (head && head.textContent === actionName) { found = card; }
+      });
+      return found;
+    }
+
+    /* --- REF-01 on the page. TWO rows about the same two sentences, on
+           purpose and not by accident, because they fail for different
+           reasons. The first compares against strings ASSEMBLED here from
+           DEFAULTS, so a renderer that hand-typed the sentences instead of
+           reading the data goes red. The second compares against the approved
+           wording written out literally, so a change to the DATA that the
+           renderer faithfully followed goes red too. Either row alone leaves
+           one of those two ways to break it uncovered. --- */
+    var expected = App.data.REFERENCE.beats.map(function (rec) {
+      return actionNameFor(rec.over) + ' ' + rec.verb + ' ' + actionNameFor(rec.under);
+    });
+
+    t.ok('the band is on the page, built, and not hidden',
+      band !== null && band.dataset.built === '1' && band.hidden !== true);
+    t.eq('it is headed with the wording this feature has to use, because the '
+      + 'word it would naturally be named after is banned across the whole file',
+      band && band.querySelector('.ref-band-head')
+        ? band.querySelector('.ref-band-head').textContent : '(no node)',
+      'What beats what');
+    t.eq('it states TWO relationships, not the three the board was transcribed '
+      + 'with — the intra-Mechs pair was left out on instruction',
+      bandLines().length, 2);
+    t.eq('and each line reads as the data assembles it, so a sentence typed '
+      + 'into the renderer by hand turns this red',
+      textsOf(bandLines()), expected);
+    t.eq('and the approved wording, written out, so a change to the data the '
+      + 'renderer faithfully followed turns this red too',
+      textsOf(bandLines()), ['Fly beats Slash', 'Lasers beat Hairball']);
+
+    /* --- REF-02 on the page: the cards, in the columns, one per action. --- */
+    t.eq('each column carries one card per action of its own faction',
+      [cardsIn('cats').length, cardsIn('mechs').length], [3, 3]);
+    t.eq('the cats column names the Cats actions, in board order',
+      textsOf(Array.prototype.map.call(cardsIn('cats'), function (c) {
+        return c.querySelector('.ref-action');
+      })), ['Slash', 'Hairball', 'Screech']);
+    t.eq('and the mechs column names the Mechs actions',
+      textsOf(Array.prototype.map.call(cardsIn('mechs'), function (c) {
+        return c.querySelector('.ref-action');
+      })), ['Fly', 'Lasers', 'Recharge']);
+
+    /* --- REF-02 IN BOTH DIRECTIONS, at the DOM level this time. The DOM-free
+           rows above hold the DATA to account; these hold the PAGE to account,
+           which is a different claim: data can be complete while the renderer
+           drops half of it, and a renderer can paint a card the data never
+           described. Each direction is its own row for the reason the pair
+           above is: one row can only catch one of them. --- */
+    var missingOnPage = [];
+    var unknownOnPage = [];
+    var namesInData = App.data.REFERENCE.effects.map(function (r) { return r.name; });
+
+    ['cats', 'mechs'].forEach(function (side) {
+      App.data.DEFAULTS[side].actions.forEach(function (action) {
+        var card = cardNamed(side, action.name);
+        var painted = card ? textsOf(card.querySelectorAll('.ref-effect')) : [];
+        action.keywords.forEach(function (id) {
+          var rec = App.data.REFERENCE.effects.filter(function (r) {
+            return r.id === id;
+          })[0];
+          if (!rec || painted.indexOf(rec.name) === -1) {
+            missingOnPage.push(action.id + '/' + id);
+          }
+        });
+        painted.forEach(function (name) {
+          if (namesInData.indexOf(name) === -1) { unknownOnPage.push(action.id + '/' + name); }
+        });
+      });
+    });
+
+    // Floored first, for the reason check 47's harvest and [S09.7]'s id gate
+    // are floored: a walk that found no cards at all would report no gaps in
+    // either direction and pass spotlessly twice over.
+    var paintedTotal = 0;
+    ['cats', 'mechs'].forEach(function (side) {
+      Array.prototype.forEach.call(cardsIn(side), function (card) {
+        paintedTotal += card.querySelectorAll('.ref-effect').length;
+      });
+    });
+    t.ok('the page carries effect cards for the two rows below to be about',
+      paintedTotal >= 5 && namesInData.length === 5);
+    t.eq('DIRECTION ONE, rendered — every keyword an action carries has a card '
+      + 'inside THAT action\'s card', missingOnPage, []);
+    t.eq('DIRECTION TWO, rendered — every card on the page names an entry in '
+      + 'the data, so a card built from a literal turns this red',
+      unknownOnPage, []);
+
+    /* --- T-03-20, the collision, proven by DRIVING the rename rather than by
+           reading the source. The keyword id shield and the token id shield are
+           the same string in two different objects; a student renaming the
+           TOKEN has not renamed the KEYWORD.
+
+           READ THIS BEFORE SIMPLIFYING IT. The card is read TWICE, and the
+           second read is the one that does the work. A rename is a plain
+           commit, so it runs sync() and NOT structure(); the cards are built by
+           buildColumn, which only structure() calls, and they carry no
+           attribute the sync pass writes. A rename alone therefore cannot
+           repaint a card whatever the builder does — so a row that stopped
+           after the first read would pass just as happily on a builder that
+           called labelFor at BUILD time, which is the drift this row is for. It
+           was measured passing on exactly that mutation before the second read
+           was added. The board's own row is read too, so a rename that never
+           landed cannot make the card rows true for the wrong reason. --- */
+    App.ops.renameTokenType('shield', 'Barrier');
+    App.state.flush();
+    var recharge = cardNamed('mechs', 'Recharge');
+    var boardLabel = document.querySelector('[data-lbl="shield"]');
+    t.eq('renaming the Shield TOKEN does not rename the Recharge KEYWORD',
+      recharge ? textsOf(recharge.querySelectorAll('.ref-effect')).join(',') : '(no card)',
+      'Shield');
+    App.ops.addUnit('mechs');   // structural: the builder runs again, under the rename
+    App.state.flush();
+    var rebuilt = cardNamed('mechs', 'Recharge');
+    t.eq('and it still does not after a structural rebuild re-runs the builder '
+      + 'while the rename is in force — which is the read that catches a label '
+      + 'lookup done at BUILD time rather than on the sync pass',
+      rebuilt ? textsOf(rebuilt.querySelectorAll('.ref-effect')).join(',') : '(no card)',
+      'Shield');
+    t.eq('and the rename did reach the board, so neither row above is passing '
+      + 'on a rename that never happened',
+      boardLabel ? boardLabel.textContent : '(no node)', 'Barrier');
+
+    /* --- The band survives a structural rebuild, for the reason [S09.8] gives
+           about the strip: structure() replaces only the two column interiors,
+           which is a fact about another function and therefore exactly the kind
+           that changes quietly. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.ops.addUnit('cats');
+    App.state.flush();
+    t.eq('a structural rebuild leaves the band standing and still built',
+      band ? band.dataset.built : '(no node)', '1');
+    t.eq('and its lines intact', textsOf(bandLines()),
+      ['Fly beats Slash', 'Lasers beat Hairball']);
+    t.eq('and the columns rebuilt their cards rather than losing them',
+      [cardsIn('cats').length, cardsIn('mechs').length], [3, 3]);
+
+    /* --- REF-03 PRE-SATISFIED, and asserted rather than assumed. The cards are
+           appended OUTSIDE buildColumn's setup-only branch, so they are on the
+           page during a fight as well as during a build. Moving that append
+           inside the branch turns this row red, which is the whole reason the
+           row is written. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.ops.startFight();
+    App.state.flush();
+    t.eq('starting a fight leaves every action card on the page — REF-03, in '
+      + 'Phase 5, is pre-satisfied by where the append sits and not by a plan',
+      [cardsIn('cats').length, cardsIn('mechs').length], [3, 3]);
+    t.eq('while the setup-only Add button is gone, which is what makes the row '
+      + 'above a statement about the branch rather than about nothing',
+      document.querySelectorAll('.brd-add').length, 0);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the reference suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
   });
 })();
 

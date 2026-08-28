@@ -2275,6 +2275,252 @@ check(
 A.state.restore(prjSaved);
 A.state.flush();
 
+/* --- 58 to 63. The reference material, plan 03-05's half of the gate --------
+       [S09.9] in the artifact asserts all of this and more against a page, but
+       it is SKIPPED in a terminal run — the suites are executed at section 3,
+       in a sandbox with no document, long before the stub page below exists.
+       So the rows CI actually runs are these, and they are the ones that have
+       to bite. Same reasoning [S09.8] and checks 49-57 were written under.
+
+       Every drive is bracketed: the whole state is recorded here and handed
+       back at the end, so Layer C's walk below reads the same page it has
+       always read. --- */
+const refSaved = JSON.stringify(A.state.get());
+A.ops.resetToDefaults();
+A.state.flush();
+
+const refBand = dom.byId['refband'];
+
+function refTexts(nodes) {
+  return nodes.map((n) => n.textContent);
+}
+function refBandLines() {
+  return refBand ? refBand.querySelectorAll('.ref-beats') : [];
+}
+function refCards(side) {
+  const col = dom.byId['col-' + side];
+  return col ? col.querySelectorAll('.ref-card') : [];
+}
+function refCardNamed(side, actionName) {
+  return refCards(side).filter((c) => {
+    const head = c.querySelectorAll('.ref-action')[0];
+    return head && head.textContent === actionName;
+  })[0] || null;
+}
+function refActionName(id) {
+  let name = '(no such action: ' + id + ')';
+  ['cats', 'mechs'].forEach((side) => {
+    A.data.DEFAULTS[side].actions.forEach((action) => {
+      if (action.id === id) { name = action.name; }
+    });
+  });
+  return name;
+}
+
+/* REF-01. The sentences are checked TWICE and against two different things,
+   because they can break two ways: assembled from DEFAULTS here, so a renderer
+   that hand-typed them goes red; and written out as the approved wording, so a
+   change to the DATA the renderer faithfully followed goes red as well. The
+   count is pinned at two rather than left open — the board was transcribed with
+   three relationships and the intra-Mechs one was left OUT on instruction, so
+   restoring it should be a decision somebody makes rather than a diff nobody
+   notices. */
+const refAssembled = A.data.REFERENCE.beats.map(
+  (rec) => refActionName(rec.over) + ' ' + rec.verb + ' ' + refActionName(rec.under)
+);
+const refHeadNode = refBand ? refBand.querySelectorAll('.ref-band-head')[0] : null;
+check(
+  '58. the band below both columns is built, carries the heading this feature '
+    + 'is forced to use because it may not be named after itself, and states '
+    + 'TWO relationships — both as the data assembles them and as the approved '
+    + 'wording reads',
+  refBand !== null
+    && refBand.dataset.built === '1'
+    && refBand.hidden !== true
+    && (refHeadNode ? refHeadNode.textContent : null) === 'What beats what'
+    && refBandLines().length === 2
+    && refTexts(refBandLines()).join(' | ') === refAssembled.join(' | ')
+    && refTexts(refBandLines()).join(' | ') === 'Fly beats Slash | Lasers beat Hairball',
+  'built=' + JSON.stringify(refBand ? refBand.dataset.built : '(no node)')
+    + ' heading=' + JSON.stringify(refHeadNode ? refHeadNode.textContent : '(no node)')
+    + ' lines=' + JSON.stringify(refTexts(refBandLines()))
+    + ' assembled=' + JSON.stringify(refAssembled)
+);
+
+check(
+  '59. each faction column carries one action card per action of its own '
+    + 'faction, naming that action — the cards are IN the columns, which is '
+    + 'what lets an effect attach to the action that carries it',
+  refCards('cats').length === 3
+    && refCards('mechs').length === 3
+    && refTexts(refCards('cats').map((c) => c.querySelectorAll('.ref-action')[0])).join(',')
+      === 'Slash,Hairball,Screech'
+    && refTexts(refCards('mechs').map((c) => c.querySelectorAll('.ref-action')[0])).join(',')
+      === 'Fly,Lasers,Recharge',
+  'cats=' + JSON.stringify(refTexts(refCards('cats').map((c) => c.querySelectorAll('.ref-action')[0])))
+    + ' mechs=' + JSON.stringify(refTexts(refCards('mechs').map((c) => c.querySelectorAll('.ref-action')[0])))
+);
+
+/* REF-02 IN BOTH DIRECTIONS, on the rendered page. Data can be complete while
+   the renderer drops half of it, and a renderer can paint a card the data never
+   described; those are different defects and neither row catches the other's.
+   Floored first, for the reason check 47's harvest is floored — a walk that
+   found no cards would report no gaps in either direction and pass twice over. */
+const refMissing = [];
+const refUnknown = [];
+const refNames = A.data.REFERENCE.effects.map((r) => r.name);
+let refPainted = 0;
+['cats', 'mechs'].forEach((side) => {
+  A.data.DEFAULTS[side].actions.forEach((action) => {
+    const card = refCardNamed(side, action.name);
+    const chips = card ? refTexts(card.querySelectorAll('.ref-effect')) : [];
+    refPainted += chips.length;
+    action.keywords.forEach((id) => {
+      const rec = A.data.REFERENCE.effects.filter((r) => r.id === id)[0];
+      if (!rec || chips.indexOf(rec.name) === -1) { refMissing.push(action.id + '/' + id); }
+    });
+    chips.forEach((name) => {
+      if (refNames.indexOf(name) === -1) { refUnknown.push(action.id + '/' + name); }
+    });
+  });
+});
+check(
+  '60. REF-02 both ways at once — every keyword an action carries has a card '
+    + 'inside THAT action\'s card, and every card on the page names an entry in '
+    + 'the data, so a card built from a literal fails the second half',
+  refPainted >= 5 && refMissing.length === 0 && refUnknown.length === 0,
+  'cards painted=' + refPainted + ' (floor 5) missing from the page='
+    + JSON.stringify(refMissing) + ' painted but not in the data='
+    + JSON.stringify(refUnknown)
+);
+
+/* T-03-20, driven rather than read. The keyword id shield and the token id
+   shield are the same string in two different objects.
+
+   READ THIS BEFORE SIMPLIFYING IT. The card is checked after a rename TWICE,
+   and the second read is the one that does the work. A rename is a plain
+   commit, so it runs sync() and NOT structure(); the cards are built by
+   buildColumn, which only structure() calls, and they carry no attribute the
+   sync pass writes. So a rename alone can never repaint a card whatever the
+   builder does — and a row that stopped after the first read would pass just
+   as happily on a builder that called the label reader at BUILD time, which is
+   precisely the drift this row exists to catch. It was measured passing on
+   exactly that mutation before the structural read was added.
+
+   So: rename, read (that covers sync-time drift), then force a structural
+   rebuild while the rename is still in force and read again (that covers
+   build-time drift). The board's own shield row is read as well, because if
+   the rename never landed at all then "the card did not change" would be true
+   for entirely the wrong reason. */
+A.ops.renameTokenType('shield', 'Barrier');
+A.state.flush();
+const refRecharge = refCardNamed('mechs', 'Recharge');
+const refChipsAfterSync = refRecharge
+  ? refTexts(refRecharge.querySelectorAll('.ref-effect')).join(',') : '(no card)';
+const refBoardLabel = stub.querySelector('[data-lbl="shield"]');
+A.ops.addUnit('mechs');          // structural: buildColumn runs again, under the rename
+A.state.flush();
+const refRebuilt = refCardNamed('mechs', 'Recharge');
+const refChipsAfterRebuild = refRebuilt
+  ? refTexts(refRebuilt.querySelectorAll('.ref-effect')).join(',') : '(no card)';
+check(
+  '61. renaming the Shield TOKEN to Barrier leaves the Recharge KEYWORD card '
+    + 'reading Shield — after the sync the rename triggers AND after a '
+    + 'structural rebuild that re-runs the builder — while the board\'s own '
+    + 'shield row does read Barrier. A student renaming a resource has not '
+    + 'renamed a rule',
+  refChipsAfterSync === 'Shield'
+    && refChipsAfterRebuild === 'Shield'
+    && refBoardLabel !== null && refBoardLabel.textContent === 'Barrier',
+  'card after sync=' + JSON.stringify(refChipsAfterSync)
+    + ' card after structural rebuild=' + JSON.stringify(refChipsAfterRebuild)
+    + ' board shield row=' + JSON.stringify(refBoardLabel ? refBoardLabel.textContent : '(no node)')
+);
+
+/* REF-03 pre-satisfied, and asserted rather than assumed. The cards are
+   appended OUTSIDE buildColumn's setup-only branch. The Add-button half is what
+   makes this a statement about the branch: without it the row would pass on a
+   board where startFight() had quietly done nothing at all. */
+A.ops.resetToDefaults();
+A.state.flush();
+A.ops.startFight();
+A.state.flush();
+check(
+  '62. starting a fight leaves every action card on the page while the '
+    + 'setup-only Add button goes away — Phase 5\'s REF-03 is pre-satisfied by '
+    + 'where the append sits, and this is the row that says so',
+  refCards('cats').length === 3
+    && refCards('mechs').length === 3
+    && stub.querySelectorAll('.brd-add').length === 0,
+  'cats cards=' + refCards('cats').length + ' mechs cards=' + refCards('mechs').length
+    + ' add buttons=' + stub.querySelectorAll('.brd-add').length
+);
+
+A.state.restore(refSaved);
+A.state.flush();
+
+/* A SOURCE-LEVEL row, and the honest description of what it is: a heuristic
+   against drift, not a proof against a determined author — the register the
+   FORBIDDEN scan uses about itself.
+
+   It reads the card builder's region out of the document between its #region
+   markers and STRIPS THE COMMENTS before searching. That is the whole point of
+   the row rather than a detail of it. The label reader's rule has to be
+   written down in the comment in BOTH directions, because half of it is the
+   opposite of the other half and a reader who learns only one will "fix" the
+   other; a plain grep over the region would therefore be a grep that can never
+   return zero, and a check that can never pass is not a check. Stripping the
+   comments makes the row about the CODE, which is where the rule actually has
+   to hold. Same finding as checks 56 and 57: what a source count catches and
+   what a walk catches are not the same surface.
+
+   The marker pair is floored too — a rename of either marker would slice an
+   empty string, and an empty string contains nothing at all. */
+function stripComments(src) {
+  let out = '';
+  let i = 0;
+  let quote = null;
+  while (i < src.length) {
+    const c = src[i];
+    const d = src[i + 1];
+    if (quote) {
+      if (c === '\\') { out += c + (d || ''); i += 2; continue; }
+      if (c === quote) { quote = null; }
+      out += c; i++; continue;
+    }
+    if (c === "'" || c === '"' || c === '`') { quote = c; out += c; i++; continue; }
+    if (c === '/' && d === '/') { while (i < src.length && src[i] !== '\n') { i++; } continue; }
+    if (c === '/' && d === '*') {
+      i += 2;
+      while (i < src.length && !(src[i] === '*' && src[i + 1] === '/')) { i++; }
+      i += 2; continue;
+    }
+    out += c; i++;
+  }
+  return out;
+}
+
+const REF_OPEN = '// #region [S06.1] the reference cards';
+const REF_CLOSE = '// #endregion [S06.1] the reference cards';
+const refOpenAt = html.indexOf(REF_OPEN);
+const refCloseAt = html.indexOf(REF_CLOSE);
+const refRegionCode = (refOpenAt !== -1 && refCloseAt > refOpenAt)
+  ? stripComments(html.slice(refOpenAt, refCloseAt)) : '';
+const refBanned = ['labelFor', 'data-act', 'data-k', 'createElementNS']
+  .filter((w) => refRegionCode.indexOf(w) !== -1);
+check(
+  '63. the card builder\'s CODE calls no label reader and carries neither '
+    + 'attribute the interaction layer dispatches on — read between the '
+    + 'region markers with the comments stripped, because the comment has to '
+    + 'state the label rule by name and a raw grep could never pass',
+  refRegionCode.length > 400 && refBanned.length === 0,
+  'code-only region ' + refRegionCode.length + ' chars (floor 400); found: '
+    + JSON.stringify(refBanned)
+);
+
+A.state.restore(refSaved);
+A.state.flush();
+
 /* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
        Layers A and B, up at the top of this file, read the SOURCE. This one
        reads the PAGE, for two reasons. The roadmap's criterion is written about
@@ -2341,25 +2587,32 @@ renderedText.forEach((s) => {
 console.log('scan: ' + renderedText.length + ' rendered strings read from #app (Layer C, '
   + RENDERED_VERDICT_WORDS.length + ' words)');
 
-// The floor was 100 against a measurement of 102 — a margin of two, which plan
-// 03-01 shipped and then flagged in its own summary as too thin to survive a
-// roster edit. Plan 03-03's projection strip raised the harvest to 115, so the
-// floor is raised with it rather than left to drift further from what it is
-// meant to catch.
+// THIS FLOOR IS RE-MEASURED EVERY TIME THE PAGE GROWS, and the history is kept
+// so the next plan to touch it inherits data rather than a bare constant.
+//   plan 03-01 shipped 100 against a measurement of 102 — a margin of two, and
+//     it flagged that margin in its own summary as too thin to survive a roster
+//     edit;
+//   plan 03-03's projection strip took the harvest to 115 and the floor to 105;
+//   plan 03-05's reference band and action cards take it to 135, and the floor
+//     to 125.
 //
-// 105 is chosen against three measurements rather than picked. The shipped
-// board harvests 115 here and 111 on a board with no gate drives behind it; a
-// board shrunk to one unit a side harvests 41; and each unit card is worth
-// about 7 strings, measured by adding three Mechs and watching 111 become 132.
-// So 105 leaves more than one unit card of headroom against a legitimate change
-// to the shipped roster, while sitting far above the zero a walk reading the
-// wrong node would report. The strip's own 13 strings are roster-independent
-// and are separately pinned by checks 49-55, which assert them one by one.
+// 125 is chosen against four measurements, taken this session, rather than
+// picked. The shipped board harvests 135 here and 131 on a board with no gate
+// drives behind it; a board shrunk to one unit a side harvests 61; and each
+// unit card is worth 7 strings, measured by adding three Mechs and watching 131
+// become 152. So 125 leaves more than one unit card of headroom against a
+// legitimate change to the shipped roster, while sitting far above the zero a
+// walk reading the wrong node would report.
+//
+// The strip's 13 strings and the reference material's 20 — three in the band,
+// seventeen across the six action cards — are roster-INdependent, and every one
+// of them is separately pinned by checks 49-55 and 58-60, which assert them by
+// name. This floor is only ever about the walk still reaching the page.
 check(
   '47. the rendered-page walk actually reaches the page, so a clean result is a '
     + 'read page rather than an empty one',
-  renderedText.length > 105,
-  'harvested ' + renderedText.length + ' strings from #app; the floor is 105'
+  renderedText.length > 125,
+  'harvested ' + renderedText.length + ' strings from #app; the floor is 125'
 );
 
 check(
@@ -2414,7 +2667,19 @@ check(
          8. Whether a four-digit turn count is legible from the back of a room at
             .brd-value's 24px. The figure is SIZED for four digits, which is an
             arithmetic claim about the widest realistic roster and not a claim
-            about anybody's eyes. Same rehearsal, same afternoon. --- */
+            about anybody's eyes. Same rehearsal, same afternoon.
+         9. Whether a column holding a faction head, up to twenty-four unit
+            cards, an Add button and three action cards still fits a laptop
+            viewport, and whether the band underneath is reachable without a
+            scroll that leaves it unseen. The columns grew this phase and
+            nothing here measures height.
+        10. Whether the band's two sentences are legible from the back of a
+            room at 24px. Check 58 asserts the characters; only a display
+            asserts that anybody can read them.
+        11. Whether the strip still STICKS now that the content beside it is
+            taller. Entry 6 named this before the columns grew; the columns
+            have now grown, so the same unanswered question is worth more.
+            Still no layout engine here to answer it. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
