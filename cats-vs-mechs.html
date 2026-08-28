@@ -2952,8 +2952,14 @@ App.render = (function () {
    * safeColor and withPreservedFocus — because a swatch that were built by a
    * second, parallel token builder could drift away from the board's, and the
    * whole point of a swatch is that it is the same object as a board token.
+   *
+   * It is a LIST plus an editor (D-05): every type on the board is a row, a
+   * student's invention and one of the five the board is built on alike, and
+   * the row that is live decides what the editor below it is showing. It also
+   * reuses labelFor, because the name on a row and the name on the board must
+   * come from the same place or they will drift the first time one is changed.
    * deps: App.data, [S06.1]'s helpers
-   * owner: Phase 2, plan 02-03
+   * owner: Phase 2, plan 02-03; list-plus-editor by plan 02.1-04
    * =================================================================== */
   // #region [S06.2] RENDER — PICKER
 
