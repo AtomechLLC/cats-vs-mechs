@@ -37,6 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Allocation Surface** - Steppers, token rows and roster editing that survive live-workshop hammering
 - [ ] **Phase 2.1: Token Authoring (INSERTED)** - Students name their tokens and invent new ones, so the vocabulary stops being ours and starts being theirs
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student
+- [ ] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides
 - [ ] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back
 - [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it
 
@@ -151,9 +152,39 @@ range back, so the feature is demonstrated rather than argued.
 
 **Design decision to settle before code** (flagged by research): the projection's unit and its visual weight relative to the fight's own output. Turns-to-wipe is chosen so the post-fight comparison lands as "you guessed 3–5, it took 8". The live number must never be the loudest element on screen.
 
+### Phase 3.1: Action Authoring (INSERTED)
+**Goal**: A student can program an action of their own — what it costs, what it needs, and what it changes — and the tool shows what their rule would do while leaving every ruling to them
+**Depends on**: Phase 2.1 (the token vocabulary an action's cost, requirement and transformations all name) and Phase 3 (the projection an authored action changes the meaning of)
+**Requirements**: ACT-01, ACT-02, ACT-03, ACT-04, ACT-05, ACT-06, ACT-07
+**Success Criteria** (what must be TRUE):
+  1. A student can create an action on either faction, name it, and give it a cost — a token type and an amount — which defaults to one action point and is consumed when the action fires.
+  2. A student can give an action requirements: token types and amounts that must be present for it to be available, and that are **not** consumed by it.
+  3. A student can give an action transformations: each naming the caster or the target, a token type, and the amount that token changes by. An action may carry more than one.
+  4. **The tool proposes and the student disposes.** Firing an authored action shows what that student's own rule says would happen — which tokens move, on whom, by how much — and the student accepts it, edits any number in it, or overrides it entirely. **Nothing lands until they say so, and the tool never decides whether an action happens or what it is worth.**
+  5. An action naming a token type that has since been removed is refused by name with a message that says which action and which token, rather than being silently skipped or firing with a missing term.
+**Plans**: TBD
+**UI hint**: yes
+
+**Why this is not automated combat.** PROJECT.md excludes an engine that resolves combat, on the
+grounds that adjudication *is* the exercise. This phase does not resolve anything: the student
+authors the rule, and the tool reads their own rule back to them and waits. That is bookkeeping of
+a student's design, not a judgement about it — the same line the projection already walks. The
+developer chose this explicitly over auto-apply on 2026-08-28; auto-apply would have needed the
+Out of Scope entry rewritten and was declined.
+
+**What this changes downstream.** Phase 4's build code must carry authored actions (SHARE-08,
+widened a third time). Phase 5's fight loop consumes them rather than taking raw manual entry —
+FIGHT-12 adds the per-side action sequence, and FIGHT-03/FIGHT-04 become the propose-confirm path
+rather than bare numeric input. Phase 5 has no plans yet, so nothing is rebuilt.
+
+**A note for the planner on the projection.** `bestDamage` is `max(action.dmg)` — one scalar per
+faction — and Phase 3's whole projection rests on it. An action that costs two points, heals its
+caster, or moves a student-made token does not reduce to that. Deciding what the projection means
+once actions are programmable is part of this phase, not an afterthought.
+
 ### Phase 4: Share & Reset
 **Goal**: A student can copy a build code short enough to post in the Discord thread, load a classmate's, and get back to Workshop 16 defaults without ever loading garbage silently
-**Depends on**: Phase 2 and Phase 2.1 (build shape must be stable — 2.1 opens the token id space, and SHARE-08 must carry student-created type definitions, not just restyles; may run in parallel with Phase 3)
+**Depends on**: Phase 2, Phase 2.1 and Phase 3.1 (build shape must be stable — 2.1 opens the token id space and 3.1 adds authored actions, so SHARE-08 carries type definitions and action definitions, not just restyles)
 **Requirements**: SHARE-01, SHARE-02, SHARE-03, SHARE-04, SHARE-05, SHARE-06, SHARE-08
 **Success Criteria** (what must be TRUE):
   1. A student clicks copy and gets a build code on the clipboard; pasting that code into the load field reproduces the build exactly, unit for unit and point for point. When the browser blocks the clipboard API, a selectable field appears with the code already highlighted so the copy still happens.
@@ -172,8 +203,8 @@ Plans:
 
 ### Phase 5: Fight Loop & Playtest
 **Goal**: A student can play the fight hot-seat with the tool doing bookkeeping and the student doing adjudication — and the shipped default is confirmed contested by actually playing it
-**Depends on**: Phase 1, Phase 2, Phase 3, Phase 4
-**Requirements**: FIGHT-01, FIGHT-02, FIGHT-03, FIGHT-04, FIGHT-05, FIGHT-06, FIGHT-07, FIGHT-08, FIGHT-09, FIGHT-10, FIGHT-11, PROJ-05, REF-03, SHARE-07
+**Depends on**: Phase 1, Phase 2, Phase 3, Phase 3.1, Phase 4
+**Requirements**: FIGHT-01, FIGHT-02, FIGHT-03, FIGHT-04, FIGHT-05, FIGHT-06, FIGHT-07, FIGHT-08, FIGHT-09, FIGHT-10, FIGHT-11, FIGHT-12, PROJ-05, REF-03, SHARE-07
 **Success Criteria** (what must be TRUE):
   1. A student can start a fight from the current build, advance and rewind turn and round by hand — the tool never advances on its own, not even when a side's action points hit zero — and can reset the fight to turn one without discarding the build. Whose turn it is and what remains to spend are unambiguous from across the room, with spent action points visibly distinct from available ones.
   2. A student can apply damage to an individual unit; a unit reaching zero health is marked dead, stays visible in the roster rather than disappearing, and can be toggled back alive by hand so a Shield or Evade ruling is representable.

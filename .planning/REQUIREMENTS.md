@@ -21,10 +21,21 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **ALLOC-10**: Student can give a token type a name, shown wherever that token type is presented
 - [ ] **ALLOC-11**: Student can create and remove their own token types, which count nothing on their own — a free annotation the student increments by hand to track a mechanic they invented — **code-complete and code-verified; awaiting one itemised browser rehearsal, see F-02.1-B**
 
+### Action Authoring
+
+- [ ] **ACT-01**: Student can create, rename and remove their own actions on either faction, alongside the shipped ones
+- [ ] **ACT-02**: An action carries a cost — a token type and an amount that is **consumed** when it fires (default: one action point)
+- [ ] **ACT-03**: An action carries requirements — token types and amounts that must be present but are **not** consumed
+- [ ] **ACT-04**: An action carries transformations — each names the caster or the target, a token type, and the amount that token changes by
+- [ ] **ACT-05**: The tool proposes what an authored action would do and the student accepts, edits the numbers, or overrides it entirely before anything lands — the tool never applies a transformation on its own
+- [ ] **ACT-06**: The tool reports whether a cost is affordable and a requirement met, and never decides whether the action happens
+- [ ] **ACT-07**: An action whose cost, requirement or transformation names a token type that has since been removed is refused by name with a message, and never silently skipped
+
 ### Fight
 
 - [ ] **FIGHT-01**: Student can start a fight from the current build
 - [ ] **FIGHT-02**: Student can advance and rewind turn and round; the tool never advances on its own
+- [ ] **FIGHT-12**: Student can set the sequence of actions each side performs in a turn, drawing on that side's authored and shipped actions
 - [ ] **FIGHT-03**: Student can spend a faction's action points during its turn, with spent points visibly distinct from available ones
 - [ ] **FIGHT-04**: Student can apply damage to an individual unit
 - [ ] **FIGHT-05**: A unit reaching zero health is marked dead but can be manually toggled alive or dead, so a student's Shield or Evade ruling is representable
@@ -59,7 +70,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **SHARE-05**: The current build mirrors to `location.hash` for the student's own reload and bookmark, without being presented as the sharing mechanism
 - [ ] **SHARE-06**: Student can reset to Workshop 16 board defaults, behind a confirmation
 - [ ] **SHARE-07**: Student can reset the fight without discarding their build
-- [ ] **SHARE-08**: Custom token appearance, names and student-created token types all round-trip through the build code, so a shared build looks the same for the recipient
+- [ ] **SHARE-08**: Custom token appearance, names, student-created token types and authored actions all round-trip through the build code, so a shared build looks and behaves the same for the recipient
 
 ### Usability & Delivery
 
@@ -130,6 +141,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ALLOC-09 | Phase 2 | Complete |
 | ALLOC-10 | Phase 2.1 | Complete — every token record carries a `name`; rename commits through the op, and gate check 30 asserts the picker list row, the picker heading and the board label all repaint from the same rename. Confirmed by a human in aggregate ("token config works"), not itemised. |
 | ALLOC-11 | Phase 2.1 | **Code-complete, awaiting human confirmation.** Create, remove (one undoable step) and the appearance surface are covered by gate checks 31, 33 and 35. The **"increments by hand"** half was blocked by F-02.1-A — a never-written tally could not be raised at all (24 nudge buttons and 12 tally fields built for a fresh unit-scope type, 0 of 36 reachable). **F-02.1-A's reveal-on-select did not close it**: the editor is modal, so its backdrop owned every pointer and the revealed line was visible but unpressable. **F-02.1-B closed it** by letting the reveal survive the editor closing (commit `ce6f61e`); reverting that one line turns 2 of the 430 rows red. Still unticked only because no one has raised a tally by hand in a real browser — the rehearsal never attempted it, because at the time it was impossible. |
+| ACT-01 | Phase 3.1 | Pending |
+| ACT-02 | Phase 3.1 | Pending |
+| ACT-03 | Phase 3.1 | Pending |
+| ACT-04 | Phase 3.1 | Pending |
+| ACT-05 | Phase 3.1 | Pending |
+| ACT-06 | Phase 3.1 | Pending |
+| ACT-07 | Phase 3.1 | Pending |
 | FIGHT-01 | Phase 5 | Pending |
 | FIGHT-02 | Phase 5 | Pending |
 | FIGHT-03 | Phase 5 | Pending |
@@ -141,6 +159,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FIGHT-09 | Phase 5 | Pending |
 | FIGHT-10 | Phase 5 | Pending |
 | FIGHT-11 | Phase 5 | Pending |
+| FIGHT-12 | Phase 5 | Pending |
 | PROJ-01 | Phase 3 | Pending |
 | PROJ-02 | Phase 3 | Pending |
 | PROJ-03 | Phase 3 | Pending |
@@ -165,8 +184,8 @@ Which phases cover which requirements. Updated during roadmap creation.
 | UX-05 | Phase 2 | Complete |
 
 **Coverage:**
-- v1 requirements: 44 total
-- Mapped to phases: 44 ✓
+- v1 requirements: 52 total
+- Mapped to phases: 52 ✓
 - Unmapped: 0
 
 | Phase | Requirements | Count |
@@ -174,9 +193,10 @@ Which phases cover which requirements. Updated during roadmap creation.
 | 1. Foundation — Data, State Funnel & Undo | ALLOC-08, UX-01, UX-03, UX-04 | 4 |
 | 2. Allocation Surface | ALLOC-01…07, ALLOC-09, UX-02, UX-05 | 10 |
 | 2.1 Token Authoring (INSERTED) | ALLOC-10, ALLOC-11 | 2 |
+| 3.1 Action Authoring (INSERTED) | ACT-01…07 | 7 |
 | 3. Advisory Projection & Reference Material | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
 | 4. Share & Reset | SHARE-01…06, SHARE-08 | 7 |
-| 5. Fight Loop & Playtest | FIGHT-01…11, PROJ-05, REF-03, SHARE-07 | 14 |
+| 5. Fight Loop & Playtest | FIGHT-01…11, FIGHT-12, PROJ-05, REF-03, SHARE-07 | 14 |
 
 PROJ-05, REF-03 and SHARE-07 sit in Phase 5 rather than with their category, because each only
 becomes observable once the fight view exists.
