@@ -5962,6 +5962,176 @@ App.selftest = (function () {
       t.ok('while making a new type rebuilds the columns, because sync() can '
         + 'neither build a line nor take one away',
         board.querySelector('.unit-card') !== cardBefore);
+
+      /* ========== plan 02.1-04, the picker as list-plus-editor ==========
+         The board is handed back first, so these rows start from the shipped
+         five rather than from whatever the block above left standing, and
+         through invalidate + flush for the reason recorded at the top of this
+         block: a structural flag left by an earlier createTokenType is
+         otherwise paid for by the next frame and blamed on whatever asked
+         for it.
+
+         Every selector below is a tag, a class or a [data-*]. That is the
+         whole grammar the Node harness's stub page parses, and a row written
+         with #id or [aria-pressed="true"] would silently match nothing there
+         and pass for the wrong reason.
+         ------------------------------------------------------------------ */
+      App.state.restore(savedAll);
+      App.state.invalidate({ structural: true });
+      App.state.flush();
+
+      var dlg = document.getElementById('tok-picker');
+      var pkList = document.getElementById('tok-pick-list');
+      var pkName = document.getElementById('tok-pick-name');
+      var pkTitle = document.getElementById('tok-pick-title');
+      var pkRemove = document.getElementById('tok-pick-remove');
+      var pkNewUnit = document.getElementById('tok-pick-new-unit');
+      var pkNewSide = document.getElementById('tok-pick-new-side');
+
+      // Every read below goes through these, so a surface that has not been
+      // built yet reads as a legible miss on one row instead of throwing and
+      // taking the rest of the suite down with it.
+      function rowFor(tokenId) {
+        return pkList ? pkList.querySelector('[data-tok="' + tokenId + '"]') : null;
+      }
+      function rowLabel(tokenId) {
+        var row = rowFor(tokenId);
+        var span = row ? row.querySelector('.pk-sw-label') : null;
+        return span ? span.textContent : '(no row)';
+      }
+      function liveRowTok() {
+        var row = pkList ? pkList.querySelector('.pk-sw--on') : null;
+        return row ? row.dataset.tok : '(nothing marked)';
+      }
+      function rowCount() { return pkList ? pkList.children.length : -1; }
+
+      // syncPicker is what carries a rename or a new type into this surface
+      // and it returns at once on a closed dialog, so the rows below are
+      // measuring nothing unless it is genuinely open.
+      if (dlg && dlg.open !== true) { dlg.showModal(); }
+      App.render.picker(App.state.get(), 'hp');
+
+      /* --- D-05. ONE list, no second tier: a type a student invented and a
+             type the board is built on are the same kind of row in it. --- */
+      t.eq('the picker lists every token type on the board',
+        rowCount(), Object.keys(App.state.get().build.tokens).length);
+      t.eq('the dead marker among them, because leaving it out would rebuild '
+        + 'the very special case one list exists to delete',
+        rowFor('dead') === null ? '(no row)' : rowFor('dead').dataset.tok, 'dead');
+      t.eq('exactly one row is marked as the one being edited', (function () {
+        return pkList ? pkList.querySelectorAll('.pk-sw--on').length : -1;
+      })(), 1);
+      t.eq('and it is the type the picker was opened on', liveRowTok(), 'hp');
+      t.eq('each row reads its label through the one label source in the file',
+        rowLabel('shield'), App.render.labelFor(App.state.get(), 'shield'));
+
+      /* --- T-02.1-19. The selected id has an attribute of its own. It used to
+             be recovered with String(dlg.dataset.sig).split('/')[0], which is
+             a parse of a delimiter-joined string a student can type into. --- */
+      t.eq('the selected id lives in its own attribute rather than being '
+        + 'parsed back out of a delimiter-joined signature',
+        dlg ? dlg.dataset.tok : '(no dialog)', 'hp');
+
+      /* --- D-19, and the reason the field is static markup. --- */
+      t.eq('the name field opens on the selected type’s name',
+        pkName ? pkName.value : '(no field)',
+        App.render.labelFor(App.state.get(), 'hp'));
+      t.eq('and records it as the baseline Escape puts back',
+        pkName ? pkName.dataset.was : '(no field)',
+        pkName ? pkName.value : '(no field)');
+
+      /* --- PITFALL 4, measured: the shipped four-field signature
+             (id/shape/color/glyph) moved for NEITHER a rename nor a new type,
+             so the heading, the grids and the list all stayed stale under a
+             student who had just renamed something. These four rows are the
+             regression test for that measurement. --- */
+      var sigBeforeRename = dlg ? dlg.dataset.sig : null;
+      App.ops.renameTokenType('hp', 'Vigor');
+      App.state.flush();
+      t.ok('a rename moves the repaint gate, which the four-field signature '
+        + 'this replaces never did',
+        dlg ? dlg.dataset.sig !== sigBeforeRename : false);
+      t.eq('the heading follows the new name',
+        pkTitle ? pkTitle.textContent : '(no heading)', 'Vigor');
+      t.eq('and so does the list row', rowLabel('hp'), 'Vigor');
+      t.eq('and so does the name field',
+        pkName ? pkName.value : '(no field)', 'Vigor');
+      App.ops.renameTokenType('hp', 'Health');
+      App.state.flush();
+
+      var sigBeforeNew = dlg ? dlg.dataset.sig : null;
+      var rowsBefore = rowCount();
+      var pkMade = App.ops.createTokenType({
+        name: 'Ash', shape: 'hex', color: 'gold', glyph: '', scope: 'unit'
+      });
+      App.state.flush();
+      t.ok('and so does a type that did not exist a moment ago',
+        dlg ? dlg.dataset.sig !== sigBeforeNew : false);
+      t.eq('which arrives as one more row in the list', rowCount(), rowsBefore + 1);
+      App.ops.removeTokenType(pkMade);
+      App.state.flush();
+      t.eq('and leaves as one fewer', rowCount(), rowsBefore);
+
+      /* --- the half of the idiom that is NOT changing: a repaint that changes
+             nothing must still touch no nodes, so pressing the row that is
+             already live does not rebuild the list under the finger. --- */
+      var heldRow = pkList ? pkList.firstElementChild : null;
+      App.render.picker(App.state.get(), 'hp');
+      t.ok('a repaint with nothing changed leaves every node where it was',
+        heldRow !== null && pkList.firstElementChild === heldRow);
+
+      /* --- D-19 again, and this is why the field is static: the dialog
+             repaints on EVERY frame while it is open, so a field that were
+             rebuilt or overwritten would hand a half-typed name back the
+             stored one mid-keystroke. --- */
+      if (pkName) {
+        pkName.focus();
+        pkName.value = 'Poi';
+      }
+      App.ops.renameTokenType('shield', 'Barrier');
+      App.state.flush();
+      t.eq('a repaint leaves the name field alone while it holds focus',
+        pkName ? pkName.value : '(no field)', 'Poi');
+      if (pkName) { pkName.blur(); }
+      App.ops.renameTokenType('shield', 'Shield');
+      App.state.flush();
+      t.eq('and picks the stored name back up the moment focus leaves it',
+        pkName ? pkName.value : '(no field)',
+        App.render.labelFor(App.state.get(), 'hp'));
+
+      /* --- D-15 and D-18. A bound the student can see coming is a disabled
+             button, not an error panel they have to read their way out of. --- */
+      t.eq('Remove is closed for a type the board is built on',
+        pkRemove ? pkRemove.disabled : '(no button)', true);
+      var pkOwn = App.ops.createTokenType({
+        name: 'Ash', shape: 'hex', color: 'gold', glyph: '', scope: 'unit'
+      });
+      App.state.flush();
+      App.render.picker(App.state.get(), pkOwn);
+      t.eq('and open for one the student made',
+        pkRemove ? pkRemove.disabled : '(no button)', false);
+      t.eq('while both New buttons are open below the cap',
+        (pkNewUnit && pkNewSide) ? (pkNewUnit.disabled || pkNewSide.disabled) : '(no buttons)',
+        false);
+
+      var pkSpares = 1;
+      while (pkSpares < App.data.MAX_CUSTOM_TYPES) {
+        App.ops.createTokenType({
+          name: 'Spare ' + pkSpares, shape: 'sq', color: 'green', glyph: '', scope: 'side'
+        });
+        pkSpares++;
+      }
+      App.state.flush();
+      App.render.picker(App.state.get(), pkOwn);
+      t.eq('and both close at the cap rather than throwing at it',
+        (pkNewUnit && pkNewSide) ? (pkNewUnit.disabled && pkNewSide.disabled) : '(no buttons)',
+        true);
+      t.eq('with every one of them on the list beside the five shipped',
+        rowCount(), App.data.TOKEN_IDS.length + App.data.MAX_CUSTOM_TYPES);
+
+      // Closed before the hand-back, so syncPicker takes no interest in the
+      // restore below and this suite leaves the page as it found it.
+      if (dlg && dlg.open === true) { dlg.close(); }
     }
 
     App.state.restore(savedAll);
