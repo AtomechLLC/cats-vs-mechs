@@ -1375,15 +1375,127 @@ App.model = (function () {
     return faction.units.reduce(function (n, u) { return n + unitEhp(u); }, 0);
   }
 
-  function bestDamage(faction) {
-    return faction.actions.reduce(function (n, a) { return a.dmg > n ? a.dmg : n; }, 0);
+  // The token keys a negative delta ON THE TARGET is read as damage against.
+  // Bound to the KEY and never to the name, for the reason [S01] gives about
+  // the five the board is built on: a student renaming Health to Vigor changes
+  // `name` in the vocabulary and nothing in here.
+  //
+  // THE SHIELD READING THIS PROJECT USES (CONTEXT D-05c, confirmed by plan
+  // 03.1-02). Damage lands on the target's SHIELD first, POINT FOR POINT, and
+  // only then overflows into health: three damage against three shield and six
+  // health leaves shield at zero and health at six. That is NOT the other
+  // available reading, in which one hit spends exactly one point of shield and
+  // then lands in full. The two readings differ by one entry in this array, so
+  // the reading is written down beside the array rather than left for the next
+  // person to helpfully swap.
+  //
+  // WHY THE ARRAY IS NONETHELESS HEALTH ONLY. A shield pool is bounded — three
+  // per Mech on the shipped board — while the derivation below assumes the
+  // action repeats every turn without limit. Reading a shield strip as
+  // throughput would therefore report MORE damage than the board can deliver,
+  // which is the one direction PROJ-06 forbids. Under health-only such an
+  // action is not dropped: unmodelled() names it and the page writes a sentence
+  // around that name, which is D-16 satisfied.
+  //
+  // BOTH OUTCOMES, MEASURED, so a later change is made from data. With a
+  // one-point-cost cats action stripping two shield authored onto the board:
+  //   health only   -> the cats read about 9 turns, and that action is NAMED
+  //                    beside the figures rather than added into them.
+  //   health+shield -> the cats read about 5 turns and nothing is named.
+  //
+  // AND THE CORRECTION THAT GOES WITH IT, because CONTEXT D-14a states the
+  // opposite: the SHIPPED board does not move either way, because no shipped
+  // action carries a shield transformation at all. The pool factionEhp hands
+  // back already holds both halves. The about-5 figure belongs to an AUTHORED
+  // action, never to the board as it ships.
+  var DAMAGE_KEYS = Object.freeze(['hp']);
+
+  // How many action points ONE use of this action spends, or null for "this
+  // derivation has no denominator for it".
+  //
+  // The refusal is taken ABOVE the arithmetic rather than repaired below it,
+  // for the reason soakTotal gives at length further down: a malformed term
+  // repaired after the fact is a second, competing definition of what the
+  // number means, and the repair has to remember every case. Here there is no
+  // case left to forget — a cost this function cannot price never reaches a
+  // division at all.
+  //
+  // A record with no cost is the shipped default of one point, which is what
+  // keeps the six actions this file ships reading exactly as they did.
+  // Every term is read through its own `tok` FIELD, never a key position, so a
+  // record that arrived from a pasted build code in Phase 4 cannot name a
+  // property of the prototype by sitting in the right slot.
+  function actionApCost(a) {
+    if (!a.cost) { return 1; }
+    if (!Array.isArray(a.cost) || a.cost.length !== 1) { return null; }
+    var c = a.cost[0];
+    if (!c || c.tok !== 'ap') { return null; }
+    if (!Number.isInteger(c.n) || c.n < 1) { return null; }
+    return c.n;
   }
 
-  // Throughput is capped by the shared action-point pool, not by unit count.
-  // That cap is the whole point of holding action points at faction level.
-  function factionDps(faction, activeUnits) {
+  // What ONE use of this action takes off the target, in the tokens
+  // DAMAGE_KEYS names. A record with no transformation list falls back to the
+  // shipped `dmg` scalar, so the six shipped actions and every fixture built in
+  // that older shape read the number they always read.
+  function actionDamage(a) {
+    if (!a.xf) { return Number.isInteger(a.dmg) ? a.dmg : 0; }
+    if (!Array.isArray(a.xf)) { return 0; }
+    var d = 0;
+    a.xf.forEach(function (x) {
+      if (!x || x.who !== 'target') { return; }
+      if (DAMAGE_KEYS.indexOf(x.tok) === -1) { return; }
+      if (!Number.isInteger(x.d) || x.d >= 0) { return; }
+      d -= x.d;
+    });
+    return d;
+  }
+
+  // The pair the whole projection rests on: what one hit takes, and what a turn
+  // of them takes. Both come off the SAME action, which is why they are handed
+  // back together rather than read twice by two functions that could each pick
+  // a different action and disagree.
+  //
+  // Throughput is held by the shared action-point pool AND by the unit count,
+  // and the pool now buys a different number of uses per action:
+  // min(floor(ap / cost), active) uses, times what one use does. An action
+  // costing two points is afforded half as often as one costing one, which is
+  // the whole of what D-14 asked for.
+  //
+  // A RATE PER ACTION POINT WAS THE OTHER CANDIDATE AND IT IS REFUSED, because
+  // a rate is fractional. soakTotal divides by `hit`, and [S06.3] prints both
+  // `soak` and `perTurn` on a projector where D-06 allows whole numbers only;
+  // a fractional hit reaches a room as "27.5 soaked over 4.5 per turn". The use
+  // count is the same idea kept whole.
+  //
+  // An action actionApCost refuses is skipped here and NAMED by unmodelled()
+  // below. Skipping it in silence is the thing D-16 forbids.
+  function bestPair(faction, activeUnits) {
     var active = (activeUnits === undefined) ? faction.units.length : activeUnits;
-    return Math.min(faction.ap, active) * bestDamage(faction);
+    var hit = 0;
+    var per = 0;
+    faction.actions.forEach(function (a) {
+      var cost = actionApCost(a);
+      if (cost === null) { return; }
+      var uses = Math.min(Math.floor(faction.ap / cost), active);
+      if (!(uses > 0)) { return; }
+      var d = actionDamage(a);
+      if (uses * d > per) { per = uses * d; hit = d; }
+    });
+    return { hit: hit, perTurn: per };
+  }
+
+  // Both keep the arity they shipped with. bestDamage has a second consumer
+  // that is not the strip at all — amountFor in [S06.1] draws each faction
+  // head's Damage token row from it — so a change to what this hands back moves
+  // the BOARD as well as the projection, and the shipped 1 and 3 are pinned in
+  // [S09.2] and [S09.8] for exactly that reason.
+  function bestDamage(faction, activeUnits) {
+    return bestPair(faction, activeUnits).hit;
+  }
+
+  function factionDps(faction, activeUnits) {
+    return bestPair(faction, activeUnits).perTurn;
   }
 
   // Reads the stored flag. Death is never inferred from hp === 0 — a unit a
@@ -1458,10 +1570,17 @@ App.model = (function () {
   //
   // [S09.8] holds both refusals to account, including the one that catches
   // a throughput check moved below the health read.
+  //
+  // ONE call to bestPair rather than one to each of the two reads below it.
+  // Once the pair comes off a chosen action, reading the hit separately would
+  // let a run where activeUnits is supplied pick one action for the per-turn
+  // figure and another for the hit, and [S06.3] prints both of them side by
+  // side as though they described the same swing.
   function turnsToWipe(attacker, target, activeUnits) {
-    var perTurn = factionDps(attacker, activeUnits);
+    var pair = bestPair(attacker, activeUnits);
+    var perTurn = pair.perTurn;
     if (!(perTurn > 0)) { return null; }
-    var hit = bestDamage(attacker);
+    var hit = pair.hit;
     var ehp = factionEhp(target);
     var soak = soakTotal(target, hit);
     return {
@@ -1477,6 +1596,10 @@ App.model = (function () {
   return Object.freeze({
     unitEhp: unitEhp,
     factionEhp: factionEhp,
+    DAMAGE_KEYS: DAMAGE_KEYS,
+    actionApCost: actionApCost,
+    actionDamage: actionDamage,
+    bestPair: bestPair,
     bestDamage: bestDamage,
     factionDps: factionDps,
     aliveCount: aliveCount,
@@ -8241,10 +8364,26 @@ App.selftest = (function () {
       + 'that ceil(27 / 0) produces',
       App.model.turnsToWipe(noAp.mechs, noAp.cats), null);
 
+    /* --- "Does nothing to health" is now TWO fields, and clearing only the
+           older one is no longer that board. From plan 03.1-02 the damage a
+           projection reads comes off the transformation list when there is
+           one, and off the `dmg` scalar only when there is not — so a fixture
+           that zeroes `dmg` and leaves Lasers' target-health term in place
+           describes a side that still hits for three. Both are cleared here,
+           and the row says why, because the next person to write a
+           status-effects-only fixture will reach for the shorter version. --- */
     var noDmg = App.data.defaults();
-    noDmg.mechs.actions.forEach(function (a) { a.dmg = 0; });
+    noDmg.mechs.actions.forEach(function (a) { a.dmg = 0; a.xf = []; });
     t.eq('nor does a side whose actions all do nothing to health',
       App.model.turnsToWipe(noDmg.mechs, noDmg.cats), null);
+
+    // The half of that fixture the older spelling would have missed, stated as
+    // its own row: zeroing the scalar alone leaves the side hitting for three.
+    var scalarOnly = App.data.defaults();
+    scalarOnly.mechs.actions.forEach(function (a) { a.dmg = 0; });
+    t.eq('and clearing only the older scalar does NOT quiet a side, because '
+      + 'the transformation list is what the damage is read from',
+      App.model.bestDamage(scalarOnly.mechs), 3);
 
     /* --- The ordering row. This is the one that catches a refusal moved off
            the divisor and onto the result: at zero throughput against a target
