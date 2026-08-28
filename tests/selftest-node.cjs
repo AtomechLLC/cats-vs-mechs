@@ -481,6 +481,12 @@ function makeStubDom() {
   nameGroup.appendChild(idNode('tok-pick-name-label', 'h3'));
   const nameField = idNode('tok-pick-name', 'input');
   nameField.type = 'text';
+  // The class is NOT decoration here: [S07.2] tells the name field apart from
+  // everything else in the dialog by it, exactly as [S07.1] tells a stepper
+  // field apart by its own class. Without it every keystroke, Enter, Escape and
+  // blur handler declines the event on its first line, and a gate check driving
+  // them would read green over a field nothing is listening to.
+  nameField.className = 'pk-name';
   nameField.dataset.k = 'pk/name';
   nameGroup.appendChild(nameField);
 
@@ -1169,6 +1175,382 @@ check(
   A.interactions.HOLD_FIRST_MS < A.state.COALESCE_MS,
   'HOLD_FIRST_MS=' + A.interactions.HOLD_FIRST_MS + ' COALESCE_MS=' + A.state.COALESCE_MS
 );
+
+
+/* --- 27-35. the authoring surface, driven end to end. Everything above this
+       point proved the picker could be opened and a swatch pressed; nothing
+       proved a student could reach a type of their own, make one, name one or
+       take one away. These nine do, and each of them corresponds to something
+       that was measured broken or was unreachable before this plan. --- */
+
+const pkList = dom.byId['tok-pick-list'];
+const pkName = dom.byId['tok-pick-name'];
+const pkNewUnit = dom.byId['tok-pick-new-unit'];
+const pkNewSide = dom.byId['tok-pick-new-side'];
+const pkRemove = dom.byId['tok-pick-remove'];
+
+function pkRows() {
+  return pkList ? pkList.children : [];
+}
+function pkRowFor(tokenId) {
+  return pkList ? pkList.querySelector('[data-tok="' + tokenId + '"]') : null;
+}
+function pkRowLabel(tokenId) {
+  const row = pkRowFor(tokenId);
+  const span = row ? row.querySelector('.pk-sw-label') : null;
+  return span ? span.textContent : '(no row)';
+}
+function pkMarked() {
+  return pkRows()
+    .filter((n) => String(n.className).indexOf('pk-sw--on') !== -1)
+    .map((n) => n.dataset.tok);
+}
+function vocabIds() {
+  return Object.keys(A.state.get().build.tokens);
+}
+function rightPress(node) {
+  node.dispatchEvent(dom.event('pointerdown', { pointerId: 1, button: 2 }));
+  node.dispatchEvent(dom.event('pointerup', { pointerId: 1, button: 2 }));
+}
+
+/* --- 27. D-05, asserted on the markup the stub stands in for. The bar used to
+       carry one button per type the board ships with, which is a bar that grows
+       every time a student invents one. With one button that names no type, the
+       starting selection is a decision the handler makes rather than a value
+       read off whichever control was pressed. --- */
+if (dlg.open === true) { dlg.close(); }
+const tokButtons = stub.querySelectorAll('[data-act="openTokenPicker"]');
+press(openBtn);
+release(openBtn);
+check(
+  '27. the topbar carries exactly one token button, it names no type, and it '
+    + 'opens the picker on the type the handler defaults to',
+  tokButtons.length === 1 && tokButtons[0].dataset.tok === undefined
+    && dlg.open === true && dlg.dataset.tok === 'hp',
+  'buttons=' + tokButtons.length
+    + ' data-tok=' + JSON.stringify(tokButtons.length ? tokButtons[0].dataset.tok : '(none)')
+    + ' open=' + dlg.open + ' tok=' + JSON.stringify(dlg.dataset.tok)
+);
+
+/* --- 28. one row per vocabulary entry, `dead` included (D-05). Excluding one
+       would rebuild exactly the special case a single list exists to delete. --- */
+const rowIds = pkRows().map((n) => n.dataset.tok);
+check(
+  '28. the list carries one row per type on the board, the dead marker included',
+  String(rowIds) === String(vocabIds()) && rowIds.indexOf('dead') !== -1,
+  'rows=' + JSON.stringify(rowIds) + ' vocabulary=' + JSON.stringify(vocabIds())
+);
+
+/* --- 29. picking a type is PAGE WORK. It moves an attribute and asks for a
+       repaint; it must not reach [S05] dispatch, and it must not leave a step
+       on the undo stack for a student to rewind past. --- */
+const depthBeforePick = A.state.undoDepth();
+const commitsBeforePick = commits();
+const dmgRow = pkRowFor('dmg');
+if (dmgRow !== null) { press(dmgRow); release(dmgRow); }
+check(
+  '29. pressing a list row moves the editor to that type and commits nothing',
+  dmgRow !== null && dlg.dataset.tok === 'dmg'
+    && String(pkMarked()) === 'dmg'
+    && A.state.undoDepth() === depthBeforePick
+    && commits() === commitsBeforePick
+    && errPanel.hidden === true,
+  'tok=' + JSON.stringify(dlg.dataset.tok) + ' marked=' + JSON.stringify(pkMarked())
+    + ' undoDepth delta=' + (A.state.undoDepth() - depthBeforePick)
+    + ' commits delta=' + (commits() - commitsBeforePick)
+);
+
+/* --- 30. THE PITFALL 4 REGRESSION TEST, and it is written to fail against a
+       signature-gated picker. The repaint gate this replaces fingerprinted four
+       fields of one record — id, shape, colour, glyph — so a rename moved
+       nothing: not the gate, not the heading, not the list row. The red-then-
+       green run against that older gate was performed in plan 02.1-04 and its
+       nine failing rows are recorded there. What is asserted here is the pair
+       that matters to a student: the name follows in the dialog AND on the
+       board, from one commit, with no rebuild asked for. --- */
+const hpLabelsBefore = stub.querySelectorAll('[data-lbl="hp"]').length;
+A.ops.renameTokenType('hp', 'Vigor');
+A.state.flush();
+const boardSaysVigor = stub.querySelectorAll('[data-lbl="hp"]')
+  .every((n) => n.textContent === 'Vigor');
+const listSaysVigor = pkRowLabel('hp');
+A.ops.renameTokenType('hp', 'Health');
+A.state.flush();
+check(
+  '30. a rename repaints the picker list and the board label alike, which the '
+    + 'four-field signature this replaces did neither of',
+  hpLabelsBefore > 0 && boardSaysVigor === true && listSaysVigor === 'Vigor'
+    && pkRowLabel('hp') === 'Health',
+  'board labels=' + hpLabelsBefore + ' all read Vigor=' + boardSaysVigor
+    + ' list row read=' + JSON.stringify(listSaysVigor)
+    + ' and back to ' + JSON.stringify(pkRowLabel('hp'))
+);
+
+/* --- 31. New, at both scopes. The scope is a property of the act, not of the
+       editor (D-03), so the two buttons are two acts. A unit-scope type draws a
+       line on every unit card; a side-scope one draws a line on each faction
+       head instead. --- */
+const pkCardCount = stub.querySelectorAll('.unit-card').length;
+const optBeforeNew = stub.querySelectorAll('.brd-line--opt').length;
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const madeUnitId = dlg.dataset.tok;
+const optAfterUnit = stub.querySelectorAll('.brd-line--opt').length;
+press(pkNewSide);
+release(pkNewSide);
+A.state.flush();
+const madeSideId = dlg.dataset.tok;
+const optAfterSide = stub.querySelectorAll('.brd-line--opt').length;
+check(
+  '31. New draws a line on every unit card at unit scope and one on each '
+    + 'faction head at side scope, and lands the student in the new type',
+  pkCardCount > 0
+    && optAfterUnit - optBeforeNew === pkCardCount
+    && optAfterSide - optAfterUnit === 2
+    && pkRowFor(madeUnitId) !== null && pkRowFor(madeSideId) !== null
+    && String(pkMarked()) === String(madeSideId)
+    && A.state.get().build.tokens[madeUnitId].scope === 'unit'
+    && A.state.get().build.tokens[madeSideId].scope === 'side',
+  'cards=' + pkCardCount + ' opt lines ' + optBeforeNew + ' -> ' + optAfterUnit
+    + ' -> ' + optAfterSide + ' made=' + JSON.stringify([madeUnitId, madeSideId])
+    + ' marked=' + JSON.stringify(pkMarked())
+);
+
+/* --- 32. a tally nobody has written is not a line saying zero, it is nothing
+       at all. The line EXISTS from the moment the type does — building it on
+       demand would make a tally going 0 -> 1 a structural change — and the hide
+       pass decides whether it is on screen. Asserted on the .hidden PROPERTY,
+       because the stub's selector grammar parses a tag, a class and a data-*
+       attribute and nothing else — an attribute selector naming the hidden
+       attribute matches nothing here and would pass for the wrong reason,
+       which is why there is a standing grep saying none may appear. This
+       comment therefore describes that selector rather than spelling it. --- */
+const optLine = stub.querySelector('.brd-line--opt[data-amt="' + madeUnitId + '"][data-unit="c1"]');
+const hiddenAtZero = optLine ? optLine.hidden : '(no line)';
+A.ops.nudgeTally('cats', 'c1', madeUnitId, 1);
+A.state.flush();
+const hiddenAtOne = optLine ? optLine.hidden : '(no line)';
+check(
+  '32. a line for a number nobody wrote is hidden, and writing one reveals it '
+    + 'without rebuilding the card it is on',
+  optLine !== null && hiddenAtZero === true && hiddenAtOne === false
+    && stub.querySelector('.brd-line--opt[data-amt="' + madeUnitId + '"][data-unit="c1"]') === optLine,
+  'line found=' + (optLine !== null) + ' hidden at 0=' + hiddenAtZero
+    + ' hidden at 1=' + hiddenAtOne
+);
+
+/* --- 33. the removed-row focus case. When the selected type goes, so does its
+       list row: keyed() has nothing to restore focus to, and fallbackTarget
+       cannot help because it resolves through data-side and no node in this
+       dialog carries one. Focus lands on <body> unless the handler places it —
+       the same failure peerOrdinal solved for the board's remove control. --- */
+const removeMe = madeUnitId;
+const pickRow = pkRowFor(removeMe);
+if (pickRow !== null) { press(pickRow); release(pickRow); }
+press(pkRemove);
+release(pkRemove);
+A.state.flush();
+const landedOn = stub.activeElement;
+check(
+  '33. removing the selected type takes its row with it and leaves focus on a '
+    + 'real node rather than on the document body',
+  pkRowFor(removeMe) === null
+    && Object.prototype.hasOwnProperty.call(A.state.get().build.tokens, removeMe) === false
+    && landedOn !== null && landedOn !== stub.body
+    && dlg.dataset.tok === 'hp'
+    && errPanel.hidden === true,
+  'row gone=' + (pkRowFor(removeMe) === null)
+    + ' focus data-k=' + JSON.stringify(landedOn && landedOn.dataset && landedOn.dataset.k)
+    + ' is body=' + (landedOn === stub.body)
+    + ' tok=' + JSON.stringify(dlg.dataset.tok)
+);
+
+/* --- 34. the same non-primary rule check 21 applies to a swatch, applied to
+       the three controls that can now change the vocabulary. Without it a
+       right-click to inspect a control in DevTools — ordinary behaviour for the
+       instructor this artifact is built for — would make a type or take one
+       away under the context menu. --- */
+const vocabBeforeRight = JSON.stringify(vocabIds());
+const tokBeforeRight = dlg.dataset.tok;
+const commitsBeforeRight = commits();
+const rightRow = pkRowFor('dmg');
+if (rightRow !== null) { rightPress(rightRow); }
+rightPress(pkNewUnit);
+rightPress(pkRemove);
+check(
+  '34. a right-button press on a list row, on New and on Remove each change '
+    + 'nothing at all',
+  rightRow !== null && JSON.stringify(vocabIds()) === vocabBeforeRight
+    && dlg.dataset.tok === tokBeforeRight
+    && commits() === commitsBeforeRight
+    && errPanel.hidden === true,
+  'vocabulary=' + JSON.stringify(vocabIds()) + ' (was ' + vocabBeforeRight + ')'
+    + ' tok=' + JSON.stringify(dlg.dataset.tok) + ' (was ' + JSON.stringify(tokBeforeRight) + ')'
+    + ' commits delta=' + (commits() - commitsBeforeRight)
+);
+
+/* --- 35. check 23's idea, extended to the nodes this plan added. Ctrl+Z
+       reaches App.ops.undo() from inside the open dialog, and the commit it
+       raises came from no handler of the picker's own — so nothing would repaint
+       the list or the name field unless the per-frame hook does it. --- */
+const beforeUndoName = pkName ? pkName.value : '(no field)';
+A.ops.renameTokenType('hp', 'Vigor');
+A.state.flush();
+const midName = pkRowLabel('hp');
+A.ops.undo();
+A.state.flush();
+check(
+  '35. an undo taken while the picker is open repaints the list row and the '
+    + 'name field alike',
+  pkName !== null && midName === 'Vigor' && pkRowLabel('hp') === 'Health'
+    && A.state.get().build.tokens.hp.name === 'Health'
+    && pkName.value === A.render.labelFor(A.state.get(), dlg.dataset.tok),
+  'list row mid-rename=' + JSON.stringify(midName)
+    + ' after undo=' + JSON.stringify(pkRowLabel('hp'))
+    + ' name field=' + JSON.stringify(pkName && pkName.value)
+    + ' (was ' + JSON.stringify(beforeUndoName) + ')'
+    + ' showing=' + JSON.stringify(dlg.dataset.tok)
+);
+
+if (dlg.open === true) { dlg.close(); }
+
+
+/* --- 36-38. the name field. It is deliberately NOT one of the board's stepper
+       fields — that class is what isField keys on and everything downstream of
+       it is numeric, so a name typed into one would be parsed as a figure and
+       refused on Enter — so the PATTERN is reused and the plumbing is not, and
+       that means the pattern needs coverage of its own here. --- */
+
+function nameFocus() {
+  pkName.focus();
+  pkName.dispatchEvent(dom.event('focusin'));
+}
+function nameType(text) {
+  pkName.value = text;
+  pkName.dispatchEvent(dom.event('input'));
+}
+function nameKey(key) {
+  pkName.dispatchEvent(dom.event('keydown', { key: key }));
+}
+function nameBlur() {
+  pkName.dispatchEvent(dom.event('focusout'));
+}
+// Leaving the field for real. The repaint SKIPS a focused field on purpose
+// (D-19), so a rename raised from outside while it still holds focus would
+// leave both the text and the recorded baseline standing — correct behaviour,
+// and a trap for any check that sets up its next case with one.
+function nameLeave() {
+  nameBlur();
+  pkName.blur();
+  A.state.flush();
+}
+
+press(openBtn);
+release(openBtn);
+clearPanel();
+
+/* --- 36. Enter commits, and the blur that follows it commits NOTHING. Without
+       the value-versus-was early return commitField carries for the same
+       reason, typing a name, pressing Enter and then clicking away applies the
+       rename TWICE. --- */
+nameFocus();
+const wasRecorded = pkName.dataset.was;
+nameType('Vigor');
+const commitsBeforeEnter = commits();
+nameKey('Enter');
+const afterEnter = A.state.get().build.tokens.hp.name;
+const commitsFromEnter = commits() - commitsBeforeEnter;
+nameBlur();
+const commitsFromBlur = commits() - commitsBeforeEnter - commitsFromEnter;
+check(
+  '36. Enter renames the selected type, and the blur that follows applies it '
+    + 'once rather than twice',
+  wasRecorded === 'Health' && afterEnter === 'Vigor'
+    && commitsFromEnter === 1 && commitsFromBlur === 0
+    && pkName.dataset.was === 'Vigor' && errPanel.hidden === true,
+  'baseline recorded on focus=' + JSON.stringify(wasRecorded)
+    + ' name after Enter=' + JSON.stringify(afterEnter)
+    + ' commits from Enter=' + commitsFromEnter + ' from blur=' + commitsFromBlur
+    + ' baseline now=' + JSON.stringify(pkName.dataset.was)
+);
+nameLeave();
+A.ops.renameTokenType('hp', 'Health');
+A.state.flush();
+
+/* --- 37. Escape puts the recorded text back and commits nothing. That it also
+       leaves the DIALOG open is the half this harness cannot reach: the stub
+       <dialog> has .open, showModal() and close() and no close-request
+       behaviour at all, so the cancel interception goes to the rehearsal. --- */
+nameFocus();
+nameType('Poison');
+const commitsBeforeEsc = commits();
+nameKey('Escape');
+check(
+  '37. Escape puts the recorded name back and commits nothing',
+  pkName.value === 'Health' && commits() === commitsBeforeEsc
+    && A.state.get().build.tokens.hp.name === 'Health'
+    && errPanel.hidden === true,
+  'field reads ' + JSON.stringify(pkName.value)
+    + ' commits delta=' + (commits() - commitsBeforeEsc)
+    + ' state name=' + JSON.stringify(A.state.get().build.tokens.hp.name)
+);
+
+/* --- 38. the cut, and the two refusal volumes. A 30-emoji paste is cut on the
+       code-point array at the keystroke boundary, so nothing downstream ever
+       sees half an astral pair and Phase 4's encoder cannot be handed one
+       (D-12a). Enter is loud because it is an explicit request; blur is quiet
+       because clicking away from a half-typed name is not an error. --- */
+nameType('\u{1F480}'.repeat(30));
+const cutLength = Array.from(pkName.value).length;
+let cutEncodes = false;
+try { encodeURIComponent(pkName.value); cutEncodes = true; } catch (e) { cutEncodes = false; }
+nameType('   ');
+nameKey('Enter');
+const loudPanel = errPanel.hidden === false && errMessage.textContent !== '';
+const loudReverted = pkName.value;
+clearPanel();
+nameType('   ');
+nameBlur();
+check(
+  '38. a paste past the cap is cut by code point, and a name the op refuses is '
+    + 'loud on Enter and quiet on blur',
+  cutLength === A.data.MAX_TOKEN_NAME && cutEncodes === true
+    && loudPanel === true && loudReverted === 'Health'
+    && errPanel.hidden === true && pkName.value === 'Health'
+    && A.state.get().build.tokens.hp.name === 'Health',
+  'cut to ' + cutLength + ' code points (cap ' + A.data.MAX_TOKEN_NAME + ')'
+    + ' encodes=' + cutEncodes + ' loud panel=' + loudPanel
+    + ' reverted to ' + JSON.stringify(loudReverted)
+    + ' quiet panel hidden=' + errPanel.hidden
+    + ' field now ' + JSON.stringify(pkName.value)
+);
+clearPanel();
+nameLeave();
+if (dlg.open === true) { dlg.close(); }
+
+/* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
+       There is no browser and no layout engine in this repo, and the stub page
+       is a hand-made stand-in rather than a parser. Four behaviours of the
+       authoring surface therefore have no check above and are carried to the
+       phase's closing rehearsal instead:
+
+         1. The dialog declining a close request. Escape inside the name field
+            must put the recorded text back and leave the picker OPEN. The stub
+            <dialog> has .open, showModal() and close() and no close-request
+            behaviour at all, so the listener that declines one cannot be
+            driven here. Check 37 covers the revert half and only that half.
+         2. The hide pass actually collapsing a line. Check 32 asserts the
+            .hidden PROPERTY, which is the artifact's decision; whether the
+            line then takes no space is a cascade question, and there is no
+            layout engine here to answer it.
+         3. maxlength on a real input. It is ergonomic only — it stops a
+            student typing past the cap — and it counts UTF-16 units while the
+            op counts code points, so the two legitimately disagree for an
+            emoji name. Check 38 covers the code-point cut, which is the guard.
+         4. Whether eleven rows of the type list are legible on a projector.
+            That is an empirical question a rehearsal answers and nothing else
+            does. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
