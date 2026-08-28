@@ -2798,6 +2798,82 @@ check(
     : JSON.stringify(refNameDrift)
 );
 
+/* 64. THE CARDS READ THE BUILD SLICE, mirrored here because the artifact's own
+   row for it needs a page and this file is the only thing CI runs. [S09.9]
+   carries the same claim in the same two halves; measured while writing this
+   one, a build with refActions pointed back at the frozen board left the whole
+   terminal run green at 640 passed and 71 of 71 checks — the phase's headline
+   behaviour, broken, with nothing red in CI. That is precisely the shape of
+   hole the stub page exists to close.
+
+   TWO HALVES, and they catch different defects. A create is a STRUCTURAL
+   commit and runs the builder, so the first half catches a builder still
+   reading the frozen board. A rename is a PLAIN one and runs the sync passes
+   alone, so the second half — with no structural commit between the write and
+   the read — catches a card whose name was baked in at build time with no
+   per-frame channel behind it. Either half alone passes on the other's
+   defect. */
+const cardNames = (side) => refCards(side)
+  .map((c) => (c.querySelectorAll('.ref-action')[0] || {}).textContent);
+const tripBefore = cardNames('cats').join(',');
+const tripMade = A.ops.createAction('cats', 'Pounce');
+A.state.flush();
+const tripAfterCreate = cardNames('cats').join(',');
+const tripMechs = refCards('mechs').length;
+A.ops.renameAction('cats', tripMade, 'Prowl');
+A.state.flush();
+const tripAfterRename = cardNames('cats').join(',');
+A.ops.removeAction('cats', tripMade);
+A.state.flush();
+
+check(
+  '64. an action a student CREATES arrives as a card in that side\'s column, '
+    + 'and one they RENAME changes the card with no structural frame between '
+    + 'the write and the read — the read the card builder spent two phases '
+    + 'predicting would have to change, asserted by walking the page rather '
+    + 'than by reading this repo\'s own source',
+  tripBefore === 'Slash,Hairball,Screech'
+    && tripAfterCreate === 'Slash,Hairball,Screech,Pounce'
+    && tripAfterRename === 'Slash,Hairball,Screech,Prowl'
+    && tripMechs === 3
+    && cardNames('cats').join(',') === 'Slash,Hairball,Screech',
+  'before=' + JSON.stringify(tripBefore)
+    + ' after create=' + JSON.stringify(tripAfterCreate)
+    + ' after rename=' + JSON.stringify(tripAfterRename)
+    + ' mechs cards while the cats column grew=' + tripMechs
+    + ' after remove=' + JSON.stringify(cardNames('cats').join(','))
+);
+
+/* 64b. And the band's sentences follow a rename of a SHIPPED action, which is a
+   third path again: the band is built once, so its two sentences need a
+   per-frame read of their own or they keep naming an action by a word the
+   student has already changed. That is the Damage bug (e7f14ef) with a
+   different record underneath it, and this is the row that would have caught
+   it. The keyword card beside it must NOT move — a rule is not a name. */
+const bandWas = refBandLines().map((n) => n.textContent).join(' | ');
+const lasersWas = A.state.get().build.mechs.actions
+  .filter((a) => a.id === 'lasers')[0].name;
+A.ops.renameAction('mechs', 'lasers', 'Pew');
+A.state.flush();
+const bandNow = refBandLines().map((n) => n.textContent).join(' | ');
+const chipNow = refCards('mechs').map((c) =>
+  (c.querySelectorAll('.ref-effect')[0] || {}).textContent).join(',');
+A.ops.renameAction('mechs', 'lasers', lasersWas);
+A.state.flush();
+
+check(
+  '64b. renaming a shipped action moves the relationship line that names it, '
+    + 'with no structural frame in between, and leaves the keyword cards where '
+    + 'they were — a rule is not a name',
+  bandWas === 'Fly beats Slash | Lasers beat Hairball'
+    && bandNow === 'Fly beats Slash | Pew beat Hairball'
+    && chipNow === 'Evade,Range,Shield'
+    && refBandLines().map((n) => n.textContent).join(' | ') === bandWas,
+  'was=' + JSON.stringify(bandWas) + ' under the rename=' + JSON.stringify(bandNow)
+    + ' keyword cards=' + JSON.stringify(chipNow)
+    + ' put back=' + JSON.stringify(refBandLines().map((n) => n.textContent).join(' | '))
+);
+
 A.state.restore(refSaved);
 A.state.flush();
 
