@@ -1,0 +1,115 @@
+# Publishes the Cats vs Mechs workshop artifact to GitHub Pages.
+#
+# Two things this workflow deliberately does NOT do:
+#
+#   1. It does not publish the repository tree. Only `cats-vs-mechs.html` is
+#      staged. `.planning/` holds the full planning history — roadmap, research,
+#      reviews, verification — which belongs in the repo but not on a public URL.
+#      If you ever want more published, add it to the staging step explicitly
+#      rather than pointing the upload at the repo root.
+#
+#   2. It does not replace `file://`. The artifact is designed to be opened by
+#      double-click, offline, with no build step, and that remains the primary
+#      delivery path for a workshop. Pages is a convenience URL for students who
+#      would rather click a link than download a file — it works only because the
+#      artifact is genuinely self-contained.
+#
+# The deploy is gated on the test suite. A red suite fails the run and nothing
+# ships, which is the same rule the rest of this project follows.
+
+name: Deploy artifact to Pages
+
+on:
+  push:
+    branches: [master, main]
+    paths:
+      - 'cats-vs-mechs.html'
+      - 'tests/**'
+      - '.github/workflows/pages.yml'
+  workflow_dispatch:
+
+# Least privilege: read the tree, write only Pages and its OIDC token.
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+# One deploy at a time. Do not cancel a run in progress — a half-finished
+# deploy is worse than a queued one.
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  test:
+    name: Self-test gate
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      # The artifact has no dependencies and no build step, so there is nothing
+      # to install. This runs the same harness a developer runs locally: a
+      # forbidden-pattern scan over the file, the board/model/state suites, the
+      # interaction gate, and the bidirectional stub-drift gate.
+      - name: Run the self-test harness
+        run: node tests/selftest-node.cjs
+
+      # Cheap belt-and-braces on the constraints that make the artifact work
+      # offline at all. These are the same greps the phase plans assert, kept
+      # here so a bad merge cannot quietly ship a networked or unsafe build.
+      - name: Assert the offline and safety invariants
+        run: |
+          set -euo pipefail
+          fail() { echo "::error::$1"; exit 1; }
+
+          [ "$(grep -c '<script' cats-vs-mechs.html)" -eq 1 ] || fail "expected exactly one <script> block"
+          [ "$(grep -c '<style' cats-vs-mechs.html)" -eq 1 ] || fail "expected exactly one <style> block"
+          [ "$(grep -c 'https\?://' cats-vs-mechs.html)" -eq 0 ] || fail "found an absolute URL; the artifact must make no network calls"
+          [ "$(grep -c 'type="module"' cats-vs-mechs.html)" -eq 0 ] || fail "module scripts are CORS-blocked on file://"
+          grep -Eq 'innerHTML|outerHTML|insertAdjacentHTML|document\.write|srcdoc|DOMParser|eval\(|new Function' cats-vs-mechs.html \
+            && fail "found a markup-parsing or code-evaluation sink" || true
+
+          echo "Offline and safety invariants hold."
+
+  deploy:
+    name: Deploy to Pages
+    needs: test
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Stage the artifact
+        run: |
+          set -euo pipefail
+          mkdir -p _site
+
+          # Served at the Pages root, so the bare URL opens the board.
+          cp cats-vs-mechs.html _site/index.html
+
+          # Also served under its real filename, so a link written as
+          # .../cats-vs-mechs.html keeps working and matches what students
+          # download for offline use.
+          cp cats-vs-mechs.html _site/cats-vs-mechs.html
+
+          # Pages runs Jekyll by default, which would mangle any file or
+          # directory beginning with an underscore. Nothing here starts with one
+          # today, but this costs nothing and removes a future surprise.
+          touch _site/.nojekyll
+
+          ls -la _site
+
+      - uses: actions/configure-pages@v5
+
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: _site
+
+      - id: deployment
+        uses: actions/deploy-pages@v4
