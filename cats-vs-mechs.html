@@ -4057,13 +4057,19 @@ App.interactions = (function () {
   // is DELETED rather than widened, because the thing it protected no longer
   // exists. That is a guard removed, not a guard forgotten.
   function onPickerClose() {
-    // First, and above the page guard, because it is the one thing here that
-    // is not page work. D-04: the board is clean at rest, and this is the
-    // moment "at rest" begins again. It runs on the Done button and on Escape
-    // alike, and it also runs when [S08] closes this dialog to get an error
-    // panel in front of a student — a reveal left standing through a recovery
-    // would be a line nobody could explain.
-    setReveal('');
+    // The reveal deliberately SURVIVES this close, and that is the whole
+    // reason a student can reach a fresh tally at all. F-02.1-B: the editor
+    // opens modally, so while it is up its backdrop owns every pointer on the
+    // page — the revealed line was visible and still could not be pressed.
+    // Clearing here put the line away again at the exact moment the student
+    // got their hands back.
+    //
+    // So D-04 is traded down rather than kept whole: the board is clean at
+    // rest EXCEPT for the one type the student last opened. The bound is that
+    // showType() replaces the reveal rather than adding to it, so it is one
+    // line and never a list. A reveal naming a type that has since been
+    // removed is inert — no line carries that key, so nothing draws — which
+    // is why removal and reset need no clearing of their own.
     if (typeof document === 'undefined') { return; }
     var opener = document.querySelector('[data-k="tok"]');
     if (opener && typeof opener.focus === 'function') { opener.focus(); }
@@ -6792,22 +6798,33 @@ App.selftest = (function () {
         t.eq('and the zero line goes away with it',
           ownLine ? ownLine.hidden : '(no line)', true);
 
-        /* --- D-04, the moment the board goes back to clean. The close event
-               is dispatched here rather than reached through close(): the
-               platform queues that event as a task, so a synchronous suite
-               cannot see it. What is being asserted is this file's listener
-               and what it does — that the platform fires the event at all is
-               the platform's promise, not this artifact's. --- */
+        /* --- F-02.1-B. The close event is dispatched here rather than reached
+               through close(): the platform queues that event as a task, so a
+               synchronous suite cannot see it. What is asserted is this file's
+               listener and what it does — that the platform fires the event at
+               all is the platform's promise, not this artifact's.
+
+               The rule this pins CHANGED. It used to be that shutting the
+               editor put the board back to clean. The editor is modal, so
+               while it is open its backdrop owns every pointer on the page:
+               the revealed line was visible and could not be pressed, and
+               clearing on close took it away again the instant the student
+               could have used it. D-04 is therefore traded down on purpose —
+               the board is clean at rest except for the one type last opened. --- */
         pkPress(rowFor(pkOwn));
         App.state.flush();
         t.eq('the reveal is standing again before the editor is shut',
           App.state.get().ui.revealTok, pkOwn);
         if (dlg) { dlg.dispatchEvent(new Event('close')); }
         App.state.flush();
-        t.eq('shutting the editor puts the reveal back to its resting value',
-          App.state.get().ui.revealTok, '');
-        t.eq('so the board is clean the moment a student is done with it',
-          ownLine ? ownLine.hidden : '(no line)', true);
+        t.eq('shutting the editor LEAVES the reveal standing — F-02.1-B: the '
+          + 'editor is modal, so clearing here put the line away at the exact '
+          + 'moment the student got their pointer back',
+          App.state.get().ui.revealTok, pkOwn);
+        t.eq('so the one type a student last opened is still pressable once '
+          + 'the editor is out of the way, which is what makes a fresh tally '
+          + 'reachable at all (ROADMAP criterion 3)',
+          ownLine ? ownLine.hidden : '(no line)', false);
         App.render.picker(App.state.get(), pkOwn);
       }());
 
