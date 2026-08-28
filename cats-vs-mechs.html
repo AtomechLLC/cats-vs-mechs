@@ -3903,11 +3903,28 @@ App.render = (function () {
   // steppers' own minus sign, which is itself the MINUS SIGN in [S06.1] for
   // the mirror-image reason. Both are written as escapes rather than as glyphs
   // so this line stays reviewable in an editor of any encoding.
+  //
+  // The noun agrees with the figure. A single bound of ONE is reachable from
+  // the shipped board — one Cat left standing against nine points of
+  // throughput — and the plural noun beside a 1 lands at 24px on a projector,
+  // on the one surface this whole phase exists to make trustworthy. A
+  // two-bound spread is always plural, because its bounds differ by at least
+  // one whenever they differ at all.
+  //
+  // This is a branch rather than a field on a record, which is the opposite of
+  // the choice [S01] made for its own connective. The two cases are not alike:
+  // that connective agrees with an action NAME, which is authored data and can
+  // carry its own word, whereas this noun agrees with a quantity derived at
+  // render time. There is no record for it to live on. What the two share is
+  // the rule — no renderer anywhere in this file guesses at agreement.
   function turnsText(r, foeName) {
     if (r === null) { return 'no damage to spend'; }
     if (r.ehp === 0) { return 'nothing left to wipe'; }
-    if (r.fast === r.slow) { return '\u2248' + r.fast + ' turns to wipe ' + foeName; }
-    return '\u2248' + r.fast + '\u2013' + r.slow + ' turns to wipe ' + foeName;
+    var noun = (r.fast === r.slow && r.fast === 1)
+      ? ' turn to wipe '
+      : ' turns to wipe ';
+    if (r.fast === r.slow) { return '\u2248' + r.fast + noun + foeName; }
+    return '\u2248' + r.fast + '\u2013' + r.slow + noun + foeName;
   }
 
   // PROJ-03 and D-08: the arithmetic on screen as text, both operands and the
@@ -8224,6 +8241,26 @@ App.selftest = (function () {
       strip ? strip.dataset.built : '(no node)', '1');
     t.eq('and the projection it holds moved with the roster',
       prj('turns', 'cats'), '\u224812 turns to wipe Mechs');
+
+    /* --- THE SINGULAR. Every other figure this suite pins is 3, 4–6, 9 or 12,
+           and a noun spelled once for all of them agrees with every one — which
+           is precisely why a hard-coded plural survived here unseen. One is the
+           single quantity whose noun differs, it is reachable from the shipped
+           board through a shipped op, and so it is pinned like the rest.
+
+           slice(1) is taken BEFORE the loop and off the live array: removeUnit
+           commits structurally and hands back a fresh state each time, so a
+           forEach walking the array in place would walk a list that is being
+           spliced under it. The op refuses the last unit, and the slice is what
+           keeps this row away from that refusal. --- */
+    App.state.restore(savedAll);
+    App.state.flush();
+    App.state.get().build.cats.units.slice(1).forEach(function (u) {
+      App.ops.removeUnit('cats', u.id);
+    });
+    App.state.flush();
+    t.eq('one Cat left standing reads as one TURN rather than one turns',
+      prj('turns', 'mechs'), '\u22481 turn to wipe Cats');
 
     App.state.restore(savedAll);
     App.state.flush();

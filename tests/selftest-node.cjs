@@ -2178,6 +2178,29 @@ check(
     + ' soak line hidden=' + (soakNode ? soakNode.hidden : '(no node)')
 );
 
+/* The singular, mirrored from [S09.8]. Every other figure pinned in this file
+   is 3, 4-6, 9 or 12, and one noun spelled once agrees with all of them — which
+   is how a hard-coded plural sat on the highest-contrast figure on the board
+   without a single row noticing. One is the only quantity whose noun differs,
+   and it is reachable through a shipped op, so CI pins it too.
+
+   The ids are snapshotted BEFORE the loop: removeUnit commits structurally and
+   the op refuses the last unit, so the slice both avoids that refusal and keeps
+   the walk off an array being spliced under it. */
+A.ops.resetToDefaults();
+A.state.flush();
+A.state.get().build.cats.units.slice(1).map((u) => u.id)
+  .forEach((id) => A.ops.removeUnit('cats', id));
+A.state.flush();
+check(
+  '52b. one Cat left standing reads as one TURN, not one turns — the noun on '
+    + 'the projected figure agrees with the figure. Every other number this '
+    + 'file pins is plural, so the plural was free to be hard-coded and was',
+  prjText('turns', 'mechs') === '≈1 turn to wipe Cats',
+  'figure=' + JSON.stringify(prjText('turns', 'mechs'))
+    + ' cats units left=' + A.state.get().build.cats.units.length
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 A.ops.setFactionAp('cats', 0);
