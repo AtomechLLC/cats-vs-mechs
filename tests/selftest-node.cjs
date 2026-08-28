@@ -308,6 +308,13 @@ function makeStubDom() {
     node.replaceChildren = (...kids) => {
       node.children.forEach((c) => { c.parentNode = null; });
       node.children.length = 0;
+      // Emptying a box clamps its scroll offset to zero, and that is modelled
+      // rather than skipped because it is the whole of one defect: the artifact
+      // rebuilds a scrolling list this way on every repaint, and a stub that
+      // quietly kept the offset would report a fix that had not been made. This
+      // is the only layout consequence in here and it needs no layout engine —
+      // no content means nowhere to be scrolled to.
+      node.scrollTop = 0;
       kids.forEach((k) => node.appendChild(k));
     };
 
@@ -1845,6 +1852,42 @@ check(
     + ' first press cancelled=' + pkFirst.defaultPrevented
     + ' types made by the hold=' + (vocabIds().length - pkVocabBeforeHold)
     + ' held space in the field cancelled=' + heldSpace.defaultPrevented
+);
+clearPanel();
+if (dlg.open === true) { dlg.close(); }
+
+/* --- 44. the list keeps its scroll offset across a repaint. [C07] caps the
+       list's height and lets it scroll, and at the cap it is roughly twice as
+       tall as the box it sits in. Every repaint empties it, which clamps the
+       offset to zero, and selecting a row IS a repaint — so pressing a row near
+       the bottom threw the list to the top, and the focus restore then declined
+       to scroll it back because it asks for that explicitly. The row the
+       student pressed went off the top of the box. --- */
+press(openBtn);
+release(openBtn);
+A.state.flush();
+clearPanel();
+if (pkList !== null) { pkList.scrollTop = 120; }
+const scrollRow = pkRowFor('shield');
+if (scrollRow !== null) { press(scrollRow); release(scrollRow); }
+A.state.flush();
+const scrollAfterRow = pkList ? pkList.scrollTop : '(no list)';
+// And across a repaint raised from outside the dialog, which is the other way
+// the list is rebuilt under a student.
+if (pkList !== null) { pkList.scrollTop = 96; }
+A.ops.renameTokenType('dmg', 'Hurt');
+A.state.flush();
+const scrollAfterRename = pkList ? pkList.scrollTop : '(no list)';
+A.ops.renameTokenType('dmg', 'Damage');
+A.state.flush();
+check(
+  '44. the type list keeps its scroll offset when a repaint rebuilds it, so a '
+    + 'row pressed near the bottom does not jump off the top',
+  pkList !== null && scrollAfterRow === 120 && scrollAfterRename === 96
+    && dlg.dataset.tok === 'shield',
+  'offset after a row press=' + scrollAfterRow + ' (was 120)'
+    + ' offset after a rename raised from outside=' + scrollAfterRename + ' (was 96)'
+    + ' showing=' + JSON.stringify(dlg.dataset.tok)
 );
 clearPanel();
 if (dlg.open === true) { dlg.close(); }

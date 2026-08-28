@@ -3153,12 +3153,27 @@ App.render = (function () {
   // to delete. Object.keys is own-enumerable by definition, and the two reads
   // inside the row builder are labelFor and styleFor, which are both
   // hasOwnProperty-guarded — so no bare vocabulary lookup happens here.
+  // The offset is saved and put back for the reason withPreservedFocus gives
+  // for doing the same thing around the board's rebuild, and it has to be done
+  // HERE rather than left to that helper: the container that helper preserves
+  // is the dialog, and this box scrolls inside it. [C07] caps the list's height
+  // and lets it scroll, and every repaint empties it — which clamps its offset
+  // to zero. Selecting a row is a repaint, because the selection is the head of
+  // the fingerprint, so pressing a row near the bottom of a scrolled list threw
+  // the list back to the top and the focus restore then declined to scroll it
+  // back, by design. The row a student pressed disappeared upward.
+  //
+  // Put back AFTER the new content exists, for the same reason the board's
+  // restore is: an offset set against an empty box is an offset set against
+  // nothing.
   function fillList(list, state, selectedId) {
     if (!list) { return; }
+    var scrolled = list.scrollTop;
     list.replaceChildren();
     Object.keys(state.build.tokens).forEach(function (id) {
       list.appendChild(pickerListRow(state, selectedId, id));
     });
+    list.scrollTop = scrolled;
   }
 
   // THE REPAINT GATE, and the reason it is a JSON fingerprint of the whole
