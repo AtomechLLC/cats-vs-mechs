@@ -2138,19 +2138,30 @@ App.ops = (function () {
   // refuse a twelve-emoji name for being twenty-four long. Names MAY carry BMP
   // symbols and emoji (D-12); what is left to refuse is control characters and
   // lone surrogates, and TOKEN_NAME_REFUSE's comment in [S01] says why each.
-  function requireTokenName(name) {
+  //
+  // THE NOUN IS A PARAMETER, and that choice was made deliberately when plan
+  // 03.1-03 needed the identical gate for an action's name (ACT-01). The two
+  // alternatives were a second copy of this function with 'action' typed into
+  // its four messages, or one function whose messages name nothing. A copy is
+  // what [S01]'s id-width source paragraph argues against in the other half of
+  // this boundary: the cap, the code-point cut and the refused-character set
+  // would then live in two places, and the next plan to widen one would widen
+  // one. The phrase carries its own article because "A action" is not English,
+  // and the first letter is raised where a message opens with it.
+  function requireName(name, phrase) {
+    var opener = phrase.charAt(0).toUpperCase() + phrase.slice(1);
     if (typeof name !== 'string') {
-      throw new TypeError('A token type\'s name must be text, and this one is a '
+      throw new TypeError(opener + '\'s name must be text, and this one is a '
         + (typeof name) + '.');
     }
     var trimmed = name.trim();
     if (trimmed === '') {
-      throw new Error('A token type needs a name.');
+      throw new Error(opener + ' needs a name.');
     }
     var points = Array.from(trimmed).length;
     if (points > App.data.MAX_TOKEN_NAME) {
-      throw new Error('That name is ' + points + ' characters long, and a token '
-        + 'type name can be at most ' + App.data.MAX_TOKEN_NAME + '.');
+      throw new Error('That name is ' + points + ' characters long, and '
+        + phrase + ' name can be at most ' + App.data.MAX_TOKEN_NAME + '.');
     }
     if (App.data.TOKEN_NAME_REFUSE.test(trimmed)) {
       throw new Error('That name carries a character that cannot be shown on the '
@@ -2158,6 +2169,10 @@ App.ops = (function () {
         + 'symbols are all fine.');
     }
     return trimmed;
+  }
+
+  function requireTokenName(name) {
+    return requireName(name, 'a token type');
   }
 
   // The surgical half of D-12a, and the one technique in this phase with no
@@ -2200,6 +2215,116 @@ App.ops = (function () {
         + 'Remove one before adding another.');
     }
     return made;
+  }
+
+  /* ---- the id boundary for an ACTION (ACT-01, D-13) ----
+   * An action a student authors reaches the same two write shapes a token type
+   * does, so it is held to the same THREE layers rather than to the one that
+   * happens to fire first. Plan 02.1-01 measured that peeling any single layer
+   * off the token gate left its whole suite green, which is how a one-layer
+   * gate ships looking proven:
+   *   1. the named refusal list, inside requireActionId below
+   *   2. ACTION_ID_PATTERN, inside requireActionId below
+   *   3. an existence check against the LIVE list, inside each mutator
+   * Layer 3 sits in the mutator on every path, where the detached copy is the
+   * only honest thing to ask.
+   *
+   * Actions are held in an ARRAY rather than an object, so no id of a
+   * student's reaches a key position directly. That is a smaller hazard, not
+   * an absent one: `find`-ing by id and then writing to the record found is the
+   * same read-then-write shape, an id of '__proto__' on a pasted build code
+   * still has to be refused with a sentence that explains itself, and Phase 4
+   * will read these ids back out of a shared code. The gate costs four small
+   * functions and removes the whole class.
+   *
+   * ORDER IS LOAD-BEARING here for the reason it is above: reverse the first
+   * two and a student who reaches __proto__ reads "that is not an action on
+   * this board", which explains nothing about what actually happened.
+   */
+  function requireActionId(actionId) {
+    if (typeof actionId !== 'string') {
+      throw new TypeError('An action is named by a short id, and this one is a '
+        + (typeof actionId) + '.');
+    }
+    if (App.data.RESERVED_KEYS.indexOf(actionId) !== -1) {
+      throw new Error('"' + String(actionId) + '" is a name JavaScript keeps for '
+        + 'itself, so an action cannot use it — it would corrupt the board '
+        + 'rather than name anything on it.');
+    }
+    if (App.data.ACTION_IDS.indexOf(actionId) !== -1) { return actionId; }
+    if (!App.data.ACTION_ID_PATTERN.test(actionId)) {
+      throw new Error('"' + String(actionId) + '" is not an action on this board.');
+    }
+    return actionId;
+  }
+
+  // The LIVE record's name rather than the shipped one, which is the technique
+  // removeTokenType already states: a student who renamed Lasers to Beam is
+  // told about Beam rather than about a word they have never chosen. It scans
+  // both sides because an id is unique across the board, and it hands the id
+  // straight back when nothing on the board carries it — a refusal that names
+  // a raw id is still a refusal that names something.
+  function liveActionName(actionId) {
+    var found = actionId;
+    var build = App.state.get().build;
+    SIDES.forEach(function (side) {
+      build[side].actions.forEach(function (a) {
+        if (a.id === actionId) { found = a.name; }
+      });
+    });
+    return found;
+  }
+
+  // The same gate with one extra refusal in front of it, mirroring
+  // requireNewTokenId. The six the board ships with are named by id in the
+  // reference band's relationship records, so an action of a student's own may
+  // not take one of their ids. The id it is handed comes from nextActionId
+  // below and never from the name a student typed (D-13).
+  function requireNewActionId(actionId) {
+    if (typeof actionId === 'string' && App.data.ACTION_IDS.indexOf(actionId) !== -1) {
+      throw new Error('"' + String(liveActionName(actionId)) + '" is one of the six '
+        + 'actions the board ships with, so a new action cannot re-use its id.');
+    }
+    return requireActionId(actionId);
+  }
+
+  // The produced id (D-13), with nextTokenTypeId's reasoning and nextUnitId's
+  // shape: actions are a list, so the scan reads each record's own id field
+  // rather than the keys of a bag. Take the largest suffix in use and add one.
+  // Prefix-plus-count collides after any removal, and two records answering to
+  // one id is silent in every direction at once.
+  //
+  // It reads through the EXPORTED capturing form of the width rather than a
+  // second RegExp written here, for the reason [S01] gives beside the width
+  // itself: a second spelling is how a widened cap produces colliding ids
+  // quietly — the stale scanner stops seeing the ids past the old width,
+  // computes a highest that is already in use, and hands back a duplicate.
+  //
+  // It refuses at the ceiling rather than wrapping, exactly as the token
+  // sequence does: a wrapped id would overwrite an action the student still
+  // has on the board.
+  function nextActionId(actions) {
+    var highest = 0;
+    (actions || []).forEach(function (a) {
+      if (!a || typeof a.id !== 'string') { return; }
+      var m = App.data.ACTION_ID_CAPTURE.exec(a.id);
+      if (m !== null && Number(m[1]) > highest) { highest = Number(m[1]); }
+    });
+    var made = 'x' + (highest + 1);
+    if (!App.data.ACTION_ID_PATTERN.test(made)) {
+      throw new Error('This board has run out of ids for actions of your own. '
+        + 'Remove one before adding another.');
+    }
+    return made;
+  }
+
+  // The name half, and it is requireName above with a different noun rather
+  // than a second gate. See that function's own paragraph for why the noun is
+  // a parameter: an action's name is held to the same cap, the same code-point
+  // counting and the same refused characters as a token type's, and the cut a
+  // surface makes mid-keystroke is clampTokenName for both.
+  function requireActionName(name) {
+    return requireName(name, 'an action');
   }
 
   function findUnit(side, unitId, collection) {
@@ -3027,6 +3152,13 @@ App.ops = (function () {
     requireTokenName: requireTokenName,
     clampTokenName: clampTokenName,
     nextTokenTypeId: nextTokenTypeId,
+    // The action half of the same boundary, exported for the same stated
+    // reason: [S09.10] asserts the guard itself rather than a re-typed copy of
+    // it that can drift away from what the op actually runs.
+    requireActionId: requireActionId,
+    requireNewActionId: requireNewActionId,
+    requireActionName: requireActionName,
+    nextActionId: nextActionId,
     MAX_ALLOC: MAX_ALLOC,
     MIN_UNITS: MIN_UNITS,
     MAX_UNITS: MAX_UNITS
