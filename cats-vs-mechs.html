@@ -9784,9 +9784,30 @@ App.selftest = (function () {
       + 'admission showing',
       (strip ? strip.querySelectorAll('.prj-ignore') : []).length, 5);
 
+    var nodesWhileShowing = strip ? strip.querySelectorAll('[data-prj]').length : -1;
+
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('and it goes quiet again when the board does', admitText(), '');
+
+    /* --- BUILT ONCE, ASSERTED AS A COUNT rather than as a flag, and this row
+           exists because probe M found the flag vacuous for exactly this
+           mutation. The region's build-once rule was held by strip.dataset.built
+           alone, and a line CREATED and DESTROYED as the list comes and goes
+           leaves that flag reading 1 the whole time — measured: creating and
+           removing the node instead of hiding it left every build-once check in
+           this repo green. What it does move is the number of nodes in the
+           region, so that is what this reads: the same count in both states, or
+           the line is being made and unmade behind the flag's back.
+
+           The harm is not theoretical. A destroyed node is a node whose text
+           nobody clears, so anything still holding a reference to it — a test,
+           a focus restore, a future per-frame pass — reads the sentence that
+           was true two boards ago. Probe M was measured doing precisely that.
+           --- */
+    t.eq('the strip holds the same nodes whether the admission is showing or '
+      + 'not, so the line is CARRIED hidden rather than made and unmade',
+      strip ? strip.querySelectorAll('[data-prj]').length : -1, nodesWhileShowing);
 
     /* --- PROJ-01, THE RANGE ON SCREEN. Its own named row, because this is the
            behaviour a verifier is looking for: the model was shown to produce a
