@@ -9028,9 +9028,273 @@ App.interactions = (function () {
 
   LATE_BINDERS.push(bindEditor);
 
+  /* ---- the proposal pane's interaction (ACT-05's first half, ACT-06 and
+   *      ACT-07 — plan 03.1-07) ---------------------------------------------
+   *
+   * IT ATTACHES, exactly as this whole region attaches to [S07.1]: it pushes
+   * ONE more entry into LATE_BINDERS and changes not one line of [S07.1], of
+   * [S07.2], or of the authoring half above. Every control it reads carries
+   * data-ap, which no handler above this line looks at, and every control
+   * above carries data-act or data-ae, which nothing below this line looks at.
+   * The two halves of one dialog are told apart by attribute name and by class
+   * name, and both partitions are read back by a numbered check.
+   *
+   * NOTHING HERE CALLS AN OP. Not one line of this block reaches
+   * App.ops.dispatch, and there is no op for it to reach: the export list holds
+   * no applier and a numbered check reads that list back. Opening the pane,
+   * choosing a caster, choosing a target, changing a number and adding an
+   * override line are all PAGE WORK, for the reason [S05]'s banner gives about
+   * every other piece of page work in this file — that layer never reads or
+   * writes the page, so "which pane is showing and what is typed on it" has no
+   * legal home there.
+   *
+   * WHY THERE IS NO CONTROL THAT WRITES, with its reason and its owner: the
+   * developer settled on 2026-08-28 that the round loop is declare both sides,
+   * press Advance, the previous board moves up into a history, and the new
+   * board shows what changed — so CONFIRM WRITES ON ADVANCE, which is Phase 5
+   * (FIGHT-12..16). Auto-apply was the alternative and it was declined,
+   * because it would have needed PROJECT.md's Out of Scope entry rewritten.
+   * ACT-05 is therefore half-delivered here ON PURPOSE, and the absence is
+   * held to account by two numbered checks rather than left as an intention.
+   */
+
+  function proposalNode() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('act-edit-propose');
+  }
+
+  // Told apart by CLASS, exactly as the name field and the authoring amount
+  // field are — and the class is deliberately NOT .ae-amt. One class name is
+  // the whole distance between a field that holds a proposed number and a
+  // field that dispatches an op, so a field in here wearing the authoring
+  // class would send the very write this pane exists not to make.
+  function isProposedAmount(el) {
+    return !!el && !!el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('ae-prop-amt');
+  }
+
+  function revertProposed(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // THE SAME FOUR-FUNCTION CONTRACT EVERY OTHER FIELD IN THIS FILE TAKES — a
+  // baseline recorded on focus, Enter commits loudly, Escape puts the recorded
+  // text back, blur commits quietly — WITH ONE DIFFERENCE, and the difference
+  // is the whole of this phase's half-delivery:
+  //
+  //   "COMMITS" HERE MEANS THE FIELD HOLDS THE STUDENT'S NUMBER. It does not
+  //   mean anything was written. There is no App.ops.dispatch at the end of
+  //   this chain, no commit, no undo entry and no record anywhere that
+  //   remembers the number afterwards. A declared action lands on Advance, in
+  //   Phase 5.
+  //
+  // The parser is the SIGNED one this region already carries, for the reason
+  // it was written: a transformation amount is signed by nature (D-08), so the
+  // sign is part of the value and is never read as the step-versus-set mode
+  // the board's stepper fields use. It is a regex and never Number(), because
+  // '', '1e3', '0x5', 'Infinity' and '5.5' all pass through that function
+  // silently.
+  //
+  // The value-versus-`was` test stays for the reason it stays everywhere else:
+  // without it a value committed by Enter is applied a second time on the blur
+  // that follows. Here "applied" means the edited flag is set twice, which is
+  // harmless — and the test is kept anyway, because a field on this surface
+  // behaving differently from every other field in the file is a thing the
+  // next reader would have to discover rather than assume.
+  function commitProposed(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var parsed = parseAmount(el.value);
+    if (!parsed.ok) {
+      revertProposed(el);
+      if (loud) { throw new Error(parsed.why); }
+      return;
+    }
+    // The sign is a VALUE, so the field is left holding the number the parser
+    // read rather than the text that produced it: "+4" becomes "4" and "-4"
+    // stays "-4".
+    el.value = String(parsed.n);
+    el.dataset.was = el.value;
+    // What stops the next repaint handing the rule's own number back. See
+    // showProposed in [S06.5] for why this pane needs it and no other surface
+    // in this file does.
+    el.dataset.apEdit = '1';
+  }
+
+  // A visit starts clean: the flags come off, the fields empty and the
+  // override row forgets what it was pointed at. The student's edits live on
+  // the DOM and nowhere else, so reopening the pane shows the RULE'S OWN
+  // numbers again — the deliberate behaviour of a surface that lands nothing,
+  // and not an edit that was lost.
+  function clearProposed(pane) {
+    pane.querySelectorAll('.ae-prop-amt').forEach(function (field) {
+      delete field.dataset.apEdit;
+      field.value = '';
+      field.dataset.was = '';
+    });
+    pane.dataset.apWho = '';
+    pane.dataset.apTok = '';
+  }
+
+  // Every press below ends here: move a DOM attribute, then ask for a repaint.
+  // The repaint is asked for rather than waited for, for showAction's stated
+  // reason — a press that changed the attribute and waited for the next frame
+  // would leave the tick a frame behind the student's own click.
+  function repaintEditor() {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+    var side = pickedSide(dlg);
+    var id = pickedAct(dlg);
+    if (side !== 'cats' && side !== 'mechs') { return; }
+    if (id === '') { return; }
+    App.render.editor(App.state.get(), side, id);
+  }
+
+  function showProposal() {
+    var dlg = editorDialog();
+    var pane = proposalNode();
+    if (dlg === null || pane === null) { return; }
+    clearProposed(pane);
+    dlg.dataset.edPane = 'propose';
+    repaintEditor();
+  }
+
+  // The terminal control. It closes the PANE and not the dialog, which is why
+  // it carries data-ap="close" and not the authoring pane's data-ae="done" —
+  // the handler above reads that one, and a shared spelling would have ended
+  // the whole visit instead of returning to the rule.
+  function hideProposal() {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+    dlg.dataset.edPane = 'author';
+    repaintEditor();
+  }
+
+  function onProposalPress(e) {
+    if (!isPrimaryPress(e)) { return; }
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+
+    if (node.closest('[data-ap="open"]') !== null) { showProposal(); return; }
+    if (node.closest('[data-ap="close"]') !== null) { hideProposal(); return; }
+
+    var pane = proposalNode();
+    if (pane === null) { return; }
+
+    // The caster and the target. The unit id is read off the PRESSED CONTROL,
+    // never off the pane, because the choosers are rebuilt on every repaint
+    // and a pill in hand is a pill from the frame it was drawn on.
+    var caster = node.closest('[data-ap="caster"]');
+    if (caster !== null) {
+      pane.dataset.apCaster = String(caster.dataset.apUnit || '');
+      repaintEditor();
+      return;
+    }
+    var target = node.closest('[data-ap="target"]');
+    if (target !== null) {
+      pane.dataset.apTarget = String(target.dataset.apUnit || '');
+      repaintEditor();
+      return;
+    }
+
+    // The override row: one line the rule did not state. It edits THE ROW and
+    // never the record — no term is added anywhere, and the row is emptied
+    // again the next time the pane is opened.
+    var who = node.closest('[data-ap="over-who"]');
+    if (who !== null) {
+      pane.dataset.apWho = String(who.dataset.apWho || '');
+      repaintEditor();
+      return;
+    }
+    var tok = node.closest('[data-ap="over-tok"]');
+    if (tok !== null) {
+      pane.dataset.apTok = String(tok.dataset.apTok || '');
+      repaintEditor();
+      return;
+    }
+  }
+
+  // The same anti-double-fire rule every other root in this file uses, and for
+  // the same measured reason: a mouse click was already served by pointerdown.
+  function onProposalClick(e) {
+    if (e.detail !== 0) { return; }
+    onProposalPress(e);
+  }
+
+  function onProposalFocusIn(e) {
+    if (!isProposedAmount(e.target)) { return; }
+    // The baseline, and NOTHING ELSE. The authoring field records which side
+    // and which action it was typed for, because its blur dispatches an op and
+    // the selection may have moved underneath it by then. This field
+    // dispatches nothing, so there is no target for it to be bound to — and
+    // recording one anyway would be a hook a later plan could mistake for a
+    // write path.
+    e.target.dataset.was = e.target.value;
+  }
+
+  function onProposalFocusOut(e) {
+    if (!isProposedAmount(e.target)) { return; }
+    commitProposed(e.target, false);
+  }
+
+  function onProposalKeyDown(e) {
+    if (!isProposedAmount(e.target)) { return; }
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitProposed(e.target, true);
+      return;
+    }
+    if (e.key === 'Escape') { revertProposed(e.target); }
+  }
+
+  // ONE more binder rather than an edit to bindEditor, so this block attaches
+  // in the shape the whole region attaches. Every listener goes through
+  // App.boot.wrap, which check 68c reads back off the root's own
+  // registrations — a handler bound raw would throw past the boundary and
+  // leave the surface dead with nothing on screen to say so.
+  //
+  // Bound on the DIALOG rather than on the pane, because the button that OPENS
+  // the proposal lives on the authoring pane and a listener scoped to the
+  // proposal would never see it. The two halves stay partitioned by attribute
+  // name instead of by root: this handler reads data-ap only, the authoring
+  // handler reads data-act and data-ae only, and neither can be reached by a
+  // control carrying the other's spelling.
+  function bindProposal() {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+    dlg.addEventListener('pointerdown', App.boot.wrap('proposal press', onProposalPress));
+    dlg.addEventListener('click', App.boot.wrap('proposal key-press', onProposalClick));
+    dlg.addEventListener('focusin', App.boot.wrap('proposal field focus', onProposalFocusIn));
+    dlg.addEventListener('focusout', App.boot.wrap('proposal field blur', onProposalFocusOut));
+    dlg.addEventListener('keydown', App.boot.wrap('proposal keydown', onProposalKeyDown));
+
+    // Escape inside a proposal field must put the recorded text back WITHOUT
+    // taking the dialog away underneath it. The authoring half already binds a
+    // cancel listener that declines a close request for its own name field;
+    // `cancel` does not bubble, so this is a SECOND listener on the same node
+    // rather than an edit to that one, which is what keeps this block's zero
+    // lines changed above true.
+    //
+    // NOT EXERCISED by the Node gate, and this is the THIRD surface for which
+    // that is so: the stub <dialog> has .open, showModal() and close() and no
+    // close-request behaviour at all. Carried to the phase's closing rehearsal
+    // exactly as the other two are.
+    dlg.addEventListener('cancel', App.boot.wrap('proposal close request', function (e) {
+      var el = (typeof document === 'undefined') ? null : document.activeElement;
+      if (!isProposedAmount(el)) { return; }
+      e.preventDefault();
+      revertProposed(el);
+    }));
+  }
+
+  LATE_BINDERS.push(bindProposal);
+
   // The three acts this region claims. Pushed rather than assigned, so
   // [S07.1]'s own array literal is untouched and the frozen copy taken below
   // describes the seam as it finally is.
+  //
+  // THE PROPOSAL PANE CLAIMS NONE, and that is the point rather than an
+  // omission: an entry here would be a name App.ops.dispatch's router looks
+  // for, and every control on that pane is page work with no op behind it.
   UI_ACTS.push('openActionEditor', 'selectAction', 'selectActionSide');
   // #endregion [S07.3] INTERACTIONS — ACTION EDITOR
 

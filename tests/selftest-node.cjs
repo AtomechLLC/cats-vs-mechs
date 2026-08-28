@@ -5158,6 +5158,248 @@ check(
     : apCHits.join(' | ')
 );
 
+/* --- 72-72c. NOTHING LANDS, AND THAT IS THE REQUIREMENT ----------------------
+
+   These are the phase's most important rows. PROJECT.md's Out of Scope entry
+   says a tool that resolved combat would remove the learning, and CONTEXT.md
+   answers it with four sentences: the tool SHOWS what the student's rule says,
+   the student accepts it, edits it or overrides it entirely, NOTHING LANDS
+   until they say so, and in this phase "they say so" is Advance — which is
+   Phase 5. Everything above proves the pane shows the rule. These prove the
+   other half, which is an ABSENCE, and an absence is the one kind of claim
+   that rots silently.
+
+   72 IS DRIVEN THROUGH REAL CONTROLS END TO END and asserts BOTH halves at
+   once, which is deliberate: a row that only compared the state would be green
+   over a pane whose every press did nothing at all. So the page is read back
+   as well — the ticks moved, the fields hold what was typed, the override row
+   points at what was pressed — and only then is the state compared character
+   for character. */
+
+// FNV-1a, so a failing run prints something a reader can compare at a glance
+// instead of two four-thousand-character strings. The equality assertion is on
+// the strings themselves; this is for the message.
+function fnv(s) {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < s.length; i++) {
+    h ^= s.charCodeAt(i);
+    h = Math.imul(h, 0x01000193) >>> 0;
+  }
+  return h.toString(36);
+}
+
+const nlSaved = JSON.stringify(A.state.get());
+const nlAct = A.ops.createAction('cats', 'Pounce');
+A.ops.setActionCost('cats', nlAct, 'ap', 1);
+A.ops.setActionReq('cats', nlAct, 0, 'hp', 2);
+A.ops.setActionXf('cats', nlAct, 0, A.data.XF_WHO[1], 'hp', -3);
+A.ops.setActionXf('cats', nlAct, 1, A.data.XF_WHO[0], 'shield', 2);
+A.state.flush();
+
+// Ended and reopened, so the open is COLD and lands on the first side — the
+// rows above left the editor standing on the Mechs. Driven through Done rather
+// than by calling close(), for the reason every row in this block is driven
+// through a control.
+if (apDlg.open === true) {
+  const nlEnd = dom.byId['act-edit-done'];
+  press(nlEnd); release(nlEnd);
+  A.state.flush();
+}
+
+// Opened through the topbar control a student presses, then moved onto the
+// authored action by pressing its own row — no attribute is poked anywhere in
+// this block.
+const nlOpener = stub.querySelector('[data-act="openActionEditor"]');
+press(nlOpener); release(nlOpener);
+A.state.flush();
+const nlRow = dom.byId['act-edit-list'].children
+  .filter((c) => c.dataset.edPick === nlAct)[0];
+press(nlRow); release(nlRow);
+A.state.flush();
+
+// THE READING EVERYTHING BELOW IS COMPARED AGAINST: taken after the authoring
+// and before the proposal is opened.
+const nlBefore = JSON.stringify(A.state.get());
+const nlDepthBefore = A.state.undoDepth();
+const nlCommitsBefore = commits();
+
+const nlOpenBtn = dom.byId['act-edit-prop-open'];
+press(nlOpenBtn); release(nlOpenBtn);
+A.state.flush();
+const nlShown = apDlg.dataset.edPane === 'propose'
+  && apPane.hidden === false
+  && dom.byId['act-edit-pane-author'].hidden === true;
+const nlPreFilled = apAmounts().join(',');
+
+// Every field on the pane, changed through the keyboard: focus records the
+// baseline, Enter commits — which here means the field holds the number and
+// nothing was written.
+const nlTyped = [];
+apPane.querySelectorAll('.ae-prop-amt').forEach((field, i) => {
+  field.focus();
+  field.value = String(-9 - i);
+  nlTyped.push(String(-9 - i));
+  field.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+});
+A.state.flush();
+
+// A caster and a target the student chooses, and the override line the rule
+// did not state. Re-queried after every press, because the choosers are
+// rebuilt on every repaint.
+function nlPress(sel, index) {
+  const node = apPane.querySelectorAll(sel)[index];
+  press(node); release(node);
+  A.state.flush();
+  return node;
+}
+const nlCasterId = nlPress('[data-ap="caster"]', 3).dataset.apUnit;
+const nlTargetId = nlPress('[data-ap="target"]', 10).dataset.apUnit;
+const nlWhoId = nlPress('[data-ap="over-who"]', 1).dataset.apWho;
+const nlTokId = nlPress('[data-ap="over-tok"]', 2).dataset.apTok;
+
+function nlOn(sel, key) {
+  return apPane.querySelectorAll(sel)
+    .filter((b) => b.className.indexOf('ae-prop-pill--on') !== -1)
+    .map((b) => b.dataset[key]).join(',');
+}
+const nlPageMoved = nlOn('[data-ap="caster"]', 'apUnit') === nlCasterId
+  && nlOn('[data-ap="target"]', 'apUnit') === nlTargetId
+  && nlOn('[data-ap="over-who"]', 'apWho') === nlWhoId
+  && nlOn('[data-ap="over-tok"]', 'apTok') === nlTokId
+  && apPane.querySelectorAll('.ae-prop-amt').map((f) => f.value).join(',')
+    === nlTyped.join(',');
+
+const nlCloseBtn = dom.byId['act-edit-prop-close'];
+press(nlCloseBtn); release(nlCloseBtn);
+A.state.flush();
+
+const nlAfter = JSON.stringify(A.state.get());
+
+check(
+  '72. THE NOTHING-LANDS CHECK. A full cycle driven through real controls — '
+    + 'open the editor, select an authored action, open the proposal, change '
+    + 'EVERY field, choose a caster and a target, add an override line the '
+    + 'rule did not state, close the pane — moves the page and leaves the '
+    + 'state BYTE-IDENTICAL to the reading taken before the proposal opened. '
+    + 'The undo depth does not move and no commit is made. Both halves are '
+    + 'asserted together on purpose: a row that compared only the state would '
+    + 'be spotlessly green over a pane whose every press did nothing at all',
+  nlShown === true && nlPreFilled === '-3,2' && nlPageMoved === true
+    && nlAfter === nlBefore
+    && A.state.undoDepth() === nlDepthBefore
+    && commits() === nlCommitsBefore
+    && apDlg.dataset.edPane === 'author',
+  'pane shown=' + nlShown + ' pre-filled=' + JSON.stringify(nlPreFilled)
+    + ' typed=' + JSON.stringify(nlTyped.join(','))
+    + ' page moved=' + nlPageMoved
+    + ' caster=' + nlCasterId + ' target=' + nlTargetId
+    + ' override=' + nlWhoId + '/' + nlTokId
+    + ' state before=' + fnv(nlBefore) + ' (' + nlBefore.length + ' chars)'
+    + ' after=' + fnv(nlAfter) + ' (' + nlAfter.length + ' chars)'
+    + ' identical=' + (nlBefore === nlAfter)
+    + ' undo depth ' + nlDepthBefore + ' -> ' + A.state.undoDepth()
+    + ' commits ' + nlCommitsBefore + ' -> ' + commits()
+    + ' pane after the close=' + apDlg.dataset.edPane
+);
+
+/* 72b. THE NO-APPLIER CHECK, and the absence IS the requirement rather than an
+   accident of what has been written so far. There is no op that applies a
+   transformation because a declared action lands on ADVANCE, in Phase 5
+   (D-05b) — so the export list is read back off the live object, and the
+   router is driven with an applier's name to prove there is no arm for one
+   either. A list read from source spelling would be blind to an applier
+   reached through a helper, which is Phase 3's own WR-01 lesson. */
+const nlExports = Object.keys(A.ops).sort();
+const nlAppliers = nlExports.filter((k) =>
+  /^(apply|resolve|advance|spend|fire|perform|execute|enact|land|deal|damage)/i.test(k));
+let nlRouterRefused = false;
+try {
+  A.ops.dispatch('applyProposal', { side: 'cats' });
+} catch (refused) {
+  nlRouterRefused = true;
+}
+const nlAfterRouter = JSON.stringify(A.state.get());
+
+check(
+  '72b. THE NO-APPLIER CHECK. [S05] exports no function that applies a '
+    + 'transformation, and App.ops.dispatch has no arm for one — read off the '
+    + 'LIVE export list and driven through the LIVE router rather than grepped '
+    + 'for, because a check written against source spelling cannot see '
+    + 'behaviour reached through a helper. The absence is the requirement: the '
+    + 'tool proposes and the student disposes, and a declared action lands on '
+    + 'Advance, which belongs to Phase 5',
+  nlAppliers.length === 0 && nlExports.length > 0 && nlRouterRefused === true
+    && nlAfterRouter === nlAfter,
+  'appliers found: ' + (nlAppliers.join(', ') || 'none')
+    + ' | router refused an applier act: ' + nlRouterRefused
+    + ' | state stood still: ' + (nlAfterRouter === nlAfter)
+    + ' | App.ops exports ' + nlExports.length + ': ' + nlExports.join(', ')
+);
+
+/* 72c. THE FIELD CONTRACT, and the ONE line of it this pane keeps differently.
+   Enter commits — which here means the field holds the number — and a repaint
+   raised from outside immediately afterwards must NOT hand the rule's own
+   number back. That is the one place in this file where "nothing derived is
+   stored" needs care rather than obedience: everywhere else the field shows a
+   number STATE holds, and here it shows the student's INPUT, which no record
+   remembers because writing one is the thing this pane does not do.
+
+   Escape puts the recorded text back and leaves the dialog open. And closing
+   and reopening shows the RULE'S numbers again, which is the deliberate
+   behaviour of a surface that lands nothing rather than an edit lost. */
+press(nlOpenBtn); release(nlOpenBtn);
+A.state.flush();
+const fcField = apPane.querySelectorAll('.ae-prop-row')
+  .filter((r) => r.hidden === false)[0].querySelectorAll('.ae-prop-amt')[0];
+const fcFresh = fcField.value;
+fcField.focus();
+fcField.value = '-4';
+fcField.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+const fcTyped = fcField.value;
+// A repaint raised from OUTSIDE, on a field the student has changed.
+A.ops.setFactionAp('cats', 2);
+A.state.flush();
+const fcSurvived = fcField.value;
+
+fcField.value = '-7';
+fcField.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+const fcReverted = fcField.value;
+const fcStillOpen = apDlg.open === true && apPane.hidden === false;
+
+stub.body.focus();
+press(nlCloseBtn); release(nlCloseBtn);
+A.state.flush();
+press(nlOpenBtn); release(nlOpenBtn);
+A.state.flush();
+const fcReopened = apPane.querySelectorAll('.ae-prop-row')
+  .filter((r) => r.hidden === false)[0].querySelectorAll('.ae-prop-amt')[0].value;
+
+const fcCommits = commits();
+const fcState = JSON.stringify(A.state.get());
+press(nlCloseBtn); release(nlCloseBtn);
+A.state.flush();
+A.state.restore(nlSaved);
+A.state.flush();
+clearPanel();
+
+check(
+  '72c. Enter over a pre-filled amount leaves the field holding the student\'s '
+    + 'number, a repaint raised from outside immediately afterwards does NOT '
+    + 'restore the rule\'s own, Escape puts the recorded text back and leaves '
+    + 'the dialog open, and closing and reopening the pane shows the record\'s '
+    + 'numbers again — the edits were never persisted, which is the deliberate '
+    + 'behaviour of a pane that lands nothing and not a defect',
+  fcFresh === '-3' && fcTyped === '-4' && fcSurvived === '-4'
+    && fcReverted === '-4' && fcStillOpen === true && fcReopened === '-3',
+  'fresh=' + JSON.stringify(fcFresh) + ' after Enter=' + JSON.stringify(fcTyped)
+    + ' after an outside repaint=' + JSON.stringify(fcSurvived)
+    + ' after Escape=' + JSON.stringify(fcReverted)
+    + ' dialog still open=' + fcStillOpen
+    + ' after close and reopen=' + JSON.stringify(fcReopened)
+    + ' commits during the reopen=' + fcCommits
+    + ' state length=' + fcState.length
+);
+
 /* --- 70-70b. THE RULE IS A RECORD, AND THAT IS NOW A CHECK -------------------
 
    These two are the phase's defining constraint made mechanical. A student
