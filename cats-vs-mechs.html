@@ -393,6 +393,56 @@
   .pk-preview{display:flex;flex-wrap:wrap;gap:var(--tok-gap);align-items:center;min-height:var(--tok)}
   .pk-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
 
+  /* The list of every type on the board (D-05). It SCROLLS rather than
+     shrinking its type: the whole reason the dialog is this size is that a
+     room reads it off a projector, so a longer list is allowed to cost height
+     and is never allowed to cost legibility. The cap is 5 shipped types plus
+     MAX_CUSTOM_TYPES of the student's own, so the scroll is the tail case
+     rather than the usual one. */
+  .pk-list{
+    display:flex;flex-direction:column;gap:6px;
+    max-height:236px;overflow-y:auto;
+    padding:2px;   /* room for .pk-sw--on's outline, which draws outside the box */
+  }
+  /* A ROW, where .pk-sw is a tile — same chrome, same --tok override, same
+     selected-state idiom, laid out along the line because the thing being read
+     here is a name and names are read horizontally. Reusing .pk-sw--on and
+     .pk-check rather than inventing a second way to say "this is the one" is
+     what keeps the outline-AND-a-tick rule (never colour alone) true on both
+     surfaces at once. */
+  .pk-list-item{
+    --tok:24px;
+    display:flex;align-items:center;gap:10px;
+    min-height:44px;padding:7px 11px;width:100%;
+    background:color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 32%, transparent);
+    border-radius:10px;color:var(--ink);
+    font:inherit;font-size:16px;line-height:1.2;text-align:left;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  /* The name takes the slack so the tick lands in the same column on every
+     row, which is what makes the live one findable by scanning down an edge. */
+  .pk-list-item .pk-sw-label{flex:1 1 auto;text-align:left}
+
+  /* Full width, board-legible, and deliberately not a stepper field — see
+     the markup comment on #tok-pick-name for why.
+     The chrome is .err-detail's, which is the file's only other free-text
+     input, so there is one look for "type words here". */
+  .pk-name{
+    display:block;width:100%;box-sizing:border-box;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:9px 12px;font:inherit;font-size:18px;
+    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  }
+
+  /* The making-and-taking-away row sits at the START of the line, because it
+     acts on the list above it. .pk-actions on its own pushes to the end, where
+     Done lives, and Done is the only control that ends the visit. No disabled
+     styling is written here: .brd-btn already carries &:disabled, and a second
+     rule for it would be a second place for the two to disagree. */
+  .pk-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -489,7 +539,8 @@
 
 <!-- The token-appearance picker (ALLOC-09, D-11). Static markup and a sibling
      of #err-panel, outside #app, so nothing about it depends on a rebuild:
-     [S06.2] fills the three grids and [S07.2] opens it and reads the presses.
+     [S06.2] fills the list and the three grids, and [S07.2] opens it and reads
+     the presses.
      Its own delegated root is bound through [S07]'s LATE_BINDERS seam.
 
      <dialog> IS THE FIRST ONE IN THIS REPO and there is none in either sibling
@@ -500,11 +551,47 @@
 
      The three grids are EMPTY here on purpose. Their contents are built from
      App.data.SHAPES / COLORS / GLYPHS at render time, which is what makes it
-     impossible for this surface to offer a value [S05] would refuse. -->
+     impossible for this surface to offer a value [S05] would refuse. The list
+     below them is empty for the same reason: its rows come from the live
+     vocabulary, so a type a student invents appears in it with no second tier
+     and no special case (D-05).
+
+     #tok-pick-name is STATIC, and that is the whole reason it lives here and
+     not in a builder. The dialog repaints on every frame while it is open, and
+     a field rebuilt or overwritten mid-typing loses the half-typed text; a node
+     that is never rebuilt can simply be skipped while it holds focus (D-19). -->
 <dialog class="pk" id="tok-picker" aria-labelledby="tok-pick-title">
-  <div class="eyebrow">Token appearance</div>
+  <div class="eyebrow">Token types</div>
   <h2 class="pk-title" id="tok-pick-title"></h2>
   <p class="pk-note">The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-list-label">Every type on this board</h3>
+    <div class="pk-list" id="tok-pick-list" role="group" aria-labelledby="tok-pick-list-label"></div>
+  </div>
+
+  <!-- Making a type and taking one away sit beside the list they change, and
+       apart from Done, which ends the whole visit. The scope is chosen HERE
+       because it is fixed at creation and cannot be edited afterwards (D-03) —
+       so it is a property of the act, not of the editor below. -->
+  <div class="pk-actions pk-actions--new">
+    <button class="brd-btn" type="button" id="tok-pick-new-unit" data-act="createTokenType" data-scope="unit" data-k="pk/new-unit">New type on each unit</button>
+    <button class="brd-btn" type="button" id="tok-pick-new-side" data-act="createTokenType" data-scope="side" data-k="pk/new-side">New type on the whole side</button>
+    <button class="brd-btn" type="button" id="tok-pick-remove" data-act="removeTokenType" data-k="pk/remove">Remove this type</button>
+  </div>
+
+  <!-- Deliberately NOT one of the board's stepper fields. isField() keys on
+       the stepper input's own class and every reader downstream of it is
+       numeric by construction, so a name typed here would be parsed as a
+       figure and refused on Enter. maxlength is ergonomic only: it
+       stops a student typing past the cap and then being told off, and it
+       counts UTF-16 code units while App.data.MAX_TOKEN_NAME counts CODE
+       POINTS, so the two legitimately disagree for an emoji name. The guard is
+       App.ops.requireTokenName and the safe cut is App.ops.clampTokenName. -->
+  <div class="pk-group">
+    <h3 class="pk-legend" id="tok-pick-name-label">Name</h3>
+    <input class="pk-name" id="tok-pick-name" type="text" autocomplete="off" maxlength="24" aria-labelledby="tok-pick-name-label" data-k="pk/name">
+  </div>
 
   <div class="pk-preview-line">
     <span class="pk-legend pk-legend--inline" id="tok-pick-preview-label">On the board</span>

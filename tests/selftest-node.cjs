@@ -189,7 +189,12 @@ function makeStubDom() {
     'tok-pick-shapes', 'tok-pick-shapes-label',
     'tok-pick-colors', 'tok-pick-colors-label',
     'tok-pick-glyphs', 'tok-pick-glyphs-label',
-    'tok-pick-done'
+    'tok-pick-done',
+    // plan 02.1-04 — the picker as list-plus-editor (D-05). The list of every
+    // type, the name field, and the make-one / take-one-away row.
+    'tok-pick-list', 'tok-pick-list-label',
+    'tok-pick-name', 'tok-pick-name-label',
+    'tok-pick-new-unit', 'tok-pick-new-side', 'tok-pick-remove'
   ];
 
   const byId = Object.create(null);
@@ -435,6 +440,42 @@ function makeStubDom() {
   };
   body.appendChild(picker);
   picker.appendChild(idNode('tok-pick-title', 'h2'));
+
+  // The list of every token type (D-05), empty exactly as it ships: its rows
+  // are built from the LIVE vocabulary at render time, which is what makes a
+  // type a student invented appear in it without a second tier.
+  const listGroup = createElement('div');
+  picker.appendChild(listGroup);
+  listGroup.appendChild(idNode('tok-pick-list-label', 'h3'));
+  listGroup.appendChild(idNode('tok-pick-list'));
+
+  // The make-one / take-one-away row. The dataset spellings are copied from
+  // the static markup and must be kept in step with it, exactly as the topbar
+  // buttons above are: plan 02.1-05 registers the handlers these names route
+  // to, and a typo here would make that plan's gate checks green over nothing.
+  const newRow = createElement('div');
+  picker.appendChild(newRow);
+  [
+    ['tok-pick-new-unit', 'createTokenType', { scope: 'unit', k: 'pk/new-unit' }],
+    ['tok-pick-new-side', 'createTokenType', { scope: 'side', k: 'pk/new-side' }],
+    ['tok-pick-remove', 'removeTokenType', { k: 'pk/remove' }]
+  ].forEach(([id, act, extra]) => {
+    const b = idNode(id, 'button');
+    b.dataset.act = act;
+    Object.keys(extra).forEach((key) => { b.dataset[key] = extra[key]; });
+    newRow.appendChild(b);
+  });
+
+  // The name field is STATIC in the shell and static here, which is the whole
+  // point of it: [S06.2] skips it while it holds focus rather than rebuilding
+  // it, so a half-typed name survives the per-frame repaint (D-19).
+  const nameGroup = createElement('div');
+  picker.appendChild(nameGroup);
+  nameGroup.appendChild(idNode('tok-pick-name-label', 'h3'));
+  const nameField = idNode('tok-pick-name', 'input');
+  nameField.type = 'text';
+  nameField.dataset.k = 'pk/name';
+  nameGroup.appendChild(nameField);
 
   const previewLine = createElement('div');
   picker.appendChild(previewLine);
