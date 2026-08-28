@@ -5988,6 +5988,57 @@ App.selftest = (function () {
     t.ok('alongside the act that opens it, which is unmoved',
       App.interactions.UI_ACTS.indexOf('openTokenPicker') !== -1);
 
+    /* ========== plan 02.1-05, the seam contract and the create payload =====
+       Claimed is not the same as handled. Between plan 02.1-03 and this one,
+       'selectTokenType' sat in UI_ACTS with nothing registered against it —
+       CLAIMED AND IGNORED, which the seam's own comment describes as the
+       honest behaviour for that window. These rows are what closes the window,
+       and they are read off the live registration rather than off a re-typed
+       list, for the same reason FIELD_OPS is exported above.
+
+       T-02.1-25 is the threat underneath them: an act with page work to do and
+       no handler falls through to [S05] dispatch's `default: throw` arm and
+       shows a student the styled error panel on a first click. The
+       must-not-regress greps on `case 'openTokenPicker'` and
+       `case 'selectTokenType'` guard the other half of the same rule.
+       ------------------------------------------------------------------- */
+    t.eq('the acts the UI layer actually handles are readable, not re-typed',
+      Array.isArray(App.interactions.UI_HANDLED), true);
+    t.ok('opening the picker is handled where it is claimed',
+      App.interactions.UI_HANDLED.indexOf('openTokenPicker') !== -1);
+    t.ok('and so is picking which type the editor shows, which was claimed and '
+      + 'ignored until now',
+      App.interactions.UI_HANDLED.indexOf('selectTokenType') !== -1);
+    t.ok('nothing is handled that the router would not claim', (function () {
+      return App.interactions.UI_HANDLED.every(function (act) {
+        return App.interactions.UI_ACTS.indexOf(act) !== -1;
+      });
+    })());
+
+    /* --- the payload the create button builds, asserted where it can be read
+           without a page: the name it arrives with has to be one the op will
+           take, and the look it inherits is the look the editor was showing.
+           A default the op refuses would put the error panel in front of a
+           student on the one press this whole phase is for. --- */
+    t.eq('a new type arrives with a name the name gate accepts',
+      App.ops.requireTokenName(App.interactions.NEW_TOKEN_NAME),
+      App.interactions.NEW_TOKEN_NAME);
+    var lookOf = App.state.get().build.tokens.hp;
+    var madeId = App.ops.dispatch('createTokenType', {
+      name: App.interactions.NEW_TOKEN_NAME,
+      shape: lookOf.shape, color: lookOf.color, glyph: lookOf.glyph, scope: 'unit'
+    });
+    t.eq('and the payload the button builds lands as a real type',
+      typeof madeId, 'string');
+    t.eq('carrying the look the editor was showing when it was pressed',
+      [App.state.get().build.tokens[madeId].shape,
+        App.state.get().build.tokens[madeId].color,
+        App.state.get().build.tokens[madeId].glyph].join('/'),
+      [lookOf.shape, lookOf.color, lookOf.glyph].join('/'));
+    t.eq('and the scope the button itself named, which cannot be edited later '
+      + '(D-03)', App.state.get().build.tokens[madeId].scope, 'unit');
+    App.ops.removeTokenType(madeId);
+
     /* --- the rows below need a page. The terminal harness loads this file
            into a bare sandbox with no document, so they say so and stop,
            exactly as [S09.4] does. A browser run gains the real coverage. --- */
