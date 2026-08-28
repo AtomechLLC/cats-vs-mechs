@@ -8180,6 +8180,65 @@ App.selftest = (function () {
     t.eq('nothing in the strip carries an inline style attribute',
       document.querySelectorAll('#strip [style]').length, 0);
 
+    /* --- The four rules [S06.3] and [S06.4] each state at length as SILENT
+           failure modes, asserted rather than promised. Every one of them is a
+           rule about what must NOT be on a node, and a rule of that shape is
+           held by nothing at all unless something walks the page looking for
+           it — it cannot be broken by deleting code, only by adding some, and
+           the addition is a single key in an object literal.
+
+           What each one costs when it goes: a data-k in either region steals
+           keyed()'s first document match, and because #strip sits ahead of
+           #col-mechs in document order it takes the focus restore for the
+           whole Mechs column with it — a student typing in a health field
+           lands on an unfocusable figure after the next rebuild. A data-amt,
+           or a .brd-value for sync()'s value pass to find, paints a confident
+           zero over a figure. A .brd-line--opt is read by the hide pass and
+           pins the line shut for good.
+
+           This suite already says of D-13 that it asserts the SHAPE rather
+           than trusting the note that promises it. That sentence was true one
+           paragraph away from these four and had never been applied to them.
+
+           The walk starts AT each region, so the build flag on the region
+           itself is in scope; `built` is deliberately not in the key list,
+           because that flag is the bookkeeping both banners call for. --- */
+    var boardRuleBreaks = [];
+    ['strip', 'refband'].forEach(function (id) {
+      var region = document.getElementById(id);
+      if (!region) { boardRuleBreaks.push(id + ': the region is missing'); return; }
+      (function walk(n) {
+        ['k', 'amt', 'lbl', 'albl'].forEach(function (key) {
+          if (n.dataset && n.dataset[key] !== undefined) {
+            boardRuleBreaks.push(id + '/' + n.className + ': data-' + key);
+          }
+        });
+        if (typeof n.className === 'string' && n !== region) {
+          if (n.className.indexOf('brd-value') !== -1) {
+            boardRuleBreaks.push(id + '/' + n.className + ': brd-value');
+          }
+          if (n.className.indexOf('brd-line--opt') !== -1) {
+            boardRuleBreaks.push(id + '/' + n.className + ': brd-line--opt');
+          }
+        }
+        Array.prototype.forEach.call(n.children, walk);
+      })(region);
+    });
+    // Floored first, for the reason the figure count above is floored: a walk
+    // over two regions that were never built finds nothing on either and
+    // passes spotlessly, which is precisely the shape of pass this row exists
+    // not to be.
+    var stripNode = document.getElementById('strip');
+    var bandNode = document.getElementById('refband');
+    t.ok('both regions this phase appended to the board are on the page with '
+      + 'something in them for the row below to be about',
+      stripNode !== null && bandNode !== null
+        && stripNode.children.length > 0 && bandNode.children.length > 0);
+    t.eq('and neither carries any of the attributes keyed() matches on or '
+      + 'sync() writes through — each is a silent failure mode, and each was '
+      + 'held by a comment until this row',
+      boardRuleBreaks.join(' | '), '');
+
     /* --- PROJ-02 and PROJ-03 on the shipped board. The worked lines are
            asserted as WHOLE strings rather than by looking for the operator in
            them, so a line that lost an operand still turns this red. --- */

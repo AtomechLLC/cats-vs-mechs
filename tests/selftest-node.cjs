@@ -2284,6 +2284,59 @@ check(
   'nodes carrying one: ' + JSON.stringify(prjStyled)
 );
 
+/* 56b. The four rules [S06.3] and [S06.4] each state at length as SILENT
+   failure modes, mirrored into CI. Until this row every one of them was held
+   by prose alone — and prose is the exact instrument this file refuses to
+   trust one paragraph away, where [S09.8] says of D-13 that it asserts the
+   shape rather than trusting the note.
+
+   Each is a rule about what must NOT be on a node, so it cannot be broken by
+   deleting code, only by adding one key to an object literal — and the cost
+   of adding it is invisible. A data-k in either region steals keyed()'s first
+   document match, and since #strip sits ahead of #col-mechs in document order
+   it takes the focus restore for the whole Mechs column with it. A data-amt,
+   or a .brd-value for sync()'s value pass to find, paints a confident zero
+   over the copy. A .brd-line--opt is pinned shut by the hide pass for good.
+
+   Walked rather than selected, for the reason 63b is walked: the walk is
+   about the page and not about this file's selector engine, and it reads
+   dataset, which is what setData actually writes. The walk starts AT each
+   region so the region's own node is in scope; `built` is deliberately not in
+   the key list, because that flag is the bookkeeping both banners call for. */
+const boardRuleBreaks = [];
+['strip', 'refband'].forEach((id) => {
+  const region = dom.byId[id];
+  if (!region) { boardRuleBreaks.push(id + ': the region is missing'); return; }
+  (function walk(n) {
+    ['k', 'amt', 'lbl', 'albl'].forEach((key) => {
+      if (n.dataset && n.dataset[key] !== undefined) {
+        boardRuleBreaks.push(id + '/' + n.className + ': data-' + key);
+      }
+    });
+    if (typeof n.className === 'string' && n !== region) {
+      if (n.className.indexOf('brd-value') !== -1) {
+        boardRuleBreaks.push(id + '/' + n.className + ': brd-value');
+      }
+      if (n.className.indexOf('brd-line--opt') !== -1) {
+        boardRuleBreaks.push(id + '/' + n.className + ': brd-line--opt');
+      }
+    }
+    n.children.forEach(walk);
+  })(region);
+});
+const stripBuilt = dom.byId['strip'] ? dom.byId['strip'].children.length : 0;
+const bandBuilt = dom.byId['refband'] ? dom.byId['refband'].children.length : 0;
+check(
+  '56b. neither region this phase appended to #board carries any of the four '
+    + 'things sync() and keyed() act on. Each is a silent failure mode both '
+    + 'banners spell out at length, and each was held by that comment and by '
+    + 'nothing else. Floored on both regions being built, because a walk over '
+    + 'two empty nodes finds nothing and passes spotlessly',
+  stripBuilt > 0 && bandBuilt > 0 && boardRuleBreaks.length === 0,
+  'strip children=' + stripBuilt + ' refband children=' + bandBuilt
+    + ' rules broken: ' + JSON.stringify(boardRuleBreaks)
+);
+
 const styleAccesses = html.split('.style').length - 1;
 check(
   '57. and .style appears exactly once in the whole artifact, which is the '
