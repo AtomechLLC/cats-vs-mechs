@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 03.1-02-PLAN.md
-last_updated: "2026-08-28T19:21:52.829Z"
+stopped_at: Completed 03.1-04-PLAN.md
+last_updated: "2026-08-28T19:51:15.496Z"
 last_activity: 2026-08-28
 progress:
   total_phases: 7
   completed_phases: 4
   total_plans: 24
-  completed_plans: 20
+  completed_plans: 21
   percent: 57
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
-Plan: 4 of 8
+Plan: 5 of 8
 Status: Ready to execute
 Last activity: 2026-08-28
 
-Progress: [████████░░] 83%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -55,6 +55,7 @@ Progress: [████████░░] 83%
 | Phase 03.1 P01 | 78 | 3 tasks | 2 files |
 | Phase 03.1 P02 | 62min | 3 tasks | 1 files |
 | Phase 03.1 P03 | 95min | 3 tasks | 1 files |
+| Phase 03.1 P04 | 105min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -77,6 +78,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03.1-03: a shipped action can be renamed and re-costed but not removed — the reference band names the six by id
 - [Phase ?]: 03.1-03: renameAction is a plain commit; createAction and removeAction are structural
 - [Phase ?]: 03.1-03: guard placement inside a commit is caught by refusal ORDER, never by undo depth — commit() runs its mutator before it records
+- [Phase 3.1]: 03.1-04: the cards, the band, the admission line and the picker line all read the BUILD SLICE through one exemption channel (data-anm) — an id means the shared sync pass owns the text, an empty value means the region that built the node does
+- [Phase 3.1]: 03.1-04: ACT-07's line beside Remove stays silent for a type the board is built on — a consequence stated for a removal the surface does not offer is noise
+- [Phase 3.1]: 03.1-04: a build-once rule is held by NODE COUNT, not by the built flag — probe M measured the flag vacuous for a per-node create/destroy
 
 ### Pending Todos
 
@@ -98,6 +102,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T19:21:35.012Z
-Stopped at: Completed 03.1-02-PLAN.md
+Last session: 2026-08-28T19:51:15.485Z
+Stopped at: Completed 03.1-04-PLAN.md
 Resume file: None
