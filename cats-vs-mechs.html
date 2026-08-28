@@ -2957,17 +2957,15 @@ App.render = (function () {
    * =================================================================== */
   // #region [S06.2] RENDER — PICKER
 
-  // Plain names, because the dialog's heading is the only place a student is
-  // told which of the four types they are editing. `dead` is here for
-  // completeness even though Phase 2 ships no button for it: the map is data,
-  // and a missing entry would render an empty heading in Phase 5.
-  var TOKEN_NAMES = {
-    hp: 'Health tokens',
-    ap: 'Action point tokens',
-    shield: 'Shield tokens',
-    dmg: 'Damage tokens',
-    dead: 'Dead marker'
-  };
+  // DELIBERATELY ABSENT: a second table of token names. There was one here, a
+  // literal id-to-label map, and its own comment said "the dialog's heading is
+  // the only place a student is told which type they are editing". That
+  // stopped being true the moment `name` became a field of every record: the
+  // board's labels, the list rows below and the refusal messages in [S05] all
+  // read the record, and a second table beside it would be a second place for
+  // the two to disagree about what a student called their own invention. The
+  // one label source is [S06.1]'s labelFor, which is hasOwnProperty-guarded and
+  // falls back to the shipped health name for a record a Phase 4 paste damaged.
 
   // One entry per SHAPES id and per COLORS id. These are the visible text that
   // makes UX-02 true on this surface: the swatch is not the only signal, and
@@ -3025,6 +3023,83 @@ App.render = (function () {
     });
   }
 
+  // D-05's list row. Built with pickerSwatch's idiom rather than a builder of
+  // its own, and for the same three reasons: it is a real <button> carrying the
+  // same data-act the board's controls carry, so [S07.2] routes it through
+  // App.ops.dispatch and there is still no second mutation entry point in the
+  // file; the token beside the name comes from the shipped makeToken, so a
+  // student's invention and one of the five look identical here by
+  // construction; and data-k names the TYPE and never the name, so a string a
+  // student typed never has to survive a round trip through a CSS attribute
+  // selector during focus restore.
+  //
+  // The selected state is pk-sw--on plus the tick, not a class of its own:
+  // half of this dialog IS colours, so "the live one" is never said in colour
+  // alone, and saying it twice in two different ways would be two rules to keep
+  // in step.
+  function pickerListRow(state, selectedId, id) {
+    var rec = styleFor(state, id);
+    var demo = { shape: safeShape(rec.shape), color: safeColor(rec.color), glyph: safeGlyph(rec.glyph) };
+    var on = (id === selectedId);
+
+    var b = el('button', 'pk-list-item tok--' + demo.color + (on ? ' pk-sw--on' : ''));
+    b.type = 'button';
+    setData(b, { act: 'selectTokenType', tok: id, k: 'pk/list/' + id });
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+
+    b.appendChild(makeToken(demo, false));
+    b.appendChild(text('span', 'pk-sw-label', labelFor(state, id)));
+    b.appendChild(text('span', 'pk-check', '✓'));
+    return b;
+  }
+
+  // EVERY entry, `dead` included. D-05 says the picker shows every type, and
+  // excluding one would rebuild exactly the special case a single list exists
+  // to delete. Object.keys is own-enumerable by definition, and the two reads
+  // inside the row builder are labelFor and styleFor, which are both
+  // hasOwnProperty-guarded — so no bare vocabulary lookup happens here.
+  function fillList(list, state, selectedId) {
+    if (!list) { return; }
+    list.replaceChildren();
+    Object.keys(state.build.tokens).forEach(function (id) {
+      list.appendChild(pickerListRow(state, selectedId, id));
+    });
+  }
+
+  // THE REPAINT GATE, and the reason it is a JSON fingerprint of the whole
+  // drawn vocabulary rather than four fields of one record.
+  //
+  // What was here read `id + '/' + shape + '/' + color + '/' + glyph`, and
+  // research measured it blind to everything this phase adds: with the picker
+  // open, renaming a type left dlg.dataset.sig and the heading untouched, and
+  // making a new type moved nothing at all. A list-plus-editor built on that
+  // string is born stale. So the input widens to everything the dialog draws
+  // and the idiom itself is unchanged — a repaint that changes nothing must
+  // still touch no nodes.
+  //
+  // JSON.stringify of an ARRAY, never a joined string: a name is text a student
+  // types, so any delimiter is a character they can enter, and a joined
+  // fingerprint could be made to report "nothing changed" for a change.
+  function pickerSig(state, tokenId) {
+    var vocab = state.build.tokens;
+    return JSON.stringify([tokenId, Object.keys(vocab).map(function (id) {
+      var rec = vocab[id];
+      return [id, rec.name, rec.shape, rec.color, rec.glyph, rec.scope];
+    })]);
+  }
+
+  // A type the board is built on cannot be removed (D-15) and does not count
+  // against the cap on types of the student's own (D-18). Both readings ask the
+  // same question, so it is asked in one place.
+  function isShippedType(id) {
+    return App.data.TOKEN_IDS.indexOf(id) !== -1;
+  }
+
+  function setEnabled(id, on) {
+    var node = document.getElementById(id);
+    if (node) { node.disabled = !on; }
+  }
+
   // The one entry point, and the argument is deliberate: WHICH picker is open
   // is transient interaction state, so it lives in a private variable in
   // [S07.2] and is passed in. Putting it in the `ui` slice would add a key to
@@ -3034,14 +3109,23 @@ App.render = (function () {
     var dlg = document.getElementById('tok-picker');
     if (!dlg) { return; }
 
-    var id = (App.data.TOKEN_IDS.indexOf(tokenId) === -1) ? App.data.TOKEN_IDS[0] : tokenId;
+    // What was here tested the argument for MEMBERSHIP of the five shipped ids
+    // and, on a miss, quietly swapped in the first of them. That was harmless
+    // while the five were the only types that could exist. It is not
+    // now — a student who opened a type of their own would have been handed the
+    // Health editor and told nothing about it, and then every press in the
+    // dialog would have restyled Health. The membership test is replaced by the
+    // existence test the rest of the file uses, so a made-up type resolves to
+    // itself; an id that names NOTHING paints no dialog at all rather than
+    // painting the wrong one, which is the same refusal `if (!dlg)` above makes.
+    var vocab = state.build.tokens;
+    if (!vocab || !Object.prototype.hasOwnProperty.call(vocab, tokenId)) { return; }
+    var id = tokenId;
+
     var raw = styleFor(state, id);
     var base = { shape: safeShape(raw.shape), color: safeColor(raw.color), glyph: safeGlyph(raw.glyph) };
 
-    // The same signature idiom syncRow uses, for the same reason: a repaint
-    // that changes nothing must touch no nodes, so clicking the swatch that is
-    // already live does not rebuild the grid under the student's finger.
-    var sig = id + '/' + base.shape + '/' + base.color + '/' + base.glyph;
+    var sig = pickerSig(state, id);
     if (dlg.dataset.sig === sig) { return; }
 
     // A restyle DOES rebuild all three grids, because every swatch is drawn in
@@ -3050,7 +3134,33 @@ App.render = (function () {
     // board's own focus contract — the swatch data-k is what it lands back on.
     withPreservedFocus(dlg, function () {
       var heading = document.getElementById('tok-pick-title');
-      if (heading) { heading.textContent = TOKEN_NAMES[id] || id; }
+      if (heading) { heading.textContent = labelFor(state, id); }
+
+      fillList(document.getElementById('tok-pick-list'), state, id);
+
+      // NOT rebuilt, and never written while it holds focus. This is setValue's
+      // rule (D-19) applied to text instead of a figure, and it is the whole
+      // reason the field is static markup: the dialog rides SYNC_HOOKS, so it
+      // repaints on every frame while it is open, and a student halfway through
+      // typing "Poison" must not be handed "Poi" back — or "Health".
+      //
+      // dataset.was moves with the displayed text for the reason showFieldValue
+      // gives: it is what a revert puts back, so left stale it would restore a
+      // name state no longer holds.
+      var nameField = document.getElementById('tok-pick-name');
+      if (nameField && nameField !== document.activeElement) {
+        nameField.value = labelFor(state, id);
+        nameField.dataset.was = nameField.value;
+      }
+
+      // A bound the student can see coming is a disabled button, not an error
+      // panel they have to read their way out of. Both are re-decided from
+      // state on every repaint rather than toggled by whoever last pressed
+      // something, so an undo moves them too.
+      var made = Object.keys(vocab).filter(function (k) { return !isShippedType(k); });
+      setEnabled('tok-pick-remove', !isShippedType(id));
+      setEnabled('tok-pick-new-unit', made.length < App.data.MAX_CUSTOM_TYPES);
+      setEnabled('tok-pick-new-side', made.length < App.data.MAX_CUSTOM_TYPES);
 
       fillGrid(document.getElementById('tok-pick-shapes'), id, 'shape',
         App.data.SHAPES, base.shape, base, function (v) { return SHAPE_NAMES[v] || v; });
@@ -3073,6 +3183,14 @@ App.render = (function () {
       }
     });
 
+    // Two attributes, written together, because they answer two questions.
+    // dataset.tok is WHICH type the editor is showing, and it is an attribute
+    // of its own rather than the head of a joined string: the shape this
+    // replaces recovered the id by splitting the signature on its delimiter,
+    // which parsed a selector-bound id back out of text a student can type.
+    // dataset.sig is WHETHER anything drawn here has moved since the last
+    // frame, and nothing ever reads a value out of it.
+    dlg.dataset.tok = id;
     dlg.dataset.sig = sig;
   }
 
@@ -3084,16 +3202,20 @@ App.render = (function () {
   // on Triangle. It self-healed on close-and-reopen, which is to say it was
   // wrong for exactly as long as the student was using the surface.
   //
-  // Which type is open is read back out of the signature picker() itself wrote,
+  // Which type is open is read out of the attribute picker() itself wrote,
   // rather than reaching across into [S07.2]'s private variable: [S06] owns
-  // that string, so this stays one tier reading its own bookkeeping. The id is
-  // checked against the allowlist before it is used, and picker()'s own sig
-  // comparison keeps a repaint that changes nothing free.
+  // that attribute, so this stays one tier reading its own bookkeeping. It is
+  // checked before it is used, and against the LIVE vocabulary rather than
+  // against the five the board is built on — the allowlist test that used to be
+  // here would have stopped repainting the moment a student opened a type of
+  // their own. picker()'s own fingerprint keeps a repaint that changes nothing
+  // free, and refuses an id that names nothing a second time.
   function syncPicker(state) {
     var dlg = document.getElementById('tok-picker');
     if (!dlg || dlg.open !== true) { return; }
-    var id = String(dlg.dataset.sig || '').split('/')[0];
-    if (App.data.TOKEN_IDS.indexOf(id) === -1) { return; }
+    var id = String(dlg.dataset.tok || '');
+    var vocab = state.build.tokens;
+    if (!vocab || !Object.prototype.hasOwnProperty.call(vocab, id)) { return; }
     picker(state, id);
   }
 
@@ -6026,8 +6148,8 @@ App.selftest = (function () {
         rowLabel('shield'), App.render.labelFor(App.state.get(), 'shield'));
 
       /* --- T-02.1-19. The selected id has an attribute of its own. It used to
-             be recovered with String(dlg.dataset.sig).split('/')[0], which is
-             a parse of a delimiter-joined string a student can type into. --- */
+             be recovered by splitting the signature on its delimiter, which is
+             a parse of a joined string a student can type into. --- */
       t.eq('the selected id lives in its own attribute rather than being '
         + 'parsed back out of a delimiter-joined signature',
         dlg ? dlg.dataset.tok : '(no dialog)', 'hp');
