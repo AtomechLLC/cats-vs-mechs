@@ -600,6 +600,27 @@
      D-15 paragraph above: this is the one rule in the file where an emphasis
      on half a sentence would read as a ruling. */
   .ref-beats{margin:0;font-size:24px;font-weight:700;color:var(--ink)}
+
+  /* The column cards. The chrome is .unit-card's, deliberately: an action card
+     and a unit card sit in the same column one above the other, and two panel
+     treatments a few pixels apart would read as a difference that means
+     something. The one thing NOT copied is :focus-within — these cards hold
+     nothing focusable, so the rule would be dead on arrival. */
+  .ref-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:14px 16px;display:flex;flex-direction:column;gap:10px;user-select:none;
+  }
+  .ref-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .ref-action{font-size:24px;font-weight:700}
+  .ref-dmg{font-size:18px;color:var(--ink-dim)}
+  .ref-effects{display:flex;flex-wrap:wrap;gap:8px}
+  /* A pill, not a swatch. [C05]'s token shapes each mean a quantity of
+     something countable, and a keyword is not countable — borrowing one of
+     those shapes here would say the two are the same kind of thing. */
+  .ref-effect{
+    border:1px solid var(--line);border-radius:999px;padding:4px 12px;
+    font-size:18px;color:var(--ink-dim);
+  }
 </style>
 </head>
 <body>
@@ -3002,6 +3023,125 @@ App.render = (function () {
     return card;
   }
 
+// #region [S06.1] the reference cards — plan 03-05
+  /* ---- REF-02's action and effect cards. Built here beside unitCard because
+         they are appended into a faction column by buildColumn below, and a
+         second card builder living in another sub-region would be a second
+         place the column's card treatment could drift.
+         Added by plan 03-05 into plan 02-01's [S06.1]; the append itself is
+         named as a cross-plan edit at its site.
+
+         The #region markers around this builder are LOAD-BEARING, not
+         decoration: [S09.9] slices the script block between them and scans the
+         result for a labelFor call, the way the dev gate already slices the
+         script block out of the document. Renaming or removing either marker
+         turns that row into a scan of nothing. ---- */
+
+  // Read from the FROZEN board rather than from state.build[side].actions,
+  // which buildColumn already has in hand. Two reasons, both about the same
+  // boundary: reference material is static and is not part of the slice a
+  // student edits or Phase 4 encodes, and from Phase 4 an actions array could
+  // arrive from a pasted build code — at which point somebody else's typing
+  // would be painting this page's reference copy, outside the [data-lbl]
+  // channel Layer C exempts for student names. The day actions become
+  // student-editable, this read is the line that has to change on purpose.
+  function refActions(side) {
+    return App.data.DEFAULTS[side].actions;
+  }
+
+  // An Array.find over the frozen list, never a bare index into an object
+  // keyed by id — the rule styleFor and labelFor each state at length, for the
+  // reason they give: from Phase 4 a keyword id can arrive from a pasted build
+  // code, and a bare lookup for 'constructor' resolves on the prototype and
+  // hands the page a function where a word belongs. Comparing a record's own
+  // `id` field cannot do that whatever string it is handed.
+  function effectRecord(keywordId) {
+    return App.data.REFERENCE.effects.find(function (rec) {
+      return rec.id === keywordId;
+    }) || null;
+  }
+
+  // THE labelFor RULE, IN BOTH DIRECTIONS, because half of it is the opposite
+  // of the other half and a reader who learns only one will "fix" the other.
+  //
+  //   A TOKEN TYPE must be named through labelFor. ALLOC-10 lets a student
+  //   rename one, and the Damage bug (e7f14ef) was exactly a literal used
+  //   where labelFor belonged — the board printed a name the student had
+  //   already changed.
+  //
+  //   A KEYWORD must NOT be. It is named from REFERENCE.effects, full stop.
+  //   The keyword id `shield` and the token id `shield` are the same string in
+  //   two different objects: one is a rule the table adjudicates, the other is
+  //   a resource on a card. A student renaming the Shield TOKEN to Barrier has
+  //   not renamed the Recharge KEYWORD, and a card that followed that rename
+  //   would be reporting that a workshop rule changed when nothing about the
+  //   rule did.
+  //
+  // Both are correct and they apply to different things. There is no call to
+  // labelFor anywhere in this builder, [S09.9] scans this region's source for
+  // one, and the interaction gate drives a real rename and reads the card back.
+  function effectChip(keywordId) {
+    var rec = effectRecord(keywordId);
+    return text('span', 'ref-effect', rec ? rec.name : keywordId);
+  }
+
+  // A zero is not printed as a figure. Four of the six shipped actions do no
+  // damage at all, and "0" beside a keyword reads as "this action does
+  // nothing" — when in fact it does precisely the thing the keyword names, and
+  // what that is worth is the table's ruling and not this tool's. So the
+  // absence is stated in words, in the register [S06.3] already uses when the
+  // model has no number to give ("no damage to spend"), and the same
+  // presentation is applied to all four of them rather than one being special.
+  function dmgText(dmg) {
+    return (dmg > 0) ? (dmg + ' damage') : 'no damage';
+  }
+
+  // NO CONTROL OF ANY KIND, and that is what makes this the cheap answer
+  // rather than a cheap shortcut: no button, no stepper, and neither of the
+  // two data attributes [S07] dispatches on. [S07.1]'s banner names Phase 3's
+  // reference cards as a future consumer of its seams; a card with nothing to
+  // press consumes none of them, so [S07] is owed no edit and the next reader
+  // should not go looking for a handler that was never needed. If a card ever
+  // grows a control it goes through UI_ACTS / UI_HANDLERS / LATE_BINDERS,
+  // never into [S05].
+  //
+  // Those two attributes are described rather than spelled, for the reason
+  // [C11] gives about the colour properties it forbids: the check on this
+  // region is a scan for them, and a comment promising not to use them would
+  // be the thing that failed it. The scan reads this region with its comments
+  // stripped, so the one word below that IS spelled — the label reader, whose
+  // rule has to be findable by name — costs nothing.
+  //
+  // Every string reaches the page through text() -> textContent, like
+  // everything else this file draws. No inline SVG anywhere: an SVG element
+  // can only be made through the namespaced element constructor, that
+  // constructor takes the SVG namespace URI, and a URI of that shape is
+  // refused document-wide by the dev gate. A shape here is a CSS clip-path,
+  // which is what [C05] already does for the board's triangles and hexagons.
+  function refCard(action) {
+    var card = el('article', 'ref-card');
+
+    var head = el('div', 'ref-card-head');
+    head.appendChild(text('span', 'ref-action', action.name));
+    head.appendChild(text('span', 'ref-dmg num', dmgText(action.dmg)));
+    card.appendChild(head);
+
+    // REF-02: the effect cards attach to the action that CARRIES them, read
+    // off the action record's own keywords array. Nothing here knows or
+    // hardcodes which action has which effect — that is the board's data, and
+    // a keyword moved from one action to another moves on the page for free.
+    if (action.keywords.length > 0) {
+      var box = el('div', 'ref-effects');
+      action.keywords.forEach(function (keywordId) {
+        box.appendChild(effectChip(keywordId));
+      });
+      card.appendChild(box);
+    }
+
+    return card;
+  }
+// #endregion [S06.1] the reference cards — plan 03-05
+
   // D-05: the roster controls are setup-only. A null fight slice IS setup --
   // mode is derived, never stored, and [S05] fightOf already establishes that.
   // Roster shaping and fight bookkeeping are different activities and the page
@@ -3025,6 +3165,26 @@ App.render = (function () {
       setData(add, { k: side + '/add', act: 'addUnit', side: side });
       parts.push(add);
     }
+
+    /* --- A CROSS-PLAN EDIT into this function, by plan 03-05, named as one
+           rather than done quietly: section ownership is the only thing keeping
+           a single-file project's plans from colliding, and this function is
+           plan 02-01's. The edit is additive and sits at exactly this one
+           place. Nothing above it is modified, reordered or removed, and
+           structure(), withPreservedFocus, unitCard and factionHead are
+           untouched.
+
+           OUTSIDE the setup branch above, deliberately and not by oversight.
+           The Add button is a roster CONTROL and belongs to setup; these cards
+           are reference MATERIAL, and a student reading what Lasers does needs
+           it at least as much mid-fight as mid-build — which is REF-03, in
+           Phase 5. One branch placement now costs nothing and saves that phase
+           a re-layout. It is asserted by starting a fight and reading the cards
+           back, in [S09.9] and in the interaction gate, rather than left
+           resting on this paragraph. --- */
+    refActions(side).forEach(function (action) {
+      parts.push(refCard(action));
+    });
 
     col.replaceChildren();
     parts.forEach(function (part) { col.appendChild(part); });
