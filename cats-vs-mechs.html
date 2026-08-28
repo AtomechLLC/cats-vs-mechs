@@ -973,8 +973,9 @@ App.data = (function () {
  * argument. Nothing here reads the state singleton, reads or writes the page,
  * or stores a derived value — a derived value kept in state becomes a second,
  * mechanical reason for the projection to disagree with the board.
- * Turns-to-wipe ranges, formatting and the projection panel are Phase 3
- * (plan 03-01) and deliberately do not live here.
+ * Turns-to-wipe ranges live here, added by plan 03-02. Formatting and the
+ * projection panel do not: nothing below produces a symbol or a string,
+ * because the page owns how a range is written down.
  * deps: none
  * owner: plan 01-01
  * ======================================================= */
@@ -1019,13 +1020,88 @@ App.model = (function () {
     return Math.max(0, buildFaction.ap - fightSide.ap);
   }
 
+  // What a roster actually absorbs, as opposed to what it is worth. A hit
+  // that takes a unit past its last point of health throws the remainder
+  // away, and the projection has to carry that or it under-reports.
+  //
+  // The ceiling is taken PER UNIT, deliberately. A roster of mixed sizes
+  // throws away a different amount on each unit, and one ceiling over the
+  // faction total hides all of them: units at 1, 2 and 3 health repeated are
+  // worth 18 and absorb 27 against a 3-damage hit, and a faction-total
+  // ceiling reports 18.
+  //
+  // A hit of zero is reachable, not hypothetical: a faction whose actions are
+  // all status effects has a best damage of 0, and ceil(9 / 0) * 0 is NaN,
+  // which reaches a projector as three letters. The refusal therefore sits
+  // ABOVE the reduce rather than inside it, so no unit is ever divided by
+  // zero at all. Written as "not greater than zero" so a NaN hit is refused
+  // by the same line.
+  function soakTotal(faction, hit) {
+    if (!(hit > 0)) { return 0; }
+    return faction.units.reduce(function (n, u) {
+      return n + Math.ceil(unitEhp(u) / hit) * hit;
+    }, 0);
+  }
+
+  // Two bounds over the same fight, and never a simulation: the fast one
+  // spends every point of throughput on health, the slow one also pays for
+  // what each hit throws away. The slow bound can never sit below the fast
+  // one, because the soak total is at least the health total term by term.
+  // When nothing is thrown away the two agree and the page shows one number.
+  //
+  // Zero throughput is reachable through the shipped stepper, whose floor is
+  // 0, and ceil(27 / 0) is Infinity, which reaches a projector as the word
+  // itself. A target already at zero health with an attacker at zero
+  // throughput is worse still: that divides zero by zero and gives NaN.
+  //
+  // So the refusal is taken on the DIVISOR, above both divisions, rather than
+  // on the result below them. Both can be written correctly; only one of them
+  // is hard to write incorrectly. A check on the result has to catch Infinity
+  // AND NaN, and the obvious `=== Infinity` catches only the first, letting
+  // the zero-against-zero case through as three letters on a projector.
+  // Refusing the divisor has no second case left to forget.
+  //
+  // The refusal is null rather than a clamp. Substituting 1 for a throughput
+  // of 0 would print a confident number of turns for a side that cannot
+  // attack at all, which is untrue in a way a student cannot see. And it
+  // lives here, in the derivation, for the reason apSpent's floor does: the
+  // derivation owns what this number means, and a caller repairing the result
+  // afterwards would be a second, competing definition of it.
+  //
+  // Nothing is formatted here — no symbols, no strings, no rounding for
+  // display. The page owns how a range is written down.
+  //
+  // activeUnits is forwarded untouched so Phase 5 can project a fight in
+  // progress. Every Phase 3 caller leaves it undefined, because during setup
+  // there is no fight slice to count survivors from.
+  //
+  // [S09.8] holds both refusals to account, including the one that catches
+  // a throughput check moved below the health read.
+  function turnsToWipe(attacker, target, activeUnits) {
+    var perTurn = factionDps(attacker, activeUnits);
+    if (!(perTurn > 0)) { return null; }
+    var hit = bestDamage(attacker);
+    var ehp = factionEhp(target);
+    var soak = soakTotal(target, hit);
+    return {
+      perTurn: perTurn,
+      hit: hit,
+      ehp: ehp,
+      soak: soak,
+      fast: Math.ceil(ehp / perTurn),
+      slow: Math.ceil(soak / perTurn)
+    };
+  }
+
   return Object.freeze({
     unitEhp: unitEhp,
     factionEhp: factionEhp,
     bestDamage: bestDamage,
     factionDps: factionDps,
     aliveCount: aliveCount,
-    apSpent: apSpent
+    apSpent: apSpent,
+    soakTotal: soakTotal,
+    turnsToWipe: turnsToWipe
   });
 })();
 // #endregion [S02] MODEL
@@ -4845,6 +4921,7 @@ App.boot = (function () {
  *   [S09.5] interaction contract                              (plan 02-02)
  *   [S09.6] token appearance                                  (plan 02-03)
  *   [S09.7] token authoring — the id gate and the name gate   (plan 02.1-01)
+ *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -7065,6 +7142,251 @@ App.selftest = (function () {
     App.state.flush();
     t.eq('the token-authoring suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.8] SUITE: projection — owner plan 03-02 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('projection', function (t) {
+    // Every row below is DOM-free on purpose: the two bounds are arithmetic
+    // over a faction object and proving them needs no page at all, so the
+    // terminal harness gets the whole of this half. Plan 03-03 adds the rows
+    // that read the rendered strip to this same suite.
+
+    var d = App.data.defaults();
+
+    /* --- The shipped board, both directions, compared as whole objects
+           rather than as six scalar rows each: a change to any field of the
+           returned shape should cost one red row and name the whole shape,
+           not six rows naming one number apiece. --- */
+    t.eq('cats into mechs', App.model.turnsToWipe(d.cats, d.mechs),
+      { perTurn: 3, hit: 1, ehp: 27, soak: 27, fast: 9, slow: 9 });
+    t.eq('mechs into cats', App.model.turnsToWipe(d.mechs, d.cats),
+      { perTurn: 9, hit: 3, ehp: 27, soak: 27, fast: 3, slow: 3 });
+
+    // Nothing spills on the shipped board at 1 and at 3 damage against 3- and
+    // 9-health units, so the soak total and the plain health total agree.
+    t.eq('soak at the mechs hit', App.model.soakTotal(d.cats, 3), 27);
+    t.eq('soak at the cats hit', App.model.soakTotal(d.cats, 1), 27);
+
+    /* --- The two refusals. Both are reachable through shipped ops, not
+           hypothetical: the action-point stepper's floor is 0, and a faction
+           whose actions are all status effects has a best damage of 0. --- */
+    var noAp = App.data.defaults();
+    noAp.mechs.ap = 0;
+    t.eq('a side with no action points projects nothing rather than the word '
+      + 'that ceil(27 / 0) produces',
+      App.model.turnsToWipe(noAp.mechs, noAp.cats), null);
+
+    var noDmg = App.data.defaults();
+    noDmg.mechs.actions.forEach(function (a) { a.dmg = 0; });
+    t.eq('nor does a side whose actions all do nothing to health',
+      App.model.turnsToWipe(noDmg.mechs, noDmg.cats), null);
+
+    /* --- The ordering row. This is the one that catches a refusal moved off
+           the divisor and onto the result: at zero throughput against a target
+           already at zero health the division is 0 by 0, which is not infinite
+           — it is NaN, and it walks straight through a check written only
+           against Infinity. Every other refusal row here still passes under
+           that mistake, which is what makes this row worth its own paragraph. --- */
+    var bothZero = App.data.defaults();
+    bothZero.mechs.ap = 0;
+    bothZero.cats.units.forEach(function (u) { u.maxHp = 0; u.shield = 0; });
+    t.eq('no throughput against nothing left to take is still nothing to '
+      + 'project, because the refusal is taken on the divisor and not on the '
+      + 'result of dividing by it',
+      App.model.turnsToWipe(bothZero.mechs, bothZero.cats), null);
+
+    t.eq('a hit of zero soaks nothing instead of producing NaN',
+      App.model.soakTotal(d.cats, 0), 0);
+    t.eq('and a hit below zero is refused the same way',
+      App.model.soakTotal(d.cats, -1), 0);
+
+    /* --- The range appears. Raising every Cat to 4 health makes a 3-damage
+           hit throw two points away on each of them, and the two bounds
+           separate for the first time. --- */
+    var hp4 = App.data.defaults();
+    hp4.cats.units.forEach(function (u) { u.maxHp = 4; u.shield = 0; });
+    t.eq('every Cat at 4 health turns the single bound into a real range',
+      App.model.turnsToWipe(hp4.mechs, hp4.cats),
+      { perTurn: 9, hit: 3, ehp: 36, soak: 54, fast: 4, slow: 6 });
+
+    var gone = App.data.defaults();
+    gone.cats.units.forEach(function (u) { u.maxHp = 0; u.shield = 0; });
+    t.eq('a live attacker against a roster with no health left projects zero '
+      + 'turns, a finite number, rather than NaN',
+      App.model.turnsToWipe(gone.mechs, gone.cats),
+      { perTurn: 9, hit: 3, ehp: 0, soak: 0, fast: 0, slow: 0 });
+
+    // The same shape check [S09.2] runs over the older derivations, applied to
+    // every field of both directions at once.
+    var pair = [App.model.turnsToWipe(d.cats, d.mechs),
+      App.model.turnsToWipe(d.mechs, d.cats)];
+    t.ok('every field of every bound is a finite whole number, none of them '
+      + 'below zero', pair.every(function (r) {
+      return Object.keys(r).every(function (k) {
+        return Number.isInteger(r[k]) && r[k] >= 0;
+      });
+    }));
+    t.ok('and the slow bound is never below the fast one',
+      pair.every(function (r) { return r.slow >= r.fast; }));
+
+    /* --- What a roster absorbs equals what it is worth exactly when nothing
+           spills, which is the shipped board on both sides. D-05 says that
+           agreement should reach a student as one number rather than as a
+           range whose two halves happen to match, and the rows below are why
+           that is a finding about the board and not a band modelling nothing:
+           the two halves are separate quantities, read off the roster
+           independently, and they come apart the moment a hit carries past a
+           unit's last point of health. --- */
+    t.eq('the cats absorb what they are worth against a 3-damage hit',
+      App.model.soakTotal(d.cats, 3), App.model.factionEhp(d.cats));
+    t.eq('and the mechs absorb what they are worth against a 1-damage hit',
+      App.model.soakTotal(d.mechs, 1), App.model.factionEhp(d.mechs));
+
+    /* --- The range appearing, driven rather than asserted. Three
+           allocations, each one a real edit a student could make on the
+           board, each read back through the same derivation the page will
+           use. At 4 health a 3-damage hit throws 2 away on every Cat; at 5 it
+           throws 1 away; at 1 it throws 2 away and the spread is at its
+           widest relative to the health present. --- */
+    var hp5 = App.data.defaults();
+    hp5.cats.units.forEach(function (u) { u.maxHp = 5; u.shield = 0; });
+    t.eq('every Cat at 5 health narrows the range rather than closing it',
+      App.model.turnsToWipe(hp5.mechs, hp5.cats),
+      { perTurn: 9, hit: 3, ehp: 45, soak: 54, fast: 5, slow: 6 });
+
+    var hp1 = App.data.defaults();
+    hp1.cats.units.forEach(function (u) { u.maxHp = 1; u.shield = 0; });
+    t.eq('every Cat at 1 health opens it as far as it goes on this board',
+      App.model.turnsToWipe(hp1.mechs, hp1.cats),
+      { perTurn: 9, hit: 3, ehp: 9, soak: 27, fast: 1, slow: 3 });
+
+    /* --- And the measured fact that goes with it, stated here rather than
+           left for a student to trip over: on this board a range is a
+           mechs-attacking phenomenon only. Slash does 1 damage, and a
+           1-damage hit throws nothing away by construction, so the cats
+           direction collapses to one number for every mechs roster there is.
+           A student who wants to see the two halves come apart has to give
+           the attacker a hit that does not divide the target. --- */
+    t.ok('the cats direction cannot open a range while Slash does 1 damage, '
+      + 'whatever the mechs are built from',
+      [1, 2, 3, 5, 6, 7, 11, 12].every(function (hp) {
+        var c = App.data.defaults();
+        c.mechs.units.forEach(function (u) { u.maxHp = hp; u.shield = 0; });
+        var r = App.model.turnsToWipe(c.cats, c.mechs);
+        return r.hit === 1 && r.soak === r.ehp && r.slow === r.fast;
+      }));
+
+    /* --- The per-unit ceiling, which is the reason soakTotal is not one
+           division over a faction total. A roster of mixed sizes throws away
+           a different amount on each unit, and a faction-total ceiling hides
+           every one of them. --- */
+    var mixed = App.data.defaults();
+    mixed.cats.units.forEach(function (u, i) { u.maxHp = (i % 3) + 1; u.shield = 0; });
+    t.eq('a roster at 1, 2 and 3 health repeated is worth 18',
+      App.model.factionEhp(mixed.cats), 18);
+    t.eq('and absorbs 27 against a 3-damage hit — one ceiling over the '
+      + 'faction total would report 18 and understate the waste threefold',
+      App.model.soakTotal(mixed.cats, 3), 27);
+
+    // Shield is inside effective health, not beside it, so the projection
+    // never has to remember to add it.
+    t.eq('a shipped Mech is worth 9 across both pools',
+      App.model.unitEhp(d.mechs.units[0]), 9);
+    t.eq('and the three of them are worth 27',
+      App.model.factionEhp(d.mechs), 27);
+
+    /* --- ALLOC-11, asserted rather than assumed: a number a student writes
+           down beside a token type of their own counts for nothing on its
+           own. The projection reads the two pools the board is built on and
+           no other field, at either scope. --- */
+    var tallied = App.data.defaults();
+    var unitBefore = App.model.unitEhp(tallied.cats.units[0]);
+    var factionBefore = App.model.factionEhp(tallied.cats);
+    tallied.cats.units[0].tally = { t1: 99 };
+    tallied.cats.tally = { t1: 50 };
+    t.eq('a tally written at unit scope stays out of the unit total',
+      App.model.unitEhp(tallied.cats.units[0]), unitBefore);
+    t.eq('and one written at side scope stays out of the faction total',
+      App.model.factionEhp(tallied.cats), factionBefore);
+
+    // Throughput is already held to the unit count upstream, so the
+    // projection needs no ceiling of its own on top of it.
+    var loaded = App.data.defaults();
+    loaded.mechs.ap = 99;
+    t.eq('action points past the unit count buy no throughput',
+      App.model.factionDps(loaded.mechs), 9);
+    t.eq('and the projection reads that same held throughput',
+      App.model.turnsToWipe(loaded.mechs, loaded.cats).perTurn, 9);
+
+    /* --- The sweep. Every axis crossed: an attacker over hit 1-4 by action
+           points 1-4 by unit count 1-4, against a target over health 1-6 by
+           shield 0-3 by unit count 1-4. Not a simulation of anything — it is
+           the same two divisions run over a wide grid, to show that neither
+           can produce a value a projector cannot print.
+
+           The case count is reported below and floored, because the failure
+           mode of a sweep that generated nothing is a green run rather than a
+           red one — the same reason [S09.7]'s id gate and check 47's harvest
+           carry floors. --- */
+    function sweepFaction(hp, shield, hit, ap, n) {
+      var units = [];
+      var i = 0;
+      while (i < n) {
+        units.push({ id: 'sw' + i, name: 'Sweep ' + i, maxHp: hp, shield: shield });
+        i++;
+      }
+      return {
+        id: 'sw', name: 'Sweep', ap: ap, units: units,
+        actions: [{ id: 'swa', name: 'Sweep hit', dmg: hit, keywords: [] }]
+      };
+    }
+
+    var sweepCases = 0;
+    var sweepReal = 0;
+    var sweepUnprintable = 0;
+    var sweepInverted = 0;
+    [1, 2, 3, 4].forEach(function (hit) {
+      [1, 2, 3, 4].forEach(function (ap) {
+        [1, 2, 3, 4].forEach(function (an) {
+          var attacker = sweepFaction(1, 0, hit, ap, an);
+          [1, 2, 3, 4, 5, 6].forEach(function (hp) {
+            [0, 1, 2, 3].forEach(function (shield) {
+              [1, 2, 3, 4].forEach(function (tn) {
+                var r = App.model.turnsToWipe(attacker, sweepFaction(hp, shield, 1, 1, tn));
+                sweepCases++;
+                if (r === null) { return; }
+                sweepReal++;
+                var printable = Object.keys(r).every(function (k) {
+                  return Number.isFinite(r[k]) && Number.isInteger(r[k]) && r[k] >= 0;
+                });
+                if (!printable) { sweepUnprintable++; }
+                if (r.slow < r.fast) { sweepInverted++; }
+              });
+            });
+          });
+        });
+      });
+    });
+
+    t.info('pairs the sweep put through the projection', sweepCases);
+    t.ok('the sweep generated a grid rather than nothing at all, and every '
+      + 'pair in it produced a real projection', sweepReal > 500);
+    t.eq('not one pair produced a value a projector cannot print: every field '
+      + 'finite, whole, and not below zero', sweepUnprintable, 0);
+    t.eq('and not one pair put the slow bound below the fast one',
+      sweepInverted, 0);
+
+    var snapshot = JSON.stringify(d.cats);
+    App.model.soakTotal(d.cats, 3);
+    App.model.soakTotal(d.cats, 3);
+    App.model.turnsToWipe(d.mechs, d.cats);
+    App.model.turnsToWipe(d.mechs, d.cats);
+    t.eq('the projection reads the roster and never writes to it',
+      JSON.stringify(d.cats), snapshot);
   });
 })();
 // #endregion [S09] SELFTEST
