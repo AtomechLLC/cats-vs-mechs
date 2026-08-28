@@ -4205,11 +4205,34 @@ App.interactions = (function () {
   // createTokenType hands back the id it produced, so the student lands in
   // their new type's editor rather than being dropped back on whatever they
   // were looking at when they pressed New.
+  // The COLOUR is the one thing a new type does not inherit, and it is the one
+  // thing that has to differ. A type arrives wearing the look of whatever the
+  // editor was showing, and makeType then moves the editor onto it — so two
+  // News in a row produced two records with the same name, the same shape, the
+  // same colour and the same glyph. On the board that is two identically
+  // labelled, identically drawn lines on every unit card, and in the list two
+  // identical rows, on the first press of the flow this phase exists for.
+  // D-11 permits duplicate names; manufacturing a duplicate everything is a
+  // different thing.
+  //
+  // Rotating the colour rather than numbering the name, because the name is a
+  // placeholder the student is being invited to replace and a number in it
+  // reads as an answer. The offset is the SIZE of the vocabulary, so
+  // consecutive News step through the palette one entry at a time. The palette
+  // holds seven and the cap on types of a student's own is six, so an unbroken
+  // run of News walks six distinct entries before it could come back round —
+  // which is the property that matters. It does NOT promise a colour no other
+  // type is already wearing, and it is not trying to: the student is expected
+  // to choose one two swatches below.
   function makeType(dlg, scope) {
     var look = liveLook(pickedTok(dlg));
+    var used = Object.keys(App.state.get().build.tokens).length;
     var made = App.ops.dispatch('createTokenType', {
       name: NEW_TOKEN_NAME,
-      shape: look.shape, color: look.color, glyph: look.glyph, scope: scope
+      shape: look.shape,
+      color: App.data.COLORS[used % App.data.COLORS.length],
+      glyph: look.glyph,
+      scope: scope
     });
     showType(dlg, made);
   }

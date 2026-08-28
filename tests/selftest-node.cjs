@@ -1892,6 +1892,47 @@ check(
 clearPanel();
 if (dlg.open === true) { dlg.close(); }
 
+/* --- 45. two News in a row must not produce two records nothing but the
+       invisible id tells apart. A new type inherits the look of whatever the
+       editor is showing and then the editor moves onto it, so the second New
+       inherited the first — same name, same shape, same colour, same glyph, on
+       the very first press of the flow this phase exists for. The colour is
+       what is rotated; the name stays the placeholder it is on purpose. --- */
+press(openBtn);
+release(openBtn);
+A.state.flush();
+clearPanel();
+const runOfNew = [];
+for (let i = 0; i < 4; i++) {
+  press(pkNewUnit);
+  release(pkNewUnit);
+  A.state.flush();
+  runOfNew.push(dlg.dataset.tok);
+}
+const runLooks = runOfNew.map((id) => {
+  const rec = A.state.get().build.tokens[id];
+  return [rec.shape, rec.color, rec.glyph].join('/');
+});
+const runColors = runOfNew.map((id) => A.state.get().build.tokens[id].color);
+const runAllValid = runColors.every((c) => A.data.COLORS.indexOf(c) !== -1);
+const runNamesStillDefault = runOfNew
+  .every((id) => A.state.get().build.tokens[id].name === A.interactions.NEW_TOKEN_NAME);
+runOfNew.forEach((id) => A.ops.removeTokenType(id));
+A.state.flush();
+check(
+  '45. four New presses in a row produce four types a student can tell apart, '
+    + 'and the placeholder name is left a placeholder',
+  new Set(runLooks).size === runOfNew.length
+    && runAllValid === true && runNamesStillDefault === true
+    && errPanel.hidden === true,
+  'looks=' + JSON.stringify(runLooks)
+    + ' distinct=' + new Set(runLooks).size + ' of ' + runOfNew.length
+    + ' every colour on the shipped palette=' + runAllValid
+    + ' names all still the placeholder=' + runNamesStillDefault
+);
+clearPanel();
+if (dlg.open === true) { dlg.close(); }
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the
