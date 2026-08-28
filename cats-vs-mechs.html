@@ -3616,7 +3616,23 @@ App.render = (function () {
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
 
     b.appendChild(makeToken(demo, false));
-    b.appendChild(text('span', 'pk-sw-label', labelFor(state, id)));
+
+    // AN EXEMPTION MARKER, AND NOTHING ELSE. sync()'s label pass queries
+    // `board` — the region inside #app — so this attribute on a node that lives
+    // in the dialog appoints no second writer: the row is rebuilt whole on
+    // every repaint, and that rebuild stays the only thing that writes here.
+    // What the attribute does do is name the CHANNEL. The rendered-page walk in
+    // tests/selftest-node.cjs now reads the dialogs as well as #app, and it
+    // skips the text of any node carrying this key, because that text is a word
+    // the student typed rather than a word this file says. Without the marker,
+    // a student who names one of their own types after a comparative word would
+    // redden CI, which is the exact outcome the walk's own preamble rules out.
+    // The value is the token id, which is what this key already means at every
+    // other site in the file.
+    var swLabel = text('span', 'pk-sw-label', labelFor(state, id));
+    setData(swLabel, { lbl: id });
+    b.appendChild(swLabel);
+
     b.appendChild(text('span', 'pk-check', '✓'));
     return b;
   }
@@ -3716,8 +3732,16 @@ App.render = (function () {
     // Rebuilding destroys the node the keyboard was on, so it goes through the
     // board's own focus contract — the swatch data-k is what it lands back on.
     withPreservedFocus(dlg, function () {
+      // The heading is the dialog's second student-word node, and it takes the
+      // same marker for the same reason the list row above takes it: the walk
+      // skips this key, sync()'s label pass never reaches inside a dialog, and
+      // the value is the token id. Written on every repaint beside the text it
+      // exempts, so the two cannot drift onto different types.
       var heading = document.getElementById('tok-pick-title');
-      if (heading) { heading.textContent = labelFor(state, id); }
+      if (heading) {
+        heading.textContent = labelFor(state, id);
+        setData(heading, { lbl: id });
+      }
 
       fillList(document.getElementById('tok-pick-list'), state, id);
 
@@ -7421,8 +7445,26 @@ App.selftest = (function () {
       App.state.invalidate({ structural: true });
       App.state.flush();
 
+      /* --- SCOPED TO THE BOARD, and the scope is the assertion rather than
+             tidiness. These four rows are about what sync()'s label pass
+             reaches, and that pass queries `board` — so a document-wide read
+             counts nodes the pass never visits. It became measurable when plan
+             03.1-01 gave the picker's list row and editor heading the same
+             exemption key: the picker keeps its rows after it closes, so once
+             [S09.5] has pressed the token-appearance button, a document-wide
+             count reads twelve unit cards plus one row per live type plus the
+             heading, and the row reddened for a reason that had nothing to do
+             with the thing it names. Measured 14 against an expected 12.
+             The board region is what "on the board" meant all along. --- */
+      var boardRegion = document.getElementById('board');
+      function boardLabels(id) {
+        return boardRegion
+          ? boardRegion.querySelectorAll('[data-lbl="' + id + '"]')
+          : [];
+      }
+
       var heldCard = document.querySelector('.unit-card');
-      var hpLabels = document.querySelectorAll('[data-lbl="hp"]');
+      var hpLabels = boardLabels('hp');
       t.eq('every unit card names health through the label key rather than '
         + 'through a literal baked into the rebuild',
         hpLabels.length,
@@ -7432,7 +7474,7 @@ App.selftest = (function () {
       App.ops.renameTokenType('hp', 'Vigor');
       App.state.flush();
       t.ok('a rename repaints every one of them', (function () {
-        var live = document.querySelectorAll('[data-lbl="hp"]');
+        var live = boardLabels('hp');
         return live.length === hpLabels.length
           && Array.prototype.every.call(live, function (n) {
             return n.textContent === 'Vigor';
@@ -7456,7 +7498,7 @@ App.selftest = (function () {
       (function () {
         var builtIns = ['hp', 'ap', 'shield', 'dmg'];
         var unreached = builtIns.filter(function (id) {
-          return document.querySelectorAll('[data-lbl="' + id + '"]').length === 0;
+          return boardLabels(id).length === 0;
         });
         t.eq('every built-in type names itself through the label key, Damage '
           + 'included -- a literal here is a label a rename cannot move',
@@ -7467,7 +7509,7 @@ App.selftest = (function () {
       App.state.flush();
       t.ok('renaming Damage moves every one of its labels on the board',
         (function () {
-          var live = document.querySelectorAll('[data-lbl="dmg"]');
+          var live = boardLabels('dmg');
           return live.length === 2
             && Array.prototype.every.call(live, function (n) {
               return n.textContent === 'Wallop';

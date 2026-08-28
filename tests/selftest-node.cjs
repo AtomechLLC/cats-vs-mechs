@@ -155,7 +155,11 @@ console.log('scan: no forbidden patterns');
 //     unaffected by which of the two lists a word sits in.
 //   GIVEN UP for those thirteen only -- the CSS block, and static markup
 //     outside the script block that Layer C's walk does not reach, which is
-//     #err-panel and the <dialog> (Layer C harvests #app). A verdict feature
+//     #err-panel and the STATIC text of a dialog. (Layer C harvested #app alone
+//     when this paragraph was written; plan 03.1-01 pointed it at the dialog
+//     roots too, but only for text the artifact RENDERS -- the stub page is a
+//     hand-made stand-in rather than a parser, so text written directly into
+//     the markup is empty there.) A verdict feature
 //     wearing a `.better-build` class in CSS with no matching literal and no
 //     rendered word would now pass. That is the hole, and it is accepted
 //     because a feature of that shape would have to avoid all sixteen words
@@ -2765,36 +2769,139 @@ A.state.flush();
        [data-lbl] nodes' text from labelFor, and [data-albl] nodes' aria-label
        from the same call, so the first is skipped for text and the second for
        aria-label. Each is skipped only for the channel labelFor actually
-       writes, so a static title on a relabelled node is still read. */
+       writes, so a static title on a relabelled node is still read.
+
+       THE WALK IS A NAMED FUNCTION BECAUSE IT NOW RUNS OVER MORE THAN ONE ROOT.
+       `</main>` closes at cats-vs-mechs.html:692 and the first <dialog> opens at
+       :728, a SIBLING of #app rather than a descendant — so every string a
+       dialog renders was outside this gate entirely, measured at 96 of them for
+       the token-appearance picker alone. Layer A still reads a dialog's static
+       markup and Layer B still reads a whole-string literal; what neither can
+       see is copy ASSEMBLED at render time out of fragments, which is the shape
+       every line the action-authoring surfaces produce will take. So the harvest
+       is lifted out, run over #app exactly as before, and run again over each
+       dialog — with DIALOG_ROOTS gated in BOTH directions against the dialogs
+       the stub page builds, for the same reason the stub-drift gate is
+       bidirectional: a promise that a list will be grown is not a gate. */
 A.state.flush();
 
-const renderedText = [];
 const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
 
-(function harvest(node) {
-  if (!node) { return; }
-  if (node.children.length === 0
-    && typeof node.textContent === 'string' && node.textContent !== ''
-    && !('lbl' in node.dataset)) {
-    renderedText.push(node.textContent);
-  }
-  LABEL_ATTRS.forEach((attr) => {
-    if (attr === 'aria-label' && ('albl' in node.dataset)) { return; }
-    const value = node.getAttribute ? node.getAttribute(attr) : null;
-    if (typeof value === 'string' && value !== '') { renderedText.push(value); }
+// Each entry records WHERE it was read as well as WHAT was read, so a hit names
+// the surface it came off rather than leaving the reader to find it.
+function harvestInto(root, into, where) {
+  (function harvest(node) {
+    if (!node) { return; }
+    if (node.children.length === 0
+      && typeof node.textContent === 'string' && node.textContent !== ''
+      && !('lbl' in node.dataset)) {
+      into.push({ s: node.textContent, where: where });
+    }
+    LABEL_ATTRS.forEach((attr) => {
+      if (attr === 'aria-label' && ('albl' in node.dataset)) { return; }
+      const value = node.getAttribute ? node.getAttribute(attr) : null;
+      if (typeof value === 'string' && value !== '') {
+        into.push({ s: value, where: where });
+      }
+    });
+    node.children.forEach(harvest);
+  })(root);
+  return into;
+}
+
+const renderedText = harvestInto(dom.byId['app'], [], '#app');
+
+/* --- the dialog roots, and the gate that keeps this list honest --------------
+   DIALOG_ROOTS names every <dialog> the shell carries and, where the static
+   markup supplies one, the act a student presses to reach it. Driving the
+   opener rather than calling showModal() by hand is deliberate: it exercises
+   the same handler a student does, so a dialog whose opener was unregistered
+   harvests an empty box and trips its own floor instead of passing on nothing.
+
+   The list is checked in BOTH directions against the dialogs the stub page
+   actually builds. A dialog the stub builds that is missing from here would be
+   a surface this gate never reads — which is the state the picker was in before
+   this plan, and the state the next dialog would inherit by default. An entry
+   here the stub does not build would be this gate reporting a clean scan over a
+   node that is not there. Neither can be left to a future author remembering. */
+const DIALOG_ROOTS = [
+  { id: 'tok-picker', act: 'openTokenPicker' }
+];
+
+const stubDialogIds = [];
+(function findDialogs(node) {
+  node.children.forEach((child) => {
+    if (child.tagName === 'DIALOG') {
+      stubDialogIds.push(String(child.getAttribute('id')));
+    }
+    findDialogs(child);
   });
-  node.children.forEach(harvest);
-})(dom.byId['app']);
+})(dom.document.body);
+
+const rootIds = DIALOG_ROOTS.map((r) => r.id);
+const dialogsNotHarvested = stubDialogIds.filter((id) => rootIds.indexOf(id) === -1);
+const rootsNotBuilt = rootIds.filter((id) => stubDialogIds.indexOf(id) === -1);
+
+check(
+  '47b. every <dialog> the stub page builds is named in DIALOG_ROOTS and every '
+    + 'DIALOG_ROOTS entry is a dialog the stub page builds — the rendered-page '
+    + 'walk reads #app, and a surface that is a SIBLING of #app rather than a '
+    + 'descendant is outside it until this list says otherwise',
+  dialogsNotHarvested.length === 0 && rootsNotBuilt.length === 0,
+  'built by the stub but never harvested: '
+    + (dialogsNotHarvested.join(', ') || 'none')
+    + ' | named here but not built: ' + (rootsNotBuilt.join(', ') || 'none')
+);
+
+// Open, let the frame land, read, close. openDialogs() is a function because
+// check 47d below drives the identical pass a second time under a renamed type.
+function openDialogs() {
+  const out = [];
+  DIALOG_ROOTS.forEach((root) => {
+    const node = dom.byId[root.id];
+    if (!node) { return; }
+    if (node.open === true && typeof node.close === 'function') { node.close(); }
+    const opener = root.act
+      ? stub.querySelector('[data-act="' + root.act + '"]')
+      : null;
+    if (opener !== null) { press(opener); release(opener); }
+    else if (typeof node.showModal === 'function') { node.showModal(); }
+    A.state.flush();
+    harvestInto(node, out, '#' + root.id);
+    if (typeof node.close === 'function') { node.close(); }
+    A.state.flush();
+  });
+  return out;
+}
+
+const dialogText = openDialogs();
 
 const RENDERED_VERDICT_WORDS = VERDICT_WORDS.concat(VERDICT_LITERAL_WORDS);
-const renderedHits = [];
-renderedText.forEach((s) => {
-  RENDERED_VERDICT_WORDS.forEach((rule) => {
-    if (rule.re.test(s)) {
-      renderedHits.push('[' + rule.label + '] in ' + JSON.stringify(s));
-    }
+
+// ONE word list for both roots, not two. A second list is a second thing to
+// keep in step, and the only difference between a word on the board and the
+// same word in a dialog is which node it was read off — which the record
+// already carries.
+function verdictHitsIn(items) {
+  const found = [];
+  items.forEach((item) => {
+    RENDERED_VERDICT_WORDS.forEach((rule) => {
+      if (rule.re.test(item.s)) {
+        found.push('[' + rule.label + '] in ' + JSON.stringify(item.s)
+          + ' (read from ' + item.where + ')');
+      }
+    });
   });
-});
+  return found;
+}
+
+// TWO GAPS IN THE WORD LIST, MEASURED THIS SESSION AND REPORTED RATHER THAN
+// WIDENED. /\blead\b/i does not match "leads", so "leads on damage" passes; and
+// /dominat/i does not match "dominant", because the word is dominan-t, so "the
+// dominant action" passes. Neither is widened here — a widening belongs with
+// the plan that measures its false positives — and neither is exploited: the
+// copy this phase ships is arithmetic, not evaluative.
+const renderedHits = verdictHitsIn(renderedText.concat(dialogText));
 
 // A walk that silently collects nothing would report a spotlessly clean page
 // forever. That is precisely the defect KNOWN_IDS carried before section 5b
@@ -2833,20 +2940,88 @@ check(
   'harvested ' + renderedText.length + ' strings from #app; the floor is 125'
 );
 
+// THE DIALOG HARVEST'S OWN FLOOR, kept separate from 125 above because the two
+// numbers move for unrelated reasons: 125 tracks the roster and the board, this
+// one tracks how many strings a dialog paints while it is open. Same history
+// habit, so the next plan to touch it inherits data rather than a bare number.
+//   plan 03.1-01 opens this line. The token-appearance picker renders 96 strings
+//     unexempted — the figure phase 3.1's research measured — and 91 once the
+//     list row's label and the editor heading take their exemption marker. The
+//     difference is exactly six: one label per live token type, of which the
+//     shipped board has five, plus the heading.
+//
+// 84 is chosen against three measurements taken this session rather than picked.
+// The shipped board harvests 91; adding one type of a student's own takes it to
+// 92 and a second to 93, so a list row is worth EXACTLY ONE harvested string —
+// the tick beside it, the label being exempted. The three swatch grids are fixed
+// by SHAPES, COLORS and GLYPHS and move only when those allowlists do. So 84 is
+// seven below the shipped figure, which is more than the entire five-row list is
+// worth, and a board stripped back to a single token type still clears it —
+// while sitting far above the zero a dialog that never opened would report.
+const DIALOG_FLOOR = 84;
+console.log('scan: ' + dialogText.length + ' rendered strings read from '
+  + DIALOG_ROOTS.length + ' dialog root(s) — '
+  + DIALOG_ROOTS.map((r) => '#' + r.id).join(', ')
+  + ' (Layer C, floor ' + DIALOG_FLOOR + ')');
+
 check(
-  '48. PROJ-06 — nothing on the rendered page judges a build, and a student who '
-    + 'names their own type after a comparative word does not trip it',
+  '47c. the dialog harvest actually reaches the dialogs. Every surface this '
+    + 'phase builds lives in one, and a dialog that was never opened harvests '
+    + 'nothing and would report a spotlessly clean scan forever',
+  dialogText.length > DIALOG_FLOOR,
+  'harvested ' + dialogText.length + ' strings from '
+    + DIALOG_ROOTS.map((r) => '#' + r.id).join(', ')
+    + '; the floor is ' + DIALOG_FLOOR
+);
+
+check(
+  '48. PROJ-06 — nothing on the rendered page judges a build, in #app or in any '
+    + 'dialog, and a student who names their own type after a comparative word '
+    + 'does not trip it',
   renderedHits.length === 0,
   renderedHits.length === 0
-    ? 'clean across ' + renderedText.length + ' rendered strings'
+    ? 'clean across ' + (renderedText.length + dialogText.length)
+      + ' rendered strings (' + renderedText.length + ' from #app, '
+      + dialogText.length + ' from the dialogs)'
     : renderedHits.join(' | ')
+);
+
+/* --- 47d. THE CONTROL FOR THE EXEMPTION, because an exemption nothing exercises
+       is a comment. ALLOC-10 lets a student name a token type anything, and the
+       picker paints that name twice — once per list row, once in the editor
+       heading. Before this plan neither node carried the marker and neither was
+       read, so the extension above would have turned a student's own word into a
+       red CI run: the gate would have been asserting the opposite of the
+       requirement, which is about what the ARTIFACT says.
+
+       Driven through the real rename op and the real repaint rather than by
+       planting text, because a planted string proves nothing about the path the
+       word actually travels. The board is put back afterwards. --- */
+const controlWas = A.state.get().build.tokens.hp.name;
+A.ops.renameTokenType('hp', 'Winner');
+A.state.flush();
+const controlText = openDialogs();
+const controlHits = verdictHitsIn(controlText);
+A.ops.renameTokenType('hp', controlWas);
+A.state.flush();
+
+check(
+  '47d. a type a student named after a comparative word reaches the dialog '
+    + 'through labelFor and does NOT redden the run — the exemption marker on '
+    + 'the list row and on the editor heading is load-bearing, not decorative',
+  controlHits.length === 0 && controlText.length > DIALOG_FLOOR,
+  controlHits.length === 0
+    ? 'clean across ' + controlText.length + ' dialog strings under the rename'
+    : controlHits.join(' | ')
 );
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
-       is a hand-made stand-in rather than a parser. Four behaviours of the
-       authoring surface therefore have no check above and are carried to the
-       phase's closing rehearsal instead:
+       is a hand-made stand-in rather than a parser. The behaviours numbered
+       below therefore have no check above and are carried to the phase's
+       closing rehearsal instead. (The count was written as "four" when the
+       list held four; it is kept as a numbered list rather than a number in
+       prose so that adding an entry cannot leave a stale total behind.)
 
          1. The dialog declining a close request. Escape inside the name field
             must put the recorded text back and leave the picker OPEN. The stub
@@ -2866,9 +3041,10 @@ check(
             does.
          5. Any words Layer C's page does not currently show. The walk reads
             #app as the stub page renders it in setup mode, so a string that
-            appears only once the fight has started, or only inside an open
-            dialog, is outside its reach until that surface is built and the
-            walk is pointed at it. The same goes for the static markup of the
+            appears only once the fight has started is outside its reach until
+            that surface is built and the walk is pointed at it. The dialog half
+            of this entry was closed by plan 03.1-01 — see 12 and 13 below for
+            what remains of it. The same goes for the static markup of the
             shell: the stub is a hand-made stand-in and not a parser, so text
             written directly into the HTML is empty here and only the text the
             artifact renders is read. Layers A and B still read all of those in
@@ -2897,7 +3073,21 @@ check(
         11. Whether the strip still STICKS now that the content beside it is
             taller. Entry 6 named this before the columns grew; the columns
             have now grown, so the same unanswered question is worth more.
-            Still no layout engine here to answer it. --- */
+            Still no layout engine here to answer it.
+        12. A close request declined by ANY dialog, not only the picker. Entry 1
+            named this of one surface; the harvest above is written to take a
+            list of them, and the stub <dialog> has no close-request behaviour
+            for any entry on that list. So the Escape-reverts-and-stays-open
+            contract is a rehearsal item once per dialog, and adding a dialog
+            adds one. What the bidirectional DIALOG_ROOTS gate does guarantee is
+            that the new surface cannot be forgotten by the WALK; it says
+            nothing about this behaviour.
+        13. Words a dialog paints only after something happens INSIDE it. The
+            harvest opens each dialog the way a student reaches it, lets one
+            frame land and reads what is on it — so a line that appears only
+            after a control in the dialog has been used is unread, exactly as
+            entry 5 describes for the fight. Closing that needs the drive to be
+            extended per surface, not the list. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
