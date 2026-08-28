@@ -1649,6 +1649,50 @@ nameLeave();
 A.state.flush();
 if (dlg.open === true) { dlg.close(); }
 
+/* --- 40. checks 23 and 35 both undo a RENAME, and a rename cannot make the
+       open selection stop existing. Nothing undid a create. Undo is bound on
+       the document and only steps aside for a field, so it is reachable from
+       inside the modal with focus on a button — which is exactly where focus
+       sits after pressing New. The repaint hook was written to stop the dialog
+       asserting a value state no longer holds; it stopped short of the one
+       commit that SHRINKS the vocabulary, and bailed out instead, leaving a
+       ghost row for the vanished type with Remove still enabled. The next
+       press on it raised the styled error panel. --- */
+press(openBtn);
+release(openBtn);
+A.state.flush();
+clearPanel();
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const ghostId = dlg.dataset.tok;
+A.ops.undo();
+A.state.flush();
+const ghostRow = pkRowFor(ghostId);
+const ghostShowing = dlg.dataset.tok;
+const ghostRemoveOff = pkRemove.disabled;
+// The press a student makes next, on the surface as the undo left it.
+const swatchAfterUndo = dom.byId['tok-pick-shapes'].firstElementChild;
+if (swatchAfterUndo !== null) { press(swatchAfterUndo); release(swatchAfterUndo); }
+A.state.flush();
+check(
+  '40. undoing a create repaints the open picker onto a live type rather than '
+    + 'leaving a ghost row for the type that vanished under it',
+  ghostRow === null
+    && Object.prototype.hasOwnProperty.call(A.state.get().build.tokens, ghostShowing)
+    && ghostRemoveOff === true
+    && errPanel.hidden === true,
+  'made=' + JSON.stringify(ghostId)
+    + ' ghost row still present=' + (ghostRow !== null)
+    + ' showing=' + JSON.stringify(ghostShowing)
+    + ' (live=' + Object.prototype.hasOwnProperty.call(A.state.get().build.tokens, ghostShowing) + ')'
+    + ' remove disabled=' + ghostRemoveOff
+    + ' panel hidden=' + errPanel.hidden
+    + ' panel says ' + JSON.stringify(errMessage.textContent)
+);
+clearPanel();
+if (dlg.open === true) { dlg.close(); }
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. Four behaviours of the
