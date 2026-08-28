@@ -3410,6 +3410,334 @@ if (aeDialog.open === true) { aeDialog.close(); }
 A.state.restore(aeSaved);
 A.state.flush();
 
+/* 67-68d. [S07.3] THE EDITOR'S HANDLERS. Everything below goes through a real
+   control — the topbar button, a list row, the side chooser, New, Remove, the
+   name field — because that is the difference between these rows and 66's: 66
+   asserts what the region PAINTS, and these assert that a student pressing
+   something reaches it. Plan 03.1-04's probe L-1 is why they are here at all
+   rather than only in [S09]: a row behind the artifact's own no-DOM bracket
+   does not run in CI, and CI runs this file. */
+const aeOpenBtn = stub.querySelector('[data-act="openActionEditor"]');
+const aeSideCats = dom.byId['act-edit-side-cats'];
+const aeSideMechs = dom.byId['act-edit-side-mechs'];
+const aeDone = dom.byId['act-edit-done'];
+function aePress(node) { press(node); release(node); A.state.flush(); }
+function aeOwnCats() {
+  return A.state.get().build.cats.actions
+    .filter((a) => A.data.ACTION_IDS.indexOf(a.id) === -1);
+}
+
+/* 67. The topbar button opens the surface cold on the first side and that
+   side's first action, and the act it dispatches is one the seam actually
+   handles. An act sitting in UI_ACTS with nothing registered against it is the
+   file's documented "claimed and ignored" window, which is honest between two
+   plans and is a dead button if a plan ships in it — so this reads the LIVE
+   registration rather than the claim. */
+clearPanel();
+aePress(aeOpenBtn);
+const aeOpened = aeDialog.open;
+const aeColdSide = aeDialog.dataset.edSide;
+const aeColdPick = aeDialog.dataset.edPick;
+check(
+  '67. the topbar button opens the action editor cold on the first side and '
+    + 'that side\'s first action, and the act it dispatches is one the LIVE '
+    + 'registration handles rather than one merely claimed',
+  aeOpenBtn !== null && aeOpened === true
+    && aeColdSide === 'cats' && aeColdPick === 'slash'
+    && A.interactions.UI_ACTS.indexOf('openActionEditor') !== -1
+    && A.interactions.UI_HANDLED.indexOf('openActionEditor') !== -1
+    && errPanel.hidden === true,
+  'opened=' + aeOpened + ' side=' + JSON.stringify(aeColdSide)
+    + ' action=' + JSON.stringify(aeColdPick)
+    + ' claimed=' + (A.interactions.UI_ACTS.indexOf('openActionEditor') !== -1)
+    + ' handled=' + (A.interactions.UI_HANDLED.indexOf('openActionEditor') !== -1)
+);
+
+/* 67b. A row press selects that action; the other side button moves the editor
+   to that faction's FIRST action rather than carrying the id across. Carrying
+   it would be silently wrong: nextActionId numbers each side's own list, so an
+   authored `x1` exists on both sides and names two different rules. */
+const aeRowScreech = aeList.children.filter((c) => c.dataset.edPick === 'screech')[0];
+aePress(aeRowScreech);
+const aeAfterRow = aeDialog.dataset.edSide + '/' + aeDialog.dataset.edPick;
+aePress(aeSideMechs);
+const aeAfterSide = aeDialog.dataset.edSide + '/' + aeDialog.dataset.edPick;
+const aeMechsList = aeRowIds().join(',');
+aePress(aeSideCats);
+const aeBackToCats = aeDialog.dataset.edSide + '/' + aeDialog.dataset.edPick;
+check(
+  '67b. a press on a list row selects that action, and the side chooser moves '
+    + 'the editor to the other faction\'s FIRST action rather than carrying an '
+    + 'id that names a different rule over there',
+  aeRowScreech !== undefined && aeAfterRow === 'cats/screech'
+    && aeAfterSide === 'mechs/fly' && aeMechsList === 'fly,lasers,recharge'
+    && aeBackToCats === 'cats/slash' && errPanel.hidden === true,
+  'after the row press=' + JSON.stringify(aeAfterRow)
+    + ' after the side press=' + JSON.stringify(aeAfterSide)
+    + ' mechs rows=' + JSON.stringify(aeMechsList)
+    + ' back on cats=' + JSON.stringify(aeBackToCats)
+);
+
+/* 67c. New adds one and lands the student in it — createAction hands the made
+   id back for exactly that, so nothing here re-derives which action was just
+   made. Remove takes an authored one away, leaves a LIVE selection, and places
+   focus on a real row: the selected action's own row is what disappears, so
+   keyed() has nothing to restore to and focus would otherwise land on <body>. */
+const aeCountBeforeNew = aeRowIds().length;
+aePress(aeNew);
+const aeNewPick = aeDialog.dataset.edPick;
+const aeNewName = A.state.get().build.cats.actions
+  .filter((a) => a.id === aeNewPick)[0];
+const aeCountAfterNew = aeRowIds().length;
+aePress(aeRemove);
+const aeAfterRemove = aeDialog.dataset.edPick;
+const aeRemoveLeftLive = aeRowIds().indexOf(aeAfterRemove) !== -1;
+const aeFocusOnRow = stub.activeElement !== null
+  && stub.activeElement.dataset !== undefined
+  && String(stub.activeElement.dataset.k || '').indexOf('ae/list/') === 0;
+check(
+  '67c. New adds one action and lands the student in it, and Remove takes an '
+    + 'authored one away, leaves a LIVE selection behind and puts focus on a '
+    + 'real row rather than dropping it onto the body — the removed action\'s '
+    + 'own row is the node that disappears, so nothing else would catch it',
+  aeCountAfterNew === aeCountBeforeNew + 1
+    && aeNewName !== undefined
+    && aeNewName.name === A.interactions.NEW_ACTION_NAME
+    && aeNewPick === aeNewName.id
+    && aeRowIds().length === aeCountBeforeNew
+    && aeRemoveLeftLive === true && aeFocusOnRow === true
+    && errPanel.hidden === true,
+  'rows before New=' + aeCountBeforeNew + ' after=' + aeCountAfterNew
+    + ' selected=' + JSON.stringify(aeNewPick)
+    + ' named=' + JSON.stringify(aeNewName && aeNewName.name)
+    + ' rows after Remove=' + aeRowIds().length
+    + ' selection still live=' + aeRemoveLeftLive
+    + ' focus on a list row=' + aeFocusOnRow
+    + ' (activeElement data-k=' + JSON.stringify(stub.activeElement
+      && stub.activeElement.dataset && stub.activeElement.dataset.k) + ')'
+);
+
+/* 67d. Enter commits ONCE and the blur that follows commits nothing. Without
+   the value-versus-`was` early return, typing a name, pressing Enter and then
+   clicking away applies the rename TWICE — the same measured defect commitField
+   and commitName each carry the same guard for. Escape puts the recorded text
+   back and commits nothing; that it also leaves the DIALOG open is the half
+   this harness cannot reach, because the stub <dialog> has no close-request
+   behaviour at all. */
+function aeNameFocus() { aeName.focus(); }
+function aeNameType(s) { aeName.value = s; aeName.dispatchEvent(dom.event('input')); }
+function aeNameKey(k) { aeName.dispatchEvent(dom.event('keydown', { key: k })); }
+function aeNameBlur() { aeName.dispatchEvent(dom.event('focusout')); }
+clearPanel();
+aeNameFocus();
+const aeWasRecorded = aeName.dataset.was;
+const aeForRecorded = aeName.dataset.forSide + '/' + aeName.dataset.forAct;
+aeNameType('Rake');
+const aeCommitsBeforeEnter = commits();
+aeNameKey('Enter');
+const aeAfterEnter = A.state.get().build.cats.actions
+  .filter((a) => a.id === 'slash')[0].name;
+const aeFromEnter = commits() - aeCommitsBeforeEnter;
+aeNameBlur();
+const aeFromBlur = commits() - aeCommitsBeforeEnter - aeFromEnter;
+aeName.blur();
+A.state.flush();
+A.ops.renameAction('cats', 'slash', 'Slash');
+A.state.flush();
+aeNameFocus();
+aeNameType('Maul');
+const aeCommitsBeforeEsc = commits();
+aeNameKey('Escape');
+const aeEscValue = aeName.value;
+const aeEscCommits = commits() - aeCommitsBeforeEsc;
+aeName.blur();
+A.state.flush();
+check(
+  '67d. Enter renames the action the text was typed FOR, once and not twice, '
+    + 'and Escape puts the recorded text back and commits nothing. The target '
+    + 'is recorded on the field at focus — side and action together — because '
+    + 'every control here moves the selection on pointerdown, which the spec '
+    + 'puts ahead of the focus change',
+  aeWasRecorded === 'Slash' && aeForRecorded === 'cats/slash'
+    && aeAfterEnter === 'Rake' && aeFromEnter === 1 && aeFromBlur === 0
+    && aeName.dataset.was === 'Slash'
+    && aeEscValue === 'Slash' && aeEscCommits === 0
+    && A.state.get().build.cats.actions.filter((a) => a.id === 'slash')[0].name === 'Slash'
+    && errPanel.hidden === true,
+  'baseline recorded on focus=' + JSON.stringify(aeWasRecorded)
+    + ' target recorded=' + JSON.stringify(aeForRecorded)
+    + ' name after Enter=' + JSON.stringify(aeAfterEnter)
+    + ' commits from Enter=' + aeFromEnter + ' from the blur after it=' + aeFromBlur
+    + ' field after Escape=' + JSON.stringify(aeEscValue)
+    + ' commits from Escape=' + aeEscCommits
+);
+
+/* 68. A REFUSAL REACHES THE ERROR BOUNDARY AND LEAVES THE SURFACE CONSISTENT.
+   Every state-changing press in this dialog dispatches FIRST and does page work
+   only after dispatch has returned, so an op that refuses throws out of the
+   handler into [S08]'s listener boundary and the page work never runs. Driven
+   at the cap, which is the refusal a student can actually reach. */
+clearPanel();
+while (aeOwnCats().length < A.data.MAX_CUSTOM_ACTIONS) {
+  A.ops.createAction('cats', 'Filler');
+}
+A.state.flush();
+const aeAtCapIds = aeRowIds().join(',');
+const aeCapPick = aeDialog.dataset.edPick;
+const aeCommitsAtCap = commits();
+// The button is disabled at the cap, which is the bound a student sees; the
+// press is driven anyway, because a disabled attribute is a courtesy and the
+// op is the guard. Both halves are asserted: the courtesy AND the guard.
+const aeNewDisabledAtCap = aeNew.disabled;
+aePress(aeNew);
+const aeCapPanel = errPanel.hidden === false && errMessage.textContent !== '';
+const aeCapNamesCap = String(errMessage.textContent)
+  .indexOf(String(A.data.MAX_CUSTOM_ACTIONS)) !== -1;
+check(
+  '68. at the cap the New button is disabled AND the op still refuses if the '
+    + 'press is driven anyway — the courtesy and the guard are two things — and '
+    + 'the refusal reaches the styled panel through the listener boundary while '
+    + 'the board, the selection and the commit total all stand still',
+  aeNewDisabledAtCap === true && aeCapPanel === true && aeCapNamesCap === true
+    && aeRowIds().join(',') === aeAtCapIds
+    && aeDialog.dataset.edPick === aeCapPick
+    && commits() === aeCommitsAtCap,
+  'New disabled at the cap=' + aeNewDisabledAtCap
+    + ' panel raised=' + aeCapPanel
+    + ' message names the cap=' + aeCapNamesCap
+    + ' rows unchanged=' + (aeRowIds().join(',') === aeAtCapIds)
+    + ' selection unchanged=' + (aeDialog.dataset.edPick === aeCapPick)
+    + ' commits delta=' + (commits() - aeCommitsAtCap)
+);
+clearPanel();
+
+/* 68b. A repeated Enter keydown on a button in this dialog is cancelled before
+   it can become a click, the first press is not, and a held key in the name
+   field is left alone. A held Enter on New is otherwise one createAction per OS
+   auto-repeat, and one undo entry each to rewind. */
+A.state.restore(aeSaved);
+A.state.flush();
+aePress(aeOpenBtn);
+clearPanel();
+const aeOwnBeforeHold = aeOwnCats().length;
+const aeFirstKey = dom.event('keydown', { key: 'Enter', repeat: false });
+aeNew.dispatchEvent(aeFirstKey);
+let aeRepeatCancelled = null;
+for (let i = 0; i < 10; i++) {
+  const rep = dom.event('keydown', { key: 'Enter', repeat: true });
+  aeNew.dispatchEvent(rep);
+  aeRepeatCancelled = rep.defaultPrevented;
+}
+A.state.flush();
+aeNameFocus();
+const aeHeldSpace = dom.event('keydown', { key: ' ', repeat: true });
+aeName.dispatchEvent(aeHeldSpace);
+aeName.blur();
+A.state.flush();
+check(
+  '68b. a repeated Enter keydown on a button in the editor is cancelled before '
+    + 'it can become a click, the FIRST press is not, and a held key in the '
+    + 'name field is left alone — a held Enter on New is otherwise one action '
+    + 'per OS auto-repeat and one undo entry each to rewind',
+  aeRepeatCancelled === true && aeFirstKey.defaultPrevented === false
+    && aeOwnCats().length === aeOwnBeforeHold
+    && aeHeldSpace.defaultPrevented === false
+    && errPanel.hidden === true,
+  'repeat cancelled=' + aeRepeatCancelled
+    + ' first press cancelled=' + aeFirstKey.defaultPrevented
+    + ' actions made by the hold=' + (aeOwnCats().length - aeOwnBeforeHold)
+    + ' held space in the field cancelled=' + aeHeldSpace.defaultPrevented
+);
+
+/* 68c. EVERY LISTENER ON THE DIALOG ROOT WENT THROUGH THE ERROR BOUNDARY. One
+   bound raw would throw past [S08] and leave the surface dead with nothing on
+   screen to say so — the failure the boundary exists for, on the one root a
+   student spends this whole feature inside.
+
+   The test is structural because the behavioural one cannot reach every
+   listener: App.boot.wrap returns an ANONYMOUS zero-arity function that closes
+   over the handler, and every handler in [S07.3] is a named function declared
+   with its own parameter. So a raw binding is visible by name and by arity, and
+   there is no way to bind one accidentally that this does not see. Floored on
+   the count, because a root with no listeners at all passes a per-listener test
+   spotlessly. */
+const aeRaw = [];
+Object.keys(aeDialog._listeners).forEach((type) => {
+  aeDialog._listeners[type].forEach((fn) => {
+    if (typeof fn !== 'function' || fn.name !== '' || fn.length !== 0) {
+      aeRaw.push(type + ' -> ' + (typeof fn === 'function'
+        ? (fn.name || '(anonymous)') + '/' + fn.length : typeof fn));
+    }
+  });
+});
+const aeListenerCount = Object.keys(aeDialog._listeners)
+  .reduce((n, type) => n + aeDialog._listeners[type].length, 0);
+check(
+  '68c. every listener bound on the action editor\'s root went through '
+    + 'App.boot.wrap. One bound raw would throw past the boundary and leave the '
+    + 'surface dead with nothing on screen to say so, on the one root this '
+    + 'whole feature is used inside. Floored on the count, because a root '
+    + 'carrying no listeners passes a per-listener test spotlessly',
+  aeListenerCount >= 8 && aeRaw.length === 0,
+  'listeners on the root=' + aeListenerCount
+    + ' bound outside the boundary: ' + (aeRaw.join(', ') || 'none')
+);
+
+/* 68d. UI_HANDLED, READ OFF THE LIVE REGISTRATION, NAMES EVERY UI-ONLY ACT THIS
+   SURFACE DISPATCHES — and every act it dispatches that is NOT UI-only is a
+   real op exported by [S05]. The two halves together are the point: the acts
+   are collected off the page rather than typed out here, from the static markup
+   AND from the rows the repaint built, so a control that names an act nobody
+   registered is caught, and so is an act quietly moved into UI_ACTS to make a
+   refusal go away. */
+const aeActs = [];
+(function walk(n) {
+  if (n.dataset && typeof n.dataset.act === 'string' && n.dataset.act !== ''
+    && aeActs.indexOf(n.dataset.act) === -1) {
+    aeActs.push(n.dataset.act);
+  }
+  n.children.forEach(walk);
+})(aeDialog);
+aeActs.push(aeOpenBtn.dataset.act);
+const aeUiOnly = aeActs.filter((a) => A.interactions.UI_ACTS.indexOf(a) !== -1);
+const aeUnhandled = aeUiOnly.filter((a) => A.interactions.UI_HANDLED.indexOf(a) === -1);
+const aeStateActs = aeActs.filter((a) => A.interactions.UI_ACTS.indexOf(a) === -1);
+const aeNotOps = aeStateActs.filter((a) => typeof A.ops[a] !== 'function');
+check(
+  '68d. every act the editor\'s markup and its built rows dispatch is either a '
+    + 'UI-only act the LIVE registration handles, or a real op [S05] exports — '
+    + 'collected off the page rather than re-typed here, so a control naming an '
+    + 'act nobody registered is caught, and so is a state op quietly moved into '
+    + 'UI_ACTS to make a refusal go away',
+  aeActs.length >= 5 && aeUiOnly.length >= 3 && aeStateActs.length >= 2
+    && aeUnhandled.length === 0 && aeNotOps.length === 0,
+  'acts found=' + JSON.stringify(aeActs)
+    + ' UI-only=' + JSON.stringify(aeUiOnly)
+    + ' claimed but unhandled=' + JSON.stringify(aeUnhandled)
+    + ' state acts=' + JSON.stringify(aeStateActs)
+    + ' state acts [S05] does not export=' + JSON.stringify(aeNotOps)
+);
+
+/* Done ends the visit, and the close hands focus back to the opener — a modal
+   that drops focus onto <body> is the same keyboard failure the board's remove
+   control had to solve, and <dialog> only restores the element that HELD focus
+   when the modal opened, which a student who reached the button with a pointer
+   never did. */
+aePress(aeDone);
+check(
+  '68e. Done closes the editor and hands focus back to the topbar button that '
+    + 'opened it, which <dialog> does not do for a student who reached that '
+    + 'button with a pointer rather than with the keyboard',
+  aeDialog.open === false && stub.activeElement === aeOpenBtn,
+  'open=' + aeDialog.open + ' activeElement data-k='
+    + JSON.stringify(stub.activeElement && stub.activeElement.dataset
+      && stub.activeElement.dataset.k)
+);
+
+clearPanel();
+A.state.restore(aeSaved);
+A.state.flush();
+
 /* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
        Layers A and B, up at the top of this file, read the SOURCE. This one
        reads the PAGE, for two reasons. The roadmap's criterion is written about
@@ -3656,15 +3984,38 @@ check(
 //     reads this same harvest off it, so the zero here is a measured zero
 //     rather than an untested surface.
 //
-// 84 is chosen against three measurements taken this session rather than picked.
-// The shipped board harvests 91; adding one type of a student's own takes it to
-// 92 and a second to 93, so a list row is worth EXACTLY ONE harvested string —
-// the tick beside it, the label being exempted. The three swatch grids are fixed
-// by SHAPES, COLORS and GLYPHS and move only when those allowlists do. So 84 is
-// seven below the shipped figure, which is more than the entire five-row list is
-// worth, and a board stripped back to a single token type still clears it —
-// while sitting far above the zero a dialog that never opened would report.
-const DIALOG_FLOOR = 84;
+//   plan 03.1-05 adds a SECOND dialog and the figure goes 91 -> 98. The action
+//     editor is worth exactly seven: two faction names and two ticks on the
+//     side chooser, and one tick per list row, three of them on the shipped
+//     board. Its heading and its three row labels are all action names, so all
+//     four take the action-name marker and none of them is read — the same
+//     trade the picker made when 96 became 91, and the reason a surface built
+//     almost entirely out of the student's own words adds so little here.
+//
+// 84 WAS CHOSEN AGAINST ONE DIALOG AND IS RAISED TO 91 FOR TWO, WHICH IS THE
+// POINT OF THIS PARAGRAPH RATHER THAN A HOUSEKEEPING NOTE. The floor is over
+// the TOTAL of every root, so a floor left at 84 while the total went to 98
+// would have stopped bounding either surface: the whole action editor could
+// have gone dark — never opened, its opener unregistered — and 91 would still
+// have cleared it. The original arithmetic is kept exactly: 84 was seven below
+// the one-dialog figure of 91, and 91 is seven below the two-dialog figure of
+// 98. Seven is still more than an entire list is worth on either surface, so a
+// board stripped back to a single token type and a single action a side still
+// clears it, and it still sits far above the zero a dialog that never opened
+// would report.
+//
+// The three swatch grids are fixed by SHAPES, COLORS and GLYPHS and move only
+// when those allowlists do. A picker list row is worth EXACTLY ONE harvested
+// string — measured: the shipped board harvests 91, one type of a student's own
+// takes it to 92 and a second to 93 — and an editor list row is worth exactly
+// one for the same reason, the tick beside it, the name being exempted.
+//
+// THE RULE FOR THE NEXT PLAN THAT ADDS A DIALOG: re-measure, and move this
+// number so it stays one surface's worth below the new total. A floor that is
+// not moved when a root is added is a floor that quietly stops bounding
+// anything, which is the same silent shrink every other floor in this file
+// carries a history note to prevent.
+const DIALOG_FLOOR = 91;
 console.log('scan: ' + dialogText.length + ' rendered strings read from '
   + DIALOG_ROOTS.length + ' dialog root(s) — '
   + DIALOG_ROOTS.map((r) => '#' + r.id).join(', ')

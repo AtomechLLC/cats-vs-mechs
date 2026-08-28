@@ -7070,6 +7070,481 @@ App.interactions = (function () {
   LATE_BINDERS.push(bindPicker);
   // #endregion [S07.2] INTERACTIONS — PICKER
 
+  /* ===================== [S07.3] INTERACTIONS — ACTION EDITOR ==========
+   * The action-authoring dialog's handling (ACT-01). It ATTACHES rather than
+   * edits, in exactly the shape [S07.2] does: it pushes three entries into
+   * UI_ACTS, assigns three entries in UI_HANDLERS, pushes one entry into
+   * LATE_BINDERS, and changes NOT ONE LINE of [S07.1] or of [S07.2].
+   *
+   * NO SECOND PAYLOAD-KEY EXCEPTION WAS NEEDED, and that is worth recording
+   * because the plan that wrote this region expected to have to consider one.
+   * fire()'s four keys are the file's ONE documented exception to the banner
+   * above — there is no seam through which a payload KEY can be added — and a
+   * surface needing a fifth would have had to edit [S07.1] and say so. This one
+   * does not: every press inside this dialog is read by the dialog's own
+   * delegated listener, which calls App.ops.dispatch directly with a patch of
+   * known shape, exactly as onPickerPress already does for setTokenStyle. The
+   * three keys the action ops take — side, actionId, name — are built here,
+   * field by field, from the pressed control and the dialog's own bookkeeping.
+   *
+   * Three acts, all of them PAGE WORK, and the reason is the one [S05]'s banner
+   * gives: that layer never reads or writes the page, so opening a dialog,
+   * choosing which side it shows and choosing which action it shows have no
+   * legal home there — and with no arm in dispatch each would land on its
+   * `default: throw` and put the styled error panel in front of a student on a
+   * first press.
+   *   openActionEditor  opens the surface, cold on the first side and the first
+   *                     action, warm on whatever it was already showing.
+   *   selectActionSide  moves the editor to the other faction.
+   *   selectAction      moves the editor to another action on the same side.
+   * createAction / renameAction / removeAction are STATE WORK ONLY. They
+   * validate and write and touch no node, so they are real ops and go through
+   * App.ops.dispatch like everything else. They are deliberately NOT in
+   * UI_ACTS.
+   *
+   * NOTHING HERE PROPOSES, APPLIES OR RESOLVES ANYTHING (D-05b). The three
+   * write paths edit a rule's DEFINITION. A declared action lands on Advance,
+   * in Phase 5.
+   * deps: App.ops, App.render, App.state, App.boot, App.data
+   * owner: plan 03.1-05
+   * ==================================================================== */
+  // #region [S07.3] INTERACTIONS — ACTION EDITOR
+
+  // The side the editor opens on when it is opened cold. Named once rather than
+  // spelled at each of the places that need it, for the reason FIRST_TOK is.
+  var FIRST_SIDE = 'cats';
+
+  // The name an action arrives with. It is a placeholder the student is
+  // expected to replace in the field below the button they just pressed, so it
+  // has to read as an invitation rather than as an answer — and it HAS TO BE A
+  // NAME App.ops.requireActionName ACCEPTS, because a default the op refuses
+  // would put the styled error panel in front of a student on the one press
+  // this feature exists for. It is exported below so the suite asserts this
+  // constant rather than a re-typed copy of it.
+  var NEW_ACTION_NAME = 'New action';
+
+  // Which side and which action are being edited. Held in the dialog's own
+  // dataset, which [S06.5] made THE source of truth for both, and read back
+  // through here — a private variable beside them would be a second place for
+  // the same answer to live and the two would disagree the first time a repaint
+  // changed one of them. Both stay out of the `ui` slice for the reason the
+  // picker's selection does: [S09.3] asserts that slice holds exactly its
+  // documented keys, and "which dialog is showing what" is not one of them.
+  //
+  // TWO reads and not one, because an authored id is unique only WITHIN its
+  // side: nextActionId numbers each side's own list, so `x1` on the Cats and
+  // `x1` on the Mechs are two different actions with one id.
+  function pickedSide(dlg) {
+    return String(dlg.dataset.edSide || '');
+  }
+  function pickedAct(dlg) {
+    return String(dlg.dataset.edPick || '');
+  }
+
+  // Null rather than a throw when the surface is absent, for the reason
+  // pickerDialog gives: an error panel raised on a button that ships in every
+  // build is the one outcome worse than nothing happening. close() is the
+  // capability probed, because it is the method every consumer below calls.
+  function editorDialog() {
+    if (typeof document === 'undefined') { return null; }
+    var dlg = document.getElementById('act-edit');
+    if (!dlg || typeof dlg.close !== 'function') { return null; }
+    return dlg;
+  }
+
+  // THE one place that says "the editor is now showing this action on this
+  // side", and every caller below goes through it, for the reason showType
+  // gives: several call sites each doing the same two things in their own order
+  // is how the marked row and the heading end up disagreeing on some path
+  // nobody thought to check.
+  //
+  // The attributes are written HERE rather than left to App.render.editor,
+  // because that function returns early when its fingerprint has not moved and
+  // would then never reach its own write.
+  //
+  // DELIBERATELY NOT flushing the name field here, for the reason showType
+  // records at length: committing a pending rename BEFORE the repaint means the
+  // repaint computes its fingerprint from a list that already carries the new
+  // name, so the frame that follows sees nothing moved and never rewrites the
+  // field the repaint had to skip while it held focus. Binding the pending text
+  // to the action it was typed for — see commitActionName — fixes the
+  // corruption without moving when the commit happens.
+  function showAction(dlg, side, actionId) {
+    dlg.dataset.edSide = side;
+    dlg.dataset.edPick = actionId;
+    App.render.editor(App.state.get(), side, actionId);
+  }
+
+  // The first action on a side, or the empty string for a side holding none.
+  // Every fallback below lands here rather than on a constant, so it can never
+  // name an action a student has removed.
+  function firstActionOn(side) {
+    var list = App.state.get().build[side].actions;
+    return (list.length === 0) ? '' : list[0].id;
+  }
+
+  function liveOn(side, actionId) {
+    return App.state.get().build[side].actions.some(function (a) {
+      return a.id === actionId;
+    });
+  }
+
+  // THE authorized handler for this plan's opening act. routeUi has already
+  // found the button, already matched UI_ACTS and already returned before
+  // App.ops.dispatch was reachable — on the pointerdown path AND on the
+  // detail === 0 keyboard path, so Enter on the button behaves exactly like a
+  // click. The button is not in HOLD_ACTS, so holding it starts no ramp and
+  // opens the dialog exactly once.
+  //
+  // An already-open dialog keeps what it is showing; a cold open starts on the
+  // first side and that side's first action. The button carries no side and no
+  // action, and it must never grow one: a hidden data-side here would be the
+  // topbar growing a control per faction, which is the thing the comment beside
+  // that button says out loud it must not become.
+  UI_HANDLERS.openActionEditor = function () {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+
+    var side = (dlg.open === true) ? pickedSide(dlg) : '';
+    if (side !== 'cats' && side !== 'mechs') { side = FIRST_SIDE; }
+
+    var id = (dlg.open === true) ? pickedAct(dlg) : '';
+    if (!liveOn(side, id)) { id = firstActionOn(side); }
+
+    // A side holding no action at all paints no editor, and the dialog still
+    // opens: a button that visibly does nothing is worse than a surface that
+    // honestly has nothing on it, and the per-frame hook picks the surface up
+    // the moment the side holds something again.
+    if (id !== '') { showAction(dlg, side, id); }
+    if (dlg.open !== true) { dlg.showModal(); }
+  };
+
+  // Choosing which action the editor shows writes nothing to state: it moves
+  // two attributes and asks for a repaint. Registered on the seam rather than
+  // merely called from onEditorPress below, so that the seam is the definition
+  // — a row that ever appears inside #app routes identically, and the gate can
+  // read the registration back.
+  //
+  // The side is read off the ROW rather than off the dialog, because the row
+  // carries the side it was built for and a press is the one moment those two
+  // can differ: the list is rebuilt whole on every repaint, so a row in hand is
+  // a row from the frame it was drawn on.
+  function selectAction(btn) {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+    var id = btn.dataset.edPick;
+    var side = btn.dataset.edSide;
+    if (typeof id !== 'string' || id === '') { return; }
+    if (side !== 'cats' && side !== 'mechs') { return; }
+    showAction(dlg, side, id);
+  }
+
+  UI_HANDLERS.selectAction = selectAction;
+
+  // Choosing the other faction. The selection moves to that side's FIRST
+  // action rather than keeping the id, and that is the point rather than a
+  // shortcut: an authored id is unique only within its side, so carrying `x1`
+  // across would land the student in a different action wearing the same id,
+  // silently. Landing on the first row says where they are.
+  function selectActionSide(btn) {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+    var side = btn.dataset.edSide;
+    if (side !== 'cats' && side !== 'mechs') { return; }
+    var id = firstActionOn(side);
+    if (id === '') { return; }
+    showAction(dlg, side, id);
+  }
+
+  UI_HANDLERS.selectActionSide = selectActionSide;
+
+  function closeEditor() {
+    var dlg = editorDialog();
+    if (dlg !== null && dlg.open === true) { dlg.close(); }
+  }
+
+  // The same keyboard failure onPickerClose solves, for the same reason:
+  // <dialog> restores the opener itself, but only for the element that held
+  // focus at the moment the modal opened, and a student who reached the button
+  // with the pointer was never focused on it. The selector is a CONSTANT — the
+  // topbar button carries no side and no action, so there is no caller-shaped
+  // string here to guard.
+  function onEditorClose() {
+    if (typeof document === 'undefined') { return; }
+    var opener = document.querySelector('[data-k="act"]');
+    if (opener && typeof opener.focus === 'function') { opener.focus(); }
+  }
+
+  // createAction hands back the id it produced, so the student lands in their
+  // new action's editor rather than being dropped back on whatever they were
+  // looking at. Reading the returned id rather than re-deriving which action
+  // was just made is plan 03.1-03's own stated reason for handing it back: a
+  // re-derivation would have to guess, and the sequence is allowed to skip.
+  //
+  // Dispatch FIRST, page work only after dispatch has returned. An op that
+  // refuses — the cap, a name it will not take — throws out of here into [S08]'s
+  // listener boundary and the page work never runs, which is what keeps the
+  // dialog from marking a change state declined to make.
+  function makeAction(dlg, side) {
+    var made = App.ops.dispatch('createAction', { side: side, name: NEW_ACTION_NAME });
+    showAction(dlg, side, made);
+  }
+
+  // The selected action's own row is what disappears here, and that is the
+  // trap: keyed() has nothing to restore focus to, and fallbackTarget cannot
+  // help either because it resolves through data-side and the rows carry
+  // data-ed-side rather than the board's key. Focus would land on <body>, so
+  // this places it.
+  //
+  // The list's first row is the target rather than the Remove button, because
+  // Remove is about to be disabled: the selection moves to the side's first
+  // action, which is one of the three that side ships with, and those refuse
+  // removal. A disabled control holding focus drops it, which is the failure
+  // wearing a different hat.
+  //
+  // No confirmation dialog, on purpose and for the reason dropType gives:
+  // everything the mutator does happens in ONE commit, so one Ctrl+Z brings the
+  // action back whole, and a modal would cost an instructor a click mid-demo to
+  // guard against something undo already covers.
+  function dropAction(dlg, side) {
+    App.ops.dispatch('removeAction', { side: side, actionId: pickedAct(dlg) });
+    var next = firstActionOn(side);
+    if (next !== '') { showAction(dlg, side, next); }
+    var list = document.getElementById('act-edit-list');
+    var first = list ? list.firstElementChild : null;
+    if (first && typeof first.focus === 'function') { first.focus(); }
+  }
+
+  /* ---- the name field. The same four functions in the same spirit as
+         [S07.2]'s, and deliberately NOT [S07.1]'s numeric machinery: the
+         stepper field's class is what isField keys on and everything
+         downstream of it is numeric by construction, so a name typed into one
+         would be parsed as a figure and refused on Enter. The PATTERN is what
+         is reused — a baseline recorded on focus, Enter commits loudly, Escape
+         puts the recorded text back, blur commits quietly. ---- */
+
+  function isActionNameField(el) {
+    return !!el && !!el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('ae-name');
+  }
+
+  function revertActionName(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // The cut is App.ops.clampTokenName for both nouns, because plan 03.1-03
+  // factored the name gate into one function with the noun as a parameter: an
+  // action's name is held to the same cap, the same code-point counting and the
+  // same refused characters as a token type's. A 30-emoji paste is cut on the
+  // code-point array here, so no cut can leave half an astral pair for Phase
+  // 4's encoder to throw URIError on, far from the paste that caused it. The
+  // input's own maxlength counts UTF-16 units and cannot do this job.
+  function clampActionName(el) {
+    var cut = App.ops.clampTokenName(el.value);
+    if (cut !== el.value) { el.value = cut; }
+  }
+
+  // THE VALUE-VERSUS-was TEST IS NOT A MICRO-OPTIMISATION. It is the same one
+  // commitField and commitName each carry for the same measured reason: without
+  // it, typing a name, pressing Enter and then clicking away applies the rename
+  // TWICE.
+  //
+  // THE TARGET IS READ OFF THE FIELD, NEVER OFF THE DIALOG, and here it is two
+  // facts rather than one because this surface is per side. Every control in
+  // this dialog moves the selection on pointerdown, which the spec puts ahead
+  // of the focus change, so the focusout that runs this arrives with both
+  // attributes already pointing somewhere else — typing a name and then
+  // pressing Remove would rename whatever the removal left selected, silently
+  // and with no panel. So the pending text carries the side AND the action it
+  // was typed for, recorded at the moment the student started typing. Neither
+  // can go stale under a repaint, because the repaint does not touch a focused
+  // field (D-19).
+  function commitActionName(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var side = el.dataset.forSide;
+    var target = el.dataset.forAct;
+    // Nothing recorded means nothing may be spent. A name with no action behind
+    // it goes back rather than being guessed at.
+    if (side !== 'cats' && side !== 'mechs') { revertActionName(el); return; }
+    if (typeof target !== 'string' || target === '') { revertActionName(el); return; }
+    try {
+      App.ops.dispatch('renameAction', { side: side, actionId: target, name: el.value });
+    } catch (refused) {
+      revertActionName(el);
+      if (loud) { throw refused; }
+      return;
+    }
+    // The baseline moves with the committed text or both of them start lying —
+    // the rule showFieldValue states, applied to text.
+    el.dataset.was = el.value;
+  }
+
+  // Three facts, recorded together, because they are only useful together: what
+  // the text was when the student arrived, and which side and which action they
+  // arrived on.
+  function onEditorFocusIn(e) {
+    var el = e.target;
+    if (!isActionNameField(el)) { return; }
+    el.dataset.was = el.value;
+    var dlg = editorDialog();
+    el.dataset.forSide = (dlg === null) ? '' : pickedSide(dlg);
+    el.dataset.forAct = (dlg === null) ? '' : pickedAct(dlg);
+  }
+
+  function onEditorFocusOut(e) {
+    var el = e.target;
+    if (!isActionNameField(el)) { return; }
+    commitActionName(el, false);
+  }
+
+  function onEditorInput(e) {
+    var el = e.target;
+    if (!isActionNameField(el)) { return; }
+    clampActionName(el);
+  }
+
+  function onEditorKeyDown(e) {
+    // The same rule [S07.1] applies at #app and [S07.2] repeats on the picker,
+    // and it has to be written a third time because the three roots are
+    // disjoint by construction: this dialog is a SIBLING of #app and of the
+    // picker, so no key pressed in here reaches either of those listeners.
+    // The reason is [S07.1]'s own measured one — a held Enter on a focused
+    // button makes the browser synthesise one click{detail:0} per repeat, and
+    // onEditorClick has no e.repeat to test because click events do not carry
+    // one. Held on New that is one createAction per OS auto-repeat until the
+    // cap disables the button, and three undo entries to rewind one at a time.
+    //
+    // The scope is a BUTTON, because in this dialog that is the same set said
+    // two ways: every control that can change anything — the side buttons, the
+    // list rows, New, Remove and Done — is a real button by construction, and
+    // the one thing that is not is the name field. So a held Space in the field
+    // still types spaces and a held Enter there still reaches the commit arm
+    // below. Only a button is silenced, and only on a repeat.
+    if (e.repeat === true && (e.key === 'Enter' || e.key === ' ')) {
+      var node = e.target;
+      var btn = (node && typeof node.closest === 'function') ? node.closest('button') : null;
+      if (btn !== null) { e.preventDefault(); return; }
+    }
+
+    var el = e.target;
+    if (!isActionNameField(el)) { return; }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitActionName(el, true);
+      return;
+    }
+
+    // Escape puts the recorded text back. Keeping the dialog OPEN while it does
+    // is a separate job and belongs to the cancel listener in bindEditor, which
+    // is the only place a close request can be declined.
+    if (e.key === 'Escape') { revertActionName(el); }
+  }
+
+  // ONE delegated listener on the dialog, never one per row: the list is
+  // rebuilt on every repaint, so per-node listeners would have to be rebound on
+  // every press and the first missed rebind is a dead row nobody notices.
+  function onEditorPress(e) {
+    // The same rule [S07.1] applies at #app, for the same reason: without it a
+    // right-click on a row moved the selection under the context menu.
+    if (!isPrimaryPress(e)) { return; }
+
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+
+    if (node.closest('[data-ae="done"]') !== null) { closeEditor(); return; }
+
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+
+    // Page work, and it stops here. Nothing is dispatched and nothing is
+    // committed: the control a student presses is the only thing that decides
+    // which side and which action the editor shows next.
+    var sideBtn = node.closest('[data-act="selectActionSide"]');
+    if (sideBtn !== null) { selectActionSide(sideBtn); return; }
+
+    var row = node.closest('[data-act="selectAction"]');
+    if (row !== null) { selectAction(row); return; }
+
+    // State work, and both follow the ordering [S07.2] already ships: dispatch
+    // FIRST, page work only after dispatch has returned. The side is read off
+    // the dialog rather than off the button, because these two buttons are
+    // static markup and cannot carry one — which is deliberate, since a side on
+    // a static button would be a second place for "which faction am I editing"
+    // to live and it would disagree with the chooser the moment either moved.
+    var side = pickedSide(dlg);
+    if (side !== 'cats' && side !== 'mechs') { return; }
+
+    var mk = node.closest('[data-act="createAction"]');
+    if (mk !== null) { makeAction(dlg, side); return; }
+
+    var rm = node.closest('[data-act="removeAction"]');
+    if (rm !== null) { dropAction(dlg, side); return; }
+  }
+
+  // The same anti-double-fire rule [S07.1] and [S07.2] each use, for the same
+  // measured reason: a mouse click was already served by pointerdown, and
+  // running here as well would apply every press twice. detail === 0 is the
+  // keyboard.
+  function onEditorClick(e) {
+    if (e.detail !== 0) { return; }
+    onEditorPress(e);
+  }
+
+  // The seam, used exactly as [S07.1] describes it: the dialog lives outside
+  // #app, so it needs a root of its own, and bind() runs this through the same
+  // App.boot.wrap boundary its own listeners use. No edit to bind(), and the
+  // number of places that invoke it is unchanged.
+  //
+  // EVERY LISTENER GOES THROUGH App.boot.wrap. A handler bound raw would throw
+  // past the boundary and leave the surface dead with nothing on screen to say
+  // so — the failure the boundary exists for — and there is a numbered check in
+  // tests/selftest-node.cjs that reads the registrations on this root back and
+  // reddens if any one of them is not wrapped.
+  function bindEditor() {
+    var dlg = editorDialog();
+    if (dlg === null) { return; }
+    dlg.addEventListener('pointerdown', App.boot.wrap('editor press', onEditorPress));
+    dlg.addEventListener('click', App.boot.wrap('editor key-press', onEditorClick));
+    // <dialog> fires close for the Done button and for Escape alike, so the
+    // focus hand-back has one home rather than two.
+    dlg.addEventListener('close', App.boot.wrap('editor close', onEditorClose));
+
+    // focusin / focusout rather than focus / blur, for the reason [S07.1]
+    // gives: only the first pair bubbles, and a delegated root is the only
+    // arrangement that survives the list underneath it being rebuilt.
+    dlg.addEventListener('focusin', App.boot.wrap('editor field focus', onEditorFocusIn));
+    dlg.addEventListener('focusout', App.boot.wrap('editor field blur', onEditorFocusOut));
+    dlg.addEventListener('input', App.boot.wrap('editor typing', onEditorInput));
+    dlg.addEventListener('keydown', App.boot.wrap('editor keydown', onEditorKeyDown));
+
+    // Escape inside the name field must put the old text back WITHOUT taking
+    // the editor away underneath it. <dialog> fires cancel on a close request,
+    // preventDefault() on that event keeps the dialog open and suppresses
+    // close, and the event does not bubble — so it has to be bound on the
+    // dialog itself, which is where this binder already binds.
+    //
+    // NOT EXERCISED by the Node gate, and this is now the SECOND surface for
+    // which that is true. The stub <dialog> there has .open, showModal() and
+    // close() and no close-request behaviour at all, so this path cannot be
+    // driven without a browser. It is carried to the phase's closing rehearsal
+    // as a numbered check, exactly as the picker's is.
+    dlg.addEventListener('cancel', App.boot.wrap('editor close request', function (e) {
+      var el = (typeof document === 'undefined') ? null : document.activeElement;
+      if (!isActionNameField(el)) { return; }
+      e.preventDefault();
+      revertActionName(el);
+    }));
+  }
+
+  LATE_BINDERS.push(bindEditor);
+
+  // The three acts this region claims. Pushed rather than assigned, so
+  // [S07.1]'s own array literal is untouched and the frozen copy taken below
+  // describes the seam as it finally is.
+  UI_ACTS.push('openActionEditor', 'selectAction', 'selectActionSide');
+  // #endregion [S07.3] INTERACTIONS — ACTION EDITOR
+
   return Object.freeze({
     bind: bind,
     holdSource: holdSource,
@@ -7098,6 +7573,11 @@ App.interactions = (function () {
     // The default name a new type arrives with, exported so [S09.7] can assert
     // it is a name the op will take rather than assert a re-typed copy of it.
     NEW_TOKEN_NAME: NEW_TOKEN_NAME,
+    // Its opposite number for [S07.3], exported for exactly the same reason and
+    // to exactly the same standard: a suite that re-typed the string would be
+    // asserting its own copy, and the one press this feature exists for is the
+    // press that would open the styled error panel instead.
+    NEW_ACTION_NAME: NEW_ACTION_NAME,
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
