@@ -446,7 +446,36 @@ function makeStubDom() {
     // the open type before it is taken away. Same rule as every entry above:
     // the id, this entry and the stub node arrive together or the run fails in
     // one direction or the other.
-    'tok-pick-names'
+    'tok-pick-names',
+    // plan 03.1-05 — the action editor (ACT-01). One dialog with two panes:
+    // the authoring pane below, and a proposal pane that is reserved, empty and
+    // hidden until plan 03.1-07 fills it. The topbar label beside it is the
+    // second PERMANENT, BOUNDED button on the bar, and the shell comment on it
+    // says out loud that it is not the row Phase 2.1 collapsed.
+    //
+    // Every entry here obeys the rule the whole list obeys: the id, this entry
+    // and the stub node arrive together, and — new since plan 03.1-01 — a
+    // <dialog> also needs its DIALOG_ROOTS entry or the run fails at 47b.
+    'actedit-label',
+    'act-edit', 'act-edit-pane-author', 'act-edit-title',
+    'act-edit-sides-label', 'act-edit-side-cats', 'act-edit-side-mechs',
+    'act-edit-list-label', 'act-edit-list',
+    'act-edit-new', 'act-edit-remove',
+    'act-edit-name-label', 'act-edit-name',
+    // The reserved term rows. They are static in the shell for the reason the
+    // name field is static — plan 03.1-06 puts a number in each, and a number
+    // half-typed is what a rebuilt row throws away — so they are static here
+    // too. Their COUNT is asserted against App.data.MAX_ACTION_REQ and
+    // App.data.MAX_ACTION_XF further down, because a hand-written row count and
+    // a constant that can move are two places for one number to live.
+    'act-edit-terms', 'act-edit-cost',
+    'act-edit-req-0', 'act-edit-req-1',
+    'act-edit-xf-0', 'act-edit-xf-1',
+    'act-edit-done',
+    // The proposal pane. Reserved and empty on purpose (D-05b): nothing in plan
+    // 03.1-05 proposes, applies or resolves anything, and this stub builds the
+    // node with nothing inside it so that stays checkable rather than promised.
+    'act-edit-propose'
   ];
 
   const byId = Object.create(null);
@@ -716,6 +745,11 @@ function makeStubDom() {
   topbarButton('undo', 'undo', null);
   topbar.appendChild(idNode('tokedit-label', 'span'));
   topbarButton('tok', 'openTokenPicker', null);
+  // plan 03.1-05's one new topbar control. The shell comment beside it records
+  // that this is a second PERMANENT, BOUNDED button rather than the row Phase
+  // 2.1 collapsed; here it is one more entry, spelled from the markup.
+  topbar.appendChild(idNode('actedit-label', 'span'));
+  topbarButton('act', 'openActionEditor', null);
 
   // The token-appearance <dialog>, likewise hand-made from the static markup.
   // Exactly three members beyond a plain element, because that is all [S06.2]
@@ -808,6 +842,111 @@ function makeStubDom() {
   const doneBtn = idNode('tok-pick-done', 'button');
   doneBtn.dataset.pk = 'done';
   picker.appendChild(doneBtn);
+
+  /* ---- plan 03.1-05's action editor, hand-made from the static markup ------
+     Exactly the three members beyond a plain element the picker above has, and
+     no more: .open, showModal() and close(), the last dispatching the `close`
+     event the focus hand-back is bound to. [S07.3]'s editorDialog() probes for
+     a close() FUNCTION before it will do anything, so a plain div here would
+     keep the whole editor path skipped — the precise state the picker was in
+     before this stub was written, with gate checks reporting green over a
+     handler that bailed out on its second line.
+
+     EVERY DATASET SPELLING BELOW IS COPIED FROM THE SHELL. A typo here is not
+     a red run: it is a green one, over a control nothing is listening to. The
+     same goes for the classes — [S07.3] tells the name field apart by .ae-name
+     exactly as [S07.2] tells .pk-name apart, so without it every keystroke,
+     Enter, Escape and blur handler declines on its first line. */
+  const editor = idNode('act-edit', 'dialog');
+  editor.open = false;
+  editor.dataset.edPane = 'author';
+  editor.showModal = () => { editor.open = true; };
+  editor.close = () => {
+    if (!editor.open) { return; }
+    editor.open = false;
+    dispatch(editor, event('close'));
+  };
+  body.appendChild(editor);
+
+  const authorPane = idNode('act-edit-pane-author');
+  editor.appendChild(authorPane);
+  authorPane.appendChild(idNode('act-edit-title', 'h2'));
+
+  // The side chooser. Two static buttons, each holding a name node [S06.5]
+  // writes on every repaint and a tick the class hides until the side is live.
+  const sideGroup = createElement('div');
+  authorPane.appendChild(sideGroup);
+  sideGroup.appendChild(idNode('act-edit-sides-label', 'h3'));
+  [['act-edit-side-cats', 'cats'], ['act-edit-side-mechs', 'mechs']].forEach(([id, side]) => {
+    const b = idNode(id, 'button');
+    b.className = 'ae-side';
+    b.dataset.act = 'selectActionSide';
+    b.dataset.edSide = side;
+    b.dataset.k = 'ae/side/' + side;
+    const nameNode = createElement('span');
+    nameNode.className = 'ae-side-name';
+    b.appendChild(nameNode);
+    const tick = createElement('span');
+    tick.className = 'ae-check';
+    tick.textContent = '✓';
+    b.appendChild(tick);
+    sideGroup.appendChild(b);
+  });
+
+  // The list of every action on the chosen side, empty exactly as it ships:
+  // its rows come from the LIVE build slice at render time, which is what makes
+  // an action a student authored appear in it with no second tier (D-07).
+  const aeListGroup = createElement('div');
+  authorPane.appendChild(aeListGroup);
+  aeListGroup.appendChild(idNode('act-edit-list-label', 'h3'));
+  aeListGroup.appendChild(idNode('act-edit-list'));
+
+  const aeNewRow = createElement('div');
+  authorPane.appendChild(aeNewRow);
+  [
+    ['act-edit-new', 'createAction', 'ae/new'],
+    ['act-edit-remove', 'removeAction', 'ae/remove']
+  ].forEach(([id, act, k]) => {
+    const b = idNode(id, 'button');
+    b.dataset.act = act;
+    b.dataset.k = k;
+    aeNewRow.appendChild(b);
+  });
+
+  const aeNameGroup = createElement('div');
+  authorPane.appendChild(aeNameGroup);
+  aeNameGroup.appendChild(idNode('act-edit-name-label', 'h3'));
+  const aeName = idNode('act-edit-name', 'input');
+  aeName.type = 'text';
+  aeName.className = 'ae-name';
+  aeName.dataset.k = 'ae/name';
+  aeNameGroup.appendChild(aeName);
+
+  // The reserved term rows. Hidden as a block here exactly as in the shell,
+  // because plan 03.1-05 draws nothing into them and a stub that showed them
+  // would be a stub standing in for markup that has not shipped.
+  const aeTerms = idNode('act-edit-terms');
+  aeTerms.className = 'ae-terms';
+  aeTerms.hidden = true;
+  authorPane.appendChild(aeTerms);
+  aeTerms.appendChild(idNode('act-edit-cost'));
+  ['act-edit-req-0', 'act-edit-req-1', 'act-edit-xf-0', 'act-edit-xf-1']
+    .forEach((id) => {
+      const row = idNode(id);
+      row.hidden = true;
+      aeTerms.appendChild(row);
+    });
+
+  const aeDone = idNode('act-edit-done', 'button');
+  aeDone.dataset.ae = 'done';
+  authorPane.appendChild(aeDone);
+
+  // Reserved, empty and hidden. Nothing goes in here until plan 03.1-07, and
+  // a check below reads that emptiness back rather than trusting this comment.
+  const aePropose = idNode('act-edit-propose', 'section');
+  aePropose.className = 'ae-pane';
+  aePropose.hidden = true;
+  editor.appendChild(aePropose);
 
   doc.createElement = createElement;
   doc.getElementById = (id) => (KNOWN_IDS.indexOf(id) === -1 ? null : (byId[id] || null));
@@ -3040,6 +3179,42 @@ check(
 A.state.restore(refSaved);
 A.state.flush();
 
+/* --- 65-68. plan 03.1-05's action editor -------------------------------------
+
+   65. THE RESERVED TERM ROWS ARE COUNTED FROM THE SHELL, AGAINST THE CONSTANTS.
+   The rows are static markup for the reason the name field is (D-19): plan
+   03.1-06 puts a number in each, and a number half-typed is exactly the text a
+   rebuilt row throws away. That leaves the row COUNT written down in two
+   places — as literal ids in the shell, and as App.data.MAX_ACTION_REQ /
+   App.data.MAX_ACTION_XF in [S01] — and two places for one number is where a
+   raised cap silently stops being reachable. So the count is read out of the
+   real markup rather than out of the stub, because the stub is hand-written
+   from the same source and asserting it against itself would assert nothing.
+
+   The proposal pane is read back EMPTY in the same row. It is reserved by this
+   plan and filled by plan 03.1-07 (D-05b), and "nothing in here yet" is a claim
+   worth holding mechanically rather than in a comment nobody re-reads. */
+const shellReqRows = (html.match(/id="act-edit-req-\d+"/g) || []).length;
+const shellXfRows = (html.match(/id="act-edit-xf-\d+"/g) || []).length;
+const aeDialog = dom.byId['act-edit'];
+const aeProposePane = dom.byId['act-edit-propose'];
+check(
+  '65. the shell reserves exactly MAX_ACTION_REQ requirement rows and '
+    + 'MAX_ACTION_XF transformation rows — the rows are static so a half-typed '
+    + 'number survives the per-frame repaint, which puts the count in the '
+    + 'markup AND in [S01], and a raised cap that reached only one of them '
+    + 'would leave a term a student can hold and cannot type. The proposal '
+    + 'pane is read back empty in the same breath, because plan 03.1-05 '
+    + 'reserves it and plan 03.1-07 fills it',
+  shellReqRows === A.data.MAX_ACTION_REQ && shellXfRows === A.data.MAX_ACTION_XF
+    && aeProposePane !== null && aeProposePane.children.length === 0
+    && aeProposePane.hidden === true,
+  'requirement rows in the shell=' + shellReqRows + ' (cap ' + A.data.MAX_ACTION_REQ + ')'
+    + ' transformation rows=' + shellXfRows + ' (cap ' + A.data.MAX_ACTION_XF + ')'
+    + ' proposal pane children=' + (aeProposePane ? aeProposePane.children.length : '(no node)')
+    + ' hidden=' + (aeProposePane ? aeProposePane.hidden : '(no node)')
+);
+
 /* --- Layer C of the PROJ-06 gate: the rendered page ---------------------------
        Layers A and B, up at the top of this file, read the SOURCE. This one
        reads the PAGE, for two reasons. The roadmap's criterion is written about
@@ -3138,7 +3313,11 @@ const renderedText = harvestInto(dom.byId['app'], [], '#app');
    here the stub does not build would be this gate reporting a clean scan over a
    node that is not there. Neither can be left to a future author remembering. */
 const DIALOG_ROOTS = [
-  { id: 'tok-picker', act: 'openTokenPicker' }
+  { id: 'tok-picker', act: 'openTokenPicker' },
+  // plan 03.1-05's action editor. It is harvested from the moment it exists,
+  // which is the whole point of the check below being bidirectional: this entry
+  // could not have been forgotten, because leaving it out fails the run.
+  { id: 'act-edit', act: 'openActionEditor' }
 ];
 
 const stubDialogIds = [];

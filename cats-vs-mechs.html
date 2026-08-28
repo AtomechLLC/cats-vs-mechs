@@ -639,6 +639,123 @@
     border:1px solid var(--line);border-radius:999px;padding:4px 12px;
     font-size:18px;color:var(--ink-dim);
   }
+
+  /* ===================== [C12] ACTION EDITOR ===================== */
+  /* The action-authoring dialog (ACT-01, plan 03.1-05). Every class here
+     carries the .ae- prefix, which is the same fake scoping [C07] explains for
+     .pk- and [C10] repeats for .prj-: a single stylesheet has no real scope, so
+     a Phase 5 rule for .row or .item would otherwise restyle this surface from
+     three thousand lines away.
+
+     [C07] IS THE LAYOUT ANALOG AND THIS BORROWS ITS SHAPE RATHER THAN ITS
+     CLASSES. The two surfaces are the same object — a list plus an editor in a
+     modal — so the box, the title, the legends, the scrolling list and the free
+     text field are all sized from the numbers [C07] settled, and every one of
+     those numbers came off [C04]'s projector floor. They are re-stated rather
+     than shared because .pk- means "the token-appearance picker" everywhere
+     else in this file, and a second surface wearing those classes would make
+     every .pk- rule in [C07] a rule two dialogs depend on.
+
+     NO SHAPE IS DRAWN HERE. The live row is marked by an outline AND a tick, in
+     the idiom [C07] states and for the reason it gives — half the picker is
+     colours, so "the live one" is never said in colour alone, and saying it the
+     same way on both surfaces keeps one rule instead of two. If this region
+     ever does need a shape, it is a CSS clip-path, which is what [C05] already
+     does for the board's triangles and hexagons: the namespaced element
+     constructor takes a URI of the shape the dev gate refuses document-wide. */
+  .ae{
+    background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;max-width:660px;width:calc(100vw - 48px);
+    font:inherit;
+  }
+  .ae::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
+  .ae-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
+  .ae-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
+  .ae-group{margin:0 0 18px}
+  /* UX-02, the same floor [C07] holds: a permanent visible label at 18px, never
+     an icon and never a title= tooltip. */
+  .ae-legend{display:block;margin:0 0 8px;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  .ae-row{display:flex;flex-wrap:wrap;gap:8px}
+
+  /* The list of every action on the chosen side (D-07). It SCROLLS rather than
+     shrinking its type, for the reason [C07] gives about the type list: the
+     dialog is this size because a room reads it off a projector, so a longer
+     list may cost height and may never cost legibility. The cap is 3 shipped
+     actions plus MAX_CUSTOM_ACTIONS of the student's own, so six rows is the
+     usual case and the scroll is the tail. */
+  .ae-list{
+    display:flex;flex-direction:column;gap:6px;
+    max-height:236px;overflow-y:auto;
+    padding:2px;   /* room for .ae-item--on's outline, which draws outside the box */
+  }
+  /* A row, laid out along the line because the thing being read is a name and
+     names are read horizontally. WCAG 2.5.5 Enhanced puts the target floor at
+     44 x 44 and .pk-list-item already sits on it, so this does too. */
+  .ae-item{
+    display:flex;align-items:center;gap:10px;
+    min-height:44px;padding:7px 11px;width:100%;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:10px;color:var(--ink);
+    font:inherit;font-size:16px;line-height:1.2;text-align:left;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  /* The name takes the slack so the tick lands in the same column on every row,
+     which is what makes the live one findable by scanning down an edge. */
+  .ae-item-name{flex:1 1 auto;text-align:left}
+  .ae-item--on{outline:2px solid var(--accent);outline-offset:2px}
+  .ae-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
+  .ae-item--on .ae-check{visibility:visible}
+
+  /* The side chooser. Two buttons rather than a select, so the live one is
+     marked by the same outline-and-tick idiom the list rows use and a student
+     never has to open anything to see which faction they are editing. */
+  .ae-side{
+    min-height:44px;padding:9px 16px;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:10px;color:var(--ink);
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  .ae-side--on{outline:2px solid var(--accent);outline-offset:2px}
+
+  /* The chrome is .pk-name's, which is .err-detail's, so there is ONE look for
+     "type words here" across all three of the file's free-text inputs. */
+  .ae-name{
+    display:block;width:100%;box-sizing:border-box;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:9px 12px;font:inherit;font-size:18px;
+    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  }
+
+  /* The making-and-taking-away row sits at the START of the line because it
+     acts on the list above it; Done pushes to the end because it is the only
+     control that ends the visit. Both are [C07]'s arrangement, restated. No
+     disabled styling is written here: .brd-btn already carries &:disabled, and
+     a second rule for it would be a second place for the two to disagree. */
+  .ae-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
+  .ae-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
+
+  /* RESERVED, EMPTY AND HIDDEN until plan 03.1-06 fills it. It carries its own
+     hidden rule for the reason .pk-warn[hidden], .prj-note[hidden] and
+     .brd-line--opt[hidden] each have one: [hidden]{display:none} is a
+     user-agent rule and the margins here would not have beaten it, but a later
+     author rule giving one of these classes a display would, and the next
+     reader should not have to know which of those is true today. */
+  .ae-terms{margin:0 0 18px;display:flex;flex-direction:column;gap:14px}
+  .ae-terms[hidden]{display:none}
+  .ae-term{display:flex;align-items:center;gap:10px;min-height:44px}
+  .ae-term[hidden]{display:none}
+
+  /* The proposal pane, reserved by plan 03.1-05 and filled by plan 03.1-07.
+     Empty and hidden, and the dialog's own data-ed-pane attribute is what will
+     swap the two — one dialog, two panes, for the three reasons the markup
+     comment on #act-edit sets out. */
+  .ae-pane[hidden]{display:none}
 </style>
 </head>
 <body>
@@ -677,6 +794,31 @@
       <div class="brd-tokedit" role="group" aria-labelledby="tokedit-label">
         <span class="brd-tokedit-label" id="tokedit-label">Token appearance</span>
         <button class="brd-btn" type="button" data-k="tok" data-act="openTokenPicker">Tokens</button>
+      </div>
+      <!-- THE SECOND PERMANENT BUTTON, AND IT IS PAID FOR HERE RATHER THAN
+           NOTICED LATER. The comment directly above records that a ROW of
+           token buttons was collapsed to one, precisely because the row grew by
+           one control per invention. This is a different thing, and the
+           difference is the whole justification: it is ONE button, it is
+           PERMANENT, and it is BOUNDED — every action a student ever authors is
+           a row inside the surface it opens, exactly as every type they invent
+           is a row inside the picker (D-05, D-08). The collapse is not undone.
+
+           IT MUST NOT BECOME ONE-PER-ANYTHING. If a later phase wants a third
+           permanent control here it is welcome to it; if a later phase wants a
+           control per action, per side or per round, the answer is the one D-05
+           already gave — put it in the surface, not on the bar, because the bar
+           is the one place UX-02 says a projector may not grow a queue of
+           controls.
+
+           Static markup, unique data-k, and the same reason [S07.2] states for
+           the button above: the structural rebuild restores focus by taking the
+           FIRST [data-k="..."] match, so a key rendered inside a repeated
+           region would silently break focus restore. openActionEditor is page
+           work, so [S07] routes it and [S05] never sees it. -->
+      <div class="brd-tokedit" role="group" aria-labelledby="actedit-label">
+        <span class="brd-tokedit-label" id="actedit-label">Action rules</span>
+        <button class="brd-btn" type="button" data-k="act" data-act="openActionEditor">Actions</button>
       </div>
     </div>
   </div>
@@ -821,6 +963,121 @@
   </div>
 </dialog>
 
+<!-- The action editor (ACT-01, plan 03.1-05). Static markup and a sibling of
+     #err-panel, outside #app, for the reason the picker above gives in full:
+     nothing about it may depend on a rebuild. [S06.5] fills the list and writes
+     every value on it, and [S07.3] opens it and reads the presses, both
+     attached through [S07]'s LATE_BINDERS and SYNC_HOOKS seams.
+
+     ONE DIALOG WITH TWO PANES, NOT TWO DIALOGS, and the reasoning is recorded
+     here because the alternative is the obvious one. The proposal surface plan
+     03.1-07 builds could have been a second <dialog> beside this one. It is a
+     pane of this one instead, and three costs are what decided it:
+       1. Two dialogs are two topbar buttons, two LATE_BINDERS entries, two
+          delegated roots and two fingerprints. One is one of each.
+       2. A modal opened from inside a modal stacks focus and close-request
+          behaviour, and the Node stub has no close-request behaviour at all —
+          so the stacking could never be exercised anywhere in this repo.
+       3. The id budget. The picker cost 19 of the file's 37 shell ids; two
+          dialogs would land this file near sixty, and every one of them is a
+          line in tests/selftest-node.cjs that has to be built by hand.
+     Which pane is showing is data-ed-pane on the dialog node, which is the
+     technique [S06.2] and [S07.2] both state for "which surface is showing
+     what" — an attribute answering exactly one question, owned by [S06.5].
+
+     THE PROPOSAL PANE IS RESERVED AND EMPTY. Plan 03.1-07 fills it. Nothing in
+     plan 03.1-05 proposes, applies or resolves anything: this surface edits a
+     rule's DEFINITION and stops, which is the line this whole phase walks
+     (D-05b — a declared action lands on Advance, in Phase 5).
+
+     #act-edit-name is STATIC for the reason #tok-pick-name is: the dialog
+     repaints on every frame while it is open, and a field rebuilt or
+     overwritten mid-typing loses the half-typed text. A node that is never
+     rebuilt can simply be skipped while it holds focus (D-19).
+
+     THE RESERVED TERM ROWS ARE STATIC FOR THE SAME REASON, n times over. Plan
+     03.1-06 puts a number in each of them, and a number a student is halfway
+     through typing is exactly the text a rebuilt row throws away. There are
+     App.data.MAX_ACTION_REQ requirement rows and App.data.MAX_ACTION_XF
+     transformation rows here because those are the caps, and the surplus is
+     hidden rather than removed. The two counts are asserted against the
+     constants in tests/selftest-node.cjs, because a static row count and a
+     constant that can move are two places for one number to live.
+
+     Adding an id here without teaching tests/selftest-node.cjs about it fails
+     the run in both directions — and, since plan 03.1-01, so does adding a
+     <dialog> without an entry in DIALOG_ROOTS. The id, the KNOWN_IDS entry, the
+     stub node and the DIALOG_ROOTS entry arrived together. -->
+<dialog class="ae" id="act-edit" aria-labelledby="act-edit-title" data-ed-pane="author">
+
+  <div class="ae-pane" id="act-edit-pane-author">
+    <div class="eyebrow">Actions</div>
+    <h2 class="ae-title" id="act-edit-title"></h2>
+    <p class="ae-note">Every action on a side lives in one list — the three the board ships with and the ones you write. There is no second tier: an action you make is the same kind of thing as one that was already here.</p>
+
+    <div class="ae-group">
+      <h3 class="ae-legend" id="act-edit-sides-label">Side</h3>
+      <div class="ae-row" role="group" aria-labelledby="act-edit-sides-label">
+        <button class="ae-side" type="button" id="act-edit-side-cats" data-act="selectActionSide" data-ed-side="cats" data-k="ae/side/cats"><span class="ae-side-name"></span><span class="ae-check">✓</span></button>
+        <button class="ae-side" type="button" id="act-edit-side-mechs" data-act="selectActionSide" data-ed-side="mechs" data-k="ae/side/mechs"><span class="ae-side-name"></span><span class="ae-check">✓</span></button>
+      </div>
+    </div>
+
+    <div class="ae-group">
+      <h3 class="ae-legend" id="act-edit-list-label">Every action on this side</h3>
+      <div class="ae-list" id="act-edit-list" role="group" aria-labelledby="act-edit-list-label"></div>
+    </div>
+
+    <!-- Making one and taking one away sit beside the list they change, and
+         apart from Done, which ends the whole visit. [C07]'s arrangement,
+         restated for the reason the [C12] banner gives. Neither button is
+         enabled or disabled here: [S06.5] re-decides both from state on every
+         repaint, so an undo moves them too. -->
+    <div class="ae-row ae-actions--new">
+      <button class="brd-btn" type="button" id="act-edit-new" data-act="createAction" data-k="ae/new">New action</button>
+      <button class="brd-btn" type="button" id="act-edit-remove" data-act="removeAction" data-k="ae/remove">Remove this action</button>
+    </div>
+
+    <!-- Deliberately NOT one of the board's stepper fields, for the reason
+         #tok-pick-name states in full: isField() keys on the stepper class and
+         everything downstream of it is numeric by construction, so a name
+         typed here would be parsed as a figure and refused on Enter. maxlength
+         is ergonomic only — it counts UTF-16 code units while the op counts
+         CODE POINTS, so the two legitimately disagree for an emoji name. The
+         guard is App.ops.requireActionName and the safe cut is
+         App.ops.clampTokenName, which holds both nouns because the cap and the
+         cut are one gate with the noun as a parameter. -->
+    <div class="ae-group">
+      <h3 class="ae-legend" id="act-edit-name-label">Name</h3>
+      <input class="ae-name" id="act-edit-name" type="text" autocomplete="off" maxlength="24" aria-labelledby="act-edit-name-label" data-k="ae/name">
+    </div>
+
+    <!-- RESERVED FOR PLAN 03.1-06 and hidden until it arrives. Empty rows with
+         nothing in them are not a surface, so the block carries `hidden` as a
+         whole rather than showing three legends over nothing. -->
+    <div class="ae-terms" id="act-edit-terms" hidden>
+      <h3 class="ae-legend">Cost</h3>
+      <div class="ae-term" id="act-edit-cost"></div>
+      <h3 class="ae-legend">Needs</h3>
+      <div class="ae-term" id="act-edit-req-0" hidden></div>
+      <div class="ae-term" id="act-edit-req-1" hidden></div>
+      <h3 class="ae-legend">Changes</h3>
+      <div class="ae-term" id="act-edit-xf-0" hidden></div>
+      <div class="ae-term" id="act-edit-xf-1" hidden></div>
+    </div>
+
+    <div class="ae-actions">
+      <button class="brd-btn" type="button" id="act-edit-done" data-ae="done">Done</button>
+    </div>
+  </div>
+
+  <!-- THE PROPOSAL PANE. Reserved by plan 03.1-05, filled by plan 03.1-07,
+       empty and hidden here on purpose — see the block comment above this
+       dialog for why the two panes share one surface. Nothing in plan 03.1-05
+       writes a single node inside it. -->
+  <section class="ae-pane" id="act-edit-propose" hidden></section>
+</dialog>
+
 <script>
 /* =========================================================================
  * TABLE OF CONTENTS — the section banner is the file tree.
@@ -837,10 +1094,18 @@
  *     [S06.2] the token-appearance picker                                  (plan 02-03)
  *     [S06.3] the advisory projection in the centre strip                  (plan 03-03)
  *     [S06.4] the reference band below both columns                        (plan 03-05)
+ *     [S06.5] the action editor — the authoring dialog's repaint            (plan 03.1-05)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
+ *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
+ *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
  *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
+ *
+ * The stylesheet above carries its own region markers on the same scheme,
+ * [C00] TOKENS through [C12] ACTION EDITOR — search a token such as [C07] and
+ * you land in exactly one place there too. [C12] is plan 03.1-05's, and it is
+ * named here because it is the region [S06.5] and [S07.3] paint into.
  *
  * Region order is fixed. Dependency arrows point DOWN only; reference another
  * section as App.x.y() at the call site, never by capturing it at section-body
