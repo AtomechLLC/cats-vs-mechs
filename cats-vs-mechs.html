@@ -22486,6 +22486,25 @@ App.selftest = (function () {
       + 'rounds later',
       JSON.stringify(fight().past[0].hand), handRound1);
 
+    App.ops.setFightShield('cats', 'c1', 2);
+    App.state.flush();
+
+    t.eq('AND NOTHING A BY-HAND RULING WRITES IS NAMED AFTER WHAT IT OBVIOUSLY '
+      + 'IS. `override` is the word FIGHT-07 uses and it is BANNED as an object '
+      + 'key at any depth — by [S09.10]\'s second boundary row and by check 73c '
+      + 'in tests/selftest-node.cjs, neither of which is widened for this phase '
+      + 'and neither of which ever reaches a running fight. Storing the ruling '
+      + 'as an EVENT IN THE ROUND rather than as a flag on the number clears '
+      + 'that ban naturally: the record spells itself side, unit, tok, from and '
+      + 'to. Walked here at every depth over a state carrying four rounds of '
+      + 'recorded rulings AND a live one on the current round',
+      [refusedKeys(App.state.get()),
+        fight().past.filter(function (r) {
+          return Object.prototype.hasOwnProperty.call(r, 'hand');
+        }).length,
+        fight().hand.length],
+      [[], 3, 1]);
+
     t.ok('the prototype is intact after the round-membership rows', protoIntact());
 
     /* ===== FIGHT-05 AND D-00d, BOTH DIRECTIONS, IN ONE PLACE ================
