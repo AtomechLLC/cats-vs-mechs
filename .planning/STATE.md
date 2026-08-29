@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-07-PLAN.md
-last_updated: "2026-08-29T11:56:56.409Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-08-29T12:34:56.330Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 40
+  completed_plans: 41
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 8 of 11
+Plan: 9 of 11
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [█████████░] 93%
+Progress: [██████████] 95%
 
 ## Performance Metrics
 
@@ -76,6 +76,7 @@ Progress: [█████████░] 93%
 | Phase 05 P05 | 135min | 2 tasks | 2 files |
 | Phase 05 P06 | 95min | 2 tasks | 2 files |
 | Phase 05 P07 | 115min | 2 tasks | 2 files |
+| Phase 05 P08 | 150min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -160,6 +161,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-07: [S05]'s open commitStructural question answered NO and the paragraph amended in place — structure() rebuilds only #board's columns and #fightbar is its sibling
 - [Phase ?]: 05-07: the cost report reads the FIGHT pool through a render-time shim, because a report against the build pool is right on round one and wrong on every round after it
 - [Phase ?]: 05-07: the two sides are bounded at 34vh and scroll on themselves — unbounded, measured in a real browser, the region put the live board's top at 1034 of a 1080px screen
+- [Phase ?]: 05-08: the ledger row is the compact text design (66 nodes, against a 300-node full clone and 67-node token squares) and READABILITY decided it, not cost
+- [Phase ?]: 05-08: the ledger grows by DELTA only, front-trimmed against the oldest surviving record's round number — a row-count exit freezes it at MAX_PAST_ROUNDS
+- [Phase ?]: 05-08: FIGHT-15's reading is derived at render time and stored nowhere; probe Z's gap is closed by three [S09.12] rows asserting the fight slice's shape after a round has resolved
+- [Phase ?]: 05-08: check 92's fight harvest now PLAYS a round; FIGHT_FLOOR 83 -> 108, per-card 11 -> 14, SUITE_FLOOR 1155 -> 1158
 
 ### Pending Todos
 
@@ -173,6 +178,7 @@ None yet.
 - 04-04 probe Q reddened nothing: a boot load landing before the first paint is held by a comment alone. A flash is only visible to a person — rehearsal item for plan 04-08, harness limitations entry 15
 - 04-08: the clipboard matrix carries NO transcribed per-cell tier reading. Tiers 1 and 2 of the copy press have never executed anywhere in this repo (limitations entry 16), so the one-word approval is the only evidence they work. Re-ask for the DevTools-focused and window-backgrounded cells first — that is where Chrome's user-gesture rule is most likely to reject writeText and where the untested fall-through actually runs.
 - 05-07 finding for 05-11: the spent reading measures zero at every observable moment because advanceRound refills both pools in the same commit that spends them. Two admissible fixes are written into the file; the choice is the developer's
+- 05-08: with a fight running and one round resolved, #board's top sits at 1183px of a 1080px screen. Three dials are one budget (.fg-sides 34vh, .ld-list 34vh, .ld-now-body 20vh). REHEARSAL.md B3, plan 05-11
 
 ## Deferred Items
 
@@ -184,6 +190,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T11:56:32.256Z
+Last session: 2026-08-29T12:34:14.981Z
 Stopped at: Completed 05-05-PLAN.md
 Resume file: None
