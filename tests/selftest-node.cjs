@@ -8905,11 +8905,45 @@ const fgDeadWant = fgExpectedBoth();
 const fgDeadRuledOff = fgDeadInside.split('|').filter((e) =>
   (e.indexOf('fg/act/cats/c1/') === 0 || e.indexOf('fg/act/cats/c2/') === 0
     || e.indexOf('fg/act/mechs/m1/') === 0) && e.indexOf('=false') !== -1);
+
+/* AND A FOURTH BOARD: THE LAST ACTION A SIDE CAN PAY FOR, DECLARED. It is here
+   because PROBE AQ found the first three could not tell condition (b)'s
+   `+ own pledge` from its absence — on all three of them the row's remaining
+   pool was large enough either way, so removing the clause changed nothing and
+   the probe was spotlessly green. That is probe AD's recorded lesson arriving
+   again: A ROW HAS TO BE TAKEN ON A BOARD WHERE THE DISTINCTION SHOWS.
+
+   The board that shows it: the action costs exactly what the side holds, and
+   one unit has declared it. With the pledge given back the row's own pool is
+   3 - 3 + 3 = 3 and its own button is still live — which is what makes
+   re-click-to-undo reachable. Without it the pool is 0, the button that made
+   the declaration is out of reach, and the student is holding a declaration
+   they cannot take back from the only control that takes it back. Every OTHER
+   row on the side is out of reach on both spellings, which is correct and is
+   why only the declaring row can tell them apart. */
+fgFundedBoard();
+// THE COST IS RAISED UNDER THE DECLARATION THAT IS ALREADY STANDING, and it is
+// deliberately not re-declared: fgFundedBoard has already pressed c1's button,
+// and a second press on the same action is an UNDO — the radio semantics
+// working. The first draft of this board did press it again, cleared the
+// declaration, and left the row with nothing to give back and nothing to tell
+// the two spellings apart. spokenFor reads the LIVE cost, so raising it moves
+// the sum without a second press.
+A.ops.setActionCost('cats', fgCatsAct, 'ap', A.state.get().fight.cats.ap);
+A.state.flush();
+const fgDisabledLast = disabledIn(fgApp);
+const fgLastInside = fgInsideGrid(fgDisabledLast);
+const fgLastWant = fgExpectedBoth();
+const fgLastOwnRow = fgLastInside.split('|')
+  .filter((e) => e.indexOf('fg/act/cats/c1/' + fgCatsAct + '=') === 0);
+const fgLastOtherRow = fgLastInside.split('|')
+  .filter((e) => e.indexOf('fg/act/cats/c4/' + fgCatsAct + '=') === 0);
 const fgAtEntries = fgDisabledDead.split('|')
   .filter((e) => e.indexOf('fg/at/') === 0 && e.indexOf('=true') !== -1);
 const fgControlCount = fgDisabledFunded.split('|').length;
 const fgOutsideSame = fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledOwing)
-  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledDead);
+  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledDead)
+  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledLast);
 check(
   '95. THE DISABLE CONTRACT, IN BOTH DIRECTIONS, AND THE NEVER-DISABLE RULE '
     + 'STILL IN FORCE EVERYWHERE IT REACHES. This row REPLACES the assertion '
@@ -8930,11 +8964,21 @@ check(
     + '— computed here from state independently of the render and compared BOTH '
     + 'WAYS on all three boards. And the contract is asserted to FIRE: nothing '
     + 'is out of reach on the funded board, something is on the one that cannot '
-    + 'pay, and every button of every ruled unit is on the third',
+    + 'pay, and every button of every ruled unit is on the third. AND A FOURTH '
+    + 'BOARD CARRIES CONDITION (b)\'s `+ own pledge` ON ITS OWN, because the '
+    + 'other three cannot tell it from its absence: an action costing exactly '
+    + 'what the side holds, declared, leaves the DECLARING row\'s own button '
+    + 'live and every other row\'s out of reach — which is what keeps '
+    + 're-click-to-undo reachable at all',
   fgOutsideSame === true
     && fgFundedInside === fgFundedWant
     && fgOwingInside === fgOwingWant
     && fgDeadInside === fgDeadWant
+    && fgLastInside === fgLastWant
+    && fgLastOwnRow.length === 1
+    && fgLastOwnRow[0] === 'fg/act/cats/c1/' + fgCatsAct + '=false'
+    && fgLastOtherRow.length === 1
+    && fgLastOtherRow[0] === 'fg/act/cats/c4/' + fgCatsAct + '=true'
     && fgFundedOffCount === 0 && fgOwingOffCount > 0
     && fgDeadRuledOff.length === 0
     && fgOwingReport !== fgFundedReport
@@ -8948,6 +8992,9 @@ check(
     + (fgFundedInside === fgFundedWant)
     + ' cannot pay=' + (fgOwingInside === fgOwingWant)
     + ' ruled dead=' + (fgDeadInside === fgDeadWant)
+    + ' last affordable action=' + (fgLastInside === fgLastWant)
+    + ' | on that board the DECLARING row reads ' + JSON.stringify(fgLastOwnRow)
+    + ' and another row reads ' + JSON.stringify(fgLastOtherRow)
     + ' | buttons out of reach: funded=' + fgFundedOffCount
     + ' cannot pay=' + fgOwingOffCount
     + ' | a ruled unit\'s buttons still enabled=' + JSON.stringify(fgDeadRuledOff)
