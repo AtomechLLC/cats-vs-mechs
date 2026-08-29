@@ -78,3 +78,44 @@ below.
   splits damage shield-then-health. No verdicts anywhere on the new tab.
 - The no-verdict gate applies to every rendered word of the new surface.
 - The 05-11 playtest still gates the phase — on the NEW surface once it ships.
+
+---
+
+## ADDENDUM — three developer refinements, 2026-08-29, before execution began
+
+Received while the gap plans were being written; they amend the spec above and answer two of the
+planner's open calls. Verbatim:
+
+> Place 'team' resources above the action picker.
+> Default target to the lowest health enemy. Add a button to change target (rather than require a
+> picker every time)
+
+> 2. I like the suggestion for picking target
+
+> I want a visual presentation of the battle field on the current turn (shapes for cats with smaller
+> shapes for status points / health on them- on one side, same on the right for the other side)
+
+### What this settles
+
+1. **Team resources sit ABOVE the action picker**, per side.
+2. **Targeting: default, don't ask.** Declaring a target-directed action auto-targets the
+   **lowest-health living enemy** (fight hp; units ruled dead excluded; tie broken by roster order —
+   orchestrator call, recorded here). Each such declaration shows its target and carries a
+   **change-target button**; pressing it invokes the approved lights-up flow (the opposing side's
+   units light, click one to retarget, re-click cancels). The two-click-every-time flow is
+   superseded.
+   *Noted in passing:* a lowest-health default is a mild focus-fire suggestion by the tool — the
+   developer chose it explicitly, and it is a changeable default, not a resolution.
+3. **The fight tab carries a battlefield visual of the current round.** Cats on the left, Mechs on
+   the right, matching the columns: one shape per unit (labelled), with smaller shapes on it for
+   health / shield / status tallies drawn from each token type's own shape, colour and glyph — so
+   student-authored types appear in the battle exactly as they authored them. Units ruled dead stay
+   visible with the dead marker (FIGHT-04). CSS shapes and glyphs only — inline SVG is asserted
+   absent by the gate and stays absent.
+   **This supersedes the planner's call #1** ("unit state is not on the fight tab"): it now is, as
+   the battlefield. Hand rulings remain on the board tab; the battlefield is read-only except as the
+   click surface for the change-target flow, whose targets light there.
+
+### Column layout per side, top to bottom
+
+[SIDE] → battlefield cluster → team resources → action picker rows. [ROUND] spans above both.
