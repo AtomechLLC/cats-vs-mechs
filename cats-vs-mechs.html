@@ -19916,6 +19916,21 @@ App.selftest = (function () {
     function fight() { return App.state.get().fight; }
     function build() { return App.state.get().build; }
 
+    // readTally's discipline, borrowed rather than re-derived: hasOwnProperty
+    // on every step, zero for an absent bag. It is here because PROBE H found
+    // a real defect in the rows below without it — reading owner.tally[id]
+    // directly on a side whose bag had been taken away threw a TypeError, and
+    // a row that THROWS takes the whole suite down with it. Twenty-nine rows
+    // and one unrelated interaction check went red behind the one that was
+    // supposed to fail, and the reported failure was a stack trace rather than
+    // the two numbers a reader needs. A row must be able to say "0, expected
+    // 4"; it must not be able to abort the run.
+    function tallyOf(owner, tokenId) {
+      if (!owner || !Object.prototype.hasOwnProperty.call(owner, 'tally')) { return 0; }
+      return Object.prototype.hasOwnProperty.call(owner.tally, tokenId)
+        ? owner.tally[tokenId] : 0;
+    }
+
     /* ===== THE SLICE CONTRACT ===== */
 
     App.ops.resetToDefaults();
@@ -20032,7 +20047,7 @@ App.selftest = (function () {
       + 'purpose — the vocabulary stops being ours and starts being theirs — '
       + 'and a type that worked everywhere except in the fight would put that '
       + 'tier back at the one moment it matters most',
-      [fight().cats.units[0].tally[unitType], fight().mechs.tally[sideType]],
+      [tallyOf(fight().cats.units[0], unitType), tallyOf(fight().mechs, sideType)],
       [4, 7]);
 
     t.eq('and it crosses at BOTH scopes, because a scope that did not cross '
@@ -20054,8 +20069,8 @@ App.selftest = (function () {
       + 'does not move the fight\'s. That is why the copy exists — nothing in '
       + 'the fight loop writes to `build`, so a mid-fight edit and a fight in '
       + 'progress are two boards a student can hold apart',
-      [build().cats.units[0].tally[unitType], fight().cats.units[0].tally[unitType],
-        build().mechs.tally[sideType], fight().mechs.tally[sideType]],
+      [tallyOf(build().cats.units[0], unitType), tallyOf(fight().cats.units[0], unitType),
+        tallyOf(build().mechs, sideType), tallyOf(fight().mechs, sideType)],
       [9, 4, 1, 7]);
 
     t.ok('the prototype is intact after the tally rows', protoIntact());
