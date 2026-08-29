@@ -5522,13 +5522,78 @@ check(
    Every op below is a REAL op driven through App.ops, and the frame is ASKED
    FOR rather than hoped for — openDialogs' recorded lesson, restated one more
    time because it is the lesson this whole harvest exists on top of. */
+/* AND THE HOLE THE TWO PARAGRAPHS ABOVE CLOSED IS NOT THE LAST ONE. PLAN 05-16
+   RE-DROVE THIS HARVEST ONTO THE SURFACE D-27 SHIPPED, and the reason is the
+   same one probe X gave and probe U(c) gave after it: a drive pointed at a
+   surface that has moved harvests a page nobody plays on and stays green
+   forever. Three surfaces arrived between plan 05-10 and this row — the view
+   switch (05-12), the declaration GRID (05-13/05-14) and the BATTLEFIELD
+   (05-15) — and not one of their strings existed on the page this drive was
+   built against.
+
+   SO THE BOARD IS DRESSED BEFORE THE FIGHT STARTS, and every piece of the
+   dressing is here because a specific class of string is unreachable without
+   it. Each is driven through a REAL op and never planted, which is 47d's
+   standing rule and its reason:
+
+     a SHIPPED token type RENAMED — the battlefield draws a label per token type
+       per unit, and a renamed type's word enters the Layer C harvest on a THIRD
+       surface here. Check 47d owns that claim for the dialogs; this is the same
+       claim arriving on the battlefield, and the harvest must stay clean over
+       it;
+     a token type the STUDENT INVENTED, with a tally on a unit — the token
+       vocabulary is an axis of this page's string count, and D-24's
+       no-second-tier rule means an authored type draws exactly as a shipped one
+       does. A board carrying only the shipped five cannot see that;
+     a SHIELD allocated, so the battlefield's second line is non-zero and drawn
+       rather than hidden at zero;
+     DECLARATIONS STANDING ON BOTH SIDES when the harvest is taken — probe X's
+       finding, unchanged and now larger: the grid's per-row landing reading, its
+       per-button cost node and its per-action requirement sentence are all new
+       strings and not one of them exists as a literal anywhere in this file, so
+       Layers A and B cannot see them and this is the only layer that can;
+     ONE UNIT RULED DEAD and ONE AT ZERO HEALTH THAT NOBODY RULED — the dead
+       marker, its accessible name and the still-standing reading are three
+       different strings and the pair of units is what puts all three on the
+       page at once;
+     A RETARGET HALF MADE on one side — the lit state is said by a real text
+       node on every shape of the opposing roster, and the change-target
+       control's own label sits beside the row that started it. Half-made is a
+       PAGE state and not a state slice, so it is driven by pressing the real
+       control;
+     AND AT LEAST ONE ACTION BUTTON DISABLED. New with plan 05-16 and it is the
+       one state this walk had never read. A disabled control's text and its
+       accessible name are harvested exactly as an enabled one's are, so this is
+       where a sentence explaining a refusal would be caught the day somebody
+       writes one. The ruled-dead unit is what supplies it — fgActionOff's first
+       condition — so it costs no second board.
+
+   THE SNAPSHOT IS TAKEN TWICE, and that is not bookkeeping fussiness. The row
+   asserts the board is BYTE-IDENTICAL after endFight to what it was before
+   startFight, which is a claim about endFight and not about the dressing; so
+   the comparison is against the DRESSED board, and the undressed one is
+   restored underneath it afterwards for every row below. */
 const fightSaved = JSON.stringify(A.state.get());
+
+const fightOwnTok = A.ops.createTokenType({
+  name: 'Zeal', shape: 'hex', color: 'violet', glyph: '\u{1F49C}', scope: 'unit'
+});
+A.ops.renameTokenType('shield', 'Ward');
+const fightCatIds = A.state.get().build.cats.units.map((u) => u.id);
+const fightMechIds = A.state.get().build.mechs.units.map((u) => u.id);
+A.ops.setTally('cats', fightCatIds[0], fightOwnTok, 4);
+A.ops.setUnitShield('cats', fightCatIds[0], 2);
+A.state.flush();
+const fightDressed = JSON.stringify(A.state.get());
 
 A.ops.startFight();
 A.state.invalidate();
 A.state.flush();
-const fightCatIds = A.state.get().build.cats.units.map((u) => u.id);
-const fightMechIds = A.state.get().build.mechs.units.map((u) => u.id);
+// PLAN 05-12'S EDGE, ASSERTED HERE RATHER THAN ASSUMED: starting a fight moves
+// the view to the fight tab. If it ever stops doing that, this harvest is taken
+// on a hidden region and every string below goes missing at once — which is the
+// failure this whole row exists to make loud rather than quiet.
+const fightViewFollowed = String(dom.byId['app'].dataset.view || '') === 'fight';
 A.ops.declareAction('cats', 'slash', fightCatIds[0], fightMechIds[0]);
 A.ops.declareAction('mechs', 'lasers', fightMechIds[0], fightCatIds[0]);
 A.state.invalidate();
@@ -5542,8 +5607,71 @@ A.ops.declareAction('mechs', 'lasers',
   fightMechIds[fightMechIds.length - 1], fightCatIds[fightCatIds.length - 1]);
 A.state.invalidate();
 A.state.flush();
+// THE TWO HEALTH READINGS THAT MUST BOTH BE ON THE PAGE AT ONCE. The unit ruled
+// dead is deliberately NOT one of the two that declared, so both declarations
+// stay standing underneath it.
+const fightDeadId = fightCatIds[1];
+const fightZeroId = fightMechIds[1];
+A.ops.setAlive('cats', fightDeadId, false);
+A.ops.setUnitHp('mechs', fightZeroId, 0);
+A.state.invalidate();
+A.state.flush();
+// A CHANGE OF TARGET, HALF MADE, through the control a student presses. THE ROW
+// IT IS PRESSED ON IS THE LAST CAT'S AND NOT THE FIRST'S, and that is the drive
+// meeting the same fact the second pair of declarations exists for: advanceRound
+// EMPTIES the declaration list, so the only cats declaration standing when this
+// runs is the one made after the Advance. A press on the first row would find no
+// control there at all, which is how this reading came back false on its first
+// run and is recorded here rather than quietly fixed.
+const fightAtBtn = dom.byId['decl-cats'].querySelectorAll('[data-fg="at"]')
+  .filter((b) => b.dataset.fgBy === fightCatIds[fightCatIds.length - 1])[0] || null;
+if (fightAtBtn !== null) { press(fightAtBtn); release(fightAtBtn); }
+A.state.invalidate();
+A.state.flush();
+const fightHalfMade = String(dom.byId['decl-cats'].dataset.fgAct || '') !== ''
+  && String(dom.byId['decl-cats'].dataset.fgBy || '') !== '';
+// THE SIX PAGE STATES THIS ROW NOW DEPENDS ON, read back OFF THE PAGE rather
+// than assumed, so a drive that has quietly stopped reaching the surface says so
+// by name instead of by a floor that happens to still clear. This is the answer
+// to probe AS, which took this harvest with nothing declared and stayed green:
+// the floor alone cannot tell a dressed board from an undressed one.
+function fightPressedIn(rootId) {
+  return dom.byId[rootId].querySelectorAll('[data-fg="act"]')
+    .filter((b) => b.getAttribute('aria-pressed') === 'true').length;
+}
+const fightDeclStanding = fightPressedIn('decl-cats') + fightPressedIn('decl-mechs');
+const fightDisabledActs = dom.byId['decl-cats'].querySelectorAll('[data-fg="act"]')
+  .filter((b) => b.disabled === true).length;
+const fightShapes = dom.byId['decl-cats'].querySelectorAll('.bf-unit').length
+  + dom.byId['decl-mechs'].querySelectorAll('.bf-unit').length;
+const fightLit = dom.byId['decl-mechs'].querySelectorAll('.bf-unit')
+  .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length;
 const fightText = harvestInto(dom.byId['app'], [], '#app');
 const fightHits = verdictHitsIn(fightText).concat(relationshipHitsIn(fightText));
+/* THE RENAMED TYPE'S WORD AND THE AUTHORED TYPE'S WORD, MEASURED IN BOTH
+   DIRECTIONS — AND THE MEASUREMENT CORRECTED WHAT THIS DRIVE WAS WRITTEN TO
+   EXPECT, so the correction is recorded rather than papered over. The
+   expectation was that a renamed type's word ENTERS this harvest on a third
+   surface, in 47d's territory. It does not, and the reason is the marker doing
+   exactly the job the 41 -> 56, 83 -> 108, 108 -> 120 and 120 -> N entries of
+   the floor's history each record about a different node: every .bf-lbl carries
+   the token-name exemption channel, so harvestInto SKIPS it.
+
+   SO BOTH DIRECTIONS ARE READ. The words are counted ON THE PAGE, off the label
+   nodes, which is what says the drive really reached the battlefield with a
+   dressed board; and they are counted IN THE HARVEST, where they must be ZERO,
+   which is what says the exemption channel is load-bearing on this surface too.
+   A row that read only the second would be green over a battlefield that was
+   never painted. */
+function fightLabelsSaying(word) {
+  return ['decl-cats', 'decl-mechs'].reduce((n, id) =>
+    n + dom.byId[id].querySelectorAll('.bf-lbl')
+      .filter((l) => l.textContent === word).length, 0);
+}
+const fightAuthoredOnPage = fightLabelsSaying('Zeal');
+const fightRenamedOnPage = fightLabelsSaying('Ward');
+const fightAuthoredSeen = fightText.filter((e) => e.s === 'Zeal').length;
+const fightRenamedSeen = fightText.filter((e) => e.s === 'Ward').length;
 
 A.ops.endFight();
 A.state.invalidate();
@@ -5553,7 +5681,8 @@ A.state.flush();
 // and "it costs nothing" is a claim worth reading rather than a habit worth
 // having. endFight() is the op that owes this, not restore() — so the reading is
 // taken BEFORE the restore, and the restore below is the belt to its braces.
-const fightBoardBack = JSON.stringify(A.state.get()) === fightSaved;
+// It is compared against the DRESSED board, for the reason the banner gives.
+const fightBoardBack = JSON.stringify(A.state.get()) === fightDressed;
 A.state.restore(fightSaved);
 A.state.flush();
 
@@ -5748,13 +5877,136 @@ A.state.flush();
    change. The action count and the number of resolved rounds are the other two
    and both are recorded above. 120 is measured at the floor of all three.
 
-   NOTHING IS STILL OWING. Plans 05-07, 05-08 and 05-09 were the three this
-   comment named and all three have now paid. A plan that adds a fight surface
-   after this one inherits the same obligation and the same method: trim the
-   roster BEFORE startFight — a mid-fight removeUnit moves the build and leaves
-   the fight slice, the ledger's record and both choosers holding every unit,
-   and a per-card figure taken that way measures the setup chrome alone. */
-const FIGHT_FLOOR = 120;
+   NOTHING WAS STILL OWING AT THAT LINE. Plans 05-07, 05-08 and 05-09 were the
+   three this comment named and all three had paid. The sentence that stood here
+   said "a plan that adds a fight surface after this one inherits the same
+   obligation and the same method", and THREE MORE ARRIVED — so the entry below
+   is that obligation being paid a fifth time.
+
+   HISTORY — 120 -> 116, PLAN 05-16, AND IT IS THE FIRST ENTRY THAT MOVES THE
+   NUMBER DOWN. Three surfaces arrived after plan 05-09 and not one of the three
+   plans that built them touched this comment: the view switch (05-12), the
+   declaration GRID that retired the old form (05-13 and 05-14), and the
+   BATTLEFIELD (05-15). The drive above was re-pointed at all three; this is the
+   arithmetic that came back.
+
+   AND THE PER-CARD FIGURE IS NO LONGER ONE NUMBER. It is a figure PER SIDE, and
+   that is the finding of this entry rather than a detail of it. Measured on one
+   artifact by varying one roster at a time:
+
+       cats varied, mechs held at 3        cards   strings   delta
+         2 cats                              5       264
+         3 cats                              6       293       +29
+         4 cats                              7       322       +29
+         5 cats                              8       351       +29
+         6 cats                              9       380       +29
+         9 cats                             12       467       +29 x3
+
+       mechs varied, cats held at 9
+         2 mechs                            11       437
+         3 mechs                            12       467       +30
+         4 mechs                            13       497       +30
+         5 mechs                            14       527       +30
+         6 mechs                            15       557       +30
+
+   A CAT COSTS 29 AND A MECH COSTS 30, and the one string of difference is the
+   RETARGET. The drive leaves a change of target half made on the CATS side, so
+   every shape on the MECHS battlefield is lit and each lit shape says so in a
+   real text node. Lighting is a property of the OPPOSING side, so it lands on
+   one roster and not on the other. A plan reading only the totals would have
+   averaged the two into 29.125 and got the model wrong — which is the fifth
+   time running that reading only the totals would have been wrong.
+
+   THE ROSTER-INDEPENDENT PART IS 116 AND IT REPRODUCES EVERY BOARD MEASURED,
+   which is the check on the arithmetic rather than a coincidence worth noting:
+
+       cats x mechs     29c + 30m + 116     measured
+         1 x 1                175              175
+         2 x 2                234              234
+         2 x 3                264              264
+         3 x 3                293              293
+         4 x 4                352              352
+         6 x 6                470              470
+         9 x 3                467              467
+         9 x 6                557              557
+
+   EVERY ROSTER ON THAT TABLE WAS TRIMMED BEFORE startFight, which is the method
+   the closing paragraph prescribes and the reason it prescribes it.
+
+   WHY THE NUMBER WENT DOWN, said plainly, because a floor that FALLS is exactly
+   the shape of a floor that has quietly stopped bounding anything — and this one
+   has not. D-27 retired a form whose cost was mostly roster-INDEPENDENT: three
+   chooser legends, the cost report, the Declare button, and the "Declared so
+   far" list with its own legend and its empty-list sentence, all of it twice
+   over for two sides. It replaced them with a GRID whose cost is almost entirely
+   roster-DEPENDENT — one row per unit, one button per action on it. The strings
+   did not go away; they moved out of the constant and into the coefficient. The
+   totals say so: the same 12-card board read 420 under plan 05-09 and reads 467
+   now, while the constant behind it fell from 120 to 116.
+
+   THE AXES THAT MOVE THE ROSTER-INDEPENDENT PART. Three of the six are new with
+   this phase, each is MEASURED rather than reasoned about, and each is stated
+   with its direction:
+
+     1. THE ACTION COUNT (recorded first at 83). Still up-only, and it now moves
+        BOTH figures. On a 4-cat, 3-mech board: 3 cat actions 322, 4 cat actions
+        331, 5 cat actions 340 — +9 an action, of which 2 per cat row is the new
+        button and the remainder is roster-independent. The six shipped actions
+        cannot be removed ([S05]'s rule, because the reference band names them by
+        id), so 116 is measured at the floor of this axis.
+     2. THE NUMBER OF RESOLVED ROUNDS (recorded first at 108). Up-only, and the
+        drive resolves exactly one, so 116 is measured at the floor of it.
+     3. THE NUMBER OF SIDES (recorded first at 120). Two, and not going to
+        change.
+     4. THE PICKER IS A PRODUCT AND NOT A CONSTANT — NEW. A unit on the fight
+        page is no longer a fixed number of strings: it is one row plus one
+        button per action, so the PER-CARD figure itself moves with the action
+        count. That is axis 1 arriving in the coefficient, and it is why every
+        per-card figure above is quoted with the board it was taken on.
+     5. THE BATTLEFIELD, AND THE COMPACTION TRAP — NEW, and it is the axis that
+        looks as though it points the wrong way. A shape draws one line per token
+        type the unit holds a non-zero amount of, and a row at or above
+        App.render.COMPACT_AT draws a COUNT string where a loose row draws none —
+        so a BIGGER number is MORE strings and not fewer. Measured on a 4-cat,
+        3-mech board with the cats' health varied:
+            shipped                       322
+            11 (one below COMPACT_AT=12)  322
+            12                            329
+            17                            331
+            30                            330
+        Every compacted reading is ABOVE both uncompacted ones, so this axis
+        cannot take the page below the floor. It is recorded because this plan
+        was told to CHECK the direction rather than assume it, and the direction
+        is the safe one. The one-string dip from 331 at 17 to 330 at 30 is
+        measured and deliberately not explained here; both are above the
+        uncompacted reading and the floor does not turn on which is larger.
+     6. THE TOKEN VOCABULARY — NEW, and it is the axis this drive PINS. A type a
+        student invents is drawn on every unit that holds it, and the drive above
+        deliberately carries one. Measured on a 4-cat, 3-mech board:
+            no invented type, no rename, no shield allocated   298
+            the drive's own dressing                           322
+        The dressing is worth +2 a card and +10 to the roster-independent part,
+        so the UNDRESSED constant is 106 and the dressed one is 116. THE FLOOR IS
+        SET AT 116, WHICH IS THE READING OFF THE BOARD THIS ROW ACTUALLY
+        HARVESTS: the drive dresses the board on every run and the row ASSERTS
+        that it did, so the dressing is not a free axis here. A floor set at 106
+        would clear a dressed page that had lost every unit on it, which is
+        precisely the failure this floor exists for.
+
+   116 IS THEREFORE THE FLOOR. The comparison is strictly greater than, so a
+   fight page whose two grids and two battlefields went dark entirely reads
+   exactly 116 and trips it, while the smallest board this file can produce — one
+   unit a side — clears it by 59. A walk pointed at the wrong node reads 0 and
+   does not come close.
+
+   THE OBLIGATION STANDS, RESTATED RATHER THAN RETIRED, and it now carries one
+   more instruction than it did. A plan that adds a fight surface after this one
+   inherits the same method: trim the roster BEFORE startFight — a mid-fight
+   removeUnit moves the build and leaves the fight slice, the ledger's record and
+   the grid holding every unit, and a per-card figure taken that way measures the
+   setup chrome alone — AND vary each roster SEPARATELY, because as of this entry
+   the two sides no longer cost the same. */
+const FIGHT_FLOOR = 116;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
@@ -5764,13 +6016,35 @@ check(
     + 'nothing the fight page paints judges a build. The floor and the scan ride '
     + 'in one row because they are two halves of one claim — a scan of a page '
     + 'that was never painted is a spotlessly clean scan of nothing, which is '
-    + 'the failure row 47c exists to catch one surface down. The board is put '
-    + 'back afterwards and the putting back is read here too, because a harvest '
-    + 'that costs the board something is a harvest no row below can trust',
-  fightHits.length === 0 && fightText.length > FIGHT_FLOOR && fightBoardBack,
+    + 'the failure row 47c exists to catch one surface down. AND THE BOARD IT IS '
+    + 'TAKEN ON IS READ BACK BESIDE THE COUNT: the view followed the start, '
+    + 'declarations are standing on both sides, at least one action button is '
+    + 'DISABLED, both battlefields are painted, a change of target is half made '
+    + 'and the opposing shapes are lit, and a type the student RENAMED and a '
+    + 'type the student INVENTED are both DRAWN on the battlefield and both '
+    + 'ABSENT from the harvest, which is the exemption channel load-bearing on '
+    + 'a third surface. A floor cannot tell a dressed board from an undressed '
+    + 'one — probe AS measured exactly that — so the dressing is asserted '
+    + 'rather than hoped for. The board is put back afterwards and the putting '
+    + 'back is read here too, because a harvest that costs the board something '
+    + 'is a harvest no row below can trust',
+  fightHits.length === 0 && fightText.length > FIGHT_FLOOR && fightBoardBack
+    && fightViewFollowed === true && fightDeclStanding === 2
+    && fightDisabledActs > 0 && fightShapes > 0 && fightHalfMade === true
+    && fightLit > 0 && fightAuthoredOnPage > 0 && fightRenamedOnPage > 0
+    && fightAuthoredSeen === 0 && fightRenamedSeen === 0,
   (fightHits.length === 0 ? '' : fightHits.join(' | ') + ' | ')
     + 'harvested ' + fightText.length + ' strings from #app with a fight running'
     + ' (floor ' + FIGHT_FLOOR + ')'
+    + ' | the view followed startFight=' + fightViewFollowed
+    + ' | declarations standing=' + fightDeclStanding
+    + ' | action buttons disabled on the cats grid=' + fightDisabledActs
+    + ' | battlefield shapes painted=' + fightShapes
+    + ' | a change of target is half made=' + fightHalfMade
+    + ' and the opposing shapes lit=' + fightLit
+    + ' | the INVENTED type is drawn on ' + fightAuthoredOnPage + ' labels and '
+    + 'harvested ' + fightAuthoredSeen + ' times; the RENAMED one is drawn on '
+    + fightRenamedOnPage + ' labels and harvested ' + fightRenamedSeen + ' times'
     + '; board after endFight is '
     + (fightBoardBack ? 'byte-identical to the board before startFight'
       : 'NOT the board it was before startFight')
