@@ -3047,6 +3047,345 @@ App.serialize = (function () {
     return ('000' + h.toString(36)).slice(-4);
   }
 
+  /* --- THE WIRE'S POSITIONAL VOCABULARY, shared by [S04.2] and [S04.3] ----
+     Four records that say what a POSITION means, written once here because
+     the writer and the reader must agree about every one of them and two
+     copies eight screens apart is how they stop agreeing. Side A is the cats
+     and side B is the mechs; a side is seven fields wide; a unit id is its
+     side's letter followed by the sequence number the gap list carries.
+
+     None of these four is encoded. `id`, `name` and a unit's label are
+     RESTORED from here on the way back, because no op in this file writes any
+     of them — there is no rename-faction op and no rename-unit op — so a build
+     code paying characters for them would be paying for a value it already
+     knows. The moment an op writes one, the guard in encode below turns that
+     into a refusal rather than into a name that quietly changed.
+     ----------------------------------------------------------------------- */
+  var WIRE_SIDES = ['cats', 'mechs'];
+  var WIRE_SIDE_MARKS = ['A', 'B'];
+  var WIRE_UNIT_PREFIX = { cats: 'c', mechs: 'm' };
+  var WIRE_UNIT_LABEL = { cats: 'Cat ', mechs: 'Mech ' };
+  var WIRE_SIDE_FIELDS = 7;
+
+  // The ordinal order for token types, DERIVED and never enumerated: the five
+  // built-ins in TOKEN_IDS order first, then every custom id sorted by its
+  // numeric suffix. The enumeration below only DISCOVERS which custom types
+  // exist; the order they end up in is decided by the sort, which is the whole
+  // point. [S01]'s token-id comment explains the hazard this closes: an
+  // integer-like key sorts first in an object and in numeric order, which is
+  // precisely why the ids are t1..t99 with a leading letter — and a codec that
+  // trusted insertion order would make that reasoning incidental rather than
+  // load-bearing, then write ordinals that mean different types on the way
+  // back the first time a vocabulary happened to enumerate differently.
+  function wireTokenOrder(vocabulary) {
+    if (!vocabulary || typeof vocabulary !== 'object') { return null; }
+    var present = Object.keys(vocabulary);
+    var custom = [];
+    for (var i = 0; i < present.length; i++) {
+      var id = present[i];
+      if (App.data.TOKEN_IDS.indexOf(id) !== -1) { continue; }
+      if (!App.data.TOKEN_ID_PATTERN.test(id)) { return null; }
+      custom.push(id);
+    }
+    custom.sort(function (x, y) {
+      return Number(x.slice(1)) - Number(y.slice(1));
+    });
+    return App.data.TOKEN_IDS.concat(custom);
+  }
+
+  /* --- [S04.2] ENCODE — owner plan 04-02 ---------------------------------
+     A build slice in, one code string out. The slice arrives as an ARGUMENT
+     and nothing in here reaches the state singleton — [S04]'s banner states
+     that posture at length and this is the call site it was written about, so
+     it is not re-argued here beyond naming it: `deps: App.data` is the whole
+     dependency list, and a line below reaching for state would be editing this
+     section's contract rather than using it.
+
+     THREE THINGS DECIDE THE SIZE, and not one of them is an optimisation that
+     could be dropped to make the code shorter to read:
+
+     1. ONLY DIFFERENCES FROM DEFAULTS ARE WRITTEN. A built-in type still
+        wearing its shipped outline, colour, glyph and name emits NO RECORD AT
+        ALL, and a shipped action still carrying its shipped name, cost,
+        requirements and transformations emits none either. This is the whole
+        reason the untouched board is 45 characters rather than three hundred,
+        and it is the first thing that gets quietly dropped during a rewrite —
+        there is a row in [S09.11] that reddens the day it is.
+
+     2. A NAME TABLE. Every DISTINCT name across the vocabulary and both sides'
+        actions is written once at the head of the code and referred to
+        everywhere by a base36 index, so a student who names three things alike
+        pays for the text once. Measured at the ceiling: the names alone fall
+        from 2,944 characters to 960.
+
+     3. TWO INDEPENDENTLY RUN-LENGTH-WRITTEN UNIT STREAMS. Health-and-shield is
+        one stream and the tally bag is another, and they are NOT one fused
+        record per unit. 48 units with different health but the same six
+        tallies collapse the tally stream to a single run; fusing them means
+        one differing byte defeats both. Measured on the fully authored 24v24
+        board: 1,104 characters against 50.
+
+     AND ONE RULE DECIDES THE GRAMMAR: A SEPARATOR MAY NEVER APPEAR INSIDE
+     ANYTHING IT DELIMITS. Two grammar bugs were found while this codec was
+     being measured and both are that rule broken one nesting level apart — an
+     action record joined its fields with the character its term lists used
+     between items, and a tally bag joined its items with the character the
+     run-length stream used between runs. Both decoded to a WRONG BUILD rather
+     than to an error. CODE_SEP names one character per level for exactly this
+     reason, and every join below reads a level off it by name rather than
+     writing a punctuation mark inline.
+
+     THE VERSION PREFIX SITS OUTSIDE EVERYTHING, ahead of the body and ahead of
+     the digest, so a stale code is refused by name before anything tries to
+     read what is behind it — and so it stays outside anything a later phase
+     might wrap the body in.
+
+     REFUSAL, in [S04.1]'s idiom. Nothing here throws and nothing here produces
+     a sentence: a build this cannot write hands back null and the CALLER
+     decides what a student is told. A value it cannot write is a value it
+     refuses rather than repairs, because a repaired build code is a board that
+     came back subtly different with nothing anywhere to say so.
+     ----------------------------------------------------------------------- */
+  function encode(build) {
+    if (!build || typeof build !== 'object') { return null; }
+    if (build.schema !== App.data.DEFAULTS.schema) { return null; }
+    if (!build.tokens || typeof build.tokens !== 'object') { return null; }
+
+    var SEP = App.data.CODE_SEP;
+    var order = wireTokenOrder(build.tokens);
+    if (order === null) { return null; }
+    var ordinalOf = Object.create(null);
+    for (var oi = 0; oi < order.length; oi++) { ordinalOf[order[oi]] = oi; }
+
+    // One refusal flag rather than a null threaded through forty return
+    // values. Every helper below hands back an empty fragment and raises this
+    // when it cannot write its value, and the single check before the body is
+    // assembled turns the whole call into null. A half-written code never
+    // leaves this function.
+    var refused = false;
+    function refuse() { refused = true; return ''; }
+
+    // The name table. Keyed on a bare object with no prototype, because the
+    // keys here are STUDENT TEXT and a name of a prototype key is a name a
+    // student is allowed to type.
+    var names = [];
+    var nameSeen = Object.create(null);
+    function nameIndex(text) {
+      if (typeof text !== 'string') { return refuse(); }
+      if (!Object.prototype.hasOwnProperty.call(nameSeen, text)) {
+        var written = b64(text);
+        if (written === null) { return refuse(); }
+        nameSeen[text] = names.length;
+        names.push(written);
+      }
+      var ix = n36(nameSeen[text]);
+      if (ix === null) { return refuse(); }
+      return ix;
+    }
+
+    function ordinal(tokenId) {
+      if (typeof tokenId !== 'string') { return refuse(); }
+      if (!Object.prototype.hasOwnProperty.call(ordinalOf, tokenId)) { return refuse(); }
+      var ix = n36(ordinalOf[tokenId]);
+      if (ix === null) { return refuse(); }
+      return ix;
+    }
+
+    // An amount is a whole number inside MAX_ALLOC, which is every health,
+    // every shield, every action-point pool and every tally in the file.
+    function amount(n) {
+      if (!Number.isInteger(n)) { return refuse(); }
+      if (n < 0) { return refuse(); }
+      if (n > App.data.MAX_ALLOC) { return refuse(); }
+      var ix = n36(n);
+      if (ix === null) { return refuse(); }
+      return ix;
+    }
+
+    // A position in one of [S01]'s frozen allowlists. Every one of them
+    // carries the index-stability paragraph that makes this legal.
+    function slotIn(list, value) {
+      var at = list.indexOf(value);
+      if (at === -1) { return refuse(); }
+      var ix = n36(at);
+      if (ix === null) { return refuse(); }
+      return ix;
+    }
+
+    // A sparse tally bag, written in ordinal order so the same bag always
+    // spells the same way. Items are joined with the FIELD character and never
+    // with the item one, because a bag lives INSIDE a run-length stream whose
+    // runs are joined with the item character — that is grammar bug two, and
+    // this line is where it was.
+    function bagCode(tally) {
+      if (tally === undefined || tally === null) { return ''; }
+      if (typeof tally !== 'object') { return refuse(); }
+      var keys = Object.keys(tally);
+      keys.sort(function (x, y) { return ordinalOf[x] - ordinalOf[y]; });
+      return keys.map(function (id) {
+        return ordinal(id) + SEP.term + amount(tally[id]);
+      }).join(SEP.field);
+    }
+
+    // A cost or requirement term. `tok` is read as a FIELD of the record, the
+    // shape [S01]'s term comment insists on, so the token is named rather than
+    // occupying a key position.
+    function termCode(term) {
+      if (!term || typeof term !== 'object') { return refuse(); }
+      return ordinal(term.tok) + SEP.term + amount(term.n);
+    }
+
+    // A transformation. The amount is BIASED by MAX_XF_DELTA so a signed value
+    // needs no sign character at all — which is what keeps the minus sign free
+    // to be the item separator two levels up.
+    function xfCode(xf) {
+      if (!xf || typeof xf !== 'object') { return refuse(); }
+      if (!Number.isInteger(xf.d)) { return refuse(); }
+      if (xf.d < App.data.MIN_XF_DELTA) { return refuse(); }
+      if (xf.d > App.data.MAX_XF_DELTA) { return refuse(); }
+      var biased = n36(xf.d + App.data.MAX_XF_DELTA);
+      if (biased === null) { return refuse(); }
+      return slotIn(App.data.XF_WHO, xf.who) + SEP.term
+        + ordinal(xf.tok) + SEP.term + biased;
+    }
+
+    // THE VOCABULARY. Built-ins first, in TOKEN_IDS order, and a built-in that
+    // still looks exactly as it shipped writes nothing.
+    var vocabRecords = [];
+    App.data.TOKEN_IDS.forEach(function (id, i) {
+      var live = build.tokens[id];
+      var shipped = App.data.DEFAULTS.tokens[id];
+      if (!live || typeof live !== 'object') { refuse(); return; }
+      if (live.shape === shipped.shape && live.color === shipped.color
+        && live.glyph === shipped.glyph && live.name === shipped.name) { return; }
+      vocabRecords.push([
+        n36(i),
+        slotIn(App.data.SHAPES, live.shape),
+        slotIn(App.data.COLORS, live.color),
+        slotIn(App.data.GLYPHS, live.glyph),
+        nameIndex(live.name)
+      ].join(SEP.field));
+    });
+    // Then the customs, in the derived order, each carrying its own sequence
+    // number so the id is REBUILT from a number on the way back and never from
+    // anything name-shaped. D-13 is the reason and it holds here exactly.
+    order.slice(App.data.TOKEN_IDS.length).forEach(function (id) {
+      var live = build.tokens[id];
+      if (!live || typeof live !== 'object') { refuse(); return; }
+      var seq = n36(Number(id.slice(1)));
+      if (seq === null) { refuse(); return; }
+      vocabRecords.push('C' + [
+        seq,
+        slotIn(App.data.SHAPES, live.shape),
+        slotIn(App.data.COLORS, live.color),
+        slotIn(App.data.GLYPHS, live.glyph),
+        slotIn(App.data.TOKEN_SCOPES, live.scope),
+        nameIndex(live.name)
+      ].join(SEP.field));
+    });
+
+    function sideCode(mark, side, shippedSide, prefix, label) {
+      if (!side || typeof side !== 'object') { return refuse(); }
+      if (side.id !== shippedSide.id) { return refuse(); }
+      if (side.name !== shippedSide.name) { return refuse(); }
+      if (!Array.isArray(side.units)) { return refuse(); }
+      if (!Array.isArray(side.actions)) { return refuse(); }
+
+      var stats = [];
+      var tallies = [];
+      var gaps = [];
+      var previous = 0;
+      side.units.forEach(function (unit, at) {
+        if (!unit || typeof unit !== 'object') { refuse(); return; }
+        if (typeof unit.id !== 'string') { refuse(); return; }
+        if (unit.id.charAt(0) !== prefix) { refuse(); return; }
+        var suffix = Number(unit.id.slice(1));
+        if (!Number.isInteger(suffix) || suffix < 1) { refuse(); return; }
+        // The unit label is DERIVED from the suffix on the way back, so a
+        // label that does not match the suffix is a value this codec would
+        // silently change. It refuses instead — the day a rename-unit op
+        // ships, this line is what says so out loud.
+        if (unit.name !== label + suffix) { refuse(); return; }
+        // A gap is a position where the id suffix breaks the run. nextUnitId
+        // takes the largest suffix and adds one, so ids are contiguous UNTIL
+        // a removal — a board nobody removed a unit from pays nothing here.
+        if (suffix !== previous + 1) {
+          gaps.push(n36(at) + SEP.term + n36(suffix));
+        }
+        previous = suffix;
+        stats.push(amount(unit.maxHp) + SEP.term + amount(unit.shield));
+        tallies.push(bagCode(unit.tally));
+      });
+
+      var actionRecords = [];
+      side.actions.forEach(function (action) {
+        if (!action || typeof action !== 'object') { refuse(); return; }
+        var shippedAt = App.data.ACTION_IDS.indexOf(action.id);
+        var shippedRecord = null;
+        if (shippedAt !== -1) {
+          shippedSide.actions.forEach(function (candidate) {
+            if (candidate.id === action.id) { shippedRecord = candidate; }
+          });
+          if (shippedRecord === null) { refuse(); return; }
+        }
+        var cost = Array.isArray(action.cost) ? action.cost : [];
+        var req = Array.isArray(action.req) ? action.req : [];
+        var xf = Array.isArray(action.xf) ? action.xf : [];
+        // A shipped action still identical to its shipped record writes
+        // nothing at all. Half of the untouched board's shortness is here.
+        if (shippedRecord !== null
+          && JSON.stringify([action.name, cost, req, xf])
+            === JSON.stringify([shippedRecord.name, shippedRecord.cost,
+              shippedRecord.req, shippedRecord.xf])) {
+          return;
+        }
+        var head;
+        if (shippedAt !== -1) {
+          head = n36(shippedAt);
+        } else {
+          if (typeof action.id !== 'string') { refuse(); return; }
+          if (!App.data.ACTION_ID_PATTERN.test(action.id)) { refuse(); return; }
+          head = 'C' + n36(Number(action.id.slice(1)));
+        }
+        actionRecords.push([
+          head,
+          (shippedRecord !== null && action.name === shippedRecord.name)
+            ? '' : nameIndex(action.name),
+          cost.map(function (t) { return termCode(t); }).join(SEP.item),
+          req.map(function (t) { return termCode(t); }).join(SEP.item),
+          xf.map(function (x) { return xfCode(x); }).join(SEP.item)
+        ].join(SEP.field));
+      });
+
+      var statsCode = runs(stats);
+      var talliesCode = runs(tallies);
+      if (statsCode === null || talliesCode === null) { return refuse(); }
+      return mark + [
+        n36(side.units.length),
+        amount(side.ap),
+        statsCode,
+        talliesCode,
+        gaps.join(SEP.item),
+        bagCode(side.tally),
+        actionRecords.join(SEP.record)
+      ].join(SEP.section);
+    }
+
+    var sideCodes = WIRE_SIDES.map(function (id, i) {
+      return sideCode(WIRE_SIDE_MARKS[i], build[id], App.data.DEFAULTS[id],
+        WIRE_UNIT_PREFIX[id], WIRE_UNIT_LABEL[id]);
+    });
+    if (refused) { return null; }
+
+    // The name table is complete only once both sides have been written, which
+    // is why the body is assembled here rather than above.
+    var body = ['N' + names.join(SEP.field), 'V' + vocabRecords.join(SEP.record)]
+      .concat(sideCodes).join(SEP.section);
+    var digest = checksum(body);
+    if (digest === null) { return null; }
+    return App.data.CODE_VERSION + SEP.section + body + SEP.section + digest;
+  }
+
   /* --- [S04.4] THE HASH MIRROR — owner plan 04-04 ------------------------
      Still the declared no-op it has been since plan 01-02, and left that way
      ON PURPOSE rather than forgotten: this plan lays the primitives, plan
@@ -3070,6 +3409,7 @@ App.serialize = (function () {
     runs: runs,
     unruns: unruns,
     checksum: checksum,
+    encode: encode,
     scheduleUrlSync: scheduleUrlSync
   });
 })();
