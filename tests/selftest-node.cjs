@@ -6665,18 +6665,23 @@ shareCodeField.blur();
 /* 89. THE FINGERPRINT COVERS THE WHOLE BUILD SLICE, asserted through a change no
    narrower fingerprint would see.
 
-   THIS ROW EXISTS BECAUSE OF PROBE S AND IT IS WRITTEN DOWN HERE SO THE NEXT
-   AUTHOR KNOWS WHAT IT IS FOR. The probe narrowed [S06.6]'s fingerprint to the
-   unit health values and drove a token-type RENAME with the surface open. Rows
-   84 to 87 all stayed green — every one of them drives an op that moves a health
-   value or an action-point value, so a health-only fingerprint still fired for
-   them — and the surface would have shipped a code that no longer described the
-   board with nothing anywhere objecting.
+   THIS ROW EXISTS BECAUSE OF PROBE S AND WHAT THE PROBE ACTUALLY MEASURED IS
+   WRITTEN DOWN HERE, INCLUDING THE PART THAT WENT AGAINST THE EXPECTATION.
+   Plan 04-05 narrowed [S06.6]'s fingerprint to the unit health values and drove
+   a token-type rename with the surface open. THREE rows objected, not one: 84,
+   87 and this one. So the surface is not resting on a single tripwire, which is
+   the better outcome and is recorded rather than quietly enjoyed.
 
-   A rename is the right instrument because it changes the code (a type's name
-   travels in the codec's name table) while touching no number the board draws
-   through a stepper. Any narrowing of the fingerprint that keeps rows 84 to 87
-   green fails this one. The board is put back afterwards. */
+   WHAT IS STILL ONLY TRUE OF THIS ROW: 84 and 87 caught that narrowing by
+   accident of which op they happen to drive — both nudge a faction's action
+   points, which a health-only fingerprint also misses. Rewrite either of them to
+   nudge a unit's health instead and both go green under the same probe, because
+   neither is ABOUT the fingerprint. This one is. A rename is chosen because it
+   changes the code — a type's name travels in the codec's name table — while
+   touching no number the board draws through a stepper, so no narrowing that
+   keeps the rest of this gate green can also pass it.
+
+   The board is put back afterwards. */
 openShareSurface();
 const sigWas = A.state.get().build.tokens.hp.name;
 A.ops.renameTokenType('hp', 'Stamina');
