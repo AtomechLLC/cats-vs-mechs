@@ -423,7 +423,19 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     written. The rows that see it hand encode the same board with its
 //     vocabulary written down in another order and require the identical code
 //     back. The run is 941 and the floor is 911.
-const SUITE_FLOOR = 911;
+//   plan 04-03 adds the HOSTILE half — the refusal matrix, the bad-input table,
+//     the prototype rows and the reconstruction tripwire: 152 rows becomes 242
+//     and the run goes to 1031, floored at 1001, which is the same margin of 30
+//     the three plans before it kept. Ninety rows, and what makes them rows
+//     about ninety things rather than one thing ninety times is a single step
+//     that is invisible from the count: every tamper that names a CONTENT guard
+//     changes the body and then RECOMPUTES the four-character digest, so it
+//     arrives at the content guard instead of stopping at the checksum. Two
+//     probes hold that claim up — removing one content bound reddened EXACTLY
+//     one row, and removing the checksum comparison entirely reddened exactly
+//     two and left all twelve content rows green, which is the proof they were
+//     reaching past the digest all along.
+const SUITE_FLOOR = 1001;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
@@ -5701,6 +5713,134 @@ check(
     + ' cats=' + JSON.stringify(Object.keys(skState.build.cats).join(','))
     + ' mechs=' + JSON.stringify(Object.keys(skState.build.mechs).join(','))
     + ' | proposal-shaped keys found: ' + (skWords.join(', ') || 'none')
+);
+
+/* 74. THE NO-DAMAGE-WRITER CHECK, and like 72b the ABSENCE is the requirement
+   rather than an accident of what has been written so far.
+
+   An action's `dmg` and its `keywords` are the two fields the build code does
+   NOT carry. [S04]'s banner states why — nothing writes either, so both are
+   reconstructible, so paying characters for them would be paying for a value
+   the reader already knows — and [S05]'s DELIBERATELY ABSENT block states the
+   same fact from the other end. The day a later phase ships a setActionDmg,
+   that stops being true and every shared build silently loses the figure: a
+   student sets it, shares the link, and the classmate who opens it reads a
+   different action with no error anywhere.
+
+   [S09.11] carries the other half of this tripwire — a driven board round
+   tripped, with both fields required to equal their reconstructed values. That
+   row only fires if somebody DRIVES the new writer. This one fires the moment
+   the writer EXISTS, which is the earlier and cheaper of the two signals, and
+   it is why research asked for both rather than either.
+
+   Read off the LIVE export list and driven through the LIVE router, never
+   grepped for, which is Phase 3's WR-01 lesson and check 72b's shipped
+   precedent: a check written against source spelling cannot see behaviour
+   reached through a helper. The detail line names how many exports were walked
+   and how many router arms were actually driven, because a walk that found
+   nothing at all passes spotlessly and a driver that reached no arm at all
+   passes just as spotlessly. */
+const dwBefore = JSON.stringify(A.state.get());
+
+// The board this drives has to CARRY actions of both kinds, or an op that
+// wrote damage would have had nothing to write it on.
+A.ops.resetToDefaults();
+const dwOwn = A.ops.createAction('cats', 'Pounce');
+A.ops.setActionCost('cats', dwOwn, 'ap', 1);
+
+// Read as DRIFT FROM THE RECONSTRUCTED VALUE rather than as a before-and-after
+// string. Several of the arms driven below add and remove actions, so the list
+// itself moves — a string comparison would redden on an action that was created
+// rather than on a field that was written, which is a check about the wrong
+// thing. This is the same invariant [S09.11]'s reconstruction row holds, read
+// here against the LIVE board instead of a decoded one.
+let dwActionsWalked = 0;
+function dwDrift() {
+  const build = A.state.get().build;
+  const off = [];
+  ['cats', 'mechs'].forEach((side) => {
+    build[side].actions.forEach((act) => {
+      dwActionsWalked++;
+      let shipped = null;
+      A.data.DEFAULTS[side].actions.forEach((s) => { if (s.id === act.id) { shipped = s; } });
+      const wantDmg = (shipped === null) ? 0 : shipped.dmg;
+      const wantWords = (shipped === null) ? '' : shipped.keywords.join('+');
+      if (act.dmg !== wantDmg || (act.keywords || []).join('+') !== wantWords) {
+        off.push(side + '.' + act.id + '=' + act.dmg + ':' + (act.keywords || []).join('+'));
+      }
+    });
+  });
+  return off;
+}
+const dwDriftBefore = dwDrift();
+
+// The live export list, and the names a writer for either field would take.
+const dwExports = Object.keys(A.ops).sort();
+const dwWriters = dwExports.filter((k) => /dmg|damage|keyword/i.test(k));
+
+// Every export name driven as an ACT, plus the names such a writer would
+// plausibly be routed under. An act the router does not know throws
+// 'Unknown op: ' — anything else means an arm ran, which is what is counted.
+const dwProbes = dwExports.concat([
+  'setActionDmg', 'setActionDamage', 'setActionKeywords', 'setActionKeyword',
+  'addKeyword', 'removeKeyword', 'dmg', 'damage', 'keywords'
+]);
+let dwArmsDriven = 0;
+const dwPayload = {
+  side: 'cats', unitId: 'c1', actionId: dwOwn, tokenId: 'hp', index: 0,
+  who: 'caster', name: 'Pounce', value: 3, delta: 1, n: 1, d: 1, dmg: 7,
+  damage: 7, keywords: ['ranged'], patch: {}, shape: 'sq', color: 'green',
+  glyph: '', scope: 'unit'
+};
+const dwDriftDuring = [];
+dwProbes.forEach((act) => {
+  try {
+    A.ops.dispatch(act, dwPayload);
+    dwArmsDriven++;
+  } catch (refused) {
+    if (!/^Unknown op: /.test(String(refused.message))) { dwArmsDriven++; }
+  }
+  // Read after EVERY act rather than once at the end: `reset` is one of the
+  // arms, and a field written by an earlier act and then reset away would
+  // leave a final reading that is spotlessly clean over a run that had
+  // already gone wrong. [S09.10]'s prototype rows make the same argument.
+  dwDrift().forEach((seen) => { dwDriftDuring.push(act + ' -> ' + seen); });
+});
+const dwDriftAfter = dwDrift();
+A.state.restore(dwBefore);
+A.state.flush();
+
+// Printed on a CLEAN run as well, in the idiom the stub-drift gate uses: the
+// check helper shows its detail line only on a failure, and a check asserting
+// an ABSENCE is exactly the one whose measured numbers a reader needs to see
+// while it is still green. A walk that found nothing passes spotlessly.
+console.log('no-writer gate: ' + dwExports.length + ' exported ops walked, '
+  + dwArmsDriven + ' dispatch arms driven of ' + dwProbes.length + ' acts tried, '
+  + dwActionsWalked + ' action records read');
+
+check(
+  '74. THE NO-DAMAGE-WRITER CHECK. [S05] exports no op that writes an action\'s '
+    + 'damage or its keyword list, App.ops.dispatch has no arm for one, and '
+    + 'driving every export name AND every name such a writer would plausibly '
+    + 'take moves neither field on any action of either kind. Read off the LIVE '
+    + 'export list and driven through the LIVE router rather than grepped for, '
+    + 'because a check written against source spelling cannot see behaviour '
+    + 'reached through a helper. The absence is the requirement: neither field '
+    + 'is on the wire, so the day one becomes writable and the codec is not '
+    + 'told, every shared build loses it silently. [S09.11]\'s reconstruction '
+    + 'row is the other half and fires only if somebody drives the writer; this '
+    + 'one fires the moment it exists',
+  dwWriters.length === 0 && dwExports.length > 0 && dwArmsDriven > 0
+    && dwActionsWalked > 0
+    && dwDriftBefore.length === 0 && dwDriftDuring.length === 0 && dwDriftAfter.length === 0
+    && JSON.stringify(A.state.get()) === dwBefore,
+  'writers found: ' + (dwWriters.join(', ') || 'none')
+    + ' | exported ops walked: ' + dwExports.length
+    + ' | dispatch arms driven: ' + dwArmsDriven + ' of ' + dwProbes.length + ' acts tried'
+    + ' | action records read: ' + dwActionsWalked
+    + ' | drift from the reconstructed values: '
+    + (dwDriftDuring.concat(dwDriftAfter).join(', ') || 'none')
+    + ' | state restored: ' + (JSON.stringify(A.state.get()) === dwBefore)
 );
 
 /* --- 70-70b. THE RULE IS A RECORD, AND THAT IS NOW A CHECK -------------------

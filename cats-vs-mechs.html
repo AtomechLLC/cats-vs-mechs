@@ -2762,9 +2762,17 @@ App.state = (function () {
  *    this turns into silent data loss inside a codec nobody thought to
  *    revisit: a student sets a damage number, shares the link, and the
  *    classmate who opens it reads a different action with no error anywhere to
- *    say so. Plan 04-03 builds the tripwire that reddens on that day. This
- *    banner is where the decision itself is stated, because a tripwire without
- *    a written reason reads as an arbitrary check to whoever trips it.
+ *    say so. TWO TRIPWIRES stand in the way of that day arriving quietly, and
+ *    they are named here rather than left to be found: [S09.11]'s
+ *    reconstruction row, which drives a board through every op that touches an
+ *    action and requires both fields to equal their reconstructed values after
+ *    a round trip; and check 74 in tests/selftest-node.cjs, which reads
+ *    App.ops's LIVE export list and drives the LIVE router and so reddens the
+ *    moment such a writer exists at all, whether or not anybody drives it.
+ *    [S05]'s DELIBERATELY ABSENT block states the same fact from the other
+ *    end. This banner is where the decision itself is stated, because a
+ *    tripwire without a written reason reads as an arbitrary check to whoever
+ *    trips it.
  *
  * 2. THE CHECKSUM IS NOT A SECURITY BOUNDARY. Four characters of FNV-1a catch
  *    truncation and transcription damage — a code cut short by a chat client,
@@ -5543,6 +5551,30 @@ App.ops = (function () {
   // work, and this section's banner says this layer never reads or writes the
   // page. It has a named home in [S07], which owns UI_ACTS. Adding a case for it
   // here would break that contract in both directions at once.
+  //
+  // AND A THIRD KIND OF ABSENCE, which is neither of those two: THERE IS NO
+  // WRITER FOR AN ACTION'S `dmg` OR ITS `keywords`, and there is none because
+  // NEITHER FIELD IS STUDENT-WRITABLE — not because a phase has not arrived,
+  // and not because it would be page work. Both fields exist on every action
+  // so an authored one is the same SHAPE as a shipped one (D-07), and both are
+  // therefore RECONSTRUCTIBLE: a shipped action's from DEFAULTS, an authored
+  // one's from createAction's own two constants above. Because they are
+  // reconstructible, THE BUILD CODE DOES NOT CARRY THEM — [S04]'s banner
+  // states that decision at length and [S04.3] is where it is acted on.
+  //
+  // SO ADDING A WRITER HERE WITHOUT ADDING THE FIELD TO THE CODEC IS SILENT
+  // DATA LOSS IN EVERY SHARED BUILD. A student sets a damage figure, shares
+  // the link, and the classmate who opens it reads a different action with no
+  // error anywhere to say so. Two tripwires stand in the way, and the next
+  // author should meet them here rather than in a red run they have to trace:
+  //   - [S09.11]'s reconstruction row, which drives a board through every op
+  //     that touches an action, round-trips it, and requires both fields to
+  //     equal their reconstructed values;
+  //   - check 74 in tests/selftest-node.cjs's interaction gate, which reads
+  //     App.ops's LIVE export list and drives the LIVE router, and reddens the
+  //     moment such a writer is exported at all — whether or not anybody
+  //     drives it.
+  // Adding the writer is allowed. Adding it without the codec is not.
   return Object.freeze({
     setFactionAp: setFactionAp,
     setUnitMaxHp: setUnitMaxHp,
@@ -17064,6 +17096,113 @@ App.selftest = (function () {
       + 'anywhere for a caller to half-apply even by mistake — a refusal is a record with '
       + 'a reason on it and nothing else', sweepPartial, 0);
     t.ok('the prototype is intact after the whole hostile sweep', protoIntact());
+
+    /* --- THE RECONSTRUCTION TRIPWIRE — THE ONE FAILURE THIS PHASE CAN SEE
+           COMING AND CANNOT PREVENT.
+
+           `dmg` and `keywords` are NOT on the wire. [S04]'s banner states the
+           decision and [S04.3] carries the two lines that act on it: a shipped
+           action keeps the figures it was copied out of DEFAULTS with, and an
+           authored one is rebuilt at createAction's own two constants. That is
+           only safe for as long as NOTHING WRITES EITHER — and nothing does,
+           today: no op in [S05] takes a damage number or a keyword, and its
+           DELIBERATELY ABSENT block now says so in as many words.
+
+           THE DAY A LATER PHASE SHIPS A setActionDmg, this row is what goes
+           red. A student sets a damage figure, shares the link, and the
+           classmate who opens it reads a different action — silently, inside a
+           codec nobody thought to revisit, with nothing anywhere to say so.
+           There is no way to prevent that from here. There is a way to make it
+           impossible to ship quietly, and this is one half of it; check 74 in
+           tests/selftest-node.cjs is the other, and it fires off the LIVE
+           export list the moment such a writer exists at all, whether or not
+           anybody drives it.
+
+           So this row is TRIVIALLY TRUE TODAY, on purpose, and its label says
+           what it is for — because the next reader meets it as a failure, and
+           a failure that explains itself is worth more than one that reports
+           an inequality between two numbers.
+
+           The board is driven through EVERY [S05] op that touches an action:
+           created, renamed, given a cost, given both requirement slots, given
+           both transformation slots, had a slot cleared, and had one removed
+           again. A round trip over a board that never exercised those paths
+           would be green over an op that wrote damage on one of them. --- */
+    App.ops.resetToDefaults();
+    fillTo('cats', 4);
+    fillTo('mechs', 4);
+    var xfType = App.ops.createTokenType({ name: 'Rust', shape: 'hex', color: 'gold',
+      glyph: App.data.GLYPHS[4], scope: 'unit' });
+    ['cats', 'mechs'].forEach(function (side) {
+      // created, named, costed, both requirement slots, both transformation
+      // slots, and one slot cleared again.
+      var kept = App.ops.createAction(side, 'Pounce');
+      App.ops.renameAction(side, kept, 'Pounce twice');
+      App.ops.setActionCost(side, kept, xfType, 3);
+      App.ops.setActionReq(side, kept, 0, 'hp', 2);
+      App.ops.setActionReq(side, kept, 1, xfType, 1);
+      App.ops.setActionXf(side, kept, 0, 'caster', 'hp', 2);
+      App.ops.setActionXf(side, kept, 1, 'target', xfType, -3);
+      App.ops.setActionReq(side, kept, 1, App.ops.CLEAR_TERM, null);
+      // and one made and removed again, so the remove path is on the board's
+      // history rather than only in the op list.
+      var gone = App.ops.createAction(side, 'Regroup');
+      App.ops.removeAction(side, gone);
+      // the shipped half of the same list: a shipped action renamed, costed
+      // and given a rule of its own.
+      var shippedId = App.state.get().build[side].actions[0].id;
+      App.ops.renameAction(side, shippedId, 'Renamed');
+      App.ops.setActionCost(side, shippedId, 'ap', 2);
+      App.ops.setActionXf(side, shippedId, 0, 'target', xfType, 4);
+    });
+    var drivenBoard = liveBuild();
+    var drivenBack = App.serialize.decode(App.serialize.encode(drivenBoard));
+
+    // What each decoded action's two unwritten fields MUST reconstruct to —
+    // read off DEFAULTS for the six the file ships and off createAction's own
+    // two constants for the rest, never off the board that went in, because a
+    // comparison against the input is a comparison a codec that carried the
+    // fields would also pass.
+    function reconstructed(sideId, actionId) {
+      var found = null;
+      App.data.DEFAULTS[sideId].actions.forEach(function (shipped) {
+        if (shipped.id === actionId) { found = shipped; }
+      });
+      return (found === null)
+        ? { dmg: 0, keywords: [] }
+        : { dmg: found.dmg, keywords: found.keywords.slice() };
+    }
+    var reconRead = [];
+    var reconWant = [];
+    ['cats', 'mechs'].forEach(function (sideId) {
+      (drivenBack.ok === true ? drivenBack.build[sideId].actions : []).forEach(function (act) {
+        var want = reconstructed(sideId, act.id);
+        reconRead.push(act.id + '=' + act.dmg + ':' + act.keywords.join('+'));
+        reconWant.push(act.id + '=' + want.dmg + ':' + want.keywords.join('+'));
+      });
+    });
+    t.eq('THE RECONSTRUCTION TRIPWIRE. On a board driven through EVERY op that touches an '
+      + 'action — created, renamed, costed, both requirement slots, both transformation '
+      + 'slots, a slot cleared, one action removed and a shipped one rewritten — every '
+      + 'decoded action\'s damage and keyword list equal their RECONSTRUCTED values: the '
+      + 'shipped figures from DEFAULTS for the six the file ships, and createAction\'s own '
+      + 'two constants for the rest. Neither field is on the wire, which is only safe while '
+      + 'nothing writes them. THIS ROW IS TRIVIALLY TRUE TODAY AND THAT IS THE POINT — the '
+      + 'day an op ships that writes an action\'s damage or its keywords and a student uses '
+      + 'it, this is what goes red instead of every shared build quietly losing the value. '
+      + 'Read [S04]\'s banner and [S05]\'s absence block before changing this row',
+      reconRead.join(' '), reconWant.join(' '));
+    t.eq('and the sweep was not vacuous — it read both sides of a board carrying shipped '
+      + 'actions and actions of the student\'s own, and every id it walked is one this file '
+      + 'could have made',
+      [reconRead.length > 0, drivenBack.ok,
+        reconRead.length === (drivenBack.ok === true
+          ? drivenBack.build.cats.actions.length + drivenBack.build.mechs.actions.length : -1)],
+      [true, true, true]);
+    t.ok('and the whole driven board round trips exactly as well, so the two fields above '
+      + 'are read off a board that is otherwise right rather than off a wrong one',
+      drivenBack.ok === true && stableText(drivenBack.build) === stableText(drivenBoard));
+    t.ok('the prototype is intact after the reconstruction rows', protoIntact());
 
     /* --- THE BUDGET FIGURES AS MEASUREMENTS, NOT GATES. t.info records a
            number without ever being able to redden a run, which is what these
