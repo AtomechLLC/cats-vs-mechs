@@ -18836,20 +18836,27 @@ App.interactions = (function () {
 
      PAGE WORK — handled here, never dispatched:
        data-fg="at"    start, or cancel, a change of what a declaration lands on
-     IT DECLINES QUIETLY IN THIS COMMIT AND ITS FLOW ARRIVES IN THE NEXT ONE,
-     which is written here rather than left as a gap because a banner ahead of
-     its code is how a paragraph becomes a lie. What it will do is move TWO
-     attributes on the acting side's own declaration root and ask [S06.7] to
-     paint the surface onto them, which is exactly what [S07.3] does for the
-     editor's selection and [S07.4] for the share pane. A half-made change is a
-     form's transient selection — [S06.7]'s fgSettle says where it lives and
-     why, and [S09.3] pins the `ui` key set so there is nowhere else legitimate
-     for it to go — and [S05] OPS' banner says that layer never reads or writes
-     the page, so it has no home there either.
+     It reads and writes no state at all, and pressing it dispatches NOTHING:
+     the state is byte-identical across it. It moves TWO attributes on the
+     acting side's own declaration root and asks [S06.7] to paint the surface
+     onto them, which is exactly what [S07.3] does for the editor's selection
+     and [S07.4] for the share pane. A half-made change is a form's transient
+     selection — [S06.7]'s fgSettle says where it lives and why, and [S09.3]
+     pins the `ui` key set so there is nowhere else legitimate for it to go —
+     and [S05] OPS' banner says that layer never reads or writes the page, so it
+     has no home there either.
+
+     THERE IS NO THIRD ATTRIBUTE, and the absence is a decision. The old form
+     had one for the target because the target was chosen in a chooser and sat
+     there until Declare was pressed; here the completing click IS the target
+     and it dispatches on the spot, so there is nothing for a half-chosen target
+     to wait in. Two attributes, `by` and `at`, and neither of them is a word
+     check 73c refuses.
 
      STATE WORK — real ops, dispatched, and deliberately ABSENT from UI_ACTS:
        data-act="startFight"  on #fight-start        -> startFight
        data-fg="act"          on a picker row        -> declare OR clearDeclaration
+       data-fg="bf"           on the battlefield     -> declare (05-15's control)
        data-fg="advance"      on the round controls  -> advanceRound
        data-fg="reset"        on the round controls  -> resetFight
        data-dc="alive"        on a unit card         -> setAlive
@@ -18861,6 +18868,32 @@ App.interactions = (function () {
      carries a data-act, so [S07.1]'s own delegated listener has dispatched it
      since plan 05-06, and SHARE-07's build surviving a fight is reachable
      through it and through the topbar controls beside it.
+
+     ================================================================
+     WHAT PLAN 05-15 IS OWED, BY NAME AND BY SPELLING.
+     ================================================================
+     THE BATTLEFIELD'S PER-UNIT CONTROL IS SPECIFIED HERE AND BUILT THERE, in
+     the register plan 05-07 used to hand a requirement to plan 05-10 rather
+     than to hope for it. The arm below is written and reachable; what does not
+     exist yet is a control that sends it. Plan 05-15 must build one per unit on
+     the battlefield carrying EXACTLY:
+         data-fg      = "bf"
+         data-fg-side = the side the unit is ON
+         data-fg-val  = the unit's id
+         data-k       = "fg/bf/" + side + "/" + unitId
+     and it must never disable one. UNLIT IS NOT DISABLED: a battlefield unit
+     that is not a legal pick right now is a press that declines quietly, which
+     is the shipped precedent one paragraph down, and a fourth disable condition
+     is exactly what the overrule does not license. The key spelling is fixed
+     HERE so that the two plans cannot each invent one, and check 94b reads the
+     keys back for uniqueness the moment they exist.
+
+     AND THE LIT STATE IS 05-15's TO DRAW AND NOT THIS PLAN'S. The addendum puts
+     the targets on the battlefield — "the battlefield is read-only except as
+     the click surface for the change-target flow, whose targets light there" —
+     so until that plan ships, what a student sees change is the change-target
+     control's own pressed state and the row's reading beside it. Faking a lit
+     state in this region would be a second answer to a question 05-15 owns.
 
      ================================================================
      THE THREE ARMS THE OLD DECLARATION FORM TOOK WITH IT.
@@ -18951,11 +18984,12 @@ App.interactions = (function () {
      throws out of this handler into [S08]'s listener boundary and the page work
      never runs. [S07.4] inverted it exactly once, for the clipboard's
      user-gesture requirement, and recorded the inversion in writing. THIS
-     REGION HAS NO REASON TO INVERT IT AND DOES NOT — the arms that dispatch
-     write nothing to the page at all, and the arm that will do page work
-     dispatches nothing, so the two halves never appear in one handler. The
-     commit that builds the change-target flow is where that stops being true
-     for two of them, and it records the ordering it chooses at each site.
+     REGION HAS NO REASON TO INVERT IT AND DOES NOT, and two arms below now do
+     BOTH: they dispatch and then clear the half-made change off the page. THE
+     CLEAR IS SECOND IN EACH OF THEM, deliberately — a refused declare throws
+     out of the handler before the clear runs, so the student's half-made change
+     is still standing where they can read it and try again, instead of being
+     thrown away by the very press that failed.
 
      TWO ROOTS AND TWO BINDERS, because the two surfaces are two static shell
      elements and neither is inside the other. #fightbar and #board both outlive
@@ -19083,6 +19117,7 @@ App.interactions = (function () {
     var held = fgHeldBy(state, side, by);
     if (held !== null && held.entry.act === actionId) {
       App.ops.dispatch('clearDeclaration', { index: held.index });
+      fgClearHalf(side);
       return;
     }
     var action = fgActionOn(state, side, actionId);
@@ -19093,6 +19128,137 @@ App.interactions = (function () {
       by: by,
       at: App.model.needsAt(action) ? App.model.defaultAt(state.fight, side) : null
     });
+    fgClearHalf(side);
+  }
+
+  /* THE HALF-MADE CHANGE, CLEARED.
+
+     An action press WINS over a half-made change and takes it with it: D-27's
+     own sentence is "Re-click of the declared action cancels, target and all",
+     and a student who started changing a target and then pressed an action
+     button has changed their mind about the larger of the two decisions.
+
+     It is page work and it runs AFTER the dispatch, for the reason the banner
+     gives. NO REPAINT IS ASKED FOR HERE, because the commit that just landed
+     has already scheduled one and [S06.7]'s fingerprint reads both of these
+     attributes — asking for a second would paint the same frame twice. */
+  function fgClearHalf(side) {
+    var root = fgSideRoot(side);
+    if (root === null) { return; }
+    root.dataset.fgAct = '';
+    root.dataset.fgBy = '';
+  }
+
+  /* THE CHANGE-TARGET PRESS. PAGE WORK, and the whole of it: write the two
+     attributes and ask for the surface to be painted onto them.
+     App.render.fightBar is exported for exactly this caller and its own comment
+     says why — a press that changed an attribute and waited for the next frame
+     would leave the pressed control looking unpressed for a frame, which in
+     front of a room is a student pressing it twice because the first press
+     appeared to do nothing.
+
+     PRESSING IT TWICE CANCELS THE CHANGE AND LEAVES THE DECLARATION STANDING.
+     That is the same shape the action button has one row up — the control that
+     starts something is the control that takes it back — and it means a student
+     who opened the flow by accident has a way out that is not an undo.
+
+     A ROW WITH NOTHING STANDING IS A DECLINED PRESS. The control is only ever
+     drawn on a row that has a declaration, so this can only be reached from a
+     stale node, and a stale node is a press that does nothing rather than one
+     that raises a panel. */
+  function pressAt(btn) {
+    var side = String(btn.dataset.fgSide || '');
+    var root = fgSideRoot(side);
+    if (root === null) { return; }
+    var by = String(btn.dataset.fgBy || '');
+    var state = App.state.get();
+    if (state.fight === null) { return; }
+    var held = fgHeldBy(state, side, by);
+    if (held === null) { return; }
+
+    if (String(root.dataset.fgBy || '') === by
+      && String(root.dataset.fgAct || '') === held.entry.act) {
+      root.dataset.fgAct = '';
+      root.dataset.fgBy = '';
+    } else {
+      root.dataset.fgAct = held.entry.act;
+      root.dataset.fgBy = by;
+    }
+    App.render.fightBar(App.state.get());
+  }
+
+  /* WHICH SIDE A CHANGE-TARGET FLOW MAY PICK FROM, AND IT IS ONE LINE ON
+     PURPOSE.
+
+     THIS NARROWS A RECORDED RULING AND THE NARROWING IS WRITTEN AT THE SITE
+     RATHER THAN LEFT IN A PLAN FILE. declareAction's own paragraph and
+     03.1-07's asymmetry both say `at` may name ANY unit on the board, either
+     side, because "a heal that lands on a friend and a hit that lands on a foe
+     are the same record with a different unit chosen, and the student chooses",
+     and because "who an action may be pointed at is exactly the sort of
+     question this tool does not answer". Two things narrow it under D-27:
+     App.model.defaultAt picks an ENEMY, and the addendum lights the OPPOSING
+     side for the change. So a heal-shaped action — one whose transformation
+     term carries a POSITIVE delta and lands on what the declaration points at —
+     is handed an enemy by default and can only be pointed at an enemy from this
+     surface. THAT IS THE CONCRETE CASE THAT WILL SURFACE THIS, and it is named
+     here so the next reader does not have to derive it.
+
+     WIDENING IT TO BOTH SIDES IS THIS ONE LINE: `return true;`. Nothing else in
+     this file has to move, and that is the whole reason the choice is a
+     predicate rather than a comparison inlined in the arm below.
+
+     AND THE OP IS UNTOUCHED. declareAction still accepts either side and
+     unitAnywhere still resolves across both rosters, so THE RESTRICTION LIVES
+     ONLY WHERE A STUDENT CAN SEE IT — on a surface, in a flow they can watch —
+     and never in the layer that records what they decided. A record made
+     through this flow and a record made by hand are the same four keys. It is
+     named in plan 05-14's summary as a question for the playtest. */
+  function fgMayPoint(actingSide, unitSide) {
+    return unitSide !== actingSide;
+  }
+
+  /* THE BATTLEFIELD PRESS — plan 05-15's control, this plan's arm.
+
+     It completes a half-made change: the same side, the same action and the
+     same performer stand, and only what the declaration points at moves.
+     [S05]'s declareAction replaces the performer's record in place, so this is
+     ONE commit and therefore ONE undo entry — a student who declares and then
+     immediately retargets steps back through both with one Ctrl+Z, because
+     commit()'s coalescing window sees one performer and one label.
+
+     A PRESS AT REST, OR ON A UNIT THIS FLOW MAY NOT PICK, DECLINES QUIETLY.
+     clearDeclarations returning false over an empty list is the shipped
+     precedent, and an error panel raised in the middle of a workshop is exactly
+     what a disabled button would have been avoiding — which is also why 05-15
+     must not disable an unlit unit.
+
+     THE ACTING SIDE IS FOUND BY WHICH ROOT HOLDS THE HALF-MADE CHANGE, and is
+     not read off the pressed control, because the pressed control is on the
+     side being POINTED AT. Both roots are asked and a root holding nothing is
+     skipped, so a page with no flow open is a walk of two nulls. */
+  function pressBf(btn) {
+    var unitSide = String(btn.dataset.fgSide || '');
+    var unitId = String(btn.dataset.fgVal || '');
+    if (unitId === '') { return; }
+    var state = App.state.get();
+    if (state.fight === null) { return; }
+
+    var sides = Object.keys(FG_DECL_IDS);
+    for (var i = 0; i < sides.length; i++) {
+      var side = sides[i];
+      var root = fgSideRoot(side);
+      if (root === null) { continue; }
+      var act = String(root.dataset.fgAct || '');
+      var by = String(root.dataset.fgBy || '');
+      if (act === '' || by === '') { continue; }
+      if (!fgMayPoint(side, unitSide)) { continue; }
+      App.ops.dispatch('declare', {
+        side: side, actionId: act, by: by, at: unitId
+      });
+      fgClearHalf(side);
+      return;
+    }
   }
 
   // The flag, read off STATE and not off the button's aria-pressed. The
@@ -19145,18 +19311,12 @@ App.interactions = (function () {
     // which is the reason dispatch's own arm gives for declining a payload
     // shape for it.
     if (kind === 'act') { pressAct(btn); return; }
+    if (kind === 'bf') { pressBf(btn); return; }
     if (kind === 'advance') { App.ops.dispatch('advanceRound', {}); return; }
     if (kind === 'reset') { App.ops.dispatch('resetFight', {}); return; }
 
-    // AND THE CHANGE-TARGET ARM, WHICH DECLINES QUIETLY IN THIS COMMIT. The
-    // control is built by [S06.7] in the same change as the grid, because a
-    // reading that says what a declaration lands on and does not offer to
-    // change it is a surface with a promise in it. The flow behind it — the two
-    // root attributes, the battlefield's press and the one-line predicate that
-    // says which side may be picked — arrives in the very next commit, and this
-    // arm is written as a named decline rather than left as a fall-through so
-    // that the gap is a sentence somebody chose rather than the absence of one.
-    if (kind === 'at') { return; }
+    // Then the one page arm, and nothing below dispatches.
+    if (kind === 'at') { pressAt(btn); }
   }
 
   // Keyboard activation ONLY, and the guard is [S07.1]'s verbatim for its

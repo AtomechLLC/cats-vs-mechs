@@ -9424,6 +9424,356 @@ A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
 
+/* --- 104-104f. D-27's TARGETING, DRIVEN (plan 05-14). "Default target to the
+   lowest health enemy. Add a button to change target (rather than require a
+   picker every time)" — the addendum, verbatim, and six rows that read the
+   answer off the RECORD after a real press rather than off the derivation.
+
+   THE SPLIT BETWEEN THESE ROWS AND [S09.12]'s IS THE WHOLE POINT OF THEM
+   EXISTING AT ALL. Plan 05-13 asserts App.model.defaultAt exhaustively, in
+   twenty-eight rows, against state. NOT ONE OF THOSE ROWS CAN SEE WHETHER THE
+   SURFACE ACTUALLY USES IT — probe AB's lesson, one phase and three surfaces
+   later: a derivation computed correctly and then ignored on the way to the
+   page leaves every state row green. So each row below drives a real control
+   and reads the record the press produced.
+
+   AND THE DEFAULT IS COMPARED AGAINST THE DERIVATION'S OWN ANSWER ON THE SAME
+   BOARD rather than against a hardcoded unit id, so this reads the derivation
+   instead of re-implementing it. A row carrying its own copy of "the lowest
+   health living enemy" would be two implementations agreeing with each other
+   and neither of them with the artifact. --- */
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+const fgAtCatsAct = A.state.get().build.cats.actions
+  .filter((a) => A.model.needsAt(a))[0].id;
+const fgNoAtCatsAct = A.state.get().build.cats.actions
+  .filter((a) => !A.model.needsAt(a))[0].id;
+
+function fgHalfOf(side) {
+  const root = fgSideRootOf(side);
+  return String(root.dataset.fgAct || '') + '/' + String(root.dataset.fgBy || '');
+}
+function fgDeclOf(side, byId) {
+  return A.state.get().fight.decl
+    .filter((d) => d.side === side && d.by === byId)[0] || null;
+}
+
+/* THE BATTLEFIELD'S CONTROL DOES NOT EXIST YET AND IS BUILT HERE TO THE
+   CONTRACT [S07.5] FIXES. Plan 05-15 builds the real one; this page builds one
+   node carrying exactly the four attributes that banner names, appends it
+   inside #fightbar so the shipped delegated listener is the thing that routes
+   it, and takes it away again afterwards. That is the honest shape for an arm
+   whose sender is a plan away: the ARM is what these rows assert, the control
+   is not, and building it to a spelling written down in the artifact is what
+   makes 05-15 able to disagree with this page loudly rather than silently. */
+function fgPressBf(side, unitId) {
+  const b = dom.document.createElement('button');
+  b.type = 'button';
+  b.dataset.fg = 'bf';
+  b.dataset.fgSide = side;
+  b.dataset.fgVal = unitId;
+  b.dataset.k = 'fg/bf/' + side + '/' + unitId;
+  fgBar.appendChild(b);
+  fgPress(b);
+  // TAKEN AWAY AGAIN IN THE SAME BREATH, so no reading below is taken over a
+  // page carrying a control the artifact does not build. A row that left one
+  // standing would be comparing disabled sets that include a node this file
+  // invented.
+  fgBar.removeChild(b);
+}
+
+fgPress(fgStart);
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgDefAnswer = A.model.defaultAt(A.state.get().fight, 'cats');
+const fgOneClick = fgDeclOf('cats', 'c1');
+const fgOneClickSays = fgLandsOn('cats', 'c1');
+fgDeclare('cats', fgNoAtCatsAct, 'c2');
+const fgNoAtRecord = fgDeclOf('cats', 'c2');
+const fgNoAtBtn = fgAtBtnOf('cats', 'c2');
+check(
+  '104. AN ACTION THAT AIMS A TERM AT WHAT IT POINTS AT DECLARES IN ONE PRESS, '
+    + 'ALREADY POINTED AT SOMEBODY — D-27\'s addendum, driven. The record\'s '
+    + '`at` is compared against App.model.defaultAt\'s OWN answer on the same '
+    + 'board rather than against a unit id typed into this row, so what is '
+    + 'asserted is that the surface USES the derivation: plan 05-13 proves the '
+    + 'derivation is right and cannot see whether anything reads it. The row '
+    + 'beside it says what it lands on, in words. And an action that aims at '
+    + 'nobody declares in the same ONE press with `at` null and carries no '
+    + 'change-target control at all, because there is nothing on it to change',
+  fgOneClick !== null && fgOneClick.at === fgDefAnswer && fgDefAnswer !== null
+    && fgOneClick.act === fgAtCatsAct && fgOneClick.by === 'c1'
+    && fgOneClickSays !== null && fgOneClickSays.indexOf('Lands on') === 0
+    && fgNoAtRecord !== null && fgNoAtRecord.at === null
+    && fgNoAtBtn === null && errPanel.hidden === true,
+  'one press left the record ' + JSON.stringify(fgOneClick)
+    + ' | App.model.defaultAt answered ' + JSON.stringify(fgDefAnswer)
+    + ' | the row says ' + JSON.stringify(fgOneClickSays)
+    + ' | the action that aims at nobody left ' + JSON.stringify(fgNoAtRecord)
+    + ' and drew a change-target control=' + (fgNoAtBtn !== null)
+);
+
+/* 104b. D-00d ON THE DEFAULT, READ OFF THE RECORD. Two directions, and the
+   second is the one a tidy implementation loses: a unit at ZERO HEALTH that
+   nobody ruled is still pointed at, because death is stored and never inferred.
+   Both are driven through real presses on real controls — the health by the
+   shipped op a hand ruling sends, the death by the alive toggle a student
+   presses — and both are read out of the declaration the press wrote. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+A.ops.dispatch('setUnitHp', { side: 'mechs', unitId: 'm2', value: 0 });
+A.state.flush();
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgZeroTargeted = fgDeclOf('cats', 'c1');
+const fgZeroHpNow = A.state.get().fight.mechs.units[1].hp;
+fgPress(fgAliveBtn('mechs', 'm2'));
+fgDeclare('cats', fgAtCatsAct, 'c1');
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgDeadSkipped = fgDeclOf('cats', 'c1');
+const fgDeadFlag = A.state.get().fight.mechs.units[1].alive;
+check(
+  '104b. THE DEFAULT SKIPS A DEAD-RULED ENEMY AND DOES NOT SKIP A '
+    + 'ZERO-HEALTH ENEMY NOBODY RULED, read off the RECORD a real press wrote. '
+    + 'D-00d is the file\'s oldest ruling — death is stored, never inferred — '
+    + 'and this is the surface half of it: [S09.12] asserts the derivation '
+    + 'against state, and probe AB proved that a derivation used wrongly on the '
+    + 'way to the page leaves every state row green. A unit driven to zero '
+    + 'health that nobody ruled is STILL what the tool points at, which is what '
+    + 'keeps a Shield ruling representable; the same unit ruled dead is skipped '
+    + 'for the next one on the roster',
+  fgZeroHpNow === 0 && fgZeroTargeted !== null && fgZeroTargeted.at === 'm2'
+    && fgDeadFlag === false && fgDeadSkipped !== null
+    && fgDeadSkipped.at !== 'm2' && fgDeadSkipped.at === 'm1'
+    && errPanel.hidden === true,
+  'm2 at health ' + fgZeroHpNow + ' with nobody ruling it, the default points at '
+    + JSON.stringify(fgZeroTargeted && fgZeroTargeted.at)
+    + ' | m2 ruled dead (alive=' + fgDeadFlag + '), the default points at '
+    + JSON.stringify(fgDeadSkipped && fgDeadSkipped.at)
+);
+
+/* 104c. THE CHANGE-TARGET PRESS MOVES THE PAGE AND MOVES NOTHING ELSE — checks
+   72, 73 and 103's shape, and the clause that IS the row is the byte-identical
+   one. A control that started a change and also wrote into a slice would put a
+   half-made intention into a build code and under undo, which is precisely what
+   the shell comment on #act-edit-propose argues at length and what [S09.3] pins
+   the `ui` key set to prevent. Probe AN drives exactly that. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgAtStateWas = JSON.stringify(A.state.get());
+const fgAtDepthWas = A.state.undoDepth();
+const fgAtHalfWas = fgHalfOf('cats');
+fgPress(fgAtBtnOf('cats', 'c1'));
+const fgAtHalfNow = fgHalfOf('cats');
+const fgAtStateMid = JSON.stringify(A.state.get());
+const fgAtPressed = fgAtBtnOf('cats', 'c1').getAttribute('aria-pressed');
+fgPress(fgAtBtnOf('cats', 'c1'));
+const fgAtHalfBack = fgHalfOf('cats');
+const fgAtStateNow = JSON.stringify(A.state.get());
+const fgAtDeclStands = fgDeclOf('cats', 'c1');
+check(
+  '104c. PRESSING THE CHANGE-TARGET CONTROL DISPATCHES NOTHING AND PRESSING IT '
+    + 'TWICE PUTS IT BACK. The whole state is serialised before, between and '
+    + 'after, and must be byte-identical at all three readings while the two '
+    + 'attributes on the side\'s own root move and come back — a half-made '
+    + 'change is a form\'s transient selection and a slice is the one place it '
+    + 'may never live, because from there it would ride in a build code and '
+    + 'step under undo. The declaration itself is still standing afterwards, '
+    + 'unchanged, which is what makes the second press a CANCEL rather than an '
+    + 'undo',
+  fgAtHalfWas === '/' && fgAtHalfNow === fgAtCatsAct + '/c1'
+    && fgAtHalfBack === '/' && fgAtPressed === 'true'
+    && fgAtStateWas === fgAtStateMid && fgAtStateWas === fgAtStateNow
+    && A.state.undoDepth() === fgAtDepthWas
+    && fgAtDeclStands !== null && fgAtDeclStands.act === fgAtCatsAct
+    && errPanel.hidden === true,
+  'the two attributes ' + JSON.stringify(fgAtHalfWas) + ' -> '
+    + JSON.stringify(fgAtHalfNow) + ' -> ' + JSON.stringify(fgAtHalfBack)
+    + ' | the control reads pressed=' + JSON.stringify(fgAtPressed)
+    + ' | state byte-identical across press one='
+    + (fgAtStateWas === fgAtStateMid) + ' and across press two='
+    + (fgAtStateWas === fgAtStateNow)
+    + ' | undo depth ' + fgAtDepthWas + ' -> ' + A.state.undoDepth()
+    + ' | the declaration still standing=' + JSON.stringify(fgAtDeclStands)
+);
+
+/* 104d. THE COMPLETING PRESS MOVES ONLY WHAT THE DECLARATION POINTS AT, and one
+   undo takes exactly that back.
+
+   THE SECOND DECLARATION IN BETWEEN IS NOT DECORATION. commit()'s coalescing
+   window folds two commits under the SAME label inside 500ms into one undo
+   entry, and plan 05-13 made the label carry the PERFORMER precisely so that a
+   declare and an immediate retarget of the same unit are one act and one
+   Ctrl+Z. That is the shipped behaviour and it is the right one — so to assert
+   that a retarget ALONE is undoable, this row puts a declaration for a
+   different performer between the two, which breaks the label chain. Both
+   properties are recorded in the reading below rather than one of them being
+   arranged away. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+// THE STACK IS CLEARED FIRST, which is 91d's note taken again one surface over:
+// UNDO_LIMIT is 30 and every row above this one has been committing, so the
+// stack arrives here SATURATED and a depth delta reads 0 whether an entry was
+// pushed or not. Without this the undo clause below would be green about
+// nothing.
+A.state.restore(JSON.stringify(A.state.get()));
+A.state.flush();
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgRtFirst = JSON.stringify(fgDeclOf('cats', 'c1'));
+fgDeclare('cats', fgAtCatsAct, 'c2');
+const fgRtDepthWas = A.state.undoDepth();
+const fgRtLenWas = A.state.get().fight.decl.length;
+fgPress(fgAtBtnOf('cats', 'c1'));
+fgPressBf('mechs', 'm3');
+const fgRtMoved = fgDeclOf('cats', 'c1');
+const fgRtHalfAfter = fgHalfOf('cats');
+const fgRtLenNow = A.state.get().fight.decl.length;
+const fgRtDepthNow = A.state.undoDepth();
+fgPress(fgUndoBtn);
+const fgRtUndone = JSON.stringify(fgDeclOf('cats', 'c1'));
+const fgRtOtherStands = fgDeclOf('cats', 'c2');
+check(
+  '104d. THE BATTLEFIELD PRESS MOVES ONLY WHAT THE DECLARATION POINTS AT. The '
+    + 'side, the action and the performer all stand, the list does not grow — '
+    + 'because [S05] replaces a performer\'s record in place rather than '
+    + 'clearing and appending — the two half-made attributes are cleared by the '
+    + 'same press, and ONE press of the topbar undo puts the old target back '
+    + 'while the other side\'s neighbour declaration stands untouched. The '
+    + 'control this row presses is built to the spelling [S07.5]\'s banner '
+    + 'fixes for plan 05-15, because the arm exists and its sender does not '
+    + 'yet',
+  fgRtMoved !== null && fgRtMoved.at === 'm3'
+    && fgRtMoved.act === fgAtCatsAct && fgRtMoved.by === 'c1'
+    && fgRtMoved.side === 'cats'
+    && fgRtLenNow === fgRtLenWas && fgRtHalfAfter === '/'
+    && fgRtDepthNow === fgRtDepthWas + 1
+    && fgRtUndone === fgRtFirst
+    && fgRtOtherStands !== null && errPanel.hidden === true,
+  'the record ' + fgRtFirst + ' -> ' + JSON.stringify(fgRtMoved)
+    + ' | declarations standing ' + fgRtLenWas + ' -> ' + fgRtLenNow
+    + ' | the half-made change after the press=' + JSON.stringify(fgRtHalfAfter)
+    + ' | undo depth ' + fgRtDepthWas + ' -> ' + fgRtDepthNow
+    + ' | one undo left ' + fgRtUndone
+    + ' | the other performer still stands=' + JSON.stringify(fgRtOtherStands)
+);
+
+/* 104e. THE TWO PRESSES THAT HAVE NOTHING TO DO, and both DECLINE QUIETLY
+   rather than raising a panel: a battlefield press with no change half made,
+   and a battlefield press on a unit of the acting side's own roster, which the
+   one-line predicate in [S07.5] refuses today and which one edit would allow.
+   AND THE ACTION PRESS WINS OVER A HALF-MADE CHANGE — D-27's "re-click of the
+   declared action cancels, target and all" — so the same press that clears the
+   declaration clears the change with it. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgRestState = JSON.stringify(A.state.get());
+const fgRestPage = fgLeaves(fgBar).join('|');
+fgPressBf('mechs', 'm2');
+const fgRestStillState = JSON.stringify(A.state.get());
+const fgRestStillPage = fgLeaves(fgBar).join('|');
+// half made, and then a press on the ACTING side's own unit
+fgPress(fgAtBtnOf('cats', 'c1'));
+fgPressBf('cats', 'c3');
+const fgOwnSideKept = fgDeclOf('cats', 'c1');
+const fgOwnSideHalf = fgHalfOf('cats');
+// and the action press, while the change is still half made
+fgPress(fgActBtnOf('cats', 'c1', fgAtCatsAct));
+const fgActWinsHalf = fgHalfOf('cats');
+const fgActWinsDecl = fgDeclOf('cats', 'c1');
+check(
+  '104e. A PRESS THAT HAS NOTHING TO DO DECLINES QUIETLY, and an action press '
+    + 'wins over a change that is half made. A battlefield press at rest moves '
+    + 'neither the state nor the rendered text of the region and leaves the '
+    + 'error panel shut; a battlefield press on the ACTING side\'s own unit is '
+    + 'refused by the one-line predicate that says which side this flow may '
+    + 'pick from, leaving the declaration and the half-made change exactly '
+    + 'where they were; and a press on the declared action clears the '
+    + 'declaration AND the half-made change together, which is D-27\'s '
+    + '"re-click of the declared action cancels, target and all"',
+  fgRestState === fgRestStillState && fgRestPage === fgRestStillPage
+    && fgOwnSideKept !== null && fgOwnSideKept.at !== 'c3'
+    && fgOwnSideHalf === fgAtCatsAct + '/c1'
+    && fgActWinsDecl === null && fgActWinsHalf === '/'
+    && errPanel.hidden === true,
+  'at rest: state moved=' + (fgRestState !== fgRestStillState)
+    + ' page moved=' + (fgRestPage !== fgRestStillPage)
+    + ' | a press on the acting side\'s own unit left the record '
+    + JSON.stringify(fgOwnSideKept)
+    + ' and the half-made change ' + JSON.stringify(fgOwnSideHalf)
+    + ' | the action press left the record '
+    + JSON.stringify(fgActWinsDecl) + ' and the half-made change '
+    + JSON.stringify(fgActWinsHalf)
+    + ' | error panel hidden=' + errPanel.hidden
+);
+
+/* 104f. AND NOTHING ANYWHERE IS DISABLED BY ANY OF IT. The whole disabled set
+   is read at four points across the change-target flow and compared as a set —
+   at rest, with a change half made, after the completing press, and after the
+   undo — because a row watching one control would be green over a page that
+   took every other one away.
+
+   THIS ROW IS THE CONTROL RUN FOR THE TURN THAT FOLLOWS IT, and it is written
+   BEFORE that turn deliberately. The commit after this one disables action
+   buttons under three conditions and rewrites check 95 to assert them; this row
+   is the reading of what the page looked like when NOTHING a student did could
+   take a control away, taken over a flow the new contract does not touch at
+   all. The change-target control is never disabled — it is not one of the three
+   conditions and a fourth is exactly what the overrule does not license. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgAtCatsAct, 'c1');
+// AND A SECOND PERFORMER, for the reason 104d gives at length: commit()
+// coalesces two commits under the same label inside 500ms, a declare and an
+// immediate retarget of ONE performer share a label by design, and an undo over
+// the pair would take the declaration away with the retarget — leaving the
+// fourth reading below without a change-target control at all and the set
+// comparison failing for a reason that has nothing to do with anything being
+// disabled. That is check 95's own like-for-like lesson, met here first.
+fgDeclare('cats', fgAtCatsAct, 'c2');
+const fgFlowRest = disabledIn(fgApp);
+fgPress(fgAtBtnOf('cats', 'c1'));
+const fgFlowHalf = disabledIn(fgApp);
+const fgFlowAtEntry = fgFlowHalf.split('|')
+  .filter((e) => e.indexOf('fg/at/cats/c1=') === 0);
+fgPressBf('mechs', 'm3');
+const fgFlowDone = disabledIn(fgApp);
+fgPress(fgUndoBtn);
+const fgFlowUndone = disabledIn(fgApp);
+const fgFlowTrue = fgFlowRest.split('|').filter((e) => e.indexOf('=true') !== -1);
+check(
+  '104f. NOTHING ANYWHERE IS DISABLED BY THE CHANGE-TARGET FLOW. The whole '
+    + 'disabled set is read at four points — at rest, half made, completed and '
+    + 'undone — and compared as a SET rather than one control at a time, which '
+    + 'is 71c\'s shape and its reason. The change-target control itself is '
+    + 'enabled at every one of them: a student handed a default they cannot '
+    + 'change has been given a resolution rather than a suggestion. The single '
+    + '=true the set holds is the start control, which is the tool bounding '
+    + 'what it can do to ITSELF',
+  fgFlowRest === fgFlowHalf && fgFlowRest === fgFlowDone
+    && fgFlowRest === fgFlowUndone
+    && fgFlowTrue.length === 1 && fgFlowTrue[0] === 'fg=true'
+    && fgFlowAtEntry.length === 1 && fgFlowAtEntry[0] === 'fg/at/cats/c1=false'
+    && errPanel.hidden === true,
+  'controls compared=' + fgFlowRest.split('|').length
+    + ' | rest === half made=' + (fgFlowRest === fgFlowHalf)
+    + ' | rest === completed=' + (fgFlowRest === fgFlowDone)
+    + ' | rest === undone=' + (fgFlowRest === fgFlowUndone)
+    + ' | the change-target entry=' + JSON.stringify(fgFlowAtEntry)
+    + ' | every =true entry=' + JSON.stringify(fgFlowTrue)
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore
