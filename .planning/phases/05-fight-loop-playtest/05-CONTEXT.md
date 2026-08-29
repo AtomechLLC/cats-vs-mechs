@@ -160,3 +160,49 @@ rebuild.
   return. `Day`, `today` and `daily` all measure clean. Only this note stops it.
 - **Simultaneous declaration contradicts `[S03]`'s declared `fight.turn` key**, which `startFight`
   still seeds as `'cats'`. That key predates the round loop and needs reconciling.
+
+---
+
+## ADDENDUM 2026-08-29 — a browser IS available here, and three phases were wrong about it
+
+Discovered while executing plan 05-06, whose executor drove a real browser to catch a CSS shorthand
+bug the Node harness was structurally blind to, and said so in its closing note.
+
+**Measured, not assumed.** Real Chrome *and* real Edge both:
+- load `cats-vs-mechs.html` from `file://` with zero page errors,
+- report `window.isSecureContext === true`,
+- report `permissions.query('clipboard-write') === "granted"`,
+- expose real computed layout geometry.
+
+Playwright 1.62.1 drives both via `channel: 'chrome'` / `channel: 'msedge'`.
+
+**CLAUDE.md said this all along** — its Development Tools table lists Playwright as "Verified
+working: `chromium.launch({ channel: 'chrome' })` + `pathToFileURL()`". Phases 3.1, 4 and the early
+part of 5 each independently recorded "there is no browser in the environment that built this phase"
+and deferred browser-only claims to a human rehearsal. That premise was false, and it is what put 14
+items into `.planning/REHEARSAL.md`.
+
+**What has already been closed by machine:** `tests/browser-checks.mjs` (dev-only, skips cleanly
+without Playwright) drives all three clipboard tiers in both browsers — 22 passed, 0 failed —
+including the honesty check that no tier ever claims a copy that did not occur, verified against a
+seeded clipboard sentinel. Cross-browser build-code round trip is byte-identical both directions.
+
+### What this means for plans 05-07 through 05-11
+
+1. **If you write CSS or shell markup, drive it in a real browser before claiming clean.** Plan
+   05-06's shorthand-resets-longhand bug put a 1600px region 182px out of alignment and the whole
+   suite stayed green. Follow its lead; the harness cannot see layout.
+2. **Do NOT keep writing "no browser is available" into limitations lists.** It is not true. Write
+   what is *actually* unreachable instead — and be specific, because the categories differ:
+   - **Reachable by machine now:** computed layout and geometry, sticky behaviour under a real
+     scroll, wrapping, element boxes, clipboard tiers, focus behaviour, cross-browser round trips,
+     first-paint timing.
+   - **Still genuinely human:** whether text is *legible from across a room*, whether wording reads
+     as helpful rather than merely correct, whether a surface *feels* like recovery, and anything on
+     an actual projector. CLAUDE.md's Gaps section is right that no research substitutes for putting
+     the artifact on the real workshop display.
+3. **Plan 05-11 specifically:** several of its ~38 items are machine-closable. Its playtest core —
+   two played fights, adjudicated as a student would, judged on whether the default feels contested
+   — is NOT, and remains the gate. Do not let the automatable items dilute it. The right move is to
+   close what a browser can close *before* the rehearsal, so the person's time is spent only on what
+   genuinely needs a person.
