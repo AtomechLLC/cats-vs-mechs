@@ -16471,6 +16471,62 @@ App.selftest = (function () {
       }));
     t.ok('the prototype is intact after the round trips', protoIntact());
 
+    /* --- THE ORDINAL ORDER IS DERIVED, NOT ENUMERATED — and NONE of the six
+           round trips above can see the difference, which is why these rows
+           exist. Measured during the probe this plan owed: replacing the
+           derived order with plain object enumeration left all 938 rows green.
+           It has to. Every board above is DRIVEN, and a driven vocabulary
+           always enumerates in the order it was written — the built-ins as the
+           file declares them, then the customs in the order they were made,
+           which is also their numeric order because an id is always the
+           largest suffix plus one. The two orders agree on every board a
+           student can produce by pressing buttons, so the round trips are
+           green over both.
+
+           They stop agreeing the moment a slice arrives from anywhere else,
+           and from this phase they do: encode takes the build as an ARGUMENT,
+           and [S01]'s token-id comment names the hazard exactly — an
+           integer-like key sorts first in an object and in numeric order,
+           which is the whole reason the ids carry a leading letter. So the row
+           below hands encode the SAME BOARD with its vocabulary written down
+           in a different order and requires the identical code back. That is
+           the property "derived, not enumerated" actually means, and it is the
+           only row in this suite that reddens when the order is trusted rather
+           than derived. --- */
+    var derivedBoard = BOARDS[1].drive();
+    var straightCode = App.serialize.encode(derivedBoard);
+    var ownTypes = Object.keys(derivedBoard.tokens).filter(function (id) {
+      return App.data.TOKEN_IDS.indexOf(id) === -1;
+    });
+    t.ok('the board this is asked of carries more than one type of the student\'s own, '
+      + 'so writing its vocabulary down in another order is a real difference and not a '
+      + 'shuffle of one entry with itself',
+      ownTypes.length > 1);
+    var reordered = {
+      schema: derivedBoard.schema,
+      cats: derivedBoard.cats,
+      mechs: derivedBoard.mechs,
+      tokens: {}
+    };
+    ownTypes.slice().reverse().forEach(function (id) {
+      reordered.tokens[id] = derivedBoard.tokens[id];
+    });
+    App.data.TOKEN_IDS.forEach(function (id) {
+      reordered.tokens[id] = derivedBoard.tokens[id];
+    });
+    t.eq('the SAME board with its vocabulary written down in a different order produces '
+      + 'the IDENTICAL code, character for character — the ordinals come from the five '
+      + 'built-ins followed by the student\'s own types in numeric order, and never from '
+      + 'whatever order the vocabulary happens to be held in',
+      App.serialize.encode(reordered), straightCode);
+    t.eq('and that reordered board still round trips exactly, so the code the row above '
+      + 'demands is also a code that means the right thing',
+      (function () {
+        var written = App.serialize.encode(reordered);
+        var back = (written === null) ? null : App.serialize.decode(written);
+        return (back !== null && back.ok === true) ? stableText(back.build) : 'refused';
+      })(), stableText(derivedBoard));
+
     /* --- THE SIZE BUDGET, WITH THE MEASURED MARGIN WRITTEN IN. Three gates
            against numbers in the source, so a schema regression is loud rather
            than absorbed. Boards H and I are deliberately NOT gated: they are

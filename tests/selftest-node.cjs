@@ -416,7 +416,14 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     written into the label; the two ceiling boards deliberately carry none,
 //     because they are over the message limit by construction and the honest
 //     thing is to record what they cost.
-const SUITE_FLOOR = 908;
+//     THREE OF THOSE FORTY-THREE were added AFTER the probe that plan owed, and
+//     the reason is worth keeping: replacing the derived ordinal order with
+//     plain object enumeration left every one of the six round trips GREEN,
+//     because a DRIVEN vocabulary always enumerates in the order it was
+//     written. The rows that see it hand encode the same board with its
+//     vocabulary written down in another order and require the identical code
+//     back. The run is 941 and the floor is 911.
+const SUITE_FLOOR = 911;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
