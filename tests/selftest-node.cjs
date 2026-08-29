@@ -783,7 +783,19 @@ function makeStubDom() {
     'fight-label', 'fight-start',
     'fightbar', 'fight-head', 'fight-prompt',
     'decl-cats', 'decl-mechs', 'fight-said',
-    'ledger', 'ledger-head', 'ledger-list'
+    'ledger', 'ledger-head', 'ledger-list',
+    // plan 05-12 - the view switch (D-27). THREE ids and no more: the switch
+    // root and its two controls. Same three-part rule as every entry above and
+    // it is the only rule this group has to keep either - the id, this entry
+    // and the stub node arrive together, and section 5b fails the run in BOTH
+    // directions if one of the three is missing. Nothing here is a <dialog>,
+    // so the harvest still walks four roots.
+    //
+    // Each control carries data-vw and NOT data-act, and that spelling is
+    // copied from the markup rather than typed from memory - the warning above
+    // this builder is the whole of that boundary, and check 103 reads the
+    // attribute back off the page it drives.
+    'views', 'view-build', 'view-fight'
   ];
 
   const byId = Object.create(null);
@@ -1030,6 +1042,44 @@ function makeStubDom() {
   // harvest below still walks four roots. Every class and every attribute here
   // is spelled from the markup, which is the warning the stub <dialog>s carry
   // and the one that costs the most when ignored.
+  // plan 05-12's view switch, built BEFORE the fight region for the reason the
+  // fight region is built before the board: #app's child order here is the
+  // appendChild order, and the shell puts the switch between #topbar and the
+  // band so a screen reader meets the control before either thing it switches
+  // between. It is not a <dialog>, so it takes no DIALOG_ROOTS entry.
+  //
+  // NO TEXT ON EITHER LABEL AND NO TICK CHARACTER, which is this stub's
+  // standing convention for STATIC markup rather than an omission: this page is
+  // a hand-made stand-in and not a parser, so text written directly into the
+  // shell is empty here and Layer A reads it in the document instead.
+  // #round-label and #fight-head above ship exactly the same way. The aria-label
+  // on the root IS copied, because Layer C reads accessible names as well as
+  // leaf text and a name present in one page and absent from the other is the
+  // drift section 5b exists to make impossible, arriving through an attribute.
+  //
+  // Every class and every dataset spelling below is copied from the markup.
+  const views = idNode('views');
+  views.className = 'vw-switch';
+  views.setAttribute('role', 'group');
+  views.setAttribute('aria-label', 'Which screen');
+  app.appendChild(views);
+  [['view-build', 'build', 'vw-btn vw-on', 'true'],
+    ['view-fight', 'fight', 'vw-btn', 'false']].forEach(([id, vw, cls, pressed]) => {
+    const b = idNode(id, 'button');
+    b.className = cls;
+    b.type = 'button';
+    b.dataset.k = 'vw/' + vw;
+    b.dataset.vw = vw;
+    b.setAttribute('aria-pressed', pressed);
+    views.appendChild(b);
+    const name = createElement('span');
+    name.className = 'vw-name';
+    b.appendChild(name);
+    const tick = createElement('span');
+    tick.className = 'vw-check';
+    b.appendChild(tick);
+  });
+
   const fightbar = idNode('fightbar', 'section');
   app.appendChild(fightbar);
   const fightHead = idNode('fight-head', 'h2');

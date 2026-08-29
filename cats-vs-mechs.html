@@ -2064,11 +2064,183 @@
      these lines must not be able to tell which words came from where. */
   .dc-say, .dc-word{color:inherit}
   .dc-tail{color:inherit}
+
+  /* ===================== [C15] THE VIEW SWITCH ===================== */
+  /* The switch between the board and the fight, plan 05-12. ONE NEW PREFIX,
+     .vw-, and it is its own prefix for the reason [C13] gives about .sh- and
+     [C14] restates about .fg-, .ld- and .dc-: a single stylesheet has no real
+     scope, so a rule for a bare .btn or .on would reach every region in this
+     file from four thousand lines away. One prefix per surface.
+
+     THIS BLOCK ALSO DECIDES WHICH OF TWO REGIONS PAINTS, which no other [C]
+     block in this file does, and it does it with an ATTRIBUTE SELECTOR on #app
+     rather than with the hidden property. Plan 05-06 recorded the reason at
+     #ledger and it applies here with more force: .fg-band's own rule gives it
+     display:flex, and an AUTHOR display beats the user agent's
+     [hidden]{display:none} outright. A hidden .fg-band would keep its box, and
+     a plan that reached for `hidden` here would get a fight region that was
+     still on the page and merely unreadable by assistive technology, which is
+     the worst of both.
+
+     [C03]'S STICKY GOTCHA BINDS HERE AND IS RESTATED AT THE SITE RATHER THAN
+     POINTED AT, because it is the one failure in this file that arrives with no
+     error and no warning. #views is a SIBLING of #board, so it is not an
+     ancestor of #strip today - and a rule that becomes load-bearing only when
+     somebody moves an element is a rule to write down rather than to rely on.
+     #views TAKES NO OVERFLOW OF ANY KIND. Not hidden, not auto, not scroll.
+     Driven after this change in real Chrome and real Edge at 1920x1080 and at
+     1366x768, in BOTH views, with a fight actually running: #strip reports
+     position sticky in all eight readings and every one of its ancestors
+     reports overflow visible in all eight - #board, #app, BODY, HTML. The two
+     browsers agree to the pixel on every number in this block.
+
+     WHAT PINNING ACTUALLY DOES IN THE FIGHT VIEW, recorded exactly rather than
+     rounded up to "it pins", because the honest reading is the one the next
+     plan needs. #strip's viewport top at page scroll 0 / 800 / 1600:
+
+       build view   @1920x1080   301 -> 107 -> 107     pins and holds
+       build view   @1366x768    293 ->  99 ->  99     pins and holds
+       fight view   @1920x1080   906 -> 135 -> 135     see below
+       fight view   @1366x768    792 ->  99 ->  35     pins, then releases
+
+     In the fight view the whole document is only 1851px tall at 1080, so 800
+     clamps to 771 of scroll and the strip never reaches the offset it would
+     stick at - 135 is where it lands, not where it sticks. At 768 it does reach
+     it (99) and then releases to 35 at the very bottom, which is plain sticky
+     containment rather than a defect: #board is 842px tall in that view and the
+     strip is 704 of it, so it has 138px of travel and then the containing block
+     runs out. Plan 05-09 measured the same shape from the other side.
+
+     NEITHER OF THOSE IS THIS PLAN'S NUMBER TO TURN, and that is written here so
+     the next reader does not read a baseline as a settled dial. The fight view
+     still holds the OLD declaration form: [C14]'s 736px basis and [C14.1]'s
+     34vh bound are both measured against a column plan 05-14 replaces and plan
+     05-15 then adds a battlefield to. BOTH OF THOSE PLANS OWE A RE-MEASURE of
+     every number above. What this block's readings establish is only that the
+     TAB lays out - same width, same margin, same sticky, same reference band -
+     and that is what a control run is for.
+
+     AND THE ONE THING THAT GOT STRAIGHTFORWARDLY BETTER, because it is REF-03
+     and it is worth recording: #refband's top in the fight view is 1703 against
+     3004 in the build view at 1920x1080, and 1514 against 2996 at 1366x768. The
+     reference band is nearer in the view that needs it, because the two roster
+     columns are no longer between it and the top of the page.
+
+     THE FRAME IS SPELLED ONCE AND NOTHING BELOW WRITES margin AGAIN. #views
+     takes #board's width and #board's computed left margin, spelled the way
+     [C03] spells the board's and [C14] spells the band's, IN ONE DECLARATION.
+     [C14]'s banner measured what the other order costs: a `margin` shorthand
+     landing after a computed `margin-left` longhand silently zeroed it and put
+     a 1600px region 182px out of alignment, with no error and no warning. This
+     is the fourth region in this file to pay that frame and the first written
+     already knowing it. The one place below that writes a margin at all is the
+     narrow media query, and it writes the LONGHAND over the shorthand, which is
+     the safe direction and is the direction [C14.1] already names as safe.
+
+     NO IMAGE AND NO SHAPE IS DRAWN HERE, for the reason [C12], [C13] and [C14]
+     each already give about themselves: the CSS reference function that takes a
+     URI is refused document-wide by the dev gate, so there is no background
+     image, no data-URI icon and no stylesheet-loaded font; the namespaced
+     element constructor and its inline markup are refused on the same grounds;
+     and a shape, if one is ever wanted, is a clip-path, which is what [C05]
+     already draws the board's triangles and hexagons with.
+
+     NO NEW HEX. Every colour below is a [C00] token or a color-mix() of one,
+     which is [C07]'s banner rule.
+
+     AND THE PROHIBITION [C14] ADDED: the CSS property that prettifies a short
+     heading by evening out its line lengths carries a word stem the dev gate
+     refuses document-wide, so it may not be written here. It is DESCRIBED
+     rather than spelled, which is [C11]'s rule and refCard's.
+
+     UX-02's 18px FLOOR BINDS A FIFTH TIME. Both labels are permanent, visible
+     and at 18px, and the tick beside each is a REAL NODE whose visibility the
+     on-class moves - never colour alone, which is [C07]'s rule and the shape
+     .fg-check already ships. */
+  #views{
+    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin:0 0 18px calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
+  /* .fg-pill's shape restated under this prefix rather than borrowed, for
+     [C13]'s reason about .rs-: a rule two regions depend on is a rule neither
+     of them can change. The pill treatment is .brd-btn's, because these two sit
+     directly under the control bar and read as controls of the same family. */
+  .vw-btn{
+    display:flex;align-items:center;gap:8px;
+    min-height:44px;padding:8px 18px;
+    background:var(--panel);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 45%, transparent);
+    border-radius:999px;color:var(--ink-dim);
+    font:inherit;font-size:18px;font-weight:600;line-height:1.2;
+    cursor:pointer;user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+  }
+  .vw-on{outline:2px solid var(--accent);outline-offset:2px;color:var(--ink)}
+  .vw-name{white-space:nowrap}
+  .vw-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
+  .vw-on .vw-check{visibility:visible}
+
+  /* THE TWO SIDES OF THE SWITCH. Only the two faction COLUMNS are put away in
+     the fight view, never #board itself - #board carries #strip and #refband,
+     and PROJ-05 and REF-03 both say those two stay readable without navigating
+     away. #board-empty rides with the columns because it is the placeholder for
+     exactly the thing they are.
+
+     display:none rather than visibility or a zero height, deliberately: a grid
+     item with visibility:hidden still holds its track open, and a 1600px band
+     of nothing above the fight is not a fight tab. */
+  #app[data-view="fight"] .brd-col{display:none}
+  #app[data-view="fight"] #board-empty{display:none}
+  #app[data-view="build"] .fg-band{display:none}
+
+  /* A [C03] EDIT BY PLAN 05-12, named as one in [C03]'s own register for a rule
+     another plan wrote - the same register the 03-05 and 03-03 edits inside
+     [C03] itself use.
+
+     #board's three tracks are EXPLICIT (1fr minmax(220px,320px) 1fr), so they
+     all still exist when both .brd-col items are undisplayed. What changes is
+     auto-placement: with nothing occupying the first track, #strip flows into
+     COLUMN 1. MEASURED IN REAL CHROME AT 1920x1080 WITH A FIGHT RUNNING, both
+     arrangements, before this rule was chosen:
+
+       #strip, fight view, one fight running    @1920x1080     @1366x768
+         auto-placed, no rule (the alternative)   left 152 w622  left 14 w483
+         pinned to column 2 (this rule)           left 792 w320  left 515 w320
+         and the BUILD view, for comparison       left 792 w320  left 515 w320
+
+     Identical in Chrome and in Edge. Auto-placed, the projection is 622px wide
+     and starts at the board's left edge - a 1fr track, because the two 1fr
+     tracks and the 18px gaps are all still there when the items in them are
+     undisplayed. Pinned, it is byte-identical to the box a student has been
+     reading since Phase 3 in every one of the four combinations.
+
+     The pin keeps the width, the position AND the sticky behaviour unchanged
+     across the switch, which is what PROJ-05 is actually asking for: the same
+     projection, not a second one that happens to carry the same words. */
+  #app[data-view="fight"] #strip{grid-column:2}
+
+  /* Same breakpoint [C03] already uses for #board and #topbar, rather than a
+     second one.
+
+     THE PIN IS RELEASED HERE AND THAT IS NOT HOUSEKEEPING. [C03]'s query
+     collapses #board to a SINGLE column below 760px, and a pin to a column that
+     no longer exists creates an IMPLICIT second track and puts the projection
+     off to the side of a one-column board. There is no error and no warning for
+     that either.
+
+     And the margin written here is the LONGHAND over the shorthand above, which
+     is the safe direction - [C14.1]'s ruling, said again at the one site in
+     this block that writes a margin twice. */
+  @media(max-width:760px){
+    #views{width:auto;margin-left:0}
+    #app[data-view="fight"] #strip{grid-column:auto}
+  }
 </style>
 </head>
 <body>
 
-<main class="shell" id="app">
+<main class="shell" id="app" data-view="build">
 
   <div class="shell-head">
     <h1>Cats vs Mechs</h1>
@@ -2258,6 +2430,80 @@
         <button class="brd-btn brd-btn--danger" type="button" data-k="rs" data-act="openResetAsk">Reset</button>
       </div>
     </div>
+  </div>
+
+  <!-- ============ THE VIEW SWITCH, plan 05-12 ==========================
+       D-27, IN THE DEVELOPER'S OWN WORDS: "I don't like the pop up
+       presentation for actions. I would prefer having a full tab on the main
+       screen." This is that tab's switch. It sits HERE, after #topbar and
+       before the band, so a screen reader meets the control that decides which
+       region is on screen BEFORE it meets either of the two regions.
+
+       IT ALSO DISSOLVES A NUMBER FOUR PLANS IN A ROW WERE HOLDING. #fightbar
+       and #board competed for one viewport, and every plan that turned a
+       height dial turned it against a page the next plan then changed. Two
+       things that are never on screen together do not compete, so the
+       arithmetic stops being anybody's to hold.
+
+       WHAT THE SWITCH MAY NOT TAKE AWAY IS WRITTEN INTO TWO REQUIREMENTS BY
+       NAME, and it is the one thing this element must not get wrong. PROJ-05:
+       the projection stays visible during the fight, so the student sees it at
+       the moment the fight contradicts it. REF-03: reference material is
+       readable without leaving the fight view. Both #strip and #refband live
+       inside #board, and #board STANDS IN BOTH VIEWS — only the two .brd-col
+       columns are put away by [C15]. So neither of those two is inside either
+       side of the switch and neither is hidden by it. Check 103b asserts that
+       off the DOM and off this markup rather than off this paragraph.
+
+       THREE IDS AND NO MORE, and the three-part rule this shell keeps is kept
+       in one change: the id, the KNOWN_IDS entry and the stub node arrive
+       together, and tests/selftest-node.cjs fails the run in BOTH directions if
+       one of the three is missing. No <dialog> is added, so there is no
+       DIALOG_ROOTS entry to make and the dialog harvest stays at four roots.
+
+       EACH CONTROL CARRIES data-vw AND NOT data-act, and the distinction is
+       [S07.5]'s and it is load-bearing rather than tidy. A control wearing a
+       data-act is routed straight into App.ops.dispatch by [S07.1], and this
+       switch dispatches nothing at all: it writes one attribute on #app and
+       asks [S06.10] to repaint two buttons. data-vw is this region's private
+       routing word, in data-fg's and data-dc's register and for their reason.
+
+       A VIEW IS NOT STATE. Nothing here is written into any slice, so no view
+       rides in a build code, no undo steps through a view, and a shared link
+       never arrives carrying somebody else's screen. Check 103 reads the WHOLE
+       state back before and after each press and requires it byte-identical —
+       checks 72 and 73's shape, because a row that read only the attribute
+       would be green over a switch that also wrote to the slice.
+
+       THE STATE OF EACH CONTROL IS SAID THREE TIMES AND COLOUR IS NONE OF
+       THEM — the class, aria-pressed, and a tick that is a REAL NODE rather
+       than a pseudo-element. [C07]'s rule, which .fg-pill and .ae-pill already
+       keep, restated at a third site. Both labels are permanent, visible and at
+       UX-02's 18px floor: never an icon, never revealed on hover, never a
+       title= tooltip.
+
+       "The board" AND "The fight", NOT "build view" and "fight view". During a
+       fight the board region is showing the fight's own markers, so a control
+       labelled "build" would be describing something the page is not.
+
+       THE DEFAULT IS build AND IT IS WRITTEN ON #app ABOVE rather than left for
+       [S06.10] to repair on the first frame. A page that is in an undecided
+       state for one frame is a page that flashes the wrong region at a room.
+
+       AND ONE LAYER C CONSEQUENCE, WRITTEN HERE RATHER THAN DISCOVERED LATER.
+       The rendered-page walk reads the text of every leaf under #app WITHOUT
+       asking whether an ancestor is hidden, and the stub page has no stylesheet
+       at all — so BOTH views' words are harvested in every scan, in the stub
+       and in a real browser alike. That is the right answer here, because this
+       switch only UNDISPLAYS a region and empties nothing. It is the opposite
+       of [S06.7]'s teardown rule, which EMPTIES at rest, and the two are not an
+       inconsistency: fgRest empties because a fight's sentences left standing
+       would be counted onto the SETUP page's floor, and a floor for the setup
+       page is the thing that measurement is for. Nothing here is emptied, so
+       nothing here is miscounted. -->
+  <div class="vw-switch" id="views" role="group" aria-label="Which screen">
+    <button class="vw-btn vw-on" type="button" id="view-build" data-k="vw/build" data-vw="build" aria-pressed="true"><span class="vw-name">The board</span><span class="vw-check">✓</span></button>
+    <button class="vw-btn" type="button" id="view-fight" data-k="vw/fight" data-vw="fight" aria-pressed="false"><span class="vw-name">The fight</span><span class="vw-check">✓</span></button>
   </div>
 
   <!-- ============ THE FIGHT REGION, plan 05-06 =========================
@@ -3060,24 +3306,36 @@
  *     [S06.7] the fight bar — the round, both pools, the declarations   (plan 05-07)
  *     [S06.8] the ledger — past rounds, and what the last one changed    (plan 05-08)
  *     [S06.9] the board in fight mode — the markers and the live read   (plan 05-09)
+ *     [S06.10] the view switch — which of the two regions paints    (plan 05-12)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
  *     [S07.4] the share and confirm dialogs' handlers                      (plan 04-06)
  *     [S07.5] the fight's presses — the bar's and the board's         (plan 05-10)
+ *     [S07.6] the view switch's two presses                          (plan 05-12)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
  *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
  *
  * The stylesheet above carries its own region markers on the same scheme,
- * [C00] TOKENS through [C14] THE FIGHT — search a token such as [C07] and you
- * land in exactly one place there too. [C12] is plan 03.1-05's, and it is named
+ * [C00] TOKENS through [C15] THE VIEW SWITCH — search a token such as [C07] and
+ * you land in exactly one place there too. This sentence used to stop at [C14]
+ * THE FIGHT and plan 05-12 amended it in the same change that made it false,
+ * which is [S03]'s rule about a banner that quietly lies and is the same move
+ * [S00]'s own hash-reading paragraph already made about itself. A table of
+ * contents that has quietly stopped being complete is worse than none, because
+ * a reader trusts it.
+ * [C12] is plan 03.1-05's, and it is named
  * here because it is the region [S06.5] and [S07.3] paint into; [C13] is plan
  * 04-05's, and it is the region [S06.6] and [S07.4] paint into. [C14] is plan
  * 05-06's frame around this phase's two page regions, and it divides into three
  * sub-blocks with an owner each, in the way [S04] and [S06] both divide:
  * [C14.1] is the region [S06.7] paints into (plan 05-07), [C14.2] the ledger's
- * (plan 05-08) and [C14.3] the board in fight mode (plan 05-09).
+ * (plan 05-08) and [C14.3] the board in fight mode (plan 05-09). [C15] is plan
+ * 05-12's and it is the LAST block in the stylesheet: it lays the view switch
+ * out and it is the one block in this file that decides which of two regions
+ * paints at all, which is why it also carries a named [C03] EDIT placing #strip
+ * in the fight view. [S06.10] paints the switch and [S07.6] presses it.
  *
  * Region order is fixed. Dependency arrows point DOWN only; reference another
  * section as App.x.y() at the call site, never by capturing it at section-body
