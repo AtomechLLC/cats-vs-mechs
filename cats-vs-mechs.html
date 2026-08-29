@@ -27350,7 +27350,20 @@ App.selftest = (function () {
         App.ops.resetToDefaults();
         App.ops.startFight();
         App.ops.declareAction('cats', 'slash', 'c1', 'm1');
-        while (fight().decl.length < App.ops.MAX_DECLARATIONS) {
+        // THE FILL IS BOUNDED BY A COUNT AND NOT BY THE LIST IT IS FILLING,
+        // and PROBE AL is why. The first spelling was `while (decl.length <
+        // MAX_DECLARATIONS)`, which reads the very quantity the op under test
+        // controls: under a replace made unconditional the nameless
+        // declarations fold into one, the list stops at two, and the loop runs
+        // for ever. Measured — the run did not go red, it did not throw, it
+        // HUNG, and a harness that hangs is worse than one that aborts because
+        // there is nothing at all to read. The bound is now the number of
+        // presses, so the same violation leaves `full` reading 2 against a
+        // ceiling of 48 and the row FAILS with both numbers printed. Plans
+        // 05-02 through 05-05 each learned that a row must be able to fail
+        // rather than to throw; this is the third shape of that lesson.
+        for (var i = 0; i < App.ops.MAX_DECLARATIONS
+          && fight().decl.length < App.ops.MAX_DECLARATIONS; i++) {
           App.ops.declareAction('cats', 'hairball', null, null);
         }
         App.state.flush();
