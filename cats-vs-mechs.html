@@ -20771,11 +20771,24 @@ App.selftest = (function () {
       + 'below drives an undo rather than reading this number',
       App.state.undoDepth() + ' (delta ' + (App.state.undoDepth() - stillDepth) + ')');
 
+    // THE KEY SET RIDES IN THIS ROW AND THE TWO NULLS ARE READ AS BOOLEANS,
+    // and it is not decoration. PROBE I re-spelled the record's keys and this
+    // row went red printing ["hairball",null,null] as BOTH its actual and its
+    // expected — because a missing key reads as undefined, JSON.stringify turns
+    // undefined into null inside an array, and the report serialises a failed
+    // row with JSON. That is plan 05-02's jsonDrops lesson met a second time:
+    // ABSENT and NULL are different facts and a row that cannot print the
+    // difference cannot be read by whoever it fails for. The key set says which
+    // one it got.
     t.eq('a declaration names a PERFORMER and a unit it POINTS AT, and neither '
       + 'is required: "Hairball, no target" is a thing a student says and '
-      + 'therefore a thing this records',
-      [afterBoard.fight.decl[2].act, afterBoard.fight.decl[2].by,
-        afterBoard.fight.decl[2].at], ['hairball', null, null]);
+      + 'therefore a thing this records — stored as an explicit null rather '
+      + 'than as an absent key, so every record is the same shape',
+      [afterBoard.fight.decl[2].act,
+        Object.keys(afterBoard.fight.decl[2]).sort().join(','),
+        afterBoard.fight.decl[2].by === null,
+        afterBoard.fight.decl[2].at === null],
+      ['hairball', 'act,at,by,side', true, true]);
 
     t.eq('and `at` may name a unit on EITHER side, which is a fact about the '
       + 'record rather than a ruling: who an action may be pointed at is '
