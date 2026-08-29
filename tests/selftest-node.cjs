@@ -558,7 +558,33 @@ function makeStubDom() {
     'act-prop-title', 'act-prop-refuse', 'act-prop-says',
     'act-prop-caster-label', 'act-prop-target-label',
     'act-prop-cost', 'act-prop-reqs',
-    'act-prop-rows', 'act-prop-close'
+    'act-prop-rows', 'act-prop-close',
+    // plan 04-05 — the share surface (SHARE-01, SHARE-04). One dialog with two
+    // panes (D-21): the copy pane, whose code field is rewritten by [S06.6] on
+    // every frame the build moves, and the load pane, whose paste field is the
+    // one node on this surface [S06.6] is forbidden to touch. The two panes
+    // take DIFFERENT id stems, share-* and sh-load-*, for the reason act-edit-*
+    // and act-prop-* do: their controls then partition by attribute.
+    //
+    // The topbar labels beside them are the THIRD and FOURTH permanent bounded
+    // buttons on the bar, both reserved by name in D-04 and both paid for in a
+    // shell comment that states the bound.
+    //
+    // Same rule as every entry above: the id, this entry, the stub node AND —
+    // since plan 03.1-01 — the DIALOG_ROOTS entry arrive together, or the run
+    // fails in one direction or the other.
+    'share-label', 'reset-label',
+    'share', 'share-pane-copy', 'share-title', 'share-code',
+    'share-length', 'share-over', 'share-said',
+    'share-copy', 'share-to-load', 'share-done',
+    'sh-load', 'sh-load-label', 'sh-load-field', 'sh-load-said',
+    'sh-load-do', 'sh-load-back',
+    // plan 04-05 — the reset confirmation (SHARE-06, D-19). Its OWN root rather
+    // than a third pane, because it is a different act with a different opener.
+    // It draws nothing from state, so it rides no SYNC_HOOKS entry — which is
+    // why there is no repaint to stub anything for here, only markup.
+    'reset-ask', 'reset-ask-title', 'reset-ask-says',
+    'reset-ask-cancel', 'reset-ask-confirm'
   ];
 
   const byId = Object.create(null);
@@ -833,6 +859,16 @@ function makeStubDom() {
   // 2.1 collapsed; here it is one more entry, spelled from the markup.
   topbar.appendChild(idNode('actedit-label', 'span'));
   topbarButton('act', 'openActionEditor', null);
+  // plan 04-05's two new topbar controls, the third and fourth permanent
+  // buttons on the bar and both reserved by name in D-04. Spelled from the
+  // markup, exactly as the two above are. Their acts are page work claimed by
+  // [S07.4], which is plan 04-06's — so nothing in this file presses either of
+  // them yet, and the DIALOG_ROOTS entries below open the two new dialogs
+  // through showModal() rather than through an opener that does not exist.
+  topbar.appendChild(idNode('share-label', 'span'));
+  topbarButton('sh', 'openShare', null);
+  topbar.appendChild(idNode('reset-label', 'span'));
+  topbarButton('rs', 'openResetAsk', null);
 
   // The token-appearance <dialog>, likewise hand-made from the static markup.
   // Exactly three members beyond a plain element, because that is all [S06.2]
@@ -1161,6 +1197,124 @@ function makeStubDom() {
   aePropClose.dataset.ap = 'close';
   aePropClose.dataset.k = 'ap/close';
   aePropose.appendChild(aePropClose);
+
+  /* ---- plan 04-05's share surface, hand-made from the static markup --------
+     Exactly the three members beyond a plain element both dialogs above have,
+     and no more: .open, showModal() and close(), the last dispatching the
+     `close` event a focus hand-back binds to. A plain div here would keep the
+     whole surface skipped, which is the state the picker was in before its stub
+     was written — two gate checks green over a handler that bailed on its
+     second line.
+
+     EVERY CLASS AND EVERY DATASET SPELLING IS COPIED FROM THE SHELL, and two of
+     the classes are load-bearing rather than decorative. [S06.6] tells the code
+     field apart from the paste field by .sh-code against .sh-paste, and the
+     whole of this plan's contract is which of those two it may write: it
+     rewrites the first even while it holds focus and never touches the second.
+     A typo in either is not a red run — it is a green one, over a field nothing
+     is listening to.
+
+     The two panes take different id stems, share-* and sh-load-*, so their
+     controls partition by attribute exactly as act-edit-* and act-prop-* do. */
+  const share = idNode('share', 'dialog');
+  share.open = false;
+  share.dataset.shPane = 'copy';
+  share.showModal = () => { share.open = true; };
+  share.close = () => {
+    if (!share.open) { return; }
+    share.open = false;
+    dispatch(share, event('close'));
+  };
+  body.appendChild(share);
+
+  const sharePane = idNode('share-pane-copy', 'section');
+  sharePane.className = 'sh-pane';
+  share.appendChild(sharePane);
+  sharePane.appendChild(idNode('share-title', 'h2'));
+
+  const shareCode = idNode('share-code', 'textarea');
+  shareCode.className = 'sh-code';
+  shareCode.dataset.k = 'sh/code';
+  sharePane.appendChild(shareCode);
+
+  const shareLen = idNode('share-length', 'p');
+  shareLen.className = 'sh-len';
+  sharePane.appendChild(shareLen);
+
+  const shareOver = idNode('share-over', 'p');
+  shareOver.className = 'sh-warn';
+  shareOver.hidden = true;
+  sharePane.appendChild(shareOver);
+
+  const shareSaid = idNode('share-said', 'p');
+  shareSaid.className = 'sh-said';
+  shareSaid.hidden = true;
+  sharePane.appendChild(shareSaid);
+
+  [['share-copy', 'copy', 'sh/copy'],
+    ['share-to-load', 'to-load', 'sh/to-load'],
+    ['share-done', 'done', 'sh/done']].forEach(([id, sh, k]) => {
+    const b = idNode(id, 'button');
+    b.dataset.sh = sh;
+    b.dataset.k = k;
+    sharePane.appendChild(b);
+  });
+
+  const shLoad = idNode('sh-load', 'section');
+  shLoad.className = 'sh-pane';
+  shLoad.hidden = true;
+  share.appendChild(shLoad);
+  shLoad.appendChild(idNode('sh-load-label', 'h2'));
+
+  const shPaste = idNode('sh-load-field', 'textarea');
+  shPaste.className = 'sh-paste';
+  shPaste.dataset.k = 'sh/paste';
+  shLoad.appendChild(shPaste);
+
+  const shLoadSaid = idNode('sh-load-said', 'p');
+  shLoadSaid.className = 'sh-said';
+  shLoadSaid.hidden = true;
+  shLoad.appendChild(shLoadSaid);
+
+  [['sh-load-do', 'load', 'sh/load'],
+    ['sh-load-back', 'to-copy', 'sh/to-copy']].forEach(([id, sh, k]) => {
+    const b = idNode(id, 'button');
+    b.dataset.sh = sh;
+    b.dataset.k = k;
+    shLoad.appendChild(b);
+  });
+
+  /* ---- plan 04-05's reset confirmation (SHARE-06, D-19) -------------------
+     Its own root, because it is a different act with a different opener. It
+     draws NOTHING from state and rides no SYNC_HOOKS entry, so there is no
+     repaint to exercise here — but it is still a <dialog>, so it still needs
+     its three members, its ids and its DIALOG_ROOTS entry, and the harvest
+     still walks it from the moment it exists. That is the whole point of the
+     gate being bidirectional: this entry could not have been forgotten.
+
+     The sentence on #reset-ask-says is STATIC MARKUP in the shell, so its text
+     is empty here — this page is a hand-made stand-in rather than a parser, and
+     Layer A reads that sentence in the document instead. */
+  const resetAsk = idNode('reset-ask', 'dialog');
+  resetAsk.open = false;
+  resetAsk.showModal = () => { resetAsk.open = true; };
+  resetAsk.close = () => {
+    if (!resetAsk.open) { return; }
+    resetAsk.open = false;
+    dispatch(resetAsk, event('close'));
+  };
+  body.appendChild(resetAsk);
+  resetAsk.appendChild(idNode('reset-ask-title', 'h2'));
+  const resetSays = idNode('reset-ask-says', 'p');
+  resetSays.className = 'rs-says';
+  resetAsk.appendChild(resetSays);
+  [['reset-ask-cancel', 'cancel', 'rs/cancel'],
+    ['reset-ask-confirm', 'confirm', 'rs/confirm']].forEach(([id, rs, k]) => {
+    const b = idNode(id, 'button');
+    b.dataset.rs = rs;
+    b.dataset.k = k;
+    resetAsk.appendChild(b);
+  });
 
   doc.createElement = createElement;
   doc.getElementById = (id) => (KNOWN_IDS.indexOf(id) === -1 ? null : (byId[id] || null));
@@ -4465,7 +4619,18 @@ const DIALOG_ROOTS = [
   // plan 03.1-05's action editor. It is harvested from the moment it exists,
   // which is the whole point of the check below being bidirectional: this entry
   // could not have been forgotten, because leaving it out fails the run.
-  { id: 'act-edit', act: 'openActionEditor' }
+  { id: 'act-edit', act: 'openActionEditor' },
+  // plan 04-05's two new surfaces, both harvested from the moment they exist
+  // for the same reason. BOTH CARRY act: null, and that is a statement rather
+  // than an omission: the openers they will be reached by are page work claimed
+  // by [S07.4], which is plan 04-06's, so there is no handler to drive yet and
+  // driving an unregistered act would put the styled error panel on screen
+  // instead of opening anything. The list's own comment says the act is named
+  // "where the static markup supplies one"; here it does not yet, so openDialogs
+  // falls through to showModal() and the walk still reads the surface. Plan
+  // 04-06 replaces both nulls with the acts it registers.
+  { id: 'share', act: null },
+  { id: 'reset-ask', act: null }
 ];
 
 const stubDialogIds = [];
@@ -4650,6 +4815,19 @@ check(
 // every one of those could have gone dark and the picker's 91 alone would
 // still have cleared the floor. The arithmetic is the one this note has kept
 // twice already: seven below the measured total.
+//
+// PLAN 04-05 ADDED TWO ROOTS AND THE TOTAL DID NOT MOVE FOR THEM, WHICH IS
+// WORTH A LINE BECAUSE IT LOOKS LIKE THE FAILURE THIS NUMBER GUARDS AGAINST AND
+// IS NOT. The share surface and the reset confirmation are almost entirely
+// STATIC MARKUP — a title, a note, a sentence, the button legends — and this
+// page is a hand-made stand-in rather than a parser, so static text is empty
+// here for the same reason the picker's title is. Layer A reads every one of
+// those words in the document instead, in full, including the CSS and the
+// comments. What Layer C can see of the share surface is the ONE line [S06.6]
+// renders: the code's length in characters. So the total moves by one, not by
+// forty, and the floor moves with it rather than by a surface's worth — see the
+// number below and SHARE_FLOOR, which is where the honest bound on this
+// particular surface lives.
 const DIALOG_FLOOR = 134;
 
 // The floor for a harvest of the PICKER ALONE, which check 47g takes because it

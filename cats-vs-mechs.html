@@ -884,6 +884,112 @@
     margin:0 0 16px;color:var(--ink-dim);font-size:16px;line-height:1.4;
     max-width:60ch;
   }
+
+  /* ===================== [C13] SHARE AND CONFIRM ===================== */
+  /* The share surface (SHARE-01, SHARE-04) and the reset confirmation
+     (SHARE-06), plan 04-05. TWO NEW PREFIXES, .sh- and .rs-, and they are two
+     rather than one for the reason [C12]'s banner gives about .ae- and [C07]
+     gives about .pk-: a single stylesheet has no real scope, so .sh- means "the
+     share surface" everywhere else in this file, and letting the confirmation
+     borrow it would make every rule below a rule two dialogs depend on. A
+     Phase 5 rule for .code or .said would otherwise reach both from four
+     thousand lines away.
+
+     [C07] AND [C12] ARE THE LAYOUT ANALOGS AND THIS BORROWS THEIR SHAPE RATHER
+     THAN THEIR CLASSES. The box, the backdrop, the title, the note and the
+     actions row are the numbers [C07] settled and [C12] restated, and every one
+     of them came off [C04]'s projector floor. Restated a third time, for the
+     third time for the same reason.
+
+     THE TWO CODE FIELDS ARE .err-detail's CHROME, RESTATED. [C08] already draws
+     a monospace, selectable, vertically resizable box, and it exists so an
+     error detail "can be pasted into the course thread" — the same job, one
+     phase early. They are taller than [C08]'s because a fully authored board's
+     code runs to several lines, and they SCROLL past that rather than growing
+     the dialog off a laptop viewport.
+
+     THE DANGER COLOURING IS ALREADY SHIPPED AND IS NOT REINVENTED. [C08]'s
+     .err-btn--danger derives from --accent-2 and #err-reset already wears it;
+     .brd-btn--danger below is that same derivation restated onto the topbar's
+     own button chrome, which is what lets the reset control read as apart from
+     the non-destructive ones (SHARE-04's fourth criterion) without a new hex.
+     [C07]'s banner states the rule: colours come out of the existing tokens
+     through color-mix().
+
+     NO IMAGE AND NO SHAPE IS DRAWN HERE. The CSS reference function that takes
+     a URI is refused document-wide by the dev gate, so there is no
+     background-image, no data-URI icon and no stylesheet-loaded font; the
+     namespaced element constructor and its inline markup are refused for the
+     reason [C12] states about itself, and a shape here would be a clip-path,
+     which is what [C05] already draws the board's triangles and hexagons
+     with. */
+
+  /* The separation SHARE-04's fourth criterion asks for, drawn INSIDE the
+     cluster rather than as a second bar: a second bar would re-lay-out the
+     page, which is the one thing D-04's reserved slot exists to make
+     unnecessary. A hairline and a gap, both from --line, so the rule survives a
+     palette change. */
+  .rs-apart{margin-left:6px;padding-left:16px;border-left:1px solid var(--line)}
+  .brd-btn--danger{border-color:var(--accent-2);color:var(--accent-2)}
+
+  .sh, .rs{
+    background:var(--panel);color:var(--ink);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:22px 24px;width:calc(100vw - 48px);
+    font:inherit;
+  }
+  .sh{max-width:660px}
+  /* The confirmation is narrower on purpose. It asks one question and carries
+     two controls, and a box the width of the share surface would read as a
+     second workspace rather than as a stop. */
+  .rs{max-width:520px}
+  .sh::backdrop, .rs::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
+  .sh-title, .rs-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
+  .sh-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
+  .sh-pane[hidden]{display:none}
+
+  .sh-code, .sh-paste{
+    display:block;width:100%;box-sizing:border-box;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:9px 12px;
+    font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.5;
+    min-height:104px;max-height:216px;overflow-y:auto;resize:vertical;
+    user-select:text;overflow-wrap:anywhere;
+    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+  }
+
+  /* UX-02's floor, the same one [C07] and [C12] both hold, applied to the three
+     lines this surface puts under the field: 18px, permanent, visible, never an
+     icon and never a title= tooltip.
+
+     tabular-nums on the length for the reason [C03] uses it on the board's own
+     values: the figure moves under the eye on every commit while the surface is
+     open, and proportional digits make it jitter sideways while it does.
+
+     NONE OF THE THREE CARRIES A COLOUR OF ITS OWN, which is .pk-warn's rule
+     and its reason: each states a fact, and nothing on this surface is coloured
+     to alarm anybody, because nothing on it is a judgement about a build. */
+  .sh-len{margin:8px 0 0;font-size:18px;color:var(--ink-dim);font-variant-numeric:tabular-nums}
+  .sh-warn, .sh-said{margin:8px 0 0;font-size:18px;color:var(--ink-dim);max-width:60ch;line-height:1.4}
+  /* Each carries its own [hidden] rule for the reason .pk-warn, .prj-note and
+     .ae-term each carry one: [hidden]{display:none} is a user-agent rule these
+     margins would not have beaten, but a later author rule giving one of these
+     classes a display would, and the next reader should not have to know which
+     of those is true today. */
+  .sh-warn[hidden], .sh-said[hidden]{display:none}
+
+  /* Done pushes to the end because it is the only control that ends the visit;
+     Copy leads its own row because it acts on the field directly above it. Both
+     are [C07]'s arrangement, restated. No disabled styling is written here:
+     .brd-btn already carries &:disabled, and a second rule for it would be a
+     second place for the two to disagree. */
+  .sh-actions, .rs-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .sh-actions--lead{justify-content:flex-start;margin-top:14px}
+
+  /* The sentence that says what reset does and what survives it. Dimmed like
+     every other line of consequence in this file, and at the 18px floor because
+     it is the one thing a student is being asked to read before they answer. */
+  .rs-says{margin:0 0 6px;color:var(--ink-dim);font-size:18px;line-height:1.45;max-width:56ch}
 </style>
 </head>
 <body>
@@ -947,6 +1053,51 @@
       <div class="brd-tokedit" role="group" aria-labelledby="actedit-label">
         <span class="brd-tokedit-label" id="actedit-label">Action rules</span>
         <button class="brd-btn" type="button" data-k="act" data-act="openActionEditor">Actions</button>
+      </div>
+      <!-- THE THIRD AND FOURTH PERMANENT BUTTONS, AND THEY ARE PAID FOR HERE
+           RATHER THAN NOTICED LATER, in the register the button above is paid
+           for in. Both were reserved BY NAME in D-04's comment at the top of
+           this cluster — "Phase 4 adds reset and share to it" — so neither is a
+           control that arrived because somebody needed somewhere to put it.
+
+           THE BOUND, RESTATED, BECAUSE THE COUNT WENT UP. Each is ONE button,
+           each is PERMANENT, and each is BOUNDED: there is one share surface
+           however many builds a student makes, and one reset however many times
+           they use it. The collapse D-05 made — a row of one button per type
+           the board ships with, reduced to one that names no type — is not
+           undone by either of these, and IT MUST NOT BECOME ONE-PER-ANYTHING.
+           The cluster's remaining reservation is Phase 5's turn state and
+           start-fight, and after those two the reservation is spent. A later
+           phase wanting a control per action, per side or per round gets the
+           answer D-05 already gave: put it in the surface, not on the bar,
+           because the bar is the one place UX-02 says a projector may not grow
+           a queue of controls.
+
+           RESET SITS APART FROM THE NON-DESTRUCTIVE CONTROLS (SHARE-04's fourth
+           criterion, in as many words). The separation is a rule inside this
+           cluster — a hairline and a gap drawn from --line, plus the danger
+           colouring #err-reset already wears — and NOT a second bar. A second
+           bar would re-lay-out the page, which is the one thing D-04's slot
+           exists to make unnecessary.
+
+           Static markup, unique data-k, for the reason both buttons above give:
+           the structural rebuild restores focus by taking the FIRST
+           [data-k="..."] match, so a key rendered inside a repeated region
+           would silently break focus restore. Neither button carries a pane, a
+           side or a type, and neither may grow one — a hidden data attribute
+           here would be the collapse undone in private.
+
+           BOTH ACTS ARE PAGE WORK AND ARE CLAIMED BY [S07.4], which is plan
+           04-06's. Until that region ships they are markup with no handler
+           registered, exactly as UI_ACTS' own comment describes ("claimed and
+           ignored"); nothing in this repo presses them before then. -->
+      <div class="brd-tokedit" role="group" aria-labelledby="share-label">
+        <span class="brd-tokedit-label" id="share-label">Build code</span>
+        <button class="brd-btn" type="button" data-k="sh" data-act="openShare">Share</button>
+      </div>
+      <div class="brd-tokedit rs-apart" role="group" aria-labelledby="reset-label">
+        <span class="brd-tokedit-label" id="reset-label">Start over</span>
+        <button class="brd-btn brd-btn--danger" type="button" data-k="rs" data-act="openResetAsk">Reset</button>
       </div>
     </div>
   </div>
@@ -1362,6 +1513,208 @@
   </section>
 </dialog>
 
+<!-- The share surface (SHARE-01, SHARE-04, SHARE-06 — plan 04-05). Static
+     markup and a sibling of #err-panel, outside #app, for the reason the two
+     dialogs above give in full: nothing about it may depend on a rebuild.
+     [S06.6] writes the code, its length and the over-budget line; [S07.4] —
+     plan 04-06's — opens it, moves between its panes and reads the presses,
+     both attached through [S07]'s LATE_BINDERS and SYNC_HOOKS seams.
+
+     ONE DIALOG WITH TWO PANES (D-21), in #act-edit's shape and for its three
+     costs: two dialogs are two topbar buttons, two LATE_BINDERS entries, two
+     delegated roots and two fingerprints; a modal opened from inside a modal
+     stacks focus and close-request behaviour the Node stub cannot exercise at
+     all; and every id here is a line in tests/selftest-node.cjs that has to be
+     built by hand. Giving a classmate your build and taking theirs are two
+     directions of ONE act, which is what makes them panes rather than surfaces.
+     Which pane is showing is data-sh-pane on the dialog node, owned by [S06.6],
+     in the technique [S06.2], [S06.5] and [S07.2] all state — an attribute
+     answering exactly one question.
+
+     THE SECOND PANE TAKES A DIFFERENT ID STEM, sh-load-* against share-*, for
+     the reason the proposal pane takes act-prop-* against act-edit-*: the two
+     panes' controls then partition by attribute, and a check can read that
+     partition back rather than reproducing a structure by hand.
+
+     #share-code AND #sh-load-field ARE BOTH STATIC, and they are static for
+     OPPOSITE halves of the same reason. The surface repaints on every frame
+     while it is open. #sh-load-field holds text a STUDENT typed, so a node
+     rebuilt or overwritten mid-typing loses the half-typed paste — the rule
+     #tok-pick-name, #act-edit-name and every term row already keep (D-19).
+     #share-code holds text the ARTIFACT produced, and the failure mode is the
+     reverse: a student who focused it to select the code, then changed the
+     board, would copy a code describing a board that no longer exists. So
+     [S06.6] REWRITES that one even while it holds focus and re-applies the
+     selection afterwards, and the reasoning is written out beside the code that
+     does it. Both fields are static so that neither decision is taken away by a
+     rebuild.
+
+     EVERY CONTROL IN HERE CARRIES A PRIVATE data-sh, not a data-act, for the
+     reason #act-prop-open carries data-ap: these are page work read by this
+     surface's own delegated listener, and the two presses that DO write state —
+     loading a pasted code, and confirming a reset — need a payload key fire()
+     does not carry, so they go through the dialog's listener calling dispatch
+     directly rather than through a second recorded exception in [S07.1].
+
+     Adding an id here without teaching tests/selftest-node.cjs about it fails
+     the run in both directions, and — since plan 03.1-01 — so does adding a
+     <dialog> without an entry in DIALOG_ROOTS. The id, the KNOWN_IDS entry, the
+     stub node and the DIALOG_ROOTS entry arrived together. -->
+<dialog class="sh" id="share" aria-labelledby="share-title" data-sh-pane="copy">
+
+  <section class="sh-pane" id="share-pane-copy">
+    <div class="eyebrow">Share</div>
+    <h2 class="sh-title" id="share-title">Build code</h2>
+    <p class="sh-note">Copy this and paste it into the course thread. It is the whole of your build — both rosters, both action lists and every token type you made.</p>
+
+    <!-- .err-detail's job, one phase early and one surface across: a monospace,
+         selectable box that exists so its contents can be pasted into the
+         course thread. readonly rather than disabled, because a disabled field
+         cannot be selected and SHARE-01's fallback is a student pressing
+         Ctrl+C over a selection.
+
+         THE CLASS IS NOT DECORATION. [S06.6] and [S07.4] both tell this field
+         apart from the paste field by it, exactly as [S07.2] tells .pk-name
+         apart and [S07.3] tells .ae-amt apart, and the class is in the stub
+         page too — without it every handler declines on its first line and a
+         gate check driving them reads green over a field nothing is listening
+         to. -->
+    <textarea class="sh-code" id="share-code" readonly spellcheck="false" wrap="soft" aria-labelledby="share-title" data-k="sh/code"></textarea>
+
+    <!-- SHARE-04's second criterion. A COUNT OF CHARACTERS AND NOTHING ELSE:
+         it is a fact about the string above it, never a remark about the board
+         that produced it. The moment it acquires an adjective it is a ruling
+         on a student's build, which PROJ-06 forbids and Layer C would redden
+         on. Written by [S06.6] on every repaint. -->
+    <p class="sh-len" id="share-length"></p>
+
+    <!-- D-18's line, and it is descriptive for the same reason the count is a
+         count: it says a CODE is longer than a message allows and says nothing
+         at all about the build. Empty and hidden until it applies, in
+         #tok-pick-names' shape, so nothing is on screen for a code that fits.
+         The threshold is App.data.CODE_WARN. -->
+    <p class="sh-warn" id="share-over" hidden></p>
+
+    <!-- What the copy actually did, branched on the tier that succeeded rather
+         than assumed — an optimistic message here would send a student to the
+         course thread with stale text on their clipboard. Written by [S07.4]
+         (plan 04-06) and by nothing in [S06]; empty and hidden until then. -->
+    <p class="sh-said" id="share-said" hidden></p>
+
+    <div class="sh-actions sh-actions--lead">
+      <button class="brd-btn" type="button" id="share-copy" data-sh="copy" data-k="sh/copy">Copy</button>
+    </div>
+
+    <!-- The pane switch and the end of the visit, in that order: one moves to
+         the other half of this dialog, the other ends the whole thing. [C07]'s
+         arrangement, restated for the reason [C12]'s banner gives. -->
+    <div class="sh-actions">
+      <button class="brd-btn" type="button" id="share-to-load" data-sh="to-load" data-k="sh/to-load">Paste a build code</button>
+      <button class="brd-btn" type="button" id="share-done" data-sh="done" data-k="sh/done">Done</button>
+    </div>
+  </section>
+
+  <section class="sh-pane" id="sh-load" hidden>
+    <div class="eyebrow">Load</div>
+    <h2 class="sh-title" id="sh-load-label">Paste a build code</h2>
+    <p class="sh-note">Paste a classmate's code and press Load. It replaces the board, and one Ctrl+Z brings yours back.</p>
+
+    <!-- STATIC, and never written by [S06.6], for the original reason: this
+         holds text a student typed or pasted, and a node rebuilt or overwritten
+         mid-typing loses it (D-19). Its class is load-bearing in exactly the
+         way #share-code's is. -->
+    <textarea class="sh-paste" id="sh-load-field" spellcheck="false" autocomplete="off" wrap="soft" aria-labelledby="sh-load-label" data-k="sh/paste"></textarea>
+
+    <!-- Where a refusal lands. [S04.3] hands back a record with one of four
+         reasons rather than throwing, and plan 04-07 owns the words. Empty and
+         hidden until there is something to say. -->
+    <p class="sh-said" id="sh-load-said" hidden></p>
+
+    <div class="sh-actions">
+      <button class="brd-btn" type="button" id="sh-load-do" data-sh="load" data-k="sh/load">Load</button>
+      <button class="brd-btn" type="button" id="sh-load-back" data-sh="to-copy" data-k="sh/to-copy">Done</button>
+    </div>
+  </section>
+</dialog>
+
+<!-- THE RESET CONFIRMATION (SHARE-06, D-19 — plan 04-05). Its own root rather
+     than a third pane of the surface above, and that is a decision rather than
+     an oversight: it is a different ACT with a different opener, SHARE-04's
+     fourth criterion requires it to read as unmistakably apart from the
+     non-destructive controls, and burying it inside a share surface would make
+     "start over" reachable only by first opening the thing a student uses to
+     share. The cost is five shell ids and one more DIALOG_ROOTS entry, both of
+     which are arithmetic rather than judgement.
+
+     ================================================================
+     WHY THERE IS A CONFIRMATION HERE AT ALL, WHEN THERE IS NOT ONE
+     ANYWHERE ELSE IN THIS FILE.
+     ================================================================
+     This is the one technique in this phase that contradicts a decision the
+     repo already took in writing, so it is written out at length rather than
+     referenced — the same treatment App.ops.clampTokenName gets for being the
+     one technique with no precedent.
+
+     D-17 DECLINED CONFIRMATIONS, TWICE, BY NAME. removeTokenType and
+     removeAction each take away something a student made, each commits with no
+     modal, and each carries a comment saying so: a modal costs an instructor a
+     click mid-demo to guard against something undo already covers. The one
+     prior time that policy met a competing requirement — ACT-07, "say what a
+     removal will break" — the answer was a permanent LINE beside the button
+     (#tok-pick-names above), explicitly not a dialog, and that comment records
+     the reasoning in full.
+
+     RESET IS DIFFERENT, AND THE DIFFERENCE IS MEASURED RATHER THAN FELT.
+     App.ops.resetToDefaults makes exactly ONE commit, so it leaves exactly one
+     undo entry, and one Ctrl+Z restores the build byte for byte. That is true
+     of removeTokenType and removeAction as well. What is NOT true of them is
+     what happens next: App.state's undo stack is hard-capped at UNDO_LIMIT,
+     which is thirty, and the oldest entry is dropped when a thirty-first
+     arrives. A student who resets and then keeps working — thirty nudges of a
+     health field is a minute of the exercise — has the entry that held their
+     whole allocation pushed off the bottom of the stack, and there is nowhere
+     else it exists. Every other destructive act in this file takes away one
+     type or one rule, and the board around it is still on screen to rebuild
+     from. Reset takes away all of it at once and is the ONLY destructive act
+     in this file whose escape hatch can age out from under the student.
+
+     That is what makes this confirmation load-bearing rather than ceremonial,
+     which is precisely the distinction D-17 was drawing when it declined the
+     other two.
+
+     D-17 STAYS INTACT EVERYWHERE ELSE. This is not licence to add a
+     confirmation to a removal, to a rename, or to anything a later phase adds.
+     The test is the one above and it is narrow: does undo stop being able to
+     recover this while the student is still working? For every other op in this
+     file the answer is no.
+
+     #err-reset IS DELIBERATELY NOT ROUTED THROUGH HERE. The error panel's own
+     reset button fires from a state where the board may already disagree with
+     memory, and D-15 promises recovery there in ONE click. A modal in front of
+     it would make recovery two clicks in the one situation where it must be
+     one — and App.boot's fail() already CLOSES open modals before raising the
+     panel, for a closely related reason, so putting one back in the recovery
+     path would be undoing that fix from the other end.
+
+     Nothing on this surface is drawn from state, so it rides no SYNC_HOOKS
+     entry and [S06.6] says so in its banner rather than leaving a reader to
+     wonder why only one of the two new dialogs repaints. -->
+<dialog class="rs" id="reset-ask" aria-labelledby="reset-ask-title">
+  <div class="eyebrow">Reset</div>
+  <h2 class="rs-title" id="reset-ask-title">Reset to Workshop 16 defaults</h2>
+  <!-- What it does and what survives it, said before it happens rather than
+       after, in #tok-pick-names' register: a plain statement of consequence
+       with no colour and no alarm. The undo sentence is the honest one — it
+       says both that Ctrl+Z brings the board back AND that it stops being able
+       to, because a confirmation that oversold the escape hatch would be worse
+       than none. -->
+  <p class="rs-says" id="reset-ask-says">This puts both rosters, both action lists and every token type back to the Workshop 16 defaults. One Ctrl+Z brings your board back — but only for the next thirty changes, after which it is gone. Copy your build code first if you want to keep it.</p>
+  <div class="rs-actions">
+    <button class="brd-btn" type="button" id="reset-ask-cancel" data-rs="cancel" data-k="rs/cancel">Cancel</button>
+    <button class="brd-btn brd-btn--danger" type="button" id="reset-ask-confirm" data-rs="confirm" data-k="rs/confirm">Discard and start over</button>
+  </div>
+</dialog>
+
 <script>
 /* =========================================================================
  * TABLE OF CONTENTS — the section banner is the file tree.
@@ -1383,17 +1736,20 @@
  *     [S06.3] the advisory projection in the centre strip                  (plan 03-03)
  *     [S06.4] the reference band below both columns                        (plan 03-05)
  *     [S06.5] the action editor — the authoring dialog's repaint            (plan 03.1-05)
+ *     [S06.6] the share surface — the build code, kept from going stale     (plan 04-05)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
+ *     [S07.4] the share and confirm dialogs' handlers                      (plan 04-06)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
  *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
  *
  * The stylesheet above carries its own region markers on the same scheme,
- * [C00] TOKENS through [C12] ACTION EDITOR — search a token such as [C07] and
- * you land in exactly one place there too. [C12] is plan 03.1-05's, and it is
- * named here because it is the region [S06.5] and [S07.3] paint into.
+ * [C00] TOKENS through [C13] SHARE AND CONFIRM — search a token such as [C07]
+ * and you land in exactly one place there too. [C12] is plan 03.1-05's, and it
+ * is named here because it is the region [S06.5] and [S07.3] paint into; [C13]
+ * is plan 04-05's, and it is the region [S06.6] and [S07.4] paint into.
  *
  * Region order is fixed. Dependency arrows point DOWN only; reference another
  * section as App.x.y() at the call site, never by capturing it at section-body
