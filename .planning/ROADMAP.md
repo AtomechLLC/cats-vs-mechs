@@ -296,7 +296,7 @@ is why Phase 3.1 ships a preview rather than an apply.
 
 Plans:
 - [x] 05-01-PLAN.md — the gate learns to read a fight: eleven of the nineteen measured word-list holes closed by measurement, the relationship verb closed by SCOPE rather than by stem so `Fly beats Slash` survives, and a SECOND Layer C harvest taken with a fight running plus `FIGHT_FLOOR` — owns `tests/selftest-node.cjs`'s word lists, harvests and limitations entries (wave 1)
-- [ ] 05-02-PLAN.md — `[S03]`'s slice shape rewritten in the change that makes it untrue: `turn` retired, `log` folded into `past`, `decl`/`past`/`tally` added, `resetFight` in one commit, the DELIBERATELY ABSENT block at :6397-6412 turned into its positive form, and `[S09.12]` opened above any no-DOM bracket (wave 2)
+- [x] 05-02-PLAN.md — `[S03]`'s slice shape rewritten in the change that makes it untrue: `turn` retired, `log` folded into `past`, `decl`/`past`/`tally` added, `resetFight` in one commit, the DELIBERATELY ABSENT block at :6397-6412 turned into its positive form, and `[S09.12]` opened above any no-DOM bracket (wave 2)
 - [ ] 05-03-PLAN.md — `[S02]`'s shield-then-health split as three numbers and no prose, and `[S05]`'s declare / clear ops writing `{ side, act, by, at }` — keys chosen to clear check 73c rather than widen it — with the nothing-resolves-while-declaring row (wave 3)
 - [ ] 05-04-PLAN.md — `advanceRound`: one op, one commit, the round number in the label, and `[S09.10]` rows 1 and 3 turned in the open into their positive form while row 2 stays intact — plus a fourth row making "no relationship consumer, no keyword writer" mechanical (wave 4)
 - [ ] 05-05-PLAN.md — hand rulings: `setFightShield` (the writer named for this plan two phases ago), `nudgeFightHp`, the withheld `setUnitHp` / `setAlive` arms, and a ruling recorded as an event in its round rather than as a flag on a value — `[S09.3]`'s shield tripwire turned (wave 5)
@@ -357,7 +357,7 @@ parallel if desired.
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
-| 5. Fight Loop & Playtest | 1/11 | In Progress|  |
+| 5. Fight Loop & Playtest | 2/11 | In Progress|  |
 
 ## Coverage
 

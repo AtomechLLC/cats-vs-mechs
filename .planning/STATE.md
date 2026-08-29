@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-01-PLAN.md
-last_updated: "2026-08-29T09:04:50.272Z"
+stopped_at: Completed 05-02-PLAN.md
+last_updated: "2026-08-29T09:31:26.790Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 34
-  percent: 79
+  completed_plans: 35
+  percent: 81
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 1 of 11
-Status: In progress — 05-01 complete (gate infrastructure)
+Plan: 3 of 11
+Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [████████░░] 79%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -70,6 +70,7 @@ Progress: [████████░░] 79%
 | Phase 04 P07 | 105min | 3 tasks tasks | 2 files files |
 | Phase 04 P08 | 35min | 2 tasks tasks | 0 files files |
 | Phase 05 P01 | 95min | 2 tasks tasks | 1 file files |
+| Phase 05 P02 | 105min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -134,6 +135,11 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-01: beat/beats/beaten is closed by READ-SITE scope (#refband), never by stem or text allowlist, so the shipped 'Fly beats Slash' survives
 - [Phase ?]: 05-01: FIGHT_FLOOR is set AT the roster-independent part of the measurement (41 of 101), not below the total — 05-07/05-08/05-09 own the re-measure
 - [Phase ?]: 05-01: the eight clean-but-unshippable words are harness limitation 18 and 05-11's item 31, not a silent widening
+- [Phase ?]: 05-02: fight.turn retired and fight.log folded into past — the round loop is simultaneous, and did+hand is the record
+- [Phase ?]: 05-02: D-24 widened — a student-made tally crosses into the fight at BOTH scopes, mirroring the build, because a unit-scoped type would otherwise have nowhere in the fight slice to live
+- [Phase ?]: 05-02: setUnitHp's clamp stays MAX_ALLOC — whether a heal may overshoot is a ruling, and rulings belong to the table
+- [Phase ?]: 05-02: check 73c is NOT widened to reach the fight slice; the reach is added inside [S09.12] instead, because widening 73c costs the guarantee it exists for
+- [Phase ?]: 05-02: probes E and F measured that EVERY state-shape rule in the repo reads a null fight slice — a row that cannot fail is a row asserting nothing
 
 ### Pending Todos
 
@@ -157,6 +163,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T09:04:42.346Z
-Stopped at: Completed 05-01-PLAN.md
+Last session: 2026-08-29T09:31:26.780Z
+Stopped at: Completed 05-02-PLAN.md
 Resume file: None
