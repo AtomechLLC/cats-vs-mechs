@@ -11620,6 +11620,18 @@ App.render = (function () {
    * touches that is NOT inside #fightbar, which is why a whole-set comparison
    * over this region reads it separately rather than being surprised by it.
    *
+   * AND NO GATE IN THIS REPOSITORY WATCHES THAT RULE ON THIS REGION YET, which
+   * is a measurement rather than a worry. Plan 05-07 drove the exact violation —
+   * the Advance control disabled when a side's declared cost exceeds its pool —
+   * and the whole suite stayed spotlessly green: 1185 passed, 0 failed, 147 of
+   * 147. The comparison that DOES redden on it is check 71c's shape moved to
+   * this region: the whole disabled set of fifty-one controls, keyed by data-k,
+   * read on two boards that differ only in what the declared action costs, with
+   * a second clause that refuses any `=true` at all. Driven, it goes from
+   * `fg/advance=false` to `fg/advance=true` and the set comparison fails with
+   * it. PLAN 05-10 OWES THAT ROW, and this paragraph is why it is a requirement
+   * rather than a nicety.
+   *
    * NOTHING HERE RULES ON A BUILD, and the word for the thing this region may
    * not produce is itself refused document-wide by the dev gate — so it is
    * described here rather than spelled, which is the rule [C11] and refCard

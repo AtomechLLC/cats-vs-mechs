@@ -5379,6 +5379,29 @@ check(
    so that a red run names WHICH PAGE said it. Row 48 is over a board a student
    is building; this row is over a board a student is playing, and those are two
    different conversations to have with whoever is reading the failure. */
+/* THIS HARVEST IS TAKEN ON A FIGHT WITH AN EMPTY DECLARATION LIST, AND THAT IS
+   A HOLE PLAN 05-10 HAS TO CLOSE. Measured by plan 05-07's probe X rather than
+   suspected: [S06.7] assembles one declaration line per record out of the
+   artifact's words and the student's, one node per fragment, with the
+   action-name exemption marker on the student's half — and that whole
+   arrangement is UNEXERCISED by this row, because startFight() leaves
+   state.fight.decl empty and no declaration line is ever painted for the walk
+   to read.
+
+   The probe spelled one line as a SINGLE STRING instead — the exact defect the
+   channel exists to prevent — renamed an action to a word on this file's own
+   list, and took two harvests off the same page:
+
+     with nothing declared   211 strings, ZERO hits   <- what this row takes
+     with one declaration    212 strings, ONE hit:
+         [winner] in "Cat 1 uses Winner on Mech 1." (read from #app)
+
+   So the channel is correct and live — with the shipped spelling the same board
+   harvests 213 strings and stays clean, because the walk skips the marked node
+   and reads "Cat 1 uses " and " on Mech 1." as two of the artifact's own
+   fragments — and this row cannot see either outcome. THE FIX IS ONE LINE: this
+   harvest must be taken with at least one declaration on the page, on each
+   side, through the real op. Plan 05-10 owns it. */
 const fightSaved = JSON.stringify(A.state.get());
 
 A.ops.startFight();
