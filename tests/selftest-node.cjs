@@ -7077,13 +7077,22 @@ check(
   copiedCode === beforeCopyLive
     && copiedCode === liveCode()
     && copiedRead.ok === true
-    && A.serialize.encode(copiedRead.build) === liveCode(),
+    && A.serialize.encode(copiedRead.build) === liveCode()
+    // AND THE PRESS IS WHAT PUT IT THERE. Without this clause the row goes
+    // green over a Copy button that does nothing at all: the per-frame hook
+    // keeps the field current on its own, so "the field holds the live code"
+    // is true whether or not anything was pressed. The selection is the only
+    // thing on this surface that ONLY the press produces.
+    && shareCodeField.selectionStart === 0
+    && shareCodeField.selectionEnd === copiedCode.length,
   'field===live encode=' + (copiedCode === liveCode())
     + ' decode ok=' + copiedRead.ok
     + ' why=' + JSON.stringify(copiedRead.why || null)
     + ' round trip=' + (copiedRead.ok === true
       && A.serialize.encode(copiedRead.build) === liveCode())
     + ' length=' + copiedCode.length
+    + ' selection=' + shareCodeField.selectionStart + '..'
+    + shareCodeField.selectionEnd
 );
 
 shPress(shareDoneBtn);
