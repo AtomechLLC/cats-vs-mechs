@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-10-PLAN.md
-last_updated: "2026-08-29T16:26:36.961Z"
+stopped_at: Completed 05-13-PLAN.md
+last_updated: "2026-08-29T16:52:01.304Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 48
-  completed_plans: 44
+  completed_plans: 45
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 12 of 16 — 05-12 complete, 05-13 next
-Status: Executing — D-27 gap closure (05-12..05-16), then the 05-11 playtest last
+Plan: 14 of 16 — 05-13 complete, 05-14 next
+Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [█████████░] 92%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -80,6 +80,7 @@ Progress: [█████████░] 92%
 | Phase 05 P09 | 110min | 2 tasks | 3 files |
 | Phase 05 P10 | 125min | 2 tasks tasks | 3 files files |
 | Phase 05 P12 | 105min | 2 tasks tasks | 2 files files |
+| Phase 05 P13 | 82 | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -180,6 +181,10 @@ Recent decisions affecting current work:
 - [Phase 05-12]: A view is not state: the switch carries data-vw and no data-act, writes no slice, and check 103 requires the whole state byte-identical across both presses. Probe AJ drives the violation and the row reddens.
 - [Phase 05-12]: The view follows a fight across its two edges and across nothing between them, via a derived page-side flag — so a student who switches to the board mid-fight is not thrown back, and an undo of startFight moves the view for free.
 - [Phase 05-12]: No height dial was turned by plan 05-12. The viewport budget is dissolved structurally; [C14]'s 736px basis, [C14.1]'s 34vh and .ld-list's 46vh are all left for 05-14 and 05-15 to re-measure.
+- [Phase 05-13]: apSpent is AMENDED not retired: it keeps two live readers in [S06.7]/[S06.9] and answers a different question (a mid-fight build edit) than spokenFor does
+- [Phase 05-13]: The default target is a DERIVATION and never an op behaviour: declareAction stores exactly what it is handed, so a defaulted declaration is byte-identical to a hand-picked one
+- [Phase 05-13]: One performer holds one action because the RECORD says so: declareAction replaces in place, a null performer always appends, and the MAX_DECLARATIONS refusal sits on the append path only
+- [Phase 05-13]: The commit label carries the PERFORMER rather than the slot index, so a declare-then-retarget costs one Ctrl+Z and two units in a burst still cost two
 
 ### Pending Todos
 
@@ -205,6 +210,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T16:26:15.328Z
-Stopped at: Completed 05-10-PLAN.md
+Last session: 2026-08-29T16:51:51.908Z
+Stopped at: Completed 05-13-PLAN.md
 Resume file: None

@@ -40,13 +40,13 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **FIGHT-14**: On advancing, the previous state of the board moves up into a visible history, so earlier rounds stay on screen and readable rather than being replaced
 - [ ] **FIGHT-15**: The current board shows what changed since the previous round, so a student can see the effect of what they just declared without reconstructing it
 - [ ] **FIGHT-16**: Damage spends shield before it reaches health, and the tool shows that split rather than applying it silently
-- [ ] **FIGHT-03**: Student can spend a faction's action points during its turn, with spent points visibly distinct from available ones
+- [x] **FIGHT-03**: Student can spend a faction's action points during its turn, with spent points visibly distinct from available ones
 - [x] **FIGHT-04**: Student can apply damage to an individual unit
 - [x] **FIGHT-05**: A unit reaching zero health is marked dead but can be manually toggled alive or dead, so a student's Shield or Evade ruling is representable
 - [ ] **FIGHT-06**: Dead units stay visible in the roster rather than disappearing
 - [x] **FIGHT-07**: Student can manually override any tracked value at any point, and the override is visibly marked as one
 - [ ] **FIGHT-08**: Combat log records each turn's actions and every manual override
-- [ ] **FIGHT-09**: Whose turn it is and what remains to spend are unambiguous at a glance
+- [x] **FIGHT-09**: Whose turn it is and what remains to spend are unambiguous at a glance
 - [ ] **FIGHT-10**: Student can edit the build mid-fight; edits apply to the build rather than retroactively to the fight in progress, and the tool says so
 - [ ] **FIGHT-11**: The shipped 9-Cats-vs-3-Mechs default produces a genuinely contested fight — verified by playing it to completion, not by code review
 
@@ -154,13 +154,13 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACT-07 | Phase 3.1 | Complete |
 | FIGHT-01 | Phase 5 | Complete |
 | FIGHT-02 | Phase 5 | Complete |
-| FIGHT-03 | Phase 5 | Pending |
+| FIGHT-03 | Phase 5 | Complete |
 | FIGHT-04 | Phase 5 | Complete |
 | FIGHT-05 | Phase 5 | Complete |
 | FIGHT-06 | Phase 5 | Pending |
 | FIGHT-07 | Phase 5 | Complete |
 | FIGHT-08 | Phase 5 | Pending |
-| FIGHT-09 | Phase 5 | Pending |
+| FIGHT-09 | Phase 5 | Complete |
 | FIGHT-10 | Phase 5 | Pending |
 | FIGHT-11 | Phase 5 | Pending |
 | FIGHT-12 | Phase 5 | Complete |
