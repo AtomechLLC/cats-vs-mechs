@@ -10773,6 +10773,97 @@ check(
     + ' | every =true entry=' + JSON.stringify(bfOffTrue)
 );
 
+/* 106j. NODE IDENTITY UNDER A DELTA, AND THIS ROW EXISTS BECAUSE PROBE BA
+   FOUND THAT NOTHING IN THIS REPOSITORY ASSERTED IT.
+
+   THE PROBE, AND WHAT IT MEASURED. It replaced this region's syncRow call with
+   an ordinary loop — empty the row, append n fresh tokens — keeping compaction
+   so that only RULES 2 and 3 were violated. Measured in real Chrome on the
+   shipped board, one point of health moved by one hand ruling:
+
+                                          shipped        the loop
+       nodes of 3 replaced on a -1            0              3
+       nodes replaced on the +1 back          0              2
+       tokens playing the entry pop           1              3
+       the board's own row (control)          0              0
+
+   THE SUITE WENT 178 OF 179 AND THAT WAS ALMOST A GREEN. The one row that
+   reddened was 106c, and it reddened for the WRONG REASON: it compares the
+   token's whole className and the loop's tokens carry the entry-pop class, so
+   what it caught was an animation flag rather than a replacement. Every other
+   row was spotless, because a row that counts tokens cannot tell three surviving
+   nodes from three new ones. THAT IS THE FINDING, and this row is the answer to
+   it rather than a note in a summary.
+
+   WHY IT MATTERS ENOUGH TO BE A ROW. syncRow's own comment says it: appendChild
+   on a node that is already a child is a MOVE, removal from the document
+   cancels that element's CSS animations, and re-insertion replays them from the
+   beginning — so "every token replaying its pop on a game-feel course artifact
+   is a correctness bug, not a polish item". On a nine-health unit the loop
+   plays nine pops for one point of damage, and the ONE pop a student is
+   supposed to read is lost among eight it invented. Check 100's third clause is
+   the only thing in this repository that asserts anything of this shape, one
+   region over and about a ledger row rather than a token.
+
+   IT IS DRIVEN THROUGH A REAL HAND RULING IN BOTH DIRECTIONS, because down and
+   up fail differently: down is a removal and must move nothing else, up is a
+   single append and must animate exactly the one node it appended. */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+fgPress(fgStart);
+const bfIdToks = () => {
+  const line = bfLineOf('cats', 'c1', 'hp');
+  return line === null ? [] : line.querySelectorAll('.tok');
+};
+const bfIdHp = A.state.get().fight.cats.units[0].hp;
+const bfIdBefore = bfIdToks().length;
+bfIdToks().forEach((n, i) => { n.dataset.probeIdentity = String(i); });
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c1', value: bfIdHp - 1 });
+A.state.flush();
+const bfIdDown = bfIdToks();
+const bfIdDownSurv = bfIdDown
+  .filter((n) => n.dataset.probeIdentity !== undefined).length;
+bfIdDown.forEach((n, i) => { n.dataset.probeIdentity2 = String(i); });
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c1', value: bfIdHp });
+A.state.flush();
+const bfIdUp = bfIdToks();
+const bfIdUpSurv = bfIdUp
+  .filter((n) => n.dataset.probeIdentity2 !== undefined).length;
+const bfIdUpNew = bfIdUp
+  .filter((n) => n.dataset.probeIdentity2 === undefined).length;
+const bfIdAnimating = bfIdUp
+  .filter((n) => String(n.className).split(/\s+/).indexOf('tok--in') !== -1).length;
+check(
+  '106j. THE BATTLEFIELD GROWS AND SHRINKS BY DELTA AND NEVER REBUILDS A TOKEN '
+    + 'ROW — RULES 2 AND 3, asserted by NODE IDENTITY rather than by a count, '
+    + 'because a count cannot tell three surviving nodes from three new ones. '
+    + 'Every token is tagged, one hand ruling takes the health DOWN by one, and '
+    + 'every remaining node must be the SAME OBJECT; then one takes it back UP '
+    + 'and exactly ONE node is new and exactly ONE carries the entry class. '
+    + 'This is the animation contract and not a performance one: removal from '
+    + 'the document cancels an element\'s CSS animations and re-insertion '
+    + 'replays them, so a rebuilt row plays nine pops for one point of damage '
+    + 'and the one pop a student is meant to read is lost among eight the tool '
+    + 'invented. PROBE BA MEASURED EXACTLY THAT — 3 of 3 nodes replaced against '
+    + '0, and 3 tokens animating against 1 — and the whole suite was green over '
+    + 'it except one row that caught the animation CLASS by accident. This row '
+    + 'is what makes the catch deliberate',
+  bfIdBefore === bfIdHp && bfIdBefore > 1
+    && bfIdDown.length === bfIdHp - 1
+    && bfIdDownSurv === bfIdHp - 1
+    && bfIdUp.length === bfIdHp
+    && bfIdUpSurv === bfIdHp - 1 && bfIdUpNew === 1
+    && bfIdAnimating === 1 && errPanel.hidden === true,
+  'the row held ' + bfIdBefore + ' tokens for a unit at ' + bfIdHp + ' health'
+    + ' | after -1 it holds ' + bfIdDown.length + ' of which '
+    + bfIdDownSurv + ' are the SAME objects (replaced='
+    + (bfIdBefore - 1 - bfIdDownSurv) + ')'
+    + ' | after +1 it holds ' + bfIdUp.length + ' of which ' + bfIdUpSurv
+    + ' are the same objects and ' + bfIdUpNew + ' are new'
+    + ' | tokens playing the entry pop=' + bfIdAnimating
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
