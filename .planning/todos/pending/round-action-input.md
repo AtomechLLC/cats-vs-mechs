@@ -42,8 +42,26 @@ precisely that mechanism, described from the student's side.
   it may report that a student cannot afford an action, but it must not prevent them declaring it.
 - Landing a declaration must go through the named-op + `commit()` funnel so Ctrl+Z covers it.
 
-## Open question for discuss-phase
+## Open question — ALREADY ANSWERED, do not re-ask
 
-Whether a declaration is per-side or per-unit. The request says "the current round," which suggests
-per-side; but actions carry per-unit costs and requirements, which suggests per-unit. This changes
-the data shape and should be settled before planning, not during.
+I raised whether a declaration is per-side or per-unit. ROADMAP.md already answers it, in the section
+headed **"THE ROUND LOOP - the developer's own description, 2026-08-28"** under Phase 5:
+
+> 1. The student declares the actions **both sides** will perform this round - and the performer and
+>    target where the action needs them. Nothing resolves while declaring.
+> 2. They press **Advance**. The round resolves for both sides at once.
+> 3. **The previous state of the board moves up into a history**, so earlier rounds stay on screen.
+> 4. The new state shows **what changed since the previous round**.
+> 5. They declare again and advance to the next round.
+
+So: **simultaneous declaration for both sides, per action, carrying performer and target, resolved by
+one Advance.** Not alternating turns. The roadmap states explicitly that this supersedes FIGHT-02's
+original "advance and rewind turn and round" reading.
+
+Two further constraints stated there and easy to miss:
+- The history is a **ledger that accumulates on screen** - the board's own past states stack upward -
+  **not** a log panel.
+- The developer explicitly rejected calling a round a "Day".
+
+This request restates that loop from the student's side. It confirms the roadmap; it does not
+change it.
