@@ -22757,6 +22757,21 @@ App.selftest = (function () {
     t.info('bytes of fight slice on the shipped board, round one, nothing '
       + 'declared — [S03] snapshots this whole object on EVERY commit',
       JSON.stringify(fight()).length);
+    t.info('MAX_HAND_RULINGS — the ceiling on the round\'s by-hand ruling list, '
+      + 'oldest dropped. The roster ceiling per side, times the two sides, times '
+      + 'the three values a unit carries that a student can rule on',
+      App.ops.MAX_HAND_RULINGS);
+    t.info('bytes of fight slice with the ruling cap\'s worth of by-hand records '
+      + 'on it, so plan 05-08\'s ledger has a figure to read a delta against — '
+      + 'and so the cost of the snapshot commit() takes on every write is a '
+      + 'number somebody has seen rather than a guess', (function () {
+        var wide = JSON.parse(JSON.stringify(App.state.get()));
+        wide.fight.hand = [];
+        while (wide.fight.hand.length < App.ops.MAX_HAND_RULINGS) {
+          wide.fight.hand.push({ side: 'cats', unit: 'c1', tok: 'hp', from: 3, to: 2 });
+        }
+        return JSON.stringify(wide.fight).length;
+      })());
     t.info('MAX_DECLARATIONS — the ceiling on the round\'s declaration list. A '
       + 'bound on a RECORD, not a ruling on what a student may do: it is the '
       + 'roster ceiling times the two sides, so it is one declaration for every '

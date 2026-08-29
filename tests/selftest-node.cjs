@@ -590,9 +590,11 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     "declaration naming a removed unit" refusal the plan asked for is NOT
 //     reachable: removeUnit edits the build, the fight roster is copied once
 //     at startFight and never rebuilt, so no unit ever leaves a running fight.
-//   plan 05-05 adds the hand rulings to [S09.12]: 102 rows becomes 128 and the
-//     run goes from 1156 to 1182, floored at 1152 — the same margin of 30 the
-//     seven plans before it kept. Twenty-six rows, and the [S09.3] shield
+//   plan 05-05 adds the hand rulings to [S09.12]: 102 rows becomes 130 and the
+//     run goes from 1156 to 1184, floored at 1154 — the same margin of 30 the
+//     seven plans before it kept. Twenty-eight rows, two of them measurements
+//     (the ruling cap and the bytes it costs inside every one of the thirty
+//     snapshots), and the [S09.3] shield
 //     tripwire rewritten in place rather than added to: it said "shield is a
 //     BUILD write, Phase 5 owns the fight slice's own copy" and asserted only
 //     the build half, so a setFightShield that wrote `build` would have left it
@@ -609,7 +611,7 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     already taken that unit to zero and the set landed where the board
 //     already was: "a set that moved nothing is not a ruling", met in a
 //     resolved round rather than in a comment. The row now reads both.
-const SUITE_FLOOR = 1152;
+const SUITE_FLOOR = 1154;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
