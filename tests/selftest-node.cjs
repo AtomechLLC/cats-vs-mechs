@@ -8727,32 +8727,132 @@ check(
   'keys on the page=' + fgKeyCount + ' duplicates=' + JSON.stringify(fgKeyDupes)
 );
 
-/* 95. NOTHING IS DISABLED FOR ANYTHING A STUDENT DID, in 71c's shape and
-   extended over THREE boards rather than two: a fully funded fight, the same
-   fight driven to no action points AND every unit below every requirement, and
-   the same fight with three units ruled dead. The whole set is compared, keyed
-   by data-k so the choosers and the declaration lines being rebuilt on every
-   repaint does not read as a change — a row that watched one button would be
-   green over a page that disabled every other one.
+/* 95. THE DISABLE CONTRACT, IN BOTH DIRECTIONS, AND THE RULE IT REPLACED.
 
-   THE ALIVE TOGGLE ON A DEAD UNIT IS THE ONE THIS PHASE WOULD BREAK FIRST, and
-   it is what makes a Shield ruling recoverable at all: the tidy shape is to
-   hide "the dead part" as one block and the toggle looks like part of it. Probe
-   AI drives the disable and probe AC drove the hide.
+   ==================================================================
+   WHAT THIS ROW USED TO SAY, AND WHY IT DOES NOT SAY IT ANY MORE.
+   ==================================================================
+   It asserted that NOTHING on the fight page is disabled for anything a student
+   did — 147 controls across three boards, compared as whole sets. That was
+   D-23's rule ("a declared cost that exceeds the pool is reported, never
+   prevented"), and D-23 was an ORCHESTRATOR ASSUMPTION standing in for the
+   developer. The developer has now answered, at the 05-11 checkpoint, in their
+   own words: "Disable any actions whose requirements are not met."
 
-   THE ONE `=true` THE SET IS ALLOWED TO HOLD is the start control, and it is
-   named rather than tolerated: startFight throws on a fight that is already
-   running, so that one is the TOOL bounding what it can do to ITSELF, which is
-   a different thing entirely — 71c\'s own sentence about the picker\'s
-   Remove. */
-/* THE THREE BOARDS ARE BUILT TO THE SAME SHAPE ON PURPOSE, and the first draft
+   SO THE ROW IS TURNED IN THE OPEN, on the 03.1-04 precedent, and it is
+   REWRITTEN RATHER THAN DELETED — a deleted boundary assertion is an Out of
+   Scope entry that has quietly stopped being enforced, which is 72b's own
+   sentence about itself. It was recorded RED against the new contract before it
+   was touched:
+
+     controls compared=137 | funded === cannot pay and cannot meet=false
+     | funded === three ruled dead=false | fight pools driven to [0,0]
+     | the report moved: "" -> "Slash needs 99 Health of 27. Requirement not
+     met." | the advance entry=["fg/advance=false"] | every =true
+     entry=["fg=true"] | alive toggles disabled=[]
+
+   Two of the three whole-set comparisons failed and the other four clauses
+   held, which is the shape the overrule is supposed to have: it reached the
+   grid and nothing else.
+
+   ==================================================================
+   WHAT IT SAYS NOW. TWO HALVES, AND THE FIRST IS THE ONE THAT ERODES.
+   ==================================================================
+   OUTSIDE THE GRID, the whole disabled set is still compared across all three
+   boards and must be IDENTICAL. That is the never-disable rule still in force
+   on everything the overrule does not reach: Advance on a side that cannot pay,
+   Reset, the change-target control, the alive toggle on a unit already marked,
+   every stepper on the board and every control in the topbar. The scope of an
+   overrule is the half nobody re-reads, so it is the half asserted first.
+
+   INSIDE THE GRID, the expected set is computed from `(a) or (b) or (c)`
+   INDEPENDENTLY OF THE RENDER and compared with what the page actually shows,
+   BOTH DIRECTIONS: nothing disabled that should not be, nothing enabled that
+   should be. The expectation reads App.model — affordability, spokenFor and
+   actionApCost — because re-deriving those here would be a second arithmetic
+   agreeing with itself; what it does NOT read is anything [S06.7] wrote. The
+   three conditions are spelled out again below in the harness's own words,
+   which is the point: two independent spellings of one contract, and the row is
+   what makes them agree.
+
+   AND A THIRD CLAUSE, because the two above would both be green over a page
+   that never disabled anything at all: the funded board must show NOTHING
+   disabled inside the grid, the cannot-pay board must show SOMETHING, and the
+   ruled-dead board must show every button of every ruled unit disabled. That is
+   the contract firing rather than merely being agreed with.
+
+   THE THREE BOARDS ARE BUILT TO THE SAME SHAPE ON PURPOSE, and the first draft
    of this row was WRONG for exactly the reason probe W's comparison was built
    like-for-like: the funded board carried a declaration and the driven one
-   resolved it on the Advance that emptied the pools, so the Clear control on
-   that line went away and the two sets differed for a reason that had nothing
-   to do with anything being disabled. Every board below therefore has a fight
-   running and exactly ONE declaration standing, and they differ only in what
-   the side can pay, what it can meet, and who has been ruled dead. */
+   resolved it on the Advance that emptied the pools, so a control on that line
+   went away and the two sets differed for a reason that had nothing to do with
+   anything being disabled. Every board below therefore has a fight running and
+   exactly ONE declaration standing, and they differ only in what the side can
+   pay, what it can meet, and who has been ruled dead.
+
+   WHAT THIS HARNESS CANNOT SEE, named rather than left to be discovered: the
+   stub page has no hit testing, so fgPress on a DISABLED control still reaches
+   the handler here where a real browser would swallow the click entirely. That
+   is why every clause below reads the disabled PROPERTY off the page rather
+   than asserting that a press did nothing — a row written the other way round
+   would be asserting a browser behaviour this file cannot model. Plan 05-16
+   owes the limitations entry. */
+
+/* THE EXPECTATION, COMPUTED FROM STATE AND FROM App.model, AND FROM NOTHING
+   [S06.7] WROTE. The caster shim is spelled again here rather than reached for,
+   because it is [S06.7]'s private helper and a row borrowing it would be a row
+   asserting that the artifact agrees with itself. sideFromBuild carries a
+   unit's allocated health across as `hp` and affordability reads `maxHp`; that
+   rename is what this shim is. */
+function fgExpectedOff(side) {
+  const st = A.state.get();
+  const actions = st.build[side].actions;
+  const live = st.fight[side];
+  const caster = {
+    ap: live.ap,
+    units: live.units.map((u) => ({ maxHp: u.hp, shield: u.shield }))
+  };
+  if (live.tally) { caster.tally = live.tally; }
+  const spoke = A.model.spokenFor(actions, st.fight.decl, side);
+  const priced = (a) => {
+    const c = A.model.actionApCost(a);
+    return Number.isInteger(c) ? c : 0;
+  };
+  const out = [];
+  live.units.forEach((u) => {
+    const held = st.fight.decl.filter((d) => d.side === side && d.by === u.id)[0] || null;
+    const heldAct = held === null
+      ? null : (actions.filter((a) => a.id === held.act)[0] || null);
+    const pledge = heldAct === null ? 0 : priced(heldAct);
+    actions.forEach((a) => {
+      const rep = A.model.affordability(caster, a);
+      let off;
+      // (c) the student's own ruling, read off the STORED flag and never off
+      //     the health — D-00d, and the direction probe AX drives.
+      if (u.alive === false) { off = true; }
+      // (a) a requirement term unmet on the CASTER SIDE.
+      else if (rep.met.some((m) => m.have < m.need)) { off = true; }
+      // a cost the report cannot price never disables — D-16.
+      else if (rep.apCost === null) { off = false; }
+      // (b) the pool this row may still draw on, with its OWN pledge given
+      //     back, which is the clause probe AQ drives.
+      else { off = rep.apCost > (live.ap - spoke + pledge); }
+      out.push('fg/act/' + side + '/' + u.id + '/' + a.id + '=' + off);
+    });
+  });
+  return out.sort().join('|');
+}
+function fgInsideGrid(set) {
+  return set.split('|').filter((e) => e.indexOf('fg/act/') === 0).sort().join('|');
+}
+function fgOutsideGrid(set) {
+  return set.split('|').filter((e) => e.indexOf('fg/act/') !== 0).sort().join('|');
+}
+function fgExpectedBoth() {
+  return (fgExpectedOff('cats') + '|' + fgExpectedOff('mechs'))
+    .split('|').sort().join('|');
+}
+
 function fgFundedBoard() {
   A.ops.resetToDefaults();
   A.state.flush();
@@ -8763,6 +8863,10 @@ fgFundedBoard();
 const fgDisabledFunded = disabledIn(fgApp);
 const fgFundedTrue = fgDisabledFunded.split('|').filter((e) => e.indexOf('=true') !== -1);
 const fgFundedReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-reportbox')).join('');
+const fgFundedInside = fgInsideGrid(fgDisabledFunded);
+const fgFundedWant = fgExpectedBoth();
+const fgFundedOffCount = fgFundedInside.split('|')
+  .filter((e) => e.indexOf('=true') !== -1).length;
 
 // NOTHING TO SPEND AND BELOW EVERY REQUIREMENT. The pool is driven to zero
 // through a real Advance rather than by writing a number into the slice,
@@ -8784,6 +8888,10 @@ const fgOwingReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-reportbox')).joi
 const fgPoorAp = [A.state.get().fight.cats.ap, A.state.get().fight.mechs.ap];
 const fgAdvanceEntry = fgDisabledOwing.split('|')
   .filter((e) => e.indexOf('fg/advance=') === 0);
+const fgOwingInside = fgInsideGrid(fgDisabledOwing);
+const fgOwingWant = fgExpectedBoth();
+const fgOwingOffCount = fgOwingInside.split('|')
+  .filter((e) => e.indexOf('=true') !== -1).length;
 
 // AND THE SAME BOARD WITH THREE UNITS RULED DEAD, through three real presses.
 fgPress(fgAliveBtn('cats', 'c1'));
@@ -8792,35 +8900,155 @@ fgPress(fgAliveBtn('mechs', 'm1'));
 const fgDisabledDead = disabledIn(fgApp);
 const fgDeadToggles = fgDisabledDead.split('|')
   .filter((e) => e.indexOf('fg/alive/') === 0 && e.indexOf('=true') !== -1);
+const fgDeadInside = fgInsideGrid(fgDisabledDead);
+const fgDeadWant = fgExpectedBoth();
+const fgDeadRuledOff = fgDeadInside.split('|').filter((e) =>
+  (e.indexOf('fg/act/cats/c1/') === 0 || e.indexOf('fg/act/cats/c2/') === 0
+    || e.indexOf('fg/act/mechs/m1/') === 0) && e.indexOf('=false') !== -1);
+const fgAtEntries = fgDisabledDead.split('|')
+  .filter((e) => e.indexOf('fg/at/') === 0 && e.indexOf('=true') !== -1);
 const fgControlCount = fgDisabledFunded.split('|').length;
+const fgOutsideSame = fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledOwing)
+  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledDead);
 check(
-  '95. NOTHING IS DISABLED FOR ANYTHING A STUDENT DID, compared as a WHOLE SET '
-    + 'across three boards that differ in nothing else — a funded fight with a '
-    + 'declaration standing, the same fight with both pools driven to nothing '
-    + 'through a real Advance and the declared action costing more than the '
-    + 'side holds and naming a requirement no unit meets, and that board again '
-    + 'with three units ruled dead. The report moves; not one control\'s '
-    + 'disabled state does. The Advance control stays enabled on a side that '
-    + 'cannot pay, and the alive toggle stays enabled on a unit already marked '
-    + '— the direction that makes a Shield ruling recoverable, and the one this '
-    + 'phase would break first. The single =true the set holds is the start '
-    + 'control, which is the tool bounding what it can do to ITSELF rather than '
-    + 'a ruling on a student',
-  fgDisabledFunded === fgDisabledOwing && fgDisabledFunded === fgDisabledDead
+  '95. THE DISABLE CONTRACT, IN BOTH DIRECTIONS, AND THE NEVER-DISABLE RULE '
+    + 'STILL IN FORCE EVERYWHERE IT REACHES. This row REPLACES the assertion '
+    + 'that nothing on this page is ever disabled, which was D-23 — an '
+    + 'orchestrator assumption — and which the developer overruled at the 05-11 '
+    + 'checkpoint in their own words: "Disable any actions whose requirements '
+    + 'are not met." The overrule is scoped to the fight declaration grid, the '
+    + 'never-disable rule REMAINS in force on the build and proposal surfaces '
+    + '(check 71c holds that one and is untouched), and this row is what says '
+    + 'so mechanically. OUTSIDE the grid the whole disabled set is identical '
+    + 'across three boards that differ only in what a side can pay, what it can '
+    + 'meet and who has been ruled dead — Advance stays enabled on a side that '
+    + 'cannot pay, the alive toggle stays enabled on a unit already marked, the '
+    + 'change-target control is never disabled, and the single =true is still '
+    + 'the start control bounding what the TOOL may do to ITSELF. INSIDE the '
+    + 'grid the disabled set is exactly the three conditions — requirement '
+    + 'unmet, the row\'s own remaining pool cannot pay, or the unit ruled dead '
+    + '— computed here from state independently of the render and compared BOTH '
+    + 'WAYS on all three boards. And the contract is asserted to FIRE: nothing '
+    + 'is out of reach on the funded board, something is on the one that cannot '
+    + 'pay, and every button of every ruled unit is on the third',
+  fgOutsideSame === true
+    && fgFundedInside === fgFundedWant
+    && fgOwingInside === fgOwingWant
+    && fgDeadInside === fgDeadWant
+    && fgFundedOffCount === 0 && fgOwingOffCount > 0
+    && fgDeadRuledOff.length === 0
     && fgOwingReport !== fgFundedReport
     && fgFundedTrue.length === 1 && fgFundedTrue[0] === 'fg=true'
     && fgAdvanceEntry.length === 1 && fgAdvanceEntry[0] === 'fg/advance=false'
-    && fgDeadToggles.length === 0 && fgControlCount >= 100,
+    && fgDeadToggles.length === 0 && fgAtEntries.length === 0
+    && fgControlCount >= 100,
   'controls compared=' + fgControlCount
-    + ' | funded === cannot pay and cannot meet='
-    + (fgDisabledFunded === fgDisabledOwing)
-    + ' | funded === three ruled dead=' + (fgDisabledFunded === fgDisabledDead)
+    + ' | OUTSIDE the grid identical across all three boards=' + fgOutsideSame
+    + ' | INSIDE, page === expectation: funded='
+    + (fgFundedInside === fgFundedWant)
+    + ' cannot pay=' + (fgOwingInside === fgOwingWant)
+    + ' ruled dead=' + (fgDeadInside === fgDeadWant)
+    + ' | buttons out of reach: funded=' + fgFundedOffCount
+    + ' cannot pay=' + fgOwingOffCount
+    + ' | a ruled unit\'s buttons still enabled=' + JSON.stringify(fgDeadRuledOff)
     + ' | fight pools driven to ' + JSON.stringify(fgPoorAp)
     + ' | the report moved: ' + JSON.stringify(fgFundedReport)
     + ' -> ' + JSON.stringify(fgOwingReport)
     + ' | the advance entry=' + JSON.stringify(fgAdvanceEntry)
-    + ' | every =true entry=' + JSON.stringify(fgFundedTrue)
+    + ' | every =true entry OUTSIDE the grid=' + JSON.stringify(
+      fgOutsideGrid(fgDisabledFunded).split('|').filter((e) => e.indexOf('=true') !== -1))
     + ' | alive toggles disabled=' + JSON.stringify(fgDeadToggles)
+    + ' | change-target controls disabled=' + JSON.stringify(fgAtEntries)
+);
+
+/* 95b. NO HANDLER WRITES A DISABLED STATE — the assertion plan 05-10 shipped as
+   an ACCEPTANCE LINE rather than as a numbered check, re-homed here, which is
+   exactly how a boundary gets forgotten. That line was `grep -c "\\.disabled"`
+   over [S07.5] printing 0, and it still prints 0 — it is read below off the
+   artifact's own source, sliced between the region's two markers in the shape
+   check 63 already uses.
+
+   BUT THE GREP IS THE WEAKER HALF AND IS NOT THE ROW. The property the new
+   contract makes true is stronger and is what is driven: EVERY DISABLED STATE
+   ON THIS PAGE IS WRITTEN BY THE RENDER TIER AND RE-DECIDED FROM STATE ON EVERY
+   REPAINT. Three drives:
+     a real declaration takes a set of buttons out of reach;
+     an op of probe S's character — a RENAME, which changes what is drawn
+       without changing what the contract answers — rebuilds the picker rows,
+       and the disabled set is identical while the BUTTON NODES ARE DIFFERENT
+       OBJECTS. That pair is the whole of "re-derived rather than sticky": new
+       nodes, written afresh, the same answer. A disable a handler had toggled
+       onto the old nodes would simply not be on the new ones and the set would
+       come back all-false;
+     and an UNDO is driven through the topbar control until the declaration is
+       gone, after which the set follows it back to what it was before.
+   A handler that toggled the property instead fails the second drive outright,
+   and fails the third for a second reason: the undo moves the state and nothing
+   would move the page.
+
+   THE NO-OP FRAME IS DELIBERATELY NOT THE DRIVE, AND THE FIRST DRAFT OF THIS
+   ROW USED ONE AND WAS WRONG. invalidate() plus flush() over a board nothing
+   has changed rebuilds nothing at all — [S06.7]'s fingerprint gate returns
+   early, which is the gate working — so the node came back IDENTICAL and the
+   row failed for a reason that had nothing to do with stickiness. The drive has
+   to be an op the fingerprint actually sees. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+A.state.restore(JSON.stringify(A.state.get()));
+A.state.flush();
+const fgReDisWas = disabledIn(fgApp);
+// A cost the side can pay exactly once, so ONE declaration takes every other
+// row's button out of reach and the contract has something to say.
+A.ops.setActionCost('cats', fgCatsAct, 'ap', 3);
+A.state.flush();
+fgDeclare('cats', fgCatsAct, 'c1');
+const fgReDisAfter = disabledIn(fgApp);
+const fgReNodeWas = fgActBtnOf('cats', 'c3', fgCatsAct);
+A.ops.renameAction('cats', fgCatsAct, 'Pounce');
+A.state.flush();
+const fgReDisIdle = disabledIn(fgApp);
+const fgReNodeNow = fgActBtnOf('cats', 'c3', fgCatsAct);
+fgPress(fgUndoBtn);
+fgPress(fgUndoBtn);
+const fgReDisUndone = disabledIn(fgApp);
+const fgReNameBack = A.state.get().build.cats.actions
+  .filter((a) => a.id === fgCatsAct)[0].name;
+const fgReOffAfter = fgReDisAfter.split('|')
+  .filter((e) => e.indexOf('fg/act/') === 0 && e.indexOf('=true') !== -1).length;
+const FG_S075_OPEN = '// #region [S07.5] INTERACTIONS — THE FIGHT';
+const FG_S075_CLOSE = '// #endregion [S07.5] INTERACTIONS — THE FIGHT';
+const fgS075 = html.slice(html.indexOf(FG_S075_OPEN),
+  html.indexOf(FG_S075_CLOSE) + FG_S075_CLOSE.length);
+const fgS075Writes = (fgS075.match(/\.disabled/g) || []).length;
+check(
+  '95b. THE DISABLE IS A RENDER DECISION AND NO HANDLER WRITES ONE, re-homed '
+    + 'from the acceptance line plan 05-10 shipped it as. The source of '
+    + '[S07.5] is sliced between its own two region markers and the property '
+    + 'that takes a control away appears in it ZERO times — but that grep is '
+    + 'the weaker half. What is DRIVEN is the property the new contract makes '
+    + 'true: a real declaration takes buttons out of reach; a RENAME rebuilds '
+    + 'the picker rows and the disabled set is identical while the button NODES '
+    + 'are different objects, which is re-derived rather than sticky; and the '
+    + 'topbar undo puts the set back to what it was before the declaration. A '
+    + 'handler that toggled the property fails the second drive outright, '
+    + 'because a disable it wrote onto the old nodes is not on the new ones. '
+    + 'Re-deciding is what makes an undo move it too, '
+    + 'which is setEditorEnabled\'s rule and its reason',
+  fgS075Writes === 0
+    && fgReOffAfter > 0
+    && fgReDisAfter !== fgReDisWas
+    && fgReDisIdle === fgReDisAfter
+    && fgReNodeNow !== fgReNodeWas && fgReNodeNow !== null
+    && fgReDisUndone === fgReDisWas && fgReNameBack !== 'Pounce',
+  'the property appears in [S07.5] ' + fgS075Writes + ' times over '
+    + fgS075.length + ' characters'
+    + ' | buttons out of reach after the declaration=' + fgReOffAfter
+    + ' | the set moved on the declaration=' + (fgReDisAfter !== fgReDisWas)
+    + ' | a rename left it identical=' + (fgReDisIdle === fgReDisAfter)
+    + ' while the node was replaced=' + (fgReNodeNow !== fgReNodeWas)
+    + ' | the undo put it back=' + (fgReDisUndone === fgReDisWas)
+    + ' | the action name is back to ' + JSON.stringify(fgReNameBack)
 );
 
 /* 96. AN ADVANCE MOVES THE STATE **AND** THE PAGE, asserted in ONE row. This is

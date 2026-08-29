@@ -1576,6 +1576,20 @@
     &:hover{border-color:var(--accent)}
   }
   .fg-act--on{outline:2px solid var(--accent);outline-offset:2px}
+  /* OUT OF REACH IS SAID IN TWO NON-COLOUR CHANNELS AND THE DIMMING IS ONLY ONE
+     OF THEM. .brd-btn already carries &:disabled{opacity:.45}, and [C07]'s rule
+     is that a state is never in colour or in dimming alone — a projector with
+     the colour washed out of it is exactly where an opacity change stops being
+     a reading. The second channel is STRUCTURAL: the border goes from solid to
+     dashed, which survives any amount of washing out and reads from the back of
+     a room at a glance. Measured in real Chrome and real Edge at 1920x1080 and
+     1366x768: a disabled button reports border-style dashed and opacity 0.45, a
+     live one reports solid and 1.
+     AND THERE IS NO THIRD CHANNEL IN WORDS. Nothing on or beside a disabled
+     button says why — [S06.7]'s banner gives the whole argument: the reason is
+     legible as arithmetic, and a sentence explaining why a control is out of
+     reach is a sentence about what the student should have done. */
+  .fg-act:disabled{border-style:dashed;cursor:not-allowed}
   .fg-act-name{white-space:nowrap}
   .fg-act-cost{color:var(--ink-faint);white-space:nowrap}
   .fg-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
@@ -13088,20 +13102,13 @@ App.render = (function () {
    * because the reader who arrives with D-23 in mind needs to be told what
    * happened to it rather than to find its argument missing.
    *
-   * WHAT WILL BE TRUE, AND WHAT IS TRUE IN THIS COMMIT. An action button on
-   * this grid will be disabled IF AND ONLY IF
+   * WHAT IS TRUE. An action button on this grid is disabled IF AND ONLY IF
    *   (a) a requirement term of that action is unmet on the CASTER SIDE, or
    *   (b) the pool this row could still draw on cannot pay the action's cost,
    *       where that pool is the side's action points MINUS what this round has
    *       already spoken for PLUS what this row's own standing declaration
    *       spoke for, or
    *   (c) the row's unit has been ruled dead by the student.
-   * NOT ONE OF THE THREE IS WRITTEN YET. This commit builds the grid and takes
-   * the old declaration form away; the commit after it writes the disable and
-   * turns the two rules below in the same change, so that no paragraph in this
-   * file is ever ahead of the code underneath it. Today every button on this
-   * grid is enabled and check 95 is still green over the whole page, which is
-   * the control reading the turn will be read against.
    * Nothing else on this page is disabled by anything a student did. Advance
    * stays enabled on a side that cannot pay. Reset stays enabled. The
    * change-target control is never disabled. The alive toggle stays enabled on
@@ -13127,13 +13134,20 @@ App.render = (function () {
    * ruled dead. That outside-the-grid clause is the half most likely to erode,
    * so it is the half stated first.
    *
-   * AND IT WILL BE A RENDER DECISION, NEVER A TOGGLE. [S07.5] writes no
-   * disabled state anywhere and is not about to start; every disabled control
-   * on this page is decided from state on every repaint, which is
-   * setEditorEnabled's rule and its reason — re-deciding is what makes an undo
-   * move it too. That property is stronger than the grep it replaces, and the
-   * commit that ships the disable gives it a numbered row of its own so it
-   * cannot be lost to a plan acceptance line again.
+   * AND IT IS A RENDER DECISION, NEVER A TOGGLE. [S07.5] writes no disabled
+   * state anywhere; every disabled control on this page is decided from state
+   * on every repaint, which is setEditorEnabled's rule and its reason —
+   * re-deciding is what makes an undo move it too. That property is stronger
+   * than the grep it replaces, and check 105 is the numbered row that holds it
+   * so it cannot be lost to a plan acceptance line again.
+   *
+   * AND THE TURN WAS MADE IN THE OPEN, ON THE 03.1-04 PRECEDENT. Check 95
+   * asserted that 147 controls across three boards were never disabled. It was
+   * RECORDED RED against this contract before it was touched — three whole-set
+   * comparisons failing at once — then REWRITTEN to assert the new contract in
+   * both directions, then recorded GREEN. It was never deleted: a deleted
+   * boundary assertion is an Out of Scope entry that has quietly stopped being
+   * enforced, which is 72b's own sentence about itself.
    *
    * AND NO RENDERED WORD EXPLAINS A DISABLE. Not on the button and not beside
    * it. The reason is legible as arithmetic instead: the cost is ON the button,
@@ -13481,6 +13495,75 @@ App.render = (function () {
     return shim;
   }
 
+  /* ---- THE DISABLE, DECIDED FROM STATE, ONCE PER ACTION PER SIDE ----------
+   *
+   * D-27's rule as an `if and only if`, implemented as one. The three
+   * conditions are in the banner above and are not restated here; what IS
+   * written here is the arithmetic of the one that has a trap in it.
+   *
+   * CONDITION (b)'s `+ own pledge` IS LOAD-BEARING AND NOT A ROUNDING
+   * COURTESY. Replacing an action frees the one it replaces — that is what
+   * D-27's "picking another action should undo any changes and apply the new
+   * one" means — so the pool a row may draw on has to give the row back what
+   * its own standing declaration already spoke for. Without it, a unit that
+   * declared the last action a side could pay for would find its OWN button
+   * disabled on the very next frame, and re-click-to-undo would be
+   * UNREACHABLE: the student would be holding a declaration they cannot take
+   * back from the control that made it, on a surface where that control is the
+   * only way to take it back at all. That is a denial of the undo path dressed
+   * up as arithmetic.
+   *
+   * A COST THE REPORT CANNOT PRICE DOES NOT DISABLE. affordability hands back
+   * apCost: null for a cost in a token this file has no pool for — D-16's
+   * stance, and its own comment — and a tool that cannot show that a side
+   * cannot pay does not get to act as though it can. It draws the cost the
+   * student wrote and leaves the button alone.
+   *
+   * ALIVE IS THE STORED FLAG AND NEVER `hp === 0`. D-00d, the file's oldest
+   * ruling, and this is the SECOND place in this phase where a tidy
+   * implementation loses it: a unit at zero health that nobody ruled is not
+   * dead, its actions are not disabled, and the student is the one who decides.
+   * The first place is App.model.defaultAt and its paragraph says the same.
+   *
+   * AND THE ORDER OF THE THREE IS NOT ARBITRARY. The flag is asked first
+   * because it is a fact about the ROW and settles it whatever the arithmetic
+   * says; the requirement second because affordability reads it on the caster
+   * side and it is the same answer for every row; the pool last because it is
+   * the only one of the three that depends on what else has been declared this
+   * round.
+   * --------------------------------------------------------------------- */
+  function fgActionApCost(action) {
+    var c = App.model.actionApCost(action);
+    return Number.isInteger(c) ? c : 0;
+  }
+
+  // What this row's own standing declaration has already spoken for, in action
+  // points. Zero for a row with nothing standing, for an action that has left
+  // the board under it, and for a cost the file cannot price — the three
+  // absences spokenFor itself answers with zero, restated here so the two
+  // numbers cannot disagree about the same declaration.
+  function fgOwnPledge(state, side, unitId) {
+    var held = fgHeldBy(state, side, unitId);
+    if (held === null) { return 0; }
+    var live = fgAction(state, side, held.entry.act);
+    return live === null ? 0 : fgActionApCost(live);
+  }
+
+  function fgReqUnmet(report) {
+    for (var i = 0; i < report.met.length; i++) {
+      if (report.met[i].have < report.met[i].need) { return true; }
+    }
+    return false;
+  }
+
+  function fgActionOff(state, side, unit, report, spoke) {
+    if (unit.alive === false) { return true; }
+    if (fgReqUnmet(report)) { return true; }
+    if (report.apCost === null) { return false; }
+    var room = state.fight[side].ap - spoke + fgOwnPledge(state, side, unit.id);
+    return report.apCost > room;
+  }
+
   /* ---- FIGHT-03's declaration step, as D-27 drew it ----------------------
    *
    * ONE ROW PER UNIT, ONE BUTTON PER ACTION, AND THE UNIT IS A LABEL.
@@ -13644,7 +13727,7 @@ App.render = (function () {
      and its comment says so — so an action that asks for a target on a board
      with no living enemy left says so in words rather than leaving a gap in the
      sentence a room is reading. */
-  function fgRowFor(state, side, unit, actions, reports, half) {
+  function fgRowFor(state, side, unit, actions, reports, spoke, half) {
     var row = el('div', 'fg-row');
     var name = text('span', 'fg-unit', fgUnitName(state, unit.id));
     row.appendChild(name);
@@ -13653,12 +13736,8 @@ App.render = (function () {
     var acts = el('div', 'fg-acts');
     actions.forEach(function (action, i) {
       var on = (held !== null && held.entry.act === action.id);
-      // FALSE, AND IT IS SPELLED AS A LITERAL RATHER THAN LEFT OUT, so the next
-      // commit changes an argument at one call site instead of adding a
-      // parameter to a signature three functions carry. Nothing on this grid is
-      // disabled in this commit; the banner above says so and check 95 is still
-      // green over the whole page.
-      acts.appendChild(fgActBtn(state, side, unit, action, reports[i], on, false));
+      acts.appendChild(fgActBtn(state, side, unit, action, reports[i], on,
+        fgActionOff(state, side, unit, reports[i], spoke)));
     });
     row.appendChild(acts);
 
@@ -13679,12 +13758,12 @@ App.render = (function () {
     return row;
   }
 
-  function fgFillRows(root, state, side, actions, reports, half) {
+  function fgFillRows(root, state, side, actions, reports, spoke, half) {
     var box = root.querySelector('.fg-rows');
     if (!box) { return; }
     box.replaceChildren();
     state.fight[side].units.forEach(function (unit) {
-      box.appendChild(fgRowFor(state, side, unit, actions, reports, half));
+      box.appendChild(fgRowFor(state, side, unit, actions, reports, spoke, half));
     });
   }
 
@@ -13705,17 +13784,24 @@ App.render = (function () {
      the tool cannot price it says plainly and leaves alone.
 
      THE PAIR OF ACTION-POINT READINGS IS FIGHT-09's "SPENT VISIBLY DISTINCT
-     FROM AVAILABLE", AND WHAT THEY SAY IS THE NEXT COMMIT'S AND NOT THIS ONE'S.
-     In this commit they read exactly what the bar has always read — the shipped
-     apSpent pair — so that the grid arrives without the preview and the preview
-     arrives without the grid, and each of the two changes can be read on its
-     own. Plan 05-07 measured that the shipped spent figure is 0 at every moment
-     a frame can see, because advanceRound spends and refills in the same
-     commit; plan 05-10's acceptance run read the zero back verbatim; D-27 chose
-     the second of the two admissible fixes written at the derivation. The
-     commit after this one replaces the first of these two spans with what this
-     round's declarations have SPOKEN FOR, and says at this site why the number
-     moves then: because the reading changed, and not because advanceRound did.
+     FROM AVAILABLE", AND IT IS THE RESOLUTION OF THE apSpent-READS-ZERO
+     BLOCKER. The lineage, because the number moving is the whole point and the
+     reason it moves is the part that gets lost: plan 05-07 MEASURED that the
+     shipped spent figure reads 0 at every moment a frame can see — advanceRound
+     spends each declared cost and refills both pools from the build in the SAME
+     commit, so no frame is ever rendered between the two writes — and wrote the
+     two admissible fixes at the derivation rather than choosing one. Plan
+     05-10's acceptance run read the zero back verbatim rather than asserting
+     around it. D-27 chose the second fix and promoted it from a bar figure to
+     the core interaction.
+
+     THE NUMBER MOVES NOW BECAUSE THE READING CHANGED, NOT BECAUSE advanceRound
+     DID. Its same-commit refill is untouched, byte for byte. Nothing has
+     resolved when this figure moves and nothing will until Advance: what these
+     two spans report is a list of INTENTS, summed through App.model.spokenFor
+     at render time and stored nowhere. A student watching the second figure
+     come down as they declare is watching the tool add up what they have said,
+     which is the whole of what the preview is.
 
      THE TWO READINGS ARE DISTINGUISHED FOUR WAYS AND BY COLOUR IN NONE OF THEM,
      which is [C07]'s rule held for the fifth time in this file: different WORDS,
@@ -13723,20 +13809,20 @@ App.render = (function () {
      the four survive a projector with the colour washed out. [C14.1] carries
      the tint, derived with color-mix() from the token the board already draws
      action points with, so there is no new hex anywhere. */
-  function fgFillTeam(root, state, side) {
+  function fgFillTeam(root, state, side, spoke) {
     var box = root.querySelector('.fg-team');
     if (!box) { return; }
     box.replaceChildren();
     var live = state.fight[side];
-    var build = state.build[side];
 
     var ap = el('div', 'fg-res');
     var apLbl = text('span', 'fg-res-lbl', labelFor(state, 'ap'));
     setData(apLbl, { lbl: 'ap' });
     ap.appendChild(apLbl);
     ap.appendChild(text('span', 'fg-res-spoke',
-      App.model.apSpent(build, live) + ' of ' + build.ap + ' spent'));
-    ap.appendChild(text('span', 'fg-res-left', live.ap + ' left to spend'));
+      spoke + ' of ' + live.ap + ' spoken for'));
+    ap.appendChild(text('span', 'fg-res-left',
+      Math.max(0, live.ap - spoke) + ' left to spend'));
     box.appendChild(ap);
 
     var bag = live.tally;
@@ -14145,11 +14231,12 @@ App.render = (function () {
         var reports = actions.map(function (a) {
           return App.model.affordability(caster, a);
         });
+        var spoke = App.model.spokenFor(actions, state.fight.decl, side);
         var half = fgHalfMade(side);
 
         fgFillStanding(node, state, side);
-        fgFillTeam(node, state, side);
-        fgFillRows(node, state, side, actions, reports, half);
+        fgFillTeam(node, state, side, spoke);
+        fgFillRows(node, state, side, actions, reports, spoke, half);
         fgFillReport(node, state, side, actions, reports);
       });
 
