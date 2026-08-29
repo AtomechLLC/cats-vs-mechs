@@ -10925,6 +10925,18 @@ check(
    belongs to [S06.7]'s owner and plan 05-16 owns every other fight row's claim,
    so it is handed on by name rather than reached for.
 
+   PLAN 05-16 TOOK THE HAND-OFF, RE-READ IT, AND COULD NOT CLOSE IT — recorded
+   here rather than left as a gap that outlives its explanation. The reading is
+   confirmed: [S06.7]'s banner still names check 105, this file still has no row
+   105, and the property that banner is talking about is asserted by 95b. The
+   fix is one word in a comment inside cats-vs-mechs.html, and plan 05-16 edits
+   that file NOT AT ALL — which is its own section ownership and plan 05-10's
+   shipped precedent for a finding a plan cannot act on. So 105 STAYS UNUSED,
+   deliberately and now twice over, the battlefield rows stay at 106-106j, and
+   the one-word correction is logged with its measurement in
+   deferred-items.md item 5. A LATER PLAN MUST NOT "TIDY" THIS by renumbering
+   the battlefield rows down into the gap: the gap is the record.
+
    EVERY ROW BELOW READS THE PAGE AND NOT THE STATE. That is the whole reason
    they exist next to [S09.12]'s and plan 05-13's: probe AB's lesson, now three
    surfaces and two phases old — a derivation computed correctly and then

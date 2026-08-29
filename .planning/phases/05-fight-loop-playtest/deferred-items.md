@@ -182,3 +182,30 @@ the same top) and print the four numbers.
 consecutive plans in this phase each made against a page the next plan then moved. It is
 `REHEARSAL.md` B3's first open bullet and it is a question for a room: **on a 768-tall screen, is one
 scroll to reach the projection acceptable, or does the projection need to sit above the fight?**
+
+## 5. `[S06.7]`'s banner names "check 105", and this repository has never had one
+
+**Found:** plan 05-15, handed to plan 05-16, re-read by plan 05-16 and still not fixable here.
+
+`[S06.7]`'s banner in `cats-vs-mechs.html` says *"check 105 is the numbered row that holds it"* about
+the disable-is-a-render-decision-and-no-handler-writes-one property. That row shipped as **95b**,
+beside the check it was re-homed from, so the banner points at a number that does not exist.
+
+Plan 05-15 left row 105 unused rather than taking it, and the reasoning is right: a battlefield row
+numbered 105 would turn a dangling reference into an actively wrong one — a reader following the
+banner would land on a check about token shapes and conclude the property is asserted somewhere it
+is not. So `tests/selftest-node.cjs` runs `... 95, 95b, 96 ... 104f, 106, 106b ... 106j` with **105
+deliberately absent**, and the comment at that gap says so.
+
+**Why plan 05-16 could not close it.** The fix is one word in one comment — `105` → `95b` — inside
+`cats-vs-mechs.html`, and plan 05-16's own `section_ownership` says it edits that file **not at all**.
+That constraint exists because this plan's whole job is to make the gate able to fail on the shipped
+surface, and a plan that edits the artifact it is auditing has stopped being an audit. So the finding
+is logged with its measurement, which is plan 05-10's shipped precedent for exactly this shape.
+
+**What it costs:** nothing at runtime. It costs a reader of `[S06.7]` one wrong lookup.
+
+**Owner:** whichever plan next edits `[S06.7]`. It is one word, and the gap in the row numbering is
+what will make somebody ask.
+
+**Do not "tidy" the gap by renumbering the battlefield rows into it.** The gap is the record.
