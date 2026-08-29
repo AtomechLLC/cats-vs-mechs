@@ -19328,6 +19328,40 @@ App.selftest = (function () {
       [true, 1, true, true]);
     t.ok('the prototype is intact after a paste and its undo', protoIntact());
 
+    /* --- THE ROUND TRIP CLOSED THROUGH THE OP, which is the strongest single
+           statement SHARE-02 and SHARE-08 make together and is DOM-free, so it
+           runs in the terminal harness as well as on the page.
+
+           Every other round-trip row in this suite goes encode -> decode and
+           compares two RECORDS. This one goes encode -> the OP -> encode and
+           compares two STRINGS, and the difference is buildFromDecoded: the
+           record decode hands back is not the build the op writes, and the step
+           between them is the one place a field can be dropped without either
+           half of the codec noticing. A code that survives its own decoder and
+           then re-encodes to something else is a board that came back subtly
+           different with nothing anywhere to say so, which is the outcome the
+           whole codec exists to prevent.
+
+           It is compared as a STRING rather than as a stable writing of the
+           record on purpose: the code IS the shared unit, and two codes that
+           differ by a byte are two different things in a course thread however
+           equal the boards behind them may be. --- */
+    var tripCode = App.serialize.encode(App.state.get().build);
+    var tripLoad = App.ops.loadBuildCode(tripCode);
+    var tripAgain = App.serialize.encode(App.state.get().build);
+    var tripTwice = App.ops.loadBuildCode(tripAgain);
+    var tripThird = App.serialize.encode(App.state.get().build);
+    t.eq('A CODE LOADED THROUGH THE OP RE-ENCODES TO THE SAME CODE, and so does the '
+      + 'code that produced. encode -> loadBuildCode -> encode is a different claim '
+      + 'from encode -> decode: it runs through buildFromDecoded, which is the step '
+      + 'between the record the decoder hands back and the build the op actually '
+      + 'writes, and the only place a field can be lost without either half of the '
+      + 'codec disagreeing with itself. Twice, because a lossy step that settled '
+      + 'after one pass would be a fixed point and would pass a single round',
+      [tripLoad.ok, tripAgain === tripCode, tripTwice.ok, tripThird === tripCode],
+      [true, true, true, true]);
+    t.ok('the prototype is intact after the round trip through the op', protoIntact());
+
     /* --- A REFUSAL WRITES NOTHING. One row per refusal token, each asserting
            the same three things: the record comes back, the undo stack does not
            move, and the state is byte-identical afterwards. A refusal carrying

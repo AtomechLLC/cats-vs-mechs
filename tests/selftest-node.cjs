@@ -7100,6 +7100,348 @@ A.ops.nudgeFactionAp('mechs', -1);
 A.state.flush();
 clearPanel();
 
+/* --- 91 to 91e. PHASE 4'S OWN ACCEPTANCE RUN, END TO END --------------------
+
+   Check 73's register, one phase on: ONE numbered check that drives the whole
+   feature through real controls and reads the answer OFF THE PAGE. The four
+   rows after it hold the parts of the phase that a single end-to-end pass
+   cannot fail on — a refusal's wording, a refusal's silence, a cancel that
+   costs nothing, and a confirm that costs exactly one undo entry.
+
+   WHAT IS SETUP AND WHAT IS THE SEQUENCE, said out loud because the distinction
+   is the whole value of a row like this. The BOARD is built through ops: check
+   73 already drives the authoring surface through its own controls and there is
+   nothing for this phase to add to that. The SEQUENCE this row asserts begins
+   at the topbar Share control and every step of it after that — Copy, Done, the
+   reset opener, Confirm, the pane switch, Load, the undo button — is a control
+   a student presses.
+
+   WHY IT READS THE BOARD RATHER THAN THE STATE. A reading off state would see
+   every step of this except the one that matters. The claim SHARE-02 makes is
+   "a student pastes a classmate's code and gets that classmate's board", and a
+   board is a thing on a page: cards, a health row of the right length, the
+   student's own name for a built-in type, a tally under a type they invented,
+   and a card in the faction column for an action they authored. Eight of those
+   are compared below and the detail line says how many. --- */
+
+const accPasteField = dom.byId['sh-load-field'];
+const accLoadBtn = dom.byId['sh-load-do'];
+const accLoadSaid = dom.byId['sh-load-said'];
+const accConfirmBtn = dom.byId['reset-ask-confirm'];
+const accUndoBtn = stub.querySelector('[data-act="undo"]');
+
+const accCards = (side) => dom.byId['col-' + side].querySelectorAll('.unit-card').length;
+const accRow = (amt, unit) => {
+  const r = stub.querySelector('.tok-row[data-amt="' + amt + '"][data-unit="' + unit + '"]');
+  return r === null ? -1 : r.children.length;
+};
+const accLabel = (tokenId) => {
+  const n = stub.querySelector('[data-lbl="' + tokenId + '"]');
+  return n === null ? '(no label node)' : n.textContent;
+};
+// The whole of both faction columns as the page renders them. paneText walks to
+// the leaves, so this is the words and the numbers a student is looking at and
+// not a node count.
+const accBoardText = () => paneText(dom.byId['col-cats']) + '|' + paneText(dom.byId['col-mechs']);
+
+/* ---- SETUP: a board a student would recognise. Outside the sequence. ---- */
+clearPanel();
+A.ops.resetToDefaults();
+A.state.flush();
+// restore() CLEARS the undo stack, which is what makes the depth readings below
+// exact rather than saturated: this gate has driven several hundred commits by
+// now and App.state's stack is hard-capped at UNDO_LIMIT, so a delta taken on
+// the live stack reads 0 for a commit that really happened.
+A.state.restore(JSON.stringify(A.state.get()));
+A.state.flush();
+
+A.ops.addUnit('cats');
+A.ops.addUnit('mechs');
+A.ops.setUnitMaxHp('cats', 'c1', 8);
+A.ops.setUnitShield('cats', 'c1', 4);
+A.ops.renameTokenType('hp', 'Vigor');
+const accTok = A.ops.createTokenType({
+  name: 'Momentum', shape: 'dia', color: 'violet', glyph: '', scope: 'unit'
+});
+A.ops.setTally('cats', 'c1', accTok, 3);
+const accAct2 = A.ops.createAction('cats', 'Pounce');
+A.ops.setActionCost('cats', accAct2, 'ap', 1);
+A.ops.setActionReq('cats', accAct2, 0, 'hp', 2);
+A.ops.setActionXf('cats', accAct2, 0, A.data.XF_WHO[1], 'hp', -3);
+A.state.flush();
+
+const accMine = JSON.stringify(A.state.get());
+const accMineStable = stableJson(A.state.get().build);
+const accWant = [accCards('cats'), accCards('mechs'), accRow('hp', 'c1'),
+  accRow('shield', 'c1'), accRow(accTok, 'c1'), accLabel('hp'), accLabel(accTok),
+  refCardNamed('cats', 'Pounce') === null ? 'MISSING' : 'Pounce'];
+
+/* ---- THE SEQUENCE. Every line below is a control a student presses. ---- */
+shPress(shareOpener);
+shPress(shareCopyBtn);
+// READ OUT OF THE FIELD, not off a clipboard. There is no clipboard in this
+// runtime at all — see limitations entry 17, which says what that costs and
+// where the real crossing is rehearsed instead.
+const accCode = shareCodeField.value;
+shPress(shareDoneBtn);
+
+shPress(resetOpener);
+const accAskOpened = resetDlg.open;
+const accAskCostNothing = JSON.stringify(A.state.get()) === accMine;
+shPress(accConfirmBtn);
+const accAskClosed = resetDlg.open;
+// The board really was discarded, read off the page — without this the paste
+// below could be loading a board that never left.
+const accWiped = [accCards('cats'), accLabel('hp'),
+  refCardNamed('cats', 'Pounce') === null ? 'MISSING' : 'Pounce'];
+const accDefaults = JSON.stringify(A.state.get());
+
+shPress(shareOpener);
+shPress(shareToLoad);
+// Pasted the way a code arrives out of a chat message: a leading space and a
+// trailing newline. decode trims and so does the press; this is the row that
+// says a student is never punished for either.
+accPasteField.value = ' ' + accCode + '\n';
+shPress(accLoadBtn);
+const accSaidOnSuccess = [accLoadSaid.textContent, accLoadSaid.hidden];
+const accFieldKept = accPasteField.value === ' ' + accCode + '\n';
+shPress(shareDoneBtn);
+
+const accGot = [accCards('cats'), accCards('mechs'), accRow('hp', 'c1'),
+  accRow('shield', 'c1'), accRow(accTok, 'c1'), accLabel('hp'), accLabel(accTok),
+  refCardNamed('cats', 'Pounce') === null ? 'MISSING' : 'Pounce'];
+
+// The undo walk, through the topbar control. A load is ONE entry and the reset
+// before it is ONE entry, so the first press must land on the shipped board and
+// the second on the student's own — that is the ordering claim, and a fixed
+// count would be a second place the number of commits has to be kept in step.
+press(accUndoBtn); release(accUndoBtn); A.state.flush();
+const accBackOne = JSON.stringify(A.state.get()) === accDefaults;
+press(accUndoBtn); release(accUndoBtn); A.state.flush();
+const accBackTwo = JSON.stringify(A.state.get()) === accMine;
+const accWalkedCards = accCards('cats');
+
+check(
+  '91. PHASE 4\'S OWN ACCEPTANCE RUN. A board a student would recognise — two '
+    + 'rosters grown, a health and a shield set, a built-in type renamed, a type '
+    + 'of their own invented and tallied, an action authored with a cost, a '
+    + 'requirement and a change — is copied through the real Copy press, '
+    + 'discarded through the real reset confirmation, and pasted back through '
+    + 'the real Load press with a leading space and a trailing newline on it. '
+    + 'EIGHT values are then read back OFF THE PAGE, not off state: both card '
+    + 'counts, the health row, the shield row, the tally row, the renamed '
+    + 'built-in\'s label, the invented type\'s label, and the authored action\'s '
+    + 'card in the faction column. Then two presses of the topbar undo control '
+    + 'walk the board back through the load and the reset in that order, because '
+    + 'each of them is exactly one entry',
+  accAskOpened === true && accAskCostNothing === true && accAskClosed === false
+    // the reset really did discard it, or the paste proves nothing
+    && accWiped[0] !== accWant[0] && accWiped[1] === 'Health' && accWiped[2] === 'MISSING'
+    && accCode !== '' && accCode.length > 0
+    && JSON.stringify(accGot) === JSON.stringify(accWant)
+    && accSaidOnSuccess[0] === '' && accSaidOnSuccess[1] === true
+    && accFieldKept === true
+    && stableJson(A.state.get().build) !== ''
+    && accBackOne === true && accBackTwo === true && accWalkedCards === accWant[0]
+    && errPanel.hidden === true,
+  'page-side values compared=' + accWant.length
+    + ' | before the copy=' + JSON.stringify(accWant)
+    + ' | after the confirmed reset=' + JSON.stringify(accWiped)
+    + ' | after the paste=' + JSON.stringify(accGot)
+    + ' identical=' + (JSON.stringify(accGot) === JSON.stringify(accWant))
+    + ' | code length=' + accCode.length
+    + ' | said on success=' + JSON.stringify(accSaidOnSuccess[0])
+    + ' hidden=' + accSaidOnSuccess[1] + ' pasted text kept=' + accFieldKept
+    + ' | one undo -> the shipped board=' + accBackOne
+    + ' two undos -> the student\'s board=' + accBackTwo
+    + ' | error panel hidden=' + errPanel.hidden
+);
+
+/* 91b. THE FOUR REFUSALS ARE FOUR DIFFERENT SENTENCES, READ OFF THE PAGE.
+
+   DISTINCTNESS IS THE WHOLE ROW, and it is asserted as distinctness rather than
+   as non-emptiness on purpose. Four tokens routed onto one sentence would pass
+   any row that only asked whether something was said, and it would throw away
+   the only diagnosis this tool can offer: "you pasted the wrong thing", "your
+   copy of this file is older than the code", "that code arrived cut short" and
+   "that code names something this board has no such thing as" are four
+   different things a student does four different things about.
+
+   The tamper shapes are built here rather than imported, which is deliberate:
+   they are a SECOND reader of the grammar, exactly as [S09.11]'s own tamper
+   helpers are, so a row built out of decode's parse would agree with decode by
+   construction. */
+const accSEP = A.data.CODE_SEP.section;
+const accBodyOf = (c) => {
+  const rest = c.slice(c.indexOf(accSEP) + 1);
+  return rest.slice(0, rest.lastIndexOf(accSEP));
+};
+const accSealed = (b) => A.data.CODE_VERSION + accSEP + b + accSEP + A.serialize.checksum(b);
+const accShapes = [
+  ['shape', 'hello there'],
+  ['version', 'v2' + accSEP + accBodyOf(accCode) + accSEP
+    + A.serialize.checksum(accBodyOf(accCode))],
+  ['checksum', accCode.slice(0, -1) + (accCode.slice(-1) === 'z' ? 'y' : 'z')],
+  ['content', (() => {
+    const made = accBodyOf(accCode).split(accSEP);
+    // section 2 is the first side's block; a roster count of zero is refused by
+    // the same bound the add path enforces.
+    made[2] = 'A0';
+    return accSealed(made.join(accSEP));
+  })()],
+  // A SECOND content refusal with a DIFFERENT `what`, and it is here for one
+  // reason: it is what proves the record's own wording reaches the page. Two
+  // content refusals that read the same sentence would mean the page had
+  // dropped the `what` and was saying only "something was wrong" — which is
+  // the sentence the other three already cover between them.
+  ['content', (() => {
+    const made = accBodyOf(accCode).split(accSEP);
+    made[1] = 'V!!!!!';
+    return accSealed(made.join(accSEP));
+  })()]
+];
+
+shPress(shareOpener);
+shPress(shareToLoad);
+const accSaid = [];
+const accWhy = [];
+const accBoardMoved = [];
+const accUndoMoved = [];
+accShapes.forEach(([, code]) => {
+  const boardWas = accBoardText();
+  const depthWas = A.state.undoDepth();
+  accPasteField.value = code;
+  shPress(accLoadBtn);
+  accSaid.push(accLoadSaid.textContent);
+  accWhy.push(accLoadSaid.dataset.shWhy);
+  accBoardMoved.push(accBoardText() !== boardWas);
+  accUndoMoved.push(A.state.undoDepth() !== depthWas);
+});
+// The four TOKENS are the first four shapes; the fifth is the second content
+// refusal and is scored separately, because it is a claim about the `what`
+// reaching the page rather than about the four tokens being told apart.
+const accFour = accSaid.slice(0, 4);
+const accDistinct = accFour.filter((s, i) => accFour.indexOf(s) === i).length;
+
+check(
+  '91b. the four ways a build code can be wrong produce FOUR DIFFERENT '
+    + 'SENTENCES on the page, driven one shape at a time through the real Load '
+    + 'press. The row asserts DISTINCTNESS and not merely that something was '
+    + 'said: four tokens collapsed onto one message passes any row that only '
+    + 'asked whether the line was non-empty, and it costs a student the only '
+    + 'diagnosis this tool is able to offer. Each sentence is also required to '
+    + 'be non-empty, shown, and to name no board — the code is a string and the '
+    + 'board it describes was never read',
+  accFour.length === 4 && accDistinct === 4
+    && accSaid.every((s) => typeof s === 'string' && s.length > 12)
+    && JSON.stringify(accWhy)
+      === JSON.stringify(['shape', 'version', 'checksum', 'content', 'content'])
+    // AND THE CONTENT SENTENCE NAMES THE OFFENDING THING. Two content refusals
+    // with two different `what`s read as two different sentences — a page that
+    // dropped the `what` would say the same thing twice, which is the state
+    // where a student is told a code is wrong and nothing about how.
+    && accSaid[3] !== accSaid[4]
+    && accLoadSaid.hidden === false
+    && errPanel.hidden === true,
+  'distinct sentences=' + accDistinct + ' of ' + accFour.length
+    + ' | shape=' + JSON.stringify(accSaid[0])
+    + ' | version=' + JSON.stringify(accSaid[1])
+    + ' | checksum=' + JSON.stringify(accSaid[2])
+    + ' | content=' + JSON.stringify(accSaid[3])
+    + ' | a second content refusal=' + JSON.stringify(accSaid[4])
+    + ' names a different thing=' + (accSaid[3] !== accSaid[4])
+    + ' | tokens read off data-sh-why=' + JSON.stringify(accWhy)
+);
+
+check(
+  '91c. AND NOT ONE OF THEM MOVED THE BOARD. The rendered text of both faction '
+    + 'columns is taken before and after each of the four refusals and compared '
+    + 'whole, and the undo depth beside it — because a refusal that wrote a '
+    + 'phantom undo step would leave the board looking right and one Ctrl+Z '
+    + 'away from being wrong. The op commits nothing on a refusal and the '
+    + 'handler writes only the message; this is the row that says the handler '
+    + 'kept its half of that',
+  accBoardMoved.every((moved) => moved === false)
+    && accUndoMoved.every((moved) => moved === false)
+    && errPanel.hidden === true,
+  'board moved on any of the four=' + JSON.stringify(accBoardMoved)
+    + ' undo depth moved=' + JSON.stringify(accUndoMoved)
+    + ' | rendered board length=' + accBoardText().length + ' characters'
+    + ' | error panel hidden=' + errPanel.hidden
+);
+
+shPress(shareDoneBtn);
+
+/* 91d and 91e. THE CONFIRMATION, BOTH ANSWERS, ON A STACK WITH ROOM IN IT.
+   The depth readings are taken after a restore(), which clears the stack — see
+   the note at the head of 91. Without it both deltas read 0 on a saturated
+   stack and both rows would be green about nothing. */
+A.state.restore(JSON.stringify(A.state.get()));
+A.state.flush();
+A.ops.nudgeFactionAp('cats', 1);
+A.state.flush();
+
+const accCancelBefore = JSON.stringify(A.state.get());
+const accCancelDepth = A.state.undoDepth();
+shPress(resetOpener);
+const accCancelOpened = resetDlg.open;
+shPress(resetCancelBtn);
+check(
+  '91d. CANCELLING COSTS NOTHING, and "nothing" is the literal claim rather '
+    + 'than a figure of speech: the state is byte-identical to the reading '
+    + 'taken before the confirmation was opened, the undo depth has not moved, '
+    + 'and the dialog is closed with focus back on the control that opened it. '
+    + 'A cancel that quietly reset anyway would leave a student with a board '
+    + 'they declined to discard and a Ctrl+Z they have no reason to press',
+  accCancelOpened === true && resetDlg.open === false
+    && JSON.stringify(A.state.get()) === accCancelBefore
+    && A.state.undoDepth() === accCancelDepth
+    && stub.activeElement === resetOpener
+    && errPanel.hidden === true,
+  'opened=' + accCancelOpened + ' closed=' + (resetDlg.open === false)
+    + ' | state before=' + fnv(accCancelBefore)
+    + ' after=' + fnv(JSON.stringify(A.state.get()))
+    + ' identical=' + (JSON.stringify(A.state.get()) === accCancelBefore)
+    + ' | undo depth ' + accCancelDepth + ' -> ' + A.state.undoDepth()
+    + ' | focus back on the opener=' + (stub.activeElement === resetOpener)
+);
+
+const accConfirmBefore = JSON.stringify(A.state.get());
+const accConfirmDepth = A.state.undoDepth();
+shPress(resetOpener);
+shPress(accConfirmBtn);
+const accConfirmDelta = A.state.undoDepth() - accConfirmDepth;
+const accConfirmIsShipped = JSON.stringify(A.state.get().build)
+  === JSON.stringify(A.data.defaults());
+press(accUndoBtn); release(accUndoBtn); A.state.flush();
+const accConfirmUndone = JSON.stringify(A.state.get()) === accConfirmBefore;
+
+check(
+  '91e. CONFIRMING IS EXACTLY ONE UNDO ENTRY, and ONE press of the topbar undo '
+    + 'control brings the student\'s build back BYTE FOR BYTE. This is the '
+    + 'sentence the confirmation dialog makes to a student before they press '
+    + 'it, asserted rather than promised — and it is what makes the modal a '
+    + 'question rather than a warning. It is also the reason the confirm arm '
+    + 'dispatches once and does nothing else beside it: a second commit in the '
+    + 'same frame would fold into this one under commit()\'s coalescing window '
+    + 'and one Ctrl+Z would step back past both. The board really did go to the '
+    + 'Workshop 16 defaults in between, which a row asserting only the undo '
+    + 'would be green without',
+  accConfirmIsShipped === true && accConfirmDelta === 1
+    && accConfirmUndone === true && resetDlg.open === false
+    && errPanel.hidden === true,
+  'build === the shipped defaults after confirming=' + accConfirmIsShipped
+    + ' | undo depth ' + accConfirmDepth + ' -> ' + (accConfirmDepth + accConfirmDelta)
+    + ' delta=' + accConfirmDelta + ' (cap ' + A.state.UNDO_LIMIT + ')'
+    + ' | one undo restores byte for byte=' + accConfirmUndone
+    + ' | state before=' + fnv(accConfirmBefore)
+    + ' after the undo=' + fnv(JSON.stringify(A.state.get()))
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. The behaviours numbered
@@ -7226,7 +7568,28 @@ clearPanel();
             focused; a copy with the window backgrounded; a forced tier 3 with
             the clipboard API deliberately blocked; and, in each of those five,
             whether the line the student reads genuinely names the tier that
-            succeeded. --- */
+            succeeded.
+        17. A BUILD CODE GENUINELY CROSSING BETWEEN TWO BROWSERS. Check 91 is
+            this phase's acceptance run and it drives the whole feature —
+            Copy, a confirmed reset, Load — through real controls, then reads
+            eight values back off the page. What it CANNOT do is what entry 16
+            explains: there is no clipboard in this runtime, so the code it
+            "copies" is read out of #share-code by the test rather than off a
+            clipboard, and the code it pastes is written straight onto
+            #sh-load-field rather than by a person pressing Ctrl+V.
+            WHAT THAT LEAVES UNPROVED, stated plainly. The producing side and
+            the consuming side of that trip are the SAME PROCESS, the same
+            evaluation of the same file and the same App. So the run proves the
+            codec, the ops, the handlers and the rendering all agree with each
+            other; it proves nothing about a code surviving a clipboard, a chat
+            client's line wrapping, or a second browser's reading of this
+            alphabet. That crossing is plan 04-08's rehearsal, item 7, and it
+            is the only place in this project it ever happens. Entry 14 makes
+            the same distinction for a real reload and a real bookmark.
+            One thing the run DOES prove about the crossing, and it is worth
+            naming because it is the failure a chat client actually causes: the
+            paste it drives carries a leading space and a trailing newline, and
+            the board still arrives. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
