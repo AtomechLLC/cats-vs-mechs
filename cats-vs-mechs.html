@@ -10136,6 +10136,8 @@ App.boot = (function () {
  *   [S09.8] projection — the two bounds, DOM-free half        (plan 03-02)
  *   [S09.9] reference material — names, what beats what, both halves (03-04/05)
  *   [S09.10] action authoring — the action id gate and the three ops (03.1-03)
+ *   [S09.11] the build code — the codec primitives and the reorder
+ *            tripwire, every row of it above any no-DOM bracket    (plan 04-01)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -15043,6 +15045,256 @@ App.selftest = (function () {
     App.state.flush();
     t.eq('the action-authoring suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.11] SUITE: the build code — owner plan 04-01 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('build code', function (t) {
+    /* THE WHOLE OF THIS SUITE SITS ABOVE ANY no-DOM BRACKET, AND THAT IS A
+       DECISION RATHER THAN AN ACCIDENT. Five suites in this file stop at a
+       "no document, so return" bracket, and every row below one of those is
+       documentation until somebody opens the page with #selftest. A codec is
+       state work: it reads no page, writes no page and needs none, so every
+       row here runs in the terminal harness and can therefore fail a build.
+       Nothing in [S09.11], in this plan or in any later one, may sit below a
+       bracket — the day a codec row needs a page is the day that row belongs
+       in the interaction gate instead.
+
+       This suite writes NOTHING. It drives no op and touches no slice, so
+       unlike [S09.3], [S09.6], [S09.7] and [S09.10] it has no saved state to
+       hand back: there is nothing here for a restore to undo. */
+
+    // The prototype is checked after every group below rather than once at the
+    // end, the shape [S09.10] uses and for the reason it gives: both
+    // corruption shapes evaporate or hide, so a single check at the bottom
+    // would read clean over a run that had already gone wrong. A codec is the
+    // highest-value place in this file for these rows, because from Phase 4
+    // the input is somebody else's pasted text.
+    function protoIntact() {
+      return Object.getPrototypeOf({}) === Object.prototype
+        && Object.prototype.polluted === undefined
+        && Object.prototype.name === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'dmg');
+    }
+
+    /* --- the primitives exist and are exported. Every row in this suite
+           asserts against the EXPORTED function and the EXPORTED constant,
+           never against a re-typed copy of either — a copy drifts away from
+           what the file actually runs, and then the suite is green about the
+           copy. --- */
+    t.eq('the text-to-bytes primitive is exported', typeof App.serialize.bytesFromText, 'function');
+    t.eq('the bytes-to-text primitive is exported', typeof App.serialize.textFromBytes, 'function');
+    t.eq('the base64url writer is exported', typeof App.serialize.b64, 'function');
+    t.eq('the base64url reader is exported', typeof App.serialize.unb64, 'function');
+    t.eq('the base36 writer is exported', typeof App.serialize.n36, 'function');
+    t.eq('the base36 reader is exported', typeof App.serialize.p36, 'function');
+    t.eq('the run-length writer is exported', typeof App.serialize.runs, 'function');
+    t.eq('the run-length reader is exported', typeof App.serialize.unruns, 'function');
+    t.eq('the checksum is exported', typeof App.serialize.checksum, 'function');
+    t.eq('the hash mirror is still the declared no-op plan 04-04 owns',
+      typeof App.serialize.scheduleUrlSync, 'function');
+    t.ok('[S04] is frozen, so no caller can add a primitive to it after the fact',
+      Object.isFrozen(App.serialize));
+    t.ok('the prototype is intact after reading the export list', protoIntact());
+
+    /* --- THE TEXT PRIMITIVES. Every string below is either a name a student
+           is allowed to type or a value the platform will hand this codec
+           whether it wants it or not, and each must come back IDENTICAL.
+           The last two matter most: the platform text encoder substitutes the
+           replacement character for half a surrogate pair and reports nothing
+           at all, and so does location.hash, so a row checking only a length
+           would pass over a name that had quietly changed. --- */
+    var CAP_NAME = new Array(App.data.MAX_TOKEN_NAME + 1).join('\u{1F480}');
+    var HALF_PAIR = 'A\uD83DB';
+    var NAMES = [
+      { what: 'plain ASCII', text: 'Poison' },
+      { what: 'a name carrying a BMP symbol', text: 'Poison \u{2620}' },
+      { what: 'a name of astral emoji', text: '\u{1F480}\u{1F525}\u{26A1}' },
+      { what: 'a name at exactly the code-point cap, every one of them astral', text: CAP_NAME },
+      { what: 'the empty string', text: '' },
+      { what: 'half a surrogate pair, which the platform text encoder would substitute', text: HALF_PAIR }
+    ];
+    NAMES.forEach(function (row) {
+      var code = App.serialize.b64(row.text);
+      t.eq('base64url round trips ' + row.what + ' unchanged', App.serialize.unb64(code), row.text);
+      t.ok('every character base64url produced for ' + row.what + ' is inside CODE_ALPHABET, '
+        + 'so it can never fragment a hash on a comma or turn into a percent escape',
+        code === '' || App.data.CODE_ALPHABET.test(code));
+    });
+
+    t.eq('the cap name is 24 CODE POINTS and 48 UTF-16 units, which is why a length check '
+      + 'would refuse a name the write path allows',
+      [Array.from(CAP_NAME).length, CAP_NAME.length],
+      [App.data.MAX_TOKEN_NAME, App.data.MAX_TOKEN_NAME * 2]);
+    t.eq('the cap name survives the byte layer intact rather than arriving as replacement characters',
+      App.serialize.textFromBytes(App.serialize.bytesFromText(CAP_NAME)), CAP_NAME);
+    t.eq('half a surrogate pair round trips as ITSELF, so the decoder can refuse it by name '
+      + 'through TOKEN_NAME_REFUSE rather than admitting a name that quietly changed',
+      App.serialize.textFromBytes(App.serialize.bytesFromText(HALF_PAIR)), HALF_PAIR);
+    t.ok('and half a pair is exactly what TOKEN_NAME_REFUSE exists to refuse, so the round trip '
+      + 'hands the refusal a value to work on instead of hiding it',
+      App.data.TOKEN_NAME_REFUSE.test(HALF_PAIR));
+    t.eq('a byte stream that is not one is declined rather than repaired',
+      [App.serialize.textFromBytes([0x80]), App.serialize.textFromBytes([0xC0, 0x41]),
+        App.serialize.textFromBytes([0xE0]), App.serialize.textFromBytes([0xC0, 0x80])],
+      [null, null, null, null]);
+    t.eq('a base64url reading declines a length no unpadded spelling can have, a character '
+      + 'outside the alphabet, a space, and a value that is not text at all',
+      [App.serialize.unb64('a'), App.serialize.unb64('a,b'),
+        App.serialize.unb64('a b'), App.serialize.unb64(null)],
+      [null, null, null, null]);
+    t.ok('the prototype is intact after the text rows', protoIntact());
+
+    /* --- BASE36, both directions. The parse refuses rather than handing back
+           a NaN for a later line to trip over, in actionApCost's idiom. --- */
+    var B36 = [0, 1, 35, 36, 99, 1679615];
+    B36.forEach(function (n) {
+      t.eq('base36 round trips ' + n, App.serialize.p36(App.serialize.n36(n)), n);
+    });
+    t.ok('every base36 spelling is inside CODE_ALPHABET', B36.every(function (n) {
+      return App.data.CODE_ALPHABET.test(App.serialize.n36(n));
+    }));
+    [['the empty string', ''],
+      ['a separator character', App.data.CODE_SEP.field],
+      ['a string with a space in it', '1 2'],
+      ['null', null],
+      ['a number rather than the spelling of one', 36]
+    ].forEach(function (bad) {
+      t.eq('the base36 parse declines ' + bad[0] + ' instead of producing something arithmetic would take',
+        App.serialize.p36(bad[1]), null);
+    });
+    t.ok('the prototype is intact after the base36 rows', protoIntact());
+
+    /* --- RUN-LENGTH, over a list of already-written payloads. This is what
+           lets the unit streams stay split, which is where the measured
+           characters came from at the ceiling. --- */
+    var RUNS = [
+      { what: 'a list that collapses to one run', list: ['a', 'a', 'a', 'a'] },
+      { what: 'a list that collapses nothing', list: ['a', 'b', 'c'] },
+      { what: 'a list of two runs', list: ['a', 'a', 'b', 'b', 'b'] },
+      { what: 'a list of one empty payload, the shape an empty tally bag takes', list: [''] },
+      { what: 'an empty list', list: [] }
+    ];
+    RUNS.forEach(function (row) {
+      var code = App.serialize.runs(row.list);
+      t.eq('run-length round trips ' + row.what, App.serialize.unruns(code, row.list.length), row.list);
+      t.ok('the run-length spelling of ' + row.what + ' is inside CODE_ALPHABET',
+        code === '' || App.data.CODE_ALPHABET.test(code));
+    });
+    t.eq('a run structure whose lengths do not fill the total it is asked for is DECLINED — '
+      + 'a run length disagreeing with the roster is the shape a truncated paste takes',
+      App.serialize.unruns(App.serialize.runs(['a', 'a', 'b']), 4), null);
+    t.eq('and a hostile run length is declined without being allocated first, because the '
+      + 'running total is checked inside the loop as well as at the end',
+      App.serialize.unruns('zzzzzz*a', 3), null);
+    t.ok('the prototype is intact after the run-length rows', protoIntact());
+
+    /* --- THE CHECKSUM. Four characters, and read [S04]'s banner before
+           treating them as more than they are. --- */
+    ['v1~', 'v1~abc', 'v1~abd', 'v1~a-b-c', 'v1~9x3', ''].forEach(function (input) {
+      var ck = App.serialize.checksum(input);
+      t.eq('the checksum is four characters wide for every input', ck.length, 4);
+      t.ok('the checksum is inside CODE_ALPHABET', App.data.CODE_ALPHABET.test(ck));
+      t.eq('the checksum is stable across calls', App.serialize.checksum(input), ck);
+    });
+    t.ok('a one-character change moves the checksum, asserted over four distinct pairs rather '
+      + 'than one, because a single pair can agree by luck and report a checksum that is doing nothing',
+      [['abc', 'abd'], ['v1~9x3', 'v1~9x4'], ['aaaa', 'aaab'], ['0', '1']].every(function (pair) {
+        return App.serialize.checksum(pair[0]) !== App.serialize.checksum(pair[1]);
+      }));
+    t.ok('the prototype is intact after the checksum rows', protoIntact());
+
+    /* --- THE SEPARATOR RULE, MADE MECHANICAL. These are the rows that would
+           have caught both grammar bugs the research found, one nesting level
+           up: a record joined its fields with the character its term lists
+           used between items, and a tally bag joined its items with the
+           character the run-length stream used between runs. Both decoded to
+           a WRONG BUILD rather than to an error, which is exactly the failure
+           SHARE-03 exists to prevent. --- */
+    var SEPS = Object.keys(App.data.CODE_SEP).map(function (k) { return App.data.CODE_SEP[k]; });
+    t.eq('CODE_SEP names one character per nesting level and there are six of them', SEPS.length, 6);
+    t.eq('the six are six DISTINCT characters, so no level can be mistaken for another',
+      SEPS.filter(function (c, i) { return SEPS.indexOf(c) === i; }).length, 6);
+    t.ok('every separator is a single character', SEPS.every(function (c) {
+      return typeof c === 'string' && c.length === 1;
+    }));
+    t.ok('every separator is inside CODE_ALPHABET, so a whole code carrying all six still '
+      + 'matches the allowlist end to end',
+      SEPS.every(function (c) { return App.data.CODE_ALPHABET.test(c); }));
+    t.ok('no separator is a comma, a space, a percent sign or a hash — the comma because '
+      + 'hasFlag splits location.hash on it and would fragment a code, the space because it '
+      + 'becomes a percent escape on write-back, the percent sign because it is ambiguous '
+      + 'against that escape, and the hash because a second one in a pasted line is a hazard',
+      SEPS.every(function (c) { return [',', ' ', '%', '#'].indexOf(c) === -1; }));
+    t.ok('CODE_SEP is frozen, because a record a caller can write to is not a rule',
+      Object.isFrozen(App.data.CODE_SEP));
+
+    /* --- THE ALPHABET AND THE TWO VERSIONS. --- */
+    t.ok('CODE_ALPHABET admits a code made of base36 digits, base64url characters and all six separators',
+      App.data.CODE_ALPHABET.test('v1~Ab.9-x!2*3_w00g'));
+    t.ok('CODE_ALPHABET refuses a comma, a space and a percent escape — the three characters '
+      + 'excluded by construction, and it is an ALLOWLIST so it also refuses every character '
+      + 'nobody has thought of yet',
+      !App.data.CODE_ALPHABET.test('v1~a,b')
+        && !App.data.CODE_ALPHABET.test('v1~a b')
+        && !App.data.CODE_ALPHABET.test('v1~a%20b'));
+    t.eq('CODE_VERSION is the WIRE version and schema is the RECORD version — two different '
+      + 'things holding the same number today, which is why they are two constants',
+      [App.data.CODE_VERSION, App.data.defaults().schema], ['v1', 1]);
+    t.eq('CODE_HASH_KEY names the token the code occupies inside the comma-separated hash, '
+      + 'so a boot reader is a prefix test rather than a guess about an unknown token',
+      App.data.CODE_HASH_KEY, 'b');
+    t.ok('CODE_HASH_KEY is itself inside CODE_ALPHABET',
+      App.data.CODE_ALPHABET.test(App.data.CODE_HASH_KEY));
+    t.ok('the prototype is intact after the separator and alphabet rows', protoIntact());
+
+    /* --- THE REORDER TRIPWIRE — the cheapest possible guard against a silent
+           wrong board. Seven allowlists are encoded BY POSITION, so moving one
+           entry changes what every code written before the move MEANS, with no
+           error anywhere to report it. Each row reads the first entry and the
+           length off the EXPORTED constant, and each label says in its own
+           words what a reorder would cost, so the next reader who moves an
+           entry fails a check that explains itself rather than one that only
+           reports a number that changed. Appending is allowed. --- */
+    [
+      { name: 'SHAPES', list: App.data.SHAPES, first: 'sq', size: 6,
+        cost: 'a token a classmate drew as a square would arrive as some other outline' },
+      { name: 'COLORS', list: App.data.COLORS, first: 'green', size: 7,
+        cost: 'every token on a shared board would repaint itself in somebody else\'s palette' },
+      { name: 'TOKEN_IDS', list: App.data.TOKEN_IDS, first: 'hp', size: 5,
+        cost: 'a health tally would be read as an action-point tally and the numbers would move' },
+      { name: 'TOKEN_SCOPES', list: App.data.TOKEN_SCOPES, first: 'unit', size: 2,
+        cost: 'a per-unit type would arrive attached to the whole side, or the reverse' },
+      { name: 'GLYPHS', list: App.data.GLYPHS, first: '', size: 29,
+        cost: 'a link shared last term would silently load a different picture into this term\'s board' },
+      { name: 'ACTION_IDS', list: App.data.ACTION_IDS, first: 'slash', size: 6,
+        cost: 'a renamed shipped action would land on a different card entirely' },
+      { name: 'XF_WHO', list: App.data.XF_WHO, first: 'caster', size: 2,
+        cost: 'a rule about the unit acting would arrive as a rule about the unit acted on' }
+    ].forEach(function (row) {
+      t.eq('POSITIONAL ALLOWLIST ' + row.name + ' has not been reordered — entries may be '
+        + 'APPENDED and never moved or removed without bumping the build code\'s schema version, '
+        + 'because otherwise ' + row.cost,
+        [row.list[0], row.list.length], [row.first, row.size]);
+    });
+    t.ok('the prototype is intact at the end of the build-code suite', protoIntact());
+
+    /* --- THE BUDGET FIGURES AS MEASUREMENTS, NOT GATES. t.info records a
+           number without ever being able to redden a run, which is what these
+           are: three constants and one measured cost, printed so the size rows
+           plan 04-02 adds have something to be read beside. --- */
+    t.info('CODE_TARGET — the design target for a board a student actually builds',
+      App.data.CODE_TARGET);
+    t.info('CODE_WARN — the point past which the surface says a code is longer than a message allows',
+      App.data.CODE_WARN);
+    t.info('CODE_LIMIT — the free-tier message limit, and the one figure in this phase inherited '
+      + 'from secondary sources rather than measured',
+      App.data.CODE_LIMIT);
+    t.info('base64url characters spent on a name at the code-point cap, all astral',
+      App.serialize.b64(CAP_NAME).length);
   });
 })();
 
