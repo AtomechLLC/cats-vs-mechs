@@ -306,7 +306,7 @@ Plans:
 - [x] 05-09-PLAN.md — the board in fight mode: the dead marker off the stored flag, an alive toggle the marking does not hide, the by-hand marker derived from the round's record, FIGHT-10's permanent line, and PROJ-05 reconciled — the strip keeps describing the allocation, the fight's figures sit beside it, `turnsToWipe`'s third argument finally used — plus `[C14.3]` (wave 9)
 - [x] 05-10-PLAN.md — `[S07.5]` through the four seams with not one line of `[S07.1]` edited, and the interaction gate's fight checks: the act partition read off the page, the ledger's attributes by walking the region, the disabled set across three boards, and the phase's own acceptance run (wave 10)
 - [ ] 05-11-PLAN.md — the playtest: the shipped 9v3 played end to end TWICE, hot-seat, adjudicating as a student would; retune `[S01] DEFAULTS` and replay until it holds; thirty-eight numbered items with D-26 first; and the two research documents that predicted the blowout backwards corrected (wave 11, blocking human-verify checkpoint)
-- [ ] 05-12-PLAN.md — D-27's tab: a view switch in the shell, `[C15]`, `[S06.10]` and `[S07.6]`, with `#strip` and `#refband` outside both sides of it so PROJ-05 and REF-03 survive — and the viewport budget dissolved structurally rather than by a dial (wave 12, gap closure)
+- [x] 05-12-PLAN.md — D-27's tab: a view switch in the shell, `[C15]`, `[S06.10]` and `[S07.6]`, with `#strip` and `#refband` outside both sides of it so PROJ-05 and REF-03 survive — and the viewport budget dissolved structurally rather than by a dial (wave 12, gap closure)
 - [ ] 05-13-PLAN.md — the arithmetic behind the preview: `App.model.spokenFor`, `App.model.needsAt` and `App.model.defaultAt` (the lowest-health living enemy, ties by roster order), and `declareAction` given radio-per-performer semantics so one unit holds one action from the RECORD rather than from a button — with the default computed by the SURFACE so `at: null` stays recordable (wave 13, gap closure)
 - [ ] 05-14-PLAN.md — the declaration grid in the addendum's column order — `[ROUND]` above both, then per side `[SIDE]` → battlefield slot → team resources → a picker row per unit with a button per action — one-click declare against the default target, a change-target button, the spoken-for resources, and the disable contract, with D-23 and the never-disable rule on this region TURNED IN THE OPEN, red recorded then green (wave 14, gap closure)
 - [ ] 05-15-PLAN.md — the battlefield: `[S06.11]` and `[C14.4]`, Cats left and Mechs right matching the columns, one labelled shape per unit carrying its health, shield and every tally as the student authored them, dead units still drawn and marked, CSS shapes and glyphs only — read-only except as the click surface the change-target flow lights (wave 15, gap closure)
@@ -375,7 +375,7 @@ parallel if desired.
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
-| 5. Fight Loop & Playtest | 10/11 | In Progress|  |
+| 5. Fight Loop & Playtest | 11/16 | In Progress|  |
 
 ## Coverage
 

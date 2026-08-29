@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 05-10-PLAN.md
-last_updated: "2026-08-29T13:55:20.322Z"
+last_updated: "2026-08-29T16:26:36.961Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 43
-  completed_plans: 43
+  total_plans: 48
+  completed_plans: 44
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 11 of 11
-Status: Ready to execute
+Plan: 12 of 16 — 05-12 complete, 05-13 next
+Status: Executing — D-27 gap closure (05-12..05-16), then the 05-11 playtest last
 Last activity: 2026-08-29
 
-Progress: [██████████] 100%
+Progress: [█████████░] 92%
 
 ## Performance Metrics
 
@@ -79,6 +79,7 @@ Progress: [██████████] 100%
 | Phase 05 P08 | 150min | 2 tasks | 3 files |
 | Phase 05 P09 | 110min | 2 tasks | 3 files |
 | Phase 05 P10 | 125min | 2 tasks tasks | 3 files files |
+| Phase 05 P12 | 105min | 2 tasks tasks | 2 files files |
 
 ## Accumulated Context
 
@@ -174,6 +175,11 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-10 — [S07.5] pushes NOTHING into UI_ACTS — every fight control carries a private data-fg or data-dc, and the one carrying a data-act carries the name of a real op
 - [Phase 05]: 05-10 — HOLD_ACTS untouched — an Advance is never held, and nudgeFightHp has no control on the page to hold
 - [Phase 05]: 05-10 — the board's health row draws the BUILD allocation during a fight, not the fight's live health (FIGHT-10's division), now asserted so a later plan reddens rather than shipping a second answer
+- [Phase 05-12]: D-27's fight tab is a page-level VIEW driven by one attribute on #app and an attribute selector in [C15] — never the hidden property, because an author display beats the user agent's [hidden]{display:none}.
+- [Phase 05-12]: #strip and #refband stay outside BOTH sides of the switch because #board stands in both views. PROJ-05 and REF-03 are kept structurally rather than by a rule, and check 103b reads it off the DOM and off the markup.
+- [Phase 05-12]: A view is not state: the switch carries data-vw and no data-act, writes no slice, and check 103 requires the whole state byte-identical across both presses. Probe AJ drives the violation and the row reddens.
+- [Phase 05-12]: The view follows a fight across its two edges and across nothing between them, via a derived page-side flag — so a student who switches to the board mid-fight is not thrown back, and an undo of startFight moves the view for free.
+- [Phase 05-12]: No height dial was turned by plan 05-12. The viewport budget is dissolved structurally; [C14]'s 736px basis, [C14.1]'s 34vh and .ld-list's 46vh are all left for 05-14 and 05-15 to re-measure.
 
 ### Pending Todos
 
@@ -199,6 +205,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T13:55:02.528Z
+Last session: 2026-08-29T16:26:15.328Z
 Stopped at: Completed 05-10-PLAN.md
 Resume file: None

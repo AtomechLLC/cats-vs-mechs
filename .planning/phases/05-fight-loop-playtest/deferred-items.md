@@ -66,3 +66,29 @@ viewport the two regions stack again — is recorded with its measurements in th
 
 Full record: `.planning/phases/05-fight-loop-playtest/05-VIEWPORT-FIX.md`. It is also
 `REHEARSAL.md` B3 and limitations entry 21, both rewritten.
+
+## 3. In the FIGHT VIEW the projection starts below the fold — owned by 05-14 / 05-15, not deferred out of the phase
+
+**Found:** plan 05-12, driving real Chrome and real Edge from `file://` at both viewports.
+
+With a fight running and the fight view showing, `#strip`'s viewport top at page scroll 0:
+
+```
+@1920x1080   906 of 1080   (174px of the projection visible)
+@1366x768    792 of  768   (below the fold; it comes into view on any scroll)
+```
+
+**Not a regression.** The same band sat above the same board before this plan — plan 05-10
+measured `#board` top at 844 of 1080 with a round resolved, and the viewport fix left it there.
+The switch did not move the projection down; it removed the two roster columns from underneath it.
+
+**Why it is not this plan's to fix.** Both numbers are set by `#fightbar`'s HEIGHT, and that
+height is `[C14]`'s 736px basis and `[C14.1]`'s 34vh bound measured against a declaration column
+**plan 05-14 replaces outright** and **plan 05-15 then adds a battlefield to**. Turning either dial
+here would be the fifth consecutive plan to set a height against a page the next plan changes,
+which is the failure `05-VIEWPORT-FIX.md` is a record of. Plan 05-12 recorded the readings in
+`[C15]` as a control run and explicitly not as settled dials.
+
+**What the two plans owe:** a re-measure of `#strip`'s viewport top in the fight view at both
+viewports in both browsers, after their own column lands. `[C15]`'s sticky table is the baseline
+to measure against.
