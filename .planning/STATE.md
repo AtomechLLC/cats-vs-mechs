@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-08-29T12:34:56.330Z"
+stopped_at: Completed 05-09-PLAN.md
+last_updated: "2026-08-29T13:19:09.023Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 41
+  completed_plans: 42
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 9 of 11
+Plan: 10 of 11
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [██████████] 95%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -77,6 +77,7 @@ Progress: [██████████] 95%
 | Phase 05 P06 | 95min | 2 tasks | 2 files |
 | Phase 05 P07 | 115min | 2 tasks | 2 files |
 | Phase 05 P08 | 150min | 2 tasks | 3 files |
+| Phase 05 P09 | 110min | 2 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -165,6 +166,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-08: the ledger grows by DELTA only, front-trimmed against the oldest surviving record's round number — a row-count exit freezes it at MAX_PAST_ROUNDS
 - [Phase ?]: 05-08: FIGHT-15's reading is derived at render time and stored nowhere; probe Z's gap is closed by three [S09.12] rows asserting the fight slice's shape after a round has resolved
 - [Phase ?]: 05-08: check 92's fight harvest now PLAYS a round; FIGHT_FLOOR 83 -> 108, per-card 11 -> 14, SUITE_FLOOR 1155 -> 1158
+- [Phase ?]: 05-09: PROJ-05 reconciled rather than chosen — [S06.3] keeps reading state.build, the fight's own figures sit beside it labelled, and turnsToWipe's third argument is finally used. First PROJ-05 question at 05-11; one comment collapses it either way
+- [Phase ?]: 05-09: the viewport budget is not a dial question — no setting of the three dials clears a 768px screen, and laying #fightbar and #ledger side by side is measured at 844 @1080 and 788 @768. Handed to the checkpoint with numbers (REHEARSAL B3)
+- [Phase ?]: 05-09: death is drawn from the stored flag and never inferred; the alive toggle is a sibling of everything the marking hides; the by-hand marker is derived from the round's ruling list with nothing stored on a unit
+- [Phase ?]: 05-09: a sticky element taller than its space stops pinning — measured -203 at 1366x768 — so PROJ-05's live reading is bounded at 24vh and FIGHT-10's line moved to the faction heads
 
 ### Pending Todos
 
@@ -190,6 +195,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T12:34:14.981Z
-Stopped at: Completed 05-05-PLAN.md
+Last session: 2026-08-29T13:19:09.010Z
+Stopped at: Completed 05-09-PLAN.md
 Resume file: None
