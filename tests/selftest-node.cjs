@@ -8230,6 +8230,846 @@ check(
     + ' after the undo=' + fnv(JSON.stringify(A.state.get()))
 );
 
+/* --- 93-102. PLAN 05-10: THE FIGHT, DRIVEN FROM THE PAGE ---------------------
+
+   EVERY ROW BELOW DRIVES THE PAGE, and the reason is Phase 3's WR-01 lesson
+   restated by three of this phase's own probes: a check written against source
+   spelling cannot see behaviour reached through a helper, and — worse here — a
+   check written against STATE cannot see a marker derived wrongly on the way to
+   the screen. Probe AB drew the dead marker from `hp === 0` instead of the
+   stored flag and the whole repository stayed green over it, because every
+   D-00d row in this file reads state and state is not what a student sees.
+   Probe AE rendered the live reading as one statement naming both sides and
+   nothing said anything. Probe W disabled the Advance control for a side that
+   could not pay and 147 of 147 still passed. All three are closed below, and
+   each row says which probe it answers.
+
+   THE LEDGER IS ASSERTED BY DRIVING A REAL ADVANCE AND READING ROWS OFF THE
+   PAGE rather than by grepping [S06.8] for an appendChild, for the same
+   reason. --- */
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+const fgBar = dom.byId['fightbar'];
+const fgLedgerRoot = dom.byId['ledger'];
+const fgBoard = dom.byId['board'];
+const fgApp = dom.byId['app'];
+const fgStrip = dom.byId['strip'];
+const fgStart = dom.byId['fight-start'];
+const fgUndoBtn = stub.querySelector('[data-act="undo"]');
+
+// One press, one frame. Every drive below goes through this, so no row can
+// quietly reach a handler without the page having caught up with it.
+function fgPress(node) {
+  press(node);
+  release(node);
+  A.state.flush();
+}
+function fgSideRootOf(side) { return dom.byId['decl-' + side]; }
+function fgOne(root, sel) { return root.querySelectorAll(sel)[0] || null; }
+
+// The chooser press, found by the VALUE it carries rather than by position, so
+// a row cannot pass by pressing whatever happens to be first.
+function fgPick(side, kind, value) {
+  const btn = fgSideRootOf(side).querySelectorAll('[data-fg="' + kind + '"]')
+    .filter((b) => b.dataset.fgVal === value)[0] || null;
+  if (btn !== null) { fgPress(btn); }
+  return btn;
+}
+function fgDeclare(side, actionId, byId, atId) {
+  fgPick(side, 'act', actionId);
+  fgPick(side, 'by', byId);
+  fgPick(side, 'at', atId);
+  fgPress(fgOne(fgSideRootOf(side), '[data-fg="declare"]'));
+}
+function fgAdvancePress() { fgPress(fgOne(fgBar, '[data-fg="advance"]')); }
+function fgAliveBtn(side, unitId) {
+  return fgBoard.querySelectorAll('[data-dc="alive"]')
+    .filter((b) => b.dataset.dcSide === side && b.dataset.dcUnit === unitId)[0] || null;
+}
+function fgLeaves(root) {
+  const out = [];
+  (function walk(n) {
+    if (!n) { return; }
+    if (n.children.length === 0 && typeof n.textContent === 'string'
+      && n.textContent !== '') {
+      out.push(n.textContent);
+    }
+    n.children.forEach(walk);
+  })(root);
+  return out;
+}
+function fgActNamed(side, name) {
+  return A.state.get().build[side].actions.filter((a) => a.name === name)[0];
+}
+
+const fgCatsAct = A.state.get().build.cats.actions[0].id;
+const fgMechsAct = A.state.get().build.mechs.actions[0].id;
+
+// A BOARD SOMEBODY HAS ACTUALLY PLAYED ON, built through real presses, because
+// every reading below is taken on it. Two rounds resolved and a declaration
+// standing in the third: the ledger has rows, the declaration list has lines,
+// and both are things that do not exist on a board where startFight() has just
+// been called — which is what probe X measured about check 92 before plan
+// 05-08 moved that drive.
+fgPress(fgStart);
+fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgDeclare('mechs', fgMechsAct, 'm1', 'c1');
+fgAdvancePress();
+fgDeclare('cats', fgCatsAct, 'c2', 'm2');
+fgAdvancePress();
+fgDeclare('mechs', fgMechsAct, 'm1', 'c3');
+
+/* 93. THE ACT PARTITION, COLLECTED OFF THE PAGE, in 68d and 90b's shape and
+   extended over the three regions this phase paints. The two halves together
+   are the point: a control naming an act nobody registered is caught, and so is
+   a state op quietly moved into UI_ACTS to make a refusal go away.
+
+   THE SECOND HALF IS THE ONE THAT MATTERS HERE, and the six ops are named in
+   this row's own label so a move reddens with an explanation rather than with a
+   number. Probe AF drives exactly that move. */
+const FG_DISPATCHED = [
+  // the act the page sends          the op [S05] exports for it
+  ['startFight', 'startFight'],
+  ['resetFight', 'resetFight'],
+  ['declare', 'declareAction'],
+  ['clearDeclaration', 'clearDeclaration'],
+  ['advanceRound', 'advanceRound'],
+  ['setAlive', 'setAlive']
+];
+const fgActsFound = [];
+[fgBar, fgLedgerRoot, fgBoard].forEach((root) => {
+  (function walk(n) {
+    if (n.dataset && typeof n.dataset.act === 'string' && n.dataset.act !== ''
+      && fgActsFound.indexOf(n.dataset.act) === -1) {
+      fgActsFound.push(n.dataset.act);
+    }
+    n.children.forEach(walk);
+  })(root);
+});
+if (fgActsFound.indexOf(fgStart.dataset.act) === -1) {
+  fgActsFound.push(fgStart.dataset.act);
+}
+const fgUiOnly = fgActsFound.filter((a) => A.interactions.UI_ACTS.indexOf(a) !== -1);
+const fgUnhandled = fgUiOnly.filter((a) => A.interactions.UI_HANDLED.indexOf(a) === -1);
+const fgStateActs = fgActsFound.filter((a) => A.interactions.UI_ACTS.indexOf(a) === -1);
+// A FIELD's act is the third legitimate kind and the row would be wrong without
+// it. [S07.1] reads a numeric field's data-act and looks the op up in FIELD_OPS
+// rather than in App.ops, so `maxHp` and `nudgeShield` are dispatched names
+// that [S05] deliberately does not export — the table's own comment says the
+// four keys exist "because a FIELD carries them". The allowlist is read off the
+// LIVE exported table for the reason every list in this file is: a re-typed
+// copy checks itself.
+const fgFieldActs = [];
+Object.keys(A.interactions.FIELD_OPS).forEach((key) => {
+  const row = A.interactions.FIELD_OPS[key];
+  [row.set, row.nudge].forEach((name) => {
+    if (typeof name === 'string' && fgFieldActs.indexOf(name) === -1) {
+      fgFieldActs.push(name);
+    }
+  });
+});
+const fgNotOps = fgStateActs.filter((a) =>
+  typeof A.ops[a] !== 'function' && fgFieldActs.indexOf(a) === -1);
+const fgParked = FG_DISPATCHED
+  .filter((pair) => A.interactions.UI_ACTS.indexOf(pair[0]) !== -1)
+  .map((pair) => pair[0]);
+const fgNoOpBehind = FG_DISPATCHED
+  .filter((pair) => typeof A.ops[pair[1]] !== 'function')
+  .map((pair) => pair[1]);
+// The two surfaces this phase built carry ZERO acts inside them on purpose —
+// [S06.7]'s control register and [S06.9]'s toggle both give every control a
+// private data-fg or data-dc — so it is those PRIVATE controls that are
+// floored. A region with no controls at all passes an all-clear spotlessly.
+const fgActsInside = fgBar.querySelectorAll('[data-act]').length
+  + fgLedgerRoot.querySelectorAll('[data-act]').length;
+const fgPrivateCount = fgBar.querySelectorAll('[data-fg]').length
+  + fgBoard.querySelectorAll('[data-dc]').length;
+check(
+  '93. THE ACT PARTITION FOR THE FIGHT, read off a page somebody has played on. '
+    + 'Every act #fightbar, #ledger, #board and the start control dispatch is '
+    + 'either a UI-only act the LIVE registration handles or a real op [S05] '
+    + 'exports — and NOT ONE of startFight, resetFight, declare, '
+    + 'clearDeclaration, advanceRound or setAlive is in UI_ACTS. That second '
+    + 'half is the whole row: an entry there is a name [S07] handles itself '
+    + 'instead of dispatching, which is exactly how a refusal is made to stop '
+    + 'being raised. The two fight surfaces carry ZERO acts inside them on '
+    + 'purpose, so it is their private data-fg and data-dc controls that are '
+    + 'floored — a region with no controls at all passes an all-clear '
+    + 'spotlessly',
+  fgActsInside === 0 && fgUnhandled.length === 0 && fgNotOps.length === 0
+    && fgParked.length === 0 && fgNoOpBehind.length === 0
+    && fgPrivateCount >= 60 && fgStateActs.indexOf('startFight') !== -1,
+  'acts on data-act inside #fightbar + #ledger=' + fgActsInside
+    + ' | acts found=' + JSON.stringify(fgActsFound)
+    + ' | UI-only=' + JSON.stringify(fgUiOnly)
+    + ' | claimed but unhandled=' + JSON.stringify(fgUnhandled)
+    + ' | field acts, read off the live FIELD_OPS=' + JSON.stringify(fgFieldActs)
+    + ' | state acts that are neither an op nor a field act='
+    + JSON.stringify(fgNotOps)
+    + ' | FIGHT OPS PARKED IN UI_ACTS=' + JSON.stringify(fgParked)
+    + ' | dispatched acts with no op behind them=' + JSON.stringify(fgNoOpBehind)
+    + ' | private data-fg + data-dc controls=' + fgPrivateCount
+);
+
+/* 93b. EVERY LISTENER ON BOTH OF THIS PLAN'S ROOTS WENT THROUGH THE ERROR
+   BOUNDARY, in 68c's and 90c's shape and for their reason. One bound raw would
+   throw past [S08] and leave the surface dead with nothing on screen to say so
+   — and on this surface that means a student pressing Advance in front of a
+   room, seeing nothing happen, and pressing it again.
+
+   Structural rather than behavioural, because the behavioural test cannot reach
+   every listener: App.boot.wrap returns an ANONYMOUS zero-arity function that
+   closes over the handler, and every handler in [S07.5] is a named function
+   declared with its own parameter. So a raw binding is visible by name and by
+   arity. TWO ROOTS AND TWO FLOORS, because a root carrying no listeners at all
+   passes a per-listener test spotlessly. */
+function fgRawOn(root) {
+  const raw = [];
+  Object.keys(root._listeners).forEach((type) => {
+    root._listeners[type].forEach((fn) => {
+      if (typeof fn !== 'function' || fn.name !== '' || fn.length !== 0) {
+        raw.push(type + ' -> ' + (typeof fn === 'function'
+          ? (fn.name || '(anonymous)') + '/' + fn.length : typeof fn));
+      }
+    });
+  });
+  return raw;
+}
+function fgListenersOn(root) {
+  return Object.keys(root._listeners)
+    .reduce((n, type) => n + root._listeners[type].length, 0);
+}
+const fgBarRaw = fgRawOn(fgBar);
+const fgBoardRaw = fgRawOn(fgBoard);
+const fgBarListeners = fgListenersOn(fgBar);
+const fgBoardListeners = fgListenersOn(fgBoard);
+check(
+  '93b. every listener bound on BOTH of plan 05-10\'s roots went through '
+    + 'App.boot.wrap. #fightbar and #board are the two static elements that '
+    + 'outlive every rebuild — [S06.7] replaces the declaration-root interiors '
+    + 'inside the first and structure() replaces the column interiors inside '
+    + 'the second — so a listener bound any deeper would be thrown away by the '
+    + 'first repaint, and the alive toggle lives inside a unit card. Two roots '
+    + 'and two floors, because a root carrying no listeners passes a '
+    + 'per-listener test spotlessly',
+  fgBarListeners >= 3 && fgBoardListeners >= 3
+    && fgBarRaw.length === 0 && fgBoardRaw.length === 0,
+  'listeners on #fightbar=' + fgBarListeners
+    + ' bound outside the boundary: ' + (fgBarRaw.join(', ') || 'none')
+    + ' | listeners on #board=' + fgBoardListeners
+    + ' bound outside the boundary: ' + (fgBoardRaw.join(', ') || 'none')
+);
+
+/* 93c. AN ADVANCE IS NEVER HELD, ON THE KEYBOARD EITHER — and this row exists
+   because [S07.1]'s suppression cannot reach these controls. onKeyDown finds a
+   repeat through actTarget, actTarget returns null for anything carrying no
+   data-act, and every control in [S07.5] carries a private data-fg or data-dc
+   instead. D-17's own paragraph says what that costs: a held Enter on a focused
+   button makes the browser synthesise a click per repeated keydown, and the
+   click handler has no e.repeat to test because click events do not carry one.
+   Held on Advance that is the forty-rounds outcome HOLD_ACTS exists to prevent,
+   arriving through the other door; held on Reset it throws a played fight away
+   over and over.
+
+   THE FIRST PRESS IS NOT CANCELLED, which is what keeps Enter on a fight
+   control behaving exactly like a click, and it is asserted beside the repeat
+   because a suppression that swallowed both would be a control the keyboard
+   cannot reach at all. Check 68b holds the same pair one surface over.
+
+   WHAT THIS ROW CANNOT REACH is written into the limitations list by number:
+   the stub synthesises no click from a keydown, so what is asserted here is
+   that the artifact ASKS the browser not to — which is the whole of what
+   preventDefault can do — and not that a real browser then obliges. */
+const fgAdvanceBtn = fgOne(fgBar, '[data-fg="advance"]');
+const fgRoundBeforeHold = A.state.get().fight.round;
+const fgFirstKey = dom.event('keydown', { key: 'Enter', repeat: false });
+fgAdvanceBtn.dispatchEvent(fgFirstKey);
+let fgRepeatCancelled = null;
+for (let i = 0; i < 10; i++) {
+  const rep = dom.event('keydown', { key: 'Enter', repeat: true });
+  fgAdvanceBtn.dispatchEvent(rep);
+  fgRepeatCancelled = rep.defaultPrevented;
+}
+A.state.flush();
+const fgAliveHeld = fgAliveBtn('cats', 'c1');
+const fgAliveRepeat = dom.event('keydown', { key: ' ', repeat: true });
+fgAliveHeld.dispatchEvent(fgAliveRepeat);
+A.state.flush();
+check(
+  '93c. a repeated Enter on the Advance control and a repeated Space on the '
+    + 'alive toggle are cancelled before either can become a click, and the '
+    + 'FIRST press of each is not. [S07.1] cancels a held key through '
+    + 'actTarget, which returns null for every control in this region because '
+    + 'not one of them carries a data-act — so without this the browser would '
+    + 'synthesise one click per OS auto-repeat and a held Advance would resolve '
+    + 'rounds until the history a student just played had rolled off the end of '
+    + 'the list, one undo entry at a time',
+  fgRepeatCancelled === true && fgFirstKey.defaultPrevented === false
+    && fgAliveRepeat.defaultPrevented === true
+    && A.state.get().fight.round === fgRoundBeforeHold
+    && errPanel.hidden === true,
+  'the repeat is cancelled=' + fgRepeatCancelled
+    + ' | the first press is cancelled=' + fgFirstKey.defaultPrevented
+    + ' | a held Space on the toggle is cancelled=' + fgAliveRepeat.defaultPrevented
+    + ' | rounds resolved by the hold='
+    + (A.state.get().fight.round - fgRoundBeforeHold)
+);
+
+/* 94. NO LEDGER ROW CARRIES AN ATTRIBUTE THE INTERACTION LAYER DISPATCHES ON OR
+   THE SYNC PASS WRITES — check 63b's parallel one region over, and it is the
+   cheap version of the whole focus-hazard section. THE REGION IS WALKED AND THE
+   SOURCE IS NOT GREPPED, for 63b's stated reason: the source scan cannot see
+   setData(node, { k: … }), which is the only spelling this file uses, so a row
+   that silently became a live control passed every check in this repo.
+
+   data-k is the one with teeth. withPreservedFocus takes the FIRST match for a
+   key scoped to its container, and this phase added the first repeated region
+   in the file's history — a key in here would put focus restore into a list
+   that rebuilds on every Advance. Probe AG drives it and measures what it
+   costs. Floored on the row count for check 55's reason: a walk that found no
+   rows would find no attributes and pass spotlessly. */
+const fgLdDrift = [];
+(function walk(n) {
+  if (n.dataset) {
+    ['k', 'act', 'amt'].forEach((key) => {
+      if (n.dataset[key] !== undefined) {
+        fgLdDrift.push(String(n.className || '(root)') + '/data-' + key);
+      }
+    });
+  }
+  const cls = String(n.className || '');
+  if (cls.indexOf('brd-value') !== -1) { fgLdDrift.push(cls + '/.brd-value'); }
+  if (cls.indexOf('brd-line--opt') !== -1) { fgLdDrift.push(cls + '/.brd-line--opt'); }
+  n.children.forEach(walk);
+})(fgLedgerRoot);
+const fgLdRows = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const fgLdLeaves = fgLeaves(fgLedgerRoot).length;
+check(
+  '94. no node ON THE PAGE inside #ledger — a row or anything under it — '
+    + 'carries data-k, data-act, data-amt, .brd-value or .brd-line--opt. The '
+    + 'region is WALKED rather than the source grepped, for check 63b\'s '
+    + 'reason: the source scan cannot see the setData spelling this file '
+    + 'actually uses. data-k is the one with teeth, because withPreservedFocus '
+    + 'takes the FIRST match for a key inside its container and this phase '
+    + 'added the first repeated region in this file\'s history',
+  fgLdRows >= 2 && fgLdLeaves >= 20 && fgLdDrift.length === 0,
+  'rows on the page=' + fgLdRows + ' leaf strings=' + fgLdLeaves
+    + ' attributes found: ' + JSON.stringify(fgLdDrift)
+);
+
+/* 94b. AND EVERY data-k ON THE PAGE IS UNIQUE, document-wide, with a fight
+   running. Same mechanism, stated as the property rather than as its absence:
+   keyed() takes the first match, so two nodes sharing a key means a repaint can
+   hand the keyboard to the wrong one. Unit ids are unique across both sides —
+   no unit is on two sides — which is what makes `fg/alive/c1` unique by
+   construction, and this row is what says the construction held. */
+const fgKeys = {};
+const fgKeyDupes = [];
+let fgKeyCount = 0;
+(function walk(n) {
+  if (n.dataset && typeof n.dataset.k === 'string' && n.dataset.k !== '') {
+    fgKeyCount++;
+    if (Object.prototype.hasOwnProperty.call(fgKeys, n.dataset.k)) {
+      fgKeyDupes.push(n.dataset.k);
+    }
+    fgKeys[n.dataset.k] = true;
+  }
+  n.children.forEach(walk);
+})(fgApp);
+check(
+  '94b. every data-k on the page is unique with a fight running, two rounds in '
+    + 'the ledger and a declaration standing. keyed() takes the FIRST match, so '
+    + 'a repeated key is a repaint handing the keyboard to a node the student '
+    + 'was not on',
+  fgKeyCount >= 120 && fgKeyDupes.length === 0,
+  'keys on the page=' + fgKeyCount + ' duplicates=' + JSON.stringify(fgKeyDupes)
+);
+
+/* 95. NOTHING IS DISABLED FOR ANYTHING A STUDENT DID, in 71c's shape and
+   extended over THREE boards rather than two: a fully funded fight, the same
+   fight driven to no action points AND every unit below every requirement, and
+   the same fight with three units ruled dead. The whole set is compared, keyed
+   by data-k so the choosers and the declaration lines being rebuilt on every
+   repaint does not read as a change — a row that watched one button would be
+   green over a page that disabled every other one.
+
+   THE ALIVE TOGGLE ON A DEAD UNIT IS THE ONE THIS PHASE WOULD BREAK FIRST, and
+   it is what makes a Shield ruling recoverable at all: the tidy shape is to
+   hide "the dead part" as one block and the toggle looks like part of it. Probe
+   AI drives the disable and probe AC drove the hide.
+
+   THE ONE `=true` THE SET IS ALLOWED TO HOLD is the start control, and it is
+   named rather than tolerated: startFight throws on a fight that is already
+   running, so that one is the TOOL bounding what it can do to ITSELF, which is
+   a different thing entirely — 71c\'s own sentence about the picker\'s
+   Remove. */
+/* THE THREE BOARDS ARE BUILT TO THE SAME SHAPE ON PURPOSE, and the first draft
+   of this row was WRONG for exactly the reason probe W's comparison was built
+   like-for-like: the funded board carried a declaration and the driven one
+   resolved it on the Advance that emptied the pools, so the Clear control on
+   that line went away and the two sets differed for a reason that had nothing
+   to do with anything being disabled. Every board below therefore has a fight
+   running and exactly ONE declaration standing, and they differ only in what
+   the side can pay, what it can meet, and who has been ruled dead. */
+function fgFundedBoard() {
+  A.ops.resetToDefaults();
+  A.state.flush();
+  fgPress(fgStart);
+  fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+}
+fgFundedBoard();
+const fgDisabledFunded = disabledIn(fgApp);
+const fgFundedTrue = fgDisabledFunded.split('|').filter((e) => e.indexOf('=true') !== -1);
+const fgFundedReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-report')).join('');
+
+// NOTHING TO SPEND AND BELOW EVERY REQUIREMENT. The pool is driven to zero
+// through a real Advance rather than by writing a number into the slice,
+// because advanceRound is the only thing in this file that refills it — so the
+// build is set to nothing first and the Advance carries that through. The
+// declaration is then made again, so this board has the same one standing.
+fgFundedBoard();
+A.ops.setActionCost('cats', fgCatsAct, 'ap', 9);
+A.ops.setActionReq('cats', fgCatsAct, 0, 'hp', 99);
+A.ops.setFactionAp('cats', 0);
+A.ops.setFactionAp('mechs', 0);
+A.state.get().build.cats.units.forEach((u) => { A.ops.setUnitMaxHp('cats', u.id, 1); });
+A.state.get().build.mechs.units.forEach((u) => { A.ops.setUnitMaxHp('mechs', u.id, 1); });
+A.state.flush();
+fgAdvancePress();
+fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+const fgDisabledOwing = disabledIn(fgApp);
+const fgOwingReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-report')).join('');
+const fgPoorAp = [A.state.get().fight.cats.ap, A.state.get().fight.mechs.ap];
+const fgAdvanceEntry = fgDisabledOwing.split('|')
+  .filter((e) => e.indexOf('fg/advance=') === 0);
+
+// AND THE SAME BOARD WITH THREE UNITS RULED DEAD, through three real presses.
+fgPress(fgAliveBtn('cats', 'c1'));
+fgPress(fgAliveBtn('cats', 'c2'));
+fgPress(fgAliveBtn('mechs', 'm1'));
+const fgDisabledDead = disabledIn(fgApp);
+const fgDeadToggles = fgDisabledDead.split('|')
+  .filter((e) => e.indexOf('fg/alive/') === 0 && e.indexOf('=true') !== -1);
+const fgControlCount = fgDisabledFunded.split('|').length;
+check(
+  '95. NOTHING IS DISABLED FOR ANYTHING A STUDENT DID, compared as a WHOLE SET '
+    + 'across three boards that differ in nothing else — a funded fight with a '
+    + 'declaration standing, the same fight with both pools driven to nothing '
+    + 'through a real Advance and the declared action costing more than the '
+    + 'side holds and naming a requirement no unit meets, and that board again '
+    + 'with three units ruled dead. The report moves; not one control\'s '
+    + 'disabled state does. The Advance control stays enabled on a side that '
+    + 'cannot pay, and the alive toggle stays enabled on a unit already marked '
+    + '— the direction that makes a Shield ruling recoverable, and the one this '
+    + 'phase would break first. The single =true the set holds is the start '
+    + 'control, which is the tool bounding what it can do to ITSELF rather than '
+    + 'a ruling on a student',
+  fgDisabledFunded === fgDisabledOwing && fgDisabledFunded === fgDisabledDead
+    && fgOwingReport !== fgFundedReport
+    && fgFundedTrue.length === 1 && fgFundedTrue[0] === 'fg=true'
+    && fgAdvanceEntry.length === 1 && fgAdvanceEntry[0] === 'fg/advance=false'
+    && fgDeadToggles.length === 0 && fgControlCount >= 100,
+  'controls compared=' + fgControlCount
+    + ' | funded === cannot pay and cannot meet='
+    + (fgDisabledFunded === fgDisabledOwing)
+    + ' | funded === three ruled dead=' + (fgDisabledFunded === fgDisabledDead)
+    + ' | fight pools driven to ' + JSON.stringify(fgPoorAp)
+    + ' | the report moved: ' + JSON.stringify(fgFundedReport)
+    + ' -> ' + JSON.stringify(fgOwingReport)
+    + ' | the advance entry=' + JSON.stringify(fgAdvanceEntry)
+    + ' | every =true entry=' + JSON.stringify(fgFundedTrue)
+    + ' | alive toggles disabled=' + JSON.stringify(fgDeadToggles)
+);
+
+/* 96. AN ADVANCE MOVES THE STATE **AND** THE PAGE, asserted in ONE row. This is
+   checks 72 and 73's lesson with its claim inverted: there the claim was that
+   nothing lands, and the row asserted state identity and page stillness
+   together because "a row that compared only the state would be spotlessly
+   green over a pane whose every press did nothing at all — and probe Y proved
+   that is not hypothetical." Here the claim is that something DOES land, so
+   both halves are asserted together for the same reason pointing the other way:
+   a row that only read the state would be green over a press that changed
+   nothing on screen. Probe AH makes the handler dispatch nothing and both
+   halves must fire. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgDeclare('mechs', fgMechsAct, 'm1', 'c1');
+const fgPageBefore = fgLeaves(fgBar).join('') + ''
+  + fgLeaves(fgLedgerRoot).join('') + ''
+  + fgLeaves(dom.byId['col-cats']).join('');
+const fgStateBefore = JSON.stringify(A.state.get().fight);
+const fgRoundBefore = dom.byId['round-count'].textContent;
+const fgRowsBefore = fgLedgerRoot.querySelectorAll('.ld-row').length;
+fgAdvancePress();
+const fgPageAfter = fgLeaves(fgBar).join('') + ''
+  + fgLeaves(fgLedgerRoot).join('') + ''
+  + fgLeaves(dom.byId['col-cats']).join('');
+const fgStateAfter = JSON.stringify(A.state.get().fight);
+const fgRoundAfter = dom.byId['round-count'].textContent;
+const fgRowsAfter = fgLedgerRoot.querySelectorAll('.ld-row').length;
+check(
+  '96. ONE PRESS OF THE REAL ADVANCE CONTROL MOVES THE STATE AND MOVES THE '
+    + 'PAGE, and both halves ride in one row. Checks 72 and 73 assert the '
+    + 'opposite claim the same way and for the same reason: a row that compared '
+    + 'only the state would be spotlessly green over a press that changed '
+    + 'nothing on screen. The round on the bar steps, the ledger grows a row, '
+    + 'and the rendered text of the bar, the ledger and a faction column all '
+    + 'move together',
+  fgStateAfter !== fgStateBefore && fgPageAfter !== fgPageBefore
+    && fgRoundAfter !== fgRoundBefore && fgRowsAfter === fgRowsBefore + 1
+    && errPanel.hidden === true,
+  'state moved=' + (fgStateAfter !== fgStateBefore)
+    + ' (' + fnv(fgStateBefore) + ' -> ' + fnv(fgStateAfter) + ')'
+    + ' | page moved=' + (fgPageAfter !== fgPageBefore)
+    + ' (' + fnv(fgPageBefore) + ' -> ' + fnv(fgPageAfter) + ')'
+    + ' | the round on the bar ' + JSON.stringify(fgRoundBefore)
+    + ' -> ' + JSON.stringify(fgRoundAfter)
+    + ' | ledger rows ' + fgRowsBefore + ' -> ' + fgRowsAfter
+);
+
+/* 97. D-13's RENDERED HALF, AND IT HAD NO MECHANICAL CHECK ANYWHERE IN THIS
+   REPOSITORY UNTIL THIS ROW. Probe AE rendered the live reading as ONE
+   statement naming both sides — the exact comparison D-13 forbids — and the
+   whole repository stayed green: 1188 passed, 0 failed, 147 of 147, every scan
+   clean, both naming greps 0. [S09.8] holds the STRUCTURAL half (one builder,
+   called once per side, every figure carrying its own side) and cannot see
+   what is drawn.
+
+   IT IS A LEAF WALK AND NOT A REGION WALK, and that is the whole shape of it:
+   the region legitimately names both factions — once per side, in two different
+   statements — which is the whole of what D-13 permits. What it forbids is ONE
+   statement holding both, so the unit of the test is the leaf. Floored on the
+   leaf count, because a walk over a region that painted nothing passes
+   spotlessly. */
+const fgCatsName = A.state.get().build.cats.name;
+const fgMechsName = A.state.get().build.mechs.name;
+const fgLiveBoxes = fgStrip.querySelectorAll('.dc-live');
+const fgLiveLeaves = [];
+fgLiveBoxes.forEach((box) => { fgLeaves(box).forEach((t) => fgLiveLeaves.push(t)); });
+const fgBothNamed = fgLiveLeaves.filter((t) =>
+  t.indexOf(fgCatsName) !== -1 && t.indexOf(fgMechsName) !== -1);
+check(
+  '97. D-13 ON THE PAGE: no single leaf of the live fight reading names BOTH '
+    + 'factions. The region names each of them — once per side, in its own '
+    + 'statement — and that is the whole of what D-13 permits; what it forbids '
+    + 'is one sentence setting the two against each other. So the unit of this '
+    + 'row is the LEAF and not the region. Probe AE rendered exactly that '
+    + 'sentence and the entire repository stayed green over it, which is why '
+    + 'this row exists',
+  fgLiveBoxes.length === 1 && fgLiveLeaves.length >= 8 && fgBothNamed.length === 0,
+  'live reading boxes=' + fgLiveBoxes.length
+    + ' leaf strings=' + fgLiveLeaves.length
+    + ' | faction names read live=' + JSON.stringify([fgCatsName, fgMechsName])
+    + ' | leaves naming both=' + JSON.stringify(fgBothNamed)
+);
+
+/* 98. THE DEAD MARKER IS DRAWN FROM THE STORED FLAG, READ OFF THE PAGE. Probe
+   AB drew it from `hp === 0` instead and the repository stayed green — because
+   every row in this file that asserts D-00d reads STATE, and state is not what
+   a student sees. Three readings, and the third is the direction a tidy
+   implementation loses:
+     a unit at ZERO HEALTH that nobody ruled draws as ALIVE — which is what
+       keeps a Shield ruling representable;
+     a unit at FULL HEALTH that a student ruled dead draws as DEAD;
+     and a unit ruled dead and then ruled BACK returns to the first reading.
+   Each is read as four things at once, because [C07]'s rule is that a state is
+   said more than once and never in colour alone: the card's class, the toggle's
+   aria-pressed, the token in the marker row, and the sentence beside it. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+function fgDeadRead(side, unitId) {
+  const btn = fgAliveBtn(side, unitId);
+  if (btn === null) { return null; }
+  const line = btn.parentNode;
+  const card = line.parentNode;
+  const row = line.querySelectorAll('[data-amt="dead"]')[0] || null;
+  const said = line.querySelectorAll('.dc-state')[0] || null;
+  return {
+    marked: String(card.className || '').indexOf('dc-card--dead') !== -1,
+    pressed: btn.getAttribute('aria-pressed'),
+    tokens: row === null ? -1 : row.children.length,
+    saidShown: said === null ? null : (said.hidden === false),
+    says: said === null ? null : said.textContent,
+    enabled: btn.disabled !== true
+  };
+}
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c1', value: 0 });
+A.state.flush();
+const fgReadZeroAlive = fgDeadRead('cats', 'c1');
+const fgZeroHp = A.state.get().fight.cats.units[0].hp;
+fgPress(fgAliveBtn('cats', 'c2'));
+const fgReadFullDead = fgDeadRead('cats', 'c2');
+const fgFullHp = A.state.get().fight.cats.units[1].hp;
+fgPress(fgAliveBtn('cats', 'c2'));
+const fgReadBack = fgDeadRead('cats', 'c2');
+check(
+  '98. THE DEAD MARKER DRAWS THE STORED FLAG AND NEVER THE HEALTH, read OFF '
+    + 'THE PAGE rather than out of state — because every other D-00d row in '
+    + 'this file reads state, and probe AB proved a marker derived wrongly on '
+    + 'the way to the screen leaves the whole repository green. A unit at zero '
+    + 'health nobody ruled draws as standing, a unit at full health somebody '
+    + 'ruled draws as marked, and a unit ruled and then ruled back returns to '
+    + 'the first — that last is the direction a tidy implementation loses. Four '
+    + 'readings each, because a state is said more than once and never in '
+    + 'colour alone',
+  fgZeroHp === 0 && fgFullHp > 0
+    && fgReadZeroAlive.marked === false && fgReadZeroAlive.pressed === 'false'
+    && fgReadZeroAlive.tokens === 0 && fgReadZeroAlive.saidShown === false
+    && fgReadFullDead.marked === true && fgReadFullDead.pressed === 'true'
+    && fgReadFullDead.tokens === 1 && fgReadFullDead.saidShown === true
+    && fgReadBack.marked === false && fgReadBack.pressed === 'false'
+    && fgReadBack.tokens === 0 && fgReadBack.saidShown === false
+    && fgReadZeroAlive.enabled === true && fgReadFullDead.enabled === true,
+  'c1 at health ' + fgZeroHp + ', nobody ruled=' + JSON.stringify(fgReadZeroAlive)
+    + ' | c2 at health ' + fgFullHp + ', ruled dead=' + JSON.stringify(fgReadFullDead)
+    + ' | c2 ruled BACK=' + JSON.stringify(fgReadBack)
+);
+
+/* 99. THE FOCUS CONTRACT OVER A REBUILT CHOOSER LIST, which is what replaces
+   check 65's static-row shape on this one surface — [S06.7]'s banner argues at
+   length why the declaration slots are NOT static markup (not one node in the
+   region is a field, and MAX_DECLARATIONS is 48) and names this row as what it
+   owes instead. The chooser is pressed, the region rebuilds under it, and the
+   keyboard is read back on the node it was on: a DIFFERENT node object carrying
+   the SAME key, which is withPreservedFocus doing exactly its job. */
+const fgPickBefore = fgSideRootOf('cats').querySelectorAll('[data-fg="by"]')
+  .filter((b) => b.dataset.fgVal === 'c1')[0];
+const fgPickKey = fgPickBefore.dataset.k;
+fgPickBefore.focus();
+fgPress(fgPickBefore);
+const fgPickAfter = fgSideRootOf('cats').querySelectorAll('[data-fg="by"]')
+  .filter((b) => b.dataset.fgVal === 'c1')[0];
+const fgFocusK = stub.activeElement && stub.activeElement.dataset
+  ? stub.activeElement.dataset.k : null;
+check(
+  '99. a chooser press rebuilds the list under the student and the keyboard is '
+    + 'still on the control they were on. The node is a DIFFERENT object and '
+    + 'the key is the SAME, which is both halves of the claim: a row that only '
+    + 'read the key would be green over a list that never rebuilt, and a row '
+    + 'that only read the node would be green over focus dropped to the body. '
+    + 'This is what stands in for check 65 on this surface, and [S06.7]\'s own '
+    + 'banner says why the slots are not static markup',
+  fgPickAfter !== fgPickBefore && fgFocusK === fgPickKey
+    && fgPickAfter.getAttribute('aria-pressed') === 'true',
+  'key=' + JSON.stringify(fgPickKey)
+    + ' | the node was replaced=' + (fgPickAfter !== fgPickBefore)
+    + ' | the keyboard is on=' + JSON.stringify(fgFocusK)
+    + ' | it reads as chosen=' + JSON.stringify(fgPickAfter.getAttribute('aria-pressed'))
+);
+
+/* 100. PROBE S's CHARACTER, DRIVEN ON THIS PHASE'S TWO SURFACES. Plan 04-05's
+   probe S found that a narrowed fingerprint passed every share row except the
+   one whose driving op CHANGES WHAT IS DRAWN WITHOUT MOVING A STEPPER. Two
+   renames here, both of that character and neither touching a number:
+     renaming an ACTION must move the chooser pill on the fight bar and the
+       already-drawn declaration line beside it;
+     renaming a TOKEN TYPE must move an ALREADY-DRAWN ledger row — which is the
+       narrower half, because that row was painted for a round that has already
+       resolved and a fingerprint watching only the row COUNT never repaints it.
+   Both names are put back afterwards. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgAdvancePress();
+fgDeclare('cats', fgCatsAct, 'c2', 'm2');
+const fgBarTextWas = fgLeaves(fgBar).join('|');
+const fgLdTextWas = fgLeaves(fgLedgerRoot).join('|');
+const fgLdRowWas = fgLedgerRoot.querySelectorAll('.ld-row')[0];
+A.ops.renameAction('cats', fgCatsAct, 'Pounce');
+A.state.flush();
+const fgBarTextNamed = fgLeaves(fgBar).join('|');
+A.ops.renameTokenType('hp', 'Vigor');
+A.state.flush();
+const fgLdTextNamed = fgLeaves(fgLedgerRoot).join('|');
+const fgLdRowSame = fgLedgerRoot.querySelectorAll('.ld-row')[0] === fgLdRowWas;
+const fgBarSaysNew = fgBarTextNamed.indexOf('Pounce') !== -1;
+const fgLdSaysNew = fgLdTextNamed.indexOf('Vigor') !== -1;
+A.ops.renameTokenType('hp', 'Health');
+A.state.flush();
+check(
+  '100. AN OP THAT CHANGES WHAT IS DRAWN WITHOUT MOVING A STEPPER REPAINTS '
+    + 'BOTH FIGHT SURFACES — plan 04-05\'s probe S carried onto this phase, and '
+    + 'the row plan 05-07 was told to record and plan 05-10 owes. Renaming an '
+    + 'action moves the fight bar; renaming a token type moves an ALREADY-DRAWN '
+    + 'ledger row, which is the narrower half, because that row was painted for '
+    + 'a round that has already resolved and a fingerprint watching only the '
+    + 'row COUNT would never repaint it. The row NODE is the same object '
+    + 'afterwards, so the region rewrote what it had rather than throwing the '
+    + 'history away and rebuilding it',
+  fgBarTextNamed !== fgBarTextWas && fgLdTextNamed !== fgLdTextWas
+    && fgBarSaysNew === true && fgLdSaysNew === true && fgLdRowSame === true,
+  'the bar moved=' + (fgBarTextNamed !== fgBarTextWas)
+    + ' and says the new action name=' + fgBarSaysNew
+    + ' | the ledger moved=' + (fgLdTextNamed !== fgLdTextWas)
+    + ' and says the new token name=' + fgLdSaysNew
+    + ' | the already-drawn row is the same node=' + fgLdRowSame
+);
+
+/* 101. REF-03, EXTENDED RATHER THAN DUPLICATED. Check 62 asserts that starting
+   a fight leaves every action card on the page while the setup-only Add button
+   goes away. This takes the same reading on a board where a fight has actually
+   been PLAYED — two rounds in the ledger and a declaration standing — because
+   that is the state the requirement is about: the reference a student needs is
+   needed most in the middle of a round, not at the moment the fight opens. The
+   cards are read for their TEXT and not merely counted, because a card present
+   and empty is a card that is not readable. */
+const fgRefCards = fgBoard.querySelectorAll('.ref-card');
+const fgRefLeaves = fgRefCards.reduce((n, card) => n + fgLeaves(card).length, 0);
+const fgAddButtons = stub.querySelectorAll('.brd-add').length;
+const fgLdRowsNow = fgLedgerRoot.querySelectorAll('.ld-row').length;
+check(
+  '101. REF-03 WITH A FIGHT ACTUALLY BEING PLAYED. Check 62 reads the cards at '
+    + 'the moment a fight starts; this reads them with rounds in the ledger and '
+    + 'a declaration standing, which is when a student actually reaches for '
+    + 'them. The cards are read for their TEXT rather than counted, because a '
+    + 'card present and empty is a card nobody can read, and the setup-only '
+    + 'Add button is still gone',
+  fgRefCards.length === 6 && fgRefLeaves >= 12 && fgAddButtons === 0
+    && fgLdRowsNow >= 1,
+  'action and reference cards on the board=' + fgRefCards.length
+    + ' | leaf strings read out of those cards=' + fgRefLeaves
+    + ' | setup-only Add buttons=' + fgAddButtons
+    + ' | rounds in the ledger=' + fgLdRowsNow
+);
+
+/* 102. THE PHASE'S OWN ACCEPTANCE RUN, and it is a RUN rather than a list of
+   assertions — plan 04-07's shape, and it lives here rather than in [S09] for
+   16a's reason: every [S09.*] row this phase wrote sits above a no-DOM bracket,
+   so every surface assertion the phase makes has to live in this file or
+   nowhere.
+
+   A fight a student would recognise, driven end to end through real presses on
+   real controls: start it, declare for BOTH sides naming a performer and
+   something to point at, advance, and read SIX values back OFF THE PAGE — the
+   round, both pools, one unit's health, the ledger's row count and the
+   what-changed reading. Then a hand ruling and its marker; a unit ruled dead
+   and still in its own column; an undo that brings the board back; and a fight
+   reset that leaves the build standing, which is SHARE-07.
+
+   NOT ONE VALUE BELOW IS READ OUT OF STATE. The state is read once, at the end,
+   and only to say that the build survived the reset — which is a claim about a
+   slice the page does not draw. */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+const accBuildWas = JSON.stringify(A.state.get().build);
+fgPress(fgStart);
+const accStarted = A.state.get().fight !== null;
+fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgDeclare('mechs', fgMechsAct, 'm1', 'c1');
+const accDeclLines = fgSideRootOf('cats').querySelectorAll('.fg-decl').length
+  + fgSideRootOf('mechs').querySelectorAll('.fg-decl').length;
+fgAdvancePress();
+
+// THE SIX, off the page.
+const accRound = dom.byId['round-count'].textContent;
+const accPoolCats = fgLeaves(dom.byId['pool-cats']).join('');
+const accPoolMechs = fgLeaves(dom.byId['pool-mechs']).join('');
+const accHpRow = fgBoard.querySelectorAll('.tok-row')
+  .filter((r) => r.dataset.amt === 'hp' && r.dataset.unit === 'm1')[0];
+const accHealth = accHpRow ? accHpRow.children.length : -1;
+const accLedgerRows = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const accWhatChanged = fgLeaves(fgOne(fgLedgerRoot, '.ld-now-body')).join(' ');
+
+/* A HAND RULING, and its marker read off the card rather than out of the round.
+
+   AND A FINDING THIS ROW HAD TO BE REWRITTEN AROUND, recorded here rather than
+   asserted around: THE HEALTH ROW ON A UNIT CARD DRAWS THE BUILD'S ALLOCATION
+   AND NOT THE FIGHT'S LIVE HEALTH, during a fight as much as before one.
+   amountFor's `hp` arm reads unit.maxHp off state.build, which is FIGHT-10's
+   division stated one region over in as many words — "the steppers on the
+   board still edit the build" — so a ruling that moves the FIGHT's health by
+   one moves no number on that card at all. What it DOES move is the marker
+   beside it and the what-changed reading in the ledger, and both are asserted
+   here. The board's own health row is asserted to be UNMOVED, so a later plan
+   that points it at the fight slice reddens this row rather than shipping a
+   second, silent answer to what a health number on this board means. Whether
+   the marker reads as being about the fight when the number beside it is not
+   is a rehearsal item, and it is on the list below by number. */
+const accWhatChangedWas = accWhatChanged;
+A.ops.dispatch('setUnitHp', { side: 'mechs', unitId: 'm1', value: 7 });
+A.state.flush();
+const accHandMark = fgBoard.querySelectorAll('.dc-hand')
+  .filter((n) => n.dataset.dcUnit === 'm1' && n.dataset.dcHand === 'hp')[0] || null;
+const accMarkShown = accHandMark !== null && accHandMark.hidden === false;
+const accMarkSays = accHandMark === null ? null : accHandMark.getAttribute('aria-label');
+const accHealthRuled = accHpRow ? accHpRow.children.length : -1;
+const accWhatChangedNow = fgLeaves(fgOne(fgLedgerRoot, '.ld-now-body')).join(' ');
+
+// A UNIT RULED DEAD IS STILL ON THE ROSTER — FIGHT-06, read as a card in its
+// own column rather than as a flag.
+const accCardsWas = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
+fgPress(fgAliveBtn('cats', 'c1'));
+const accCardsNow = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
+const accDeadRead = fgDeadRead('cats', 'c1');
+
+// UNDO, through the topbar control a student presses.
+const accBoardBeforeUndo = fgLeaves(dom.byId['col-cats']).join('|');
+fgPress(fgUndoBtn);
+const accBoardAfterUndo = fgLeaves(dom.byId['col-cats']).join('|');
+const accUndoRead = fgDeadRead('cats', 'c1');
+
+// AND THE FIGHT RESET, which is SHARE-07: the rosters go back and the build is
+// untouched. Read off the page for the fight and off state for the build,
+// because the build slice is not what the fight page draws.
+fgPress(fgOne(fgBar, '[data-fg="reset"]'));
+const accResetRound = dom.byId['round-count'].textContent;
+const accResetRows = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const accResetCards = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
+const accBuildSurvived = JSON.stringify(A.state.get().build) === accBuildWas;
+check(
+  '102. PHASE 5\'S OWN ACCEPTANCE RUN. A fight is started, BOTH sides declare '
+    + 'an action naming who acts and what it lands on, and the round is '
+    + 'advanced — every one of them a real press on a real control. Then SIX '
+    + 'values are read back OFF THE PAGE and not out of state: the round on the '
+    + 'bar, both pools, one unit\'s health row, the ledger\'s row count and the '
+    + 'what-changed reading. A hand ruling puts a marker on the card of the '
+    + 'unit it names and moves the what-changed reading, while the health row '
+    + 'beside that marker does NOT move — because that row draws the BUILD '
+    + 'allocation, which is FIGHT-10 division, asserted here so a later plan '
+    + 'pointing it at the fight slice reddens rather than shipping a second, '
+    + 'silent answer to what a health number on this board means; '
+    + 'a unit ruled dead is still a card in its own column; one press of the '
+    + 'topbar undo brings the board back; and the fight reset puts the rosters '
+    + 'back with the student\'s build untouched, which is SHARE-07',
+  accStarted === true && accDeclLines === 2
+    && accRound === '2' && accPoolCats !== '' && accPoolMechs !== ''
+    && accHealth >= 0 && accLedgerRows === 1 && accWhatChanged !== ''
+    && accMarkShown === true && accHealthRuled === accHealth
+    && accWhatChangedNow !== accWhatChangedWas
+    && accCardsNow === accCardsWas && accDeadRead.marked === true
+    && accBoardAfterUndo !== accBoardBeforeUndo && accUndoRead.marked === false
+    && accResetRound === '1' && accResetRows === 0
+    && accResetCards === accCardsWas && accBuildSurvived === true
+    && errPanel.hidden === true,
+  'declaration lines on the page=' + accDeclLines
+    + ' | THE SIX: round=' + JSON.stringify(accRound)
+    + ' cats pool=' + JSON.stringify(accPoolCats)
+    + ' mechs pool=' + JSON.stringify(accPoolMechs)
+    + ' m1 health tokens=' + accHealth
+    + ' ledger rows=' + accLedgerRows
+    + ' what changed=' + JSON.stringify(accWhatChanged)
+    + ' | the hand marker is shown=' + accMarkShown
+    + ' and says ' + JSON.stringify(accMarkSays)
+    + ' | the health row beside it is the BUILD allocation and did not move: '
+    + accHealth + ' -> ' + accHealthRuled
+    + ' | the what-changed reading DID move: ' + JSON.stringify(accWhatChangedNow)
+    + ' | cards before/after ruling a unit dead=' + accCardsWas + '/' + accCardsNow
+    + ' and it draws as marked=' + accDeadRead.marked
+    + ' | the undo moved the board=' + (accBoardAfterUndo !== accBoardBeforeUndo)
+    + ' and the unit draws as standing again=' + (accUndoRead.marked === false)
+    + ' | after the fight reset: round=' + JSON.stringify(accResetRound)
+    + ' ledger rows=' + accResetRows + ' cards=' + accResetCards
+    + ' build byte-identical=' + accBuildSurvived
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
@@ -8291,6 +9131,14 @@ clearPanel();
             for, and now reads in three page states rather than one. What no
             number of page states reaches is copy that is never painted in any of
             them — see 13, which this plan widened to say so.
+            PLAN 05-10 RE-READ THIS ENTRY WITH THE SURFACE BUILT AND IT STILL
+            READS CORRECTLY, which is worth one sentence rather than silence:
+            row 92's second harvest is taken on a board where a round has been
+            PLAYED, so the fight bar, the ledger and the board's own markers are
+            all painted for it. The three regions plans 05-07 through 05-09
+            wrote are inside its reach, and the harvest moved from 101 strings
+            to 420 across those three plans, which is the measurement that says
+            so rather than the claim.
          6. Whether the strip's content still STICKS on a short viewport. Its
             reserved minimum height is gone and the content sets the height now,
             and a sticky box taller than the space between the bar and the
@@ -8361,6 +9209,23 @@ clearPanel();
             unread. THE PLAN THAT OWES THE REST OF IT is 05-10, whose driven
             round is the only place in this phase where a fight has actually been
             played far enough for those lines to exist.
+            PLAN 05-10 PAID IT, AND WHAT IT PAID IS NAMED HERE RATHER THAN LEFT
+            AS A TICK. Rows 93 through 102 drive the fight surface with real
+            presses and every reading is taken off the page, so the copy behind
+            an interaction inside it is now READ: a declaration line that exists
+            only because somebody declared (rows 93, 95, 102), a ledger row that
+            exists only because somebody advanced (rows 94, 96, 100, 101), the
+            dead marker and its sentence, which appear only because somebody
+            ruled a unit (row 98), and the by-hand marker, which appears only
+            because somebody set a number (row 102).
+            WHAT IS STILL NOT DRIVEN, named so the entry keeps meaning what it
+            says: a fight carried past two rounds, so the oldest record rolling
+            off MAX_PAST_ROUNDS is unread on the page; a declaration naming
+            NOBODY in either position, which is a real record the choosers offer
+            and no row above makes; an action whose cost is in a type a student
+            invented, which the report says it cannot price; and every line the
+            error panel would carry, because no press above is meant to raise
+            one and every row asserts it did not.
         14. A REAL RELOAD AND A REAL BOOKMARK. Checks 75 to 78 prove the board
             reaches location.hash and checks 79 to 82 prove a prepared hash
             reaches the board, but the stub has no reload and never navigates,
@@ -8477,7 +9342,107 @@ clearPanel();
             because #app has become the scroller. So this is not a thing no
             machine can see; it is a thing THIS harness cannot see, and the two
             readings above are the shape of the row that belongs in
-            tests/browser-checks.mjs. --- */
+            tests/browser-checks.mjs.
+        21. THE VIEWPORT BUDGET: WHETHER THE FIGHT REGIONS FIT ABOVE THE BOARD
+            ON A LAPTOP SCREEN. #fightbar and #ledger are two full-width regions
+            STACKED above #board, so the page pays their SUM. Measured in real
+            Chrome and real Edge by plan 05-09, one round resolved, identical in
+            both, with the shipped dials 34vh / 34vh / 20vh:
+              board top @1920x1080 = 1257      @1366x768 = 1048
+            and the whole sweep of the three dials, down to 18/18/10, reads
+              922 @1080 and 825 @768 — SO NO SETTING AT ALL CLEARS A 768-TALL
+            SCREEN, and every setting below 34vh gives up the whole-newest-round
+            property plan 05-08 chose 34vh for. What DOES clear it, measured:
+            laying the two regions SIDE BY SIDE reads 844 @1080 and 788 @768
+            with the dials untouched, because the page then pays the TALLER
+            rather than the sum.
+            THIS IS A DECISION AND NOT A DIAL, and it is why it is on this list
+            rather than in a row: it needs a wrapper element in the static shell
+            and a rewrite of [C14]'s `#fightbar, #ledger` rule, which are plan
+            05-06's markup and plan 05-06's frame rule — and that rule is the
+            one whose own paragraph records a shorthand silently zeroing a
+            longhand and putting a region 182px out of alignment. It is
+            REHEARSAL.md B3 and it is the phase's largest item. Plan 05-10 did
+            not paper over it: no row below asserts that the board is on screen,
+            because it is not.
+        22. WHETHER THE LEDGER SCROLLING ON ITSELF LEAVES #strip STILL PINNING.
+            [C14.2] puts the scroll on .ld-list rather than on an ancestor, and
+            entry 20 above is the measurement of what happens when a scroll goes
+            on an ancestor instead: #strip stops pinning, silently, with no error
+            and no warning. The ledger's own scroll is a DESCENDANT of nothing
+            #strip is inside, so it should be safe — "should" is the word this
+            entry exists for. Machine-closable, in tests/browser-checks.mjs, in
+            entry 20's exact shape: scroll the ledger to its end at 1366x768 and
+            read #strip's viewport top at four page scroll offsets.
+        23. WHETHER THE TOPBAR CLUSTER WRAPS. Plan 05-06 added #fight-start to a
+            bar that already carried four controls, and [S08] MEASURES the bar's
+            height to set the sticky offset every region below it uses. A bar
+            that wraps to two lines at a narrower width moves that measurement,
+            and nothing here has a width. Machine-closable: read the bar's
+            height and #strip's computed top at 1920, 1366 and 1024.
+        24. WHETHER A PAST ROUND READS AS PAST RATHER THAN AS DISABLED. [C14.2]
+            dims the resolved rounds, and dimming is also how this file draws a
+            control a student may not use. The two readings are a person's to
+            tell apart and no measurement settles it. Human.
+        25. WHETHER THE ROUND AND BOTH POOLS ARE LEGIBLE FROM THE BACK OF A
+            ROOM. UX-02's 18px floor is asserted in the stylesheet and a floor
+            is not a reading; the artifact goes on a projector, at a distance,
+            in a lit room. Human, and it is PROJ-05's own question.
+        26. WHETHER A DEAD UNIT IS LEGIBLE AS DEAD WITHOUT RELYING ON COLOUR.
+            [C07]'s rule is that a state is said more than once — the card's
+            class, the toggle's accessible name, a token in the marker row and a
+            sentence beside it, all four of which row 98 reads — and whether
+            those four ADD UP to something a person sees across a room is not
+            what row 98 asserts. Human.
+        27. WHETHER THE THREE-FACT SPLIT IS CLEARER THAN ONE NUMBER, OR MERELY
+            LONGER. The ledger reports what an action did as separate facts
+            rather than as a single figure, deliberately. Which of those a
+            student actually reads faster is a judgement. Human.
+        28. D-13 NOW HAS A MECHANICAL CHECK AND THIS ENTRY RECORDS WHICH HALF.
+            Probe AE, plan 05-09, rendered the live reading as ONE statement
+            naming both sides and the entire repository stayed green over it —
+            1188 passed, 0 failed, 147 of 147, every scan clean, exit 0. Row 97
+            closes the RENDERED half by walking the LEAVES under .dc-live and
+            refusing any leaf that holds both faction names, and [S09.8] holds
+            the structural half. WHAT NEITHER OF THEM CAN SEE is a comparison
+            made WITHOUT naming either side — "the gap is three" — which is a
+            sentence no word list and no leaf walk catches, and which is a
+            person's to refuse. Human, and it is the one D-13 question left.
+        29. WHETHER A BY-HAND MARKER READS AS BEING ABOUT THE FIGHT WHEN THE
+            NUMBER BESIDE IT IS THE BUILD'S. Row 102 records the mechanism: the
+            health row on a unit card draws unit.maxHp off state.build, which is
+            FIGHT-10's division said out loud, so a ruling that moves the
+            FIGHT's health by one puts a marker on a line whose number did not
+            move. The marker is correct, the number is correct, and whether the
+            two together read as "a person set this" or as "the tool disagrees
+            with itself" is exactly the sort of thing only a person in the room
+            can answer. Human, and it is new with this plan.
+        30. THE SPENT READING MEASURES ZERO AT EVERY OBSERVABLE MOMENT, AND
+            THIS PLAN DID NOT PAPER OVER IT. advanceRound spends each declared
+            cost and refills both pools from the build in the SAME commit, so no
+            frame is ever rendered between the two writes and `0 of 3 spent` is
+            what the bar says on every frame — which row 102 reads back verbatim
+            as one of its six values rather than asserting around. FIGHT-09 asks
+            for spent to be visibly distinct from available. Plan 05-07 measured
+            this, wrote the two admissible fixes at the site, and recorded it as
+            a developer decision rather than a render-tier change; it is still
+            one. Not a gate limitation so much as a shipped fact this gate is
+            now on the record about.
+        31. WHETHER A REAL BROWSER OBLIGES A CANCELLED KEY REPEAT. Row 93c
+            asserts that a repeated Enter on Advance and a repeated Space on the
+            alive toggle are cancelled — which is the whole of what
+            preventDefault can do — and the stub synthesises no click from a
+            keydown at all, so what it CANNOT assert is that the browser then
+            declines to synthesise one. Entry 12's shape, one region over.
+            Machine-closable in tests/browser-checks.mjs: hold Enter on Advance
+            in real Chrome and read the round back.
+        32. WHETHER A STUDENT FINDS THE DECLARATION STEP AT ALL. Every row above
+            drives the surface by selecting a control and pressing it, which
+            presupposes knowing which control to press. Whether the three
+            choosers, the report between them and the Declare button below them
+            read as ONE step in an order — pick, pick, pick, declare — or as
+            four unrelated things is the first question a workshop answers and
+            the last thing any harness can. Human. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
