@@ -404,7 +404,19 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     the writer and the reader are symmetric and agree with each other while
 //     both are wrong. The byte-shape and measured-cost rows are what the probe
 //     reddens, and they are the reason this figure is 109 rather than 101.
-const SUITE_FLOOR = 868;
+//   plan 04-02 fills [S09.11] out with encode, decode and the round trip: 109
+//     rows becomes 149 and the run goes to 938, floored at 908 — the same
+//     margin of 30 the two plans before it kept. Forty rows, and the shape of
+//     them is the point: six boards, each DRIVEN THROUGH THE SHIPPED OPS
+//     rather than written out as a state literal, each round-tripped over a
+//     stable writing of the record, each held against the alphabet allowlist
+//     and each measured. A hand-written fixture agrees with whatever its
+//     author believed the state shape was; a driven board agrees with the
+//     file. Three of the six carry a size gate with the measured margin
+//     written into the label; the two ceiling boards deliberately carry none,
+//     because they are over the message limit by construction and the honest
+//     thing is to record what they cost.
+const SUITE_FLOOR = 908;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '

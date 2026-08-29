@@ -15878,9 +15878,16 @@ App.selftest = (function () {
        bracket — the day a codec row needs a page is the day that row belongs
        in the interaction gate instead.
 
-       This suite writes NOTHING. It drives no op and touches no slice, so
-       unlike [S09.3], [S09.6], [S09.7] and [S09.10] it has no saved state to
-       hand back: there is nothing here for a restore to undo. */
+       THE PRIMITIVE ROWS WRITE NOTHING, and everything down to the reorder
+       tripwire is still pure. The round-trip rows plan 04-02 adds below DO
+       drive the live board, and they must: a hand-written state literal agrees
+       with whatever its author believed the shape was, while a board driven
+       through addUnit, setUnitMaxHp, createTokenType, setTally, createAction,
+       setActionCost, setActionReq, setActionXf, renameAction, renameTokenType,
+       setTokenStyle and removeUnit agrees with THIS FILE. So the whole state
+       is recorded here and handed back as this suite's last act, exactly as
+       [S09.3], [S09.6], [S09.7] and [S09.10] do. */
+    var savedAll = JSON.stringify(App.state.get());
 
     // The prototype is checked after every group below rather than once at the
     // end, the shape [S09.10] uses and for the reason it gives: both
@@ -16131,7 +16138,376 @@ App.selftest = (function () {
         + 'because otherwise ' + row.cost,
         [row.list[0], row.list.length], [row.first, row.size]);
     });
-    t.ok('the prototype is intact at the end of the build-code suite', protoIntact());
+    t.ok('the prototype is intact after the reorder tripwire', protoIntact());
+
+    /* --- THE THREE BOUNDS [S04.3] RE-TYPES. It sits above [S05] and may not
+           reach upward for them, so it carries its own copy — and a re-typed
+           number is drift waiting to happen unless something holds the two
+           together. These three rows are that something: each reads the copy
+           the decoder actually runs against the constant the op actually runs,
+           so the day one moves and the other does not is a red run rather than
+           a build code admitting a roster the board would refuse. --- */
+    t.eq('the decoder re-runs the SAME roster floor the add path enforces',
+      App.serialize.WIRE_BOUNDS.minUnits, App.ops.MIN_UNITS);
+    t.eq('the decoder re-runs the SAME roster ceiling the add path enforces',
+      App.serialize.WIRE_BOUNDS.maxUnits, App.ops.MAX_UNITS);
+    t.eq('the decoder re-runs the SAME cost cap the term writer enforces',
+      App.serialize.WIRE_BOUNDS.maxActionCost, App.ops.MAX_ACTION_COST);
+    t.ok('the decoder\'s copy of those three is frozen, because a record a caller can '
+      + 'write to is not a bound', Object.isFrozen(App.serialize.WIRE_BOUNDS));
+
+    /* --- ENCODE AND DECODE EXIST AND ARE EXPORTED. --- */
+    t.eq('the encoder is exported', typeof App.serialize.encode, 'function');
+    t.eq('the decoder is exported', typeof App.serialize.decode, 'function');
+
+    /* --- THE DECODER NEVER THROWS INTO THE VOID. Five values a paste can
+           actually produce, and the point of the row is the ABSENCE of an
+           exception as much as the refusal record: a decoder that threw would
+           surface the styled panel instead of a message a student can act on.
+           --- */
+    [
+      { what: 'the empty string', code: '' },
+      { what: 'ordinary prose', code: 'hello there' },
+      { what: 'nothing at all', code: null },
+      { what: 'a number rather than the spelling of one', code: 5 },
+      { what: 'an object', code: {} }
+    ].forEach(function (row) {
+      var seen = null;
+      var threw = false;
+      try { seen = App.serialize.decode(row.code); } catch (e) { threw = true; }
+      t.ok('the decoder hands back a refusal for ' + row.what + ' and does NOT throw',
+        threw === false && seen !== null && seen.ok === false && seen.why === 'shape');
+    });
+    t.eq('a wrong wire version is refused BY NAME and says which one it saw, so a stale '
+      + 'link is a message about a version rather than a board that quietly changed',
+      (function () {
+        var refusal = App.serialize.decode('v2~N~V~A9~3~9*3!0~9*~~~~B3~3~3*6!3~3*~~~~7tvo');
+        return [refusal.ok, refusal.why, refusal.saw];
+      })(), [false, 'version', 'v2']);
+    t.ok('the prototype is intact after the refusal rows', protoIntact());
+
+    /* --- THE ROUND TRIP, OVER SIX BOARDS NOBODY HAND-WROTE.
+
+           Every board below is produced by DRIVING THE SHIPPED OPS. That is
+           the whole point of the section: a fixture written by hand agrees
+           with whatever its author believed the state shape was, and would
+           stay green through a phase that changed the shape underneath it.
+
+           And a round trip alone is not enough either, which plan 04-01's
+           probe measured rather than assumed: a symmetric writer and reader
+           agree with each other perfectly while both are wrong. So each board
+           gets THREE rows — the trip is exact, the produced code matches the
+           alphabet ALLOWLIST, and the length is recorded — and the three size
+           gates below hold the measured figures the schema was chosen on.
+
+           Comparison is over a STABLE writing of the record, keys sorted at
+           every depth. A tally bag's key order is the order a student happened
+           to set the tallies in and carries no meaning, so a comparison that
+           insisted on it would redden over a difference the board cannot show.
+           Everything else is compared exactly. --- */
+    function stableText(value) {
+      if (Array.isArray(value)) {
+        return '[' + value.map(stableText).join(',') + ']';
+      }
+      if (value !== null && typeof value === 'object') {
+        return '{' + Object.keys(value).sort().map(function (key) {
+          return JSON.stringify(key) + ':' + stableText(value[key]);
+        }).join(',') + '}';
+      }
+      return JSON.stringify(value);
+    }
+    function liveBuild() {
+      return JSON.parse(JSON.stringify(App.state.get().build));
+    }
+    function unitIds(side) {
+      return App.state.get().build[side].units.map(function (u) { return u.id; });
+    }
+    function fillTo(side, wanted) {
+      while (App.state.get().build[side].units.length < wanted) { App.ops.addUnit(side); }
+    }
+    function spreadStats() {
+      ['cats', 'mechs'].forEach(function (side) {
+        unitIds(side).forEach(function (id, i) {
+          App.ops.setUnitMaxHp(side, id, 10 + (i * 3) % 80);
+          App.ops.setUnitShield(side, id, 1 + (i * 7) % 90);
+        });
+      });
+    }
+    // Distinct maximum-length names for the two ceiling boards. Twenty-four
+    // letters for one, twenty-three astral emoji for the other — the second is
+    // 46 UTF-16 units and 92 bytes, which is the case a name cap read in code
+    // units would refuse and this codec has to carry.
+    var nameSeq = 0;
+    function longAscii() {
+      nameSeq += 1;
+      var made = '';
+      for (var i = 0; i < App.data.MAX_TOKEN_NAME; i++) {
+        made += String.fromCharCode(97 + ((nameSeq * 7 + i) % 26));
+      }
+      return made;
+    }
+    var ASTRAL = ['\u{1F480}', '\u{1F431}', '\u{1F916}', '\u{1F525}',
+      '\u{1F4A5}', '\u{1F9E1}', '\u{1F3C6}', '\u{2728}'];
+    function longAstral() {
+      nameSeq += 1;
+      var made = '';
+      for (var i = 0; i < App.data.MAX_TOKEN_NAME - 1; i++) {
+        made += ASTRAL[(nameSeq * 7 + i) % ASTRAL.length];
+      }
+      return made;
+    }
+    function ceilingBoard(nameFn) {
+      return function () {
+        nameSeq = 0;
+        App.ops.resetToDefaults();
+        ['cats', 'mechs'].forEach(function (side) {
+          fillTo(side, App.ops.MAX_UNITS);
+          // Every other unit removed and the roster refilled, so the ids on
+          // BOTH sides are non-contiguous and the gap field is paid for.
+          unitIds(side).forEach(function (id, i) {
+            if (i % 2 === 1) { App.ops.removeUnit(side, id); }
+          });
+          fillTo(side, App.ops.MAX_UNITS);
+        });
+        ['cats', 'mechs'].forEach(function (side) {
+          unitIds(side).forEach(function (id, i) {
+            App.ops.setUnitMaxHp(side, id, 11 + (i * 37) % 88);
+            App.ops.setUnitShield(side, id, 11 + (i * 53) % 88);
+          });
+        });
+        App.data.TOKEN_IDS.forEach(function (id, i) {
+          App.ops.renameTokenType(id, nameFn());
+          App.ops.setTokenStyle(id, { shape: App.data.SHAPES[i % App.data.SHAPES.length],
+            color: App.data.COLORS[i % App.data.COLORS.length],
+            glyph: App.data.GLYPHS[1 + i] });
+        });
+        var made = [];
+        for (var m = 0; m < App.data.MAX_CUSTOM_TYPES; m++) {
+          made.push(App.ops.createTokenType({ name: nameFn(),
+            shape: App.data.SHAPES[m % App.data.SHAPES.length],
+            color: App.data.COLORS[m % App.data.COLORS.length],
+            glyph: App.data.GLYPHS[1 + m], scope: 'unit' }));
+        }
+        ['cats', 'mechs'].forEach(function (side) {
+          unitIds(side).forEach(function (id, j) {
+            made.forEach(function (tok, k) {
+              App.ops.setTally(side, id, tok, 11 + ((j * 13 + k * 29) % 88));
+            });
+          });
+        });
+        ['cats', 'mechs'].forEach(function (side) {
+          for (var a = 0; a < App.data.MAX_CUSTOM_ACTIONS; a++) {
+            var mine = App.ops.createAction(side, nameFn());
+            App.ops.setActionCost(side, mine, made[0], 97);
+            for (var r = 0; r < App.data.MAX_ACTION_REQ; r++) {
+              App.ops.setActionReq(side, mine, r, made[r], 97);
+            }
+            for (var x = 0; x < App.data.MAX_ACTION_XF; x++) {
+              App.ops.setActionXf(side, mine, x, App.data.XF_WHO[x % 2], made[x], -97);
+            }
+          }
+          App.state.get().build[side].actions.map(function (act) { return act.id; })
+            .forEach(function (id) {
+              if (App.data.ACTION_IDS.indexOf(id) === -1) { return; }
+              App.ops.renameAction(side, id, nameFn());
+              for (var r2 = 0; r2 < App.data.MAX_ACTION_REQ; r2++) {
+                App.ops.setActionReq(side, id, r2, made[r2], 97);
+              }
+              for (var x2 = 0; x2 < App.data.MAX_ACTION_XF; x2++) {
+                App.ops.setActionXf(side, id, x2, App.data.XF_WHO[x2 % 2], made[x2], -97);
+              }
+            });
+        });
+        return liveBuild();
+      };
+    }
+
+    var BOARDS = [
+      {
+        mark: 'A',
+        what: 'the shipped board, untouched',
+        measured: 45,
+        drive: function () { App.ops.resetToDefaults(); return liveBuild(); }
+      },
+      {
+        mark: 'B',
+        what: 'a board a student could actually build — 12 versus 5, a built-in renamed, '
+          + 'another restyled, two types of their own (one kept per unit, one on the whole '
+          + 'side), four tallies, three actions of their own carrying a cost, a requirement '
+          + 'and two changes, a shipped action renamed, and a unit removed so the ids have '
+          + 'a hole in them',
+        measured: 297,
+        drive: function () {
+          App.ops.resetToDefaults();
+          fillTo('cats', 12);
+          fillTo('mechs', 5);
+          App.ops.setFactionAp('cats', 5);
+          App.ops.setFactionAp('mechs', 4);
+          App.ops.setUnitMaxHp('cats', 'c1', 6);
+          App.ops.setUnitMaxHp('cats', 'c2', 6);
+          App.ops.setUnitShield('cats', 'c1', 2);
+          App.ops.setUnitMaxHp('mechs', 'm1', 8);
+          App.ops.setUnitShield('mechs', 'm1', 4);
+          App.ops.renameTokenType('hp', 'Vigour');
+          App.ops.setTokenStyle('dmg', { glyph: App.data.GLYPHS[8] });
+          var poison = App.ops.createTokenType({ name: 'Poison \u{2620}', shape: 'circ',
+            color: 'violet', glyph: App.data.GLYPHS[15], scope: 'unit' });
+          var pace = App.ops.createTokenType({ name: 'Momentum', shape: 'hex',
+            color: 'gold', glyph: App.data.GLYPHS[7], scope: 'side' });
+          App.ops.setTally('cats', 'c1', poison, 2);
+          App.ops.setTally('cats', 'c4', poison, 1);
+          App.ops.setTally('mechs', 'm1', poison, 3);
+          App.ops.setTally('cats', null, pace, 4);
+          var pounce = App.ops.createAction('cats', 'Pounce');
+          App.ops.setActionCost('cats', pounce, 'ap', 2);
+          App.ops.setActionReq('cats', pounce, 0, 'hp', 2);
+          App.ops.setActionXf('cats', pounce, 0, 'target', 'hp', -4);
+          App.ops.setActionXf('cats', pounce, 1, 'caster', poison, 1);
+          var lick = App.ops.createAction('cats', 'Lick wounds');
+          App.ops.setActionXf('cats', lick, 0, 'caster', 'hp', 2);
+          var clock = App.ops.createAction('mechs', 'Overclock');
+          App.ops.setActionCost('mechs', clock, 'ap', 1);
+          App.ops.setActionReq('mechs', clock, 0, 'shield', 1);
+          App.ops.setActionXf('mechs', clock, 0, 'caster', 'shield', -2);
+          App.ops.setActionXf('mechs', clock, 1, 'target', 'hp', -5);
+          App.ops.renameAction('mechs', 'lasers', 'Beam');
+          App.ops.removeUnit('cats', 'c3');
+          App.ops.addUnit('cats');
+          return liveBuild();
+        }
+      },
+      {
+        mark: 'D',
+        what: '24 versus 24 with a distinct health and shield pair on every unit and '
+          + 'nothing of the student\'s own',
+        measured: 283,
+        drive: function () {
+          App.ops.resetToDefaults();
+          fillTo('cats', App.ops.MAX_UNITS);
+          fillTo('mechs', App.ops.MAX_UNITS);
+          spreadStats();
+          return liveBuild();
+        }
+      },
+      {
+        mark: 'E',
+        what: '24 versus 24 with all six types of the student\'s own, a tally for every '
+          + 'type on every unit, and six actions of their own, all with ordinary short names',
+        measured: 675,
+        drive: function () {
+          App.ops.resetToDefaults();
+          fillTo('cats', App.ops.MAX_UNITS);
+          fillTo('mechs', App.ops.MAX_UNITS);
+          spreadStats();
+          var made = ['Poison', 'Momentum', 'Rust', 'Charge', 'Fear', 'Grease']
+            .map(function (label, i) {
+              return App.ops.createTokenType({ name: label,
+                shape: App.data.SHAPES[i % App.data.SHAPES.length],
+                color: App.data.COLORS[i % App.data.COLORS.length],
+                glyph: App.data.GLYPHS[1 + i], scope: 'unit' });
+            });
+          ['cats', 'mechs'].forEach(function (side) {
+            unitIds(side).forEach(function (id) {
+              made.forEach(function (tok, k) { App.ops.setTally(side, id, tok, 1 + k); });
+            });
+          });
+          ['cats', 'mechs'].forEach(function (side) {
+            ['Pounce', 'Overclock', 'Regroup'].forEach(function (label) {
+              var mine = App.ops.createAction(side, label);
+              App.ops.setActionCost(side, mine, made[0], 9);
+              for (var r = 0; r < App.data.MAX_ACTION_REQ; r++) {
+                App.ops.setActionReq(side, mine, r, made[r], 2);
+              }
+              for (var x = 0; x < App.data.MAX_ACTION_XF; x++) {
+                App.ops.setActionXf(side, mine, x, App.data.XF_WHO[x % 2], made[x], -3);
+              }
+            });
+          });
+          return liveBuild();
+        }
+      },
+      {
+        mark: 'H',
+        what: 'the ceiling — the fully authored board plus holes in the ids on both sides, '
+          + 'two-digit values everywhere, and all twenty-three nameable things given '
+          + 'distinct names at the code-point cap',
+        measured: 2984,
+        drive: ceilingBoard(longAscii)
+      },
+      {
+        mark: 'I',
+        what: 'the same ceiling with every one of those names written in astral emoji, '
+          + 'which is twice the UTF-16 units and four times the bytes',
+        measured: 3186,
+        drive: ceilingBoard(longAstral)
+      }
+    ];
+
+    var measured = {};
+    BOARDS.forEach(function (board) {
+      var live = board.drive();
+      var written = App.serialize.encode(live);
+      var back = (written === null) ? null : App.serialize.decode(written);
+      measured[board.mark] = (written === null) ? -1 : written.length;
+      t.eq('BOARD ' + board.mark + ' round trips EXACTLY — ' + board.what,
+        (back !== null && back.ok === true) ? stableText(back.build) : String(back && back.why),
+        stableText(live));
+      t.ok('BOARD ' + board.mark + '\'s code is inside CODE_ALPHABET, so it carries no comma '
+        + 'to fragment a hash on, no space to become a percent escape, and nothing else '
+        + 'anybody has thought of either — this is an ALLOWLIST, which is the only kind of '
+        + 'check that can be right about a character nobody listed',
+        written !== null && App.data.CODE_ALPHABET.test(written));
+      t.info('BOARD ' + board.mark + ' — characters, measured at ' + board.measured
+        + ' when this row was written', measured[board.mark]);
+    });
+    t.ok('and the key ORDER survives all six trips as well, not only the values — the '
+      + 'comparison above sorts keys on purpose, so this is the row that records that '
+      + 'nothing needed the tolerance',
+      BOARDS.every(function (board) {
+        var live = board.drive();
+        var written = App.serialize.encode(live);
+        var back = App.serialize.decode(written);
+        return back.ok === true && JSON.stringify(back.build) === JSON.stringify(live);
+      }));
+    t.ok('the prototype is intact after the round trips', protoIntact());
+
+    /* --- THE SIZE BUDGET, WITH THE MEASURED MARGIN WRITTEN IN. Three gates
+           against numbers in the source, so a schema regression is loud rather
+           than absorbed. Boards H and I are deliberately NOT gated: they are
+           over the message limit by construction, and the honest thing is to
+           record what they cost and let plan 04-05's on-screen character
+           readout tell a student the truth about their own board. --- */
+    t.ok('the shipped board fits in 60 characters, and it measures 45 — a margin of 15, '
+      + 'and it is that short only because a type or an action still identical to the one '
+      + 'the file ships writes nothing at all',
+      measured.A < 60);
+    t.ok('a board a student could actually build fits in 400 characters, and it measures '
+      + '297 — a margin of 103, and comfortably inside the design target of 512',
+      measured.B < 400);
+    t.ok('a fully authored 24-versus-24 board fits in 800 characters, and it measures 675 '
+      + '— a margin of 125, and about a third of the message limit',
+      measured.E < 800);
+
+    /* --- THE DIFFERENCES-ONLY RULE, MADE LIVE. The rule that makes the
+           shipped board 45 characters is also the first thing a rewrite drops
+           quietly, because dropping it breaks nothing that a round trip can
+           see. These two rows are what see it. --- */
+    App.ops.resetToDefaults();
+    var untouchedCode = App.serialize.encode(liveBuild());
+    App.ops.renameTokenType('hp', 'Vigour');
+    var oneRenameCode = App.serialize.encode(liveBuild());
+    App.ops.renameTokenType('hp', App.data.DEFAULTS.tokens.hp.name);
+    var restoredCode = App.serialize.encode(liveBuild());
+    t.ok('a board identical to the shipped one except for ONE renamed type costs only a '
+      + 'little more than the untouched board — the other four types and all six actions '
+      + 'write nothing, so the whole difference is one vocabulary record and one name',
+      oneRenameCode.length > untouchedCode.length
+        && oneRenameCode.length < untouchedCode.length + 40);
+    t.eq('and putting that name back produces EXACTLY the untouched board\'s code again, '
+      + 'character for character — which is the differences-only rule stated as an equality '
+      + 'rather than as a comment nobody can check',
+      restoredCode, untouchedCode);
+    t.ok('the prototype is intact after the size and differences rows', protoIntact());
 
     /* --- THE BUDGET FIGURES AS MEASUREMENTS, NOT GATES. t.info records a
            number without ever being able to redden a run, which is what these
@@ -16146,6 +16522,11 @@ App.selftest = (function () {
       App.data.CODE_LIMIT);
     t.info('base64url characters spent on a name at the code-point cap, all astral',
       App.serialize.b64(CAP_NAME).length);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the build-code suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
   });
 })();
 
