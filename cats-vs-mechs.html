@@ -5272,18 +5272,26 @@ App.ops = (function () {
   // have and the other was a field with no writer beside a record with no
   // second copy. `decl` and `past` open EMPTY and stay empty until plan 05-04
   // ships advanceRound, which is the one thing that ever moves either.
+  //
+  // ONE SPELLING OF THE OPENING SLICE, in freshFight, because startFight and
+  // resetFight both produce it and two literals drift. A reset that opened on
+  // a shape a fresh start did not is a bug nobody would look for.
+  function freshFight(build) {
+    return {
+      round: 1,
+      decl: [],
+      past: [],
+      cats: sideFromBuild(build.cats),
+      mechs: sideFromBuild(build.mechs)
+    };
+  }
+
   function startFight() {
     commitStructural('start fight', function (s) {
       if (s.fight !== null) {
         throw new Error('A fight is already in progress — end it before starting a new one');
       }
-      s.fight = {
-        round: 1,
-        decl: [],
-        past: [],
-        cats: sideFromBuild(s.build.cats),
-        mechs: sideFromBuild(s.build.mechs)
-      };
+      s.fight = freshFight(s.build);
     });
   }
 
@@ -5293,6 +5301,52 @@ App.ops = (function () {
   function endFight() {
     commitStructural('end fight', function (s) {
       s.fight = null;
+    });
+  }
+
+  // SHARE-07: put both rosters back to what the build says, and leave the
+  // build alone. The fight starts over; the allocation the student spent the
+  // exercise arriving at does not move a number.
+  //
+  // ONE COMMIT, THEREFORE ONE UNDO ENTRY (D-12) — resetToDefaults' sentence
+  // below, kept here because this op is the one place it could most easily
+  // stop being true. The naive spelling is endFight() then startFight(), and
+  // it costs TWO undo entries (measured), so a student who mis-pressed would
+  // have to press Ctrl+Z twice and would land on a dead board in between. It
+  // is also FORCED INTO THAT ORDER, because startFight throws on a fight that
+  // is already running — so the pair is one transposition away from raising
+  // the error panel in the middle of a demo. And the undo stack is never
+  // cleared here, for resetToDefaults' reason: a mis-clicked reset has to be
+  // recoverable.
+  //
+  // THE GUARD IS INSIDE THE MUTATOR, which is startFight's own paragraph one
+  // op up: the mutator runs on the detached copy before anything is recorded,
+  // so "no fight in progress" throws and leaves NO phantom undo step. It is
+  // fightOf's whole job and it is why this op does not test s.fight itself.
+  //
+  // DO NOT REUSE THE RESET CONFIRMATION. It is four thousand lines away, it
+  // looks reusable, and D-17's test for whether a press needs one is narrow
+  // and written down: does undo stop being able to recover this while the
+  // student is still working? Discarding a build meets that test. A fight
+  // reset does not — the build is untouched and the board is one Ctrl+Z away.
+  // A confirmation on a press that is already recoverable teaches a student to
+  // dismiss confirmations, which is what makes the one on reset stop working.
+  //
+  // Structural, and for a reason of its own rather than startFight's: FIGHT-10
+  // lets a student edit the build DURING a fight, so the roster the fight was
+  // opened on and the roster the build now describes can differ in LENGTH.
+  // Rebuilding from the build can therefore add or remove a card, which sync()
+  // can neither create nor destroy.
+  //
+  // Two presses inside the coalescing window fold into one entry, and here
+  // that is correct rather than merely tolerated: a second reset with nothing
+  // in between produces the identical board, so one entry takes both back.
+  // That is the opposite of Advance, whose label has to carry the round number
+  // for exactly this reason — see plan 05-04.
+  function resetFight() {
+    commitStructural('reset fight', function (s) {
+      fightOf(s);
+      s.fight = freshFight(s.build);
     });
   }
 
@@ -6490,6 +6544,15 @@ App.ops = (function () {
       case 'alive': return setAlive(p.side, p.unitId, p.value);
       case 'startFight': return startFight();
       case 'endFight': return endFight();
+      // The third of the lifecycle arms, one key, named like every arm around
+      // it. Note what is already here and under WHICH NAME: the two fight-slice
+      // writers reach the router as `hp` and `alive`, not as `setUnitHp` and
+      // `setAlive`, because those two arms were written for a stepper and a
+      // toggle rather than for an op list. Plan 05-05 is the plan that puts a
+      // surface on them, and it is the plan that gets to decide whether that
+      // spelling is still the right one — it is named here so the question is
+      // asked rather than inherited.
+      case 'resetFight': return resetFight();
       case 'reset': return resetToDefaults();
       // One key, named, like every arm around it. The BOOT loader beside this
       // op deliberately has no arm at all — see the absence block below.
@@ -6525,12 +6588,57 @@ App.ops = (function () {
     }
   }
 
-  // DELIBERATELY ABSENT, do not "helpfully" add them here:
-  //   - turn and round advance, action-point spending, damage application and
-  //     the fight record — Phase 5, plan 05-01
-  // Each arrives with the phase that has a surface to put it on.
-  //
-  // Also deliberately absent, and for a THIRD reason again: loadBuildCodeAtBoot
+  /* ABSENCE OF THE FIRST KIND, REWRITTEN. This clause used to promise that the
+     fight ops did not exist — turn and round advance, action-point spending,
+     damage application and the fight record — and it deferred all four to a
+     named plan of Phase 5, by number.
+     Plan 05-02 is where that stopped being true, so it is rewritten here in
+     the same change rather than annotated beside the ops it says do not exist
+     — which is precisely the banner [S03] opens by forbidding. Plan 03.1-04 is
+     the precedent for turning a shipped tripwire in the open.
+
+     WHAT NOW EXISTS, so the next reader is not looking for it:
+       - the fight LIFECYCLE — startFight, endFight, resetFight, with arms.
+       - the fight RECORD's home — the `decl` and `past` arrays on the slice,
+         seeded empty by freshFight. Plan 05-04 fills them.
+       - ROUND ADVANCE, in plan 05-04, AND IT IS ONE OP. There is exactly one
+         applier in this file and its name is advanceRound. Anything that walks
+         a round goes through it; a second one is how two readings of the same
+         board start disagreeing, and it is the thing to refuse.
+
+     WHAT STILL DOES NOT EXIST, AND THIS HALF IS THE REQUIREMENT RATHER THAN
+     THE GAP: THERE IS NO WRITER THAT DECIDES ANYTHING. No op picks an action,
+     picks who it lands on, decides whether a relationship between two actions
+     applies, decides whether an effect keyword fires, or decides whether a
+     unit is dead. Concretely and by name, because a rule stated in the
+     abstract is a rule nobody can check:
+       - REFERENCE.beats has NO consumer in [S05] and must gain none. It is
+         reference material a student reads; the moment an op reads it, the
+         tool is adjudicating.
+       - `keywords` has NO WRITER AT ALL and must gain none, for the separate
+         reason four paragraphs down.
+       - setUnitHp writes health and rules nothing: zero health prompts a death
+         ruling from the table (D-00d), and `alive` is a stored flag so a
+         Shield ruling and a full-health death are both representable.
+       - advanceRound, when it arrives, may RESTATE and may never DECIDE. Every
+         number it writes must be one the student put on the board themselves —
+         a cost the action declares, a term the action declares, the unit they
+         named. The moment it would have to choose between two admissible
+         readings, it stops and the table rules.
+       - nothing decides a fight is OVER. A board where one side is all dead is
+         a thing a student can READ; it is not a thing this tool SAYS.
+     That is PROJECT.md's oldest Out of Scope entry, restated at the one place
+     the pressure to break it actually lands. The tool does bookkeeping and
+     projection; the students are the rules engine.
+
+     THE OTHER THREE KINDS OF ABSENCE THIS BLOCK RECORDS ARE UNCHANGED AND
+     MUST STAY. They are below, in the order they were written, and check 74
+     in tests/selftest-node.cjs drives every exported op blind and reads
+     `dmg` and `keywords` drift after each one — so every op this phase adds
+     joins that walk, and every one of them must leave both fields alone. */
+
+  // ABSENCE OF THE SECOND KIND — a writer that EXISTS and must never be
+  // reachable from a press: loadBuildCodeAtBoot
   // has no arm in the router above and must never be given one. It writes
   // through [S03]'s commitInitial, which leaves NO undo entry (D-20), and
   // dispatch is the only thing a student press can reach — so an arm here would
@@ -6541,14 +6649,15 @@ App.ops = (function () {
   // refuses once anything at all has been committed, so the day somebody adds
   // an arm here anyway, the press throws instead of silently working.
   //
-  // Also deliberately absent, and for a different reason: openTokenPicker. It
+  // ABSENCE OF THE THIRD KIND — not a state transformation at all, and for a
+  // different reason again: openTokenPicker. It
   // is not a state transformation at all — opening a dialog is nothing but page
   // work, and this section's banner says this layer never reads or writes the
   // page. It has a named home in [S07], which owns UI_ACTS. Adding a case for it
   // here would break that contract in both directions at once.
   //
-  // AND A THIRD KIND OF ABSENCE, which is neither of those two: THERE IS NO
-  // WRITER FOR AN ACTION'S `dmg` OR ITS `keywords`, and there is none because
+  // AND ABSENCE OF THE FOURTH KIND, which is none of the three above: THERE IS
+  // NO WRITER FOR AN ACTION'S `dmg` OR ITS `keywords`, and there is none because
   // NEITHER FIELD IS STUDENT-WRITABLE — not because a phase has not arrived,
   // and not because it would be page work. Both fields exist on every action
   // so an authored one is the same SHAPE as a shipped one (D-07), and both are
@@ -6583,6 +6692,11 @@ App.ops = (function () {
     setAlive: setAlive,
     startFight: startFight,
     endFight: endFight,
+    // The third lifecycle op, and the one SHARE-07 names: it puts the rosters
+    // back and leaves the build alone. Exported beside its two siblings rather
+    // than beside resetToDefaults below, because what it resets is a fight and
+    // not a build, and the two resets answer different questions.
+    resetFight: resetFight,
     resetToDefaults: resetToDefaults,
     // The student's paste, and [S08]'s boot load. The second has no dispatch
     // arm on purpose — the absence block above says why.
