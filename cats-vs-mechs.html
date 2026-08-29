@@ -19033,18 +19033,27 @@ App.selftest = (function () {
             && /^(advance|nextRound|endRound|beginRound|takeTurn)/i.test(k);
         });
         var was = JSON.stringify(App.state.get());
-        App.ops.endFight();
-        App.state.flush();
         var refusal = 'DID NOT REFUSE';
+        var still = false;
+        // THE RESTORE IS IN A finally, and that is a property of the row rather
+        // than caution around it. PROBE M measured the cost of leaving it out
+        // one row down: a drive that threw took the suite's remaining rows with
+        // it AND left the board dirty for every suite after it. Plans 05-02 and
+        // 05-03 each learned the same thing from their own probes.
         try {
-          App.ops.dispatch('advanceRound', {});
-        } catch (stopped) {
-          refusal = String(stopped.message);
+          App.ops.endFight();
+          App.state.flush();
+          try {
+            App.ops.dispatch('advanceRound', {});
+          } catch (stopped) {
+            refusal = String(stopped.message);
+          }
+          App.state.flush();
+          still = (App.state.get().fight === null);
+        } finally {
+          App.state.restore(was);
+          App.state.flush();
         }
-        App.state.flush();
-        var still = (App.state.get().fight === null);
-        App.state.restore(was);
-        App.state.flush();
         return [named, refusal, still];
       })(), [[], 'No fight in progress', true]);
 
@@ -19082,48 +19091,60 @@ App.selftest = (function () {
       + 'which is the exercise',
       (function () {
         var was = JSON.stringify(App.state.get());
-        App.ops.resetToDefaults();
-        App.ops.startFight();
-        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
-        App.ops.declareAction('mechs', 'fly', 'm1', 'c1');
-        App.ops.declareAction('cats', 'hairball', 'c2', 'm2');
-        App.ops.declareAction('mechs', 'lasers', 'm2', 'c2');
-        App.ops.advanceRound();
-        App.state.flush();
-        var live = App.state.get();
-        var f = live.fight;
-        var drift = [];
-        ['cats', 'mechs'].forEach(function (side) {
-          live.build[side].actions.forEach(function (a) {
-            var shipped = null;
-            App.data.DEFAULTS[side].actions.forEach(function (s) {
-              if (s.id === a.id) { shipped = s; }
+        var out;
+        // THE WHOLE DRIVE IS INSIDE A try AND THE RESTORE IS IN A finally.
+        // PROBE M measured why: renaming the op away made this row throw a
+        // TypeError, which aborted [S09.10] with one of its own rows never run
+        // and the board left dirty for every suite after it. A row must be able
+        // to say "the drive was refused, expected the numbers"; it must not be
+        // able to take the run down with it.
+        try {
+          App.ops.resetToDefaults();
+          App.ops.startFight();
+          App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+          App.ops.declareAction('mechs', 'fly', 'm1', 'c1');
+          App.ops.declareAction('cats', 'hairball', 'c2', 'm2');
+          App.ops.declareAction('mechs', 'lasers', 'm2', 'c2');
+          App.ops.advanceRound();
+          App.state.flush();
+          var live = App.state.get();
+          var f = live.fight;
+          var drift = [];
+          ['cats', 'mechs'].forEach(function (side) {
+            live.build[side].actions.forEach(function (a) {
+              var shipped = null;
+              App.data.DEFAULTS[side].actions.forEach(function (s) {
+                if (s.id === a.id) { shipped = s; }
+              });
+              var want = (shipped === null) ? '' : shipped.keywords.join('+');
+              if ((a.keywords || []).join('+') !== want) { drift.push(side + '.' + a.id); }
             });
-            var want = (shipped === null) ? '' : shipped.keywords.join('+');
-            if ((a.keywords || []).join('+') !== want) { drift.push(side + '.' + a.id); }
           });
-        });
-        var inFight = [];
-        (function walk(node, where) {
-          if (!node || typeof node !== 'object') { return; }
-          Object.keys(node).forEach(function (k) {
-            if (/keyword|effect|beats/i.test(k)) { inFight.push(where + '.' + k); }
-            walk(node[k], where + '.' + k);
+          var inFight = [];
+          (function walk(node, where) {
+            if (!node || typeof node !== 'object') { return; }
+            Object.keys(node).forEach(function (k) {
+              if (/keyword|effect|beats/i.test(k)) { inFight.push(where + '.' + k); }
+              walk(node[k], where + '.' + k);
+            });
+          })(f, 'fight');
+          var consumers = Object.keys(App.ops).filter(function (k) {
+            return /beat|keyword|effect|relation/i.test(k);
           });
-        })(f, 'fight');
-        var consumers = Object.keys(App.ops).filter(function (k) {
-          return /beat|keyword|effect|relation/i.test(k);
-        });
-        var out = [
-          App.data.REFERENCE.beats.length,
-          f.mechs.units[0].shield,
-          f.cats.units[1].hp,
-          drift.join(','),
-          inFight.join(','),
-          consumers.join(',')
-        ];
-        App.state.restore(was);
-        App.state.flush();
+          out = [
+            App.data.REFERENCE.beats.length,
+            f.mechs.units[0].shield,
+            f.cats.units[1].hp,
+            drift.join(','),
+            inFight.join(','),
+            consumers.join(',')
+          ];
+        } catch (stopped) {
+          out = ['THE ROUND WAS REFUSED: ' + String(stopped.message)];
+        } finally {
+          App.state.restore(was);
+          App.state.flush();
+        }
         return out;
       })(), [2, 2, 0, '', '', '']);
 
