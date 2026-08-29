@@ -304,7 +304,7 @@ Plans:
 - [x] 05-07-PLAN.md — `[S06.7]` the fight bar: the round, both pools as spent and available separately, both survivor counts, and the declaration form — nothing disabled, nothing pre-selected, one node per fragment — plus `[C14.1]` (wave 7)
 - [x] 05-08-PLAN.md — `[S06.8]` the ledger: past boards grown by DELTA only with node identity asserted, each row carrying that round's actions, splits as three facts and by-hand rulings, and the live board's what-changed reading derived at render time — plus `[C14.2]` (wave 8)
 - [x] 05-09-PLAN.md — the board in fight mode: the dead marker off the stored flag, an alive toggle the marking does not hide, the by-hand marker derived from the round's record, FIGHT-10's permanent line, and PROJ-05 reconciled — the strip keeps describing the allocation, the fight's figures sit beside it, `turnsToWipe`'s third argument finally used — plus `[C14.3]` (wave 9)
-- [ ] 05-10-PLAN.md — `[S07.5]` through the four seams with not one line of `[S07.1]` edited, and the interaction gate's fight checks: the act partition read off the page, the ledger's attributes by walking the region, the disabled set across three boards, and the phase's own acceptance run (wave 10)
+- [x] 05-10-PLAN.md — `[S07.5]` through the four seams with not one line of `[S07.1]` edited, and the interaction gate's fight checks: the act partition read off the page, the ledger's attributes by walking the region, the disabled set across three boards, and the phase's own acceptance run (wave 10)
 - [ ] 05-11-PLAN.md — the playtest: the shipped 9v3 played end to end TWICE, hot-seat, adjudicating as a student would; retune `[S01] DEFAULTS` and replay until it holds; thirty-eight numbered items with D-26 first; and the two research documents that predicted the blowout backwards corrected (wave 11, blocking human-verify checkpoint)
 
 **Plan-split note (set during planning).** Eleven sequential waves, no parallelism, for the reason
@@ -357,7 +357,7 @@ parallel if desired.
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
-| 5. Fight Loop & Playtest | 9/11 | In Progress|  |
+| 5. Fight Loop & Playtest | 10/11 | In Progress|  |
 
 ## Coverage
 

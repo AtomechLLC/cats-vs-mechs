@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-09-PLAN.md
-last_updated: "2026-08-29T13:19:09.023Z"
+stopped_at: Completed 05-10-PLAN.md
+last_updated: "2026-08-29T13:55:20.322Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 42
+  completed_plans: 43
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 10 of 11
+Plan: 11 of 11
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -78,6 +78,7 @@ Progress: [██████████] 98%
 | Phase 05 P07 | 115min | 2 tasks | 2 files |
 | Phase 05 P08 | 150min | 2 tasks | 3 files |
 | Phase 05 P09 | 110min | 2 tasks | 3 files |
+| Phase 05 P10 | 125min | 2 tasks tasks | 3 files files |
 
 ## Accumulated Context
 
@@ -170,6 +171,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-09: the viewport budget is not a dial question — no setting of the three dials clears a 768px screen, and laying #fightbar and #ledger side by side is measured at 844 @1080 and 788 @768. Handed to the checkpoint with numbers (REHEARSAL B3)
 - [Phase ?]: 05-09: death is drawn from the stored flag and never inferred; the alive toggle is a sibling of everything the marking hides; the by-hand marker is derived from the round's ruling list with nothing stored on a unit
 - [Phase ?]: 05-09: a sticky element taller than its space stops pinning — measured -203 at 1366x768 — so PROJ-05's live reading is bounded at 24vh and FIGHT-10's line moved to the faction heads
+- [Phase 05]: 05-10 — [S07.5] pushes NOTHING into UI_ACTS — every fight control carries a private data-fg or data-dc, and the one carrying a data-act carries the name of a real op
+- [Phase 05]: 05-10 — HOLD_ACTS untouched — an Advance is never held, and nudgeFightHp has no control on the page to hold
+- [Phase 05]: 05-10 — the board's health row draws the BUILD allocation during a fight, not the fight's live health (FIGHT-10's division), now asserted so a later plan reddens rather than shipping a second answer
 
 ### Pending Todos
 
@@ -195,6 +199,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T13:19:09.010Z
-Stopped at: Completed 05-09-PLAN.md
+Last session: 2026-08-29T13:55:02.528Z
+Stopped at: Completed 05-10-PLAN.md
 Resume file: None

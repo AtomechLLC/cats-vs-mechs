@@ -33,18 +33,18 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Fight
 
-- [ ] **FIGHT-01**: Student can start a fight from the current build
-- [ ] **FIGHT-02**: Student can advance and rewind turn and round; the tool never advances on its own
-- [ ] **FIGHT-12**: Student declares the actions both sides will perform this round — and the performer and target where the action needs them — before anything resolves
-- [ ] **FIGHT-13**: One **Advance** control resolves the declared round for both sides at once; the tool never advances on its own
+- [x] **FIGHT-01**: Student can start a fight from the current build
+- [x] **FIGHT-02**: Student can advance and rewind turn and round; the tool never advances on its own
+- [x] **FIGHT-12**: Student declares the actions both sides will perform this round — and the performer and target where the action needs them — before anything resolves
+- [x] **FIGHT-13**: One **Advance** control resolves the declared round for both sides at once; the tool never advances on its own
 - [ ] **FIGHT-14**: On advancing, the previous state of the board moves up into a visible history, so earlier rounds stay on screen and readable rather than being replaced
 - [ ] **FIGHT-15**: The current board shows what changed since the previous round, so a student can see the effect of what they just declared without reconstructing it
 - [ ] **FIGHT-16**: Damage spends shield before it reaches health, and the tool shows that split rather than applying it silently
 - [ ] **FIGHT-03**: Student can spend a faction's action points during its turn, with spent points visibly distinct from available ones
-- [ ] **FIGHT-04**: Student can apply damage to an individual unit
-- [ ] **FIGHT-05**: A unit reaching zero health is marked dead but can be manually toggled alive or dead, so a student's Shield or Evade ruling is representable
+- [x] **FIGHT-04**: Student can apply damage to an individual unit
+- [x] **FIGHT-05**: A unit reaching zero health is marked dead but can be manually toggled alive or dead, so a student's Shield or Evade ruling is representable
 - [ ] **FIGHT-06**: Dead units stay visible in the roster rather than disappearing
-- [ ] **FIGHT-07**: Student can manually override any tracked value at any point, and the override is visibly marked as one
+- [x] **FIGHT-07**: Student can manually override any tracked value at any point, and the override is visibly marked as one
 - [ ] **FIGHT-08**: Combat log records each turn's actions and every manual override
 - [ ] **FIGHT-09**: Whose turn it is and what remains to spend are unambiguous at a glance
 - [ ] **FIGHT-10**: Student can edit the build mid-fight; edits apply to the build rather than retroactively to the fight in progress, and the tool says so
@@ -63,7 +63,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 - [ ] **REF-01**: The counter map (Slash < Fly, Hairball < Lasers, Fly < Recharge) displays as reference material
 - [ ] **REF-02**: Effect keywords (Shield, Slowdown, Confuse, Evade, Range) display as cards on the actions that carry them
-- [ ] **REF-03**: Reference material is readable without leaving the fight view
+- [x] **REF-03**: Reference material is readable without leaving the fight view
 
 ### Share & Reset
 
@@ -73,7 +73,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SHARE-04**: The build code stays well under Discord's 2000-character message limit at realistic roster sizes
 - [x] **SHARE-05**: The current build mirrors to `location.hash` for the student's own reload and bookmark, without being presented as the sharing mechanism
 - [x] **SHARE-06**: Student can reset to Workshop 16 board defaults, behind a confirmation
-- [ ] **SHARE-07**: Student can reset the fight without discarding their build
+- [x] **SHARE-07**: Student can reset the fight without discarding their build
 - [x] **SHARE-08**: Custom token appearance, names, student-created token types and authored actions all round-trip through the build code, so a shared build looks and behaves the same for the recipient
 
 ### Usability & Delivery
@@ -152,19 +152,19 @@ Which phases cover which requirements. Updated during roadmap creation.
 | ACT-05 | Phase 3.1 | Complete |
 | ACT-06 | Phase 3.1 | Complete |
 | ACT-07 | Phase 3.1 | Complete |
-| FIGHT-01 | Phase 5 | Pending |
-| FIGHT-02 | Phase 5 | Pending |
+| FIGHT-01 | Phase 5 | Complete |
+| FIGHT-02 | Phase 5 | Complete |
 | FIGHT-03 | Phase 5 | Pending |
-| FIGHT-04 | Phase 5 | Pending |
-| FIGHT-05 | Phase 5 | Pending |
+| FIGHT-04 | Phase 5 | Complete |
+| FIGHT-05 | Phase 5 | Complete |
 | FIGHT-06 | Phase 5 | Pending |
-| FIGHT-07 | Phase 5 | Pending |
+| FIGHT-07 | Phase 5 | Complete |
 | FIGHT-08 | Phase 5 | Pending |
 | FIGHT-09 | Phase 5 | Pending |
 | FIGHT-10 | Phase 5 | Pending |
 | FIGHT-11 | Phase 5 | Pending |
-| FIGHT-12 | Phase 5 | Pending |
-| FIGHT-13 | Phase 5 | Pending |
+| FIGHT-12 | Phase 5 | Complete |
+| FIGHT-13 | Phase 5 | Complete |
 | FIGHT-14 | Phase 5 | Pending |
 | FIGHT-15 | Phase 5 | Pending |
 | FIGHT-16 | Phase 5 | Pending |
@@ -176,14 +176,14 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROJ-06 | Phase 3 | Pending |
 | REF-01 | Phase 3 | Pending |
 | REF-02 | Phase 3 | Pending |
-| REF-03 | Phase 5 | Pending |
+| REF-03 | Phase 5 | Complete |
 | SHARE-01 | Phase 4 | Complete |
 | SHARE-02 | Phase 4 | Complete |
 | SHARE-03 | Phase 4 | Complete |
 | SHARE-04 | Phase 4 | Complete |
 | SHARE-05 | Phase 4 | Complete |
 | SHARE-06 | Phase 4 | Complete |
-| SHARE-07 | Phase 5 | Pending |
+| SHARE-07 | Phase 5 | Complete |
 | SHARE-08 | Phase 4 | Complete |
 | UX-01 | Phase 1 | Complete |
 | UX-02 | Phase 2 | Complete — the "nothing hover-only" half is delivered and keyboard-verified; the projector-legibility half was approved in aggregate, but no display or viewing distance was recorded, so Q-4 stays formally open (gap G-02-B). `--tok` remains `22px`. |
