@@ -34,7 +34,7 @@ matters for — is correct on every surface measured.
 top of the document rather than from the control they just used. Nothing is lost and nothing
 is mis-set.
 
-## 2. `#board`'s top is below the fold of both a 1080 and a 768 screen
+## 2. `#board`'s top was below the fold of both a 1080 and a 768 screen — CLOSED
 
 Re-measured by plan 05-10 in real Chrome, one round resolved through real presses:
 
@@ -43,7 +43,26 @@ board top @1920x1080 = 1203
 board top @1366x768  = 1111
 ```
 
-**Not this plan's, and deliberately not papered over.** It is plan 05-09's measured finding
-and a checkpoint decision — it needs a wrapper element in the static shell and a rewrite of
-`[C14]`'s `#fightbar, #ledger` rule, which are plan 05-06's markup and plan 05-06's frame rule.
-Plan 05-10 changed no CSS and no shell markup. It is `REHEARSAL.md` B3 and limitations entry 21.
+**FIXED, out of the plan sequence, by the orchestrator, before plan 05-11.** It was deferred here
+because it needed a wrapper element in the static shell and a rewrite of `[C14]`'s
+`#fightbar, #ledger` rule — plan 05-06's markup and plan 05-06's frame rule, which plan 05-10 did
+not own and did not touch. It stopped being deferrable because plan 05-11 is a **blocking playtest**:
+a person cannot play a board that is off the bottom of the screen, so the fix is a precondition for
+the checkpoint being executable rather than a polish item inside it.
+
+The two regions were laid side by side in a `.fg-band` wrapper. Driven with a round resolved in real
+Chrome and real Edge at both sizes, agreeing to the pixel in all four:
+
+```
+board top @1920x1080 = 844 of 1080   (236px of headroom)
+board top @1366x768  = 730 of  768   ( 38px of headroom)
+```
+
+Unchanged at thirty resolved rounds. `#strip` still pins (107 at 1080, 99 at 768). Both gates green:
+`1188/0` with the interaction gate at `160/160`, and `browser-checks` at `22/0`.
+
+**What was NOT fixed** — the newest round still does not fit whole at 1366x768, and below a 1180px
+viewport the two regions stack again — is recorded with its measurements in the record file.
+
+Full record: `.planning/phases/05-fight-loop-playtest/05-VIEWPORT-FIX.md`. It is also
+`REHEARSAL.md` B3 and limitations entry 21, both rewritten.

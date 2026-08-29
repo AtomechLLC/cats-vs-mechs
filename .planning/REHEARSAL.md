@@ -62,95 +62,71 @@ were not sticky for the part that doesn't fit — that's the specific failure to
 
 → `.planning/phases/03-advisory-projection-reference-material/03-HUMAN-UAT.md`
 
-### B3. The page above the live board is taller than the screen once a fight is running *(Phase 5, plans 05-08 and 05-09)*
+### B3. The page above the live board — FIXED, and what is left for the room *(Phase 5, plans 05-08 and 05-09; fixed out of sequence before 05-11)*
 
-> **UPDATED BY PLAN 05-09, AND IT IS NO LONGER A DIAL QUESTION.** 05-08 handed this on as "three
-> dials, turn one of them". 05-09 drove the whole sweep in a real browser and the answer came back
-> **no** — so what is on your list has changed from *which dial* to *approve one structural change*.
+> **THIS IS NO LONGER A DECISION ON YOUR LIST.** 05-08 handed it on as "three dials, turn one".
+> 05-09 swept all three and the answer came back *no dial can*. The structural change 05-09
+> measured and declined to ship on its last wave — laying `#fightbar` and `#ledger` side by side —
+> **was taken by the orchestrator before this playtest**, because plan 05-11 asks you to play the
+> shipped default end to end, twice, hot-seat — and you cannot play a board that is off the bottom
+> of the screen. That is the only reason it was done outside the plan sequence.
 
-**Driven in real Chrome from `file://`, one round resolved, both screen sizes:**
+**Before and after, driven in real Chrome AND real Edge, from `file://`, with a round resolved,
+at both sizes. All four combinations agree to the pixel.**
 
-| `.fg-sides` / `.ld-list` / `.ld-now-body` | board top @1920×1080 | @1366×768 | newest round whole |
-|---|---|---|---|
-| **34 / 34 / 20 — shipped** | **1257** | **1048** | yes / no |
-| 30 / 30 / 18 | 1181 | 986 | no |
-| 26 / 26 / 16 | 1095 | 930 | no |
-| 24 / 24 / 14 | 1052 | 902 | no |
-| 22 / 22 / 12 | 1008 | 871 | no |
-| 20 / 20 / 12 | 965 | 856 | no |
-| 18 / 18 / 10 | 922 | 825 | no |
+| | Chrome 1920×1080 | Edge 1920×1080 | Chrome 1366×768 | Edge 1366×768 |
+|---|---|---|---|---|
+| `#board` top, before | 1257 | 1257 | 1048 | 1048 |
+| `#board` top, after | **844** | **844** | **730** | **730** |
+| viewport | 1080 | 1080 | 768 | 768 |
+| the live board is reachable without scrolling | **yes** | **yes** | **yes** | **yes** |
 
-**No dial setting clears a 768-tall screen at all**, and every setting below 34vh loses the property
-05-08 chose 34vh for — that the whole of the newest round is on screen at once. Turning them trades a
-measured property away and still leaves the board below the fold. They were left alone.
+236px of headroom at 1080 and 38px at 768, and **the board does not move at all as rounds pile
+up** — measured again at thirty rounds: still 844 and 730.
 
-**What does clear it, measured the same way, is laying `#fightbar` and `#ledger` side by side** so the
-page pays the taller of the two instead of their sum — the move 05-08 already made one level down,
-inside the ledger:
+**The three height dials were not turned down.** `.fg-sides` is still 34vh, `.ld-now-body` is
+still 20vh. `.ld-list` went 34vh → **46vh**, which is the number plan 05-06 originally set it at:
+side by side the ledger is no longer in the fight bar's budget, so every pixel it spends below the
+bar's own height costs the board nothing.
 
-| arrangement | board top @1920×1080 | @1366×768 |
-|---|---|---|
-| stacked (shipped) | 1257 | 1048 |
-| **side by side, dials unchanged** | **844** | **788** |
-| side by side, 28 / 28 / 16 | 779 | 742 |
-| ledger hidden entirely | 844 | 730 |
+**The property 05-08 chose 34vh for was checked, not assumed.** A ledger row wraps, so the
+narrower column made the newest round taller — 353px at the old full width, 446px now. At 34vh
+(367px) the whole round no longer fitted: **the property was lost by the rearrangement and
+recovered by the dial.** At 1920×1080 the whole of the newest round is on screen at once, in both
+browsers.
 
-It costs a wrapper element in the shell plus a rewrite of `[C14]`'s `#fightbar, #ledger` rule — plan
-05-06's markup and plan 05-06's frame rule, and that rule is the one whose own paragraph records a
-shorthand silently zeroing a longhand and putting a region 182px out of alignment. 05-09 declined to
-make that change on the last wave before this checkpoint. **The numbers are in hand; the decision is
-yours.**
+**What is still not true, and it was not true before either:** at **1366×768 the newest round does
+not fit whole** — 46vh is 353px there and a round in that column is 740px, so it scrolls. Every row
+of 05-09's dial sweep read *no* at 768, including the shipped one. It is a property of a 768-tall
+screen, not of the arrangement.
 
 **Machine-verified already, so do not spend the session re-checking any of it:** `#strip` is still
-`position: sticky`, every ancestor of it reports `overflow: visible` on every board driven, and it pins
-at 64px through the scroll at 1920×1080 and at 107px at 1366×768. The ledger scrolls to its end on
-every append. Zero page errors and zero console errors on every run.
+`position: sticky`, every ancestor of it reports `overflow: visible`, and it pins at 107px at
+1920×1080 and 99px at 1366×768 through the whole scroll, at one round and at thirty, in both
+browsers. The ledger still scrolls to its end on every append (distance-from-end 0 at every depth).
+`#fightbar`, `#ledger` and `#board` share the board's left edge and the band shares its width at
+1920 / 1600 / 1440 / 1366 / 1280 / 1179 / 1178 / 1177 / 1100 / 1024 / 900 / 760 / 700. Below
+1180px the two regions stack full-width again, which is exactly the arrangement that shipped
+before. Zero page errors and zero console errors on every run.
 
-**One thing 05-09 found and fixed rather than handing on**, recorded so it is not re-litigated: adding
-PROJ-05's live reading to `#strip` first took the strip to **984px against the 704px a 768-tall screen
-leaves under the top bar**, and a sticky element taller than the space it has **stops pinning** — its
-top measured **-203** where it should have read 64, which would have taken the projection off screen
-exactly when a student scrolled to the board. FIGHT-10's line moved to the column heads and `.dc-live`
-took a 24vh bound; the strip is now 779px at 1080 and 704px at 768 and pins correctly at both.
+**One thing 05-09 found and fixed rather than handing on**, recorded so it is not re-litigated:
+adding PROJ-05's live reading to `#strip` first took the strip to **984px against the 704px a
+768-tall screen leaves under the top bar**, and a sticky element taller than the space it has
+**stops pinning** — its top measured **-203** where it should have read 64. FIGHT-10's line moved
+to the column heads and `.dc-live` took a 24vh bound.
 
-**What only the room can answer:** whether a student can operate this page with the live board below
-the fold at all, and whether the side-by-side arrangement reads as one surface or as two competing
-ones. Try it at 1920×1080 and at whatever the room's projector actually is.
+**WHAT ONLY THE ROOM CAN ANSWER, and this is the whole of what B3 still is:**
+- Does the fight bar and the ledger **side by side** read as one surface, or as two things
+  competing for the same glance? The fight bar is 736px wide during a fight and the ledger takes
+  whatever is left (846px at 1920, 568px at 1366) — the bar is now the *narrower* of the two on a
+  projector, which is not the emphasis it had when it was full width.
+- The ledger's rows are in a **narrower column** now, so each past round is taller and reads as
+  more lines. Is a past round still legible at a glance, from the back of a room?
+- At 1366×768 the newest round **scrolls**. Watch whether a student notices there is more of it.
+- On the actual workshop projector, is 844px of page above the board still too much to ask
+  somebody to look past?
 
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
-
----
-
-## C. The clipboard matrix — ~~1 item, 8 cells~~ **CLOSED BY MACHINE, 2026-08-29**
-
-> **This section no longer needs you.** It was written on a false premise that three phases
-> repeated: that no browser was available here. CLAUDE.md said otherwise all along, and nobody
-> re-tested it. Measured 2026-08-29: real Chrome **and** real Edge both load the artifact from
-> `file://`, report `isSecureContext === true`, and report `permissions.query('clipboard-write')
-> === "granted"`.
->
-> `tests/browser-checks.mjs` now drives all three tiers in both browsers and reports
-> **22 passed / 0 failed**:
->
-> | Tier | fires as | line said | clipboard actually got | honest? |
-> |---|---|---|---|---|
-> | 1 `writeText` | `clipboard` | "Copied to the clipboard." | the code | yes |
-> | 2 `execCommand` | `command` | "Copied to the clipboard." | the code | yes |
-> | 3 select | `select` | "Select-all is done — press Ctrl+C." | **sentinel untouched** | yes |
->
-> The honesty question — *did the line ever claim a copy that did not occur?* — is **no**, in all
-> six cells. Tier 3 leaves the code under the selection and does not claim to have copied. The OS
-> clipboard was seeded with a sentinel first so a no-op copy was detectable rather than invisible.
->
-> The **cross-browser round trip** is also closed: a non-default board carrying a student-made
-> token type round-trips byte-identically Chrome→Edge and Edge→Chrome (63-char code).
->
-> **What is still yours:** the DevTools-focused cell. Playwright cannot put focus inside the
-> DevTools panel, so that one row of the matrix remains genuinely unreached. It is the only part
-> of section C left.
-
-<details><summary>The original hand script, kept for the DevTools cell</summary>
-
 
 ### C1. Clipboard tiers 1 and 2 actually fire *(Phase 4)*
 
