@@ -8938,12 +8938,48 @@ const fgLastOwnRow = fgLastInside.split('|')
   .filter((e) => e.indexOf('fg/act/cats/c1/' + fgCatsAct + '=') === 0);
 const fgLastOtherRow = fgLastInside.split('|')
   .filter((e) => e.indexOf('fg/act/cats/c4/' + fgCatsAct + '=') === 0);
+
+/* AND A FIFTH BOARD: D-00d, ON A SIDE THAT CAN AFFORD EVERYTHING. It is here
+   because PROBE AX drove condition (c) off `hp === 0` instead of the stored
+   flag and the four boards above were spotlessly green over it — on the
+   ruled-dead board every button is ALREADY out of reach because the side cannot
+   pay and cannot meet, so condition (c) never decides anything on its own and
+   the two spellings agree by accident. Probe AD's lesson for the second time in
+   one row.
+
+   The board that shows it is FUNDED, so (a) and (b) never fire and the disabled
+   set inside the grid is exactly what (c) says. It carries the two units that
+   tell the two spellings apart, both put there through the shipped controls a
+   student uses:
+     c3 is driven to ZERO HEALTH and nobody rules it — its buttons stay LIVE,
+       which is what keeps a Shield ruling representable and is the direction a
+       tidy implementation loses;
+     c4 is at FULL HEALTH and is RULED DEAD through the alive toggle — its
+       buttons go out of reach.
+   Under `hp === 0` both answers invert, which is why both are asserted by
+   name. */
+fgFundedBoard();
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c3', value: 0 });
+A.state.flush();
+fgPress(fgAliveBtn('cats', 'c4'));
+const fgDisabledFlag = disabledIn(fgApp);
+const fgFlagInside = fgInsideGrid(fgDisabledFlag);
+const fgFlagWant = fgExpectedBoth();
+const fgFlagZeroRow = fgFlagInside.split('|')
+  .filter((e) => e.indexOf('fg/act/cats/c3/') === 0 && e.indexOf('=true') !== -1);
+const fgFlagRuledRow = fgFlagInside.split('|')
+  .filter((e) => e.indexOf('fg/act/cats/c4/') === 0 && e.indexOf('=false') !== -1);
+const fgFlagHp = [A.state.get().fight.cats.units[2].hp,
+  A.state.get().fight.cats.units[3].hp];
+const fgFlagAlive = [A.state.get().fight.cats.units[2].alive,
+  A.state.get().fight.cats.units[3].alive];
 const fgAtEntries = fgDisabledDead.split('|')
   .filter((e) => e.indexOf('fg/at/') === 0 && e.indexOf('=true') !== -1);
 const fgControlCount = fgDisabledFunded.split('|').length;
 const fgOutsideSame = fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledOwing)
   && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledDead)
-  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledLast);
+  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledLast)
+  && fgOutsideGrid(fgDisabledFunded) === fgOutsideGrid(fgDisabledFlag);
 check(
   '95. THE DISABLE CONTRACT, IN BOTH DIRECTIONS, AND THE NEVER-DISABLE RULE '
     + 'STILL IN FORCE EVERYWHERE IT REACHES. This row REPLACES the assertion '
@@ -8969,7 +9005,11 @@ check(
     + 'other three cannot tell it from its absence: an action costing exactly '
     + 'what the side holds, declared, leaves the DECLARING row\'s own button '
     + 'live and every other row\'s out of reach — which is what keeps '
-    + 're-click-to-undo reachable at all',
+    + 're-click-to-undo reachable at all. AND A FIFTH CARRIES D-00d ON A SIDE '
+    + 'THAT CAN AFFORD EVERYTHING, because on a starved board condition (c) '
+    + 'never decides anything by itself: a unit driven to ZERO HEALTH that '
+    + 'nobody ruled keeps every one of its buttons, and a unit at FULL HEALTH '
+    + 'that a student ruled dead loses every one of them',
   fgOutsideSame === true
     && fgFundedInside === fgFundedWant
     && fgOwingInside === fgOwingWant
@@ -8979,6 +9019,10 @@ check(
     && fgLastOwnRow[0] === 'fg/act/cats/c1/' + fgCatsAct + '=false'
     && fgLastOtherRow.length === 1
     && fgLastOtherRow[0] === 'fg/act/cats/c4/' + fgCatsAct + '=true'
+    && fgFlagInside === fgFlagWant
+    && fgFlagZeroRow.length === 0 && fgFlagRuledRow.length === 0
+    && fgFlagHp[0] === 0 && fgFlagHp[1] > 0
+    && fgFlagAlive[0] !== false && fgFlagAlive[1] === false
     && fgFundedOffCount === 0 && fgOwingOffCount > 0
     && fgDeadRuledOff.length === 0
     && fgOwingReport !== fgFundedReport
@@ -8993,8 +9037,15 @@ check(
     + ' cannot pay=' + (fgOwingInside === fgOwingWant)
     + ' ruled dead=' + (fgDeadInside === fgDeadWant)
     + ' last affordable action=' + (fgLastInside === fgLastWant)
-    + ' | on that board the DECLARING row reads ' + JSON.stringify(fgLastOwnRow)
+    + ' the stored flag=' + (fgFlagInside === fgFlagWant)
+    + ' | on the fourth board the DECLARING row reads '
+    + JSON.stringify(fgLastOwnRow)
     + ' and another row reads ' + JSON.stringify(fgLastOtherRow)
+    + ' | on the fifth, c3 at health ' + fgFlagHp[0] + ' alive='
+    + fgFlagAlive[0] + ' has buttons out of reach='
+    + JSON.stringify(fgFlagZeroRow)
+    + ' and c4 at health ' + fgFlagHp[1] + ' alive=' + fgFlagAlive[1]
+    + ' has buttons still live=' + JSON.stringify(fgFlagRuledRow)
     + ' | buttons out of reach: funded=' + fgFundedOffCount
     + ' cannot pay=' + fgOwingOffCount
     + ' | a ruled unit\'s buttons still enabled=' + JSON.stringify(fgDeadRuledOff)
