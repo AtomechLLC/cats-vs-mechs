@@ -62,22 +62,60 @@ were not sticky for the part that doesn't fit — that's the specific failure to
 
 → `.planning/phases/03-advisory-projection-reference-material/03-HUMAN-UAT.md`
 
-### B3. The page above the live board is taller than the screen once a fight is running *(Phase 5, plan 05-08)*
-**This is a numbers-in-hand item, not an opinion one, and the numbers are already taken.** Driven in
-real Chrome and real Edge at 1920x1080 from `file://`, with a fight running and one round resolved:
-`#board`'s top sits at **1183px of a 1080px viewport**, so the live board is reached by scrolling.
-It is not one region's doing — with the ledger hidden entirely the board's top is already at **759px**,
-which plan 05-07 measured and handed on. There are now **three dials** above the board and they are one
-budget: `.fg-sides` 34vh, `.ld-list` 34vh, `.ld-now-body` 20vh.
+### B3. The page above the live board is taller than the screen once a fight is running *(Phase 5, plans 05-08 and 05-09)*
 
-Machine-verified already, so do not spend the session re-checking it: `#strip` is still `position:
-sticky` and every ancestor of it still reports `overflow: visible` on every board driven, and the strip
-pins at 64px through the scroll. The ledger scrolls to its end on every append and the newest round's
-bottom edge sits 20–24px above the live board at every depth from one round to thirty.
+> **UPDATED BY PLAN 05-09, AND IT IS NO LONGER A DIAL QUESTION.** 05-08 handed this on as "three
+> dials, turn one of them". 05-09 drove the whole sweep in a real browser and the answer came back
+> **no** — so what is on your list has changed from *which dial* to *approve one structural change*.
 
-**What only the room can answer:** whether a student can operate this page on the workshop display with
-the live board below the fold, or whether one of the three dials has to come down — and which. Try it
-at 1920x1080 and at whatever the room's projector actually is.
+**Driven in real Chrome from `file://`, one round resolved, both screen sizes:**
+
+| `.fg-sides` / `.ld-list` / `.ld-now-body` | board top @1920×1080 | @1366×768 | newest round whole |
+|---|---|---|---|
+| **34 / 34 / 20 — shipped** | **1257** | **1048** | yes / no |
+| 30 / 30 / 18 | 1181 | 986 | no |
+| 26 / 26 / 16 | 1095 | 930 | no |
+| 24 / 24 / 14 | 1052 | 902 | no |
+| 22 / 22 / 12 | 1008 | 871 | no |
+| 20 / 20 / 12 | 965 | 856 | no |
+| 18 / 18 / 10 | 922 | 825 | no |
+
+**No dial setting clears a 768-tall screen at all**, and every setting below 34vh loses the property
+05-08 chose 34vh for — that the whole of the newest round is on screen at once. Turning them trades a
+measured property away and still leaves the board below the fold. They were left alone.
+
+**What does clear it, measured the same way, is laying `#fightbar` and `#ledger` side by side** so the
+page pays the taller of the two instead of their sum — the move 05-08 already made one level down,
+inside the ledger:
+
+| arrangement | board top @1920×1080 | @1366×768 |
+|---|---|---|
+| stacked (shipped) | 1257 | 1048 |
+| **side by side, dials unchanged** | **844** | **788** |
+| side by side, 28 / 28 / 16 | 779 | 742 |
+| ledger hidden entirely | 844 | 730 |
+
+It costs a wrapper element in the shell plus a rewrite of `[C14]`'s `#fightbar, #ledger` rule — plan
+05-06's markup and plan 05-06's frame rule, and that rule is the one whose own paragraph records a
+shorthand silently zeroing a longhand and putting a region 182px out of alignment. 05-09 declined to
+make that change on the last wave before this checkpoint. **The numbers are in hand; the decision is
+yours.**
+
+**Machine-verified already, so do not spend the session re-checking any of it:** `#strip` is still
+`position: sticky`, every ancestor of it reports `overflow: visible` on every board driven, and it pins
+at 64px through the scroll at 1920×1080 and at 107px at 1366×768. The ledger scrolls to its end on
+every append. Zero page errors and zero console errors on every run.
+
+**One thing 05-09 found and fixed rather than handing on**, recorded so it is not re-litigated: adding
+PROJ-05's live reading to `#strip` first took the strip to **984px against the 704px a 768-tall screen
+leaves under the top bar**, and a sticky element taller than the space it has **stops pinning** — its
+top measured **-203** where it should have read 64, which would have taken the projection off screen
+exactly when a student scrolled to the board. FIGHT-10's line moved to the column heads and `.dc-live`
+took a 24vh bound; the strip is now 779px at 1080 and 704px at 768 and pins correctly at both.
+
+**What only the room can answer:** whether a student can operate this page with the live board below
+the fold at all, and whether the side-by-side arrangement reads as one surface or as two competing
+ones. Try it at 1920×1080 and at whatever the room's projector actually is.
 
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 

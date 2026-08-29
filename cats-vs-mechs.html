@@ -1193,18 +1193,66 @@
      to keep in step.
 
      AND THE HONEST FIGURE, STATED PLAINLY BECAUSE A DIAL WITH A COMFORTING
-     COMMENT BESIDE IT IS A GUESS: 1183 IS STILL BELOW THE FOLD OF A 1080px
+     COMMENT BESIDE IT IS A GUESS: THE LIVE BOARD IS BELOW THE FOLD OF A 1080px
      SCREEN. With a fight running and one round resolved, the page above #board
      is taller than the viewport and the live board is reached by scrolling.
      That is not this region's doing alone — with the ledger hidden entirely the
-     board's top already sits at 759, which plan 05-07 measured and handed to
-     plan 05-11 — but it is now the phase's largest layout question and it has
-     THREE dials in it rather than two: .fg-sides 34vh, .ld-list 34vh and
-     .ld-now-body 20vh. #strip is sticky and every ancestor of it still reports
-     overflow visible on every board driven, so the projection stays on screen
-     through that scroll. Whether that is enough on the actual workshop display
-     is a rehearsal question and it is on plan 05-11's list with these figures
-     in hand.
+     board's top already sits at 759, which plan 05-07 measured and handed on.
+     #strip is sticky and every ancestor of it still reports overflow visible on
+     every board driven, so the projection stays on screen through that scroll.
+
+     PLAN 05-09 RE-DROVE THE WHOLE BUDGET AND FOUND THAT TURNING THESE DIALS
+     CANNOT FIX IT. That is the finding, and it is written here because a reader
+     arriving at three dials with a board below the fold will reach for them
+     first. Measured in Chrome, one round resolved, at both the projector size
+     and the smallest laptop this artifact is likely to meet:
+
+       .fg-sides/.ld-list/.ld-now-body   board top @1920x1080   @1366x768   newest round whole
+         34 / 34 / 20  (shipped)                 1257               1048          yes / no
+         30 / 30 / 18                            1181                986          no  / no
+         26 / 26 / 16                            1095                930          no  / no
+         24 / 24 / 14                            1052                902          no  / no
+         22 / 22 / 12                            1008                871          no  / no
+         20 / 20 / 12                             965                856          no  / no
+         18 / 18 / 10                             922                825          no  / no
+
+     TWO THINGS FALL OUT OF THAT TABLE AND BOTH MATTER. NO SETTING AT ALL clears
+     a 768-tall screen — 18/18/10 is 825 against a 768px viewport, and 18vh of
+     the fight bar is a declaration form nobody can use. And every setting below
+     34vh loses the property plan 05-08 chose 34vh FOR, which is that the whole
+     of the newest round is on screen at once. So turning them trades a measured
+     property away for a board that is still below the fold. They are not turned.
+
+     WHAT DOES FIX IT IS STRUCTURAL, IT IS MEASURED, AND IT IS NOT PLAN 05-09's
+     TO SHIP. #fightbar and #ledger are two full-width regions stacked above the
+     board, so the page pays their SUM. Laid SIDE BY SIDE it pays the taller of
+     them — which is the move plan 05-08 already made one level down, inside the
+     ledger, and recorded as a pattern. Driven with the two wrapped in a flex
+     band, everything else untouched:
+
+       arrangement                    board top @1920x1080   @1366x768
+         stacked (shipped)                    1257              1048
+         side by side, 34 / 34 / 20            844               788
+         side by side, 28 / 28 / 16            779               742
+         ledger hidden entirely                844               730
+
+     SIDE BY SIDE AT THE SHIPPED DIALS CLEARS 1080 WITH 236px TO SPARE and comes
+     within 20px of clearing 768; at 28/28/16 it clears both. It costs a wrapper
+     element in the shell and a rewrite of the rule directly above this comment
+     — plan 05-06's markup and plan 05-06's frame rule, and that frame rule is
+     the one whose own paragraph records a shorthand silently zeroing a longhand
+     and putting a region 182px out of alignment. That is not a change to make on
+     the last wave before a checkpoint, and it is not plan 05-09's section to
+     make it in. IT IS WRITTEN HERE AS A DECISION WITH ITS NUMBERS RATHER THAN
+     LEFT AS A SYMPTOM: REHEARSAL.md B3, first item.
+
+     A FOURTH DIAL EXISTS NOW AND IT IS ON A DIFFERENT AXIS. [C14.3] bounds
+     .dc-live at 24vh. The three dials above are ONE budget because all three
+     regions sit above the board and their heights add; the fourth is inside
+     #board, in the sticky middle column, and it bounds nothing on this page's
+     vertical budget at all — it exists because a sticky element taller than the
+     space it has stops pinning, which is a different failure with a different
+     measurement, written at its own site.
 
      It is also NOT the reason App.data.MAX_PAST_ROUNDS is thirty — that cap has
      its own paragraph and its own measurement, and it is a readability bound
@@ -1658,6 +1706,231 @@
     margin:0;font-size:18px;line-height:1.35;color:var(--ink);
     font-variant-numeric:tabular-nums;
   }
+
+  /* ===================== [C14.3] THE BOARD IN FIGHT MODE ===================== */
+  /* The `.dc-` rules [S06.9] paints with, plan 05-09. The frame above is
+     [C14]'s and this block adds nothing to it: no width, no margin, no
+     overflow and no position on either page region, because those four belong
+     to the frame and a second rule for one of them is how a shorthand quietly
+     resets a longhand — the failure [C14]'s own banner measured at 182px.
+
+     THIS IS THE FIRST OF THE THREE SUB-BLOCKS THAT PAINTS INSIDE #board, which
+     [C03] and [C04] own, and the boundary is kept by PREFIX and never by
+     nesting. Every selector below names a .dc- class. Not one of them names
+     .brd-line, .unit-card, .unit-label or .tok-row, and not one of them is a
+     bare element or attribute selector — a rule for a `p` or a `[hidden]` in
+     here would reach four thousand lines in either direction. The two places
+     this region has to reach a node it does not own are written as a .dc- class
+     ADDED to that node (.dc-card--dead on the card) rather than as a selector
+     for the node's own class, which is .ae-prop-over versus .ae-prop-row's
+     lesson: a shared class is how a later selector reaches something it was
+     not written for.
+
+     THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT HERE AND ARE
+     RESTATED RATHER THAN POINTED AT, because each of them fails silently. No
+     background image, no data-URI icon and no stylesheet-loaded font: the CSS
+     reference function that takes a URI is refused document-wide by the dev
+     gate, in comments as well as in rules. No namespaced element constructor
+     and no inline vector markup, refused on the same grounds — a shape, if one
+     is ever wanted here, is a clip-path, which is what [C05] already draws the
+     board's triangles and hexagons with. And no new hex: every colour below is
+     a [C00] token, derived with color-mix() where a derivation is needed, which
+     is [C07]'s banner rule. The fourth, [C14]'s own: the property that
+     prettifies a short heading by evening out its line lengths carries the same
+     word stem the dev gate refuses document-wide, so it is DESCRIBED and never
+     spelled.
+
+     UX-02'S 18px FLOOR BINDS EVERY LABEL BELOW and binds hardest on the one
+     control in here. Nothing is an icon alone, nothing is revealed on hover and
+     nothing carries a title= tooltip. */
+
+  /* THE DEAD MARKER IS LEGIBLE AS DEAD WITHOUT RELYING ON COLOUR, and that is
+     the requirement rather than a preference — [C07]'s standing rule, restated
+     in [C12] and [C13]: state is said TWICE, in the class and in an accessible
+     name, never in colour alone.
+
+     THREE SAYINGS SHIP, and only the third is a colour:
+       the marker is a REAL NODE — the rectangle carrying a skull that
+         DEFAULTS.tokens.dead has held since Phase 2, drawn through [C05]'s own
+         token rules and through no second path. A token is a shape at --tok, so
+         it survives a projector and a colourblind reader alike;
+       the sentence beside it is TEXT, at the 18px floor, and it is the reading
+         a person actually takes off the board;
+       and the card is dimmed, which is the one that carries no information on
+         its own and is written last for that reason.
+
+     THE DIM IS ink-dim AND NOTHING NEW. `ink-dim` is the colour the `dead`
+     vocabulary entry already names, so the card and the marker on it dim to the
+     same token and a palette change moves both. The border is derived with
+     color-mix() rather than picked, [C07]'s rule.
+
+     IT DIMS AND IT NEVER COLLAPSES, HIDES OR SHRINKS ANYTHING. FIGHT-06 was
+     decided by the zero-tally hide pass and must not be re-decided here: a unit
+     at zero health is something a student meant, and it stays on screen with
+     every stepper on it live. There is no display, no visibility, no height and
+     no overflow in this rule, and that absence IS the requirement. */
+  .dc-card--dead{
+    color:var(--ink-dim);
+    border-color:color-mix(in srgb, var(--line) 70%, var(--ink-faint));
+  }
+
+  /* The standing line itself. .brd-line's shape restated rather than borrowed —
+     it wraps along the line, it does not shrink its type, and it never becomes
+     a scrolling box, which is [C03]'s sticky gotcha binding one more time
+     because this line is inside #board and #board is an ancestor of #strip. */
+  .dc-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .dc-label{font-size:18px}
+
+  /* THE ALIVE TOGGLE. A control, so it is sized as one: the 18px floor, a real
+     hit area, and a permanent visible word — never the glyph alone, never a
+     tooltip, and NEVER inside anything the dead state hides, which is the whole
+     of T-05-38 and is held in [S06.9]'s markup rather than here. This block
+     could not put it back inside such a node if it tried, and that is the
+     point: there is no rule in here that hides, collapses or disables anything
+     at all.
+
+     .brd-btn's pill treatment restated rather than borrowed, for [C13]'s stated
+     argument about .rs-: .brd- means "the board's own chrome" everywhere else
+     in this file, and a fight control wearing it would make that one rule two
+     regions depend on.
+
+     THE PRESSED STATE IS SAID TWICE HERE TOO — the tick node comes into view
+     AND the outline changes — because aria-pressed is not something a room
+     reading a projector can see. */
+  .dc-alive{
+    display:inline-flex;align-items:center;gap:8px;
+    background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink-dim);
+    border-radius:999px;padding:2px 12px;min-height:24px;
+    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+  }
+  .dc-alive-t{font-size:18px}
+  /* The tick is CARRIED at zero opacity rather than created and destroyed, so
+     the word beside it never moves sideways when the state changes — .ae-check
+     is the shipped precedent and this is its reasoning, not a second one. */
+  .dc-check{opacity:0;font-size:18px}
+  .dc-alive--on{border-color:var(--ink);color:var(--ink)}
+  .dc-alive--on .dc-check{opacity:1}
+
+  /* The sentence a person reads. Its own [hidden] rule for the reason
+     .prj-work[hidden], .ld-now[hidden] and .fg-said[hidden] each carry one:
+     [hidden]{display:none} is a user-agent rule these margins would not have
+     beaten, but a later author rule giving this class a display would, and the
+     next reader should not have to work out which of those is true today. */
+  .dc-state{margin:0;font-size:18px;color:var(--ink-dim)}
+  .dc-state[hidden]{display:none}
+
+  /* THE BY-HAND MARKER, DISTINGUISHABLE FROM AN ORDINARY VALUE WITHOUT COLOUR
+     ALONE. Three sayings again, and the colour is again the last of them: a
+     glyph node, the words beside it, and only then a tint. It is deliberately
+     QUIET — it says a person set this, not that the tool disagrees — so it
+     takes ink-dim and a hairline and never an alarm colour. The danger
+     colouring this file ships twice is for a control that throws work away, and
+     nothing about a student's own ruling is that. */
+  .dc-hand{
+    display:inline-flex;align-items:center;gap:6px;
+    padding:0 8px;border-radius:999px;
+    border:1px solid color-mix(in srgb, var(--line) 60%, var(--ink-faint));
+    color:var(--ink-dim);font-size:18px;
+  }
+  .dc-hand[hidden]{display:none}
+  .dc-hand-g{font-size:18px}
+  .dc-hand-t{font-size:18px}
+
+  /* THE MID-FIGHT LINE, IN #reset-ask's REGISTER: a plain statement of
+     consequence with no colour and no alarm. It is NOT a warning and must not
+     look like one — no danger colour, no border, no icon, no background of its
+     own. .rs-says' own numbers, taken because the register is the same one and
+     a second set would be a second decision about what a plain sentence looks
+     like on this page.
+
+     It is at the 18px floor and it WRAPS at a measure, because a sentence that
+     runs the full width of a 1600px board is a sentence a room reads twice. */
+  .dc-said{
+    margin:0;font-size:18px;line-height:1.45;color:var(--ink-dim);max-width:56ch;
+  }
+  .dc-said[hidden]{display:none}
+
+  /* THE LIVE FIGHT READING, AND THE ONE RULE THAT MATTERS MOST IS A SIZE RULE.
+     It sits beside the projection, inside #strip, and IT MUST NEVER BE THE
+     LOUDEST THING ON SCREEN — that is [C10]'s own shipped rule about the
+     projection and it binds anything placed beside it. So: nothing in here is
+     at .prj-turns' 24px and weight 700. Every figure is at the 18px floor, in
+     ink for the numbers and ink-dim for the words around them, and the region's
+     heading is at label weight. The projection's figure stays the largest thing
+     in the strip, which is what keeps the two readings in the order the
+     roadmap's teaching moment needs.
+
+     D-15's colour discipline is [C10]'s and it is kept whole: --ink, --ink-dim,
+     --line and --panel and nothing else. The token-identity colours are
+     deliberately unused, because beside a projection figure a colour that means
+     "this is health" reads instead as "this is the one to have".
+
+     D-13 IS HELD HERE BY ABSENCE, exactly as [C10] holds it and for the reason
+     that block states about itself: no rule below declares a custom property,
+     and no rule below sets a width from a percentage, a calc() or a var(). A
+     shared axis, a paired bar and a midpoint marker each need a shared LENGTH
+     to be drawn along, and there is none here to draw one along. Two side
+     boxes stacked in a column share no axis; two laid out along one WOULD, and
+     that is why the column direction below is the plain one and not a row.
+
+     NO SCROLLING BOX ANYWHERE IN HERE, which is [C03]'s sticky gotcha binding
+     for the fourth time in this phase and the most sharply: this region is
+     inside #strip, and #strip is the element that sticks. An overflow on any
+     node in this block would be an overflow on a DESCENDANT rather than an
+     ancestor and would therefore not break the sticking — but the reading also
+     has no unbounded growth axis to need one, which is worth saying because
+     the three regions before it did. It draws a fixed four lines a side however
+     large the roster is. */
+  /* AND IT IS BOUNDED, WHICH IS THE FOURTH TIME THIS PHASE HAS HAD TO DO IT AND
+     THE FIRST TIME THE REASON IS THE STICKING RATHER THAN THE BOARD'S TOP.
+     [C14] bounds .ld-list, [C14.1] bounds .fg-sides and [C14.2] bounds
+     .ld-now-body, all three because a region ABOVE #board that grows pushes the
+     live board down the page. This one is INSIDE #board, in the middle column,
+     so it pushes nothing — and it still needs a bound, for a different reason
+     that only a browser could report.
+
+     MEASURED IN CHROME. #strip is position:sticky under a top bar that measures
+     64px on a 1366x768 laptop, which leaves 704px of viewport for it. Unbounded,
+     this reading plus FIGHT-10's line stood the strip at 984px, and A STICKY
+     ELEMENT TALLER THAN THE SPACE IT HAS STOPS PINNING: its top read -203 where
+     it should have read 64, which means the projection's own figures scroll off
+     the screen exactly when the student scrolls down to the board. PROJ-05 asks
+     for the opposite of that. The line moved to the column heads and this took a
+     bound, and both halves were needed.
+
+     THE SCROLL IS ON THIS ELEMENT, and [C03]'s sticky gotcha is why the sentence
+     is here rather than assumed — but it points the OTHER way for once, and that
+     is the part worth writing down. A sticky element sticks to its nearest
+     scrolling ANCESTOR, so an overflow above #strip would take its sticking
+     away. .dc-live is a DESCENDANT of #strip, so a scroll on it cannot: it is
+     the same move [C12]'s action list and [C14]'s list already make, one level
+     further in.
+
+     24vh IS A REHEARSAL DIAL in the manner of the other three, and it is chosen
+     so that it costs a 1920x1080 projector NOTHING: the reading measures 225px
+     on the shipped board and 24vh is 259px at 1080, so nothing scrolls there at
+     all. At 768 it is 184px and the reading scrolls, which is the trade that
+     keeps the projection pinned. It is now FOUR dials rather than three, and the
+     other three are one budget together while this one is on its own axis —
+     [C14]'s list rule carries that arithmetic. */
+  .dc-live{
+    display:flex;flex-direction:column;gap:8px;
+    padding:12px 0 0;border-top:1px solid var(--line);
+    max-height:24vh;overflow-y:auto;
+  }
+  .dc-live-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .dc-live-side{display:flex;flex-direction:column;gap:2px}
+  .dc-live-who{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .dc-live-read{
+    margin:0;font-size:18px;line-height:1.35;color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  /* The two fragment classes look identical on screen on purpose, which is
+     [S06.7]'s and [S06.8]'s rule about their own: a student reading one of
+     these lines must not be able to tell which words came from where. */
+  .dc-say, .dc-word{color:inherit}
+  .dc-tail{color:inherit}
 </style>
 </head>
 <body>
@@ -13937,6 +14210,306 @@ App.render = (function () {
      written ONLY when it changes. Assigning textContent replaces the text node
      even when the string is identical, and a node replaced every frame is a
      node a selection cannot survive. */
+  /* A line the page ASSEMBLES out of its own words and the student's, one node
+     per fragment. It is fgSay's and ldSay's idiom RESTATED rather than
+     borrowed, for the reason each of those restates the one before it: a
+     sub-region reaching into another sub-region's private helper is the first
+     step of the two of them becoming one. The class prefix differs because
+     [C14]'s banner says one prefix per surface; the RULE does not differ.
+
+     THE SPLIT IS A GATE CONCERN AND NOT A STYLING ONE, and [S06.7]'s paragraph
+     states the failure in full. A line built as ONE string would have to be
+     either wholly read — which reddens CI the day a student renames a token
+     type to a word on this file's own list — or wholly exempt, which would take
+     every word the ARTIFACT chose out of the only layer that can see copy
+     assembled at render time.
+
+     The two node classes look identical on screen on purpose. A student reading
+     one of these lines must not be able to tell which words came from where. */
+  function dcSay(box, parts) {
+    parts.forEach(function (part) {
+      if (part.said !== undefined) {
+        box.appendChild(text('span', 'dc-say', part.said));
+        return;
+      }
+      var node = text('span', 'dc-word', part.word);
+      setData(node, { lbl: part.tok });
+      box.appendChild(node);
+    });
+  }
+
+  /* A token type's NAME as a fragment, and the fall-through is the whole reason
+     this is a function — [S06.8]'s ldTokenWord restated for its own stated
+     reason. labelFor falls back to the SHIPPED HEALTH LABEL for an id it cannot
+     find, so asking it about a type the board no longer holds prints a name
+     that is ACTIVELY WRONG and sends a student looking for the wrong type;
+     fillProposal records that in those words. When the type has gone the id is
+     printed as one of the ARTIFACT'S OWN fragments and carries no exemption
+     marker, which is safe because requireTokenId has already bounded what an id
+     may be.
+
+     THE ONLY ID THIS REGION ASKS ABOUT IS `ap`, WHICH CANNOT GO — and the guard
+     is here anyway rather than reasoned away, because "this caller only ever
+     passes a built-in" is exactly the sentence that stops being true when a
+     later plan adds a second caller. */
+  function dcTokenWord(state, tok) {
+    var vocab = state.build.tokens;
+    if (typeof tok === 'string' && vocab
+      && Object.prototype.hasOwnProperty.call(vocab, tok)) {
+      return { word: labelFor(state, tok), tok: tok };
+    }
+    return { said: (typeof tok === 'string') ? tok : 'a type this board no longer holds' };
+  }
+
+  /* FIGHT-10'S NOTICE IS A PERMANENT LINE, NOT A TOAST AND NOT A MODAL, and the
+     file had already reconciled this exact question once. D-17 declined
+     confirmations twice by name; the one time that policy met a competing
+     requirement the answer was #tok-pick-names — "a permanent LINE beside the
+     button … explicitly not a dialog" — because a line costs no click, adds no
+     surface, and says the thing D-17 had nothing to say. #reset-ask is the
+     single exception in this file and its own comment states the narrow test
+     that justified it: does undo stop being able to recover this while the
+     student is still working? A mid-fight build edit does not meet that test —
+     one Ctrl+Z takes the edit back — so this is a line.
+
+     IT IS PERMANENT WHILE A FIGHT IS RUNNING RATHER THAN RAISED BY AN EDIT, and
+     that is a decision with two reasons behind it. The first is mechanical:
+     "the build was edited during this fight" is not derivable from state.
+     sideFromBuild copies build into fight ONCE, at startFight, and the fight's
+     own numbers then move for reasons that have nothing to do with an edit, so
+     there is no comparison that answers the question and the only way to answer
+     it would be to STORE a flag — which is the shape plan 05-05 declined for
+     the by-hand marker and declined for the same reason. The second is that the
+     line is BETTER as a standing fact: a notice that appears after the edit
+     tells a student something they have already done, and a line that is there
+     while they are doing it tells them before.
+
+     TWO THINGS IT MUST NOT SAY. It must not promise the fight is "unaffected"
+     in a reassuring register — the gate permits the word and it reads as
+     comfort rather than fact. And IT MUST NOT CONTRADICT D-08: undo is shared
+     across both slices, so one Ctrl+Z after a mid-fight build edit rewinds the
+     edit and leaves the fight, which is correct, but a Ctrl+Z CHAIN will
+     eventually un-start the fight. That is existing, documented, intended
+     behaviour, asserted in [S09.12]. A notice implying the two are independent
+     would be wrong, so this one says nothing about undo at all. Say what is
+     true and stop.
+
+     IT REPORTS AND IT DISABLES NOTHING — #tok-pick-names' own closing line, and
+     it binds here. Every stepper on the board stays live during a fight, which
+     is the fact this line exists to make legible rather than to take away.
+
+     ONE SENTENCE, ONE CONSTANT, TWO SITES. #fight-said is the node plan 05-06
+     reserved by name for this plan; the second instance is in #strip. Two
+     copies of one sentence would be two things to keep in step. */
+  var DC_SAID = 'The steppers on the board still edit the build. A change made '
+    + 'now applies to the build and not to this fight, and it takes effect the '
+    + 'next time you start a fight.';
+
+  /* WHERE THE SECOND INSTANCE GOES, AND A REAL BROWSER CHOSE IT.
+
+     The requirement is that the line is visible AT THE MOMENT OF THE EDIT — a
+     line in a region the student is not looking at is not a notice — and the
+     plan's own words for where that is are "beside the roster steppers that are
+     still live during a fight". That is the faction head: the action-points
+     stepper is built into it, it sits at the top of the column directly above
+     the first unit card, and structure() rebuilds it, so an append here is put
+     back on the SAME frame a rebuild happens on — frame() runs structure() and
+     then sync(), in that order.
+
+     IT COSTS THE VIEWPORT BUDGET NOTHING, which is the phase's largest open
+     layout question and is not to be made worse by this plan: the faction head
+     is inside a column, which is below #board's own top, so this line moves that
+     top by exactly zero.
+
+     #strip WAS THE FIRST CHOICE AND A MEASUREMENT TOOK IT AWAY, which is worth
+     recording because the argument for it was good. #strip is sticky, so a line
+     in it is in view wherever the student has scrolled to — unconditionally,
+     which the faction head is not. But #strip is #board's MIDDLE COLUMN and
+     [C03] sizes it at minmax(220px, 320px): measured in Chrome at 1366x768, this
+     sentence wraps to five lines and 130px in there, and with the live reading
+     beside it the strip stood at 984px against the 704px a 768-tall viewport
+     leaves under the top bar. A STICKY ELEMENT TALLER THAN THE SPACE IT HAS
+     STOPS PINNING — measured, its top read -203 where it should have read 64 —
+     and PROJ-05's whole requirement is that the projection stays on screen. So
+     the notice went to the wide column head, where the same sentence is three
+     lines, and what is left in #strip is bounded by [C14.3] on the pattern this
+     phase already has four of.
+
+     APPEND-IF-MISSING RATHER THAN A BUILD-ONCE FLAG, and the reason is the one
+     that makes a flag wrong here: the faction head is thrown away and rebuilt by
+     structure() on every structural commit, so a flag would outlive the node it
+     describes. The presence of the node IS the flag. It is two querySelector
+     calls a frame, on a region already walking about thirty nodes. */
+  function dcSaidNode() {
+    var node = text('p', 'dc-said', '');
+    node.hidden = true;
+    return node;
+  }
+
+  // HIDDEN AND EMPTY TOGETHER, which is the whole of "there is one decision
+  // about emptiness and it is made here" — the admission line's rule, and
+  // #fight-said's own shell comment checks it off by name.
+  function dcSaidFill(node, on) {
+    if (!node) { return; }
+    var want = on ? DC_SAID : '';
+    if (node.textContent !== want) { node.textContent = want; }
+    node.hidden = !on;
+  }
+
+  /* PROJ-05, AND IT IS RECONCILED RATHER THAN CHOSEN, because two project
+     documents disagree about it and both are right about something.
+
+     05-CONTEXT.md's D-22 assumes the projection reads the FIGHT while a fight
+     runs, and its reason is sound: PROJ-05 requires the projection stay visible
+     during the fight, and a projection that stayed visible while silently
+     describing the BUILD would be quietly wrong at exactly the moment a student
+     is reading it.
+
+     05-RESEARCH.md, written later and with the roadmap in hand, argues the
+     opposite and its reason is also sound: the projection is a statement about
+     THE ALLOCATION THE STUDENT MADE, the whole pedagogy is that the fight
+     contradicts it, and "a strip that silently tracks the fight has nothing
+     left to be contradicted." The roadmap agrees with research — its teaching
+     moment is "you guessed 3-5, it took 8", and that only lands if the guess
+     stays on screen.
+
+     SO NEITHER IS TAKEN AND BOTH ARE HONOURED. [S06.3]'s existing figures are
+     UNTOUCHED and go on reading state.build — not one line of that region is
+     changed by this plan, and [S09.12] asserts the two shipped figures are
+     byte-identical before and during a fight on the same board, which is the
+     row that reddens if this strip ever quietly starts tracking the fight. The
+     fight's own figures are added BESIDE them as a second, adjacent, EXPLICITLY
+     LABELLED reading. Both readings are labelled for what they describe, so
+     neither is quietly wrong and the contradiction — which is the thing the
+     roadmap is built around — stays visible instead of being averaged away.
+
+     THAT DISCHARGES D-22'S ACTUAL CONSEQUENCE. Its words: "the currently-unused
+     activeUnits parameter gets used. If the developer prefers the projection
+     keep describing the build, that parameter should be RETIRED rather than
+     left unused — an unused parameter that names this phase is a trap for the
+     next reader either way." turnsToWipe's third argument is passed here, by
+     the one caller in this file that has a fight to count survivors from, which
+     is exactly what its own comment said it was for: "activeUnits is forwarded
+     untouched so Phase 5 can project a fight in progress."
+
+     AND IT IS THE FIRST PROJ-05 QUESTION AT PLAN 05-11, WRITTEN DOWN HERE SO
+     THE DEVELOPER CAN COLLAPSE IT TO EITHER SINGLE ANSWER CHEAPLY:
+       to collapse it toward D-22 — make [S06.3]'s own figures pass the third
+         argument and delete this block;
+       to collapse it toward research — delete this block and RETIRE the third
+         argument from turnsToWipe, bestPair, bestDamage and factionDps.
+     Either is one comment's worth of work, and neither is taken here because
+     the question is a judgement about how a student reads two readings side by
+     side, which is a thing only a person in front of the surface can answer.
+
+     THE BOUNDS HOLD EITHER WAY AND BOTH ARE HONOURED. D-13 forbids a figure
+     about both sides at once, so there is ONE builder called once per side with
+     the side as an argument — projPanel's signature and its stated reason,
+     which is that a builder naming both sides in one body is the shape a shared
+     axis, a paired bar or a midpoint marker takes. D-06 forbids a decimal, and
+     every figure below is an integer already: aliveCount counts, apSpent
+     subtracts two integers under a floor, and turnsToWipe's bounds come out of
+     Math.ceil. And this reading is NEVER THE LOUDEST THING ON SCREEN — that is
+     the projection's own shipped rule, held in [C14.3] by size and colour.
+
+     ALL FOUR OF [S06.3]'s SILENT-FAILURE RULES BIND EVERY NODE BELOW AND NONE
+     OF THEM BREAKS ONE: no data-k, so keyed() cannot take its first document
+     match in here; no data-amt and not a .brd-value, so the value pass cannot
+     paint a confident zero over a reading; not .brd-line--opt, whose hide pass
+     reads a tally and would pin it shut for good; and built once per fight and
+     removed at rest, which is [S06.8]'s ruling about a region that has nothing
+     to say — emptied and removed, not merely hidden. */
+  function dcTurnsText(r, foeName) {
+    if (r === null) { return 'no damage to spend'; }
+    if (r.ehp === 0) { return 'nothing to wipe'; }
+    var noun = (r.fast === r.slow && r.fast === 1)
+      ? ' turn to wipe ' : ' turns to wipe ';
+    if (r.fast === r.slow) { return '≈' + r.fast + noun + foeName; }
+    return '≈' + r.fast + '–' + r.slow + noun + foeName;
+  }
+
+  // ONE BUILDER, CALLED ONCE PER SIDE WITH THE SIDE AS AN ARGUMENT — projPanel's
+  // signature, taken for projPanel's reason, which is the only structural place
+  // D-13 can be held at all.
+  function dcLiveSide(state, side) {
+    var box = el('div', 'dc-live-side');
+    setData(box, { dcLive: side });
+
+    box.appendChild(text('p', 'dc-live-who', state.build[side].name));
+
+    box.appendChild(text('p', 'dc-live-read num', ''));
+
+    // The points line is the one that names a TYPE, so it is assembled one node
+    // per fragment: the name carries the label marker and sync()'s label pass
+    // owns it from the first frame on, which is what makes a rename land on the
+    // frame it happens; the numbers are the artifact's own words and are read.
+    var pts = el('p', 'dc-live-read num');
+    dcSay(pts, [dcTokenWord(state, 'ap')]);
+    // ITS OWN CLASS AND NOT .dc-say, which is .ae-prop-over versus .ae-prop-row's
+    // lesson applied one more time: dcTokenWord's fall-through ALSO builds a
+    // .dc-say, so a querySelector for that class would take the departed-type
+    // fragment instead of the tail on exactly the board where it matters.
+    pts.appendChild(text('span', 'dc-say dc-tail', ''));
+    box.appendChild(pts);
+
+    box.appendChild(text('p', 'dc-live-read num', ''));
+    return box;
+  }
+
+  function dcBuildLive(strip, state) {
+    var root = el('section', 'dc-live');
+    root.appendChild(text('h3', 'dc-live-head', 'The fight as it stands'));
+    DC_SIDES.forEach(function (side) { root.appendChild(dcLiveSide(state, side)); });
+    strip.appendChild(root);
+    return root;
+  }
+
+  function dcFillLive(root, state) {
+    var boxes = root.querySelectorAll('.dc-live-side');
+    for (var i = 0; i < boxes.length; i++) {
+      var box = boxes[i];
+      var side = String(box.dataset.dcLive || '');
+      var foe = (side === 'cats') ? 'mechs' : 'cats';
+      if (!state.build[side] || !state.build[foe] || !state.fight[side]) { continue; }
+
+      var standing = App.model.aliveCount(state.fight[side]);
+      var roster = state.fight[side].units.length;
+      var spent = App.model.apSpent(state.build[side], state.fight[side]);
+      var lines = box.querySelectorAll('.dc-live-read');
+      var who = box.querySelector('.dc-live-who');
+      if (who) { who.textContent = state.build[side].name; }
+
+      if (lines[0]) {
+        lines[0].textContent = standing + ' of ' + roster + ' still standing.';
+      }
+      // The fragment AFTER the type's name, so the type's name is the only part
+      // of this line that is not the artifact's own words.
+      if (lines[1]) {
+        var tail = lines[1].querySelector('.dc-tail');
+        if (tail) { tail.textContent = ': ' + spent + ' spent, ' + state.fight[side].ap + ' left.'; }
+      }
+      if (lines[2]) {
+        // THE THIRD ARGUMENT, PASSED. This is the whole of D-22's mechanical
+        // consequence and the reason the parameter is no longer a trap.
+        var r = App.model.turnsToWipe(state.build[side], state.build[foe], standing);
+        // The qualifier is SHORT and it is on the line rather than in a note of
+        // its own, because #strip is 320px wide and a note costs three lines
+        // there to save two. It still says the thing that matters: this figure
+        // and the projection's own figure differ because this one counts what
+        // is left standing.
+        //
+        // AND IT REPEATS THE NOUN RATHER THAN POINTING AT IT, which is the file's
+        // own rule that no renderer guesses at agreement — turnsText branches on
+        // plurality for exactly this reason one region up. The first spelling was
+        // "counting only those N", which a driven reading printed as "counting
+        // only those 1" the moment a side was down to its last unit; a demon-
+        // strative agrees with its number and this phrasing does not have to.
+        lines[2].textContent = dcTurnsText(r, state.build[foe].name)
+          + ', counting only the ' + standing + ' still standing.';
+      }
+    }
+  }
+
   // add / remove and never classList.toggle, which is the shipped idiom here
   // (makeToken's entry class is the precedent) and is also the only one the
   // stub DOM models — teaching that stub a fourth method to save two lines here
@@ -13980,6 +14553,34 @@ App.render = (function () {
     var board = document.getElementById('board');
     if (!board || state.fight === null) { return; }
 
+    /* THE TWO NODES THIS REGION OWNS OUTSIDE A COLUMN, built on the first frame
+       of a fight and put back by the teardown below. #strip is [S06.3]'s and it
+       is built once by that region on the frame before this one runs — SYNC_HOOKS
+       runs in registration order and [S06.3] registered five sub-regions ahead
+       of this one — so the flag is READ rather than assumed: appending into a
+       container that has not run its own replaceChildren() yet would put these
+       nodes on the page for exactly one frame and then throw them away. */
+    var strip = document.getElementById('strip');
+    if (strip && strip.dataset.built === '1' && strip.dataset.dcUp !== '1') {
+      dcBuildLive(strip, state);
+      strip.dataset.dcUp = '1';
+    }
+
+    var live = strip ? strip.querySelector('.dc-live') : null;
+    if (live) { dcFillLive(live, state); }
+
+    // FIGHT-10 at both its sites. The reserved node on the bar is filled; the
+    // second instance is appended beside the roster steppers if it is not
+    // already there, which is what a region structure() rebuilds needs instead
+    // of a flag.
+    dcSaidFill(document.getElementById('fight-said'), true);
+    var heads = board.querySelectorAll('.brd-col-head');
+    for (var h = 0; h < heads.length; h++) {
+      var line = heads[h].querySelector('.dc-said');
+      if (!line) { line = dcSaidNode(); heads[h].appendChild(line); }
+      dcSaidFill(line, true);
+    }
+
     var lines = board.querySelectorAll('.dc-line');
     for (var i = 0; i < lines.length; i++) { dcFillStanding(state, lines[i]); }
 
@@ -13995,23 +14596,47 @@ App.render = (function () {
     }
   }
 
+  /* THE TEARDOWN, and it covers exactly the nodes a rebuild does not.
+
+     EVERY NODE INSIDE A COLUMN PUTS ITSELF BACK. endFight is a structural
+     commit, so structure() rebuilds both column interiors with `setup` true and
+     the standing lines and the by-hand marks are gone by construction rather
+     than by bookkeeping — which is also why unitCard's branch is the right seam
+     for them and a sync-time append into a column would not have been.
+
+     THE LIVE READING IN #strip DOES NOT, because structure() replaces only the
+     two column interiors and #strip is neither of them. So it is EMPTIED AND
+     REMOVED rather than merely hidden — [S06.7]'s ruling, restated by [S06.8] —
+     and the flag that says whether there is anything to put back is cleared with
+     it, so this runs on exactly one frame: the one where the fight ended.
+     #fight-said is the third case and takes the third treatment: it is a SHELL
+     node that outlives everything, so it is emptied and hidden rather than
+     removed, which is the rule its own markup comment states. */
+  function dcRest(strip) {
+    var live = strip.querySelector('.dc-live');
+    if (live) { live.remove(); }
+  }
+
   /* The per-frame half, attached to [S06.1]'s seam in syncLedger's exact shape.
      A region that repainted only from its own handlers would keep showing the
      markers the board no longer holds after any OTHER commit — an undo, a build
      edit, an Advance driven from anywhere else.
 
      THE CHEAP EXIT IS FIRST AND IT IS THE WHOLE COST OF THIS REGION FOR A
-     STUDENT WHO NEVER STARTS A FIGHT: the null test and nothing else.
-
-     THERE IS NO TEARDOWN FLAG AND NO TEARDOWN PASS, unlike the four sub-regions
-     above, and the reason is that every node this region owns is INSIDE #board.
-     endFight is a structural commit, so structure() rebuilds both column
-     interiors with `setup` true and each of those nodes is gone by construction
-     rather than by bookkeeping — which is also why unitCard's branch is the
-     right seam and a sync-time append into a column would not have been. */
+     STUDENT WHO NEVER STARTS A FIGHT: the lookup, the null test, and the flag
+     that says whether there is anything to put back. */
   function syncBoardFight(state) {
     if (typeof document === 'undefined') { return; }
-    if (state.fight === null) { return; }
+    if (state.fight === null) {
+      var strip = document.getElementById('strip');
+      if (!strip || strip.dataset.dcUp !== '1') { return; }
+      dcRest(strip);
+      strip.dataset.dcUp = '';
+      // #fight-said is [S06.7]'s region and this plan is the one the shell
+      // reserved it for, so this region owns its emptiness as well as its text.
+      dcSaidFill(document.getElementById('fight-said'), false);
+      return;
+    }
     boardFight(state);
   }
 

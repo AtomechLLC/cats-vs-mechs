@@ -5609,8 +5609,58 @@ A.state.flush();
    unit and the action lines with their three-fact split. The drive resolves
    exactly one round, so 108 is measured at the floor of that axis too.
 
-   STILL OWING: plan 05-09 (the board in fight mode). */
-const FIGHT_FLOOR = 108;
+   HISTORY — 108 -> 120, PLAN 05-09, THE LAST OF THE THREE TO PAY IT.
+   [S06.9] arrived: the dead marker and its toggle and the by-hand marker on
+   every unit card, FIGHT-10's line at two sites, and PROJ-05's live reading in
+   #strip. Measured the same way and on the same three boards:
+
+       cards on the board          12    4    2
+       harvest                    420  220  170
+       per card                          25   25
+       roster-independent part                       120
+
+   420 - 12x25 = 120, and 220 - 4x25 and 170 - 2x25 come to 120 as well, which
+   is the check on the arithmetic rather than a coincidence worth noting.
+
+   AND THE MARGINAL COST OF A UNIT CARD MOVED FOR THE FOURTH TIME RUNNING,
+   14 -> 25, which is the part a plan reading only the totals would get wrong
+   again. The extra ELEVEN are named one at a time, and the arithmetic is worth
+   writing out because one third of it was a SURPRISE:
+     the alive toggle's word and its tick                              2
+     three by-hand markers — health, shield and the dead flag — each a
+       glyph node and a word node                                      6
+     and the SAME three markers read a SECOND time through their
+       aria-label                                                      3
+   The last three are the surprise and they are this walk behaving exactly as
+   written: harvestInto reads every attribute in LABEL_ATTRS, aria-label among
+   them, and skips one only when the node carries the stepper's own data-albl
+   channel. A marker that says its state twice — once in text and once as an
+   accessible name, which is [C07]'s standing rule — is therefore read twice.
+   The dead marker's own LABEL is NOT among the eleven, because it carries the
+   token-name exemption marker: the same marker doing its job that the 41 -> 56
+   entry recorded about the pool's label and the 83 -> 108 entry recorded about
+   the ledger row's two token names.
+
+   THE TWELVE THAT ARE ROSTER-INDEPENDENT are FIGHT-10's line at its two sites
+   plus the live reading: the line on the bar (1), the line in each of the two
+   column heads (2), the live reading's heading (1), and per side its faction
+   word, its survivor reading, the tail of its points reading and its turn
+   reading (4 x 2 = 8). The points reading's LABEL is a thirteenth string and is
+   deliberately not counted, for the third time in this comment's history: it
+   carries the token-name exemption marker, so the walk skips it.
+
+   A THIRD AXIS NOW MOVES THE ROSTER-INDEPENDENT PART AND IT ALSO ONLY EVER
+   MOVES IT UPWARD: the number of SIDES, which is two and is not going to
+   change. The action count and the number of resolved rounds are the other two
+   and both are recorded above. 120 is measured at the floor of all three.
+
+   NOTHING IS STILL OWING. Plans 05-07, 05-08 and 05-09 were the three this
+   comment named and all three have now paid. A plan that adds a fight surface
+   after this one inherits the same obligation and the same method: trim the
+   roster BEFORE startFight — a mid-fight removeUnit moves the build and leaves
+   the fight slice, the ledger's record and both choosers holding every unit,
+   and a per-card figure taken that way measures the setup chrome alone. */
+const FIGHT_FLOOR = 120;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
