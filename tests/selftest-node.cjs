@@ -7307,6 +7307,14 @@ const accSaid = [];
 const accWhy = [];
 const accBoardMoved = [];
 const accUndoMoved = [];
+// ONE reading taken before the whole sequence, and every refusal compared
+// against IT as well as against the frame before it. PROBE W measured why: a
+// handler that wrecks the board on the FIRST refusal makes every pairwise
+// comparison after it green, because the board it wrecked to is now the board
+// each subsequent refusal starts from. The pairwise clause names WHICH refusal
+// moved it; this one is what makes the row red for all of them.
+const accBoardAtStart = accBoardText();
+const accBoardDrifted = [];
 accShapes.forEach(([, code]) => {
   const boardWas = accBoardText();
   const depthWas = A.state.undoDepth();
@@ -7315,6 +7323,7 @@ accShapes.forEach(([, code]) => {
   accSaid.push(accLoadSaid.textContent);
   accWhy.push(accLoadSaid.dataset.shWhy);
   accBoardMoved.push(accBoardText() !== boardWas);
+  accBoardDrifted.push(accBoardText() !== accBoardAtStart);
   accUndoMoved.push(A.state.undoDepth() !== depthWas);
 });
 // The four TOKENS are the first four shapes; the fifth is the second content
@@ -7360,11 +7369,16 @@ check(
     + 'phantom undo step would leave the board looking right and one Ctrl+Z '
     + 'away from being wrong. The op commits nothing on a refusal and the '
     + 'handler writes only the message; this is the row that says the handler '
-    + 'kept its half of that',
+    + 'kept its half of that. Each refusal is compared BOTH against the frame '
+    + 'before it and against one reading taken before the whole sequence — '
+    + 'PROBE W measured that the pairwise clause alone goes green for every '
+    + 'refusal after the first one that wrecked the board',
   accBoardMoved.every((moved) => moved === false)
+    && accBoardDrifted.every((drifted) => drifted === false)
     && accUndoMoved.every((moved) => moved === false)
     && errPanel.hidden === true,
   'board moved on any of the four=' + JSON.stringify(accBoardMoved)
+    + ' drifted from the board before the sequence=' + JSON.stringify(accBoardDrifted)
     + ' undo depth moved=' + JSON.stringify(accUndoMoved)
     + ' | rendered board length=' + accBoardText().length + ' characters'
     + ' | error panel hidden=' + errPanel.hidden
