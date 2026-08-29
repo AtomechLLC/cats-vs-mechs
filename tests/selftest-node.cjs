@@ -528,7 +528,20 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     one row, and removing the checksum comparison entirely reddened exactly
 //     two and left all twelve content rows green, which is the proof they were
 //     reaching past the digest all along.
-const SUITE_FLOOR = 1019;
+//   plan 05-02 opens [S09.12], the fight loop: 40 rows, and the run goes from
+//     1051 to 1093, floored at 1063 — the same margin of 30 the four plans
+//     before it kept. Forty-two rows added in total, and the extra two are the
+//     part worth recording: two SHIPPED rows in [S09.3] were repaired after a
+//     probe measured them asserting nothing. Every shape row in that suite —
+//     and this file's own check 73c — reads a state whose `fight` is null, so
+//     the JSON-clonable and integers-only rules had never once been applied to
+//     the slice Phase 5 writes into. A function put on the fight slice, and a
+//     declaration array deliberately named `pending`, both left the entire
+//     repo green. 73c is NOT widened for it: its job is to keep the proposal
+//     off the slices and reaching further costs that guarantee. The reach is
+//     added inside [S09.12] instead, over a fight that actually exists, with a
+//     declaration and a resolved round in it.
+const SUITE_FLOOR = 1063;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '

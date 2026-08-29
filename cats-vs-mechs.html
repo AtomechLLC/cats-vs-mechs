@@ -13294,6 +13294,11 @@ App.boot = (function () {
  *   [S09.10] action authoring — the action id gate and the three ops (03.1-03)
  *   [S09.11] the build code — the codec primitives and the reorder
  *            tripwire, every row of it above any no-DOM bracket    (plan 04-01)
+ *   [S09.12] the fight loop — the slice contract, the lifecycle and
+ *            the codec's blindness to a fight, every row above any
+ *            no-DOM bracket. The SURFACE half of Phase 5 is barred
+ *            from this suite and lives in the interaction gate;
+ *            the opening comment names its owners           (plan 05-02)
  * ========================================================== */
 // #region [S09] SELFTEST
 App.selftest = (function () {
@@ -19807,6 +19812,464 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the build-code suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.12] SUITE: the fight loop — owner plan 05-02 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('the fight loop', function (t) {
+    /* THE WHOLE OF THIS SUITE SITS ABOVE ANY no-DOM BRACKET, AND THAT IS A
+       DECISION RATHER THAN AN ACCIDENT — [S09.11]'s declaration, and the
+       reasoning transfers word for word. Five suites in this file stop at a
+       "no document, so return" bracket, and every row below one of those is
+       documentation until somebody opens the page with #selftest. The slice,
+       the lifecycle ops and their arithmetic are STATE WORK: they read no
+       page, write no page and need none, so every row here runs in the
+       terminal harness and can therefore fail a build.
+
+       THE COROLLARY, AND IT IS THIS PHASE'S CENTRAL SPLIT: EVERY SURFACE
+       ASSERTION IN PHASE 5 BELONGS IN tests/selftest-node.cjs's INTERACTION
+       GATE INSTEAD, AND NONE OF THEM MAY BE WRITTEN HERE. The declaration
+       surface's presses, the round record's growth on screen, the dead
+       marker, the mid-fight notice and Layer C's reading of a fight-mode page
+       are all page work. Plans 05-07, 05-08, 05-09 and 05-10 own them, and
+       they are named so the rule has owners rather than only a prohibition.
+       The day a row in here needs a page is the day that row belongs to one
+       of those four.
+
+       THE BOARD IS DRIVEN THROUGH THE SHIPPED OPS, never written out as a
+       state literal, for [S09.11]'s reason: a literal agrees with whatever its
+       author believed the shape was, while a driven board agrees with THIS
+       FILE. So the whole state is recorded here and handed back as this
+       suite's last act, exactly as [S09.3], [S09.6], [S09.7], [S09.10] and
+       [S09.11] do. */
+    var savedAll = JSON.stringify(App.state.get());
+
+    // [S09.10]'s shape, reused rather than a second one derived, and checked
+    // after EVERY path below rather than once at the end — both corruption
+    // shapes either evaporate or hide, so a single check at the bottom reads
+    // clean over a run that had already gone wrong.
+    function protoIntact() {
+      return Object.getPrototypeOf({}) === Object.prototype
+        && Object.prototype.polluted === undefined
+        && Object.prototype.name === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'dmg');
+    }
+
+    // The sorted set of leaf KINDS in a tree. [S03]'s shape rule is "integers
+    // only, JSON-clonable, no DOM nodes, no functions", and reading the kinds
+    // back says which rule broke instead of only that one did.
+    function kindsIn(value, out) {
+      var found = out || [];
+      if (value === null) {
+        if (found.indexOf('null') === -1) { found.push('null'); }
+        return found;
+      }
+      if (Array.isArray(value) || typeof value === 'object') {
+        Object.keys(value).forEach(function (k) { kindsIn(value[k], found); });
+        return found;
+      }
+      if (found.indexOf(typeof value) === -1) { found.push(typeof value); }
+      return found;
+    }
+
+    // Every path a JSON round trip would drop or mangle, named. [S09.3] holds
+    // the same walk beside the rows it repairs; this copy exists for the same
+    // reason allIntegers and protoIntact are each written twice — a suite is
+    // read on its own and a helper reached across an IIFE boundary is not
+    // reachable at all.
+    function jsonDrops(value, where, out) {
+      var found = out || [];
+      var at = where || 'state';
+      if (value === null) { return found; }
+      var kind = typeof value;
+      if (kind === 'number') {
+        if (!Number.isFinite(value)) { found.push(at + ' [' + String(value) + ']'); }
+        return found;
+      }
+      if (kind === 'string' || kind === 'boolean') { return found; }
+      if (Array.isArray(value) || kind === 'object') {
+        Object.keys(value).forEach(function (k) { jsonDrops(value[k], at + '.' + k, found); });
+        return found;
+      }
+      found.push(at + ' [' + kind + ']');
+      return found;
+    }
+
+    // The five stems [S09.10]'s second boundary row and check 73c both refuse
+    // AS OBJECT KEYS. Written here as a walk of its own for a reason measured
+    // this session — see the row that uses it.
+    function refusedKeys(node, where, out) {
+      var found = out || [];
+      var at = where || 'state';
+      if (!node || typeof node !== 'object') { return found; }
+      Object.keys(node).forEach(function (k) {
+        if (/propos|override|caster|target|pending/i.test(k)) { found.push(at + '.' + k); }
+        refusedKeys(node[k], at + '.' + k, found);
+      });
+      return found;
+    }
+
+    function fight() { return App.state.get().fight; }
+    function build() { return App.state.get().build; }
+
+    /* ===== THE SLICE CONTRACT ===== */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+
+    t.eq('a fight opens on exactly five keys, and the list is asserted whole '
+      + 'rather than probed one name at a time — a shape row that only checks '
+      + 'the keys somebody thought of is green over one nobody did',
+      Object.keys(fight()).sort().join(','), 'cats,decl,mechs,past,round');
+
+    t.eq('THE ABSENCE OF `turn` AND `log` IS THE DECISION, not a thing that has '
+      + 'not been written yet. `turn` named an alternating turn order the round '
+      + 'loop does not have — one Advance resolves both sides, so there is no '
+      + 'side whose turn it is — and `log` was a field with no writer beside a '
+      + 'record that already holds what happened. [S03]\'s banner carries both '
+      + 'paragraphs; this row is what stops either coming back',
+      [Object.prototype.hasOwnProperty.call(fight(), 'turn'),
+        Object.prototype.hasOwnProperty.call(fight(), 'log'),
+        /"turn"|"log"/.test(JSON.stringify(fight()))],
+      [false, false, false]);
+
+    t.eq('it opens at round one with nothing declared and nothing resolved',
+      [fight().round, Array.isArray(fight().decl), fight().decl.length,
+        Array.isArray(fight().past), fight().past.length],
+      [1, true, 0, true, 0]);
+
+    t.eq('each side carries the pool and the units, and on a board with no '
+      + 'student-made token type it carries nothing else',
+      [Object.keys(fight().cats).sort().join(','),
+        Object.keys(fight().mechs).sort().join(',')],
+      ['ap,units', 'ap,units']);
+
+    t.eq('and each unit carries its id, its health, its shield and the stored '
+      + 'alive flag — four fields, and `alive` is stored rather than inferred '
+      + 'from health so a Shield ruling and a full-health death are both '
+      + 'representable (D-00d)',
+      fight().cats.units.concat(fight().mechs.units).map(function (u) {
+        return Object.keys(u).sort().join(',');
+      }).filter(function (shape, i, all) { return all.indexOf(shape) === i; }),
+      ['alive,hp,id,shield']);
+
+    t.eq('every leaf in the slice is a whole number, a string or a boolean',
+      kindsIn(fight()).sort(), ['boolean', 'number', 'string']);
+
+    t.eq('and nothing in it is a value a JSON round trip would drop or mangle, '
+      + 'which is what [S03]\'s thaw() enforces on every commit',
+      jsonDrops(fight(), 'fight'), []);
+
+    t.ok('the prototype is intact after the slice-contract rows', protoIntact());
+
+    /* ===== NO REFUSED KEY NAME, ANYWHERE IN A FIGHT =====
+       THIS GROUP EXISTS BECAUSE A PROBE MEASURED ITS ABSENCE. [S09.10]'s
+       second boundary row and check 73c in tests/selftest-node.cjs both walk
+       the whole state at any depth for /propos|override|caster|target|pending/
+       — and BOTH of them read a state whose `fight` is null. Plan 05-02 spelled
+       this phase's declaration array `pending` on purpose and every row in the
+       repo stayed green. Neither of those two is amended: check 73c's job is to
+       keep the proposal off the slices and widening it costs that guarantee.
+       The reach is added HERE instead, over a fight that actually exists, with
+       a declaration and a resolved round in it.
+
+       The declaration and the round record are placed through App.state.commit
+       rather than through an op, because THE OP DOES NOT EXIST YET — plan
+       05-04 writes advanceRound. That is the point of asserting it now: a
+       naming rule discovered after the writer ships is discovered as a red run
+       in somebody else's plan. The records are spelled the way 05-PATTERNS
+       tables them, and the same records spelled { caster, target } redden this
+       row. */
+    App.state.commit('declare probe', function (s) {
+      s.fight.decl.push({ side: 'cats', act: 'slash', by: 'c1', at: 'm1' });
+    });
+    App.state.commit('round record probe', function (s) {
+      s.fight.past.push({
+        round: 1,
+        was: { cats: { ap: 3, units: [] }, mechs: { ap: 3, units: [] } },
+        did: [{ side: 'cats', act: 'slash', by: 'c1', at: 'm1',
+          hit: { shield: 0, health: 1, spare: 0 } }],
+        hand: [{ side: 'mechs', unit: 'm1', tok: 'hp', from: 6, to: 5 }]
+      });
+    });
+
+    t.eq('NOTHING ANYWHERE IN A RUNNING FIGHT IS NAMED AFTER A PROPOSAL, AN '
+      + 'OVERRIDE, A CASTER, A TARGET OR A PENDING ANYTHING — walked at every '
+      + 'depth over a state that has a declaration and a resolved round in it. '
+      + 'The two shipped walks that make this claim both read a null fight and '
+      + 'therefore never once reached the slice this phase writes into',
+      refusedKeys(App.state.get()), []);
+
+    t.eq('and the rule is about OBJECT KEYS and not about words: the same '
+      + 'records carry `by` and `at` where a caster and a target would be, and '
+      + 'the two words themselves stay perfectly renderable — the action '
+      + 'editor puts both on screen today',
+      [fight().decl[0].by, fight().decl[0].at,
+        Object.keys(fight().decl[0]).sort().join(',')],
+      ['c1', 'm1', 'act,at,by,side']);
+
+    t.ok('the prototype is intact after the key-name walk', protoIntact());
+
+    /* ===== A STUDENT-MADE TALLY CROSSES INTO THE FIGHT (D-24) ===== */
+
+    App.ops.resetToDefaults();
+    var unitType = App.ops.createTokenType({
+      name: 'Rage', shape: 'sq', color: 'coral', glyph: '', scope: 'unit'
+    });
+    var sideType = App.ops.createTokenType({
+      name: 'Fuel', shape: 'tri', color: 'gold', glyph: '', scope: 'side'
+    });
+    App.ops.setTally('cats', 'c1', unitType, 4);
+    App.ops.setTally('mechs', null, sideType, 7);
+    App.ops.startFight();
+
+    t.eq('A TYPE A STUDENT INVENTED IS IN THE FIGHT ON THE SAME TERMS AS ONE '
+      + 'THE BOARD SHIPS WITH (D-24). Phase 2.1 removed the second tier on '
+      + 'purpose — the vocabulary stops being ours and starts being theirs — '
+      + 'and a type that worked everywhere except in the fight would put that '
+      + 'tier back at the one moment it matters most',
+      [fight().cats.units[0].tally[unitType], fight().mechs.tally[sideType]],
+      [4, 7]);
+
+    t.eq('and it crosses at BOTH scopes, because a scope that did not cross '
+      + 'would be the same second tier one level down',
+      [Object.keys(fight().cats.units[0]).sort().join(','),
+        Object.keys(fight().mechs).sort().join(',')],
+      ['alive,hp,id,shield,tally', 'ap,tally,units']);
+
+    t.eq('a unit and a side with nothing written down carry NO bag at all, '
+      + 'which is the rule the build slice already keeps: a bag with no keys '
+      + 'deletes itself (D-04), and readTally answers zero either way',
+      [Object.prototype.hasOwnProperty.call(fight().cats.units[1], 'tally'),
+        Object.prototype.hasOwnProperty.call(fight().cats, 'tally')],
+      [false, false]);
+
+    App.ops.setTally('cats', 'c1', unitType, 9);
+    App.ops.setTally('mechs', null, sideType, 1);
+    t.eq('THE FIGHT CARRIES ITS OWN COPY: moving the build\'s tally mid-fight '
+      + 'does not move the fight\'s. That is why the copy exists — nothing in '
+      + 'the fight loop writes to `build`, so a mid-fight edit and a fight in '
+      + 'progress are two boards a student can hold apart',
+      [build().cats.units[0].tally[unitType], fight().cats.units[0].tally[unitType],
+        build().mechs.tally[sideType], fight().mechs.tally[sideType]],
+      [9, 4, 1, 7]);
+
+    t.ok('the prototype is intact after the tally rows', protoIntact());
+
+    /* ===== THE CODEC CANNOT SEE A FIGHT (SHARE-07, T-05-06) ===== */
+
+    App.ops.resetToDefaults();
+    var codeSetup = App.serialize.encode(build());
+    App.ops.startFight();
+    var codeFight = App.serialize.encode(build());
+    App.state.commit('declare probe', function (s) {
+      s.fight.decl.push({ side: 'mechs', act: 'lasers', by: 'm1', at: 'c1' });
+    });
+    var codeDeclared = App.serialize.encode(build());
+    App.state.commit('round record probe', function (s) {
+      s.fight.past.push({ round: 1, was: {}, did: [], hand: [] });
+      s.fight.round = 2;
+    });
+    var codeResolved = App.serialize.encode(build());
+
+    t.eq('A BUILD CODE IS BYTE-IDENTICAL ACROSS FOUR FIGHT STATES — no fight, a '
+      + 'fight running, a declaration standing and a round resolved. This is '
+      + 'SHARE-07 proved structurally rather than argued: encode takes the '
+      + 'BUILD SLICE as an argument and never reaches App.state, so there is '
+      + 'nothing of the fight anywhere it reads. It is the row that reddens the '
+      + 'day somebody teaches encode to read the state instead',
+      [codeFight, codeDeclared, codeResolved], [codeSetup, codeSetup, codeSetup]);
+
+    t.ok('and the reading is not vacuous: the code is a real code for this '
+      + 'board, and it decodes back to it', (function () {
+        var back = App.serialize.decode(codeResolved);
+        return back.ok === true
+          && App.serialize.encode(back.build) === codeResolved;
+      })());
+
+    t.ok('the prototype is intact after the codec rows', protoIntact());
+
+    /* ===== THE LIFECYCLE ===== */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    var depthOpen = App.state.undoDepth();
+    var refusedRestart = false;
+    try { App.ops.startFight(); } catch (refused) { refusedRestart = true; }
+    t.eq('a second startFight is refused AND LEAVES NO UNDO ENTRY. The refusal '
+      + 'sits inside the mutator, which runs on the detached copy before '
+      + 'anything is recorded, so the throw records nothing — [S09.3] holds the '
+      + 'refusal, this row holds the depth, and the depth is the half that says '
+      + 'the guard is in the right place',
+      [refusedRestart, App.state.undoDepth() - depthOpen], [true, 0]);
+
+    App.ops.setUnitHp('cats', 'c1', 0);
+    App.ops.setAlive('cats', 'c1', false);
+    App.ops.setUnitHp('mechs', 'm1', 2);
+    var buildMid = JSON.stringify(build());
+    var boardMid = JSON.stringify(App.state.get());
+    var depthMid = App.state.undoDepth();
+    App.ops.resetFight();
+
+    t.eq('resetFight puts both sides back to what the BUILD says — full health, '
+      + 'every unit standing, round one, nothing declared and nothing resolved',
+      [fight().cats.units[0].hp, fight().cats.units[0].alive,
+        fight().mechs.units[0].hp, fight().round,
+        fight().decl.length, fight().past.length],
+      [build().cats.units[0].maxHp, true, build().mechs.units[0].maxHp, 1, 0, 0]);
+
+    t.eq('AND IT COSTS EXACTLY ONE UNDO ENTRY, therefore one Ctrl+Z. The naive '
+      + 'spelling is endFight() then startFight() and it costs two (measured), '
+      + 'which leaves a mis-press two presses from recovery with a dead board '
+      + 'in between — and startFight throws on a fight already running, so the '
+      + 'pair is one transposition from raising the error panel mid-demo',
+      App.state.undoDepth() - depthMid, 1);
+
+    t.eq('and one undo puts the mid-fight board back BYTE FOR BYTE',
+      (function () { App.state.undo(); return JSON.stringify(App.state.get()); })(),
+      boardMid);
+
+    t.eq('the build did not move a number through any of it, which is the half '
+      + 'of SHARE-07 a student actually feels: reset the fight, keep the '
+      + 'allocation you spent the exercise arriving at',
+      JSON.stringify(build()), buildMid);
+
+    App.ops.endFight();
+    t.eq('endFight leaves the build untouched too, for the same reason: "run it '
+      + 'again" has to restart from the same allocation',
+      [App.state.get().fight, JSON.stringify(build())], [null, buildMid]);
+
+    var depthNoFight = App.state.undoDepth();
+    var resetRefused = false;
+    var resetMessage = '';
+    try { App.ops.resetFight(); } catch (refused) {
+      resetRefused = true;
+      resetMessage = String(refused.message);
+    }
+    t.eq('resetFight with no fight in progress throws BY NAME and leaves no '
+      + 'phantom undo entry — fightOf runs inside the mutator, on the detached '
+      + 'copy, before anything is recorded',
+      [resetRefused, resetMessage, App.state.undoDepth() - depthNoFight],
+      [true, 'No fight in progress', 0]);
+
+    var idleEndBoard = JSON.stringify(App.state.get());
+    var idleEndDepth = App.state.undoDepth();
+    var idleEndThrew = false;
+    try { App.ops.endFight(); } catch (broke) { idleEndThrew = true; }
+    var idleEndCost = App.state.undoDepth() - idleEndDepth;
+    t.eq('endFight with no fight in progress does NOT throw: it is idempotent, '
+      + 'and the board is byte-identical afterwards. Recorded as it is rather '
+      + 'than tidied — plan 05-06 puts a control on this op and is the plan '
+      + 'that gets to decide whether a press with nothing to end should cost a '
+      + 'step at all',
+      [idleEndThrew, App.state.get().fight,
+        JSON.stringify(App.state.get()) === idleEndBoard],
+      [false, null, true]);
+    t.ok('and what it costs in undo entries is NOT pinned here, on purpose: the '
+      + 'row above was first written asserting one entry and measured ZERO, '
+      + 'because the endFight two rows up carries the same commit label and '
+      + 'fell inside the 500ms coalescing window. Under that window the answer '
+      + 'is zero, outside it the answer is one, and a row that pinned either '
+      + 'number would be pinning the clock. It is bounded instead',
+      idleEndCost >= 0 && idleEndCost <= 1);
+    t.info('undo entries the idle endFight cost in THIS run', idleEndCost);
+
+    t.ok('the prototype is intact after the lifecycle rows', protoIntact());
+
+    /* ===== THE BAD-INPUT TABLE ([S09.7] and [S09.10]'s form) =====
+       Seven side values, two fight-slice writers each, driven through the op
+       AND through the live router. `__proto__` and `constructor` are the two
+       that matter: both resolve on Object.prototype, which is not frozen, so a
+       side that reached the state indexer would write there. requireSide runs
+       OUTSIDE the commit in every one of them, so the refusal is by NAME and
+       the funnel is never entered. */
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    var depthHostile = App.state.undoDepth();
+    var boardHostile = JSON.stringify(App.state.get());
+    var badSides = ['__proto__', 'constructor', 'prototype', '', 5, null, {}];
+    var wrongRefusals = [];
+    var protoHeld = true;
+    badSides.forEach(function (bad) {
+      [
+        { name: 'setUnitHp', run: function () { App.ops.setUnitHp(bad, 'c1', 1); } },
+        { name: 'setAlive', run: function () { App.ops.setAlive(bad, 'c1', false); } },
+        { name: 'dispatch hp', run: function () {
+          App.ops.dispatch('hp', { side: bad, unitId: 'c1', value: 1 });
+        } },
+        { name: 'dispatch alive', run: function () {
+          App.ops.dispatch('alive', { side: bad, unitId: 'c1', value: false });
+        } }
+      ].forEach(function (probe) {
+        var label = probe.name + '(' + String(bad) + ')';
+        try {
+          probe.run();
+          wrongRefusals.push(label + ' DID NOT THROW');
+        } catch (refused) {
+          if (String(refused.message).indexOf('Unknown side') !== 0) {
+            wrongRefusals.push(label + ' threw for another reason: ' + refused.message);
+          }
+        }
+        if (!protoIntact()) { protoHeld = false; }
+      });
+    });
+
+    t.eq('twenty-eight hostile drives — seven side values across two fight-slice '
+      + 'writers and both of their router arms — and every one is refused BY '
+      + 'NAME rather than resolving on the shared object prototype',
+      wrongRefusals, []);
+    t.ok('and the prototype held after every single one of the twenty-eight, '
+      + 'checked inside the walk rather than once at the end', protoHeld);
+    t.eq('not one of them moved the board or left an undo entry behind',
+      [JSON.stringify(App.state.get()) === boardHostile,
+        App.state.undoDepth() - depthHostile], [true, 0]);
+
+    var noFightRefusals = [];
+    App.ops.endFight();
+    [
+      { name: 'setUnitHp', run: function () { App.ops.setUnitHp('cats', 'c1', 1); } },
+      { name: 'setAlive', run: function () { App.ops.setAlive('cats', 'c1', false); } },
+      { name: 'resetFight', run: function () { App.ops.resetFight(); } }
+    ].forEach(function (probe) {
+      try {
+        probe.run();
+        noFightRefusals.push(probe.name + ' DID NOT THROW');
+      } catch (refused) {
+        if (String(refused.message) !== 'No fight in progress') {
+          noFightRefusals.push(probe.name + ': ' + refused.message);
+        }
+      }
+    });
+    t.eq('and every writer that needs a fight refuses when there is none, with '
+      + 'the one message fightOf gives — a board in setup has no fight-slice '
+      + 'health to write and saying so is cheaper than inventing one',
+      noFightRefusals, []);
+    t.ok('the prototype is intact after the bad-input table', protoIntact());
+
+    /* ===== MEASUREMENTS, NOT GATES =====
+       t.info records a number and can never redden a run. These four are here
+       so the numbers appear in every report and plans 05-04 and 05-08 have
+       something to read a delta against. */
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    t.info('MAX_PAST_ROUNDS — how many resolved rounds the slice keeps, oldest '
+      + 'dropped first. A readability cap, not a performance one',
+      App.data.MAX_PAST_ROUNDS);
+    t.info('UNDO_LIMIT — the same thirty, on purpose', App.state.UNDO_LIMIT);
+    t.info('COALESCE_MS — two commits under one label inside this window are one '
+      + 'undo entry, which is why an Advance label has to carry its round number',
+      App.state.COALESCE_MS);
+    t.info('bytes of fight slice on the shipped board, round one, nothing '
+      + 'declared — [S03] snapshots this whole object on EVERY commit',
+      JSON.stringify(fight()).length);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the fight-loop suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
