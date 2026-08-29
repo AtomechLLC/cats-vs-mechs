@@ -1060,10 +1060,20 @@
      inset from the thing it describes on the 1920px projector this file
      targets. Deliberately NOT a transform, for [C03]'s stated reason — a
      transform on an ancestor of a sticky element re-parents its containing
-     block and kills the sticking silently. */
+     block and kills the sticking silently.
+
+     AND THE BOTTOM MARGIN IS SPELLED HERE, IN THE SAME DECLARATION, ON PURPOSE.
+     The first draft of this block set the width and the computed left margin
+     here and then wrote `margin:0 0 18px` in each region's own rule below. Both
+     rules are id-specific, the second one wins, and the SHORTHAND silently
+     zeroed the left margin the rule above had just computed — measured in a
+     real browser at 1920: the fight region sat 182px to the right of the board
+     it describes, both of them 1600px wide. There is no error and no warning
+     when a shorthand resets a longhand, which makes it the same class of
+     failure as the sticky gotcha above. Nothing below writes `margin` again. */
   #fightbar, #ledger{
     width:min(var(--boardw), calc(100vw - 44px));
-    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+    margin:0 0 18px calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
 
   /* The fight region: the panel treatment #strip already wears, because it is
@@ -1072,7 +1082,7 @@
      sticky panel on this page and a second would compete with it for the same
      top edge. */
   #fightbar{
-    display:grid;grid-auto-flow:row;gap:12px;margin:0 0 18px;
+    display:grid;grid-auto-flow:row;gap:12px;
     background:var(--panel);
     border:1px solid var(--line);border-radius:var(--radius);
     padding:16px 18px;
@@ -1130,7 +1140,7 @@
      agent's [hidden]{display:none} outright. Without this line the region ships
      visible and empty above the board of every student who never starts a
      fight, and nothing anywhere would say so. */
-  #ledger{display:grid;grid-auto-flow:row;gap:10px;margin:0 0 18px}
+  #ledger{display:grid;grid-auto-flow:row;gap:10px}
   #ledger[hidden]{display:none}
 
   /* THE SCROLL IS ON THE ELEMENT ITSELF, AND THE GOTCHA IN THE BANNER IS WHY.
@@ -1141,13 +1151,27 @@
      the shipped precedent and its reasoning transfers whole.
 
      The height is a REHEARSAL DIAL in --tok's manner rather than a settled
-     number: what matters is how much of the live board a room can still see
-     with the history above it, and only a rehearsal on the actual workshop
-     display settles that. It is on plan 05-11's list. It is also NOT the reason
-     App.data.MAX_PAST_ROUNDS is thirty — that cap has its own paragraph and its
-     own measurement, and it is a readability bound rather than a performance
-     one for a reason the measurement supports: a past round is inert DOM
-     outside the keyed reconcile and the per-frame cost does not move with it.
+     number, and it ships with the measurement that makes it one rather than
+     with a guess. Driven in a real browser at 1920 by 1080: the live board's
+     top sits at 492px with three rounds of history above it and at 879px once
+     the list is full, so the region stops growing at the bound and the board
+     never travels further than that — but 879 of 1080 leaves the live board in
+     the bottom fifth of the screen, which is a legibility question and not a
+     layout bug. THAT is what the dial is for and it is on plan 05-11's list,
+     with those two figures in hand instead of an opinion.
+
+     A CONSEQUENCE FOR PLAN 05-08, measured in the same run: once the list is
+     taller than its bound the newest row is below the fold of its own scroller,
+     so the region appending a row must scroll this list to its end. Driven
+     with the scroll at its end, the newest row's bottom edge sits 20px above
+     the live board's top — which is the whole of what "nearest the board"
+     means, and it does not happen by itself.
+
+     It is also NOT the reason App.data.MAX_PAST_ROUNDS is thirty — that cap has
+     its own paragraph and its own measurement, and it is a readability bound
+     rather than a performance one for a reason the measurement supports: a past
+     round is inert DOM outside the keyed reconcile and the per-frame cost does
+     not move with it.
 
      The column direction is the plain one, deliberately. Rows are appended in
      the order the rounds happened, so the newest is the last child and the last
@@ -1246,14 +1270,18 @@
            republishes the bar's measured height into --topbar-now on every
            resize precisely BECAUSE the comment at the top of this cluster
            planned for Phase 4 and Phase 5 to add to it. Two more groups make
-           the cluster wrap onto a second row at a wider viewport than it used
-           to, and #strip's sticky offset follows the measurement rather than
-           the 64px floor, so it moves with it rather than parking underneath.
-           That path now has a reason to run on an ordinary laptop instead of
-           only on a narrow window. Whether a two-row bar still leaves the board
-           readable is a layout question no gate in this repo can answer: it is
-           plan 05-10's acceptance run and plan 05-11's rehearsal, both named
-           here so neither has to rediscover it. -->
+           the cluster wrap onto a second row, and MEASURED IN A REAL BROWSER
+           BEFORE AND AFTER THIS CHANGE, the width at which that happens moved
+           a long way: the bar was 64px tall at 1280 and wrapped to 109px only
+           below it; it is now 64px at 1512 and 109px at 1440, 1366 and 1280.
+           So the measured-offset path runs on an ordinary laptop where before
+           it ran only on a narrow window, and #strip's sticky top followed it
+           to 108.59px in the same measurement rather than parking at the 64px
+           floor — which is [S08] doing exactly the job it was written for.
+           Whether a two-row bar still leaves the board readable is a layout
+           question no gate in this repo can answer: it is plan 05-10's
+           acceptance run and plan 05-11's rehearsal, both named here so
+           neither has to rediscover the number. -->
       <div class="brd-tokedit fg-read">
         <span class="brd-tokedit-label" id="round-label">Round</span>
         <span class="fg-round" id="round-count"></span>
