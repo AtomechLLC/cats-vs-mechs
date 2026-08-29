@@ -2,15 +2,15 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: ready_to_plan
-stopped_at: Phase 03.1 complete (8/8) — ready to discuss Phase 04
-last_updated: 2026-08-29T00:12:08.518Z
+status: executing
+stopped_at: Completed 04-01-PLAN.md
+last_updated: "2026-08-29T05:10:08.612Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 5
-  total_plans: 24
-  completed_plans: 25
+  total_plans: 32
+  completed_plans: 26
   percent: 71
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 04
-Plan: Not started
-Status: Ready to plan
+Plan: 2 of 8
+Status: Executing — 04-01 complete
 Last activity: 2026-08-29
 
-Progress: [██████████] 100%
+Progress: [████████░░] 81%
 
 ## Performance Metrics
 
@@ -61,6 +61,7 @@ Progress: [██████████] 100%
 | Phase 03.1 P06 | 132min | 3 tasks | 2 files |
 | Phase 03.1 P07 | 148min | 3 tasks | 2 files |
 | Phase 03.1 P08 | 25min | 2 tasks | 1 files |
+| Phase 04 P01 | 95min | 3 tasks tasks | 2 files files |
 
 ## Accumulated Context
 
@@ -100,6 +101,10 @@ Recent decisions affecting current work:
 - [Phase 3.1]: Decision 14 CONFIRMED by the developer at the 03.1-08 rehearsal — DAMAGE_KEYS stays health-only; a shield strip is named in the admission line rather than counted, because counting a bounded pool as unbounded throughput reads about 5 turns where the board delivers about 9
 - [Phase 3.1]: Decision 15 CONFIRMED by the developer at the 03.1-08 rehearsal — the proposal pane applies nothing; a declared action lands on Advance in Phase 5, and PROJECT.md's Out of Scope entry stands unchanged
 - [Phase 3.1]: The 03.1-08 rehearsal closed on a one-word blanket approval, so item 5's tone judgement and item 10's close-request behaviour are approvals of a description rather than recorded prose — named as the record's two weakest lines rather than fabricated
+- [Phase 04]: CODE_ALPHABET is an allowlist regular expression, never a blocklist — a blocklist reads green about every character nobody thought of
+- [Phase 04]: the comma is excluded from the build-code alphabet by construction because App.hasFlag splits location.hash on it; this is the binding alphabet constraint of Phase 4 and is in no other project document
+- [Phase 04]: no MAX_* cap moves for build-code budget reasons — the measured cost centres are the tally stream and the name lengths, not the dials
+- [Phase 04]: a round-trip assertion over a symmetric writer/reader pair proves only that the two halves agree; the byte shape and the measured cost are asserted separately
 
 ### Pending Todos
 
@@ -121,6 +126,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T00:07:16.627Z
-Stopped at: Completed 03.1-08-PLAN.md
+Last session: 2026-08-29T05:09:53.072Z
+Stopped at: Completed 04-01-PLAN.md
 Resume file: None
