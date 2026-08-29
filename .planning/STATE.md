@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-01-PLAN.md
-last_updated: "2026-08-29T05:10:08.612Z"
+stopped_at: Completed 04-02-PLAN.md
+last_updated: "2026-08-29T05:31:53.169Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 32
-  completed_plans: 26
+  completed_plans: 27
   percent: 71
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 04
-Plan: 2 of 8
-Status: Executing — 04-01 complete
+Plan: 3 of 8
+Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [████████░░] 81%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -62,6 +62,7 @@ Progress: [████████░░] 81%
 | Phase 03.1 P07 | 148min | 3 tasks | 2 files |
 | Phase 03.1 P08 | 25min | 2 tasks | 1 files |
 | Phase 04 P01 | 95min | 3 tasks tasks | 2 files files |
+| Phase 04 P02 | 70min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -105,6 +106,10 @@ Recent decisions affecting current work:
 - [Phase 04]: the comma is excluded from the build-code alphabet by construction because App.hasFlag splits location.hash on it; this is the binding alphabet constraint of Phase 4 and is in no other project document
 - [Phase 04]: no MAX_* cap moves for build-code budget reasons — the measured cost centres are the tally stream and the name lengths, not the dials
 - [Phase 04]: a round-trip assertion over a symmetric writer/reader pair proves only that the two halves agree; the byte shape and the measured cost are asserted separately
+- [Phase ?]: 04-02: encode refuses a build whose side id, side name, unit label or record schema does not match what it reconstructs — a future rename-unit or rename-faction op becomes a refusal rather than silent data loss
+- [Phase ?]: 04-02: the three [S05] bounds the decoder re-types are exported as WIRE_BOUNDS and held to App.ops by suite rows, because [S04] may not reach upward across a dependency arrow
+- [Phase ?]: 04-02: the round trip is asserted over a stable writing of the record, since a tally bag's key order is the order a student set them in and carries no meaning
+- [Phase ?]: 04-02: no round trip over a DRIVEN board can see a derived-versus-enumerated ordinal order, so three rows hand encode a vocabulary written down in another order and require the identical code
 
 ### Pending Todos
 
@@ -126,6 +131,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T05:09:53.072Z
-Stopped at: Completed 04-01-PLAN.md
+Last session: 2026-08-29T05:31:53.153Z
+Stopped at: Completed 04-02-PLAN.md
 Resume file: None
