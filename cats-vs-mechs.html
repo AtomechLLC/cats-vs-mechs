@@ -18895,13 +18895,30 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
 
-    /* --- and nothing in this plan applies anything: the ops shipped here edit
-           a rule's definition, and the whole of ACT-05 lands on Advance in
-           Phase 5. This row is the export block read back. --- */
-    t.eq('no op exported by [S05] applies a transformation',
-      Object.keys(App.ops).filter(function (k) {
+    /* --- and nothing in THIS plan applies anything: the ops shipped here edit
+           a rule's definition, and the whole of ACT-05 landed on Advance in
+           Phase 5. This row is the export block read back.
+
+           TURNED BY PLAN 05-04, IN THE OPEN, AND NOT DELETED. It used to
+           require the filtered list to be EMPTY, which stopped being true the
+           day advanceRound shipped. Its narrow family — five stems — is a
+           SUBSET of the wider family the first boundary row below uses, so
+           what it asserts now is that the two answer THE SAME ONE NAME. That
+           is the thing a redundant pair can actually earn its place doing: a
+           later plan that widens one list and leaves the other stale reddens
+           here, and neither list can quietly stop covering what the other
+           still does. --- */
+    t.eq('the narrow applier family this suite was written against and the '
+      + 'wider one the boundary row below uses answer the SAME single name, '
+      + 'and it is advanceRound — so a later plan cannot satisfy one list and '
+      + 'leave the other one stale',
+      [Object.keys(App.ops).filter(function (k) {
         return /^(apply|resolve|advance|spend|fire)/.test(k);
-      }), []);
+      }),
+      Object.keys(App.ops).filter(function (k) {
+        return /^(apply|resolve|advance|spend|fire|perform|execute|enact|land|deal|damage)/i.test(k);
+      })],
+      [['advanceRound'], ['advanceRound']]);
 
     /* --- THE PHASE'S BOUNDARY, STATED IN THE SUITE ITSELF — plan 03.1-07.
            Three rows, each labelled so a reader who has never seen the plan
@@ -18915,16 +18932,44 @@ App.selftest = (function () {
     //    would remove the learning, because adjudicating is the exercise. The
     //    proposal pane shows a student what their own rule says and lets them
     //    change it; the thing that would cross the line is an op that APPLIED
-    //    one, and there is none. Read off the live export list rather than
-    //    grepped for, because a check written against source spelling cannot
-    //    see behaviour reached through a helper.
-    t.eq('ACT-05 IS HALF-DELIVERED ON PURPOSE: no op anywhere in [S05] applies '
-      + 'a transformation, spends a cost, tests a requirement against a unit '
-      + 'or moves a token. The tool proposes and the student disposes, and the '
-      + 'absence of an applier is the requirement rather than an oversight',
+    //    one. Read off the live export list rather than grepped for, because a
+    //    check written against source spelling cannot see behaviour reached
+    //    through a helper.
+    //
+    //    TURNED BY PLAN 05-04, IN THE OPEN, AND REWRITTEN INTO ITS POSITIVE
+    //    FORM RATHER THAN DELETED. Plan 03.1-04 is the precedent and the
+    //    instruction that comes with it is the important half: a boundary
+    //    assertion is rewritten, never removed, because a deleted one is an
+    //    Out of Scope entry that has quietly stopped being enforced. What it
+    //    used to say was that the filtered list is EMPTY. What it says now is
+    //    that the filtered list is EXACTLY ['advanceRound'] — an allowlist of
+    //    one.
+    //
+    //    THERE IS ONE APPLIER IN THIS FILE. Its name is advanceRound, it lives
+    //    in [S05]'s fight loop, and the table above it says in full what it
+    //    does and what it never decides. WHAT IT WRITES: a side's action-point
+    //    pool, a unit's health, a unit's shield, a tally at either scope, the
+    //    round number, the declaration list and the round record. WHAT IT
+    //    NEVER TOUCHES: `keywords`, which has no writer anywhere in this file;
+    //    REFERENCE.beats, which has no consumer in [S05]; an action's `dmg`;
+    //    `alive`, which is stored and never inferred; and a requirement, which
+    //    it does not test against anything. The fourth row below holds those
+    //    last claims driven, from inside a real resolution.
+    //
+    //    EVERY OTHER SPELLING THIS REGEX CATCHES STILL REDDENS — applyDamage,
+    //    spendAp, fireAction, resolveRound, dealDamage, landAction,
+    //    performAction, executeRound, enactRound. A second applier is how two
+    //    readings of the same board start disagreeing, and this row is what
+    //    makes adding one a deliberate act rather than a quiet one.
+    t.eq('ACT-05 IS DELIVERED BY EXACTLY ONE OP AND ITS NAME IS advanceRound. '
+      + 'That is the whole allowlist: one applier, named, so every other '
+      + 'spelling of one still reddens the day somebody adds it. The tool '
+      + 'proposes, the student disposes, and the ONE thing that lands a '
+      + 'declaration may spend a cost and apply a term and may not choose an '
+      + 'action, a unit, a relationship, an effect or a death',
       Object.keys(App.ops).filter(function (k) {
         return /^(apply|resolve|advance|spend|fire|perform|execute|enact|land|deal|damage)/i.test(k);
-      }), []);
+      }), ['advanceRound']);
 
     // 2. The proposal is a FORM ON A DIALOG, and this row is what makes that
     //    mechanical rather than architectural taste. All four homes were
@@ -18957,28 +19002,130 @@ App.selftest = (function () {
         return found;
       })(), []);
 
-    // 3. The remaining half of ACT-05, named rather than left as a gap a
-    //    verifier has to guess about. The developer settled the round loop on
-    //    2026-08-28: declare both sides, press Advance, the previous board
-    //    moves up into a history, the new board shows what changed. So confirm
-    //    writes on ADVANCE, and Advance is FIGHT-12..16 in Phase 5. There is no
-    //    op for it here and no arm in the router for one, and the router is
-    //    DRIVEN rather than read, because an arm can exist without an export.
-    t.ok('THE REMAINING HALF OF ACT-05 IS THE ADVANCE PATH AND IT BELONGS TO '
-      + 'PHASE 5: no op advances a round and the dispatcher refuses one, so a '
-      + 'later plan adding the write has to add it deliberately rather than '
-      + 'find it half-present', (function () {
+    // 3. The remaining half of ACT-05, and this row is the sentence it started
+    //    finished. The developer settled the round loop on 2026-08-28: declare
+    //    both sides, press Advance, the previous board moves up into a history,
+    //    the new board shows what changed. So confirm writes on ADVANCE, and
+    //    Advance is FIGHT-12..16 in Phase 5. PLAN 05-04 IS THE PLAN THAT ADDED
+    //    IT, and this row is turned in the same change rather than deleted.
+    //
+    //    IT STILL DRIVES, AND THAT IS THE HALF WORTH KEEPING. What it used to
+    //    drive was dispatch('advanceRound') expecting a throw because there was
+    //    no arm. What it drives now is the SAME act on a board with NO FIGHT
+    //    RUNNING, requiring the refusal fightOf gives by name — so it fails if
+    //    the arm disappears (an absent arm answers 'Unknown op: advanceRound',
+    //    which is a different sentence), and it fails if the op stops refusing
+    //    outside a fight. A row that only READ the export list could not tell
+    //    those two apart, and an arm can exist without an export.
+    //
+    //    The name family is kept minus the one name that now legitimately
+    //    exists, so nextRound, endRound, beginRound, takeTurn and a second
+    //    advance-anything all still redden. There is ONE round-walker.
+    t.eq('THE REMAINING HALF OF ACT-05 IS THE ADVANCE PATH, IT BELONGED TO '
+      + 'PHASE 5, AND PLAN 05-04 IS WHERE IT LANDED: exactly one op walks a '
+      + 'round, the router has an arm for it, and driving that arm with no '
+      + 'fight running gives fightOf\'s refusal BY NAME rather than starting '
+      + 'one. Driven and not read, because an absent arm and a silent op '
+      + 'answer differently and only a drive can tell them apart',
+      (function () {
         var named = Object.keys(App.ops).filter(function (k) {
-          return /^(advance|nextRound|endRound|beginRound|takeTurn)/i.test(k);
+          return k !== 'advanceRound'
+            && /^(advance|nextRound|endRound|beginRound|takeTurn)/i.test(k);
         });
-        if (named.length > 0) { return false; }
+        var was = JSON.stringify(App.state.get());
+        App.ops.endFight();
+        App.state.flush();
+        var refusal = 'DID NOT REFUSE';
         try {
           App.ops.dispatch('advanceRound', {});
-          return false;
-        } catch (refused) {
-          return true;
+        } catch (stopped) {
+          refusal = String(stopped.message);
         }
-      })());
+        App.state.flush();
+        var still = (App.state.get().fight === null);
+        App.state.restore(was);
+        App.state.flush();
+        return [named, refusal, still];
+      })(), [[], 'No fight in progress', true]);
+
+    // 4. THE ROW THIS PHASE IS MOST LIKELY TO LOSE LATER, and it is the one
+    //    PROJECT.md's oldest two Out of Scope entries become mechanical at:
+    //    the one about simulating what beats what, and the one about automated
+    //    combat resolution. Both describe an op that CONSULTS something the
+    //    student did not write — the relationship table, or an effect keyword.
+    //    Neither has a reader in [S05] and neither may gain one.
+    //
+    //    DRIVEN FROM INSIDE A REAL RESOLUTION rather than grepped, because a
+    //    grep cannot see a table reached through a helper. BOTH shipped
+    //    relationships are put on the board at once and resolved in one
+    //    Advance — Fly over Slash and Lasers over Hairball — and what is read
+    //    back is that each unit moved by the action's OWN declared amount and
+    //    by nothing else. An op that halved a hit when a relationship matched,
+    //    or doubled it, or refused it, changes one of those two numbers. The
+    //    table's own length is read beside them so the row cannot be green
+    //    over an empty table.
+    //
+    //    The keyword half is read as DRIFT FROM THE SHIPPED VALUE rather than
+    //    as a before-and-after string, which is check 74's shape in
+    //    tests/selftest-node.cjs and it is here for check 74's reason: several
+    //    of these ops move the action list itself. And the fight slice is
+    //    walked for a `keywords` key at any depth, because a writer that put
+    //    one on the FIGHT rather than on the build would leave the build
+    //    spotlessly clean.
+    t.eq('NO OP IN [S05] READS REFERENCE.beats AND NO OP WRITES `keywords`, '
+      + 'read from INSIDE a resolved round with both shipped relationships '
+      + 'standing on the board at once. Each unit moved by the amount its own '
+      + 'action declares and by nothing else; no effect keyword moved on any '
+      + 'action; nothing in the fight slice is named after one; and no export '
+      + 'is named after a reader for either. A tool that decided a '
+      + 'relationship applies has taken the argument away from the table, '
+      + 'which is the exercise',
+      (function () {
+        var was = JSON.stringify(App.state.get());
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.declareAction('mechs', 'fly', 'm1', 'c1');
+        App.ops.declareAction('cats', 'hairball', 'c2', 'm2');
+        App.ops.declareAction('mechs', 'lasers', 'm2', 'c2');
+        App.ops.advanceRound();
+        App.state.flush();
+        var live = App.state.get();
+        var f = live.fight;
+        var drift = [];
+        ['cats', 'mechs'].forEach(function (side) {
+          live.build[side].actions.forEach(function (a) {
+            var shipped = null;
+            App.data.DEFAULTS[side].actions.forEach(function (s) {
+              if (s.id === a.id) { shipped = s; }
+            });
+            var want = (shipped === null) ? '' : shipped.keywords.join('+');
+            if ((a.keywords || []).join('+') !== want) { drift.push(side + '.' + a.id); }
+          });
+        });
+        var inFight = [];
+        (function walk(node, where) {
+          if (!node || typeof node !== 'object') { return; }
+          Object.keys(node).forEach(function (k) {
+            if (/keyword|effect|beats/i.test(k)) { inFight.push(where + '.' + k); }
+            walk(node[k], where + '.' + k);
+          });
+        })(f, 'fight');
+        var consumers = Object.keys(App.ops).filter(function (k) {
+          return /beat|keyword|effect|relation/i.test(k);
+        });
+        var out = [
+          App.data.REFERENCE.beats.length,
+          f.mechs.units[0].shield,
+          f.cats.units[1].hp,
+          drift.join(','),
+          inFight.join(','),
+          consumers.join(',')
+        ];
+        App.state.restore(was);
+        App.state.flush();
+        return out;
+      })(), [2, 2, 0, '', '', '']);
 
     App.state.restore(savedAll);
     App.state.flush();

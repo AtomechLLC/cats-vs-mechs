@@ -6002,16 +6002,28 @@ check(
     + ' pane after the close=' + apDlg.dataset.edPane
 );
 
-/* 72b. THE NO-APPLIER CHECK, and the absence IS the requirement rather than an
-   accident of what has been written so far. There is no op that applies a
-   transformation because a declared action lands on ADVANCE, in Phase 5
-   (D-05b) — so the export list is read back off the live object, and the
-   router is driven with an applier's name to prove there is no arm for one
-   either. A list read from source spelling would be blind to an applier
-   reached through a helper, which is Phase 3's own WR-01 lesson. */
+/* 72b. THE ONE-APPLIER CHECK, and the ALLOWLIST is the requirement rather than
+   an accident of what has been written so far.
+
+   TURNED BY PLAN 05-04, IN THE OPEN, AND REWRITTEN RATHER THAN DELETED — the
+   same treatment [S09.10]'s two boundary rows got in the same change, and for
+   the same stated reason: a deleted boundary assertion is an Out of Scope entry
+   that has quietly stopped being enforced. This check was written when a
+   declared action landed on an Advance that did not exist yet (D-05b). It does
+   now, it is called advanceRound, and what this check asserts is that it is the
+   ONLY one: applyDamage, spendAp, fireAction, resolveRound, dealDamage,
+   landAction, performAction, executeRound and enactRound all still redden here.
+
+   The export list is read back off the live object and the router is still
+   driven with an applier's name, because a list read from source spelling would
+   be blind to an applier reached through a helper — Phase 3's own WR-01 lesson.
+   The [S09.10] row in the artifact carries the same allowlist; this one fires in
+   CI over the LIVE gate as well, which is the earlier of the two signals. */
 const nlExports = Object.keys(A.ops).sort();
+const APPLIER_ALLOWED = 'advanceRound';
 const nlAppliers = nlExports.filter((k) =>
   /^(apply|resolve|advance|spend|fire|perform|execute|enact|land|deal|damage)/i.test(k));
+const nlExtraAppliers = nlAppliers.filter((k) => k !== APPLIER_ALLOWED);
 let nlRouterRefused = false;
 try {
   A.ops.dispatch('applyProposal', { side: 'cats' });
@@ -6021,16 +6033,18 @@ try {
 const nlAfterRouter = JSON.stringify(A.state.get());
 
 check(
-  '72b. THE NO-APPLIER CHECK. [S05] exports no function that applies a '
-    + 'transformation, and App.ops.dispatch has no arm for one — read off the '
-    + 'LIVE export list and driven through the LIVE router rather than grepped '
-    + 'for, because a check written against source spelling cannot see '
-    + 'behaviour reached through a helper. The absence is the requirement: the '
-    + 'tool proposes and the student disposes, and a declared action lands on '
-    + 'Advance, which belongs to Phase 5',
-  nlAppliers.length === 0 && nlExports.length > 0 && nlRouterRefused === true
+  '72b. THE ONE-APPLIER CHECK. [S05] exports EXACTLY ONE function that applies '
+    + 'a transformation and it is advanceRound; App.ops.dispatch has no arm for '
+    + 'any other — read off the LIVE export list and driven through the LIVE '
+    + 'router rather than grepped for, because a check written against source '
+    + 'spelling cannot see behaviour reached through a helper. The allowlist is '
+    + 'the requirement: the tool proposes, the student disposes, and the one '
+    + 'thing that lands a declared action may restate and may never decide',
+  nlExtraAppliers.length === 0 && nlAppliers.length === 1
+    && nlExports.length > 0 && nlRouterRefused === true
     && nlAfterRouter === nlAfter,
   'appliers found: ' + (nlAppliers.join(', ') || 'none')
+    + ' | outside the allowlist: ' + (nlExtraAppliers.join(', ') || 'none')
     + ' | router refused an applier act: ' + nlRouterRefused
     + ' | state stood still: ' + (nlAfterRouter === nlAfter)
     + ' | App.ops exports ' + nlExports.length + ': ' + nlExports.join(', ')
