@@ -743,8 +743,22 @@ function makeStubDom() {
       doc.activeElement = doc.body;
       dispatch(node, event('focusout', { relatedTarget: doc.body }));
     };
-    node.select = () => {};
-    node.setSelectionRange = () => {};
+    // The selection, which used to be two no-ops. It is modelled now because
+    // plan 04-05 gave one field in this artifact the OPPOSITE of D-19's rule —
+    // #share-code is rewritten while it holds focus and its selection is
+    // re-applied afterwards — and a no-op setSelectionRange makes that contract
+    // untestable in the direction that matters. selectionStart stays undefined
+    // until something sets it, which is what [S06.1]'s withPreservedFocus
+    // already reads it as, so nothing that passed before this reads differently
+    // because of it.
+    node.select = () => {
+      node.selectionStart = 0;
+      node.selectionEnd = String(node.value === undefined ? '' : node.value).length;
+    };
+    node.setSelectionRange = (from, to) => {
+      node.selectionStart = from;
+      node.selectionEnd = to;
+    };
     node.setPointerCapture = () => {};
     node.releasePointerCapture = () => {};
 
@@ -4671,6 +4685,16 @@ function openDialogs() {
       : null;
     if (opener !== null) { press(opener); release(opener); }
     else if (typeof node.showModal === 'function') { node.showModal(); }
+    // ASK FOR A FRAME RATHER THAN HOPING ONE IS DUE. flush() runs a PENDING
+    // frame and does nothing when none is pending, which was invisible while
+    // every root here was reached through an opener — an opener paints its
+    // surface directly and asks for the next frame on the way out, so one was
+    // always due. Plan 04-05's two roots have no opener yet, showModal() asks
+    // for nothing, and their per-frame hooks would therefore never have run:
+    // the walk would have read an empty surface and called it clean, which is
+    // the precise failure this whole harvest exists to prevent. One invalidate
+    // makes the frame due for every root the same way, however it was opened.
+    A.state.invalidate();
     A.state.flush();
     harvestInto(node, out, '#' + root.id);
     if (typeof node.close === 'function') { node.close(); }
@@ -4828,7 +4852,11 @@ check(
 // forty, and the floor moves with it rather than by a surface's worth — see the
 // number below and SHARE_FLOOR, which is where the honest bound on this
 // particular surface lives.
-const DIALOG_FLOOR = 134;
+//
+// 134 IS RAISED TO 138 BY PLAN 04-05, against a measured 145. The arithmetic is
+// the one this note has kept three times already: seven below the measured
+// total.
+const DIALOG_FLOOR = 138;
 
 // The floor for a harvest of the PICKER ALONE, which check 47g takes because it
 // opens one dialog rather than every one. It was reading DIALOG_FLOOR, and that
@@ -4838,6 +4866,31 @@ const DIALOG_FLOOR = 134;
 // plan 03.1-06 is what surfaced it. This is the original one-dialog arithmetic,
 // kept: seven below the picker's measured 91.
 const PICKER_FLOOR = 84;
+
+// THE SHARE SURFACE'S OWN FLOOR, kept apart from DIALOG_FLOOR for the reason
+// PICKER_FLOOR and PROPOSE_FLOOR are kept apart from it: that number is over
+// the TOTAL of every root, and a one-root harvest compared against it either
+// passes on the other roots' strings or fails on arithmetic that has nothing to
+// do with the surface being read.
+//
+// AND IT IS SMALL, WHICH IS A FACT ABOUT THE SURFACE AND NOT A WEAK GATE — said
+// plainly here because a reader coming from PICKER_FLOOR's 84 will otherwise
+// assume a typo. Almost everything on the share surface is STATIC MARKUP: the
+// title, the note, the sentence on the load pane, the legend on every control.
+// Layer A reads all of it, in the document, in full. What this page can see is
+// what [S06.6] RENDERS, and that is exactly one line below CODE_WARN — the
+// code's length in characters — and exactly two above it, when D-18's
+// over-budget line joins it.
+//
+// So the honest bound is one, and the job this floor does is precise: it
+// proves the surface was OPENED and its per-frame hook RAN. A harvest of zero
+// means the repaint never fired, which is the failure that would otherwise
+// report a spotlessly clean scan forever — the same failure check 47c exists to
+// catch, one surface down. The build code itself is deliberately NOT in the
+// count: it is written to the field's value rather than its text, which is what
+// a field is, and it carries no readable words anyway because every name in it
+// travels base64url-encoded through the codec's name table.
+const SHARE_FLOOR = 0;
 console.log('scan: ' + dialogText.length + ' rendered strings read from '
   + DIALOG_ROOTS.length + ' dialog root(s) — '
   + DIALOG_ROOTS.map((r) => '#' + r.id).join(', ')
@@ -6463,6 +6516,271 @@ check(
   'a second boot-load on the booted page was refused and the board did not move'
 );
 
+clearPanel();
+
+/* --- 83 to 89. PLAN 04-05's SHARE SURFACE, and the one thing it must never do.
+       Every row below is driven through the REAL repaint on the REAL stub page,
+       never by planting a value, because the whole claim being made is about
+       what the surface does on a frame nobody asked it for.
+
+       The surface is opened with showModal() rather than through an opener,
+       because the opener is page work claimed by [S07.4], which is plan 04-06's
+       and does not exist yet. That is the same reason both DIALOG_ROOTS entries
+       carry act: null, and it is why every helper below asks for a frame by
+       hand: flush() runs a PENDING frame and does nothing when none is due. --- */
+const shareDlg = dom.byId['share'];
+const shareCodeField = dom.byId['share-code'];
+const shareLenLine = dom.byId['share-length'];
+const shareOverLine = dom.byId['share-over'];
+const sharePasteField = dom.byId['sh-load-field'];
+
+function shareFrame() {
+  A.state.invalidate();
+  A.state.flush();
+}
+function openShareSurface() {
+  if (shareDlg.open !== true) { shareDlg.showModal(); }
+  shareFrame();
+}
+function closeShareSurface() {
+  if (shareDlg.open === true) { shareDlg.close(); }
+  shareFrame();
+}
+function liveCode() { return A.serialize.encode(A.state.get().build); }
+
+openShareSurface();
+const shareOwnText = harvestInto(shareDlg, [], '#share');
+const shareOwnHits = verdictHitsIn(shareOwnText);
+check(
+  '83. the share surface is REACHED by the rendered-page walk and its per-frame '
+    + 'hook actually ran. A dialog that was never painted harvests nothing and '
+    + 'reports a spotlessly clean scan forever, which is check 47c\'s failure one '
+    + 'surface down. The floor is small because almost everything on this surface '
+    + 'is static markup Layer A reads in the document instead — see SHARE_FLOOR',
+  shareOwnHits.length === 0 && shareOwnText.length > SHARE_FLOOR,
+  'harvested ' + shareOwnText.length + ' rendered strings from #share (floor '
+    + SHARE_FLOOR + ')'
+    + (shareOwnHits.length === 0 ? '' : ' | ' + shareOwnHits.join(' | '))
+);
+
+/* 84. THE CODE ON THE FIELD IS THE CODE FOR THE BOARD THAT IS ON SCREEN, read
+   after a real op rather than at open. Reading it at open would prove only that
+   something was written once; the claim this surface lives or dies by is that
+   it is written AGAIN, on the frame anything moves, while a student is looking
+   at it. */
+A.ops.nudgeFactionAp('cats', 1);
+shareFrame();
+const afterOpCode = shareCodeField.value;
+const afterOpRead = A.serialize.decode(afterOpCode);
+check(
+  '84. with the surface open, a REAL op moves the board and the code on the '
+    + 'field is re-produced for the board that is now on screen — decode accepts '
+    + 'it, and what it decodes to re-encodes to the same string, so the trip is '
+    + 'closed rather than half-asserted',
+  afterOpRead.ok === true
+    && afterOpCode === liveCode()
+    && A.serialize.encode(afterOpRead.build) === liveCode(),
+  'decode ok=' + afterOpRead.ok + ' why=' + JSON.stringify(afterOpRead.why || null)
+    + ' field===live encode=' + (afterOpCode === liveCode())
+    + ' round trip=' + (afterOpRead.ok === true
+      && A.serialize.encode(afterOpRead.build) === liveCode())
+);
+
+/* 85. THE READOUT IS THE LENGTH AND NOTHING ELSE, over three different boards
+   so a readout that had frozen on the first would be caught. The sentence is
+   asserted whole rather than by parsing a number out of it, because the words
+   beside the figure are the half that must never become an adjective. */
+const lengthPairs = [];
+[
+  () => {},
+  // A NAME, not a number, and not another unit. An identical unit added to a
+  // side run-lengths into the run beside it and the code does not grow, which
+  // is the codec working exactly as designed — and it is why the first draft of
+  // this row read the same length twice and asserted nothing.
+  () => { A.ops.renameTokenType('hp', 'Stamina and grit'); },
+  () => { A.ops.setUnitMaxHp('cats', 'c1', 17); A.ops.setUnitShield('cats', 'c2', 9); }
+].forEach((drive) => {
+  drive();
+  shareFrame();
+  lengthPairs.push([shareCodeField.value.length, shareLenLine.textContent]);
+});
+check(
+  '85. the readout beside the code is a COUNT OF CHARACTERS and it is the count '
+    + 'of the string on the field, over three different boards. It carries no '
+    + 'adjective: the sentence is asserted whole, because "295 characters" is '
+    + 'bookkeeping and any word of appraisal beside it would be a ruling on a '
+    + 'student\'s build (PROJ-06)',
+  lengthPairs.every(([n, said]) => said === n + ' characters')
+    && new Set(lengthPairs.map(([n]) => n)).size >= 2,
+  'pairs=' + JSON.stringify(lengthPairs)
+);
+
+/* 86 and 87. THE TWO OPPOSITE ANSWERS TO D-19, ON ONE SURFACE, and they are two
+   rows rather than one because they are two different claims and a single row
+   asserting both would go green on either being right.
+
+   The paste field holds text a STUDENT typed, so a repaint that overwrote it
+   would lose half a pasted code. The code field holds text the ARTIFACT
+   produced, and there the same rule would leave a student copying a code for a
+   board that no longer exists — which is the worst thing this surface can do,
+   because nobody finds out until a classmate loads it. */
+sharePasteField.value = 'v1~half-a-pasted-code';
+sharePasteField.focus();
+A.ops.nudgeFactionAp('mechs', 1);
+shareFrame();
+check(
+  '86. a repaint driven while the PASTE field holds focus leaves that field\'s '
+    + 'value untouched (D-19). It is the rule #tok-pick-name, #act-edit-name and '
+    + 'every term row keep, and it is kept here for the original reason: this is '
+    + 'text a student typed',
+  sharePasteField.value === 'v1~half-a-pasted-code'
+    && stub.activeElement === sharePasteField,
+  'paste field=' + JSON.stringify(sharePasteField.value)
+    + ' still focused=' + (stub.activeElement === sharePasteField)
+);
+sharePasteField.blur();
+
+shareCodeField.focus();
+shareCodeField.select();
+const selectedWas = shareCodeField.value;
+A.ops.nudgeFactionAp('mechs', 1);
+shareFrame();
+check(
+  '87. a repaint driven while the CODE field holds focus REWRITES it and leaves '
+    + 'a selection over the whole of the new code — the opposite answer, on the '
+    + 'one field in this file whose text the artifact produced rather than the '
+    + 'student. A stale code reaching a clipboard is discovered by somebody else, '
+    + 'an hour later, with no way back to what was meant',
+  shareCodeField.value !== selectedWas
+    && shareCodeField.value === liveCode()
+    && shareCodeField.selectionStart === 0
+    && shareCodeField.selectionEnd === shareCodeField.value.length,
+  'rewritten=' + (shareCodeField.value !== selectedWas)
+    + ' matches live encode=' + (shareCodeField.value === liveCode())
+    + ' selection=' + shareCodeField.selectionStart + '..'
+    + shareCodeField.selectionEnd + ' of ' + shareCodeField.value.length
+);
+shareCodeField.blur();
+
+/* 89. THE FINGERPRINT COVERS THE WHOLE BUILD SLICE, asserted through a change no
+   narrower fingerprint would see.
+
+   THIS ROW EXISTS BECAUSE OF PROBE S AND IT IS WRITTEN DOWN HERE SO THE NEXT
+   AUTHOR KNOWS WHAT IT IS FOR. The probe narrowed [S06.6]'s fingerprint to the
+   unit health values and drove a token-type RENAME with the surface open. Rows
+   84 to 87 all stayed green — every one of them drives an op that moves a health
+   value or an action-point value, so a health-only fingerprint still fired for
+   them — and the surface would have shipped a code that no longer described the
+   board with nothing anywhere objecting.
+
+   A rename is the right instrument because it changes the code (a type's name
+   travels in the codec's name table) while touching no number the board draws
+   through a stepper. Any narrowing of the fingerprint that keeps rows 84 to 87
+   green fails this one. The board is put back afterwards. */
+openShareSurface();
+const sigWas = A.state.get().build.tokens.hp.name;
+A.ops.renameTokenType('hp', 'Stamina');
+shareFrame();
+const afterRename = shareCodeField.value;
+const afterRenameLive = liveCode();
+A.ops.renameTokenType('hp', sigWas);
+shareFrame();
+check(
+  '89. the code on the field is re-produced for a change that moves NO NUMBER on '
+    + 'the board — renaming a token type with the surface open. The fingerprint '
+    + 'is the whole build slice and nothing narrower, and this is the row that '
+    + 'says so: a fingerprint cut back to the health values passes every other '
+    + 'share row in this file and ships a stale code from this one',
+  afterRename === afterRenameLive
+    && shareCodeField.value === liveCode()
+    && A.state.get().build.tokens.hp.name === sigWas,
+  'after rename: field===live encode=' + (afterRename === afterRenameLive)
+    + ' | after putting it back: field===live encode='
+    + (shareCodeField.value === liveCode())
+    + ' name restored=' + JSON.stringify(A.state.get().build.tokens.hp.name)
+);
+
+/* 88. D-18's LINE, DRIVEN OVER THE THRESHOLD RATHER THAN ASSERTED ABOUT IT, and
+   it is the last row in this gate because taking a board past CODE_WARN means
+   BUILDING one and there is nothing after it that reads the board.
+
+   WHERE THE CHARACTERS ACTUALLY ARE decided the recipe. [S01]'s measured
+   decomposition records that the tally stream is 1,360 of the 3,186 at the
+   ceiling, so the lever is DISTINCT tallies on distinct units — an identical
+   tally on every unit run-lengths into one run and costs almost nothing, which
+   is the codec working as designed and was how the first draft of this row
+   reached 545 characters and thought it had built a large board.
+
+   Put back with resetToDefaults, deliberately, and NOT with App.state.restore:
+   [S03]'s banner names restore's one legitimate caller and it is [S09] SELFTEST.
+   A gate reaching for it would make that inventory false. */
+// The shipped board, first, so this row starts from a known place: every gate
+// row above it has been authoring types and actions, and MAX_CUSTOM_TYPES is a
+// cap a drive that ignored what came before would hit rather than measure.
+A.ops.resetToDefaults();
+shareFrame();
+const overWasHidden = shareOverLine.hidden;
+const overWasSaid = shareOverLine.textContent;
+const overWasLen = shareCodeField.value.length;
+const unitIdsOf = (side) => A.state.get().build[side].units.map((u) => u.id);
+['cats', 'mechs'].forEach((side) => {
+  while (A.state.get().build[side].units.length < A.ops.MAX_UNITS) { A.ops.addUnit(side); }
+});
+['cats', 'mechs'].forEach((side) => {
+  unitIdsOf(side).forEach((id, i) => {
+    A.ops.setUnitMaxHp(side, id, 11 + (i * 37) % 88);
+    A.ops.setUnitShield(side, id, 11 + (i * 53) % 88);
+  });
+});
+const overTypes = [];
+for (let m = 0; m < A.data.MAX_CUSTOM_TYPES; m++) {
+  overTypes.push(A.ops.createTokenType({
+    name: 'Padding type ' + m,
+    shape: A.data.SHAPES[m % A.data.SHAPES.length],
+    color: A.data.COLORS[m % A.data.COLORS.length],
+    glyph: A.data.GLYPHS[1 + m],
+    scope: 'unit'
+  }));
+}
+['cats', 'mechs'].forEach((side) => {
+  unitIdsOf(side).forEach((id, j) => {
+    overTypes.forEach((tok, k) => {
+      A.ops.setTally(side, id, tok, 11 + ((j * 13 + k * 29) % 88));
+    });
+  });
+});
+shareFrame();
+const overShown = {
+  hidden: shareOverLine.hidden,
+  said: shareOverLine.textContent,
+  len: shareCodeField.value.length,
+  saidLen: shareLenLine.textContent
+};
+A.ops.resetToDefaults();
+shareFrame();
+check(
+  '88. the over-budget line is HIDDEN below App.data.CODE_WARN and SHOWN above '
+    + 'it, driven over the threshold on a real board rather than asserted about. '
+    + 'It describes the CODE and says nothing about the board that produced it '
+    + '(D-18), which is what keeps a size fact from becoming a ruling on a build '
+    + '— and the count beside it stays a plain count on both sides of the line',
+  overWasHidden === true && overWasSaid === ''
+    && overWasLen <= A.data.CODE_WARN
+    && overShown.len > A.data.CODE_WARN
+    && overShown.hidden === false
+    && overShown.said === 'This code is longer than a message allows.'
+    && overShown.saidLen === overShown.len + ' characters'
+    && shareOverLine.hidden === true && shareOverLine.textContent === ''
+    && shareCodeField.value === liveCode(),
+  'below (' + overWasLen + ' chars): hidden=' + overWasHidden + ' said=' + JSON.stringify(overWasSaid)
+    + ' | above (' + overShown.len + ' chars, warn at ' + A.data.CODE_WARN
+    + '): hidden=' + overShown.hidden + ' said=' + JSON.stringify(overShown.said)
+    + ' length line=' + JSON.stringify(overShown.saidLen)
+    + ' | back below: hidden=' + shareOverLine.hidden
+    + ' len=' + shareCodeField.value.length
+);
+
+closeShareSurface();
 clearPanel();
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.

@@ -9404,6 +9404,256 @@ App.render = (function () {
   SYNC_HOOKS.push(syncEditor);
   // #endregion [S06.5] RENDER — ACTION EDITOR
 
+  /* ===================== [S06.6] RENDER — SHARE SURFACE =================
+   * The share surface (SHARE-01, SHARE-04), appended as its own sub-region for
+   * the mechanical reason [S06.2], [S06.3] and [S06.5] all state: it reconciles
+   * through SYNC_HOOKS, SYNC_HOOKS is a closure variable of this IIFE, and it
+   * paints a different page region on a different trigger. It changes NOTHING
+   * in [S06.1] through [S06.5].
+   *
+   * IT IS [S06.5] WITH ONE FIELD AND A DIFFERENT FINGERPRINT, and it reuses
+   * [S06.1]'s helpers rather than writing a parallel builder, for the reason
+   * [S06.2] and [S06.5] both give about their own: two places that produce the
+   * same thing drift the first time one of them is changed.
+   *
+   * THE ONE THING THIS SURFACE DRAWS IS THE WHOLE BUILD. Every other repaint in
+   * this file draws a part of the board and fingerprints that part; this one
+   * draws a string that is a function of EVERY field in the build slice, so the
+   * fingerprint is the whole build slice and nothing narrower. That is not
+   * caution, it is the definition of the thing being drawn.
+   *
+   * A CODE THAT NO LONGER MATCHES THE BOARD IS A REASON TO PRODUCE A NEW ONE,
+   * NEVER A REASON TO LEAVE THE OLD ONE WHERE A STUDENT WILL COPY IT. This is
+   * [S06.5]'s paragraph about a selection naming nothing, sharpened for what
+   * this surface is for. Every other stale reading in this file is a wrong
+   * number on a page the student is looking at, and looking at it is what
+   * corrects them. A stale build code is a wrong board pasted into the course
+   * thread, discovered by somebody else, an hour later, with no way back to
+   * what was meant.
+   *
+   * NOTHING PRODUCED HERE IS STORED. The code is encoded at render time from
+   * the live build slice and written straight onto the field. CLAUDE.md's
+   * prohibition on storing derived figures applies with extra force to this one:
+   * a stored code would be a second, MECHANICAL reason for the code on screen
+   * and the board to disagree, on top of the pedagogical disagreement this
+   * whole project is built around. [S09.3] pins the `ui` key set anyway, so
+   * there is nowhere legitimate for it to go.
+   *
+   * THE RESET CONFIRMATION IS NOT ON THIS HOOK, and that is said here rather
+   * than left for a reader to wonder about. #reset-ask draws nothing from
+   * state: its title, its sentence and its two controls are static markup and
+   * none of them changes with the board. A repaint for it would be a hook that
+   * ran on every frame to write the values it had just read.
+   *
+   * deps: App.data, App.serialize, [S06.1]'s helpers
+   * owner: plan 04-05
+   * ===================================================================== */
+  // #region [S06.6] RENDER — SHARE SURFACE
+
+  // The two panes, named once, in SIDE_IDS' shape and for its reason: three
+  // sites need to decide against them and one needs to fall back to the first,
+  // and a fourth literal pair is how a fallback ends up naming a pane the
+  // decision does not visit.
+  var SHARE_PANES = ['copy', 'load'];
+
+  // D-18's line, spelled once. It describes the CODE and says nothing at all
+  // about the board that produced it — the same rule the length beside it
+  // keeps, and the reason both of them are facts rather than rulings.
+  var OVER_BUDGET = 'This code is longer than a message allows.';
+
+  /* THE FINGERPRINT IS THE WHOLE BUILD SLICE, and the two candidates were
+     measured rather than argued about.
+
+     The honest alternative was the produced code itself: it is exactly what is
+     drawn, so it moves for exactly the right set of changes by construction.
+     It was rejected on cost, and the cost was MEASURED rather than assumed,
+     because this hook runs on EVERY FRAME while the surface is open and
+     actionsNaming' measurement is the precedent for not guessing. On BOARD E —
+     24 versus 24, all six authored token types, a tally for every type on every
+     unit, six authored actions, 617 characters of code — averaged over 2,000
+     calls after a warm-up:
+
+         JSON.stringify of the slice        0.030 ms
+         App.serialize.encode of the slice  0.483 ms
+
+     Sixteen times, and both an order of magnitude under a frame. Keying the
+     fingerprint on the code would pay the second figure TWICE per frame for
+     every frame in which nothing moved, which is most of them.
+
+     JSON.stringify of the slice moves for exactly the same set of changes,
+     because encode is a pure function of that slice and of App.data, and
+     App.data is deep-frozen. The one property it does not have is stability of
+     key ORDER, and that is fine here in a way worth stating: a key order that
+     changed would produce a spurious repaint, never a missed one, and a
+     spurious repaint on this surface writes the same code back onto the field.
+     The failure mode of this choice is a wasted encode. The failure mode of a
+     NARROWER fingerprint is a stale code in somebody's message, which is why
+     the slice is taken whole and why probe S exists.
+
+     JSON.stringify of an ARRAY and never a joined string, which is pickerSig's
+     rule and its reason: a build carries names a student typed, and any
+     delimiter is a character they can enter.
+
+     THE PANE IS IN IT because the pane decides which half of the surface is
+     hidden, and a repaint blind to it would leave a pane switch looking like
+     nothing happened until something unrelated moved. It is [S06.5]'s
+     proposalSig slot, one attribute wide. */
+  function shareSig(state, pane) {
+    return JSON.stringify([pane, state.build]);
+  }
+
+  // setEditorEnabled's twin, and it is a separate two-line function rather than
+  // a reach into [S06.5]'s for the reason SIDE_IDS is restated: a sub-region
+  // reaching into another sub-region's private helper is the first step of the
+  // two of them becoming one.
+  function setShareEnabled(id, on) {
+    var node = document.getElementById(id);
+    if (node) { node.disabled = !on; }
+  }
+
+  // The one entry point, and it takes no second argument for the reason
+  // picker() takes one and editor() takes two: WHICH pane is showing is
+  // transient interaction state, so it is held in the dialog's own dataset
+  // rather than added to the `ui` slice, whose exact key set [S09.3] asserts.
+  function share(state) {
+    if (typeof document === 'undefined') { return; }
+    var dlg = document.getElementById('share');
+    if (!dlg) { return; }
+
+    // A PANE NAMING NOTHING IS A REASON TO PAINT THE COPY PANE, NEVER A REASON
+    // TO STOP PAINTING. [S06.5]'s fallback, restated: returning here would
+    // leave whichever pane was last on screen showing a code from before
+    // whatever damaged the attribute. Unreachable from this plan's own surface
+    // — the attribute is written in the shell and only ever set to one of the
+    // two below — and it is here because the attribute is a string on a DOM
+    // node, which a later plan, a hand-edited page or a devtools session can
+    // make say anything.
+    var pane = String(dlg.dataset.shPane || '');
+    if (SHARE_PANES.indexOf(pane) === -1) {
+      pane = SHARE_PANES[0];
+      dlg.dataset.shPane = pane;
+    }
+
+    var sig = shareSig(state, pane);
+    if (dlg.dataset.shSig === sig) { return; }
+
+    // No withPreservedFocus here, and the absence is deliberate rather than an
+    // oversight. That contract exists for a rebuild that DESTROYS the node the
+    // keyboard was on; every node this region writes is static markup that
+    // survives the frame, so there is nothing to hand focus back to and calling
+    // it would move the caret in the paste field for no reason at all.
+    var copyPane = document.getElementById('share-pane-copy');
+    var loadPane = document.getElementById('sh-load');
+    if (copyPane) { copyPane.hidden = (pane !== 'copy'); }
+    if (loadPane) { loadPane.hidden = (pane !== 'load'); }
+
+    // Produced here, from the live slice, and put nowhere else. encode refuses
+    // rather than repairs — a build it cannot write hands back null, and the
+    // caller decides what a student is told — so a refusal empties the field
+    // rather than leaving the last good code on it, which is [S04.4]'s decision
+    // about the address bar taken again on the surface a student copies from.
+    var code = App.serialize.encode(state.build);
+    if (typeof code !== 'string') { code = ''; }
+
+    /* THE CODE FIELD IS WRITTEN EVEN WHILE IT HOLDS FOCUS, WHICH IS THE
+       OPPOSITE OF WHAT EVERY OTHER FIELD IN THIS FILE DOES, AND BOTH ANSWERS
+       ARE D-19.
+
+       D-19's rule everywhere else — #tok-pick-name, #act-edit-name, every term
+       row, every amount field, and #sh-load-field twenty lines below — is that
+       a repaint never overwrites a focused field, because the text in it is
+       text a STUDENT is halfway through typing and a repaint would hand them
+       back a shorter word.
+
+       This field holds text the ARTIFACT produced, and the failure runs the
+       other way. A student focuses it to select the code, changes the board in
+       another window or with a keyboard shortcut, comes back and presses
+       Ctrl+C. Under the ordinary rule they would copy a code describing a board
+       that no longer exists, and neither they nor the classmate who loads it
+       would have any way to know. So this one is rewritten whenever the build
+       moves.
+
+       AND THE SELECTION IS RE-APPLIED, over the WHOLE of the new code rather
+       than over the old offsets. The old offsets name nothing in the new string
+       — a code is not edited in place, it is replaced — and a student holding a
+       selection over a build code is holding it over all of it, because that is
+       the only selection this surface is for. */
+    var field = document.getElementById('share-code');
+    if (field) {
+      var focused = (field === document.activeElement);
+      var held = focused
+        && typeof field.selectionStart === 'number'
+        && typeof field.selectionEnd === 'number'
+        && field.selectionEnd > field.selectionStart;
+      field.value = code;
+      if (held && typeof field.setSelectionRange === 'function') {
+        field.setSelectionRange(0, code.length);
+      }
+    }
+
+    // THE ONE NUMBER THIS PHASE PUTS ON A SCREEN, and it is arithmetic. It is
+    // the length of the string above it in characters and it carries no
+    // adjective, because the moment it acquires one it stops being bookkeeping
+    // and becomes a ruling on a student's build — which PROJ-06 forbids and
+    // which the rendered-page walk would redden on. The board's own type scale
+    // and tabular figures, so a room can read it off a projector while it
+    // moves.
+    var lenLine = document.getElementById('share-length');
+    if (lenLine) { lenLine.textContent = code.length + ' characters'; }
+
+    // D-18's threshold. Shown past App.data.CODE_WARN and hidden below it, and
+    // EMPTY while it is hidden, in #tok-pick-names' shape — so nothing is on
+    // screen and nothing is in the harvest for a code that fits.
+    var over = document.getElementById('share-over');
+    if (over) {
+      var past = code.length > App.data.CODE_WARN;
+      over.textContent = past ? OVER_BUDGET : '';
+      over.hidden = !past;
+    }
+
+    // Re-decided from state on every repaint rather than toggled by whoever
+    // last pressed something, which is setEditorEnabled's rule and its reason:
+    // a bound the student can see coming is a disabled control, not an error
+    // panel they have to read their way out of, and re-deciding is what makes
+    // an undo move it too. Copy is the only control here whose bound is a fact
+    // about STATE — there is nothing to copy when encode refused. Load's bound
+    // is a fact about text in a field, which is not state and is not this
+    // region's to read; a code that cannot be read produces a sentence rather
+    // than a disabled button, and those words are plan 04-07's.
+    setShareEnabled('share-copy', code !== '');
+
+    // TWO attributes, each answering exactly one question and neither
+    // answering two.
+    //   data-sh-pane is WHICH pane is showing. Written in the shell, owned by
+    //                this region, moved by [S07.4], and read back here into the
+    //                fingerprint.
+    //   data-sh-sig  is WHETHER anything drawn here has moved since the last
+    //                frame, and NOTHING EVER READS A VALUE OUT OF IT. [S06.2]
+    //                states that rule and [S06.5] restates it; it is restated
+    //                again because a signature parsed for its parts is a
+    //                selector-bound value recovered out of text a student can
+    //                type.
+    dlg.dataset.shSig = sig;
+  }
+
+  // The per-frame half, attached to [S06.1]'s seam in syncEditor's exact shape
+  // and for its exact reason: a surface that repainted only from its own
+  // handlers would keep showing a code the board no longer produces after any
+  // OTHER commit — a nudge on a health field, or a Ctrl+Z, taken with the
+  // surface open. On this surface that is not a cosmetic lag; it is the whole
+  // failure this region exists to prevent.
+  //
+  // It returns immediately while the dialog is closed, which is what keeps the
+  // encode off the hot path for every student who never opens the surface.
+  function syncShare(state) {
+    var dlg = document.getElementById('share');
+    if (!dlg || dlg.open !== true) { return; }
+    share(state);
+  }
+
+  SYNC_HOOKS.push(syncShare);
+  // #endregion [S06.6] RENDER — SHARE SURFACE
+
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
   // units goes through its commitStructural helper -- and hiding
@@ -9419,6 +9669,13 @@ App.render = (function () {
     // for the next frame would leave the tick and the heading a frame behind
     // the student's own click.
     editor: editor,
+    // Exported for exactly the reason picker() and editor() are, and to exactly
+    // one caller: [S07.4]'s handlers, which move the pane attribute and then ask
+    // for the surface to be painted onto it. A press that changed the attribute
+    // and waited for the next frame would leave the wrong pane up for a frame —
+    // and on the copy pane, one frame of the wrong code is one frame in which
+    // Ctrl+C takes the wrong code.
+    share: share,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the
