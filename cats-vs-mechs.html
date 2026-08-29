@@ -16565,6 +16565,247 @@ App.selftest = (function () {
       restoredCode, untouchedCode);
     t.ok('the prototype is intact after the size and differences rows', protoIntact());
 
+    /* --- THE REFUSAL MATRIX — SEVENTEEN WAYS OF BEING WRONG, EACH REACHING
+           THE GUARD IT IS NAMED AFTER.
+
+           SHARE-03 is half "a good code comes back exactly" and half "a bad
+           one is refused by name and changes nothing". The rows above are the
+           first half. These are the second, and they are the half most easily
+           written so that it proves nothing at all.
+
+           THE MECHANISM, AND IT IS THE WHOLE POINT OF THIS BLOCK: every row
+           that names a CONTENT guard tampers the BODY and then RECOMPUTES THE
+           DIGEST, so the code arrives at decode carrying four characters that
+           agree with its own tampered body. Without that step the digest
+           refuses first, every row collects why: 'checksum', and a matrix of
+           seventeen rows is one guard asserted seventeen times and reported as
+           seventeen. Two rows below assert the recomputation itself rather
+           than trusting that it happened.
+
+           The codes are built from a DRIVEN board — board B, the realistic
+           student build, because it is the only fixture here carrying types of
+           the student's own, a tally bag, a side-scope type, a hole in the
+           unit ids and authored actions, which is what gives the guards
+           something to refuse. A hand-written code string would agree with
+           whatever its author believed the grammar was, and the grammar is the
+           thing under test everywhere else in this suite.
+
+           Each row asserts the `why` TOKEN and, where the refusal carries one,
+           the `saw` or `what` beside it. A row that checked only ok === false
+           would read green over a decoder that had collapsed the four tokens
+           into one — and those four exist precisely so a student can be told
+           four different things. The `what` strings are what lets plan 04-07's
+           message say WHICH thing the board cannot show rather than only that
+           something was wrong. --- */
+    var hostileBoard = BOARDS[1].drive();
+    var hostileCode = App.serialize.encode(hostileBoard);
+
+    // The body is everything between the first section separator and the last
+    // one; the four characters after the last are the digest. Splitting it
+    // here rather than reaching into decode is deliberate — these rows are a
+    // SECOND reader of the grammar, and a tamper helper that shared decode's
+    // own parse would agree with it by construction.
+    function bodyOf(codeText) {
+      var opens = codeText.indexOf(App.data.CODE_SEP.section);
+      var rest = codeText.slice(opens + 1);
+      return rest.slice(0, rest.lastIndexOf(App.data.CODE_SEP.section));
+    }
+    function sealed(bodyText) {
+      return App.data.CODE_VERSION + App.data.CODE_SEP.section + bodyText
+        + App.data.CODE_SEP.section + App.serialize.checksum(bodyText);
+    }
+    var hostileParts = bodyOf(hostileCode).split(App.data.CODE_SEP.section);
+    function tampered(edit) {
+      var made = hostileParts.slice();
+      edit(made);
+      return sealed(made.join(App.data.CODE_SEP.section));
+    }
+    function vocabRecordsOf(made) { return made[1].slice(1).split(App.data.CODE_SEP.record); }
+    function putVocab(made, records) {
+      made[1] = 'V' + records.join(App.data.CODE_SEP.record);
+    }
+    // The first record in the vocabulary section that is NOT one of the
+    // student's own — a built-in's record is five fields wide and its glyph,
+    // shape and name index all sit at known positions.
+    function firstBuiltinRecord(records) {
+      for (var i = 0; i < records.length; i++) {
+        if (records[i].charAt(0) !== 'C') { return i; }
+      }
+      return -1;
+    }
+    function putField(record, at, value) {
+      var fields = record.split(App.data.CODE_SEP.field);
+      fields[at] = value;
+      return fields.join(App.data.CODE_SEP.field);
+    }
+    function editBuiltin(at, value) {
+      return tampered(function (made) {
+        var records = vocabRecordsOf(made);
+        var which = firstBuiltinRecord(records);
+        records[which] = putField(records[which], at, value);
+        putVocab(made, records);
+      });
+    }
+    function putName(written) {
+      return tampered(function (made) {
+        var table = made[0].slice(1).split(App.data.CODE_SEP.field);
+        table[0] = written;
+        made[0] = 'N' + table.join(App.data.CODE_SEP.field);
+      });
+    }
+    var nameTableSize = hostileParts[0].slice(1).split(App.data.CODE_SEP.field).length;
+    var ROSTER = 12;   // board B's cats roster, the count parts[2] carries
+
+    var REFUSALS = [
+      /* --- THE THREE DIGEST ROWS. These are the ones SHARE-03 names by
+             behaviour, and the first of them is the one a stale link from last
+             term takes. --- */
+      { at: 'version', why: 'version', saw: 'v2',
+        what_it_is: 'a wire version prefix that is not the one this file writes — the shape a '
+          + 'link shared before the schema moved arrives in, refused BY NAME and told which '
+          + 'version it saw rather than left to arithmetic',
+        code: 'v2' + hostileCode.slice(2) },
+      { at: 'checksum', why: 'checksum',
+        what_it_is: 'a code with its last twelve characters cut off — the shape a paste that '
+          + 'took half a line takes, and it is truncated rather than merely damaged',
+        code: hostileCode.slice(0, -12) },
+      { at: 'checksum', why: 'checksum',
+        what_it_is: 'a code with exactly one character flipped, which is the transcription '
+          + 'damage those four characters exist for',
+        code: (function () {
+          var at = Math.floor(hostileCode.length / 2);
+          var now = (hostileCode.charAt(at) === 'a') ? 'b' : 'a';
+          return hostileCode.slice(0, at) + now + hostileCode.slice(at + 1);
+        })() },
+
+      /* --- THE TWO SHAPE ROWS. Neither is a build code at all, and the
+             allowlist rules on that before anything is read out of them. --- */
+      { at: 'shape', why: 'shape',
+        what_it_is: 'the empty string, which is what an empty paste field hands over',
+        code: '' },
+      { at: 'shape', why: 'shape',
+        what_it_is: 'ordinary prose, which is what a student pastes when they copied the '
+          + 'sentence around the code instead of the code',
+        code: 'here is my build, have a look' },
+
+      /* --- THE TWELVE CONTENT ROWS. Every one of these carries a RECOMPUTED
+             digest and therefore reaches the guard it names. --- */
+      { at: 'content', why: 'content', what: 'no such glyph',
+        what_it_is: 'a glyph position past the end of GLYPHS',
+        code: editBuiltin(3, App.serialize.n36(App.data.GLYPHS.length)) },
+      { at: 'content', why: 'content', what: 'no such shape',
+        what_it_is: 'an outline position past the end of SHAPES',
+        code: editBuiltin(1, App.serialize.n36(App.data.SHAPES.length)) },
+      { at: 'content', why: 'content', what: 'a value is out of bounds',
+        what_it_is: 'a health value one over MAX_ALLOC, which no write path in this file '
+          + 'would ever have admitted',
+        code: tampered(function (made) {
+          made[4] = App.serialize.n36(ROSTER) + App.data.CODE_SEP.run
+            + App.serialize.n36(App.data.MAX_ALLOC + 1) + App.data.CODE_SEP.term + '0';
+        }) },
+      { at: 'content', why: 'content', what: 'a built-in type carries no tally',
+        what_it_is: 'a tally recorded against a built-in type, which the board keeps in a '
+          + 'field of its own rather than in the bag',
+        code: tampered(function (made) {
+          made[5] = App.serialize.n36(ROSTER) + App.data.CODE_SEP.run
+            + '0' + App.data.CODE_SEP.term + '2';
+        }) },
+      { at: 'content', why: 'content', what: 'that type is kept on each unit',
+        what_it_is: 'a type kept on each unit tallied against the whole side instead — the '
+          + 'scope split held in the direction a round trip can never exercise',
+        code: tampered(function (made) {
+          made[7] = '5' + App.data.CODE_SEP.term + '4';
+        }) },
+      { at: 'content', why: 'content', what: 'the roster is out of bounds',
+        what_it_is: 'a roster of zero units, which is under MIN_UNITS',
+        code: tampered(function (made) { made[2] = 'A' + App.serialize.n36(0); }) },
+      { at: 'content', why: 'content', what: 'the roster is out of bounds',
+        what_it_is: 'a roster one past MAX_UNITS',
+        code: tampered(function (made) {
+          made[2] = 'A' + App.serialize.n36(App.ops.MAX_UNITS + 1);
+        }) },
+      { at: 'content', why: 'content', what: 'a run length disagrees with the roster',
+        what_it_is: 'a run structure whose lengths fill eleven of the twelve units the '
+          + 'roster claims — the shape an incomplete paste takes most often',
+        code: tampered(function (made) {
+          made[4] = App.serialize.n36(ROSTER - 1) + App.data.CODE_SEP.run
+            + '6' + App.data.CODE_SEP.term + '2';
+        }) },
+      { at: 'content', why: 'content', what: 'two units share an id',
+        what_it_is: 'a gap record that hands a second unit the id the first already has, '
+          + 'which is silent in every direction at once if it is admitted',
+        code: tampered(function (made) {
+          made[6] = '1' + App.data.CODE_SEP.term + '1';
+        }) },
+      { at: 'content', why: 'content', what: 'no such name',
+        what_it_is: 'a name index one past the end of the name table',
+        code: editBuiltin(4, App.serialize.n36(nameTableSize)) },
+      { at: 'content', why: 'content', what: 'a name is out of bounds',
+        what_it_is: 'a name one code point over MAX_TOKEN_NAME',
+        code: putName(App.serialize.b64(
+          new Array(App.data.MAX_TOKEN_NAME + 2).join('a'))) },
+      { at: 'content', why: 'content', what: 'a name carries a character the board cannot show',
+        what_it_is: 'a name carrying a control character, which TOKEN_NAME_REFUSE exists for',
+        code: putName(App.serialize.b64('Poi' + String.fromCharCode(7) + 'son')) }
+    ];
+
+    REFUSALS.forEach(function (row) {
+      var seen = null;
+      var threw = false;
+      try { seen = App.serialize.decode(row.code); } catch (e) { threw = true; }
+      t.eq('REFUSED at the ' + row.at + ' guard — ' + row.what_it_is,
+        [threw, seen === null ? 'nothing came back' : seen.ok,
+          seen === null ? '' : seen.why,
+          seen === null ? '' : (row.saw !== undefined ? seen.saw : (seen.what || ''))],
+        [false, false, row.why,
+          row.saw !== undefined ? row.saw : (row.what !== undefined ? row.what : '')]);
+      t.ok('and the prototype is intact after refusing ' + row.what_it_is, protoIntact());
+    });
+
+    /* --- THE MECHANISM, ASSERTED RATHER THAN TRUSTED. Two rows, and between
+           them they are what makes the twelve rows above rows about twelve
+           different guards. The first says the digest each tampered code
+           carries agrees with its own tampered body, so the checksum test
+           inside decode passes and the content guard is what refused. The
+           second says the body actually MOVED — a tamper that changed nothing
+           would carry a valid digest too, and would decode perfectly. --- */
+    var contentRows = REFUSALS.filter(function (row) { return row.at === 'content'; });
+    t.eq('there are TWELVE content rows, and research measured twelve of them as well — '
+      + 'the matrix is seventeen tamper shapes, of which one is the version, two are the '
+      + 'digest and two are not a build code at all',
+      contentRows.length, 12);
+    t.ok('every content row\'s code carries a digest RECOMPUTED over its own tampered body, '
+      + 'which is the only reason any of them reaches the guard it names rather than '
+      + 'stopping four characters earlier — without this the matrix is one guard asserted '
+      + 'twelve times', contentRows.every(function (row) {
+        return row.code.slice(-4) === App.serialize.checksum(bodyOf(row.code));
+      }));
+    t.ok('and every content row\'s body actually MOVED away from the untouched one, so no '
+      + 'row is a code that was never tampered at all', contentRows.every(function (row) {
+        return bodyOf(row.code) !== bodyOf(hostileCode);
+      }));
+    t.eq('the twelve name their guards as twelve readings rather than one repeated — '
+      + 'eleven distinct `what` strings over twelve rows, the repeat being the roster '
+      + 'read from both ends',
+      contentRows.map(function (row) { return row.what; })
+        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 11);
+
+    /* --- AND THE VERSION IS READ BEFORE THE DIGEST IS EVEN COMPUTED. The row
+           above uses an untouched body, so its digest is still valid and the
+           order could not be seen. This one damages the body AND the digest
+           together: a decoder that checked the checksum first would say
+           'checksum' here, and a student holding last term's link would be
+           told their code was damaged when what actually happened is that the
+           file moved on. --- */
+    t.eq('a stale version is refused as a VERSION even when the digest is wrong too, so the '
+      + 'order is shape, version, checksum, content and not some other order that happens '
+      + 'to agree on the easy cases',
+      (function () {
+        var refusal = App.serialize.decode('v0' + hostileCode.slice(2, -4) + 'zzzz');
+        return [refusal.ok, refusal.why, refusal.saw];
+      })(), [false, 'version', 'v0']);
+    t.ok('the prototype is intact after the whole refusal matrix', protoIntact());
+
     /* --- THE BUDGET FIGURES AS MEASUREMENTS, NOT GATES. t.info records a
            number without ever being able to redden a run, which is what these
            are: three constants and one measured cost, printed so the size rows
