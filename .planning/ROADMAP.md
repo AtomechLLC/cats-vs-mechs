@@ -299,7 +299,7 @@ Plans:
 - [x] 05-02-PLAN.md — `[S03]`'s slice shape rewritten in the change that makes it untrue: `turn` retired, `log` folded into `past`, `decl`/`past`/`tally` added, `resetFight` in one commit, the DELIBERATELY ABSENT block at :6397-6412 turned into its positive form, and `[S09.12]` opened above any no-DOM bracket (wave 2)
 - [x] 05-03-PLAN.md — `[S02]`'s shield-then-health split as three numbers and no prose, and `[S05]`'s declare / clear ops writing `{ side, act, by, at }` — keys chosen to clear check 73c rather than widen it — with the nothing-resolves-while-declaring row (wave 3)
 - [x] 05-04-PLAN.md — `advanceRound`: one op, one commit, the round number in the label, and `[S09.10]` rows 1 and 3 turned in the open into their positive form while row 2 stays intact — plus a fourth row making "no relationship consumer, no keyword writer" mechanical (wave 4)
-- [ ] 05-05-PLAN.md — hand rulings: `setFightShield` (the writer named for this plan two phases ago), `nudgeFightHp`, the withheld `setUnitHp` / `setAlive` arms, and a ruling recorded as an event in its round rather than as a flag on a value — `[S09.3]`'s shield tripwire turned (wave 5)
+- [x] 05-05-PLAN.md — hand rulings: `setFightShield` (the writer named for this plan two phases ago), `nudgeFightHp`, the withheld `setUnitHp` / `setAlive` arms, and a ruling recorded as an event in its round rather than as a flag on a value — `[S09.3]`'s shield tripwire turned (wave 5)
 - [ ] 05-06-PLAN.md — the shell: two topbar controls spending D-04's last reservation with the closure written down, an in-page fight region at the top of the page, a ledger root OUTSIDE `#board`, `[C14]`'s frame, and `KNOWN_IDS` + stubs arriving with the ids (wave 6)
 - [ ] 05-07-PLAN.md — `[S06.7]` the fight bar: the round, both pools as spent and available separately, both survivor counts, and the declaration form — nothing disabled, nothing pre-selected, one node per fragment — plus `[C14.1]` (wave 7)
 - [ ] 05-08-PLAN.md — `[S06.8]` the ledger: past boards grown by DELTA only with node identity asserted, each row carrying that round's actions, splits as three facts and by-hand rulings, and the live board's what-changed reading derived at render time — plus `[C14.2]` (wave 8)
@@ -357,7 +357,7 @@ parallel if desired.
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
-| 5. Fight Loop & Playtest | 4/11 | In Progress|  |
+| 5. Fight Loop & Playtest | 5/11 | In Progress|  |
 
 ## Coverage
 

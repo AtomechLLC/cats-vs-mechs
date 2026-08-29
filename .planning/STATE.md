@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-04-PLAN.md
-last_updated: "2026-08-29T10:24:52.393Z"
+stopped_at: Completed 05-05-PLAN.md
+last_updated: "2026-08-29T10:50:44.368Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 37
+  completed_plans: 38
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 5 of 11
+Plan: 6 of 11
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [█████████░] 86%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -73,6 +73,7 @@ Progress: [█████████░] 86%
 | Phase 05 P02 | 105min | 3 tasks | 2 files |
 | Phase 05 P03 | 95min | 3 tasks | 2 files |
 | Phase 05 P04 | 150min | 3 tasks tasks | 2 files files |
+| Phase 05 P05 | 135min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -147,6 +148,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-03: the declaration lives in state.fight.decl spelled { side, act, by, at } — the proposal's DOM-only argument does not transfer, because a declaration is an intent that has not resolved BY DESIGN
 - [Phase ?]: 05-03: termDamage is now THE one reading of a term against DAMAGE_KEYS; actionDamage and actionModelled both read it, and the projection's shipped 1 and 3 verified the extraction moved nothing
 - [Phase ?]: 05-03: probe I proved a suite row standing in for an op that does not exist yet goes on agreeing with its author once the op ships — the key-name row now drives declareAction, and the same repair is owed to the round record when advanceRound lands
+- [Phase ?]: 05-05: a by-hand ruling is stored as an EVENT IN THE ROUND ({side,unit,tok,from,to} on fight.hand, carried into past by Advance), never as a flag on the value — it clears check 73c's key-name ban naturally, makes FIGHT-07's marker derivable at render time, and IS FIGHT-08's log alongside did[]
+- [Phase ?]: 05-05: the router arms 'hp' and 'alive' renamed to setUnitHp and setAlive (the decision plan 05-04 handed forward) — they were one-key names shaped like FIELD_OPS keys that were never in FIELD_OPS, so no control could reach them; no aliases kept
+- [Phase ?]: 05-05: no nudgeFightShield — plan 05-09 draws no shield pair and 05-10's control table lists four ops, so the asymmetry is written into the artifact rather than left as an omission
 
 ### Pending Todos
 
@@ -170,6 +174,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T10:24:52.381Z
-Stopped at: Completed 05-03-PLAN.md
+Last session: 2026-08-29T10:50:44.356Z
+Stopped at: Completed 05-05-PLAN.md
 Resume file: None
