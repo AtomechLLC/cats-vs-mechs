@@ -5074,10 +5074,10 @@ App.ops = (function () {
   // projection to disagree with the board, and this artifact exists to stage a
   // pedagogical disagreement, not to bury it under a bookkeeping one.
   //
-  // The field ships now and its writer arrives with the phase that has a
-  // surface to spend from — plan 05-05, which adds setFightShield beside the
-  // build-slice writer below. Nothing here decides how a shield behaves; the
-  // table still rules that.
+  // The field shipped in Phase 1 and its writer arrived with the phase that has
+  // a surface to spend from: plan 05-05's setFightShield, in the hand-ruling
+  // group below. Nothing there decides how a shield behaves either; the table
+  // still rules that, and the op exists so the ruling has somewhere to land.
   //
   // A TALLY IS COPIED, AND THAT IS THE RULING THIS COMMENT USED TO DEFER.
   // What stood here said "whether a tally should be spendable DURING a fight
@@ -5156,11 +5156,23 @@ App.ops = (function () {
   // maxHp + shield, so an allocation surface that can edit only half of a unit's
   // durability cannot express the asymmetry this artifact exists to teach.
   //
-  // The fight slice carries its OWN `shield` copy and that one still has no
-  // writer at all. Plan 05-05 owns it, and its op will need a distinct
-  // name — setFightShield — because spending a shield during a fight and
-  // allocating one during setup are different acts on different numbers. This is
-  // precisely the build/fight pairing setUnitMaxHp and setUnitHp already model.
+  // The fight slice carries its OWN `shield` copy, and as of plan 05-05 that
+  // one has a writer of its own: setFightShield, down in the hand-ruling group.
+  // What stood here PREDICTED the name and the reason, and both held — spending
+  // a shield during a fight and allocating one during setup are different acts
+  // on different numbers, which is precisely the build/fight pairing setUnitMaxHp
+  // and setUnitHp already model. So the sentence is turned rather than deleted,
+  // in plan 03.1-04's register, and what it turns into is the thing a reader
+  // arriving at THIS op needs: the two writers are told apart by an ASSERTION
+  // and not by this comment. [S09.3] drives each of them against BOTH slices
+  // with a fight running and requires the other slice to be byte-identical.
+  //
+  // ONE OP EACH RATHER THAN ONE OP WITH A MODE, and the reason is not symmetry:
+  // a mode argument would be a fifth thing to keep in step with structure()'s
+  // `setup` branch, because a build shield write and a fight shield write are on
+  // opposite sides of the line buildColumn derives `setup = (state.fight === null)`
+  // from. Two ops make that line a fact about which function was called; one op
+  // with a mode makes it a fact about an argument, which nothing can assert.
   function setUnitShield(side, unitId, shield) {
     requireSide(side);
     App.state.commit('shield ' + side + '/' + unitId, function (s) {
@@ -5310,6 +5322,138 @@ App.ops = (function () {
     });
   }
 
+  /* ===== FIGHT-04, FIGHT-05, FIGHT-07: THE HAND RULINGS ====================
+
+     THE STUDENTS ARE THE RULES ENGINE, AND THIS IS THE GROUP THAT SAYS SO IN
+     CODE RATHER THAN IN A BANNER. advanceRound below computes what a DECLARED
+     rule says; the four ops here are how a student OVERRULES it. Every one of
+     them exists precisely because the tool must not decide — a Shield that
+     absorbed the hit, an Evade that meant the hit never landed, a Recharge
+     house rule that puts a unit above its own allocation, a unit ruled dead at
+     full health because the table said so. This file's job is to hold the
+     number the table names and to write down that the table named it.
+
+     SO THESE OPS ARE MAXIMALLY PERMISSIVE ABOUT WHAT A STUDENT MAY DECIDE AND
+     MAXIMALLY STRICT ABOUT WHAT THIS FILE MAY INFER:
+       - setAlive writes the flag and NOTHING else. It does not touch health.
+       - setUnitHp, nudgeFightHp and setFightShield write their own number and
+         NOTHING else. Not one of them touches `alive`.
+       - none of them reads REFERENCE.beats and none of them writes `keywords`.
+       - none of them refuses a value on the grounds that it is implausible. A
+         student ruling a unit to 40 health because their own house rule says so
+         is the workshop working correctly. The only bound is int()'s existing
+         type-and-range contract, which is there so a null or a '7' fails loudly
+         instead of laundering into 0 mid-fight — a bound on what a FIELD can
+         hold, never on what a fight can mean.
+       - none of them decides the fight is over (D-26).
+
+     THE RULING RECORD, AND THE TECHNIQUE HAS NO PRECEDENT ANYWHERE IN THIS
+     REPO — so it gets the register clampTokenName and #reset-ask use for a
+     choice with no precedent: the alternative is written down beside it.
+
+     FIGHT-07 asks that a value overridden by hand be VISIBLY MARKED as one,
+     which means something has to be stored. Nothing in this file marks a
+     value's provenance — every number in `build` and in `fight` is just a
+     number — and [S09.10]'s second boundary row and check 73c in
+     tests/selftest-node.cjs both ban the obvious name for it AS AN OBJECT KEY
+     at any depth. The proposal pane's override row is the nearest analog in
+     the file and it is not the same thing: it marks a FORM CONTROL, not a
+     stored value.
+
+     SO A RULING IS STORED AS AN EVENT IN THE ROUND, NOT AS A PROPERTY OF THE
+     NUMBER. Each op below appends one record to the CURRENT round's by-hand
+     list — { side, unit, tok, from, to }, every key measured clean — held on
+     the fight slice, so Advance carries it into `past` with the rest of the
+     round it belongs to. Three things fall out of that shape and all three are
+     why it is the right one:
+       - it clears the key-name ban NATURALLY, without widening an assertion
+         whose whole job is to keep a proposal off the slices;
+       - IT IS FIGHT-08's COMBAT LOG. FIGHT-08 asks for each round's actions and
+         every override in readable order; `did` plus this list IS that, and it
+         is the same object plan 05-08's ledger renders. Two structures both
+         claiming to be what happened will disagree, which is exactly why plan
+         05-02 deleted `log` rather than giving it a writer — this is the other
+         half of that decision, and it is why there is no `fight.log`;
+       - the marker on the board is then DERIVED at render time from "does this
+         round's list name this unit and this token?", so nothing derived is
+         stored and plan 05-09 has nothing to keep in step.
+
+     THE ALTERNATIVE, DECLINED IN WRITING: a per-value flag on the unit —
+     `byHand: true` sitting beside `hp`, which measures clean as a key name and
+     would have worked on the first pass. It is declined because it is a SECOND
+     COPY of a fact the round already holds, and a second copy drifts. Set a
+     value by hand twice and the flag says one thing while the list says two;
+     set a value by hand and then set it back, and there is no reading of the
+     flag that is correct for both the number and the history. It also puts the
+     provenance where undo has to carry it per unit per round instead of in one
+     list per round, which is thirty snapshots of the more expensive shape.
+
+     THE RECORD IS A FACT ABOUT WHAT THE STUDENT DID, NOT A JUDGEMENT ABOUT IT.
+     It says a number went from one value to another, by hand, in this round. It
+     does not say why, and it does not say whether it was right.
+
+     `tok` IS A TOKEN ID AND NOT A FIELD NAME, because the board draws token
+     types and plan 05-09's marker has to match a rendered amount against this
+     list. Health is `hp`, the shield is `shield`, and the alive flag is
+     recorded as `dead` — the shipped token type the dead marker draws — with
+     `from` and `to` as the 0-or-1 the board will show. That inversion is a
+     SPELLING and not a ruling: the record names the same quantity the board
+     names, so a reader holding the two side by side is comparing like with
+     like, and every from/to in the list is then a whole number.
+
+     NOTE WHAT IS *NOT* CALLER-SUPPLIED HERE, because it is a stronger property
+     than validating it would have been: no hand op takes a token id. `tok` is
+     written by the op itself from a fixed set of three, so the one and only
+     caller-supplied key position in this group is the unit id, and it goes
+     through findUnit exactly as every other op's does. [S09.12] reads the whole
+     list back and requires every `tok` in it to be one of the three.
+
+     NOTHING IS RECORDED WHEN NOTHING MOVED. "A number went from one value to
+     another" is false of a set that landed on the value already there, and a
+     press-and-hold ramp saturated against a clamp would otherwise fill the list
+     with rulings nobody made.
+
+     SYNC-ONLY, ALL FOUR, AND THE TIER IS A CONSEQUENCE RATHER THAN A CHOICE.
+     commitStructural's stated trigger is a mutator that changes what structure()
+     would BUILD. None of these moves units.length and none of them flips
+     `setup` — buildColumn derives setup from (state.fight === null) and every op
+     here requires a fight to already be running, so the value each one writes is
+     shown on a line that already exists. Plain commit(), therefore. The day the
+     by-hand marker is a NODE rather than a class on an existing one, that is a
+     question for plan 05-09's renderer and not a reason to move these. */
+
+  // A BOUND ON A RECORD, NOT A RULING ON WHAT A STUDENT MAY DO — MAX_DECLARATIONS'
+  // register, and it is here for MAX_DECLARATIONS' reason: [S03]'s commit()
+  // stringifies the WHOLE state on every single write and keeps thirty of those
+  // snapshots, so an unbounded array inside the slice is an array a stuck key can
+  // grow inside thirty copies at once.
+  //
+  // The arithmetic, written out rather than left as a bare number: MAX_UNITS is
+  // the roster ceiling per side, there are SIDES.length sides, and a unit carries
+  // exactly three values a student can rule on — its health, its shield, and
+  // whether it is still standing. So this is one ruling for every rulable number
+  // on every unit that can be on the board at once, which is the most a round can
+  // honestly hold. The OLDEST drops, for the reason MAX_PAST_ROUNDS' comment
+  // gives: a list whose NEWEST entry silently vanished would still be the right
+  // length. [S09.12] asserts against this constant rather than a re-typed 144.
+  var MAX_HAND_RULINGS = MAX_UNITS * SIDES.length * 3;
+
+  // Created ON DEMAND and absent from a round that holds no ruling, which is the
+  // rule both slices already keep for a tally bag: a bag with no keys deletes
+  // itself (D-04). Plan 05-04 asked for exactly this and said why — a field with
+  // no writer beside a record that has one is `log` again — and it is also what
+  // keeps the fight slice opening on exactly five keys, which [S09.12] reads
+  // whole rather than one name at a time.
+  //
+  // Written field by field and never from a merge, for createAction's reason:
+  // this record is walked at any depth by the key-name check the spelling above
+  // was chosen to clear, and a merge copies whatever keys the caller supplied.
+  function ruled(g, side, unitId, tok, from, to) {
+    if (!Object.prototype.hasOwnProperty.call(g, 'hand')) { g.hand = []; }
+    g.hand.push({ side: side, unit: unitId, tok: tok, from: from, to: to });
+    while (g.hand.length > MAX_HAND_RULINGS) { g.hand.shift(); }
+  }
+
   // Writes the fight slice only, and deliberately touches nothing else: zero
   // health prompts a death ruling from the table, it never auto-kills (D-00d).
   //
@@ -5329,20 +5473,107 @@ App.ops = (function () {
   // bound that remains is the one bound this file has always had — a whole
   // number in [0, MAX_ALLOC] — and it is a bound on what a FIELD can hold
   // rather than on what a fight can mean.
+  //
+  // THE LABEL CARRIES THE SIDE AND THE UNIT, and that is load-bearing rather
+  // than tidy: two rulings on two different units 400 ms apart share
+  // COALESCE_MS, and under one label they would fold into a single undo entry
+  // and one Ctrl+Z would take back a ruling the student never touched. Same
+  // trap as declareAction's slot index and advanceRound's round number.
   function setUnitHp(side, unitId, hp) {
     requireSide(side);
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, fightOf(s)[side].units).hp = int(hp, 0, MAX_ALLOC, 'health');
+      var g = fightOf(s);
+      var unit = findUnit(side, unitId, g[side].units);
+      var next = int(hp, 0, MAX_ALLOC, 'health');
+      if (next !== unit.hp) { ruled(g, side, unitId, 'hp', unit.hp, next); }
+      unit.hp = next;
+    });
+  }
+
+  // The ± sibling, held to the three properties every shipped nudge holds: the
+  // guards run OUTSIDE the commit, the read and the write share ONE mutator so
+  // a 40 ms ramp can never act on a number it read a step ago, and the label is
+  // IDENTICAL to setUnitHp's so a press-and-hold collapses into one Ctrl+Z
+  // instead of forty (UX-01, D-10).
+  //
+  // AND IT RETURNS A BOOLEAN, WHICH IS NOT DECORATION. That return value is the
+  // sixth stop condition for [S07]'s hold ramp, and HOLD_ACTS' own comment says
+  // what happens without it: undo, addUnit and removeUnit return undefined, so
+  // a ramp over one of those runs until release and then throws non-terminally
+  // on the first bound it meets, flashing the error panel mid-demo. Whether
+  // this op is actually put in HOLD_ACTS is plan 05-10's decision to take with a
+  // surface in front of it; the boolean is what leaves that choice open, and it
+  // costs nothing to a caller that ignores it.
+  function nudgeFightHp(side, unitId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'health');
+    var moved = false;
+    App.state.commit('hp ' + side + '/' + unitId, function (s) {
+      var g = fightOf(s);
+      var unit = findUnit(side, unitId, g[side].units);
+      var next = int(unit.hp + delta, 0, MAX_ALLOC, 'health');
+      moved = (next !== unit.hp);
+      if (moved) { ruled(g, side, unitId, 'hp', unit.hp, next); }
+      unit.hp = next;
+    });
+    return moved;
+  }
+
+  // THE FIGHT-SLICE SHIELD WRITER, the op setUnitShield's comment named for this
+  // plan two phases ago. A raw set on the fight slice's own copy, through the
+  // same int() bounds setUnitHp uses, guards outside the commit and fightOf
+  // inside — and it writes `fight` and only `fight`, which is the half of
+  // FIGHT-10 that lives at the state level.
+  //
+  // THE LABEL IS DELIBERATELY NOT setUnitShield's. Those two write different
+  // numbers on different slices, so sharing a label would fold a build
+  // allocation and a mid-fight ruling made inside the same 500 ms into ONE undo
+  // entry — one Ctrl+Z taking back an edit on a slice the student was not
+  // looking at. The identical-label rule is for an op and its own ± sibling;
+  // these are not siblings, they are the two halves of a boundary.
+  //
+  // THERE IS NO nudgeFightShield, AND THE ASYMMETRY IS A DECISION RATHER THAN
+  // AN OMISSION. A signed sibling exists to serve a ± pair on a control, and
+  // plan 05-09's fight surface draws a dead marker, an alive toggle and a
+  // by-hand marker — it draws no ± pair for a shield, and plan 05-10's control
+  // table lists these four ops and no fifth. An op with no presser is a claim
+  // the file cannot keep. The day a surface carries the pair, the sibling is
+  // eight lines in nudgeFightHp's exact shape and this paragraph is what tells
+  // the next author it was considered.
+  function setFightShield(side, unitId, value) {
+    requireSide(side);
+    App.state.commit('fight shield ' + side + '/' + unitId, function (s) {
+      var g = fightOf(s);
+      var unit = findUnit(side, unitId, g[side].units);
+      var next = int(value, 0, MAX_ALLOC, 'shield');
+      if (next !== unit.shield) { ruled(g, side, unitId, 'shield', unit.shield, next); }
+      unit.shield = next;
     });
   }
 
   // The other half of D-00d: a stored flag, settable independently of health,
   // so a unit ruled "survived via Shield" and a unit ruled dead at full health
   // are both representable.
+  //
+  // `alive === true` AND NOT A TRUTHINESS TEST, which is the one line in this op
+  // that has to be read carefully: a 1, a 'true' or a {} arriving from a handler
+  // that forgot a conversion makes the unit NOT ALIVE rather than quietly alive,
+  // so the mistake is visible on the board instead of hiding behind a value that
+  // happened to work. It writes the flag and nothing else — health is not
+  // touched here in either direction, which is what makes "ruled dead at full
+  // health" and "ruled alive at zero" both representable.
   function setAlive(side, unitId, alive) {
     requireSide(side);
     App.state.commit('alive ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, fightOf(s)[side].units).alive = (alive === true);
+      var g = fightOf(s);
+      var unit = findUnit(side, unitId, g[side].units);
+      var next = (alive === true);
+      // Recorded as the `dead` token type's own 0-or-1, for the reason the
+      // group's banner gives: the record names the quantity the BOARD names.
+      if (next !== unit.alive) {
+        ruled(g, side, unitId, 'dead', unit.alive ? 0 : 1, next ? 0 : 1);
+      }
+      unit.alive = next;
     });
   }
 
@@ -5954,6 +6185,23 @@ App.ops = (function () {
         },
         did: []
       };
+      /* AND THE ROUND'S BY-HAND RULINGS GO WITH IT, which is the whole of why
+         they are held on the SLICE rather than on the number they changed: a
+         ruling belongs to the round it was made in, so it travels into `past`
+         with that round and the next round opens with none. `did` plus `hand`
+         together are FIGHT-08's combat log — each round's actions and every
+         override in readable order — and there is deliberately no second
+         structure making the same claim.
+         PRESENT ONLY WHEN THE ROUND HELD ONE (D-04), the rule a tally bag with
+         no keys already keeps in both slices, and the reason plan 05-04 left
+         `hand` off this record rather than seeding it empty: a field with no
+         writer beside a record that has one is `log` again. The live list is
+         removed rather than emptied, so the same rule holds on the slice — a
+         round with no ruling in it carries no key for one. */
+      if (Object.prototype.hasOwnProperty.call(g, 'hand')) {
+        if (g.hand.length > 0) { record.hand = g.hand; }
+        delete g.hand;
+      }
       g.past.push(record);
       // A READABILITY CAP AND NOT A PERFORMANCE ONE — plan 05-02's register,
       // and the constant is read rather than the number re-typed. The OLDEST
@@ -5985,9 +6233,16 @@ App.ops = (function () {
            `unlanded` is the third thing a diff cannot show: a term that named
            no unit, or named a type this board holds no number for, moved
            nothing — and a student's own declared term quietly doing nothing
-           with no record of it is the tool dropping their rule. `hand` is NOT
-           seeded: plan 05-05 records a ruling made by hand, and a field with
-           no writer beside a record that already has one is `log` again. */
+           with no record of it is the tool dropping their rule.
+           `hand` IS NOT ONE OF THIS ENTRY'S KEYS AND THAT IS STILL THE
+           DECISION. A by-hand ruling is not something a DECLARATION did — it
+           is something the STUDENT did, to a number, in a round — so plan
+           05-05 records it one level up, on the round record itself, and only
+           when the round held one. What stood here said `hand` was not seeded
+           because a field with no writer beside a record that has one is `log`
+           again; it has a writer now, and it arrived at the level it belongs
+           to rather than inside a per-declaration entry that would have had to
+           invent an owner for it. */
         var entry = {
           side: p.d.side,
           act: p.d.act,
@@ -7201,18 +7456,43 @@ App.ops = (function () {
       case 'nudgeShield': return nudgeUnitShield(p.side, p.unitId, p.delta);
       case 'addUnit': return addUnit(p.side);
       case 'removeUnit': return removeUnit(p.side, p.unitId);
-      case 'hp': return setUnitHp(p.side, p.unitId, p.value);
-      case 'alive': return setAlive(p.side, p.unitId, p.value);
+      /* THE FOUR HAND-RULING ARMS (FIGHT-04, FIGHT-05, FIGHT-07), AND THE
+         SPELLING IS A DECISION PLAN 05-04 DELIBERATELY LEFT OPEN FOR THIS PLAN
+         TO TAKE. What stood here recorded that the two fight-slice writers
+         reached the router as `hp` and `alive` rather than under their own
+         names, "because those two arms were written for a stepper and a toggle
+         rather than for an op list," and it named plan 05-05 as the plan that
+         gets to decide whether that spelling is still right.
+
+         IT IS NOT, AND THE REASON IS MECHANICAL RATHER THAN AESTHETIC. The
+         one-key spellings in this router — `ap`, `maxHp`, `shield`, `tally` —
+         are not a house style. They are FIELD_OPS' OWN KEYS: [S07] reads a
+         control's data-act and looks the op up in that table, so those names
+         exist because a FIELD carries them. `hp` and `alive` were never in
+         FIELD_OPS and no control ever sent either. They were one-key names that
+         LOOKED like field ops and were not — which is precisely the shape a
+         later reader adds a fifth of by pattern-matching, and then wonders why
+         nothing on the page reaches it.
+
+         So all four are named for the op, which is what every arm in this router
+         that is NOT a field op already does — declare, advanceRound, setTally,
+         createAction, loadBuildCode — and which is also the spelling plan
+         05-10's own control table names them by. A fight-mode stepper, if one
+         ever ships, adds a FIELD_OPS entry pointing AT these names; it does not
+         need a second name for them.
+
+         THE OLD SPELLINGS ARE GONE RATHER THAN KEPT AS ALIASES. Two act names
+         for one op is the thing this file refuses everywhere else, and an alias
+         is exactly how two readings of the same act start disagreeing about
+         which one the page sends. [S09.12] drives the new names, hostile side
+         values and all, so the rename is asserted rather than assumed. */
+      case 'setUnitHp': return setUnitHp(p.side, p.unitId, p.value);
+      case 'nudgeFightHp': return nudgeFightHp(p.side, p.unitId, p.delta);
+      case 'setFightShield': return setFightShield(p.side, p.unitId, p.value);
+      case 'setAlive': return setAlive(p.side, p.unitId, p.value);
       case 'startFight': return startFight();
       case 'endFight': return endFight();
-      // The third of the lifecycle arms, one key, named like every arm around
-      // it. Note what is already here and under WHICH NAME: the two fight-slice
-      // writers reach the router as `hp` and `alive`, not as `setUnitHp` and
-      // `setAlive`, because those two arms were written for a stepper and a
-      // toggle rather than for an op list. Plan 05-05 is the plan that puts a
-      // surface on them, and it is the plan that gets to decide whether that
-      // spelling is still the right one — it is named here so the question is
-      // asked rather than inherited.
+      // The third of the lifecycle arms, one key, named like every arm around it.
       case 'resetFight': return resetFight();
       // FIGHT-12's three, one key each. Read key by key rather than forwarding
       // the payload whole, for the reason the term arms above give: the op's
@@ -7293,6 +7573,19 @@ App.ops = (function () {
          applier in this file and its name is advanceRound. Anything that walks
          a round goes through it; a second one is how two readings of the same
          board start disagreeing, and it is the thing to refuse.
+       - THE HAND RULINGS, as of plan 05-05, AND THIS IS THE END OF A
+         WITHHOLDING RATHER THAN A NEW ABSENCE FILLED. setUnitHp and setAlive
+         shipped in Phase 1 and were exported from the day they were written;
+         what they did not have was a name in the router, on this file's own
+         pattern of an op arriving before the surface that presses it. They have
+         one now, under their own names, and setFightShield and nudgeFightHp
+         arrived beside them — the fight slice's shield copy has had a writer
+         reserved by name since Phase 1 and now has the writer.
+         WHAT THEY DO NOT DO IS THE PART THAT MATTERS: not one of them decides
+         anything. They write the number a STUDENT named, in the round they
+         named it in, and record that the student named it. That record is the
+         `hand` list on the round, and it is FIGHT-08's log — there is no second
+         structure claiming to be what happened.
 
      WHAT STILL DOES NOT EXIST, AND THIS HALF IS THE REQUIREMENT RATHER THAN
      THE GAP: THERE IS NO WRITER THAT DECIDES ANYTHING. No op picks an action,
@@ -7376,8 +7669,20 @@ App.ops = (function () {
     nudgeUnitShield: nudgeUnitShield,
     addUnit: addUnit,
     removeUnit: removeUnit,
+    // FIGHT-04, FIGHT-05, FIGHT-07 — THE HAND RULINGS. Four ops, one per number
+    // the fight tracks, exported together because they are one act with four
+    // spellings: the student overruling the bookkeeping. setFightShield is the
+    // op setUnitShield's comment reserved by name in Phase 1; nudgeFightHp is
+    // the only one of the four that returns a boolean, and its comment says why
+    // that is what leaves plan 05-10's press-and-hold question open.
+    // MAX_HAND_RULINGS goes with them for the reason MAX_ALLOC, MAX_PAST_ROUNDS
+    // and MAX_DECLARATIONS are exported: a suite asserts against the constant
+    // the op actually runs, never a re-typed copy of it that can drift away.
     setUnitHp: setUnitHp,
+    nudgeFightHp: nudgeFightHp,
+    setFightShield: setFightShield,
     setAlive: setAlive,
+    MAX_HAND_RULINGS: MAX_HAND_RULINGS,
     startFight: startFight,
     endFight: endFight,
     // The third lifecycle op, and the one SHARE-07 names: it puts the rosters
@@ -21115,12 +21420,22 @@ App.selftest = (function () {
     t.ok('the prototype is intact after the lifecycle rows', protoIntact());
 
     /* ===== THE BAD-INPUT TABLE ([S09.7] and [S09.10]'s form) =====
-       Seven side values, two fight-slice writers each, driven through the op
+       Seven side values, FOUR fight-slice writers each, driven through the op
        AND through the live router. `__proto__` and `constructor` are the two
        that matter: both resolve on Object.prototype, which is not frozen, so a
        side that reached the state indexer would write there. requireSide runs
        OUTSIDE the commit in every one of them, so the refusal is by NAME and
-       the funnel is never entered. */
+       the funnel is never entered.
+
+       THE ROUTER HALF NAMES THE OPS AND NO LONGER NAMES A FIELD, and plan
+       05-05 turned it in the same change that turned the arms. This row used to
+       drive `hp` and `alive`, which were one-key act names that looked like
+       FIELD_OPS keys and were not in FIELD_OPS at all; the arms are now named
+       for their ops, so the row drives `setUnitHp`, `nudgeFightHp`,
+       `setFightShield` and `setAlive`. It reddened on the rename with a
+       readable message — `Unknown op: hp` in place of `Unknown side "…"` —
+       which is the property a row that DRIVES has and a row that reads an
+       export list does not. */
     App.ops.resetToDefaults();
     App.ops.startFight();
     var depthHostile = App.state.undoDepth();
@@ -21131,12 +21446,20 @@ App.selftest = (function () {
     badSides.forEach(function (bad) {
       [
         { name: 'setUnitHp', run: function () { App.ops.setUnitHp(bad, 'c1', 1); } },
+        { name: 'nudgeFightHp', run: function () { App.ops.nudgeFightHp(bad, 'c1', 1); } },
+        { name: 'setFightShield', run: function () { App.ops.setFightShield(bad, 'c1', 1); } },
         { name: 'setAlive', run: function () { App.ops.setAlive(bad, 'c1', false); } },
-        { name: 'dispatch hp', run: function () {
-          App.ops.dispatch('hp', { side: bad, unitId: 'c1', value: 1 });
+        { name: 'dispatch setUnitHp', run: function () {
+          App.ops.dispatch('setUnitHp', { side: bad, unitId: 'c1', value: 1 });
         } },
-        { name: 'dispatch alive', run: function () {
-          App.ops.dispatch('alive', { side: bad, unitId: 'c1', value: false });
+        { name: 'dispatch nudgeFightHp', run: function () {
+          App.ops.dispatch('nudgeFightHp', { side: bad, unitId: 'c1', delta: 1 });
+        } },
+        { name: 'dispatch setFightShield', run: function () {
+          App.ops.dispatch('setFightShield', { side: bad, unitId: 'c1', value: 1 });
+        } },
+        { name: 'dispatch setAlive', run: function () {
+          App.ops.dispatch('setAlive', { side: bad, unitId: 'c1', value: false });
         } }
       ].forEach(function (probe) {
         var label = probe.name + '(' + String(bad) + ')';
@@ -21152,11 +21475,14 @@ App.selftest = (function () {
       });
     });
 
-    t.eq('twenty-eight hostile drives — seven side values across two fight-slice '
-      + 'writers and both of their router arms — and every one is refused BY '
-      + 'NAME rather than resolving on the shared object prototype',
+    t.eq('fifty-six hostile drives — seven side values across all four '
+      + 'fight-slice writers and all four of their router arms — and every one '
+      + 'is refused BY NAME rather than resolving on the shared object '
+      + 'prototype. The side is the ONE caller-supplied key position in this '
+      + 'group besides the unit id: no hand op takes a token id at all, because '
+      + 'each one writes its own from a fixed set of three',
       wrongRefusals, []);
-    t.ok('and the prototype held after every single one of the twenty-eight, '
+    t.ok('and the prototype held after every single one of the fifty-six, '
       + 'checked inside the walk rather than once at the end', protoHeld);
     t.eq('not one of them moved the board or left an undo entry behind',
       [JSON.stringify(App.state.get()) === boardHostile,
@@ -21166,6 +21492,8 @@ App.selftest = (function () {
     App.ops.endFight();
     [
       { name: 'setUnitHp', run: function () { App.ops.setUnitHp('cats', 'c1', 1); } },
+      { name: 'nudgeFightHp', run: function () { App.ops.nudgeFightHp('cats', 'c1', 1); } },
+      { name: 'setFightShield', run: function () { App.ops.setFightShield('cats', 'c1', 1); } },
       { name: 'setAlive', run: function () { App.ops.setAlive('cats', 'c1', false); } },
       { name: 'resetFight', run: function () { App.ops.resetFight(); } }
     ].forEach(function (probe) {
