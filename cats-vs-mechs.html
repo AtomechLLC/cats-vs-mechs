@@ -990,6 +990,183 @@
      every other line of consequence in this file, and at the 18px floor because
      it is the one thing a student is being asked to read before they answer. */
   .rs-says{margin:0 0 6px;color:var(--ink-dim);font-size:18px;line-height:1.45;max-width:56ch}
+
+  /* ===================== [C14] THE FIGHT ===================== */
+  /* Phase 5's two new page regions and the frame they sit in, plan 05-06. This
+     block lays the boxes out and declares who owns what inside them; the rules
+     that PAINT into them arrive with the plans that draw them, which is what
+     03.1-05 and 04-05 both did — the styles arrive with the region that paints
+     into them, never ahead of it.
+
+     THREE NEW PREFIXES, .fg-, .ld- AND .dc-, AND THEY ARE THREE RATHER THAN
+     ONE for the reason [C13]'s banner gives about .sh- and .rs- and names this
+     phase in by name: a single stylesheet has no real scope, so a rule for a
+     bare .row or .line would reach every region in this file from four thousand
+     lines away. One prefix per surface, and each surface's rules land in its
+     own sub-region, in the manner [S04.1] through [S04.4] divide their section:
+
+       [C14.1]   .fg-   the fight bar                 plan 05-07
+       [C14.2]   .ld-   the ledger of past rounds     plan 05-08
+       [C14.3]   .dc-   the board in fight mode       plan 05-09
+
+     A plan writing into another plan's sub-region has taken a wrong turn, and
+     the three lines above are what stop the next author guessing at which.
+
+     [C03]'S STICKY GOTCHA BINDS THIS BLOCK HARDER THAN ANY OTHER IN THE FILE,
+     because this is the first region added ABOVE #board since #topbar and
+     #strip were written, and the first one with a reason to scroll. A sticky
+     element sticks to its nearest ancestor that has a scrolling mechanism, and
+     ANY overflow value other than visible creates one — so no ancestor of
+     #topbar or #strip may ever be given overflow of hidden, scroll or auto,
+     and the ledger below therefore SCROLLS ON ITSELF. [C12]'s action list is
+     the shipped precedent for exactly that move. [C03]'s own sentence is
+     restated here rather than pointed at, because the cost is what makes the
+     rule stick: there is no error and no warning when it goes wrong. Sticky
+     simply stops working.
+
+     UX-02'S 18px LEGEND FLOOR IS STATED IN [C07], [C12] AND [C13] AND BINDS A
+     FOURTH TIME HERE. Every label in either region is permanent, visible and at
+     18px or above — never an icon, and never a title= tooltip. It binds harder
+     here than on the three dialogs, because this surface is on the page the
+     whole time rather than in front of one person who opened it.
+
+     NO IMAGE AND NO SHAPE IS DRAWN HERE, for the reasons [C12] and [C13] each
+     already give about themselves: the CSS reference function that takes a URI
+     is refused document-wide by the dev gate, so there is no background image,
+     no data-URI icon and no stylesheet-loaded font; the namespaced element
+     constructor and its inline markup are refused on the same grounds; and a
+     shape, if one is ever wanted, is a clip-path, which is what [C05] already
+     draws the board's triangles and hexagons with.
+
+     NO NEW HEX. Every colour below comes out of [C00]'s tokens, derived with
+     color-mix() where a derivation is needed, which is [C07]'s banner rule. The
+     danger colouring this phase will want for the fight reset already ships
+     TWICE — .err-btn--danger in [C08] and .brd-btn--danger in [C13] — and is
+     not to be invented a third time.
+
+     AND ONE PROHIBITION THAT IS NEW TO THIS BLOCK. The CSS property that
+     prettifies a short heading by evening out its line lengths carries the same
+     word stem the dev gate refuses document-wide, so it may not be written here
+     even though a two-line region heading is exactly what it is for. It is
+     DESCRIBED rather than spelled, which is the rule [C11] and refCard both
+     keep and for their reason: the check on this region is a scan of the source
+     for the very token a helpful comment would spell out. Wrapping is handled
+     by measure and by flex-wrap instead. */
+
+  /* Both new regions carry #board's width and its computed negative margin,
+     spelled the same way and for the reason [C03] gives about the board: the
+     1280px document measure is narrower than the board, so a region sitting
+     directly above the board that took the measure instead would be visibly
+     inset from the thing it describes on the 1920px projector this file
+     targets. Deliberately NOT a transform, for [C03]'s stated reason — a
+     transform on an ancestor of a sticky element re-parents its containing
+     block and kills the sticking silently. */
+  #fightbar, #ledger{
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
+
+  /* The fight region: the panel treatment #strip already wears, because it is
+     the same kind of thing — a surface on the board's page rather than a card
+     in a column. It is NOT sticky and it is not going to be: #strip is the one
+     sticky panel on this page and a second would compete with it for the same
+     top edge. */
+  #fightbar{
+    display:grid;grid-auto-flow:row;gap:12px;margin:0 0 18px;
+    background:var(--panel);
+    border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;
+    color:var(--ink-dim);
+  }
+
+  /* The two region legends, at the floor the banner above states. */
+  .fg-head, .ld-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+
+  /* The two declaration roots, laid out along the line because they are two
+     sides of one round and reading them as a pair is the point. The row WRAPS
+     rather than shrinking its type — [C12]'s rule about its own list, for its
+     own reason: this surface is this size because a room reads it off a
+     projector, so a narrow window may cost height and may never cost
+     legibility. The basis is a whole flex line's worth, so the two sides stack
+     rather than squeezing when there is no room for both. */
+  .fg-sides{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+  .fg-side{flex:1 1 340px;min-width:0}
+
+  /* The reading on the bar. tabular-nums for the reason [C03] uses it on the
+     board's own values and [C13] restates on the code length: these figures
+     move under the eye on every commit, and proportional digits make them
+     jitter sideways while they do. The round leads at [C04]'s value size
+     because it is the one figure FIGHT-09 asks a room to read; the pools sit at
+     the 18px floor beside it and neither is the loudest thing on the page,
+     which is the projection's own standing rule. */
+  .fg-read{display:flex;align-items:baseline;gap:10px;font-variant-numeric:tabular-nums}
+  .fg-round{font-size:24px;font-weight:700;color:var(--ink)}
+  .fg-pool{font-size:18px;color:var(--ink-dim)}
+
+  /* The hairline that sets the READING apart from the queue of controls beside
+     it, drawn INSIDE the cluster rather than as a second bar — a second bar
+     would re-lay-out the page, which is the one thing D-04's reserved slot
+     exists to make unnecessary. It is [C13]'s .rs-apart RESTATED rather than
+     borrowed, for the argument [C13]'s own banner makes: .rs- means "the reset
+     confirmation" everywhere else in this file, and a fight control wearing it
+     would make that one rule two regions depend on. Same hairline, same gap,
+     both from --line, so the two survive a palette change together. */
+  .fg-apart{margin-left:6px;padding-left:16px;border-left:1px solid var(--line)}
+
+  /* Each reserved line carries its own [hidden] rule for the reason .pk-warn,
+     .prj-note, .sh-warn and .sh-said each carry one: [hidden]{display:none} is
+     a user-agent rule these margins would not have beaten, but a later author
+     rule giving one of these classes a display would, and the next reader
+     should not have to work out which of those is true today. .fg-side takes
+     one for the same reason and one stronger: it is a flex item, and a plan
+     adding a display to it later would unhide two empty roots on the setup
+     page with nothing on screen to say why. */
+  .fg-prompt, .fg-said{margin:0;font-size:18px;color:var(--ink-dim);max-width:60ch;line-height:1.4}
+  .fg-prompt[hidden], .fg-said[hidden], .fg-side[hidden]{display:none}
+
+  /* THE LEDGER'S OWN [hidden] RULE IS NOT OPTIONAL, and it is the one line in
+     this block that would fail silently if it were dropped: the rule beside it
+     gives the root a display of its own, and ANY author display beats the user
+     agent's [hidden]{display:none} outright. Without this line the region ships
+     visible and empty above the board of every student who never starts a
+     fight, and nothing anywhere would say so. */
+  #ledger{display:grid;grid-auto-flow:row;gap:10px;margin:0 0 18px}
+  #ledger[hidden]{display:none}
+
+  /* THE SCROLL IS ON THE ELEMENT ITSELF, AND THE GOTCHA IN THE BANNER IS WHY.
+     #strip sticks to the nearest scrolling ancestor, so an overflow put on
+     anything above this list — the region root, the shell, the body — would
+     take #strip's sticking away with no error and no warning to say it had
+     happened. The list scrolls; nothing above it does. [C12]'s action list is
+     the shipped precedent and its reasoning transfers whole.
+
+     The height is a REHEARSAL DIAL in --tok's manner rather than a settled
+     number: what matters is how much of the live board a room can still see
+     with the history above it, and only a rehearsal on the actual workshop
+     display settles that. It is on plan 05-11's list. It is also NOT the reason
+     App.data.MAX_PAST_ROUNDS is thirty — that cap has its own paragraph and its
+     own measurement, and it is a readability bound rather than a performance
+     one for a reason the measurement supports: a past round is inert DOM
+     outside the keyed reconcile and the per-frame cost does not move with it.
+
+     The column direction is the plain one, deliberately. Rows are appended in
+     the order the rounds happened, so the newest is the last child and the last
+     child is the one nearest the live board directly below. No `order` and no
+     reversed direction: either would put this region's reading order out of
+     step with its document order, and the sequence a screen reader walks would
+     be the reverse of the one the room sees. */
+  .ld-list{
+    display:flex;flex-direction:column;gap:12px;
+    max-height:46vh;overflow-y:auto;
+    padding:2px;
+  }
+
+  /* The same breakpoint the shell already uses, rather than a second one —
+     [C03] makes exactly this move for #board and #topbar, and a second number
+     here would be a second place for one decision to live. */
+  @media(max-width:760px){
+    #fightbar, #ledger{width:auto;margin-left:0}
+  }
 </style>
 </head>
 <body>

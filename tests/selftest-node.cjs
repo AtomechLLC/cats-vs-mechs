@@ -760,7 +760,30 @@ function makeStubDom() {
     // It draws nothing from state, so it rides no SYNC_HOOKS entry — which is
     // why there is no repaint to stub anything for here, only markup.
     'reset-ask', 'reset-ask-title', 'reset-ask-says',
-    'reset-ask-cancel', 'reset-ask-confirm'
+    'reset-ask-cancel', 'reset-ask-confirm',
+    // plan 05-06 — phase 5's two page regions and the two topbar groups that
+    // spend the last of D-04's reservation. NOTHING HERE IS A <dialog>, which
+    // is the one thing that makes this group different from the two above it:
+    // the fight surface is IN THE PAGE, so there is no DIALOG_ROOTS entry to
+    // add and the dialog harvest stays at the four roots it already walks.
+    // The benefit that bought is that the whole surface sits inside #app, so
+    // the fight-mode Layer C harvest reads every word of it without a root of
+    // its own.
+    //
+    // Same three-part rule as every entry above, and it is now the only rule
+    // this group has to keep: the id, this entry and the stub node arrive
+    // together, and section 5b fails the run in BOTH directions if one of the
+    // three is missing.
+    //
+    // Every one of these is EMPTY on the shipped shell and a later plan in
+    // this phase fills it — 05-07 the readout and the two declaration roots,
+    // 05-08 the ledger list, 05-09 the notice. That is the same reservation
+    // #share-said and #sh-load-said already ship under.
+    'round-label', 'round-count', 'pool-cats', 'pool-mechs',
+    'fight-label', 'fight-start',
+    'fightbar', 'fight-head', 'fight-prompt',
+    'decl-cats', 'decl-mechs', 'fight-said',
+    'ledger', 'ledger-head', 'ledger-list'
   ];
 
   const byId = Object.create(null);
@@ -996,6 +1019,57 @@ function makeStubDom() {
   topbar._rectHeight = 88;   // one wrapped row taller than the shipped 64px floor
   app.appendChild(topbar);
 
+  // plan 05-06's two page regions, built HERE rather than at the bottom of
+  // this function because #app's child order is the appendChild order and the
+  // shell puts both of them between the bar and the board. That order matters
+  // to nothing this stub does today and matters to any future assertion that
+  // reads #app's children — plan 03-05's band made the same call for the same
+  // reason, and this is the cheaper moment to get it right.
+  //
+  // NEITHER IS A <dialog>, so neither takes a DIALOG_ROOTS entry and the
+  // harvest below still walks four roots. Every class and every attribute here
+  // is spelled from the markup, which is the warning the stub <dialog>s carry
+  // and the one that costs the most when ignored.
+  const fightbar = idNode('fightbar', 'section');
+  app.appendChild(fightbar);
+  const fightHead = idNode('fight-head', 'h2');
+  fightHead.className = 'fg-head';
+  fightbar.appendChild(fightHead);
+  const fightPrompt = idNode('fight-prompt', 'p');
+  fightPrompt.className = 'fg-prompt';
+  fightbar.appendChild(fightPrompt);
+  const fightSides = createElement('div');
+  fightSides.className = 'fg-sides';
+  fightbar.appendChild(fightSides);
+  ['decl-cats', 'decl-mechs'].forEach((id) => {
+    const side = idNode(id);
+    side.className = 'fg-side';
+    side.hidden = true;
+    fightSides.appendChild(side);
+  });
+  // FIGHT-10's line, reserved by plan 05-06 and filled by plan 05-09. Hidden
+  // AND empty together, which is the admission line's own rule and the reason
+  // there is no text on it here.
+  const fightSaid = idNode('fight-said', 'p');
+  fightSaid.className = 'fg-said';
+  fightSaid.hidden = true;
+  fightbar.appendChild(fightSaid);
+
+  // The ledger, and the one property of it this page can actually hold: it is
+  // a SIBLING of #board and not a child, which is what keeps the first
+  // [data-k] match scoped to #board a live node after a structural rebuild.
+  // Its rows carry no data-k and no data-act at all, so there is nothing to
+  // stub inside the list — plan 05-08 appends into it.
+  const ledger = idNode('ledger', 'section');
+  ledger.hidden = true;
+  app.appendChild(ledger);
+  const ledgerHead = idNode('ledger-head', 'h2');
+  ledgerHead.className = 'ld-head';
+  ledger.appendChild(ledgerHead);
+  const ledgerList = idNode('ledger-list');
+  ledgerList.className = 'ld-list';
+  ledger.appendChild(ledgerList);
+
   const board = idNode('board');
   app.appendChild(board);
   ['col-cats', 'strip', 'col-mechs'].forEach((id) => board.appendChild(idNode(id, 'section')));
@@ -1041,6 +1115,46 @@ function makeStubDom() {
     topbar.appendChild(b);
     return b;
   }
+  // plan 05-06's two new topbar groups, FIRST in the cluster because that is
+  // where the markup puts them: a reading a room has to take in leads the bar
+  // rather than joining the end of a queue of controls, and Reset stays last
+  // and apart where SHARE-04's fourth criterion put it.
+  //
+  // THE FIRST GROUP IS NOT A CONTROL, so topbarButton() is deliberately not
+  // used for it. That helper stamps a data-act onto whatever it makes, and a
+  // reading carrying an act would be an act on this page the shell does not
+  // carry — which is precisely the drift section 5b exists to make impossible,
+  // arriving through a convenience rather than through a typo. Three empty
+  // value nodes, no data-act, no data-k, spelled from the markup.
+  const fightRead = createElement('div');
+  fightRead.className = 'brd-tokedit fg-read';
+  topbar.appendChild(fightRead);
+  const roundLabel = idNode('round-label', 'span');
+  roundLabel.className = 'brd-tokedit-label';
+  fightRead.appendChild(roundLabel);
+  [['round-count', 'fg-round'],
+    ['pool-cats', 'fg-pool'],
+    ['pool-mechs', 'fg-pool']].forEach(([id, cls]) => {
+    const n = idNode(id, 'span');
+    n.className = cls;
+    fightRead.appendChild(n);
+  });
+  // And the sixth control, which IS one. It takes an id where the four buttons
+  // below take none, because [S06.7] has to reach it by id to disable it while
+  // a fight is running — topbarButton() hands back no id, so the button is
+  // built by hand here and its act and its key are copied off the markup.
+  // startFight is state work, so it is dispatched and is deliberately NOT in
+  // UI_ACTS; there is no handler to register for it and nothing in this repo
+  // presses it until plan 05-10.
+  const fightLabel = idNode('fight-label', 'span');
+  fightLabel.className = 'brd-tokedit-label';
+  topbar.appendChild(fightLabel);
+  const fightStart = idNode('fight-start', 'button');
+  fightStart.className = 'brd-btn';
+  fightStart.dataset.k = 'fg';
+  fightStart.dataset.act = 'startFight';
+  topbar.appendChild(fightStart);
+
   topbarButton('undo', 'undo', null);
   topbar.appendChild(idNode('tokedit-label', 'span'));
   topbarButton('tok', 'openTokenPicker', null);
