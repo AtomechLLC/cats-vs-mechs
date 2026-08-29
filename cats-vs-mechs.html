@@ -1477,6 +1477,16 @@ App.data = (function () {
   // constant instead of against a bare literal that can drift away from it.
   // Frozen because they are exported: an allowlist a caller can push onto is
   // not an allowlist.
+  //
+  // INDEX STABILITY — read this before editing any of the three arrays below.
+  // Phase 4's codec encodes a shape, a colour and a token id as their POSITION
+  // here, exactly as it does a scope, a glyph and a party. Entries may be
+  // APPENDED to the end. They may never be reordered, and never removed,
+  // without bumping the build code's schema version — otherwise a link a
+  // classmate shared last term silently loads a DIFFERENT board into this
+  // term's page, with nothing anywhere to say so. [S09.11] holds one row per
+  // list asserting its first entry and its length, which is the cheapest guard
+  // there is against exactly that.
   var SHAPES = deepFreeze(['sq', 'rect', 'tri', 'dia', 'circ', 'hex']);
   var COLORS = deepFreeze(['green', 'gold', 'accent', 'coral', 'violet', 'accent-2', 'ink-dim']);
   var TOKEN_IDS = deepFreeze(['hp', 'ap', 'shield', 'dmg', 'dead']);
@@ -1533,6 +1543,11 @@ App.data = (function () {
   // and is a Phase 4 dial, exactly as --tok shipped as a rehearsal dial for
   // the projector: six definitions at roughly 30 characters each is ~180 of
   // SHARE-04's 512-character build code before a single tally is written.
+  // MEASURED since, and the estimate was pessimistic: eleven token types cost
+  // 127 characters of structure at the adversarial ceiling and 77 on a fully
+  // authored board. Read the measured decomposition beside MAX_CUSTOM_ACTIONS
+  // below before moving this dial — the conclusion there is that it does not
+  // move, and the same conclusion covers this one.
   var MAX_CUSTOM_TYPES = 6;
 
   // Where a type's tally is kept — on each unit, or on the whole side (D-01).
@@ -1687,28 +1702,75 @@ App.data = (function () {
   // reachable from Object.prototype or Function.prototype can satisfy it.
   // RESERVED_KEYS is REUSED for the refusal message rather than copied: one
   // refusal list, one place, is why it was named in the first place.
+  //
+  // INDEX STABILITY — the same rule TOKEN_SCOPES, GLYPHS and XF_WHO carry, for
+  // the same reason. Phase 4's codec encodes a shipped action as its POSITION
+  // here. Entries may be APPENDED to the end. They may never be reordered, and
+  // never removed, without bumping the build code's schema version — otherwise
+  // a link a classmate shared last term silently loads a different action onto
+  // this term's board.
   var ACTION_IDS = deepFreeze([
     'slash', 'hairball', 'screech', 'fly', 'lasers', 'recharge'
   ]);
 
   // How many actions of their own a student may keep per side (D-10), and the
   // two term caps. Each is a named exported constant in the MAX_CUSTOM_TYPES
-  // idiom, and each is a PHASE 4 CODEC DIAL rather than a taste call — so the
-  // arithmetic is written down here and the next plan to move one moves it
-  // against measured cost instead of a feeling:
-  //   a compact positional spelling of one authored action carrying one cost,
-  //     one requirement and one transformation measured about 20 characters at
-  //     a six-character name; a name at MAX_TOKEN_NAME adds up to 18 more, and
-  //     each extra term about 6 — call it 50 worst case;
-  //   three per side, both sides, is about 300 against SHARE-04's 512-character
-  //     budget, of which the token vocabulary already claims roughly 180. Four
-  //     per side is tight at worst case and six is over budget outright;
-  //   three also matches the three each faction already ships, which is what
-  //     makes D-07 concrete on screen: three shipped plus three authored is six
-  //     cards in a column, all the same kind of thing.
-  //   If a dial has to move, the escalation path is the one CLAUDE.md names:
-  //     CompressionStream('deflate-raw') plus base64url, measured at 1,165
-  //     characters of JSON down to 167, for zero library bytes.
+  // idiom, and each was written down as a PHASE 4 CODEC DIAL with a PREDICTION
+  // beside it — about 300 characters of authored actions on top of roughly 180
+  // of token vocabulary, against a 512-character budget — and an instruction to
+  // the next plan to move one "against measured cost instead of a feeling".
+  // Phase 4 took the measurement. The prediction is replaced by it here rather
+  // than left standing beside a figure that disagrees with it.
+  //
+  // MEASURED by round-tripping a complete encode and decode pair against build
+  // slices produced by driving the SHIPPED ops — never by sizing an encode
+  // nobody read back, which is how both of this phase's grammar bugs stayed
+  // invisible for as long as they did:
+  //   45     the shipped board, untouched;
+  //   295    a realistic 12v5 student build — one built-in renamed, one
+  //            restyled, two authored token types, four tallies, three authored
+  //            actions carrying a cost, a requirement and a transformation, one
+  //            shipped action renamed, and one unit removed so the ids are
+  //            non-contiguous;
+  //   283    24v24, every unit a distinct health and shield pair, nothing
+  //            authored;
+  //   675    24v24 exercising everything Phases 2.1 and 3.1 shipped — all six
+  //            authored token types, a tally for every type on every unit, six
+  //            authored actions, ordinary short names;
+  //   2984   an adversarial board: the above, plus non-contiguous ids on both
+  //            sides, two-digit values everywhere, and all 23 nameable things
+  //            given distinct 24-character ASCII names;
+  //   3186   the same board with distinct 23-emoji names.
+  //
+  // Where the characters actually sit at that ceiling: the tally stream is
+  // 1,360 of the 3,186 and the name table 960. The twelve action records are
+  // 418 and the eleven token vocabulary records 127. So THE DIALS ARE NOT WHERE
+  // THE CHARACTERS ARE, and the conclusion is the operative sentence here:
+  //
+  //   DO NOT MOVE MAX_CUSTOM_TYPES, MAX_CUSTOM_ACTIONS, MAX_ACTION_REQ OR
+  //   MAX_ACTION_XF to buy build-code characters.
+  //
+  // Buying characters by taking expressiveness away from students cuts against
+  // the whole reason Phases 2.1 and 3.1 exist, and it buys the wrong column
+  // anyway. Two schema choices bought the characters instead, for no cost to a
+  // student at all: a NAME TABLE, which writes each distinct name once at the
+  // head of the code and references it by index everywhere else, and SPLIT UNIT
+  // STREAMS, which run-length the health and shield pairs and the tally bags as
+  // two independent lists rather than one fused record. Without both, the same
+  // six boards measure 33 / 272 / 271 / 1,781 / 4,729 / 4,839 — the last of
+  // those is 2.4 times what a message holds, and beyond rescue without a
+  // compression step.
+  //
+  // And CompressionStream — the escalation path this comment used to name — is
+  // ruled out, on a reason that is not size. It is ASYNCHRONOUS, and an await
+  // between the click and the clipboard write forfeits the Chrome-107 user
+  // gesture SHARE-01 depends on. It is also undefined in the terminal harness's
+  // sandbox, so every assertion about it would be documentation rather than a
+  // gate. CODE_TARGET, CODE_WARN and CODE_LIMIT below carry what replaced it.
+  //
+  // Three per side also matches the three each faction already ships, which is
+  // what makes D-07 concrete on screen: three shipped plus three authored is
+  // six cards in a column, all the same kind of thing.
   var MAX_CUSTOM_ACTIONS = 3;
   var MAX_ACTION_REQ = 2;
   var MAX_ACTION_XF = 2;
@@ -1745,6 +1807,97 @@ App.data = (function () {
   // APPENDED to the end. They may never be reordered, and never removed,
   // without bumping the build code's schema version.
   var XF_WHO = deepFreeze(['caster', 'target']);
+
+  /* --- THE WIRE. Seven named constants that decide the SHAPE of a build code.
+         Each carries the arithmetic or the source that chose it, in the
+         MAX_CUSTOM_TYPES idiom above, because every one of them is a thing a
+         later plan may want to move and none of them is a taste call. [S04]
+         reads them at its call sites and [S09.11] asserts against these names
+         rather than against a re-typed copy, for the same reason the
+         allowlists above are exported at all. --- */
+
+  // The WIRE version, written as the first characters of every build code.
+  // It is NOT `build.schema` below, which is the RECORD version and stays 1.
+  // The two hold the same number today and they are two different things:
+  // schema says what shape the state object in memory has, this says what
+  // shape a pasted string has, and they move apart the first time one gains a
+  // field the other already had. Six assertions in [S09] pin the `build` key
+  // set to exactly schema, cats, mechs and tokens, so the wire version may
+  // never become a state key — it lives here, in the data tier, and [S04] is
+  // its only reader. A decode reads this prefix FIRST and refuses anything
+  // else BY NAME, so a later 'v2' is a one-arm addition rather than a break.
+  var CODE_VERSION = 'v1';
+
+  // One character per nesting level, so that "a separator may never appear in
+  // anything it delimits" is a rule with something to be asserted against
+  // instead of a convention written in a comment and then forgotten.
+  //
+  // Two grammar bugs were found while this phase's codec was being measured,
+  // and BOTH ARE THE SAME BUG one level apart: a record joined its fields with
+  // the same character its term lists joined their items with, and a tally bag
+  // joined its items with the character the run-length stream used between
+  // runs. Both decoded to a WRONG BUILD rather than to an error — which is
+  // exactly the "loads garbage silently" failure SHARE-03 exists to prevent,
+  // and neither was visible to a size measurement that never read the code
+  // back. [S09.11] holds the row that would have caught both: the six are six
+  // distinct characters, and every one of them is inside CODE_ALPHABET.
+  var CODE_SEP = deepFreeze({
+    section: '~',  // 0 — the version, the sections, and one side's fields
+    record: '_',   // 1 — between records in a list of records
+    field: '.',    // 2 — between the fields of one record, and in the name table
+    item: '-',     // 3 — between items in one field, and between runs
+    term: '!',     // 4 — between the parts of one list item
+    run: '*'       // aux — between a run length and the payload it repeats
+  });
+
+  // What a build code may be made of, as an ALLOWLIST matching a whole code
+  // string: base36 digits, the base64url alphabet (which already carries - and
+  // _), and the six separators above. An allowlist and never a blocklist — a
+  // blocklist reads green about every character nobody thought of, and this is
+  // the one guard standing between a pasted string and the three characters
+  // below.
+  //
+  // Excluded BY CONSTRUCTION, and only one of the three reasons is discoverable
+  // from the browser:
+  //   ,  because [S00]'s hasFlag splits location.hash on it and compares whole
+  //      tokens. A comma inside a code silently fragments it, and stops
+  //      #selftest working beside one. This is the binding alphabet constraint
+  //      of the whole phase and it is written down in no other document.
+  //   ' ' because a space becomes a percent escape on write-back, so a code
+  //      carrying one would not survive its own mirror in the address bar.
+  //   %  because it is ambiguous against percent-encoding, both ways.
+  // Measured: every other ASCII punctuation character round-trips through a
+  // Chrome 151 location.hash verbatim, so the browser is not the constraint.
+  var CODE_ALPHABET = /^[0-9A-Za-z~_.!*-]+$/;
+
+  // The name of the token the build code occupies inside the comma-separated
+  // hash, so that #selftest,b=v1~... parses under the existing hasFlag rather
+  // than fighting it. A NAMED token makes the boot reader a prefix test —
+  // "does this token start with b=" — instead of a guess about whether an
+  // unknown token is a flag nobody has shipped yet or a code.
+  var CODE_HASH_KEY = 'b';
+
+  // The three size figures. Each is a fact about a message or a measurement of
+  // a board; none of them is a judgement about a build.
+  //
+  // CODE_TARGET is the design target for a board a student ACTUALLY builds, and
+  // it is a target rather than a guarantee: the realistic 12v5 measured 295 and
+  // the fully authored 24v24 measured 675. See the measured decomposition
+  // beside MAX_CUSTOM_ACTIONS above for the rest of the table.
+  var CODE_TARGET = 512;
+
+  // CODE_WARN is D-18's threshold — the point past which the surface says, in
+  // plain descriptive words, that a code is longer than a message allows. It
+  // sits below CODE_LIMIT rather than on it so a student learns before a paste
+  // is refused rather than after.
+  var CODE_WARN = 1800;
+
+  // CODE_LIMIT is the free-tier message limit, and it is the ONE number in this
+  // phase that is not measured: it is inherited from CLAUDE.md's two secondary
+  // sources, which agree with each other and neither of which is a first-party
+  // document. MEDIUM confidence, recorded as such here so the next reader knows
+  // which figure to re-check first. Every other number above was round-tripped.
+  var CODE_LIMIT = 2000;
 
   // D-01: a literal reading of the board's token rows. A starting point, not a
   // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
@@ -1931,7 +2084,16 @@ App.data = (function () {
     MAX_ALLOC: MAX_ALLOC,
     MAX_XF_DELTA: MAX_XF_DELTA,
     MIN_XF_DELTA: MIN_XF_DELTA,
-    XF_WHO: XF_WHO
+    XF_WHO: XF_WHO,
+    // The wire. [S04] reads every one of these at its call sites and [S09.11]
+    // asserts against these names, never against a re-typed copy of the value.
+    CODE_VERSION: CODE_VERSION,
+    CODE_SEP: CODE_SEP,
+    CODE_ALPHABET: CODE_ALPHABET,
+    CODE_HASH_KEY: CODE_HASH_KEY,
+    CODE_TARGET: CODE_TARGET,
+    CODE_WARN: CODE_WARN,
+    CODE_LIMIT: CODE_LIMIT
   });
 })();
 // #endregion [S01] DATA
