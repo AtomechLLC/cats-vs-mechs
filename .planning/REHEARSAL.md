@@ -50,7 +50,7 @@ four fixes and says so at the top — read the preamble before running it.
 
 ---
 
-## B. Glyphs, wrapping and stickiness — 2 items
+## B. Glyphs, wrapping and stickiness — 3 items
 
 ### B1. Glyph rendering and wrapping in the strip and reference band *(Phase 3)*
 Do `≈`, `÷` and `–` render as intended — not tofu, and not a hyphen that reads as a minus next to the
@@ -61,6 +61,25 @@ Shrink the window height and scroll. A sticky box taller than the space availabl
 were not sticky for the part that doesn't fit — that's the specific failure to look for.
 
 → `.planning/phases/03-advisory-projection-reference-material/03-HUMAN-UAT.md`
+
+### B3. The page above the live board is taller than the screen once a fight is running *(Phase 5, plan 05-08)*
+**This is a numbers-in-hand item, not an opinion one, and the numbers are already taken.** Driven in
+real Chrome and real Edge at 1920x1080 from `file://`, with a fight running and one round resolved:
+`#board`'s top sits at **1183px of a 1080px viewport**, so the live board is reached by scrolling.
+It is not one region's doing — with the ledger hidden entirely the board's top is already at **759px**,
+which plan 05-07 measured and handed on. There are now **three dials** above the board and they are one
+budget: `.fg-sides` 34vh, `.ld-list` 34vh, `.ld-now-body` 20vh.
+
+Machine-verified already, so do not spend the session re-checking it: `#strip` is still `position:
+sticky` and every ancestor of it still reports `overflow: visible` on every board driven, and the strip
+pins at 64px through the scroll. The ledger scrolls to its end on every append and the newest round's
+bottom edge sits 20–24px above the live board at every depth from one round to thirty.
+
+**What only the room can answer:** whether a student can operate this page on the workshop display with
+the live board below the fold, or whether one of the three dials has to come down — and which. Try it
+at 1920x1080 and at whatever the room's projector actually is.
+
+→ `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
 ---
 

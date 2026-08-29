@@ -611,7 +611,7 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     already taken that unit to zero and the set landed where the board
 //     already was: "a set that moved nothing is not a ruling", met in a
 //     resolved round rather than in a comment. The row now reads both.
-const SUITE_FLOOR = 1155;
+const SUITE_FLOOR = 1158;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
@@ -8185,10 +8185,23 @@ A.state.flush();
 clearPanel();
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
-       There is no browser and no layout engine in this repo, and the stub page
-       is a hand-made stand-in rather than a parser. The behaviours numbered
-       below therefore have no check above and are carried to the phase's
-       closing rehearsal instead. (The count was written as "four" when the
+       THIS HARNESS has no layout engine, and the stub page is a hand-made
+       stand-in rather than a parser. The behaviours numbered below therefore
+       have no check above and are carried to the phase's closing rehearsal
+       instead.
+
+       AND THE FIRST SENTENCE OF THIS BANNER USED TO SAY "there is no browser
+       and no layout engine in this repo", WHICH WAS FALSE AND WAS WHAT PUT
+       LAYOUT ITEMS ON A HUMAN'S LIST FOR THREE PHASES. Measured 2026-08-29:
+       real Chrome and real Edge both load the artifact from file:// with zero
+       page errors and expose real computed geometry, and Playwright 1.62.1
+       drives both. tests/browser-checks.mjs is the dev-only harness that does
+       it and it skips cleanly where Playwright is absent, so nothing about the
+       shipped gate changed. The distinction that matters is therefore no longer
+       "reachable or not" but WHICH OF THE TWO: entries that turn on computed
+       geometry — 2, 6, 9, 11 and 20 — are MACHINE-closable by a browser and
+       are not this gate's to close; entries that turn on a person reading
+       something — 4, 8, 10, 18 — are not closable by any machine at all. (The count was written as "four" when the
        list held four; it is kept as a numbered list rather than a number in
        prose so that adding an entry cannot leave a stale total behind.)
 
@@ -8393,7 +8406,28 @@ clearPanel();
             between them, so this is a hole in the layers that read CODE rather
             than in the layer that reads the page. An identifier named winsBy is
             a smell in a file whose comments are half of its documentation; it is
-            not something a student ever sees. --- */
+            not something a student ever sees.
+        20. AN OVERFLOW ON AN ANCESTOR SILENTLY TAKING #strip's STICKING AWAY.
+            [C03] states the cost in its own sentence — there is no error and no
+            warning when it goes wrong, sticky simply stops working — and this
+            entry is the measurement behind that sentence rather than a
+            restating of it. Driven TWICE, by two plans, from two different
+            regions: plan 05-06's probe V moved the ledger's scroll onto .shell,
+            and plan 05-08's probe AA put max-height and overflow-y:auto on
+            #app, which is an ancestor of #topbar, #strip and both fight
+            regions. BOTH RUNS WERE SPOTLESSLY GREEN HERE: 1188 passed, 0
+            failed, 147 of 147, every scan clean, exit 0.
+            AND A REAL BROWSER SEES IT IMMEDIATELY, which is what moves this
+            entry off the human rehearsal list and onto the browser harness's.
+            Chrome, 1920x1080, one round resolved, the page scrolled to 0 /
+            1200 / 1600 / 2200 and #strip's viewport top read at each:
+              clean      1116 -> 64 -> 64 -> 64      (it pins, as intended)
+              probe AA   1116 -> 900 -> 900 -> 900   (it never pins)
+            and the document's own scrollHeight collapses from 3490 to 1296,
+            because #app has become the scroller. So this is not a thing no
+            machine can see; it is a thing THIS harness cannot see, and the two
+            readings above are the shape of the row that belongs in
+            tests/browser-checks.mjs. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks

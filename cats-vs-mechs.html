@@ -23903,6 +23903,61 @@ App.selftest = (function () {
 
     t.ok('the prototype is intact after the slice-contract rows', protoIntact());
 
+    /* ===== AND THE SAME SHAPE AFTER A ROUND HAS RESOLVED =====
+       ADDED BY PLAN 05-08, AND A PROBE IS WHY IT IS HERE RATHER THAN A
+       PREFERENCE FOR SYMMETRY. The three rows above are taken on a FRESH
+       fight, which is the one state in which nothing has had a chance to
+       store anything. Probe Z drove the defect they were written to prevent —
+       the board-versus-previous-round reading computed once inside
+       advanceRound and STORED on the fight slice, then rendered from the
+       store — and the whole repository stayed spotlessly green over it: 1185
+       passed, 0 failed, 147 of 147 interaction checks, every scan clean. The
+       reading then said one thing and the board said another the moment a
+       student ruled a number by hand without advancing, which is the exact
+       disagreement CLAUDE.md's rule against storing a derived figure exists to
+       prevent and the one this project cannot afford, because a MECHANICAL
+       disagreement between the board and a reading of it is indistinguishable
+       from the PEDAGOGICAL one the whole artifact is built around.
+
+       A ROUND RESOLVING IS THE MOMENT SUCH A FIGURE WOULD BE STORED, so the
+       shape is asserted again on the other side of it, at all three depths a
+       cache could hide at: the slice, the side, and the unit. The unit depth is
+       plan 05-05's row restated on a resolved board for the same reason it was
+       written in the first place — a per-value flag beside `hp` measures clean
+       as a key name and is exactly what a well-meaning author would reach for.
+       [S06.8] derives that reading at render time, from past[last].was against
+       the live side, and stores nothing at all. */
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.ops.advanceRound();
+
+    t.eq('AND THE SLICE IS STILL EXACTLY THOSE FIVE KEYS ONCE A ROUND HAS '
+      + 'RESOLVED. Advance leaves nothing behind: no cached difference, no '
+      + 'note about what moved, nothing derived from the record beside the '
+      + 'record. Probe Z put one key here and every other row in this file '
+      + 'stayed green',
+      Object.keys(fight()).sort().join(','), 'cats,decl,mechs,past,round');
+
+    t.eq('and neither the side nor the unit grew a key across the Advance '
+      + 'either, because a cache one level down is the same defect with a '
+      + 'smaller blast radius and is the one an author actually reaches for',
+      [Object.keys(fight().cats).sort().join(','),
+        Object.keys(fight().mechs).sort().join(','),
+        fight().cats.units.concat(fight().mechs.units).map(function (u) {
+          return Object.keys(u).sort().join(',');
+        }).filter(function (shape, i, all) { return all.indexOf(shape) === i; }).join(' | ')],
+      ['ap,units', 'ap,units', 'alive,hp,id,shield']);
+
+    t.eq('and the ROUND RECORD carries only the three fields advanceRound '
+      + 'writes for a round nobody ruled in — the round number, the board as '
+      + 'it stood, and what the declarations did. The difference between that '
+      + 'board and the live one is FIGHT-15\'s whole reading and it is derived '
+      + 'at render time, so a fourth field here would be the same stored delta '
+      + 'wearing the record\'s clothes',
+      Object.keys(fight().past[0]).sort().join(','), 'did,round,was');
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+
     /* ===== NO REFUSED KEY NAME, ANYWHERE IN A FIGHT =====
        THIS GROUP EXISTS BECAUSE A PROBE MEASURED ITS ABSENCE. [S09.10]'s
        second boundary row and check 73c in tests/selftest-node.cjs both walk
