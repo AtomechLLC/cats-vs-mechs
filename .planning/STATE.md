@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 04-06-PLAN.md
-last_updated: "2026-08-29T07:29:47.174Z"
+last_updated: "2026-08-29T07:40:47.931Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
-  completed_phases: 5
+  completed_phases: 6
   total_plans: 32
-  completed_plans: 32
-  percent: 71
+  completed_plans: 33
+  percent: 86
 ---
 
 # Project State
@@ -27,7 +27,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 Phase: 04
 Plan: 8 of 8
-Status: Ready to execute
+Status: Phase complete — ready for verification
 Last activity: 2026-08-29
 
 Progress: [██████████] 100%
@@ -68,6 +68,7 @@ Progress: [██████████] 100%
 | Phase 04 P05 | 95min | 2 tasks | 2 files |
 | Phase 04 P06 | 80min | 3 tasks | 2 files |
 | Phase 04 P07 | 105min | 3 tasks tasks | 2 files files |
+| Phase 04 P08 | 35min | 2 tasks tasks | 0 files files |
 
 ## Accumulated Context
 
@@ -139,6 +140,7 @@ None yet.
 - **Single file, parallel plans.** All code lands in one HTML file. Plans inside a phase must own disjoint named sections (`data / model / state / serialize / ops / render / interactions / boot / selftest`) or run sequentially.
 - **Phase 4 needs a cross-browser test matrix**, not a smoke test — clipboard, encoding and hash failures are all silent.
 - 04-04 probe Q reddened nothing: a boot load landing before the first paint is held by a comment alone. A flash is only visible to a person — rehearsal item for plan 04-08, harness limitations entry 15
+- 04-08: the clipboard matrix carries NO transcribed per-cell tier reading. Tiers 1 and 2 of the copy press have never executed anywhere in this repo (limitations entry 16), so the one-word approval is the only evidence they work. Re-ask for the DevTools-focused and window-backgrounded cells first — that is where Chrome's user-gesture rule is most likely to reject writeText and where the untested fall-through actually runs.
 
 ## Deferred Items
 
@@ -150,6 +152,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T07:29:41.846Z
+Last session: 2026-08-29T07:40:21.701Z
 Stopped at: Completed 04-06-PLAN.md
 Resume file: None

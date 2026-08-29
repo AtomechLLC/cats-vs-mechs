@@ -38,7 +38,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2.1: Token Authoring (INSERTED)** - Students name their tokens and invent new ones, so the vocabulary stops being ours and starts being theirs (plans complete 2026-08-28, human UAT outstanding)
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student (plans complete 2026-08-28, human verification outstanding)
 - [x] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides (completed 2026-08-29)
-- [ ] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back
+- [x] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back (completed 2026-08-29)
 - [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it
 
 ## Phase Details
@@ -226,7 +226,7 @@ Plans:
 - [x] 04-05-PLAN.md — the surface: one share dialog with two panes (D-21) and a separate reset confirmation carrying the D-19 argument in full, their ids / stub nodes / `DIALOG_ROOTS` entries / `[C13]` styles arriving together, two topbar controls paid for in a comment, and `[S06.6]`'s fingerprint-keyed repaint that cannot leave a stale code on screen (wave 5)
 - [x] 04-06-PLAN.md — `[S07.4]` attached through the four seams, and the copy: produced synchronously inside the gesture, three tiers deep, with the line branched on the tier that actually succeeded — plus the floored listener-boundary and act-partition checks and an honest limitations entry for the tiers CI cannot reach (wave 6)
 - [x] 04-07-PLAN.md — paste-to-load with four distinct sentences the page owns, the reset confirmation wired in front of an op that does not change, and the phase's own acceptance run: copy, confirm a reset, paste it back, and read six values off the page (wave 7)
-- [ ] 04-08-PLAN.md — the rehearsal: the roadmap's matrix cell by cell, twenty numbered LOW-confidence items closed by a person, and six decisions taken on the developer's behalf handed back (wave 8, blocking human-verify checkpoint)
+- [x] 04-08-PLAN.md — the rehearsal: the roadmap's matrix cell by cell, twenty numbered LOW-confidence items closed by a person, and six decisions taken on the developer's behalf handed back (wave 8, blocking human-verify checkpoint)
 
 **Plan-split note (set during planning).** Eight sequential waves, no parallelism, for the reason
 Phases 2.1, 3 and 3.1 each recorded: everything lands in one HTML file, so two plans in the same wave
@@ -316,7 +316,7 @@ parallel if desired.
 | 2.1 Token Authoring (INSERTED) | 6/6 | Human UAT outstanding | 2026-08-28 |
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
-| 4. Share & Reset | 7/8 | In Progress|  |
+| 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
 | 5. Fight Loop & Playtest | 0/3 | Not started | - |
 
 ## Coverage
