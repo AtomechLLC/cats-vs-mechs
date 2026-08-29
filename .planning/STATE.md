@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 04-02-PLAN.md
-last_updated: "2026-08-29T05:31:53.169Z"
+last_updated: "2026-08-29T05:55:54.524Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 32
-  completed_plans: 27
+  completed_plans: 28
   percent: 71
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 04
-Plan: 3 of 8
+Plan: 4 of 8
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [████████░░] 84%
+Progress: [█████████░] 88%
 
 ## Performance Metrics
 
@@ -63,6 +63,7 @@ Progress: [████████░░] 84%
 | Phase 03.1 P08 | 25min | 2 tasks | 1 files |
 | Phase 04 P01 | 95min | 3 tasks tasks | 2 files files |
 | Phase 04 P02 | 70min | 3 tasks | 2 files |
+| Phase 04-share-reset P03 | 95min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -110,6 +111,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-02: the three [S05] bounds the decoder re-types are exported as WIRE_BOUNDS and held to App.ops by suite rows, because [S04] may not reach upward across a dependency arrow
 - [Phase ?]: 04-02: the round trip is asserted over a stable writing of the record, since a tally bag's key order is the order a student set them in and carries no meaning
 - [Phase ?]: 04-02: no round trip over a DRIVEN board can see a derived-versus-enumerated ordinal order, so three rows hand encode a vocabulary written down in another order and require the identical code
+- [Phase ?]: 04-03: the matrix is seventeen tamper shapes of which TWELVE are content rows, not the eleven the plan says in three places — research's own table lists twelve and a suite row now pins the figure
+- [Phase ?]: 04-03: two rows of the bad-input table ADMIT the code — decode trims, so a good code with a trailing newline is a good code, and demanding a refusal there would be demanding a defect
+- [Phase ?]: 04-03: the reconstruction tripwire compares what came BACK against what went IN, never against the reconstruction — probe K proved the second comparison is a tautology that stayed green over the exact data loss it exists to catch
+- [Phase ?]: 04-03: [S04.3]'s unbag refuses rather than dereferencing tokens[id] on a function invariant — probe J broke the lockstep by one line and threw a TypeError out of a function whose banner says it never throws
 
 ### Pending Todos
 
@@ -131,6 +136,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T05:31:53.153Z
+Last session: 2026-08-29T05:55:23.787Z
 Stopped at: Completed 04-02-PLAN.md
 Resume file: None
