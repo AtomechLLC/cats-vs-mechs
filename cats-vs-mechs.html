@@ -2190,6 +2190,30 @@ App.data = (function () {
   // without bumping the build code's schema version.
   var XF_WHO = deepFreeze(['caster', 'target']);
 
+  // How many resolved rounds the fight slice keeps, oldest dropped first.
+  // Thirty, and it is the SAME thirty as [S03]'s UNDO_LIMIT on purpose: one
+  // number for "how far back this tool remembers" reads as a decision, two
+  // read as an accident nobody has reconciled yet.
+  //
+  // THIS IS A READABILITY CAP AND NOT A PERFORMANCE ONE, and saying so is the
+  // point of writing it down. The measurement says the page can hold far more:
+  // one more past board costs a flat 1.9-2.1 ms all the way to 60 rounds and
+  // 26,132 nodes, and sync() does not move AT ALL at 50 rounds, because a past
+  // board is inert nodes outside the keyed reconcile. A page of thirty past
+  // boards stops being readable long before it stops being fast, and that is
+  // the reason. Implying a performance reason the measurement does not support
+  // would send the next reader looking for a bottleneck that is not there.
+  //
+  // The second-order fact the same measurement did find, recorded because it
+  // is the one that would surprise somebody: [S03]'s commit() snapshots the
+  // WHOLE fight slice on every commit, so thirty undo entries over a
+  // thirty-round record is roughly 640 KB of snapshot strings. That is
+  // affordable, it is watched by the dev-side timing gate at 50 ms per 100
+  // commits, and it is a reason to CAP the record rather than a reason to move
+  // it out of state — undo has to be able to take an Advance back, and only
+  // state can do that.
+  var MAX_PAST_ROUNDS = 30;
+
   /* --- THE WIRE. Seven named constants that decide the SHAPE of a build code.
          Each carries the arithmetic or the source that chose it, in the
          MAX_CUSTOM_TYPES idiom above, because every one of them is a thing a
@@ -2282,8 +2306,13 @@ App.data = (function () {
   var CODE_LIMIT = 2000;
 
   // D-01: a literal reading of the board's token rows. A starting point, not a
-  // conclusion — the Phase 5 playtest gate (plan 05-03) is the mechanism that
-  // retunes these, and this object is the single place that edit happens.
+  // conclusion — the Phase 5 playtest gate is the mechanism that retunes
+  // these, and this object is the single place that edit happens. THE PLAN
+  // NUMBER MOVED: it was written here as 05-03 and the phase's plans were
+  // renumbered afterwards, so the retune is PLAN 05-11, and per D-25 no plan
+  // before it touches DEFAULTS.cats.ap. The criterion that gate is held to is
+  // a PLAYED fight rather than a code review, which is why the number waits
+  // for a person and not for a measurement.
   // Effect keyword ids live here. Their NAMES, and the action-versus-action
   // table of what beats what, are NOT here: they are REFERENCE, declared below
   // beside this literal and deliberately outside it. That constant's own
@@ -2467,6 +2496,11 @@ App.data = (function () {
     MAX_XF_DELTA: MAX_XF_DELTA,
     MIN_XF_DELTA: MIN_XF_DELTA,
     XF_WHO: XF_WHO,
+    // The fight cap, exported for the same stated reason every cap above is:
+    // [S09.12] asserts against the constant rather than against a re-typed 30
+    // that can drift away from this definition, and plan 05-04's advanceRound
+    // reads it at the one place it drops the oldest round.
+    MAX_PAST_ROUNDS: MAX_PAST_ROUNDS,
     // The wire. [S04] reads every one of these at its call sites and [S09.11]
     // asserts against these names, never against a re-typed copy of the value.
     CODE_VERSION: CODE_VERSION,
@@ -2846,7 +2880,7 @@ App.model = (function () {
 /* ===================== [S03] STATE =====================
  * The single state object, the commit(label, mutator) funnel, the snapshot
  * undo stack and the frame-coalesced invalidate(). Nothing mutates state
- * outside commit(); that one rule is what makes undo, the fight log, hash
+ * outside commit(); that one rule is what makes undo, the fight record, hash
  * sync and coalesced rendering free byproducts instead of features.
  * There are TWO documented exceptions and this is the inventory of them, each
  * named with the one caller allowed to reach it. They are listed here rather
@@ -2864,21 +2898,64 @@ App.model = (function () {
  *                                  moved, which is a boundary no student press
  *                                  can reach.
  * Neither is dispatchable and neither is reachable from a press.
+ * PHASE 5 ADDS NO THIRD ONE. Every op the fight loop needs — the lifecycle,
+ * the declaration list, the round record — goes through commit() or through
+ * [S05]'s commitStructural, which is commit() with a structural frame after
+ * it. This sentence is here because the inventory above is only worth reading
+ * if a phase that grew the slice is on record as not having extended it.
  *
  * Shape — integers only, JSON-clonable, no DOM nodes, no functions:
- *   { build: { schema, cats, mechs },
- *     fight: null | { round, turn, cats, mechs, log },
+ *   { build: { schema, cats, mechs, tokens },
+ *     fight: null | { round, decl, past, cats, mechs },
  *     ui:    { kbdNav, revealTok } }
- *   fight side shape: { ap, units: [ { id, hp, shield, alive } ] }
+ *   fight side shape: { ap, units: [ { id, hp, shield, alive, tally? } ], tally? }
+ *
+ * `decl` is this round's declarations — what a student SAID a side is doing,
+ * before anything resolves. `past` is the append-only record of rounds that
+ * have resolved, newest last, capped at App.data.MAX_PAST_ROUNDS. A `tally?`
+ * is present only where the matching `build` record carries one, which is the
+ * rule the build slice already keeps: a bag with no keys deletes itself.
+ *
+ * `turn` AND `log` ARE RETIRED, BY NAME, AND THIS PARAGRAPH IS WHY.
+ * `turn: 'cats'` shipped with plan 01-02 and encoded ALTERNATING turns. The
+ * round loop is simultaneous: one Advance resolves both sides, so there is no
+ * side whose turn it is, and a key named after a concept the file no longer
+ * has is exactly the quiet lie this banner opens by forbidding. The readable
+ * fact it was there to carry is now THE ROUND NUMBER AND BOTH POOLS — a
+ * statement about the board rather than about a turn order, and one nothing
+ * has to be told to keep in step. The alternative was to repurpose the key to
+ * mean "the side declared first", which is not a fact the loop has.
+ * `log: []` shipped in the same commit with no writer and no reader. A round's
+ * `did` and `hand` — the two fields plan 05-04's advanceRound pushes into
+ * `past`, which is empty until it ships — ARE that record, and they are the
+ * same object the ledger renders, so giving `log` a writer would put two
+ * structures on the board both
+ * claiming to be what happened, and two such structures disagree. The field
+ * with no writer is deleted rather than fed; the alternative — keeping `log`
+ * for a flat, sentence-per-line reading and deriving nothing from it — was
+ * declined because a derived reading cannot go stale and a stored one can.
  *
  * `shield` is carried into the fight slice, not left as a build-only eHP
  * modifier, so the health the projection panel promises and the health the
  * board shows are the same number. Its writer arrives with Phase 5.
  *
+ * KEYS ARE BANNED, NOT WORDS. [S09.10]'s second boundary row and check 73c in
+ * tests/selftest-node.cjs both walk this whole object AT ANY DEPTH and redden
+ * on a key matching /propos|override|caster|target|pending/i. That is a rule
+ * about OBJECT KEYS and about nothing else: a declaration spelled
+ * { by, at } is clean and the same record spelled { caster, target } reddens
+ * the run, while the words themselves stay perfectly renderable — the action
+ * editor's own WHO_SAID already puts two of them on screen. It is the most
+ * surprising constraint in this section and nothing else in the file says it.
+ *
  * There is NO `mode` key anywhere. Mode is derived from `fight !== null`, so
  * the two can never disagree. `alive` is stored, never inferred from hp === 0.
  * Slice lifetimes: `build` round-trips through the share code and the undo
- * stack; `fight` is undo-only and never shared; `ui` is in neither.
+ * stack; `fight` is undo-only and never shared; `ui` is in neither. That third
+ * clause is what makes SHARE-07 structural rather than promised: [S04]'s
+ * encode takes the BUILD SLICE as an argument and never reads this object, so
+ * a build code produced with a fight running is byte-identical to one produced
+ * without, and no plan in Phase 5 taught it otherwise.
  * deps: App.data (deepFreeze), App.serialize, App.render, App.boot (wrap)
  * owner: plan 01-02
  * ======================================================= */
@@ -4902,25 +4979,62 @@ App.ops = (function () {
   // projection to disagree with the board, and this artifact exists to stage a
   // pedagogical disagreement, not to bury it under a bookkeeping one.
   //
-  // Like `log`, the field ships now and its writer arrives with the phase that
-  // has a surface to spend from — Phase 5, plan 05-01. Nothing here decides
-  // how a shield behaves; the table still rules that.
+  // The field ships now and its writer arrives with the phase that has a
+  // surface to spend from — plan 05-05, which adds setFightShield beside the
+  // build-slice writer below. Nothing here decides how a shield behaves; the
+  // table still rules that.
   //
-  // Note what is NOT copied: a `tally` from a student-made token type. That is
-  // deliberate and not an oversight. In this phase a tally is a build-time
-  // annotation — a number the student writes down beside their own invention,
-  // which the tool stores and never reads a meaning into (D-00e). Whether a
-  // tally should be spendable DURING a fight is a fight-semantics ruling, and
-  // Phase 5 owns it, exactly as it owns the fight slice's own `shield` copy.
-  // Written down here rather than left for the next reader to wonder whether
-  // somebody simply forgot it.
+  // A TALLY IS COPIED, AND THAT IS THE RULING THIS COMMENT USED TO DEFER.
+  // What stood here said "whether a tally should be spendable DURING a fight
+  // is a fight-semantics ruling, and Phase 5 owns it". Phase 5 rules it: a
+  // student-invented token type is spendable in a fight ON THE SAME TERMS as
+  // one the board ships with (D-24). The reason is plan 02.1's, restated where
+  // the pressure to break it lands — that phase existed so the vocabulary
+  // stops being ours and starts being theirs, and it shipped with a single
+  // list and explicitly no second tier. A type that worked everywhere except
+  // in the fight would put that second tier back at the one moment it matters
+  // most, and it would do it silently: a student would set a tally, start the
+  // fight, and find their own invention had quietly stopped existing.
+  //
+  // The alternative, and it was a real one: leave a tally as a build-time
+  // annotation the student increments by hand and never carries in. That keeps
+  // the fight slice smaller and it keeps the tool further from interpreting a
+  // student-made type. It was declined because the tool interprets nothing
+  // either way — it copies a number and hands it back — and because "smaller
+  // slice" is a cost paid by nobody against a second tier paid for by every
+  // student who invented a type.
+  //
+  // THE COPY IS THE POINT. The fight carries its OWN bag, produced through
+  // this file's own deep-copy idiom, so nothing in the fight loop ever writes
+  // to `build` — which is in turn why the codec still cannot see a fight:
+  // [S04].encode takes the build slice as an argument, and there is nothing of
+  // the fight anywhere it reads. hasOwnProperty on every step, for the reason
+  // dropTally already records: from Phase 4 a bag can arrive from a pasted
+  // build code rather than from this file.
+  //
+  // Present only where `build` has one, at BOTH levels, rather than an empty
+  // bag forced onto every side and every unit. One rule instead of a special
+  // case, and it is the rule the build slice already keeps — a bag with no
+  // keys deletes itself (D-04). readTally answers 0 for an absent bag, so no
+  // reader has to know which shape it got.
+  function tallyCopy(owner) {
+    if (!Object.prototype.hasOwnProperty.call(owner, 'tally')) { return null; }
+    return JSON.parse(JSON.stringify(owner.tally));
+  }
+
   function sideFromBuild(faction) {
-    return {
+    var side = {
       ap: faction.ap,
       units: faction.units.map(function (u) {
-        return { id: u.id, hp: u.maxHp, shield: u.shield, alive: true };
+        var unit = { id: u.id, hp: u.maxHp, shield: u.shield, alive: true };
+        var own = tallyCopy(u);
+        if (own !== null) { unit.tally = own; }
+        return unit;
       })
     };
+    var bag = tallyCopy(faction);
+    if (bag !== null) { side.tally = bag; }
+    return side;
   }
 
   /* ---- transformers: each one is exactly one commit ---- */
@@ -4948,7 +5062,7 @@ App.ops = (function () {
   // durability cannot express the asymmetry this artifact exists to teach.
   //
   // The fight slice carries its OWN `shield` copy and that one still has no
-  // writer at all. Phase 5, plan 05-01 owns it, and its op will need a distinct
+  // writer at all. Plan 05-05 owns it, and its op will need a distinct
   // name — setFightShield — because spending a shield during a fight and
   // allocating one during setup are different acts on different numbers. This is
   // precisely the build/fight pairing setUnitMaxHp and setUnitHp already model.
@@ -5104,12 +5218,22 @@ App.ops = (function () {
   // Writes the fight slice only, and deliberately touches nothing else: zero
   // health prompts a death ruling from the table, it never auto-kills (D-00d).
   //
-  // The clamp is deliberately still MAX_ALLOC rather than this unit's own
-  // maxHp. That looks like an oversight and is not one: capping fight health at
-  // its allocation is a FIGHT-semantics ruling — whether a heal can overshoot,
-  // whether a shield reads as temporary health — and Phase 5, plan 05-01 owns
-  // fight health. Changing it here would silently alter behaviour in a phase
-  // that has no fight surface to test it on. Left consciously, not missed.
+  // THE CLAMP STAYS MAX_ALLOC AND DOES NOT BECOME THIS UNIT'S OWN maxHp, and
+  // this paragraph is the decision the previous one deferred. What stood here
+  // said the choice was "left consciously, not missed" and handed it to Phase
+  // 5; plan 05-02 rules it, and rules it the way the rest of this file rules
+  // everything of the same kind. Whether a heal may overshoot the allocation,
+  // and whether a shield may read as temporary health above it, are both
+  // RULINGS — and rulings belong to the table, not to a clamp. Capping at
+  // maxHp would settle two of them silently, in arithmetic, with nowhere for a
+  // student who ruled otherwise to write the number down.
+  //
+  // The alternative, named because it is the obvious one: clamp at
+  // findUnit(...).maxHp + shield, so fight health can never exceed the eHP the
+  // projection promised. It is tidier and it is exactly the tool deciding. The
+  // bound that remains is the one bound this file has always had — a whole
+  // number in [0, MAX_ALLOC] — and it is a bound on what a FIELD can hold
+  // rather than on what a fight can mean.
   function setUnitHp(side, unitId, hp) {
     requireSide(side);
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
@@ -5141,6 +5265,13 @@ App.ops = (function () {
   // remove buttons and the "+ Add Cat" button are built at all, so starting a
   // fight changes what structure() would produce. A sync-only frame left the
   // roster-shaping chrome D-05 exists to hide on screen for the whole fight.
+  //
+  // THE SEED IS THE SHAPE. It used to carry `turn: 'cats'` and `log: []`, and
+  // it carries neither now — [S03]'s banner has the whole paragraph on why,
+  // and the short of it is that one named a turn order the round loop does not
+  // have and the other was a field with no writer beside a record with no
+  // second copy. `decl` and `past` open EMPTY and stay empty until plan 05-04
+  // ships advanceRound, which is the one thing that ever moves either.
   function startFight() {
     commitStructural('start fight', function (s) {
       if (s.fight !== null) {
@@ -5148,8 +5279,8 @@ App.ops = (function () {
       }
       s.fight = {
         round: 1,
-        turn: 'cats',
-        log: [],
+        decl: [],
+        past: [],
         cats: sideFromBuild(s.build.cats),
         mechs: sideFromBuild(s.build.mechs)
       };
