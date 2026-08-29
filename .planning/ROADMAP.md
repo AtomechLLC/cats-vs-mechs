@@ -33,10 +33,10 @@ preserve that or run the plans sequentially instead.
 
 Decimal phases appear between their surrounding integers in numeric order.
 
-- [ ] **Phase 1: Foundation — Data, State Funnel & Undo** - The file opens offline and proves its own data model, mutation funnel and undo before any UI exists
-- [ ] **Phase 2: Allocation Surface** - Steppers, token rows and roster editing that survive live-workshop hammering
-- [ ] **Phase 2.1: Token Authoring (INSERTED)** - Students name their tokens and invent new ones, so the vocabulary stops being ours and starts being theirs
-- [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student
+- [x] **Phase 1: Foundation — Data, State Funnel & Undo** - The file opens offline and proves its own data model, mutation funnel and undo before any UI exists (completed 2026-08-26)
+- [x] **Phase 2: Allocation Surface** - Steppers, token rows and roster editing that survive live-workshop hammering (completed 2026-08-27, human UAT outstanding)
+- [ ] **Phase 2.1: Token Authoring (INSERTED)** - Students name their tokens and invent new ones, so the vocabulary stops being ours and starts being theirs (plans complete 2026-08-28, human UAT outstanding)
+- [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student (plans complete 2026-08-28, human verification outstanding)
 - [x] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides (completed 2026-08-29)
 - [ ] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back
 - [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it
@@ -279,9 +279,11 @@ parallel if desired.
 
 | Phase | Plans Complete | Status | Completed |
 |-------|----------------|--------|-----------|
-| 1. Foundation — Data, State Funnel & Undo | 0/2 | Not started | - |
-| 2. Allocation Surface | 0/3 | Not started | - |
-| 3. Advisory Projection & Reference Material | 0/5 | Not started | - |
+| 1. Foundation — Data, State Funnel & Undo | 2/2 | Complete | 2026-08-26 |
+| 2. Allocation Surface | 3/3 | Human UAT outstanding | 2026-08-27 |
+| 2.1 Token Authoring (INSERTED) | 6/6 | Human UAT outstanding | 2026-08-28 |
+| 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
+| 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 0/2 | Not started | - |
 | 5. Fight Loop & Playtest | 0/3 | Not started | - |
 
