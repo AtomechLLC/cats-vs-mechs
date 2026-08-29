@@ -20800,6 +20800,22 @@ App.selftest = (function () {
     function fight() { return App.state.get().fight; }
     function build() { return App.state.get().build; }
 
+    // THE ROUND NUMBER READ SO THAT A BOARD WITH NO FIGHT ON IT IS A VALUE AND
+    // NOT AN EXCEPTION, and PROBE P is why it exists rather than being caution
+    // around the rows below. Undo crosses the fight boundary by design (D-08):
+    // enough steps back and s.fight is null. The undo row exists to catch two
+    // Advances FOLDING into one entry — and when they fold, the second undo
+    // lands past startFight, so a bare fight().round throws a TypeError exactly
+    // where the row was supposed to FAIL. Measured: it aborted the suite,
+    // nineteen of its own rows never ran, the board was left dirty and an
+    // unrelated interaction check went red behind it. That is the same defect
+    // tallyOf was written for in plan 05-02 and the D-23 row in plan 05-03; a
+    // row must be able to say "NO FIGHT, expected 1".
+    function roundNow() {
+      var live = fight();
+      return (live === null) ? 'NO FIGHT' : live.round;
+    }
+
     // readTally's discipline, borrowed rather than re-derived: hasOwnProperty
     // on every step, zero for an absent bag. It is here because PROBE H found
     // a real defect in the rows below without it — reading owner.tally[id]
@@ -21780,13 +21796,13 @@ App.selftest = (function () {
         App.ops.advanceRound();
         App.ops.advanceRound();
         App.state.flush();
-        var both = fight().round;
+        var both = roundNow();
         App.ops.undo();
         App.state.flush();
-        var one = fight().round;
+        var one = roundNow();
         App.ops.undo();
         App.state.flush();
-        return [both, one, fight().round];
+        return [both, one, roundNow()];
       })(), [3, 2, 1]);
 
     t.info('undo entries the fight-loop rows have used by this point — recorded '
