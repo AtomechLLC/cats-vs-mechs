@@ -5475,9 +5475,37 @@ A.state.flush();
    the reading off THIS row's board, which is the one the floor is compared
    against.
 
+   HISTORY — 56 -> 83, PLAN 05-07 AGAIN, ITS SECOND TASK.
+   The declaration form arrived: three choosers a side, the cost report and the
+   two round controls. Measured the same way and on the same two boards:
+
+       board                       task 1   task 2   delta
+       the suite's board here         116      215     +99
+       a reset-to-defaults 9-and-3    112      211     +99
+
+   AND THE MARGINAL COST OF A UNIT CARD MOVED, which is the part a plan reading
+   only the totals would get wrong. It was 5 on the fight page; it is now 11,
+   measured by trimming both rosters to two a side and then to one and watching
+   the harvest go 123 -> 101. The extra 6 are the three chooser entries a unit
+   now appears in — its own side's who-acts, and BOTH sides' what-it-lands-on,
+   which is 03.1-07's asymmetry showing up in the arithmetic — at two strings
+   each, because a chooser entry is a name node and a tick node.
+
+   So the roster-independent part is 215 - 12x11 = 83, and it is 79 on a
+   reset-to-defaults board by the same four strings of difference the entry
+   above records. 83 is the reading off THIS row's board, which is the one the
+   floor is compared against.
+
+   ONE AXIS IS NEW AND IS WORTH NAMING, because it is not a roster: the action
+   chooser draws one entry per action on the side, so the roster-independent
+   part now also moves with the ACTION count. It only ever moves UPWARD — the
+   six the board ships with cannot be removed ([S05]'s rule, because the
+   reference band names them by id), so 83 is measured at the floor of that axis
+   too and a student authoring actions can only clear it by more.
+
    STILL OWING: plans 05-08 (the ledger) and 05-09 (the board in fight mode).
    Both add rendered fight copy and both owe this number the same re-measure. */
-const FIGHT_FLOOR = 56;
+const FIGHT_FLOOR = 83;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');

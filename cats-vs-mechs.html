@@ -1191,6 +1191,208 @@
   @media(max-width:760px){
     #fightbar, #ledger{width:auto;margin-left:0}
   }
+
+  /* ===================== [C14.1] THE FIGHT BAR ===================== */
+  /* The `.fg-` rules [S06.7] paints with, plan 05-07. The frame above is
+     [C14]'s and this block adds nothing to it: no width, no margin, no
+     overflow and no position, so the sticky gotcha and the shorthand trap that
+     block records are both left where they were closed.
+
+     THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT HERE AND ARE
+     WORTH RESTATING RATHER THAN POINTING AT, because the cost of each is what
+     makes it stick. There is no reference-function-with-a-URI construct, so no
+     background image, no data-URI icon and no stylesheet-loaded font — the dev
+     gate refuses that construct document-wide, in comments too. There is no
+     namespaced inline markup and no namespaced element constructor; a shape,
+     if one were ever wanted, is a clip-path, which is what [C05] already draws
+     the board's triangles and hexagons with. And there is NO NEW HEX: every
+     colour below comes out of [C00]'s tokens, derived with color-mix() where a
+     derivation is needed, which is [C07]'s banner rule.
+
+     ONE PROHIBITION IS SPECIFIC TO A SELECTOR RATHER THAN TO A PROPERTY, and
+     it is the trap plan 05-06 walked up to and named: an id selector whose
+     first three characters are all hexadecimal digits matches the pattern the
+     no-new-hex check scans for. So the two declaration roots are addressed by
+     their CLASS in here and never by their id, which is exactly what [C14]
+     already does and for exactly this reason.
+
+     UX-02'S 18px FLOOR BINDS EVERY LABEL, EVERY LEGEND AND EVERY CONTROL IN
+     THIS BLOCK, and it binds harder here than on the three dialogs for the
+     reason [C14]'s banner gives: this surface is on the page the whole time
+     rather than in front of one person who opened it. Nothing below is an icon
+     and nothing below is a title= tooltip.
+
+     AND THE [hidden] RULE FOR .fg-side IS NOT REPEATED HERE, DELIBERATELY.
+     [C14] already carries `.fg-side[hidden]{display:none}`, and the rule this
+     block gives .fg-side a display cannot beat it whatever the source order,
+     because the attribute selector is a specificity higher. That is worth a
+     sentence rather than a shrug: the two declaration roots ship hidden and are
+     unhidden by [S06.7], so a display in here that DID win would put two empty
+     boxes above the board of every student who never starts a fight — with
+     nothing on screen and no error anywhere to say why. */
+
+  /* Each side of the round, as a column of labelled groups. The gap is the one
+     the region above uses, so the two read as one surface. */
+  .fg-side{display:flex;flex-direction:column;gap:16px}
+  .fg-side-head{
+    margin:0;font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.2px;
+  }
+  .fg-standing{
+    margin:0;font-size:18px;color:var(--ink-dim);
+    font-variant-numeric:tabular-nums;
+  }
+
+  .fg-group{display:flex;flex-direction:column;gap:8px}
+  /* The floor, and it is stated on the legend rather than inherited, so a
+     later change to the region's base size cannot quietly drop a label under
+     it. Same figure [C07], [C12] and [C13] each hold. */
+  .fg-legend{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+
+  /* The choosers. They WRAP rather than shrinking their type — [C12]'s rule
+     about its own list and [C14]'s about the two sides, for the same reason
+     both give: this surface is this size because a room reads it off a
+     projector, so a narrow window may cost height and may never cost
+     legibility. A roster of twenty-four is twenty-four entries and they go
+     onto as many lines as they need. */
+  .fg-acts, .fg-picks{display:flex;flex-wrap:wrap;gap:8px}
+
+  /* THE ONE THING IN THIS REGION THAT GROWS WITHOUT A BOUND IS THE PAIR OF
+     SIDES, AND IT IS BOUNDED HERE FOR THE REASON [C14] BOUNDS THE LEDGER, in
+     that block's own words: "A region above the board that grew without a bound
+     would push the live board off the bottom of a projector within a few
+     rounds, which is the one failure this arrangement exists to avoid." Every
+     word of that transfers, and this region grows along THREE axes rather than
+     the ledger's one — a chooser entry per unit on the roster, an entry per
+     action a student authors, and a line per declaration made this round.
+
+     MEASURED IN REAL CHROME AND REAL EDGE AT 1920 BY 1080, and the numbers are
+     why this is a bound rather than a preference. Unbounded, the shipped
+     9-and-3 board made this region 776px tall and put the live board's top at
+     1034 of a 1080px screen — off the bottom before a single round had been
+     declared. Bounded at 34vh:
+
+       board                              content   region   live board top
+       shipped 9-and-3, nothing declared    646px    367px       759px
+       24 a side, nothing declared         1030px    367px       759px
+       24 a side, twelve declarations      1655px    367px       759px
+
+     THE LIVE BOARD DOES NOT MOVE AT ALL as the surface fills, which is the
+     whole of what the bound buys. Identical in both browsers, zero page errors
+     in both.
+
+     THE SCROLL IS ON THE ELEMENT ITSELF, which is [C12]'s action list, [C14]'s
+     ledger list, and now this — the third time. It is safe from [C03]'s sticky
+     gotcha for a reason worth stating rather than assuming: #strip lives INSIDE
+     #board and this region is #board's SIBLING, so nothing in this block is an
+     ancestor of the sticky element at all. Driven rather than argued: every
+     ancestor of #strip reports overflow `visible` after this rule, and #strip
+     is still `sticky`, in both browsers and on all three boards above.
+
+     34vh IS A REHEARSAL DIAL in --tok's manner and in the ledger's, shipped
+     with the measurement that makes it one rather than with a guess — AND IT IS
+     HALF OF AN ARITHMETIC THAT NEITHER HALF CAN SETTLE ALONE. The ledger's dial
+     is 46vh and it sits above the board too, so the two regions can claim 80vh
+     of a 100vh screen between them, and 759px is already the live board's top
+     with the ledger still hidden. The two dials have to be turned TOGETHER,
+     against a real projector, and that is plan 05-11's — named here with both
+     figures in hand so it is a decision rather than a discovery. Plan 05-08
+     inherits the same sentence.
+
+     The 2px of padding is the ledger list's, for its reason: an outline on a
+     focused control at the edge of a scroller is clipped by the scroller
+     without it. */
+  .fg-sides{max-height:34vh;overflow-y:auto;padding:2px}
+
+  /* THE STATE OF A CHOOSER ENTRY IS SAID THREE TIMES AND COLOUR IS NONE OF
+     THEM: an outline, a tick that is a REAL NODE, and aria-pressed on the
+     button itself. [C07]'s rule, restated in [C12] and again here, and the
+     reason it is a rule at all is that a room is looking at this from the back
+     and one of them may not be able to tell the two colours apart. .ae-pill
+     and .ae-prop-pill are the shipped shape and this is that shape restated
+     under this region's prefix — never borrowed, for [C13]'s reason about
+     .rs-: a rule two regions depend on is a rule neither can change. */
+  .fg-pill{
+    display:flex;align-items:center;gap:6px;
+    min-height:40px;padding:6px 12px;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:9px;color:var(--ink);
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+  .fg-pill--on{outline:2px solid var(--accent);outline-offset:2px}
+  .fg-pill-name{white-space:nowrap}
+  .fg-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
+  .fg-pill--on .fg-check{visibility:visible}
+
+  /* The report about the board. It is deliberately not styled as a warning and
+     carries no danger colouring at any figure, because it is a statement about
+     what the BOARD holds and not a ruling on what the STUDENT may do — the
+     never-disable rule expressed in colour rather than in code. "Not enough to
+     spend" and "Enough to spend" are the same size, the same weight and the
+     same ink. */
+  .fg-reportbox{display:flex;flex-direction:column;gap:6px}
+  .fg-report, .fg-req{
+    margin:0;font-size:18px;line-height:1.4;color:var(--ink-dim);max-width:60ch;
+    font-variant-numeric:tabular-nums;
+  }
+  .fg-reqs{display:flex;flex-direction:column;gap:4px}
+
+  /* THE TWO FRAGMENT CLASSES ARE ONE RULE ON PURPOSE, and this is the one place
+     in the file where two class names having identical rules is the POINT
+     rather than an oversight to be tidied away. sayInto's paragraph states it
+     and fgSay's restates it: a student reading one of these lines must not be
+     able to tell which words the artifact chose and which are their own. The
+     split exists for the gate and for nothing else, so a rule that made the two
+     look different would turn a mechanical exemption into a visible one. */
+  .fg-say, .fg-word{font:inherit;color:inherit}
+
+  /* One declared line and its Clear. The row wraps so a long action name on a
+     narrow window costs height rather than clipping the control off the end. */
+  .fg-decls{display:flex;flex-direction:column;gap:8px}
+  .fg-decl{display:flex;align-items:center;flex-wrap:wrap;gap:10px;min-height:44px}
+  .fg-decl-line{margin:0;font-size:18px;line-height:1.4;color:var(--ink)}
+  /* A side with nothing declared is saying something, so it is drawn as
+     something — dimmer than a real line, and at the same size, because it is a
+     sentence a room reads rather than a placeholder. */
+  .fg-decl-none{margin:0;font-size:18px;line-height:1.4;color:var(--ink-faint)}
+
+  .fg-row{display:flex;flex-wrap:wrap;gap:10px}
+  .fg-round-acts{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+  .fg-note{margin:0;font-size:18px;color:var(--ink-dim)}
+  /* The floor again, stated on this region's own controls, so a later change to
+     .brd-btn cannot drop the fight surface under it without saying so here. */
+  .fg-btn{font-size:18px}
+
+  /* FIGHT-09's PAIR, AND THE DIFFERENCE BETWEEN THEM IS CARRIED FOUR WAYS AND
+     BY COLOUR IN NONE OF THEM. The two readings have different WORDS ("of 3
+     spent" against "left to spend"), different WEIGHT, different SHAPE (the
+     remainder sits in a bordered pill and the spent figure does not) and
+     different POSITION. Every one of those four survives a projector with the
+     colour washed out of it, which is what the rule is actually for — and the
+     rule is [C07]'s, held here for the fourth time in this file.
+
+     The remainder is the louder of the two because it is the figure FIGHT-09
+     asks a room to read: what a side still has to spend this round. It is still
+     not the loudest thing on the page — the round number beside it is larger,
+     and the board below is larger than either — which is the projection's own
+     standing rule about never letting a derived figure shout down the board it
+     describes.
+
+     The tint is derived from --gold with color-mix, which is the token the
+     board already draws action points with, so the reading and the tokens it
+     is about are the same colour family without one new hex anywhere. */
+  .fg-pool{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:8px}
+  .fg-pool-who{font-weight:700;color:var(--ink)}
+  .fg-pool-lbl{color:var(--ink-faint)}
+  .fg-pool-spent{color:var(--ink-dim)}
+  .fg-pool-left{
+    color:var(--ink);font-weight:700;
+    padding:1px 10px;border-radius:999px;
+    background:color-mix(in srgb, var(--gold) 14%, transparent);
+    border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  }
 </style>
 </head>
 <body>
@@ -2162,10 +2364,14 @@
  *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
  *
  * The stylesheet above carries its own region markers on the same scheme,
- * [C00] TOKENS through [C13] SHARE AND CONFIRM — search a token such as [C07]
- * and you land in exactly one place there too. [C12] is plan 03.1-05's, and it
- * is named here because it is the region [S06.5] and [S07.3] paint into; [C13]
- * is plan 04-05's, and it is the region [S06.6] and [S07.4] paint into.
+ * [C00] TOKENS through [C14] THE FIGHT — search a token such as [C07] and you
+ * land in exactly one place there too. [C12] is plan 03.1-05's, and it is named
+ * here because it is the region [S06.5] and [S07.3] paint into; [C13] is plan
+ * 04-05's, and it is the region [S06.6] and [S07.4] paint into. [C14] is plan
+ * 05-06's frame around this phase's two page regions, and it divides into three
+ * sub-blocks with an owner each, in the way [S04] and [S06] both divide:
+ * [C14.1] is the region [S06.7] paints into (plan 05-07), [C14.2] the ledger's
+ * (plan 05-08) and [C14.3] the board in fight mode (plan 05-09).
  *
  * Region order is fixed. Dependency arrows point DOWN only; reference another
  * section as App.x.y() at the call site, never by capturing it at section-body
@@ -6143,6 +6349,22 @@ App.ops = (function () {
      DECLARATION, appending and clearing become card creation and card removal,
      and these three move to commitStructural on the same day. A list rendered
      as text inside a node that always exists stays sync-only.
+
+     AND PLAN 05-07 MET IT, AND THE ANSWER IS NO — THESE THREE STAY SYNC-ONLY.
+     This paragraph is amended rather than left standing, because a condition
+     that has been tested and is written as though it has not is exactly the
+     banner that quietly lies. [S06.7] does render one node per declaration, so
+     the antecedent is now true; the consequent does not follow, and the reason
+     is a fact about structure() rather than about the list. structure() rebuilds
+     the interiors of #board's two faction columns and NOTHING ELSE — its own
+     never-#board-never-#app rule — and #fightbar is a static sibling outside
+     #board that structure() does not touch at all. So making these three
+     structural would throw away every token node and every caret in both
+     columns for a declaration, and would do nothing whatever for the region
+     that actually changed, which repaints on the sync pass either way. The
+     node-creation this paragraph was right to worry about is handled where it
+     happens: [S06.7] wraps its own rebuild in withPreservedFocus scoped to
+     #fightbar, which is the same contract structure() keeps over #board.
      ----------------------------------------------------------------------- */
 
   // The bound on the RECORD, and it is a bound on a record rather than a ruling
@@ -11648,6 +11870,28 @@ App.render = (function () {
      and is said as one. What that edit MEANS is FIGHT-10's line and plan
      05-09's node, not this reading's business.
 
+     MEASURED, AND IT IS A FINDING RATHER THAN A CAVEAT: ON AN UNEDITED BUILD
+     THE SPENT READING IS ZERO AT EVERY MOMENT A FRAME CAN SEE. advanceRound
+     spends each declared cost out of the pool and then, in THE SAME COMMIT,
+     refills both pools from the build — its own step 5, and the table above it
+     lists the refill as a thing Advance does. No frame is rendered between
+     those two writes, so fight.ap equals build.ap whenever this region runs,
+     and apSpent's subtraction is 0. Driven three rounds deep with a costing
+     action declared each time: the pool read 3 before and 3 after, every round.
+     The one thing that moves this figure is a mid-fight build edit, which is
+     the direction the floor guards and FIGHT-10's own hazard.
+
+     THE READING IS KEPT AS IT IS, AND THE QUESTION IT RAISES IS HANDED ON
+     RATHER THAN ANSWERED HERE. apSpent is the shipped derivation of the word
+     FIGHT-03 uses, and a render tier is not where the meaning of a fight's
+     economy gets decided — the refill sits inside [S05]'s one applier, which
+     the whole phase is careful not to reopen from a surface. What a room
+     probably wants instead is what this round's declarations have SPOKEN FOR,
+     which is a different fact with a different derivation and would be a
+     third reading. The choice between the two — move the refill to the start
+     of a round, or add the spoken-for figure and leave the refill alone — is
+     on plan 05-11's list, with these measurements rather than an opinion.
+
      The pool's label is read live through labelFor, so a student who renamed
      Action points reads their own word here on the next frame — and it carries
      the token-name exemption marker for the reason every other rendered token
@@ -11735,22 +11979,382 @@ App.render = (function () {
     }
   }
 
+  /* ---- FIGHT-03's declaration step: what a side does this round -----------
+   *
+   * THE THREE CHOOSERS AND THE REPORT, and every rule they keep was decided a
+   * plan or a phase ago and is restated here rather than pointed at, because
+   * the cost of each one is what makes it stick.
+   *
+   * EVERY CONTROL BELOW TAKES A .fg- CLASS AND A PRIVATE data-fg, AND NOT ONE
+   * OF THEM CARRIES data-act. That single attribute is the whole safety
+   * boundary of this region, and the proposal pane's own comment states the
+   * shape of the failure it prevents: "One class name is the entire distance
+   * between this pane and the authoring pane: [S07.3] tells an authoring amount
+   * field apart by .ae-amt and dispatches an op off it, so a field in here
+   * wearing that class would send the very write this pane exists not to make."
+   * Here the attribute is data-act rather than a class: [S07.1]'s delegated
+   * listener routes any node carrying one straight into App.ops.dispatch, so a
+   * control in this region wearing one would fire an op nothing on this surface
+   * meant to fire. data-act belongs to the topbar's openers and to the board's
+   * own controls, check 90b reads that partition off the page, and plan 05-10
+   * extends it to this region. This is T-05-27 and it is closed by spelling.
+   *
+   * NOTHING HERE IS EVER DISABLED. Not the Declare control when no action is
+   * named, not the Advance control when a side cannot pay for what it declared.
+   * D-23, [S05]'s own paragraph beside declareAction and [S06.5]'s never-
+   * disable banner all say the same thing from three different layers: the
+   * report is a statement about what the BOARD holds and never a ruling on what
+   * the STUDENT may do. A PRESS THAT HAS NOTHING TO DO DECLINES QUIETLY — that
+   * is plan 05-10's half and it is written here so that plan inherits it:
+   * clearDeclarations returning false over an empty list is the shipped
+   * precedent, and an error panel raised in the middle of a workshop is what a
+   * disabled button would have been avoiding.
+   *
+   * NEITHER CHOOSER PRE-SELECTS AND BOTH ALLOW NOTHING AT ALL. pickedUnit's
+   * rule — "A STARTING POSITION ON A FORM IS NOT A DECISION ABOUT WHO AN ACTION
+   * HITS" — arrives here with its consequence reversed, and the reversal is the
+   * point. That pane wrote no record, so standing on the first live unit cost
+   * nothing. THIS surface writes one, and declareAction stores null in either
+   * position on purpose so that "Hairball, no target" is recordable. So a
+   * chooser standing on somebody by default would put a unit into a record the
+   * student never chose. Nobody is the resting position, it is offered as a real
+   * entry in NO_TERM_WORD's manner, and it is a VALUE rather than an empty
+   * selection.
+   *
+   * THE CHOOSER FOR WHO ACTS LISTS THIS SIDE'S UNITS; THE CHOOSER FOR WHAT IT
+   * LANDS ON LISTS EVERY UNIT ON THE BOARD, BOTH FACTIONS. 03.1-07's asymmetry,
+   * in its own words: it is "a fact about the record rather than a ruling",
+   * because who an action may be pointed at is exactly the sort of question this
+   * tool does not answer. A heal that lands on a friend and a hit that lands on
+   * a foe are the same record with a different unit chosen, and the student
+   * chooses. AND A UNIT THAT IS NOT STANDING IS STILL LISTED, for the same
+   * reason one line further on: whether an action may name a unit a student has
+   * marked down is a ruling, and this region does not make one.
+   *
+   * THE SLOTS ARE NOT STATIC MARKUP, AND THIS PLAN OWED THAT DECISION IN
+   * WRITING. The rule it is measured against is the proposal pane's — every row
+   * static, because "a number a student is halfway through typing is exactly the
+   * text a rebuilt node throws away" — and the reason it does not bind here is
+   * the reason that same comment gives for rebuilding the CHOOSER boxes it sits
+   * beside: "a button carries no text of the student's own." NOT ONE NODE IN
+   * THIS REGION IS A FIELD. A declaration is four ids, every one of them chosen
+   * with a button, so there is no caret anywhere on this surface for a rebuild
+   * to throw away and the hazard the static-row rule exists for cannot arise.
+   * The arithmetic is the second half: MAX_DECLARATIONS is MAX_UNITS x 2 = 48,
+   * so static slots would be forty-eight rows and forty-eight ids in the shell,
+   * in KNOWN_IDS and in the stub page, holding nothing a rebuild could lose.
+   * The focus contract is kept instead by withPreservedFocus scoped to
+   * #fightbar, which is the same contract structure() keeps over #board, on the
+   * region that actually rebuilds.
+   *
+   * WHAT PLAN 05-10 THEREFORE OWES, named here so it is a requirement and not a
+   * hope: a driven row that presses a chooser in a rebuilt list, takes a frame,
+   * and reads the KEYBOARD back on the node it was on. Check 65's static-row
+   * shape does not apply to this region and its absence must not read as a gap.
+   * --------------------------------------------------------------------- */
+
+  // The word on the entry that names nobody. It is the FIRST entry of both unit
+  // choosers, in NO_TERM_WORD's manner and for its reason: the one named path
+  // to an empty position is an entry in the chooser itself, because a separate
+  // Clear beside it would be a second spelling of the same write and the two
+  // would drift.
+  var FIGHT_NOBODY_WORD = 'Nobody';
+
+  /* A chooser entry, in the outline-and-tick idiom every other chooser in this
+     file uses: said once in the CLASS, once in aria-pressed, and once as a tick
+     that is a REAL NODE rather than a pseudo-element — never in colour alone
+     ([C07]'s rule, restated in [C12], restated again in [C14]).
+
+     THE EXEMPTION MARKER GOES ON THE NAME SPAN AND NOT ON THE BUTTON, which is
+     overPill's decision and its reason: the walk skips a marked node's TEXT, and
+     the button's text is the name plus the tick, so marking the button would
+     take the tick out of the harvest along with the name. An ACTION's name is a
+     word a student typed and takes the marker; a UNIT's name is a word the
+     ARTIFACT says and takes none, which is unitPick's ruling and the same one
+     the faction head on the board already keeps. */
+  function fgPill(kind, side, value, label, on, actId) {
+    var b = el('button', 'fg-pill' + (on ? ' fg-pill--on' : ''));
+    b.type = 'button';
+    setData(b, {
+      fg: kind,
+      fgSide: side,
+      fgVal: value,
+      k: 'fg/' + kind + '/' + side + '/' + value
+    });
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    var nameNode = text('span', 'fg-pill-name', label);
+    if (actId !== undefined) { setData(nameNode, { anm: actId }); }
+    b.appendChild(nameNode);
+    b.appendChild(text('span', 'fg-check', '✓'));
+    return b;
+  }
+
+  // Every action this side carries — the six the board ships with and the ones
+  // a student wrote, in one list, because D-07 says they are the same kind of
+  // thing. It is state.build[side].actions, which is the same list [S06.5]
+  // renders and [S02]'s bestPair walks: read, never re-derived, for the reason
+  // [S06.2] and [S06.5] both give about their own rows.
+  function fgFillActs(root, state, side) {
+    var box = root.querySelector('.fg-acts');
+    if (!box) { return; }
+    box.replaceChildren();
+    var chosen = String(root.dataset.fgAct || '');
+    refActions(state, side).forEach(function (action) {
+      box.appendChild(fgPill('act', side, action.id, action.name,
+        action.id === chosen, action.id));
+    });
+  }
+
+  // The two unit choosers. `rosters` is the list of sides to draw from, and the
+  // asymmetry between the two calls is the whole of 03.1-07's ruling — the
+  // paragraph above states it, and it is passed in rather than decided in here
+  // so that one function cannot quietly become the place the restriction is
+  // added.
+  function fgFillPicks(root, state, side, kind, rosters, chosen) {
+    var box = root.querySelector('.fg-' + kind);
+    if (!box) { return; }
+    box.replaceChildren();
+    box.appendChild(fgPill(kind, side, '', FIGHT_NOBODY_WORD, chosen === ''));
+    rosters.forEach(function (from) {
+      state.fight[from].units.forEach(function (unit) {
+        box.appendChild(fgPill(kind, side, unit.id, fgUnitName(state, unit.id),
+          unit.id === chosen));
+      });
+    });
+  }
+
+  /* affordability TAKES A BUILD FACTION AND THE POOL A DECLARATION IS PAID OUT
+     OF IS THE FIGHT'S, so the fight side is spelled into the shape that read
+     takes. This is a TRANSLATION and not a second derivation: not one number is
+     computed here, and the arithmetic stays where [S02]'s banner puts it.
+
+     The rename is the whole of it, and it is forced rather than chosen.
+     sideFromBuild carries a unit's allocated health across as `hp` — the fight's
+     live value — while affordability reads `maxHp`, because on the build slice
+     that IS the live value. Handing the fight side over unchanged makes
+     presentOnCaster sum a field that is not there and hand a requirement line
+     NaN, on a projector, silently.
+
+     AND IT IS THE FIGHT POOL AND NOT THE BUILD POOL, which is the reason this
+     shim exists at all rather than the report simply reading state.build[side].
+     A report against the build pool would be right on round one and wrong on
+     every round after it, because the build pool is what the fight STARTED with
+     and the fight pool is what the board holds now. "What it costs against the
+     pool the board actually holds" is the requirement, and the board holding it
+     is the fight.
+
+     EVERY UNIT IS COUNTED, STANDING OR NOT, because whether a unit a student
+     has marked down still counts toward a requirement is a ruling and this
+     region does not make one — the same answer the chooser above gives about
+     listing them. */
+  function fgCaster(state, side) {
+    var live = state.fight[side];
+    var shim = {
+      ap: live.ap,
+      units: live.units.map(function (u) { return { maxHp: u.hp, shield: u.shield }; })
+    };
+    if (live.tally) { shim.tally = live.tally; }
+    return shim;
+  }
+
+  /* ACT-06's report, written from App.model.affordability and from nothing
+     else. That function hands back numbers, booleans and token ids and formats
+     nothing — the division of labour every read in [S02] keeps — so the
+     sentence is owned here and the arithmetic is owned there. It is fillReport's
+     wording restated for fgSay's reason, and the wording is deliberately the
+     SAME wording: a student who read the cost of an action in the authoring
+     dialog and reads it again here must not have to work out whether the two
+     sentences mean the same thing.
+
+     A COST THIS REPORT CANNOT PRICE IS SAID PLAINLY RATHER THAN DROPPED —
+     D-16's stance, and the derivation has a pool for action points and for
+     nothing else, so a cost in a token a student invented comes back with a
+     null figure and the line says so. */
+  function fgFillReport(root, state, side) {
+    var costNode = root.querySelector('.fg-report');
+    var reqNode = root.querySelector('.fg-reqs');
+    if (!costNode || !reqNode) { return; }
+    reqNode.replaceChildren();
+
+    var chosen = String(root.dataset.fgAct || '');
+    if (chosen === '') {
+      fgSayOver(costNode, [{ said: 'Pick an action for this side.' }]);
+      return;
+    }
+    var live = fgAction(state, side, chosen);
+    if (live === null) {
+      fgSayOver(costNode, [{ said: 'Pick an action for this side.' }]);
+      return;
+    }
+
+    // ACT-07, and it runs BEFORE a figure is drawn, which is fillProposal's
+    // order and its reason: a rule with a missing term does not MEAN what it
+    // says any more, so the honest answer is to refuse it by name rather than
+    // to price a rule with a hole in it. fgDeclParts spells the same refusal for
+    // a line that has already been declared; this is the same refusal one step
+    // earlier, on the action a student is looking at.
+    var gone = fgGoneTerm(state, live);
+    if (gone !== null) {
+      fgSayOver(costNode, [
+        { said: 'Cannot fire ' },
+        { word: live.name, act: live.id },
+        { said: '. It names ' + gone + ', which is no longer a token type on '
+          + 'this board. Nothing has changed.' }
+      ]);
+      return;
+    }
+
+    var report = App.model.affordability(fgCaster(state, side), live);
+    var cost = fgTerms(live, 'cost')[0];
+
+    if (!cost) {
+      fgSayOver(costNode, [
+        { word: live.name, act: live.id },
+        { said: ' costs nothing.' }
+      ]);
+    } else if (report.apCost === null) {
+      fgSayOver(costNode, [
+        { word: live.name, act: live.id },
+        { said: ' costs ' + cost.n + ' ' },
+        { word: labelFor(state, cost.tok), tok: cost.tok },
+        { said: '. This report has no figure for that pool.' }
+      ]);
+    } else {
+      var short = report.apCost - report.apHave;
+      fgSayOver(costNode, [
+        { word: live.name, act: live.id },
+        { said: ' costs ' + report.apCost + ' ' },
+        { word: labelFor(state, cost.tok), tok: cost.tok },
+        { said: ' of ' + report.apHave + '. ' + ((short > 0)
+          ? 'Not enough to spend. Short by ' + short + '.'
+          : 'Enough to spend.') }
+      ]);
+    }
+
+    report.met.forEach(function (m) {
+      var line = el('p', 'fg-req');
+      fgSay(line, [
+        { word: live.name, act: live.id },
+        { said: ' needs ' + m.need + ' ' },
+        { word: labelFor(state, m.tok), tok: m.tok },
+        { said: ' of ' + m.have + '. '
+          + ((m.have >= m.need) ? 'Requirement met.' : 'Requirement not met.') }
+      ]);
+      reqNode.appendChild(line);
+    });
+  }
+
+  /* Run BEFORE the fingerprint is taken, for settleProposal's stated reason: a
+     chooser naming something the board no longer holds is a reason to stand on
+     nothing, and settling it after the fingerprint would spend a frame drawing
+     the stale one and only then correct itself.
+
+     IT SETTLES TO NOTHING AND NEVER TO SOMEBODY ELSE, which is where it parts
+     company with pickedUnit — see the paragraph above about why the fall-back
+     that pane takes is the wrong one here. An action a student removed, or a
+     unit that is not on this board, leaves the chooser standing on nobody, and
+     nobody is the position they can read and correct.
+
+     THE THREE ATTRIBUTES ARE READ OFF THE PAGE AND NOT OUT OF A SLICE, because
+     that is where a form's transient selection lives — the shell comment on
+     #act-edit-propose argues it in full and [S09.3] pins the `ui` key set so
+     there is nowhere legitimate for it to go. What is DECLARED is state; what a
+     student is halfway through choosing is not. */
+  function fgSettle(state) {
+    FIGHT_SIDES.forEach(function (side) {
+      var root = document.getElementById(FIGHT_DECL_IDS[side]);
+      if (!root) { return; }
+      var act = String(root.dataset.fgAct || '');
+      if (act !== '' && fgAction(state, side, act) === null) { root.dataset.fgAct = ''; }
+      var by = String(root.dataset.fgBy || '');
+      if (by !== '' && !fgUnitOn(state, [side], by)) { root.dataset.fgBy = ''; }
+      var at = String(root.dataset.fgAt || '');
+      if (at !== '' && !fgUnitOn(state, FIGHT_SIDES, at)) { root.dataset.fgAt = ''; }
+    });
+  }
+
+  function fgUnitOn(state, rosters, unitId) {
+    for (var i = 0; i < rosters.length; i++) {
+      var units = state.fight[rosters[i]].units;
+      for (var j = 0; j < units.length; j++) {
+        if (units[j].id === unitId) { return true; }
+      }
+    }
+    return false;
+  }
+
   /* The shape of one side, built once. Every node below is empty here and
      written by the passes above, which is [S06.3]'s build-once / write-every-
      frame division and the reason a token animation does not replay and a caret
      is not thrown away.
 
      UX-02's 18px LEGEND FLOOR binds every heading in here, [C14]'s banner says
-     so for the fourth time in this file, and [C14.1] carries the rule. */
+     so for the fourth time in this file, and [C14.1] carries the rule. Every
+     legend below is permanent, visible and a real heading — never an icon and
+     never a title= tooltip, which is what the floor is actually about. */
+  function fgGroup(legend, box) {
+    var group = el('div', 'fg-group');
+    group.appendChild(text('h4', 'fg-legend', legend));
+    group.appendChild(box);
+    return group;
+  }
+
   function fgBuildSide(root, state, side) {
     root.replaceChildren();
     root.appendChild(text('h3', 'fg-side-head', state.build[side].name));
     root.appendChild(text('p', 'fg-standing', ''));
 
-    var declGroup = el('div', 'fg-group');
-    declGroup.appendChild(text('h4', 'fg-legend', 'Declared so far'));
-    declGroup.appendChild(el('div', 'fg-decls'));
-    root.appendChild(declGroup);
+    root.appendChild(fgGroup('What this side does', el('div', 'fg-acts')));
+
+    // The report sits directly under the action it is about and above the two
+    // choosers, because it is a fact about the ACTION and the pool rather than
+    // about who was picked — affordability reads the caster SIDE and never the
+    // unit, and its own comment says so: "REQUIREMENTS ARE READ ON THE CASTER."
+    var reportBox = el('div', 'fg-reportbox');
+    reportBox.appendChild(el('p', 'fg-report'));
+    reportBox.appendChild(el('div', 'fg-reqs'));
+    root.appendChild(reportBox);
+
+    root.appendChild(fgGroup('Who acts', el('div', 'fg-picks fg-by')));
+    root.appendChild(fgGroup('What it lands on', el('div', 'fg-picks fg-at')));
+
+    var row = el('div', 'fg-row');
+    var declare = text('button', 'brd-btn fg-btn fg-declare', 'Declare this');
+    declare.type = 'button';
+    setData(declare, { fg: 'declare', fgSide: side, k: 'fg/declare/' + side });
+    row.appendChild(declare);
+    root.appendChild(row);
+
+    root.appendChild(fgGroup('Declared so far', el('div', 'fg-decls')));
+  }
+
+  /* THE TWO ROUND CONTROLS, and they are in the SURFACE rather than on the bar
+     for the reasons plan 05-06 wrote beside #fight-start when it closed the
+     topbar's reservation: the bar has no room for a fifth control, and a button
+     that reads one thing before a fight and another during one changes what it
+     does under a cursor that has not moved — with one of the two acts throwing
+     a played fight away.
+
+     Neither is disabled by anything below, ever. An Advance disabled because a
+     side cannot afford what it declared is the tool adjudicating, which is the
+     exact violation D-23 names and the one this plan's probe W drives.
+
+     Reset wears the danger colouring that already ships TWICE rather than a
+     third invention of it ([C08]'s and [C13]'s), and it is set apart by [C14]'s
+     own .fg-apart hairline — the class that block defined for this surface. */
+  function fgBuildRound(root) {
+    var row = el('div', 'fg-round-acts');
+    row.appendChild(text('p', 'fg-note', 'Nothing resolves until you advance.'));
+    var advance = text('button', 'brd-btn fg-btn fg-advance', 'Advance the round');
+    advance.type = 'button';
+    setData(advance, { fg: 'advance', k: 'fg/advance' });
+    row.appendChild(advance);
+    var reset = text('button', 'brd-btn brd-btn--danger fg-btn fg-apart fg-reset',
+      'Reset this fight');
+    reset.type = 'button';
+    setData(reset, { fg: 'reset', k: 'fg/reset' });
+    row.appendChild(reset);
+    root.appendChild(row);
   }
 
   /* The three value nodes plan 05-06 reserved on the bar, given the four spans
@@ -11773,6 +12377,12 @@ App.render = (function () {
       var node = document.getElementById(FIGHT_DECL_IDS[side]);
       if (node) { fgBuildSide(node, state, side); }
     });
+    // APPENDED LAST, so the two round controls sit below FIGHT-10's notice
+    // rather than above it. That order is deliberate: plan 05-09's line says a
+    // build edit made mid-fight applies to the build and not to this fight, and
+    // the moment a student most needs to have read it is the moment before they
+    // press Advance.
+    fgBuildRound(root);
   }
 
   /* The teardown, and the banner above says why it empties rather than merely
@@ -11786,11 +12396,25 @@ App.render = (function () {
     if (round) { round.textContent = ''; }
     var start = document.getElementById('fight-start');
     if (start) { start.disabled = false; }
+    var acts = root.querySelector('.fg-round-acts');
+    if (acts) { root.removeChild(acts); }
     FIGHT_SIDES.forEach(function (side) {
       var pool = document.getElementById(FIGHT_POOL_IDS[side]);
       if (pool) { pool.replaceChildren(); }
       var node = document.getElementById(FIGHT_DECL_IDS[side]);
-      if (node) { node.replaceChildren(); node.hidden = true; }
+      if (!node) { return; }
+      node.replaceChildren();
+      node.hidden = true;
+      // AND THE THREE CHOOSER ATTRIBUTES GO WITH IT, which is showProposed's
+      // ruling restated: that pane's mid-edit flag "is cleared when the pane is
+      // OPENED, which is why closing and reopening shows the rule's own numbers
+      // again. That is the deliberate behaviour and not a lost edit." A new
+      // fight opens with nothing chosen for the same reason — a chooser still
+      // standing on the last fight's action would be this surface making a
+      // decision about a round nobody has looked at yet.
+      node.dataset.fgAct = '';
+      node.dataset.fgBy = '';
+      node.dataset.fgAt = '';
     });
   }
 
@@ -11862,6 +12486,8 @@ App.render = (function () {
       root.dataset.fgSig = '';
     }
 
+    fgSettle(state);
+
     var sig = fgSig(state);
     if (root.dataset.fgSig === sig) { return; }
 
@@ -11898,6 +12524,10 @@ App.render = (function () {
         if (!node) { return; }
         node.hidden = false;
         fgFillStanding(node, state, side);
+        fgFillActs(node, state, side);
+        fgFillReport(node, state, side);
+        fgFillPicks(node, state, side, 'by', [side], String(node.dataset.fgBy || ''));
+        fgFillPicks(node, state, side, 'at', FIGHT_SIDES, String(node.dataset.fgAt || ''));
         fgFillDecls(node, state, side);
       });
 
