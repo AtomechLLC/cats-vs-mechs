@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-02-PLAN.md
-last_updated: "2026-08-29T09:31:26.790Z"
+stopped_at: Completed 05-03-PLAN.md
+last_updated: "2026-08-29T09:53:29.554Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 35
-  percent: 81
+  completed_plans: 36
+  percent: 84
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 3 of 11
+Plan: 4 of 11
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [████████░░] 81%
+Progress: [████████░░] 84%
 
 ## Performance Metrics
 
@@ -71,6 +71,7 @@ Progress: [████████░░] 81%
 | Phase 04 P08 | 35min | 2 tasks tasks | 0 files files |
 | Phase 05 P01 | 95min | 2 tasks tasks | 1 file files |
 | Phase 05 P02 | 105min | 3 tasks | 2 files |
+| Phase 05 P03 | 95min | 3 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -140,6 +141,11 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-02: setUnitHp's clamp stays MAX_ALLOC — whether a heal may overshoot is a ruling, and rulings belong to the table
 - [Phase ?]: 05-02: check 73c is NOT widened to reach the fight slice; the reach is added inside [S09.12] instead, because widening 73c costs the guarantee it exists for
 - [Phase ?]: 05-02: probes E and F measured that EVERY state-shape rule in the repo reads a null fight slice — a row that cannot fail is a row asserting nothing
+- [Phase ?]: 05-03: the split returns three numbers and refuses above the arithmetic — three zeroes rather than null, so the shape every caller reads survives a hit that did not happen
+- [Phase ?]: 05-03: a declared cost exceeding the pool is reported and never prevented (D-23) — asserted at zero action points, and probe J fails the plan if the row goes vacuous
+- [Phase ?]: 05-03: the declaration lives in state.fight.decl spelled { side, act, by, at } — the proposal's DOM-only argument does not transfer, because a declaration is an intent that has not resolved BY DESIGN
+- [Phase ?]: 05-03: termDamage is now THE one reading of a term against DAMAGE_KEYS; actionDamage and actionModelled both read it, and the projection's shipped 1 and 3 verified the extraction moved nothing
+- [Phase ?]: 05-03: probe I proved a suite row standing in for an op that does not exist yet goes on agreeing with its author once the op ships — the key-name row now drives declareAction, and the same repair is owed to the round record when advanceRound lands
 
 ### Pending Todos
 
@@ -163,6 +169,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T09:31:26.780Z
-Stopped at: Completed 05-02-PLAN.md
+Last session: 2026-08-29T09:53:29.543Z
+Stopped at: Completed 05-03-PLAN.md
 Resume file: None
