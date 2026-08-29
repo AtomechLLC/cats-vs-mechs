@@ -3,14 +3,14 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 04-04-PLAN.md
-last_updated: "2026-08-29T06:22:09.052Z"
+stopped_at: Completed 04-05-PLAN.md
+last_updated: "2026-08-29T06:47:15.231Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 5
   total_plans: 32
-  completed_plans: 29
+  completed_plans: 30
   percent: 71
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 04
-Plan: 5 of 8
+Plan: 6 of 8
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [█████████░] 91%
+Progress: [█████████░] 94%
 
 ## Performance Metrics
 
@@ -65,6 +65,7 @@ Progress: [█████████░] 91%
 | Phase 04 P02 | 70min | 3 tasks | 2 files |
 | Phase 04-share-reset P03 | 95min | 3 tasks | 2 files |
 | Phase 04-share-reset P04 | 105min | 3 tasks | 2 files |
+| Phase 04 P05 | 95min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -119,6 +120,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-04: D-20 implemented as commitInitial, a SECOND named writer in [S03] guarded to refuse unless nothing has been committed and the stack is empty; probe N proved the guard
 - [Phase ?]: 04-04: the hash mirror reads App.state at ONE deferred call site; [S04]'s banner claim 3 names the exception rather than letting it happen quietly
 - [Phase ?]: 04-04: an unencodable build DROPS the hash token rather than leaving a stale code a reload would load back
+- [Phase ?]: 04-05: two dialogs — D-21's share+load stays one dialog with two panes; the reset confirmation takes its own root because it is a different act with a different opener
+- [Phase ?]: 04-05: the share code field is rewritten even while focused and its selection re-applied; the paste field is never written — opposite answers to D-19 on one surface
+- [Phase ?]: 04-05: [S06.6] fingerprints the whole build slice (0.030 ms) rather than the produced code (0.483 ms) — the cheap one's failure mode is a wasted encode, the narrow one's is a stale code in a message
 
 ### Pending Todos
 
@@ -141,6 +145,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T06:22:09.039Z
-Stopped at: Completed 04-04-PLAN.md
+Last session: 2026-08-29T06:47:15.218Z
+Stopped at: Completed 04-05-PLAN.md
 Resume file: None
