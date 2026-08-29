@@ -2485,10 +2485,22 @@ App.model = (function () {
  * undo stack and the frame-coalesced invalidate(). Nothing mutates state
  * outside commit(); that one rule is what makes undo, the fight log, hash
  * sync and coalesced rendering free byproducts instead of features.
- * The single documented exception is restore(), which exists so [S09]
- * SELFTEST can hand the live board back untouched. It is named here rather
+ * There are TWO documented exceptions and this is the inventory of them, each
+ * named with the one caller allowed to reach it. They are listed here rather
  * than left for a reader to discover, because a banner that quietly lies is
- * worse than no banner.
+ * worse than no banner:
+ *   restore(snapshotJson)        — [S09] SELFTEST, so opening the developer
+ *                                  report can hand the live board back
+ *                                  untouched instead of being a destructive
+ *                                  act. It CLEARS the undo stack.
+ *   commitInitial(label, mutator) — [S08] BOOT, and only before anything has
+ *                                  been committed, so a build carried in on a
+ *                                  link is the STARTING state (D-20). It
+ *                                  pushes NOTHING onto the undo stack and it
+ *                                  refuses to run at all once the board has
+ *                                  moved, which is a boundary no student press
+ *                                  can reach.
+ * Neither is dispatchable and neither is reachable from a press.
  *
  * Shape — integers only, JSON-clonable, no DOM nodes, no functions:
  *   { build: { schema, cats, mechs },
@@ -2718,6 +2730,59 @@ App.state = (function () {
     invalidate({ structural: true });
   }
 
+  // THE SECOND DOCUMENTED WRITER OUTSIDE [S05] OPS. For [S08] BOOT, and for
+  // nothing else: it exists so a build code carried in on a link can become
+  // this session's starting board.
+  //
+  // D-20 IS THE DECISION IT IMPLEMENTS. A build loaded out of the address bar
+  // at boot IS the starting state, so there is nothing to undo back to. The
+  // undo stack holds the student's own edits and nothing else, which is a
+  // contract that can be stated in one sentence and therefore explained in
+  // one. WHAT WAS REJECTED, so the next reader does not re-decide it: commit
+  // normally, and one Ctrl+Z on a freshly-opened link rewinds to the shipped
+  // board. Friendlier for somebody who opened a link by accident, and a worse
+  // contract — it puts a board the student never authored into their own
+  // history. The contract is worth more than the convenience.
+  //
+  // restore() IS NOT THE MECHANISM, and that is worth writing down because it
+  // is the obvious reach. restore() CLEARS the stack, and it is [S09]'s by
+  // name in this banner and in [S05]'s. Loading through it would make "after
+  // confirming, Ctrl+Z still brings the build back" impossible for a pasted
+  // code as well as for a reset — one wrong caller costing two guarantees.
+  //
+  // THE GUARD IS WHAT KEEPS THIS FROM BECOMING A SECOND commit(). It refuses
+  // unless nothing has been committed yet AND the stack is empty. That state
+  // exists only inside [S08]'s start(), before anything has been driven, so no
+  // student press can reach it and no second caller can appear quietly. It
+  // THROWS rather than returning false, so the refusal is assertable and a
+  // later caller arriving is a red run instead of a silent second entry point.
+  // It has no dispatch arm; [S05]'s DELIBERATELY ABSENT block states that from
+  // the other end, because dispatch is the only thing a press can reach.
+  //
+  // The label is not stored — nothing is pushed for it to label — but it is
+  // read back in the refusal, which is what a caller arriving too late needs
+  // to see. The invalidate is INSIDE rather than owed by the caller, and
+  // structural because this replaces the build slice wholesale; restore()
+  // spells it the same way for the same reason.
+  function commitInitial(label, mutator) {
+    if (commits > 0 || past.length > 0) {
+      throw new Error('commitInitial("' + String(label) + '") ran after the board '
+        + 'had already moved — ' + commits + ' commit(s) and ' + past.length
+        + ' undo entr(ies). It is the boot writer, and boot happens once.');
+    }
+    var working = thaw(get());
+    mutator(working);
+    cur = freeze(working);
+    commits++;
+    // Same ordering guarantee as commit() and undo(): state has already moved,
+    // so the frame is owed whether or not the mirror succeeds.
+    try {
+      App.serialize.scheduleUrlSync();
+    } finally {
+      invalidate({ structural: true });
+    }
+  }
+
   function undoDepth() {
     return past.length;
   }
@@ -2733,6 +2798,7 @@ App.state = (function () {
     undo: undo,
     undoDepth: undoDepth,
     restore: restore,
+    commitInitial: commitInitial,
     invalidate: invalidate,
     flush: flush,
     stats: stats,
@@ -4100,8 +4166,10 @@ App.serialize = (function () {
  * is a thin wrapper around a single commit() call, and this layer is the only
  * writer of state reachable from a student action — no exceptions, including
  * temporary debug controls. It never reads or writes the page.
- * (App.state.restore() is the one non-op writer in the file. It is reachable
- * only from [S09] SELFTEST, and is named in the [S03] banner.)
+ * (App.state.restore() and App.state.commitInitial() are the two non-op
+ * writers in the file. restore() is reachable only from [S09] SELFTEST;
+ * commitInitial() is reachable only from [S08] BOOT and only before anything
+ * has been committed. Both are named in the [S03] banner with their callers.)
  * ops.undo must stay callable from a button, not only from a key handler.
  * deps: App.state, App.data
  * owner: plan 01-02
@@ -4750,6 +4818,239 @@ App.ops = (function () {
       s.build = App.data.defaults();
       s.fight = null;
     });
+  }
+
+  /* --- THE ONE WRITE PATH A PASTED BUILD CODE TAKES ----------------------
+     Two ops, one rebuild between them. loadBuildCode is the student's paste
+     and is an ordinary undoable commit; loadBuildCodeAtBoot is [S08]'s and
+     goes through [S03]'s boot writer instead, so a link opens on the
+     classmate's board with an empty undo stack (D-20). Everything that decides
+     whether a code is admissible happens in ONE place — decode — and
+     everything that decides how it lands happens in ONE place, the rebuild
+     below.
+     ----------------------------------------------------------------------- */
+
+  // A value the code named that this board has no such thing as. It refuses
+  // rather than substituting a shipped value, because a build that came back
+  // subtly different with nothing anywhere to say so is the outcome the whole
+  // codec is built to prevent.
+  function allowlisted(list, value, what) {
+    if (list.indexOf(value) === -1) {
+      throw new Error('A build code named ' + what + ' this board does not have: '
+        + JSON.stringify(value) + '.');
+    }
+    return value;
+  }
+
+  // A tally bag off a decoded record. A KEYED bag, so every key goes through
+  // requireTokenId — reserved names refused BY NAME first, then the id pattern,
+  // which is the order that boundary states and the order that matters. An
+  // empty bag is no bag at all, which is the shape writeTally leaves behind
+  // and therefore the shape a loaded board has to match.
+  function bagFromDecoded(bag) {
+    if (!bag || typeof bag !== 'object') { return null; }
+    var ids = Object.keys(bag);
+    if (ids.length === 0) { return null; }
+    var out = {};
+    for (var i = 0; i < ids.length; i++) {
+      out[requireTokenId(ids[i])] = int(bag[ids[i]], 0, MAX_ALLOC, 'a tally');
+    }
+    return out;
+  }
+
+  // THE ONE REBUILD BOTH LOAD OPS RUN, so there is a single path to review
+  // rather than two that drift. It takes a build decode() has already ADMITTED
+  // and hands back a build slice of this file's own making.
+  //
+  // FIELD BY FIELD, KEY BY KEY, ALL THE WAY DOWN, and never a merge helper.
+  // createAction's mutator states the rule; this is the call site that makes it
+  // earn its keep. A decoded build is caller-supplied data BY DEFINITION — it
+  // came out of a string somebody else pasted into a message — so `s.build =
+  // decoded` is a merge helper wearing a different hat, and a merge carries
+  // whatever keys the caller supplied past an allowlist that only inspected the
+  // values.
+  //
+  // decode() also rebuilds field by field, and that does NOT make this walk a
+  // duplicate of it: it makes this the SECOND of two independent walks. The day
+  // the decoder grows a key nobody meant to admit, this one does not carry it
+  // across, and the two disagreeing is a throw rather than a board.
+  //
+  // A throw from here is a DEFECT and is meant to reach the error boundary:
+  // decode admitted the record, so this walk refusing it means the two
+  // disagree about what admissible means. That is not the same event as a
+  // student pasting a damaged code, which never gets this far.
+  function buildFromDecoded(decoded) {
+    // The schema is this file's own constant and is never carried across from
+    // the code — decode writes its own for the same reason.
+    var out = { schema: App.data.DEFAULTS.schema };
+
+    SIDES.forEach(function (sideId) {
+      var from = decoded[sideId];
+      var idShape = new RegExp('^' + sideId.charAt(0) + '\\d+$');
+      var side = {
+        // Restored from DEFAULTS rather than read: nothing renames a faction,
+        // so a code carrying a name would be carrying a value already known.
+        id: App.data.DEFAULTS[sideId].id,
+        name: App.data.DEFAULTS[sideId].name,
+        ap: int(from.ap, 0, MAX_ALLOC, 'the action-point pool'),
+        units: [],
+        actions: []
+      };
+
+      from.units.forEach(function (u) {
+        if (typeof u.id !== 'string' || !idShape.test(u.id)) {
+          throw new Error('A build code named a unit this board cannot hold: '
+            + JSON.stringify(u.id) + '.');
+        }
+        var unit = {
+          id: u.id,
+          name: requireName(u.name, 'a unit'),
+          maxHp: int(u.maxHp, 0, MAX_ALLOC, 'a health value'),
+          shield: int(u.shield, 0, MAX_ALLOC, 'a shield value')
+        };
+        var unitBag = bagFromDecoded(u.tally);
+        if (unitBag !== null) { unit.tally = unitBag; }
+        side.units.push(unit);
+      });
+      if (side.units.length < MIN_UNITS || side.units.length > MAX_UNITS) {
+        throw new Error('A build code named a roster of ' + side.units.length
+          + ' units, and a side holds between ' + MIN_UNITS + ' and ' + MAX_UNITS + '.');
+      }
+
+      var sideBag = bagFromDecoded(from.tally);
+      if (sideBag !== null) { side.tally = sideBag; }
+
+      from.actions.forEach(function (a) {
+        // The term shape is rebuilt from NAMED FIELDS at every level. `tok` is
+        // a field and never a key, which is what makes a decoded name of a
+        // reserved word a harmless display string.
+        var action = {
+          id: requireActionId(a.id),
+          name: requireActionName(a.name),
+          // NEITHER FIELD IS ON THE WIRE. decode reconstructs both — a shipped
+          // action's from DEFAULTS, an authored one's from createAction's two
+          // constants — so what arrives here is already this file's own value
+          // and not the code's. That is why the keyword list gets a type test
+          // rather than an allowlist: there is no list of keywords to check it
+          // against, because no student and no code ever writes one. [S04]'s
+          // banner and the DELIBERATELY ABSENT block below both state the
+          // decision, and both name the tripwires that fire if it changes.
+          dmg: int(a.dmg, 0, MAX_ALLOC, 'an action\'s damage'),
+          keywords: a.keywords.map(function (word) {
+            if (typeof word !== 'string') {
+              throw new Error('A keyword must be text, and this one is a ' + (typeof word) + '.');
+            }
+            return word;
+          }),
+          cost: a.cost.map(termFromDecoded),
+          req: a.req.map(termFromDecoded),
+          xf: a.xf.map(changeFromDecoded)
+        };
+        if (action.cost.length > MAX_ACTION_COST) { throw new Error('An action carries too many costs.'); }
+        if (action.req.length > App.data.MAX_ACTION_REQ) { throw new Error('An action carries too many requirements.'); }
+        if (action.xf.length > App.data.MAX_ACTION_XF) { throw new Error('An action carries too many changes.'); }
+        side.actions.push(action);
+      });
+
+      out[sideId] = side;
+    });
+
+    // The vocabulary last, matching the slice's own key order. Every id is a
+    // KEY here, so every one of them goes through the key boundary.
+    var tokens = {};
+    Object.keys(decoded.tokens).forEach(function (id) {
+      var key = requireTokenId(id);
+      var rec = decoded.tokens[id];
+      var made = {
+        shape: allowlisted(App.data.SHAPES, rec.shape, 'a shape'),
+        color: allowlisted(App.data.COLORS, rec.color, 'a colour'),
+        glyph: allowlisted(App.data.GLYPHS, rec.glyph, 'a glyph'),
+        name: requireTokenName(rec.name)
+      };
+      if (App.data.TOKEN_IDS.indexOf(key) === -1) {
+        made.scope = allowlisted(App.data.TOKEN_SCOPES, rec.scope, 'a scope');
+      }
+      tokens[key] = made;
+    });
+    out.tokens = tokens;
+    return out;
+  }
+
+  function termFromDecoded(term) {
+    return { tok: requireTokenId(term.tok), n: int(term.n, 0, MAX_ALLOC, 'a term amount') };
+  }
+  function changeFromDecoded(change) {
+    return {
+      who: requireXfWho(change.who),
+      tok: requireTokenId(change.tok),
+      d: int(change.d, App.data.MIN_XF_DELTA, App.data.MAX_XF_DELTA, 'a change amount')
+    };
+  }
+
+  // How many codes this session has loaded. It exists to make the LABEL unique
+  // per paste, and that is not decoration: commit()'s coalescing key IS the
+  // label, so two pastes 400 ms apart under one shared label would fold into a
+  // single undo entry and one Ctrl+Z would step back past both of them.
+  // tallyLabel is the shipped precedent for a label chosen to coalesce;
+  // 'action new ' + side + '/' + made is the precedent for one chosen not to,
+  // and this is the second.
+  var codesLoaded = 0;
+
+  // THE STUDENT'S PASTE. It is resetToDefaults with a decoded record in place
+  // of App.data.defaults(): one commit, therefore one undo entry, structural
+  // because a loaded build moves units.length and a sync-only frame would leave
+  // orphan cards on the page — the exact bug commitStructural's comment
+  // records. s.fight goes to null for the reason reset sets it: a loaded build
+  // is a setup-mode board.
+  //
+  // IT RETURNS A RECORD AND DOES NOT THROW ON A REFUSAL, which diverges from
+  // every other op in this section, and the divergence is the point. Every op
+  // here throws on a bad argument because a bad argument is a defect and
+  // App.boot.wrap turns it into the styled panel. A BAD PASTE IS AN EXPECTED
+  // OUTCOME OF THE FEATURE — a code cut short by a chat client, a code from an
+  // older version of this file — and SHARE-03 asks for a message a student can
+  // act on rather than an error panel. So this hands back the same four-token
+  // record decode produced: decode supplies the token, the page supplies the
+  // sentence, and this section still never touches the page.
+  //
+  // Every guard is OUTSIDE the commit, with no exception at all. createAction
+  // has one documented exception and states why it is safe there; a paste has
+  // no equivalent, because the whole record is known before anything is
+  // written. A decode that refuses must never reach commitStructural — a
+  // mutator that throws leaves no trace, but a decode that half-succeeded
+  // would not throw at all, and there is no half-success to reach anyway
+  // because a refusal carries no build key.
+  function loadBuildCode(code) {
+    var read = App.serialize.decode(code);
+    if (read.ok !== true) { return read; }
+    var next = buildFromDecoded(read.build);
+    codesLoaded += 1;
+    commitStructural('build code loaded ' + codesLoaded, function (s) {
+      s.build = next;
+      s.fight = null;
+    });
+    return read;
+  }
+
+  // [S08]'s. The same decode and the same rebuild through [S03]'s boot writer
+  // instead of through commit, so a link opens on the classmate's board with
+  // an EMPTY undo stack (D-20) — there is nothing to undo back to, because the
+  // student has not edited anything yet.
+  //
+  // IT IS DELIBERATELY NOT DISPATCHABLE and the absence block below says so:
+  // dispatch is the only thing a student press can reach, and a press must
+  // never reach a writer that leaves no undo entry. [S03]'s own guard is the
+  // second half of that — it refuses once anything has been committed — so the
+  // property holds even if a later plan adds an arm by mistake.
+  function loadBuildCodeAtBoot(code) {
+    var read = App.serialize.decode(code);
+    if (read.ok !== true) { return read; }
+    var next = buildFromDecoded(read.build);
+    App.state.commitInitial('build code from the address bar', function (s) {
+      s.build = next;
+      s.fight = null;
+    });
+    return read;
   }
 
   // The only route into commitUi, so ui changes never reach the undo stack.
@@ -5696,6 +5997,9 @@ App.ops = (function () {
       case 'startFight': return startFight();
       case 'endFight': return endFight();
       case 'reset': return resetToDefaults();
+      // One key, named, like every arm around it. The BOOT loader beside this
+      // op deliberately has no arm at all — see the absence block below.
+      case 'loadBuildCode': return loadBuildCode(p.code);
       case 'setTokenStyle': return setTokenStyle(p.tokenId, p.patch);
       // Read key by key rather than forwarding the payload object whole. The
       // op's own guards would refuse a stray key's VALUE, but they would never
@@ -5731,6 +6035,17 @@ App.ops = (function () {
   //   - turn and round advance, action-point spending, damage application and
   //     the fight record — Phase 5, plan 05-01
   // Each arrives with the phase that has a surface to put it on.
+  //
+  // Also deliberately absent, and for a THIRD reason again: loadBuildCodeAtBoot
+  // has no arm in the router above and must never be given one. It writes
+  // through [S03]'s commitInitial, which leaves NO undo entry (D-20), and
+  // dispatch is the only thing a student press can reach — so an arm here would
+  // put a writer that leaves no trace one press away from a student, and a
+  // board would change under them with nothing for Ctrl+Z to take back. The
+  // exported name is for [S08] and for the suite that asserts this absence.
+  // [S03]'s own guard is the second half of the same property: that writer
+  // refuses once anything at all has been committed, so the day somebody adds
+  // an arm here anyway, the press throws instead of silently working.
   //
   // Also deliberately absent, and for a different reason: openTokenPicker. It
   // is not a state transformation at all — opening a dialog is nothing but page
@@ -5775,6 +6090,10 @@ App.ops = (function () {
     startFight: startFight,
     endFight: endFight,
     resetToDefaults: resetToDefaults,
+    // The student's paste, and [S08]'s boot load. The second has no dispatch
+    // arm on purpose — the absence block above says why.
+    loadBuildCode: loadBuildCode,
+    loadBuildCodeAtBoot: loadBuildCodeAtBoot,
     setTokenStyle: setTokenStyle,
     createTokenType: createTokenType,
     removeTokenType: removeTokenType,
@@ -17425,6 +17744,150 @@ App.selftest = (function () {
       + 'are read off a board that is otherwise right rather than off a wrong one',
       drivenBack.ok === true && stableText(drivenBack.build) === stableText(drivenBoard));
     t.ok('the prototype is intact after the reconstruction rows', protoIntact());
+
+    /* --- THE TWO LOAD OPS — owner plan 04-04. The one write path a pasted
+           code takes, driven through the LIVE ops and the LIVE router rather
+           than read off [S05]'s source, and every reading taken off
+           App.state.undoDepth() rather than off a count this suite keeps
+           itself. What a load op DOES to the undo stack is the whole of what
+           these rows are about: SHARE-04's sibling promise is that a load is
+           one Ctrl+Z away from the board it replaced, and D-20's promise is
+           that a board arriving on a link is not on the stack at all. Those
+           two are opposite answers to the same question, which is why there
+           are two ops and why this block asserts each against the other. --- */
+    App.state.restore(savedAll);
+    var loadCode = App.serialize.encode(App.state.get().build);
+    var loadTarget = JSON.stringify(App.state.get().build);
+
+    // Move the board somewhere else first, or a load that did nothing at all
+    // would be indistinguishable from a load that worked.
+    App.ops.setFactionAp('cats', App.state.get().build.cats.ap === 7 ? 6 : 7);
+    var loadPrevious = JSON.stringify(App.state.get().build);
+    var loadDepthBefore = App.state.undoDepth();
+    var loadBack = App.ops.loadBuildCode(loadCode);
+    var loadDepthAfter = App.state.undoDepth();
+    var loadLanded = JSON.stringify(App.state.get().build);
+    App.ops.undo();
+    var loadUndone = JSON.stringify(App.state.get().build);
+
+    t.eq('A VALID PASTE IS EXACTLY ONE UNDO ENTRY, and one Ctrl+Z brings the board it '
+      + 'replaced back BYTE FOR BYTE. It is resetToDefaults with a decoded record in '
+      + 'place of the shipped one, and it inherits that op\'s whole shape: one commit, '
+      + 'structural because a loaded roster moves units.length, and the stack never '
+      + 'cleared — a paste a student did not mean has to be recoverable in one press',
+      [loadBack.ok, loadDepthAfter - loadDepthBefore,
+        loadLanded === loadTarget, loadUndone === loadPrevious],
+      [true, 1, true, true]);
+    t.ok('the prototype is intact after a paste and its undo', protoIntact());
+
+    /* --- A REFUSAL WRITES NOTHING. One row per refusal token, each asserting
+           the same three things: the record comes back, the undo stack does not
+           move, and the state is byte-identical afterwards. A refusal carrying
+           no `build` key at all is what makes there be nothing to half-apply
+           even by mistake. --- */
+    var refusalShapes = [
+      { why: 'shape', what: 'text that is not a build code at all', code: 'hello there' },
+      { why: 'version', what: 'a code from another wire version',
+        code: 'v2' + App.data.CODE_SEP.section + bodyOf(hostileCode)
+          + App.data.CODE_SEP.section + App.serialize.checksum(bodyOf(hostileCode)) },
+      { why: 'checksum', what: 'a code that did not arrive intact',
+        code: hostileCode.slice(0, hostileCode.length - 1)
+          + (hostileCode.charAt(hostileCode.length - 1) === 'z' ? 'y' : 'z') },
+      { why: 'content', what: 'a roster the board cannot hold',
+        code: tampered(function (made) { made[2] = 'A0'; }) }
+    ];
+    refusalShapes.forEach(function (row) {
+      var wasText = JSON.stringify(App.state.get());
+      var wasDepth = App.state.undoDepth();
+      var threw = false;
+      var got = null;
+      try { got = App.ops.loadBuildCode(row.code); } catch (unexpected) { threw = true; }
+      t.eq('a paste refused for ' + row.why + ' — ' + row.what + ' — writes NOTHING: no '
+        + 'exception out of the op, a record carrying that token and no build key at '
+        + 'all, not one undo entry, and a state byte-identical to the reading taken '
+        + 'before it. All four together, because a row asserting only the state would '
+        + 'be green over an op that wrote a phantom undo step',
+        [threw, got === null ? null : got.ok, got === null ? null : got.why,
+          got === null ? null : Object.prototype.hasOwnProperty.call(got, 'build'),
+          App.state.undoDepth() - wasDepth, JSON.stringify(App.state.get()) === wasText],
+        [false, false, row.why, false, 0, true]);
+    });
+    t.ok('the prototype is intact after every refused paste', protoIntact());
+
+    /* --- THE LABEL IS THE COALESCING KEY, so two pastes inside the window are
+           TWO entries. commit() folds a repeat under the same label into one
+           step, which is what makes press-and-hold one Ctrl+Z; a paste is a
+           discrete act and must not fold. --- */
+    var twoDepthBefore = App.state.undoDepth();
+    App.ops.loadBuildCode(loadCode);
+    App.ops.loadBuildCode(loadCode);
+    var twoDepthAfter = App.state.undoDepth();
+    t.eq('TWO VALID PASTES INSIDE THE COALESCING WINDOW ARE TWO UNDO ENTRIES, not one. '
+      + 'The label IS the key commit() coalesces on, so a load op that spelled its '
+      + 'label the same way every time would fold two pastes four hundred milliseconds '
+      + 'apart into a single step and one Ctrl+Z would step back past both of them. '
+      + 'The window is ' + App.state.COALESCE_MS + 'ms and these two are well inside it',
+      twoDepthAfter - twoDepthBefore, 2);
+
+    /* --- THE BOOT WRITER, AND THE TWO THINGS THAT MAKE IT UNREACHABLE FROM A
+           PRESS. It refuses once anything has been committed, and the router
+           has no arm for it. Both are driven rather than read. --- */
+    var bootStateWas = JSON.stringify(App.state.get());
+    var bootDepthWas = App.state.undoDepth();
+    function bootTried() {
+      try { App.ops.loadBuildCodeAtBoot(loadCode); return 'it ran'; }
+      catch (refused) {
+        return String(refused.message).indexOf('commitInitial(') === 0
+          ? 'refused by its own single-use guard'
+          : 'threw for another reason: ' + refused.message;
+      }
+    }
+    var bootFirst = bootTried();
+    var bootSecond = bootTried();
+    t.eq('THE BOOT WRITER REFUSES ON ANY BOARD A STUDENT PRESS CAN PRODUCE, and refuses '
+      + 'the same way a second time. Its guard is "nothing committed yet and the stack '
+      + 'empty", which is a state only [S08]\'s start() is ever in — so a caller '
+      + 'arriving after boot is a throw rather than a second board with no undo entry '
+      + 'behind it. This board has been driven, so the FIRST call is already refused, '
+      + 'and the state does not move for either attempt',
+      [bootFirst, bootSecond, App.state.undoDepth() - bootDepthWas,
+        JSON.stringify(App.state.get()) === bootStateWas],
+      ['refused by its own single-use guard',
+        'refused by its own single-use guard', 0, true]);
+
+    var bootArm = (function () {
+      try {
+        App.ops.dispatch('loadBuildCodeAtBoot', { code: loadCode });
+        return 'the router has an arm for it';
+      } catch (refused) {
+        return String(refused.message).indexOf('Unknown op') === 0
+          ? 'no arm' : 'threw for another reason: ' + refused.message;
+      }
+    })();
+    var pasteArm = (function () {
+      try {
+        var r = App.ops.dispatch('loadBuildCode', { code: loadCode });
+        return (r && r.ok === true) ? 'the paste arm loads' : 'the paste arm refused a good code';
+      } catch (broke) { return 'the paste arm threw: ' + broke.message; }
+    })();
+    t.eq('dispatch HAS an arm for the student\'s paste and NONE for the boot writer, '
+      + 'driven through the live router rather than read off the switch. dispatch is '
+      + 'the only thing a press can reach, so an arm for a writer that leaves no undo '
+      + 'entry would put a board that changes with nothing to take it back one press '
+      + 'away from a student. Both halves in one row, because "no arm" is worth nothing '
+      + 'unless the arm beside it is proved to work',
+      [bootArm, pasteArm], ['no arm', 'the paste arm loads']);
+
+    t.eq('[S03] exports commitInitial beside restore, and gained exactly that one name — '
+      + 'the banner up there is read as an inventory of who may write outside [S05], so '
+      + 'a third writer appearing without a line in it would be the banner starting to '
+      + 'lie', [typeof App.state.commitInitial,
+        Object.keys(App.state).indexOf('commitInitial') !== -1,
+        Object.keys(App.state).length], ['function', true, 12]);
+    t.ok('the prototype is intact after the load-op rows', protoIntact());
+
+    App.state.restore(savedAll);
+    App.state.flush();
 
     /* --- THE BUDGET FIGURES AS MEASUREMENTS, NOT GATES. t.info records a
            number without ever being able to redden a run, which is what these
