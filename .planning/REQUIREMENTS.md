@@ -43,7 +43,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **FIGHT-03**: Student can spend a faction's action points during its turn, with spent points visibly distinct from available ones
 - [x] **FIGHT-04**: Student can apply damage to an individual unit
 - [x] **FIGHT-05**: A unit reaching zero health is marked dead but can be manually toggled alive or dead, so a student's Shield or Evade ruling is representable
-- [ ] **FIGHT-06**: Dead units stay visible in the roster rather than disappearing
+- [x] **FIGHT-06**: Dead units stay visible in the roster rather than disappearing
 - [x] **FIGHT-07**: Student can manually override any tracked value at any point, and the override is visibly marked as one
 - [ ] **FIGHT-08**: Combat log records each turn's actions and every manual override
 - [x] **FIGHT-09**: Whose turn it is and what remains to spend are unambiguous at a glance
@@ -157,7 +157,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | FIGHT-03 | Phase 5 | Complete |
 | FIGHT-04 | Phase 5 | Complete |
 | FIGHT-05 | Phase 5 | Complete |
-| FIGHT-06 | Phase 5 | Pending |
+| FIGHT-06 | Phase 5 | Complete |
 | FIGHT-07 | Phase 5 | Complete |
 | FIGHT-08 | Phase 5 | Pending |
 | FIGHT-09 | Phase 5 | Complete |

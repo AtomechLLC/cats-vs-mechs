@@ -3,15 +3,15 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: executing
-stopped_at: Completed 05-14-PLAN.md
-last_updated: "2026-08-29T17:45:58.476Z"
+stopped_at: Completed 05-15-PLAN.md
+last_updated: "2026-08-29T18:23:45.893Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 48
-  completed_plans: 46
-  percent: 86
+  completed_plans: 47
+  percent: 98
 ---
 
 # Project State
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 15 of 16 — 05-14 complete, 05-15 next
+Plan: 16 of 16 — 05-15 complete, 05-16 next
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [██████████] 96%
+Progress: [██████████] 98%
 
 ## Performance Metrics
 
@@ -82,6 +82,7 @@ Progress: [██████████] 96%
 | Phase 05 P12 | 105min | 2 tasks tasks | 2 files files |
 | Phase 05 P13 | 82 | 2 tasks | 2 files |
 | Phase 05 P14 | 191min | 3 tasks | 2 files |
+| Phase 05 P15 | 168min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -190,6 +191,9 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-14: the fight grid's disable is a RENDER decision under exactly three conditions; D-23 and check 95's never-disable walk are both turned in the open — red recorded verbatim, rewritten to the new contract in both directions, green recorded. The rule remains in force on the build and proposal surfaces.
 - [Phase 05]: 05-14: the change-target flow narrows 03.1-07 to the opposing side behind fgMayPoint — one line, widened by one line, with the heal-shaped case named at the site. declareAction and unitAnywhere are untouched.
 - [Phase 05]: 05-14: [C14.1]'s .fg-sides went 34vh to 26vh, because D-27's round line pushed the Advance control to 814 of a 768px viewport. [C14]'s 736px basis still holds and its re-measure is handed to plan 05-15.
+- [Phase 05]: 05-15: the unit shape IS the control — the addendum makes the battlefield the click surface for the change-target flow, so the thing a student aims at is the thing they press. Costs 12 Tab stops; recorded as a playtest question
+- [Phase 05]: 05-15: the lit state is an outline plus a real text node, never aria-pressed — a lit unit is available rather than pressed, and content is what a screen reader and the rendered-page walk both reach
+- [Phase 05]: 05-15: .fg-side flex basis 340 -> 320. The two declaration columns were STACKED at every viewport in both browsers on the SHIPPED artifact — the 736px derivation never subtracted .fg-sides' own padding or its scrollbar gutter. flex-grow fills, so the columns render at 332px and the dial costs nothing
 
 ### Pending Todos
 
@@ -215,6 +219,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T17:45:31.784Z
-Stopped at: Completed 05-14-PLAN.md
+Last session: 2026-08-29T18:23:45.880Z
+Stopped at: Completed 05-15-PLAN.md
 Resume file: None
