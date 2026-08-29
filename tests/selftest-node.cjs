@@ -174,6 +174,23 @@ const VERDICT_WORDS = [
   { label: 'outclass', re: /outclass/i },
   { label: 'winner', re: /winner/i },
   { label: 'loser', re: /loser/i },
+  // Plan 05-01 adds exactly two words to this layer, and the test they had to
+  // pass is the doctrine written above rather than "the phase would like them
+  // banned". `victor` and `triumph` NAME AN OUTCOME the way `winner` and `loser`
+  // two lines up do; neither has an innocent reading in this codebase, and a
+  // comment or a CSS class carrying one is evidence the banned feature is
+  // arriving. Measured over cats-vs-mechs.html before they were added here:
+  // /victor/i -> 0 hits, /triumph/i -> 0 hits, whole document, comments and CSS
+  // included.
+  //
+  // The other eleven candidates that plan measured are NOT here, and the reason
+  // is the paragraph above rather than their hit counts. `won`, `winning`,
+  // `lose`, `lost`, `defeat`, `outlast`, `dominant`, `leads`, `best`, `harder`
+  // and `easier` are comparative or narrative English, not names for the banned
+  // feature — the same judgement that moved `better`, `weak` and `dominat` down
+  // to Layer B. Their measured document counts are recorded beside them there.
+  { label: 'victor stem', re: /victor/i },
+  { label: 'triumph stem', re: /triumph/i },
   { label: 'traffic light', re: /traffic light/i },
   { label: 'overpowered', re: /overpowered/i },
   { label: 'underpowered', re: /underpowered/i },
@@ -295,10 +312,22 @@ const VERDICT_LITERAL_WORDS = [
   { label: 'judgement', re: /judgement/i },
   { label: 'rank', re: /rank/i },
   { label: 'ahead', re: /ahead/i },
-  { label: 'wins', re: /\bwins\b/i },
-  { label: 'win', re: /\bwin\b/i },
+  // WIDENED BY PLAN 05-01, from /\bwins\b/ and /\bwin\b/ as two entries to one
+  // that also covers `winning`. Measured over cats-vs-mechs.html first, because
+  // that is the standing rule below: 2 hits in the whole document (line 198
+  // `wins`, line 15795 `win`, both prose) and ZERO in the 5582 string literals
+  // this layer reads. So the widening costs nothing here and closes the spelling
+  // a fight surface reaches for first — "Mechs are winning".
+  { label: 'win/wins/winning', re: /\bwin(s|ning)?\b/i },
+  // `won` as a WHOLE WORD, not a stem: `wonder` and `wondering` are ordinary
+  // English. Measured 0 document hits and 0 literal hits.
+  { label: 'won', re: /\bwon\b/i },
   { label: 'edge', re: /\bedge\b/i },
-  { label: 'lead', re: /\blead\b/i },
+  // WIDENED BY PLAN 05-01 from /\blead\b/ — this was one of the two gaps the
+  // paragraph beside Layer C reported and declined to close, and this is the
+  // plan that measured it: 3 document hits (lines 982, 987, 1604, all prose) and
+  // ZERO literal hits.
+  { label: 'lead/leads', re: /\bleads?\b/i },
   { label: 'worse', re: /worse/i },
   { label: 'stronger', re: /stronger/i },
   { label: 'strongest', re: /strongest/i },
@@ -309,10 +338,74 @@ const VERDICT_LITERAL_WORDS = [
   { label: 'fair', re: /\bfair\b/i },
   { label: 'superior', re: /superior/i },
   { label: 'inferior', re: /inferior/i },
-  { label: 'dominate stem', re: /dominat/i },
+  // WIDENED BY PLAN 05-01 from /dominat/, the second of the two reported gaps.
+  // The word is dominan-t, so the old stem caught `dominate` and `domination`
+  // and missed `dominant` — which is the spelling a fight surface would actually
+  // reach for. One character class closes it. Measured: /dominan/i -> 0 document
+  // hits, 0 literal hits.
+  { label: 'dominant/dominate stem', re: /domina[nt]/i },
   { label: 'optimal', re: /optimal/i },
   { label: 'better', re: /better/i },
-  { label: 'judgment', re: /judgment/i }
+  { label: 'judgment', re: /judgment/i },
+  // --- the rest of plan 05-01's widening, each with the count it was measured
+  // at over cats-vs-mechs.html before it was added. Document hits are prose and
+  // are what Layer A would have reddened on; literal hits are what THIS layer
+  // reads, and every entry here measured ZERO of them.
+  { label: 'defeat stem', re: /defeat/i },     // doc 4 (lines 3440, 3591, 6645, 8008), lit 0
+  { label: 'outlast stem', re: /outlast/i },   // doc 0, lit 0
+  { label: 'harder', re: /\bharder\b/i },      // doc 1 (line 571), lit 0
+  { label: 'easier', re: /\beasier\b/i }       // doc 0, lit 0
+];
+
+// --- 2b-ii. the third list: words banned on the RENDERED page only ------------
+// A THIRD list is not a third idea. It is the SAME split this file already made
+// once, taken one notch further, and plan 05-01 was forced into it by
+// measurement rather than choosing it for tidiness.
+//
+// The split above says: a COMMENT may discuss the concept, a STRING LITERAL may
+// not carry the word. Three of that plan's candidates cannot live under that
+// rule, because the artifact carries the word in a string literal that is not
+// rendered copy at all — it is the prose of an in-file selftest CHECK LABEL:
+//
+//   /\blos(e|es|ing)\b/i  measured 13 document hits and 2 literal hits:
+//       'and the columns rebuilt their cards rather than losing them'   (:16608)
+//       'THAT GOES RED, instead of every shared build quietly losing the value inside a ' (:19275)
+//   /\blost\b/i           measured 5 document hits and 1 literal hit:
+//       'writes, and the only place a field can be lost without either half of the ' (:19358)
+//   /\bbest\b/i           measured 4 document hits and 2 literal hits:
+//       'cats best damage'    (:13454)
+//       'mechs best damage'   (:13455)   — labels naming App.model.bestDamage
+//
+// Every one of those five is ordinary engineering English about DOM nodes,
+// values and a model function. None of them judges a build. The wording is not
+// wrong, so it was not reworded to make a pattern fit — that is the rule this
+// plan worked under, and the artifact is untouched by it.
+//
+// The two alternatives were both worse. Narrowing until the hits vanish costs
+// `losing`, which is the single likeliest spelling a fight surface would reach
+// for, and there is no narrowing available at all for `best` or `lost`, which
+// are already whole words. Declining them outright leaves "Cats lost", "Mechs
+// are losing" and "the best build" shippable, and those are exactly the
+// sentences this plan exists to make impossible.
+//
+// So they sit here: read by Layer C over the rendered page, and by nothing else.
+//
+// WHAT THAT GIVES UP, stated exactly, because narrowing a PROJ-06 layer is a
+// real trade and not a tidy-up. For these three words only: the string literals
+// of the script block, and the whole document. A verdict carrying one of them
+// that never reaches a node this gate's walk reads would pass. Layer C reads
+// #app in setup, #app with a fight running, and every dialog root — so the hole
+// is copy that exists and is never painted in any of those five driven states,
+// which is harness limitation 13's territory and is named there.
+//
+// THE RULE FOR THE NEXT PLAN THAT ADDS A WORD: try Layer A, then Layer B, then
+// here, in that order, and put it in the highest layer whose measured hit count
+// over cats-vs-mechs.html is zero. A word placed lower than it had to be is
+// coverage given away for nothing.
+const VERDICT_RENDERED_WORDS = [
+  { label: 'lose/loses/losing', re: /\blos(e|es|ing)\b/i },
+  { label: 'lost', re: /\blost\b/i },
+  { label: 'best', re: /\bbest\b/i }
 ];
 
 const literalHits = [];
@@ -4592,9 +4685,29 @@ const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
 
 // Each entry records WHERE it was read as well as WHAT was read, so a hit names
 // the surface it came off rather than leaving the reader to find it.
+//
+// SCOPE_IDS MAKES THAT RECORD MEAN WHAT THE SENTENCE ABOVE ALREADY CLAIMED IT
+// MEANT. Before plan 05-01 every string under #app was recorded as '#app',
+// whatever region actually painted it, and the claim "a hit names the surface it
+// came off" was true only at dialog granularity. That was harmless while every
+// use of the record was a diagnostic message. It stopped being harmless the
+// moment a check needed to ASSERT on the record — see the relationship-verb
+// guard below, whose whole mechanism is that one region is allowed a word the
+// rest of the page is not.
+//
+// So a node whose id is named here switches the label for its own subtree. The
+// list is short on purpose: an id belongs here when a check distinguishes that
+// region from the rest of its root, not because the region exists. Today that is
+// exactly one region.
+const SCOPE_IDS = ['refband'];
+
 function harvestInto(root, into, where) {
-  (function harvest(node) {
+  (function harvest(node, where) {
     if (!node) { return; }
+    const ownId = node.getAttribute ? node.getAttribute('id') : null;
+    if (typeof ownId === 'string' && SCOPE_IDS.indexOf(ownId) !== -1) {
+      where = '#' + ownId;
+    }
     if (node.children.length === 0
       && typeof node.textContent === 'string' && node.textContent !== ''
       && !('lbl' in node.dataset)
@@ -4608,8 +4721,8 @@ function harvestInto(root, into, where) {
         into.push({ s: value, where: where });
       }
     });
-    node.children.forEach(harvest);
-  })(root);
+    node.children.forEach((child) => harvest(child, where));
+  })(root, where);
   return into;
 }
 
@@ -4705,7 +4818,9 @@ function openDialogs() {
 
 const dialogText = openDialogs();
 
-const RENDERED_VERDICT_WORDS = VERDICT_WORDS.concat(VERDICT_LITERAL_WORDS);
+const RENDERED_VERDICT_WORDS = VERDICT_WORDS
+  .concat(VERDICT_LITERAL_WORDS)
+  .concat(VERDICT_RENDERED_WORDS);
 
 // ONE word list for both roots, not two. A second list is a second thing to
 // keep in step, and the only difference between a word on the board and the
@@ -4724,13 +4839,110 @@ function verdictHitsIn(items) {
   return found;
 }
 
-// TWO GAPS IN THE WORD LIST, MEASURED THIS SESSION AND REPORTED RATHER THAN
-// WIDENED. /\blead\b/i does not match "leads", so "leads on damage" passes; and
-// /dominat/i does not match "dominant", because the word is dominan-t, so "the
-// dominant action" passes. Neither is widened here — a widening belongs with
-// the plan that measures its false positives — and neither is exploited: the
-// copy this phase ships is arithmetic, not evaluative.
-const renderedHits = verdictHitsIn(renderedText.concat(dialogText));
+/* --- THE RELATIONSHIP VERB, CLOSED BY SCOPE RATHER THAN BY STEM --------------
+   `beat`, `beats` and `beaten` cannot go on any of the three word lists, and the
+   reason is not that they are innocent. They are the exact words a fight surface
+   would use to announce an outcome — "Cats beat Mechs" — and they are ALSO the
+   artifact's own approved vocabulary: [S06.4] renders "Fly beats Slash" and
+   "Lasers beat Hairball" off App.data.REFERENCE.beats, under a heading that
+   reads "What beats what". That copy is the reference material the workshop is
+   built on. A stem ban reddens the shipped board.
+
+   So the question is not WHICH WORD it is. It is WHICH SURFACE SAID IT — and
+   the harvest already carries that, in the `where` each record was read with.
+   One action beating another is a relationship between two moves in the
+   reference band. One SIDE beating the other is a ruling on a student's build,
+   and PROJ-06 says the artifact never makes one.
+
+   THE ALLOWED SET IS DERIVED FROM WHERE THE STRING WAS READ, NEVER FROM ITS
+   TEXT, and that distinction is the whole of this guard's value. A text
+   allowlist — "Fly beats Slash" and "Lasers beat Hairball" are fine, everything
+   else reddens — would be a list of exactly the sentences somebody thought of on
+   the day, and it would go green the moment a student renamed an action, which
+   they can do since phase 3.1. Scoping by read-site holds for every sentence the
+   band can ever produce and for no sentence produced anywhere else.
+
+   The band's own id is in SCOPE_IDS above, which is why '#refband' is a label
+   this can compare against at all. If that entry is ever removed, every band line
+   is recorded as '#app', this guard reddens on the shipped board, and the run
+   says so — which is the failure direction a gate should fail in. */
+const RELATIONSHIP_VERB = /\bbeat(s|en)?\b/i;
+const RELATIONSHIP_SCOPE = '#refband';
+
+function relationshipHitsIn(items) {
+  const found = [];
+  items.forEach((item) => {
+    if (!RELATIONSHIP_VERB.test(item.s)) { return; }
+    if (item.where === RELATIONSHIP_SCOPE) { return; }
+    found.push('[relationship verb outside ' + RELATIONSHIP_SCOPE + '] in '
+      + JSON.stringify(item.s) + ' (read from ' + item.where + ')');
+  });
+  return found;
+}
+
+/* --- THE WORD LISTS' HISTORY, KEPT THE WAY THE FLOORS BELOW KEEP THEIRS ------
+   This paragraph used to read "TWO GAPS IN THE WORD LIST, MEASURED THIS SESSION
+   AND REPORTED RATHER THAN WIDENED", naming /\blead\b/ against "leads" and
+   /dominat/ against "dominant", and it closed with the standing rule that a
+   widening belongs with the plan that measures its false positives. Plan 05-01
+   is that plan. Both gaps are closed above, and the rule is kept — every word
+   added carries the count it was measured at, in a comment beside it.
+
+   WHAT WAS MEASURED, 2026-08-29, over the whole of cats-vs-mechs.html and over
+   the 5582 string literals Layer B extracts from it. Nineteen words passed all
+   three layers before this plan; these are the readings that decided where each
+   one went.
+
+     candidate                    doc   lit   placed
+     won            \bwon\b         0     0   Layer B
+     win/wins/winning              2     0   Layer B (widened from two entries)
+     lose/loses/losing            13     2   Layer C only — the 2 are check labels
+     lost           \blost\b        5     1   Layer C only — the 1 is a check label
+     defeat         /defeat/        4     0   Layer B
+     victor         /victor/        0     0   Layer A
+     triumph        /triumph/       0     0   Layer A
+     outlast        /outlast/       0     0   Layer B
+     dominan[t]                     0     0   Layer B (widened from /dominat/)
+     best           \bbest\b        4     2   Layer C only — the 2 are check labels
+     leads          \bleads?\b      3     0   Layer B (widened from /\blead\b/)
+     harder         \bharder\b      1     0   Layer B
+     easier         \beasier\b      0     0   Layer B
+     beat/beats/beaten            44    21   NEITHER — closed by scope, above
+
+   THREE CANDIDATES WERE MEASURED AND DECLINED IN THE SPELLING THEY WERE ASKED
+   FOR, and the readings are worth keeping because the next reader's instinct
+   will be to "tidy" them into stems:
+     /los/    221 document hits, 23 literal hits — it catches `close`, `closest`
+              and `lossless`. Whole-word alternation only.
+     /best/   29 document hits — it catches `bestPair` and `bestDamage`, which
+              are shipped [S02] identifiers. WHOLE WORD ONLY. A stem here reddens
+              the model layer.
+     /beat/   44 document hits, 21 literal hits — the artifact's own reference
+              material. This is the one that proves the scoped guard was
+              necessary rather than elegant.
+
+   THE GATE IS A FLOOR AND NOT A CEILING, and closing the mechanical hole did not
+   make the rest of the vocabulary shippable. EIGHT WORDS MEASURED MECHANICALLY
+   CLEAN AND ARE STILL NOT WRITABLE: `contested`, `one-sided`, `blowout`,
+   `lopsided`, `even`, `close`, `tight`, `behind`. They are balance judgements
+   wearing a neutral coat, and they are deliberately NOT added, because the
+   measurement says what a widening would cost: /\bclose\b/ has 77 document hits
+   and 16 literal hits, /\bbehind\b/ has 50 and 13, /\beven\b/ has 15 and 4 —
+   every one of them ordinary English across roughly a megabyte of deliberate
+   prose. A list widened to catch those is a build that goes red on a sentence
+   somebody wrote two phases ago, which is how a gate stops being trusted. That
+   these stay off the page is a WRITTEN RULE, not a regular expression, and it is
+   plan 05-11's to judge with a person in the room. Harness limitation 14 names
+   it as such.
+
+   AND ONE GAP THIS PLAN MEASURED AND COULD NOT CLOSE: camelCase evades every
+   word-boundary rule in all three layers. `winsBy`, `leadBy` and `edgeOf` pass
+   Layer B today and would pass Layer C. Reported, not exploited, and not
+   widened — a camelCase-splitting scanner over 5582 literals is a change with
+   its own false-positive budget and no phase has needed it yet. Harness
+   limitation 15. */
+const renderedHits = verdictHitsIn(renderedText.concat(dialogText))
+  .concat(relationshipHitsIn(renderedText.concat(dialogText)));
 
 // A walk that silently collects nothing would report a spotlessly clean page
 // forever. That is precisely the defect KNOWN_IDS carried before section 5b
@@ -4909,7 +5121,10 @@ check(
 check(
   '48. PROJ-06 — nothing on the rendered page judges a build, in #app or in any '
     + 'dialog, and a student who names their own type after a comparative word '
-    + 'does not trip it',
+    + 'does not trip it. The relationship verb rides in this row rather than in '
+    + 'one of its own, because it is the same claim about the same harvest: the '
+    + 'reference band may say one action beats another, and nothing else on the '
+    + 'page may say anything beats anything',
   renderedHits.length === 0,
   renderedHits.length === 0
     ? 'clean across ' + (renderedText.length + dialogText.length)
