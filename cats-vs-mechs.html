@@ -13699,6 +13699,40 @@ App.selftest = (function () {
     return false;
   }
 
+  // Every path whose value a JSON round trip would MANGLE OR DROP, named.
+  // Added by plan 05-02 to replace a row that asserted nothing — see the
+  // paragraph beside its call site. It reports paths rather than a boolean
+  // because the whole value of this row on a red run is which key went wrong,
+  // and a deep-equality spelling cannot say: the harness prints a failed row
+  // by serialising both sides, with JSON, which drops the very value the row
+  // caught and prints two identical-looking strings.
+  //
+  // The four kinds JSON changes silently: a function and an undefined are
+  // dropped from an object and become null in an array; a symbol is dropped;
+  // and a non-finite number becomes null. Nothing else in a plain-data tree
+  // survives the trip differently.
+  function jsonDrops(value, where, out) {
+    var found = out || [];
+    var at = where || 'state';
+    if (value === null) { return found; }
+    var kind = typeof value;
+    if (kind === 'number') {
+      if (!Number.isFinite(value)) { found.push(at + ' [' + String(value) + ']'); }
+      return found;
+    }
+    if (kind === 'string' || kind === 'boolean') { return found; }
+    if (Array.isArray(value)) {
+      value.forEach(function (v, n) { jsonDrops(v, at + '.' + n, found); });
+      return found;
+    }
+    if (kind === 'object') {
+      Object.keys(value).forEach(function (k) { jsonDrops(value[k], at + '.' + k, found); });
+      return found;
+    }
+    found.push(at + ' [' + kind + ']');
+    return found;
+  }
+
   App.selftest.suite('state contract', function (t) {
     var i;
 
@@ -13746,8 +13780,28 @@ App.selftest = (function () {
       fight: App.state.get().fight
     }));
 
-    var live = JSON.stringify(App.state.get());
-    t.eq('json clonable', JSON.stringify(JSON.parse(live)), live);
+    /* --- THE CLONE ROW, REWRITTEN BY PLAN 05-02 AFTER A PROBE MEASURED IT
+           ASSERTING NOTHING. It read
+             var live = JSON.stringify(App.state.get());
+             t.eq('json clonable', JSON.stringify(JSON.parse(live)), live);
+           which compares a JSON string against a re-serialisation of itself
+           and is therefore true for EVERY input, including a state carrying a
+           function: JSON.stringify DROPS a function-valued key, so the value
+           the row is guarding against never reaches either side of the
+           comparison. Probe F put a function on the fight slice and this row
+           stayed green.
+           Replaced by a WALK THAT NAMES THE PATH. Comparing the live object
+           against its round trip through the harness's stable() does redden —
+           measured — but it prints a useless red run: the report serialises
+           both sides with JSON, which drops the offending value from both, so
+           a reader sees two identical strings and no diagnosis. jsonDrops
+           reports the path instead, and reports all four kinds of value the
+           trip changes rather than the one that prompted it. --- */
+    t.eq('json clonable — NOTHING anywhere on the state is a value a JSON round '
+      + 'trip would drop or mangle, and the row names the path when there is '
+      + 'one. The old spelling compared a JSON string against a re-serialisation '
+      + 'of itself, which is true of every input including a state carrying a '
+      + 'function', jsonDrops(App.state.get()), []);
 
     /* --- the frozen guard: two depths, because a shallow freeze passes the
            first probe and silently allows the second --- */
@@ -13792,6 +13846,26 @@ App.selftest = (function () {
 
     /* --- alive is a flag, not an inference (D-00d) --- */
     App.ops.startFight();
+
+    /* --- BOTH SHAPE ROWS, READ A SECOND TIME WITH A FIGHT ACTUALLY RUNNING,
+           and this pair is a defect plan 05-02 found rather than a flourish.
+           The readings above are taken while `fight` is NULL — every row in
+           this suite before startFight() is, and so is check 73c's key-name
+           walk over in tests/selftest-node.cjs. So the shape rule this file
+           states in [S03]'s banner had never once been applied to the fight
+           slice, which is the one slice Phase 5 moves. Probe F put a function
+           on it and every row in the repo stayed green.
+           Read here, where there is a fight to read. [S09.12] carries the
+           driven-board version of the same pair over a richer fight; these two
+           are the cheap reading beside the rows they belong to. --- */
+    t.ok('integers only WITH A FIGHT RUNNING — the first reading of this rule '
+      + 'is taken over a null fight slice and therefore says nothing about the '
+      + 'one slice this phase writes into', allIntegers({
+        build: App.state.get().build,
+        fight: App.state.get().fight
+      }));
+    t.eq('json clonable WITH A FIGHT RUNNING, for the same reason',
+      jsonDrops(App.state.get()), []);
 
     var depthF = App.state.undoDepth();
     t.throws('a second startFight is refused', function () { App.ops.startFight(); });
