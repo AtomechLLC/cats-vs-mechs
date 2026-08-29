@@ -541,7 +541,31 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     off the slices and reaching further costs that guarantee. The reach is
 //     added inside [S09.12] instead, over a fight that actually exists, with a
 //     declaration and a resolved round in it.
-const SUITE_FLOOR = 1063;
+//   plan 05-03 adds the shield-then-health split and the declaration to
+//     [S09.12]: 40 rows becomes 75 and the run goes from 1093 to 1128, floored
+//     at 1098 — the same margin of 30 the five plans before it kept. Thirty-five
+//     rows, and the two worth recording are the ones that were WRONG on their
+//     first run rather than the thirty-three that were right. One asserted an
+//     undo-depth DELTA of four and measured zero, because UNDO_LIMIT is thirty
+//     and by that point in the suite the stack is at its cap — so four new
+//     entries push four old ones off the bottom and the delta reads zero over a
+//     run where each declaration was its own entry AND over a run where all
+//     four coalesced into one. It is now driven: declare two, undo once, and
+//     read that the first is still standing. The other accepted only three
+//     shapes of refusal message and so went red on the three that
+//     requireActionId hands back opening with the offending id in quotes — a
+//     row refusing the file's own refusals. Both are the same lesson from a
+//     different angle: a row that cannot distinguish the failure it names from
+//     the success it names is asserting nothing.
+//     TWO PROBES ALSO CAME BACK GREEN AND THE DIAGNOSIS IS WORTH KEEPING. The
+//     key-name row plan 05-02 added placed its declaration through a
+//     hand-written App.state.commit, correctly, because no op existed. Once
+//     declareAction shipped, re-spelling the OP's record { caster, target } left
+//     the whole repo green: the walk was reaching a fight, but a fight the
+//     SUITE had written rather than the one the op writes. The row now drives
+//     the shipped op, and the same probe reddens naming
+//     state.fight.decl.0.caster.
+const SUITE_FLOOR = 1098;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '

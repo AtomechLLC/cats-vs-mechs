@@ -20289,16 +20289,23 @@ App.selftest = (function () {
        The reach is added HERE instead, over a fight that actually exists, with
        a declaration and a resolved round in it.
 
-       The declaration and the round record are placed through App.state.commit
-       rather than through an op, because THE OP DOES NOT EXIST YET — plan
-       05-04 writes advanceRound. That is the point of asserting it now: a
-       naming rule discovered after the writer ships is discovered as a red run
-       in somebody else's plan. The records are spelled the way 05-PATTERNS
-       tables them, and the same records spelled { caster, target } redden this
-       row. */
-    App.state.commit('declare probe', function (s) {
-      s.fight.decl.push({ side: 'cats', act: 'slash', by: 'c1', at: 'm1' });
-    });
+       THE DECLARATION IS NOW DRIVEN THROUGH THE SHIPPED OP, AND THE REPAIR IS
+       WORTH RECORDING BECAUSE A SECOND PROBE MEASURED THE OLD SPELLING SAYING
+       NOTHING. Plan 05-02 wrote this record as a hand-placed App.state.commit,
+       correctly, because declareAction did not exist. Plan 05-03 shipped it,
+       and PROBE I then re-spelled the OP's record { side, act, caster, target }
+       — and every row in the repo stayed green, including this one, because a
+       literal written here agrees with whatever its author believed the op
+       would write. That is [S09.11]'s rule about driven boards rather than
+       hand-written ones, met one level down: the walk was reaching a fight, but
+       it was reaching a fight THIS SUITE had written rather than the fight the
+       op writes. Driven, the same probe reddens naming state.fight.decl.0.caster.
+
+       The ROUND RECORD below is still hand-placed, and for the original reason
+       unchanged: advanceRound does not exist yet — plan 05-04 writes it. The
+       same repair is owed to it on the day it ships, and this paragraph is the
+       instruction to make it. */
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
     App.state.commit('round record probe', function (s) {
       s.fight.past.push({
         round: 1,
@@ -20562,6 +20569,364 @@ App.selftest = (function () {
       noFightRefusals, []);
     t.ok('the prototype is intact after the bad-input table', protoIntact());
 
+    /* ===== FIGHT-16: THE SHIELD-THEN-HEALTH SPLIT, AS THREE FACTS =====
+       Exhaustively, because it is the ONE resolution rule the developer
+       specified directly, and because the failure it can have is invisible from
+       a total: a function that put every point through health hands back the
+       same SUM as one that spends the shield first, so a row asserting only
+       "3 damage landed" is spotlessly green over an implementation with no
+       shield rule in it at all. Every row below therefore reads THREE separate
+       numbers. Six shapes of hit and eight refusals, driven against
+       App.model.damageSplit, which is pure — it takes numbers, hands numbers
+       back, and never sees a unit. */
+
+    var splitOf = App.model.damageSplit;
+
+    // The three facts as a list, so a failure prints "[2,1,0], expected [3,0,0]"
+    // rather than an object whose keys a reader has to line up by eye.
+    function reads(r) { return [r.shield, r.health, r.spare]; }
+
+    t.eq('A HIT SMALLER THAN THE SHIELD is absorbed whole and health is not '
+      + 'touched: two against three shield and six health',
+      reads(splitOf(3, 6, 2)), [2, 0, 0]);
+
+    t.eq('a hit EQUAL to the shield empties it and still reaches no health — '
+      + 'the boundary case, spelled out, because "spends shield first" and '
+      + '"spends shield first unless it exactly runs out" are one off-by-one apart',
+      reads(splitOf(3, 6, 3)), [3, 0, 0]);
+
+    t.eq('A HIT LARGER THAN THE SHIELD OVERFLOWS INTO HEALTH BY THE REMAINDER '
+      + 'AND NOT IN FULL. This is CONTEXT D-05c and it is the row that tells '
+      + 'this reading apart from the other available one, in which a hit spends '
+      + 'one point of shield and then lands whole: three against two shield and '
+      + 'one health is two absorbed and ONE to health, never two and three',
+      reads(splitOf(2, 1, 3)), [2, 1, 0]);
+
+    t.eq('a hit larger than SHIELD PLUS HEALTH throws the remainder away, and '
+      + 'the amount thrown away is REPORTED rather than swallowed — that third '
+      + 'number is the overkill a student is meant to be able to see',
+      reads(splitOf(1, 2, 5)), [1, 2, 2]);
+
+    t.eq('a unit with NO SHIELD takes the whole hit on health, which is every '
+      + 'Cat on the shipped board', reads(splitOf(0, 6, 3)), [0, 3, 0]);
+
+    t.eq('a unit at ZERO HEALTH with no shield absorbs nothing at all and the '
+      + 'entire hit is spare. Nothing here rules that such a unit is dead — see '
+      + 'the D-00d row below', reads(splitOf(0, 0, 3)), [0, 0, 3]);
+
+    t.eq('and the three always account for the whole hit exactly, over every '
+      + 'shape above: absorbed plus taken plus spare IS the amount. This is the '
+      + 'row that would catch a split that lost a point somewhere in the middle, '
+      + 'which no single reading above can see',
+      [[3, 6, 2], [3, 6, 3], [2, 1, 3], [1, 2, 5], [0, 6, 3], [0, 0, 3]]
+        .map(function (c) {
+          var r = splitOf(c[0], c[1], c[2]);
+          return r.shield + r.health + r.spare === c[2];
+        }), [true, true, true, true, true, true]);
+
+    /* --- one row per refusal, in [S09.10]'s bad-input form. All eight are
+           refused by the SAME line, above the arithmetic, and all eight answer
+           three zeroes rather than null: nothing absorbed, nothing taken and
+           nothing spare is a TRUTHFUL reading of a hit that did not happen, and
+           it keeps the shape every caller reads. `'3'` is the one that matters
+           most — it coerces straight through soakTotal's bare `!(hit > 0)` and
+           would then subtract its way to a NaN split on a projector. --- */
+    [
+      { what: 'zero', amount: 0 },
+      { what: 'a negative amount', amount: -1 },
+      { what: 'NaN', amount: NaN },
+      { what: 'a NUMERIC STRING, which is the one a `> 0` test lets through',
+        amount: '3' },
+      { what: 'null', amount: null },
+      { what: 'undefined', amount: undefined },
+      { what: 'a fraction, because this board holds whole numbers only',
+        amount: 2.5 },
+      { what: 'Infinity', amount: Infinity }
+    ].forEach(function (bad) {
+      t.eq('a hit of ' + bad.what + ' is refused above the arithmetic and reads '
+        + 'as three zeroes', reads(splitOf(2, 1, bad.amount)), [0, 0, 0]);
+    });
+
+    t.eq('and a POOL that is not a whole number at or above zero is refused by '
+      + 'that same one line, so there is no second case left below it to forget',
+      [reads(splitOf(-1, 6, 3)), reads(splitOf(3, -1, 3)), reads(splitOf('3', 6, 3)),
+        reads(splitOf(3, null, 3))],
+      [[0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0]]);
+
+    /* ===== D-00d: A UNIT AT ZERO HEALTH IS STILL ALIVE =====
+       THE CLAIM, in the words a reader who never saw this plan needs: the tool
+       does not decide a unit is dead. It renders a number that PROMPTS a
+       ruling, and the student at the table rules. `alive` is a stored flag with
+       its own writer for exactly that reason — a unit ruled "survived via
+       Shield" and a unit ruled dead at full health both have to be
+       representable, and a tool that killed the first one has already taken the
+       ruling away.
+
+       Driven THROUGH THE SPLIT'S OWN NUMBERS rather than by writing zero
+       directly, because the failure this guards against is the obvious next
+       line inside the split — "and if health reached zero, set alive false" —
+       and a row that reached zero some other way would be green over it. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    var doomed = fight().mechs.units[0];
+    var killing = splitOf(doomed.shield, doomed.hp, doomed.shield + doomed.hp);
+    App.ops.setUnitHp('mechs', doomed.id, doomed.hp - killing.health);
+    App.state.flush();
+
+    t.eq('THE SPLIT TAKES A UNIT TO ZERO HEALTH AND THE UNIT IS STILL ALIVE. '
+      + 'Zero health prompts a death ruling from the table; it never causes one. '
+      + 'This is the row that reddens the day somebody adds the obvious next '
+      + 'line to damageSplit, and it is cheaper than the three comments that '
+      + 'say the same thing',
+      [reads(killing), fight().mechs.units[0].hp, fight().mechs.units[0].alive,
+        App.model.aliveCount(fight().mechs)],
+      [[3, 6, 0], 0, true, 3]);
+
+    t.eq('and the flag moves only when a WRITER is called, which is the other '
+      + 'half of D-00d: the same unit ruled dead by the table, and a unit at '
+      + 'full health ruled dead, are the same one op away',
+      (function () {
+        App.ops.setAlive('mechs', doomed.id, false);
+        App.state.flush();
+        var dead = fight().mechs.units[0].alive;
+        App.ops.setAlive('mechs', 'm2', false);
+        App.state.flush();
+        return [dead, fight().mechs.units[1].hp, fight().mechs.units[1].alive,
+          App.model.aliveCount(fight().mechs)];
+      })(), [false, 6, false, 1]);
+
+    t.ok('the prototype is intact after the split rows', protoIntact());
+
+    /* ===== FIGHT-12: NOTHING RESOLVES WHILE DECLARING =====
+       The round loop's first step, in the developer's own words: both sides
+       declare, THEN Advance resolves. A declaration is PENDING INTENT and
+       nothing else, so the whole board apart from the declaration list itself
+       has to be byte-identical before and after. This is the row that reddens
+       the day a declaration quietly starts spending — and it is written as a
+       whole-state comparison rather than as a list of the facts somebody
+       thought of, because a spending declaration would move whichever number
+       the list left out. The named readings below it exist so a failure says
+       WHICH number moved instead of printing two long strings. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+    var stillBoard = JSON.parse(JSON.stringify(App.state.get()));
+    var stillDepth = App.state.undoDepth();
+
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+    App.ops.declareAction('cats', 'hairball', null, null);
+    App.ops.declareAction('mechs', 'recharge', 'm2', 'm2');
+    App.state.flush();
+    var afterBoard = JSON.parse(JSON.stringify(App.state.get()));
+
+    t.eq('four declarations across BOTH SIDES land on the list and nowhere else',
+      [afterBoard.fight.decl.length,
+        afterBoard.fight.decl.map(function (d) { return d.side; }).join(',')],
+      [4, 'cats,mechs,cats,mechs']);
+
+    t.eq('A BOARD CARRYING DECLARATIONS IS BYTE-IDENTICAL TO THE SAME BOARD '
+      + 'CARRYING NONE, apart from the declaration list itself. That is '
+      + 'FIGHT-12\'s "before anything resolves" made mechanical rather than '
+      + 'promised, over the WHOLE state and not over the fields somebody '
+      + 'remembered to name',
+      (function () {
+        var a = JSON.parse(JSON.stringify(afterBoard));
+        var b = JSON.parse(JSON.stringify(stillBoard));
+        a.fight.decl = [];
+        b.fight.decl = [];
+        return JSON.stringify(a);
+      })(), (function () {
+        var b = JSON.parse(JSON.stringify(stillBoard));
+        b.fight.decl = [];
+        return JSON.stringify(b);
+      })());
+
+    t.eq('and the same claim read fact by fact, so a failure NAMES what moved: '
+      + 'both pools, every unit\'s health, shield and alive flag, the round '
+      + 'number, the resolved-round list and the whole build slice',
+      [afterBoard.fight.cats.ap, afterBoard.fight.mechs.ap,
+        JSON.stringify(afterBoard.fight.cats.units),
+        JSON.stringify(afterBoard.fight.mechs.units),
+        afterBoard.fight.round, afterBoard.fight.past.length,
+        JSON.stringify(afterBoard.build) === JSON.stringify(stillBoard.build)],
+      [stillBoard.fight.cats.ap, stillBoard.fight.mechs.ap,
+        JSON.stringify(stillBoard.fight.cats.units),
+        JSON.stringify(stillBoard.fight.mechs.units),
+        stillBoard.fight.round, 0, true]);
+
+    /* THE UNDO COST IS NOT ASSERTED AS A DEPTH DELTA, AND THE REASON IS THE
+       ONE PLAN 05-02 ALREADY HIT ONCE. UNDO_LIMIT is thirty and this suite runs
+       after several hundred commits, so the stack is at its cap by the time
+       these four land and four new entries push four old ones off the bottom:
+       the delta reads 0 over a run where every one of them was its own entry
+       AND over a run where all four coalesced into one. A row that cannot tell
+       those two apart is asserting nothing. The depth is recorded as a
+       measurement instead, and the CLAIM is driven below, after the list is
+       clear, by taking one back and reading what is left. */
+    t.info('undo depth after four declarations, and the delta from before them '
+      + '— 0 once the thirty-entry stack is at its cap, which is why the row '
+      + 'below drives an undo rather than reading this number',
+      App.state.undoDepth() + ' (delta ' + (App.state.undoDepth() - stillDepth) + ')');
+
+    t.eq('a declaration names a PERFORMER and a unit it POINTS AT, and neither '
+      + 'is required: "Hairball, no target" is a thing a student says and '
+      + 'therefore a thing this records',
+      [afterBoard.fight.decl[2].act, afterBoard.fight.decl[2].by,
+        afterBoard.fight.decl[2].at], ['hairball', null, null]);
+
+    t.eq('and `at` may name a unit on EITHER side, which is a fact about the '
+      + 'record rather than a ruling: who an action may be pointed at is '
+      + 'exactly the sort of question this tool does not answer, so a Mech '
+      + 'pointed at a Mech records identically to a Mech pointed at a Cat',
+      [afterBoard.fight.decl[1].at, afterBoard.fight.decl[3].by,
+        afterBoard.fight.decl[3].at], ['c1', 'm2', 'm2']);
+
+    t.eq('clearing one leaves the rest in order, and clearing all leaves an '
+      + 'empty list rather than an absent one',
+      (function () {
+        App.ops.clearDeclaration(1);
+        App.state.flush();
+        var mid = fight().decl.map(function (d) { return d.act; }).join(',');
+        App.ops.clearDeclarations();
+        App.state.flush();
+        return [mid, Array.isArray(fight().decl), fight().decl.length,
+          App.ops.clearDeclarations()];
+      })(), ['slash,hairball,recharge', true, 0, false]);
+
+    t.eq('EACH DECLARATION IS ITS OWN UNDO ENTRY, driven rather than counted: '
+      + 'two declarations made microseconds apart, then ONE undo, and the first '
+      + 'one is still standing. The commit label carries the side and the index '
+      + 'for exactly this — plan 03.1-06 recorded the same trap and the same fix '
+      + 'for term slots, and under one shared label these two would fall inside '
+      + 'COALESCE_MS and one Ctrl+Z would take back a declaration the student '
+      + 'never touched',
+      (function () {
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+        App.state.flush();
+        var both = fight().decl.map(function (d) { return d.act; }).join(',');
+        App.ops.undo();
+        App.state.flush();
+        var one = fight().decl.map(function (d) { return d.act; }).join(',');
+        App.ops.undo();
+        App.state.flush();
+        return [both, one, fight().decl.length];
+      })(), ['slash,lasers', 'slash', 0]);
+
+    /* ===== D-23: THE SHORTFALL IS A READING, NEVER A GATE =====
+       A declared cost that exceeds the pool is REPORTED, never PREVENTED.
+       affordability carries the never-disable rule in its own comment and a
+       numbered check in tests/selftest-node.cjs holds the SURFACE to it; this
+       is the same rule held at the OP, which is one layer down and where a
+       later reader will most want to add the refusal. A refusal here would be
+       the tool adjudicating, which is PROJECT.md's oldest Out of Scope entry.
+       PROBE J drives exactly that failure. */
+
+    App.ops.resetToDefaults();
+    App.ops.setFactionAp('cats', 0);
+    App.ops.startFight();
+    App.state.flush();
+    var pricey = build().cats.actions.filter(function (a) { return a.id === 'slash'; })[0];
+    var landedAt = App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.state.flush();
+    var shortfall = App.model.affordability(fight().cats, pricey);
+
+    t.eq('A SIDE WITH NO ACTION POINTS LEFT CAN STILL DECLARE, and the tool '
+      + 'reports the shortfall in numbers instead of refusing the press. A '
+      + 'student who wants to declare something they cannot pay for and argue '
+      + 'about it at the table is the workshop working correctly',
+      [landedAt, fight().decl.length, fight().decl[0].act,
+        shortfall.apCost, shortfall.apHave],
+      [0, 1, 'slash', 1, 0]);
+
+    t.eq('and the pool did not move an inch on the way in — the declaration is '
+      + 'an intent, and what an over-committed round does to a pool is the '
+      + 'student\'s ruling on Advance and not this op\'s',
+      [fight().cats.ap, build().cats.ap], [0, 0]);
+
+    App.ops.clearDeclarations();
+    App.state.flush();
+    t.ok('the prototype is intact after the declaration rows', protoIntact());
+
+    /* ===== THE BAD-INPUT TABLE OVER ALL THREE DECLARATION OPS =====
+       [S09.10]'s form: a list of values and one row per value, every refusal
+       BY NAME, protoIntact() after each. Every position a caller supplies is
+       covered — the side, the action id, both unit ids and the index — because
+       four of them index or search a structure and one of them is compared
+       against a length. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+    var declBoard = JSON.stringify(App.state.get());
+    var declDepth = App.state.undoDepth();
+    var declWrong = [];
+    var declProtoHeld = true;
+
+    // THE FOUR SHAPES A REFUSAL FROM THIS FILE TAKES, and the list is written
+    // out rather than left as "it threw something". A row that accepted any
+    // exception at all would be green over a TypeError from reading a property
+    // of undefined, which is precisely the failure findUnit and requireActionId
+    // exist to replace with a sentence a student can read. The fourth shape —
+    // a message OPENING with the offending id in quotes — is requireActionId's,
+    // and leaving it out is what made this row red on its first run: it was
+    // refusing the three refusals the action gate hands back BY NAME.
+    var NAMED_REFUSAL = /^(Unknown side |No unit |There is no |"[^"]*" is )/;
+
+    function refuses(what, run) {
+      try {
+        run();
+        declWrong.push(what + ' DID NOT THROW');
+      } catch (refused) {
+        if (!NAMED_REFUSAL.test(String(refused.message))) {
+          declWrong.push(what + ': ' + refused.message);
+        }
+      }
+      if (!protoIntact()) { declProtoHeld = false; }
+    }
+
+    ['__proto__', 'constructor', 'prototype', '', 5, null, {}].forEach(function (bad) {
+      refuses('side ' + JSON.stringify(bad), function () {
+        App.ops.declareAction(bad, 'slash', null, null);
+      });
+    });
+    ['__proto__', 'constructor', 'zz9', 'lasers'].forEach(function (bad) {
+      refuses('action ' + JSON.stringify(bad), function () {
+        App.ops.declareAction('cats', bad, null, null);
+      });
+    });
+    ['__proto__', 'constructor', 'c99', 'm1'].forEach(function (bad) {
+      refuses('performer ' + JSON.stringify(bad), function () {
+        App.ops.declareAction('cats', 'slash', bad, null);
+      });
+    });
+    ['__proto__', 'constructor', 'c99', 'nobody'].forEach(function (bad) {
+      refuses('unit pointed at ' + JSON.stringify(bad), function () {
+        App.ops.declareAction('cats', 'slash', null, bad);
+      });
+    });
+    [-1, 0, 1, 1.5, '0', null, undefined, {}, '__proto__'].forEach(function (bad) {
+      refuses('index ' + JSON.stringify(bad), function () {
+        App.ops.clearDeclaration(bad);
+      });
+    });
+
+    t.eq('twenty-eight hostile drives across the four id positions and the '
+      + 'index — and every one is refused BY NAME rather than resolving on the '
+      + 'shared object prototype or reading as undefined. `lasers` and `m1` are '
+      + 'in there on purpose: both are real ids on the OTHER side, and a lookup '
+      + 'that walked the board instead of the side would take them',
+      declWrong, []);
+    t.ok('and the prototype held after every single one, checked inside the '
+      + 'walk rather than once at the end', declProtoHeld);
+    t.eq('not one of them moved the board or left an undo entry behind, which '
+      + 'is what every guard running OUTSIDE the commit buys',
+      [JSON.stringify(App.state.get()) === declBoard,
+        App.state.undoDepth() - declDepth], [true, 0]);
+
     /* ===== MEASUREMENTS, NOT GATES =====
        t.info records a number and can never redden a run. These four are here
        so the numbers appear in every report and plans 05-04 and 05-08 have
@@ -20578,6 +20943,20 @@ App.selftest = (function () {
     t.info('bytes of fight slice on the shipped board, round one, nothing '
       + 'declared — [S03] snapshots this whole object on EVERY commit',
       JSON.stringify(fight()).length);
+    t.info('MAX_DECLARATIONS — the ceiling on the round\'s declaration list. A '
+      + 'bound on a RECORD, not a ruling on what a student may do: it is the '
+      + 'roster ceiling times the two sides, so it is one declaration for every '
+      + 'unit that can be on the board at once', App.ops.MAX_DECLARATIONS);
+    t.info('bytes of fight slice with the cap\'s worth of declarations on it, '
+      + 'so plan 05-08\'s ledger rows have a figure to read a delta against — '
+      + 'and so the cost of the snapshot commit() takes on every write is a '
+      + 'number somebody has seen rather than a guess', (function () {
+        var wide = JSON.parse(JSON.stringify(App.state.get()));
+        while (wide.fight.decl.length < App.ops.MAX_DECLARATIONS) {
+          wide.fight.decl.push({ side: 'cats', act: 'hairball', by: 'c1', at: 'm1' });
+        }
+        return JSON.stringify(wide.fight).length;
+      })());
 
     App.state.restore(savedAll);
     App.state.flush();
