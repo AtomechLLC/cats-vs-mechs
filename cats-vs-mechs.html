@@ -11788,8 +11788,8 @@ App.interactions = (function () {
   // #region [S07.4] INTERACTIONS — SHARE AND CONFIRM
 
   /* THE SHARE SURFACE AND THE RESET CONFIRMATION (SHARE-01, SHARE-04 — plan
-     04-06; SHARE-02 and SHARE-03's on-screen half — plan 04-07). It ATTACHES
-     rather than edits, in exactly the shape [S07.2] and
+     04-06; SHARE-02, SHARE-03's on-screen half and SHARE-06 — plan 04-07). It
+     ATTACHES rather than edits, in exactly the shape [S07.2] and
      [S07.3] do: it pushes two entries into UI_ACTS, assigns two entries in
      UI_HANDLERS, pushes two entries into LATE_BINDERS, and changes NOT ONE LINE
      of [S07.1], of [S07.2] or of [S07.3]. UI_ACTS' own comment names this
@@ -11812,14 +11812,13 @@ App.interactions = (function () {
      a UI-only act has no legal home there.
 
      STATE WORK — real ops, dispatched, and deliberately ABSENT from UI_ACTS:
-       loading a pasted build code    data-sh="load"    WIRED, plan 04-07
-       resetting to the defaults      data-rs="confirm"
-     Both are plan 04-07's. The load arm is wired below and dispatches
-     'loadBuildCode'; neither name is in UI_ACTS and neither ever may be,
-     because an entry there is what makes a refusal stop being raised. The
-     reset one still has no arm in the listeners below, which is [S07.1]'s own
-     documented "claimed and ignored" window said one layer down: the press does
-     nothing, throws nothing and opens no panel.
+       loading a pasted build code    data-sh="load"    -> 'loadBuildCode'
+       resetting to the defaults      data-rs="confirm" -> 'reset'
+     Both are plan 04-07's and both are now wired below. NEITHER NAME IS IN
+     UI_ACTS AND NEITHER EVER MAY BE: an entry there is a name this region
+     handles itself instead of dispatching, which is exactly how a refusal is
+     made to stop being raised. Check 90b reads the partition off the page and
+     names both ops, so the move reddens rather than shipping.
 
      THE CLIPBOARD WRITE IS NEITHER, and it is worth saying so out loud because
      the next reader will look for its home in one of the two lists above and
@@ -12398,19 +12397,81 @@ App.interactions = (function () {
     onSharePress(e);
   }
 
+  /* ================================================================
+     THE CONFIRMATION IS ENTIRELY IN FRONT OF AN OP THAT DID NOT CHANGE
+     (SHARE-06, D-19 — plan 04-07).
+     ================================================================
+     App.ops.resetToDefaults is BYTE-IDENTICAL to what it was before this plan.
+     Not a flag, not a parameter, not a second entry point. The reason is a
+     constraint rather than a preference: [S05] OPS' banner says that layer
+     never reads or writes the page, and a confirmation is a question asked ON
+     the page — so a `confirmed` argument threaded into the op, or a modal
+     raised from inside it, would be that banner starting to lie. The whole of
+     the confirmation therefore lives here, in [S07.4], and the op below it is
+     reached exactly as every other state-changing press reaches one.
+
+     THE SECOND HALF OF THE D-19 RECORD, and it is deliberately not a repeat of
+     the first. Plan 04-05 wrote the ARGUMENT beside the markup — why this file
+     has one confirmation when D-17 declined two by name, and why #err-reset
+     keeps its single click. What belongs HERE is the MECHANISM, because this is
+     where the mechanism is:
+
+       resetToDefaults makes ONE commit, so it leaves ONE undo entry, and one
+       Ctrl+Z restores the whole build byte for byte. Measured, not assumed —
+       there is a numbered check in tests/selftest-node.cjs that drives this
+       control and reads the depth delta and the restored build back.
+
+       That entry then AGES OUT. App.state's stack is capped at UNDO_LIMIT,
+       which is thirty, and the oldest entry is dropped when a thirty-first
+       arrives. Thirty nudges of a health field is a minute of the exercise. So
+       the escape hatch is real for thirty further commits and then it is not,
+       and reset is the ONLY destructive act in this file of which that is true
+       — every other one takes away a single type or a single rule, with the
+       board around it still on screen to rebuild from.
+
+     That is the whole test, and it is narrow: does undo stop being able to
+     recover this while the student is still working? D-17 STAYS INTACT
+     EVERYWHERE ELSE — removeTokenType, removeAction, every rename, every
+     stepper, and anything a later phase adds. For all of them the answer is no,
+     and #err-reset keeps its one click because D-15 promises recovery there in
+     one press from a state where memory is already untrustworthy.
+
+     THE FIGHT IS NOT THIS PHASE'S BUSINESS, and the absence is written down so
+     the next reader does not read it as an omission. resetToDefaults already
+     clears s.fight, which is all this surface needs. SHARE-07 — reset the fight
+     WITHOUT discarding the build — is PHASE 5's, because it is only meaningful
+     once there is a fight view to reset, and nothing here builds it or reserves
+     a control for it. */
+
   function onResetPress(e) {
     if (!isPrimaryPress(e)) { return; }
 
     var node = e.target;
     if (!node || typeof node.closest !== 'function') { return; }
 
+    // DECLINING COSTS NOTHING, and "nothing" is the literal claim: no dispatch,
+    // no commit, no undo entry, no repaint asked for. The close listener hands
+    // focus back, so this arm is one call.
     if (node.closest('[data-rs="cancel"]') !== null) { closeConfirm(); return; }
 
-    // data-rs="confirm" has NO ARM HERE, for the same reason data-sh="load"
-    // does not: resetting the board is the most destructive op in the file and
-    // it is plan 04-07's to wire. Cancel IS here because declining is page work
-    // — it closes a dialog and touches nothing else — and a confirmation a
-    // student cannot back out of would be worse than no confirmation at all.
+    // CONFIRMING. Dispatch FIRST and page work after — [S07.2]'s ordering, kept
+    // rather than inverted, and it is load-bearing on exactly this arm: if the
+    // op throws, App.boot.wrap catches it into the styled panel, fail() closes
+    // open modals on its way, and the close below never runs on a reset that
+    // did not happen.
+    //
+    // ONE dispatch and nothing beside it. A second commit here — a "cleared the
+    // paste field" or a "closed the surface" written into state — would fold
+    // into this one under commit()'s coalescing window (COALESCE_MS is 500ms,
+    // and a confirm press is one frame after the dispatch), and the student's
+    // single Ctrl+Z would then step back past both. The op's own comment
+    // promises ONE entry; this arm is what keeps that promise true from the
+    // page side.
+    if (node.closest('[data-rs="confirm"]') !== null) {
+      App.ops.dispatch('reset');
+      closeConfirm();
+      return;
+    }
   }
 
   function onResetClick(e) {
