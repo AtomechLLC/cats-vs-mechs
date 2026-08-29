@@ -4696,10 +4696,15 @@ const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
 // rest of the page is not.
 //
 // So a node whose id is named here switches the label for its own subtree. The
-// list is short on purpose: an id belongs here when a check distinguishes that
-// region from the rest of its root, not because the region exists. Today that is
-// exactly one region.
-const SCOPE_IDS = ['refband'];
+// list is short on purpose: an id belongs here when a check ASSERTS on the
+// region's name, or when a hit read off it would otherwise be reported against a
+// root big enough to be useless as a diagnosis. `refband` is the first; `strip`
+// is the second — plan 05-01's probe B put a relationship verb in the projection
+// strip and was told it came "from #app", which is true of roughly a third of
+// the page and points at nothing. Adding an id here changes no assertion except
+// the relationship guard's, and costs nothing: the harvest's length, and
+// therefore every floor over it, is untouched by which label a record carries.
+const SCOPE_IDS = ['refband', 'strip'];
 
 function harvestInto(root, into, where) {
   (function harvest(node, where) {
@@ -4865,7 +4870,21 @@ function verdictHitsIn(items) {
    The band's own id is in SCOPE_IDS above, which is why '#refband' is a label
    this can compare against at all. If that entry is ever removed, every band line
    is recorded as '#app', this guard reddens on the shipped board, and the run
-   says so — which is the failure direction a gate should fail in. */
+   says so — which is the failure direction a gate should fail in. MEASURED, not
+   asserted: plan 05-01 emptied SCOPE_IDS and re-ran, and this row went red with
+   exactly one hit.
+
+   AND THAT ONE HIT IS WORTH NAMING, BECAUSE IT IS NOT THE ONE A READER EXPECTS.
+   It was "What beats what", the band's HEADING. The band's relationship lines —
+   "Fly beats Slash", "Lasers beat Hairball" — are not read by this walk at all:
+   they carry the [data-anm] marker, because they are sentences assembled out of
+   names a student can rename, and the walk skips such a node for TEXT. So the
+   allowed set is exercised today by the heading alone. That is a fact about the
+   present board rather than a weakness in the scope — the moment the band paints
+   any line without that marker, or a later plan gives the band a sentence of the
+   artifact's own words, the same allowance covers it and no edit is needed. It
+   is written down here so nobody reads this guard as protecting a string Layer C
+   has never once read. */
 const RELATIONSHIP_VERB = /\bbeat(s|en)?\b/i;
 const RELATIONSHIP_SCOPE = '#refband';
 
