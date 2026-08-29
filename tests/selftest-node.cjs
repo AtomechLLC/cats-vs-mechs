@@ -9124,6 +9124,209 @@ A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
 
+/* --- THE VIEW SWITCH (D-27, PROJ-05, REF-03, UX-02 — plan 05-12). Three rows,
+   and each one answers a probe rather than a hope, which is the standard
+   [S06.8]'s and [S06.9]'s banners set for their own:
+
+     103   probe AJ writes the view into state.ui. A row that read only the
+           attribute back would be spotlessly green over it.
+     103b  probe AK moves #strip inside .fg-band. A row that read a comment
+           would be spotlessly green over that too.
+     103c  the between-the-edges clause, which is the one a tidy implementation
+           loses and the one a student mid-fight notices.  --- */
+
+const vwRoot = dom.byId['views'];
+const vwBuildBtn = dom.byId['view-build'];
+const vwFightBtn = dom.byId['view-fight'];
+const vwRefband = dom.byId['refband'];
+
+function vwRead() {
+  return {
+    view: String(fgApp.dataset.view || ''),
+    build: vwBuildBtn.getAttribute('aria-pressed') + ' ' + vwBuildBtn.className,
+    fight: vwFightBtn.getAttribute('aria-pressed') + ' ' + vwFightBtn.className
+  };
+}
+function vwSaysOn(entry) {
+  return entry.indexOf('true ') === 0 && entry.indexOf('vw-on') !== -1;
+}
+function vwSaysOff(entry) {
+  return entry.indexOf('false ') === 0 && entry.indexOf('vw-on') === -1;
+}
+
+const vwStateWas = JSON.stringify(A.state.get());
+const vwAtRest = vwRead();
+fgPress(vwFightBtn);
+const vwOnFight = vwRead();
+const vwStateMid = JSON.stringify(A.state.get());
+fgPress(vwBuildBtn);
+const vwOnBuild = vwRead();
+const vwStateNow = JSON.stringify(A.state.get());
+// T-05-47 read off the page rather than off the markup comment: a control here
+// wearing a data-act would be routed into App.ops.dispatch by [S07.1], which is
+// the one way page work becomes state work without anybody deciding to make it.
+const vwActsInside = vwRoot.querySelectorAll('[data-act]').length
+  + ((typeof vwRoot.dataset.act === 'string' && vwRoot.dataset.act !== '') ? 1 : 0);
+const vwPrivate = vwRoot.querySelectorAll('[data-vw]').length;
+check(
+  '103. THE SWITCH MOVES THE PAGE AND MOVES NOTHING ELSE. Each control is '
+    + 'pressed in turn and four things are read back: #app\'s data-view, both '
+    + 'controls\' aria-pressed, both controls\' class, and the WHOLE state '
+    + 'serialised before and after. The state must be byte-identical across '
+    + 'both presses, and that clause is the row — checks 72 and 73\'s shape, '
+    + 'because a row that read only the attribute would be green over a switch '
+    + 'that also wrote into a slice, and a view that lived in state would ride '
+    + 'in a build code and step under undo. Neither control carries a data-act, '
+    + 'read off the page too: one would be routed into App.ops.dispatch by '
+    + '[S07.1] whatever this region intended. Floored on the two private '
+    + 'controls being found, because a switch with no controls at all passes '
+    + 'spotlessly',
+  vwAtRest.view === 'build'
+    && vwOnFight.view === 'fight'
+    && vwSaysOn(vwOnFight.fight) && vwSaysOff(vwOnFight.build)
+    && vwOnBuild.view === 'build'
+    && vwSaysOn(vwOnBuild.build) && vwSaysOff(vwOnBuild.fight)
+    && vwStateWas === vwStateMid && vwStateWas === vwStateNow
+    && vwActsInside === 0 && vwPrivate === 2,
+  'at rest=' + JSON.stringify(vwAtRest)
+    + ' | after pressing the fight=' + JSON.stringify(vwOnFight)
+    + ' | after pressing the board=' + JSON.stringify(vwOnBuild)
+    + ' | state byte-identical across press one=' + (vwStateWas === vwStateMid)
+    + ' and across press two=' + (vwStateWas === vwStateNow)
+    + ' | state length=' + vwStateWas.length
+    + ' | data-act under #views=' + vwActsInside
+    + ' | data-vw controls=' + vwPrivate
+);
+
+/* 103b. PROJ-05 AND REF-03, READ OFF THE DOM AND OFF THE MARKUP RATHER THAN OFF
+   A COMMENT. The switch is allowed to put the two roster columns away and it is
+   allowed to put the fight band away. It is NOT allowed to take the projection
+   or the reference band with either of them, because PROJ-05 wants the
+   projection visible AT THE MOMENT the fight contradicts it and REF-03 wants
+   reference material readable without leaving the fight view.
+
+   TWO HALVES, AND THE SPLIT IS AN HONEST ONE RATHER THAN A BELT-AND-BRACES
+   FLOURISH. The stub page can answer "is #views an ancestor" and "is #board an
+   ancestor" because it models both. It CANNOT answer the .fg-band half at all:
+   the band is a class-only wrapper with no id, plan 05-06 deliberately did not
+   build it here, and section 5b only gates ids — so a walk for it in this page
+   would find nothing and pass spotlessly forever. The markup half closes that
+   by slicing cats-vs-mechs.html between the band's own two markers, which is
+   the shape check 63's REF_OPEN/REF_CLOSE slice already ships. Both halves are
+   floored on the thing they read being non-empty. */
+function vwAncestorsOf(node) {
+  const out = [];
+  let n = node ? node.parentNode : null;
+  while (n) { out.push(n); n = n.parentNode; }
+  return out;
+}
+const vwStripUp = vwAncestorsOf(fgStrip);
+const vwBandUp = vwAncestorsOf(vwRefband);
+const vwStripInSwitch = vwStripUp.indexOf(vwRoot) !== -1;
+const vwRefInSwitch = vwBandUp.indexOf(vwRoot) !== -1;
+const vwStripInBoard = vwStripUp.indexOf(fgBoard) !== -1;
+const vwRefInBoard = vwBandUp.indexOf(fgBoard) !== -1;
+
+const vwSwitchAt = html.indexOf('id="views"');
+const vwSwitchText = vwSwitchAt === -1 ? '' : html.slice(vwSwitchAt, html.indexOf('</div>', vwSwitchAt));
+const vwBandAt = html.indexOf('class="fg-band"');
+const vwBandText = vwBandAt === -1 ? '' : html.slice(vwBandAt, html.indexOf('<!-- .fg-band -->'));
+const vwBoardAt = html.indexOf('id="board"');
+const vwBoardText = vwBoardAt === -1 ? '' : html.slice(vwBoardAt, html.indexOf('id="selftest-report"'));
+const vwStripSpelling = 'id="strip"';
+const vwRefSpelling = 'id="refband"';
+check(
+  '103b. #strip AND #refband ARE IN NEITHER SIDE OF THE SWITCH, walked from '
+    + 'both nodes rather than asserted about them. Neither has #views as an '
+    + 'ancestor and both are still inside #board — which is what makes PROJ-05 '
+    + 'and REF-03 structural: #board stands in BOTH views and only the two '
+    + '.brd-col columns are put away. The markup half carries the claim the '
+    + 'stub page structurally cannot: .fg-band is a class-only wrapper this '
+    + 'page does not build, so the band\'s own slice of cats-vs-mechs.html is '
+    + 'read for both spellings instead, and the board\'s slice is read for '
+    + 'both being present. Floored on both nodes being found and on all three '
+    + 'slices being non-empty, because a walk that found neither and a slice '
+    + 'that came back empty each pass spotlessly',
+  fgStrip !== null && vwRefband !== null
+    && vwStripInSwitch === false && vwRefInSwitch === false
+    && vwStripInBoard === true && vwRefInBoard === true
+    && vwSwitchText.length > 0 && vwBandText.length > 0 && vwBoardText.length > 0
+    && vwSwitchText.indexOf(vwStripSpelling) === -1
+    && vwSwitchText.indexOf(vwRefSpelling) === -1
+    && vwBandText.indexOf(vwStripSpelling) === -1
+    && vwBandText.indexOf(vwRefSpelling) === -1
+    && vwBoardText.indexOf(vwStripSpelling) !== -1
+    && vwBoardText.indexOf(vwRefSpelling) !== -1,
+  '#strip inside the switch=' + vwStripInSwitch
+    + ' inside #board=' + vwStripInBoard
+    + ' | #refband inside the switch=' + vwRefInSwitch
+    + ' inside #board=' + vwRefInBoard
+    + ' | markup slices, chars: switch=' + vwSwitchText.length
+    + ' band=' + vwBandText.length + ' board=' + vwBoardText.length
+    + ' | the band\'s markup carries #strip=' + (vwBandText.indexOf(vwStripSpelling) !== -1)
+    + ' #refband=' + (vwBandText.indexOf(vwRefSpelling) !== -1)
+    + ' | the board\'s markup carries #strip=' + (vwBoardText.indexOf(vwStripSpelling) !== -1)
+    + ' #refband=' + (vwBoardText.indexOf(vwRefSpelling) !== -1)
+);
+
+/* 103c. THE VIEW FOLLOWS A FIGHT ACROSS BOTH EDGES AND NOT BETWEEN THEM. The
+   middle step is the row: a student who switches to the board mid-fight — to
+   rule a unit dead, which is what the board is FOR during a fight — must not be
+   thrown back onto the fight by the next commit. A region that wrote the view
+   from state.fight on every frame would pass every other step here and fail
+   that one, and it is the tidier of the two implementations. */
+A.ops.resetToDefaults();
+A.state.flush();
+const vwEdges = [];
+vwEdges.push('at rest=' + fgApp.dataset.view);
+fgPress(fgStart);
+vwEdges.push('after startFight=' + fgApp.dataset.view);
+fgPress(vwBuildBtn);
+vwEdges.push('after pressing the board=' + fgApp.dataset.view);
+fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgAdvancePress();
+vwEdges.push('after an advance=' + fgApp.dataset.view);
+A.ops.endFight();
+A.state.flush();
+vwEdges.push('after endFight=' + fgApp.dataset.view
+  + ' flag=' + JSON.stringify(String(fgApp.dataset.viewFg || '')));
+fgPress(fgStart);
+vwEdges.push('started again=' + fgApp.dataset.view);
+A.ops.endFight();
+A.state.flush();
+A.ops.startFight();
+A.state.flush();
+const vwBeforeUndo = fgApp.dataset.view;
+A.ops.undo();
+A.state.flush();
+const vwAfterUndo = fgApp.dataset.view;
+vwEdges.push('undo of startFight=' + vwAfterUndo);
+check(
+  '103c. THE VIEW FOLLOWS A FIGHT ACROSS BOTH EDGES AND NOT BETWEEN THEM. '
+    + 'Starting a fight puts the student on the fight without a second press; '
+    + 'ending one puts them back on the board and clears the private flag; '
+    + 'starting again takes them there again. AND IN BETWEEN THE TWO EDGES THE '
+    + 'VIEW IS THE STUDENT\'S: a press of the board control mid-fight holds '
+    + 'through a real Advance, because a region that re-derived the view from '
+    + 'state.fight every frame would throw a student back onto the fight on the '
+    + 'commit that follows their own ruling. The last step is an UNDO of a '
+    + 'startFight, which the view follows for free — the flag lives on the page '
+    + 'and is re-derived every commit, so the undo arrives as the closing edge '
+    + 'rather than as something anybody had to store',
+  vwEdges[0] === 'at rest=build'
+    && vwEdges[1] === 'after startFight=fight'
+    && vwEdges[2] === 'after pressing the board=build'
+    && vwEdges[3] === 'after an advance=build'
+    && vwEdges[4] === 'after endFight=build flag=""'
+    && vwEdges[5] === 'started again=fight'
+    && vwBeforeUndo === 'fight' && vwAfterUndo === 'build',
+  vwEdges.join(' | ') + ' | before the undo=' + vwBeforeUndo
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore

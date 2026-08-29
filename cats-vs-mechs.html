@@ -2120,6 +2120,23 @@
      TAB lays out - same width, same margin, same sticky, same reference band -
      and that is what a control run is for.
 
+     ONE STATE THIS SWITCH MADE REACHABLE FOR THE FIRST TIME, AND WHAT IT DOES
+     TO THE FRAME. Press "The fight" with NO fight running and the page holds
+     the control bar, the switch and #fightbar's one prompt - and at 1920x1080
+     that document is exactly 1080px tall, which is the first page state in this
+     file SHORTER than the viewport. The vertical scrollbar goes away, the
+     containing block gets 15px wider, and every element using the computed
+     margin above moves 8px right. Measured, both browsers, that state:
+
+       #topbar 160/1600   #views 160/1600   .fg-band 160/1600   #board 160/1600
+
+     ALL FOUR MOVE TOGETHER, which is the only thing that matters: the formula
+     is one formula and it is spelled the same way in [C03], [C14] and here, so
+     nothing goes out of alignment with anything. At 1366x768 the same state is
+     1108px tall, the scrollbar stays, and all four read 14/1322. Recorded
+     because a reader who measures only that state would otherwise find an 8px
+     number with no explanation attached to it.
+
      AND THE ONE THING THAT GOT STRAIGHTFORWARDLY BETTER, because it is REF-03
      and it is worth recording: #refband's top in the fight view is 1703 against
      3004 in the build view at 1920x1080, and 1514 against 2996 at 1366x768. The
@@ -15099,6 +15116,117 @@ App.render = (function () {
   SYNC_HOOKS.push(syncBoardFight);
   // #endregion [S06.9] RENDER — FIGHT MODE ON THE BOARD
 
+  /* ===================== [S06.10] RENDER — THE VIEW SWITCH ==============
+   * D-27's tab, painted from one attribute on #app (PROJ-05, REF-03, UX-02 —
+   * plan 05-12), appended as its own sub-region for the mechanical reason
+   * [S06.2], [S06.3], [S06.5], [S06.6], [S06.7], [S06.8] and [S06.9] all
+   * state: it reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure variable
+   * of this IIFE, and the surface returned below is frozen, so there is no
+   * route to the seam from a top-level section. IT CHANGES NOT ONE LINE OF
+   * [S06.1] THROUGH [S06.9] AND IT DECLARES NO APPEND: every node it touches
+   * is static markup the shell already carries.
+   *
+   * IT DOES THREE THINGS AND THERE IS NO FOURTH.
+   *
+   * 1. IT PAINTS THE TWO CONTROLS FROM #app's data-view, EVERY FRAME. The
+   *    class, the aria-pressed and the tick are all RE-DECIDED from the
+   *    attribute rather than toggled by whoever last pressed something. That is
+   *    setEditorEnabled's rule and syncFight's, and it is what makes an undo
+   *    move the switch too — a toggle would only ever be as right as the last
+   *    press was, and an undo is not a press.
+   *
+   * 2. IT FOLLOWS A FIGHT ACROSS ITS TWO EDGES AND ACROSS NOTHING IN BETWEEN.
+   *    data-view-fg on #app is a private flag, in #fightbar's data-fg-up
+   *    register, holding '1' while a fight is running as far as THIS region has
+   *    noticed. The two edges are the whole of the behaviour:
+   *      a fight starts and the flag is not up  -> the view becomes the fight
+   *      a fight ends   and the flag IS up      -> the view becomes the board
+   *      anything else                          -> NOTHING IS TOUCHED
+   *    THE THIRD LINE IS THE ONE A TIDY IMPLEMENTATION LOSES, and it is the one
+   *    a student notices. A region that wrote the view from state.fight on
+   *    every frame would throw a student who deliberately switched to the board
+   *    mid-fight — to rule a unit dead, which is exactly what the board is for
+   *    during a fight — straight back onto the fight on the very next commit,
+   *    which is their own ruling. Between the two edges the view belongs to the
+   *    student and this region has no business moving it.
+   *
+   *    AND THE FLAG IS DERIVED RATHER THAN STORED, WHICH IS WHAT MAKES UNDO
+   *    WORK. It lives on the page, not in the state, and the hook runs on every
+   *    commit — so an undo of startFight arrives here as "the fight is gone and
+   *    the flag is up", which is the closing edge, and the view comes back with
+   *    it. Nothing had to be written into any slice for that to be true.
+   *
+   * 3. TWO ATTRIBUTES ON #app, EACH ANSWERING EXACTLY ONE QUESTION AND NEITHER
+   *    ANSWERING TWO, in [S06.2]'s words and [S06.6]'s and [S06.7]'s:
+   *      data-view     is WHICH view. [C15] reads it and so does check 103.
+   *      data-view-fg  is WHETHER a fight is running as far as this region has
+   *                    noticed, and NOTHING EVER READS A VALUE OUT OF IT. It is
+   *                    compared against '1' and written as '1' or as empty, and
+   *                    that is the whole of its vocabulary.
+   *
+   * A VIEW IS NOT STATE, AND THAT IS THE RULING THIS REGION IS BUILT ON. No
+   * slice is written here, so no view rides in a build code, no undo steps
+   * through a view, and a link shared into a course thread never arrives
+   * carrying somebody else's screen. Check 103 reads the whole state back
+   * before and after each press and requires it byte-identical.
+   *
+   * THE CHEAP EXIT IS document === undefined AND A MISSING #app, AND THERE IS
+   * NO EXPENSIVE ARM AT ALL. Every other sub-region in [S06] takes a
+   * fingerprint because it rebuilds nodes; this one writes at most two
+   * attributes and two class names on two buttons that already exist, so a
+   * signature would cost more than the work it guarded. Said out loud rather
+   * than left as an absence, because every region above this one has one.
+   *
+   * NOTHING HERE RENDERS A WORD. The two labels are static markup, Layer A
+   * reads them in the document, and this region only decides which of two
+   * controls wears the on-class. So no string in this region can trip the
+   * gate that refuses comparative language, because there is no string in
+   * this region at all.
+   * deps: [C15] for the rules that read data-view; [S07.6] for the presses
+   * owner: plan 05-12
+   * ===================================================================== */
+  // #region [S06.10] RENDER — THE VIEW SWITCH
+
+  var VIEW_BUILD = 'build';
+  var VIEW_FIGHT = 'fight';
+
+  // add / remove and never classList.toggle, which is dcClass's shipped idiom
+  // one region up and is also the only one the stub DOM models.
+  function vwPaint(id, on) {
+    var b = document.getElementById(id);
+    if (!b) { return; }
+    if (on) { b.classList.add('vw-on'); } else { b.classList.remove('vw-on'); }
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  function viewSwitch(state) {
+    if (typeof document === 'undefined') { return; }
+    var app = document.getElementById('app');
+    if (!app) { return; }
+
+    var running = !!state && state.fight !== null;
+    var noticed = app.dataset.viewFg === '1';
+    if (running && !noticed) {
+      app.dataset.view = VIEW_FIGHT;
+      app.dataset.viewFg = '1';
+    } else if (!running && noticed) {
+      app.dataset.view = VIEW_BUILD;
+      app.dataset.viewFg = '';
+    }
+
+    // Whatever the attribute now says, it is one of exactly two words. A page
+    // that arrived carrying anything else — a hand-edited attribute, a stale
+    // spelling from an older build of this file — reads as the board, because
+    // the board is the view that is true before anybody has done anything.
+    var now = app.dataset.view === VIEW_FIGHT ? VIEW_FIGHT : VIEW_BUILD;
+    app.dataset.view = now;
+    vwPaint('view-build', now === VIEW_BUILD);
+    vwPaint('view-fight', now === VIEW_FIGHT);
+  }
+
+  SYNC_HOOKS.push(viewSwitch);
+  // #endregion [S06.10] RENDER — THE VIEW SWITCH
+
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -15151,6 +15279,14 @@ App.render = (function () {
     // and then read back off the page, which is the one reading that can tell a
     // marker drawn from the stored flag apart from one drawn from the health.
     boardFight: boardFight,
+    // Exported for exactly the reason picker(), editor(), share() and
+    // fightBar() are, and to exactly one caller: [S07.6]'s handler, which
+    // writes data-view onto #app and then asks for the two controls to be
+    // painted onto it. A press that moved the attribute and waited for the next
+    // frame would leave the pressed control looking unpressed for a frame —
+    // which on a switch is a student pressing it twice, in front of a room,
+    // because the first press appeared to do nothing.
+    viewSwitch: viewSwitch,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the
@@ -18507,6 +18643,102 @@ App.interactions = (function () {
   // an oversight and this is a ruling. UI_ACTS is untouched by this plan, and
   // so is HOLD_ACTS.
   // #endregion [S07.5] INTERACTIONS — THE FIGHT
+
+  // #region [S07.6] INTERACTIONS — THE VIEW SWITCH
+
+  /* THE VIEW SWITCH'S TWO PRESSES (PROJ-05, REF-03, UX-02 — plan 05-12). It
+     ATTACHES rather than edits, in exactly the shape [S07.2], [S07.3], [S07.4]
+     and [S07.5] each do: it pushes ONE entry into LATE_BINDERS and changes NOT
+     ONE LINE of [S07.1] through [S07.5].
+
+     EVERYTHING THIS REGION DOES IS PAGE WORK, AND THERE IS NO SECOND HALF.
+     A press writes one attribute on #app and asks [S06] to repaint two
+     buttons. It reads no slice, writes no slice, and reaches App.ops for
+     nothing at all — so the DISPATCH-FIRST-PAGE-WORK-AFTER rule [S07.5]
+     restates has nothing to order here.
+
+     THIS REGION PUSHES NOTHING INTO UI_ACTS, AND THE ABSENCE IS WRITTEN DOWN
+     RATHER THAN LEFT TO READ AS AN OVERSIGHT — [S07.5]'s ruling, one step
+     further along the same argument. UI_ACTS is a table of data-act names
+     routeUi looks up BEFORE App.ops.dispatch is reachable. Neither control here
+     carries a data-act at all: both carry a private data-vw, in data-fg's and
+     data-dc's register. So routeUi never sees one of them, and an entry in
+     UI_ACTS could only be a name nothing on the page sends. There is no second
+     possibility, so there is no entry. Check 103 reads the absence of any
+     data-act under #views back off the page rather than taking this paragraph
+     on trust.
+
+     HOLD_ACTS IS UNTOUCHED AND onFightKeyDown's SCOPE IS NOT WIDENED, AND THE
+     QUESTION WAS ANSWERED RATHER THAN SKIPPED. [S07.5] closes the keyboard's
+     own ramp for [data-fg] and [data-dc] because a held Enter on Advance
+     resolves rounds at the OS auto-repeat rate and a held Enter on a chooser
+     repaints a surface at it. NEITHER COST EXISTS HERE. A repeated Enter on a
+     view control writes the SAME attribute it already holds and repaints two
+     buttons into the state they are already in: no op is dispatched, no round
+     moves, no undo entry is made and no node is rebuilt. So the answer is NO —
+     a held press on a view control needs no suppressing, and [S07.5]'s two
+     private attributes stay the whole of that guard's scope. THE ANSWER IS
+     WRITTEN, NOT THE SILENCE, because an unwidened scope and an overlooked one
+     look identical in a diff.
+
+     THE TWO LISTENERS ARE THE SHIPPED PRESS IDIOM AND BOTH HALVES EARN THEIR
+     PLACE, which [S07.1], [S07.4] and [S07.5] each say about their own:
+     isPrimaryPress on the pointerdown, because without it a right-click acts on
+     the control underneath the native context menu; and the e.detail !== 0
+     guard on the click, because a keyboard activation presents with detail 0
+     while a mouse click carries detail >= 1 and was already served by the
+     pointerdown — running both would serve every mouse press twice.
+
+     closest('[data-vw]') RATHER THAN A TEST ON e.target, because each control
+     carries its name and its tick as REAL CHILD NODES ([C07]'s rule, which is
+     what makes the tick reachable by a screen reader and by the rendered-page
+     walk alike), so the press arrives on a span. */
+  function onViewPress(e) {
+    if (!isPrimaryPress(e)) { return; }
+
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+    var btn = node.closest('[data-vw]');
+    if (btn === null) { return; }
+    var want = String(btn.dataset.vw || '');
+    // Exactly two words are accepted, and an unrecognised one declines quietly
+    // rather than writing itself onto #app. clearDeclarations returning false
+    // over an empty list is the shipped precedent for a press that has nothing
+    // to do: an error panel raised in the middle of a workshop is exactly what
+    // that would have been avoiding.
+    if (want !== 'build' && want !== 'fight') { return; }
+
+    var app = document.getElementById('app');
+    if (!app) { return; }
+    app.dataset.view = want;
+    App.render.viewSwitch(App.state.get());
+  }
+
+  function onViewClick(e) {
+    if (e.detail !== 0) { return; }
+    onViewPress(e);
+  }
+
+  // The seam, used exactly as [S07.1] describes it. bind() runs both of these
+  // through the same App.boot.wrap boundary its own listeners use. ONE ROOT AND
+  // ONE BINDER, because there is one surface: #views is static shell markup and
+  // outlives every rebuild — nothing in [S06] ever replaces it or its children,
+  // which is why the two controls can be reached by id from [S06.10] at all.
+  function bindViews() {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('views');
+    if (!root) { return; }
+    root.addEventListener('pointerdown', App.boot.wrap('view press', onViewPress));
+    root.addEventListener('click', App.boot.wrap('view key-press', onViewClick));
+  }
+
+  LATE_BINDERS.push(bindViews);
+
+  // THE ACTS THIS REGION CLAIMS: NONE, for the reason the banner above gives in
+  // full. UI_ACTS is untouched and so is HOLD_ACTS. The line is written down
+  // rather than left as an absence, because an absence reads as an oversight
+  // and this is a ruling — [S07.5]'s closing note, kept.
+  // #endregion [S07.6] INTERACTIONS — THE VIEW SWITCH
 
   return Object.freeze({
     bind: bind,
