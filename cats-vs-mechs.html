@@ -1165,7 +1165,46 @@
      so the region appending a row must scroll this list to its end. Driven
      with the scroll at its end, the newest row's bottom edge sits 20px above
      the live board's top — which is the whole of what "nearest the board"
-     means, and it does not happen by itself.
+     means, and it does not happen by itself. [S06.8] does it, and the newest
+     row's bottom now measures 211px above the live board's top in both
+     browsers at every depth from one round to thirty.
+
+     THE DIAL WAS 46vh AND IS NOW 34vh, PLAN 05-08, AND THE PARAGRAPH IS
+     AMENDED RATHER THAN LEFT STANDING. The 46 above was measured honestly and
+     against a page that no longer exists: when it was set, #fightbar held six
+     nodes and cost almost nothing, so the ledger's bound was very nearly the
+     only thing between #topbar and the board. Plan 05-07 then filled that
+     region and bounded it at 34vh, and the two bounds became one budget that
+     neither plan could see whole. Driven at 1920x1080 with the ledger drawn:
+     at 46vh the live board's top sat at 1313 of a 1080px screen.
+
+     Re-measured across four settings, thirty rounds deep, in both browsers:
+
+       .ld-list      1920x1080        1440x900      newest round fits whole
+         46vh        board top 1313   1169          yes
+         34vh        board top 1183   1061          yes  <- shipped
+         28vh        board top 1118   1007          no
+         24vh        board top 1075    980          no
+
+     34vh is taken for two reasons that agree. It is the smallest setting in
+     which the WHOLE of the newest round is on screen at once — a round is
+     353px on the shipped board — and it is the SAME NUMBER .fg-sides already
+     carries, so the page above the board is one dial repeated rather than two
+     to keep in step.
+
+     AND THE HONEST FIGURE, STATED PLAINLY BECAUSE A DIAL WITH A COMFORTING
+     COMMENT BESIDE IT IS A GUESS: 1183 IS STILL BELOW THE FOLD OF A 1080px
+     SCREEN. With a fight running and one round resolved, the page above #board
+     is taller than the viewport and the live board is reached by scrolling.
+     That is not this region's doing alone — with the ledger hidden entirely the
+     board's top already sits at 759, which plan 05-07 measured and handed to
+     plan 05-11 — but it is now the phase's largest layout question and it has
+     THREE dials in it rather than two: .fg-sides 34vh, .ld-list 34vh and
+     .ld-now-body 20vh. #strip is sticky and every ancestor of it still reports
+     overflow visible on every board driven, so the projection stays on screen
+     through that scroll. Whether that is enough on the actual workshop display
+     is a rehearsal question and it is on plan 05-11's list with these figures
+     in hand.
 
      It is also NOT the reason App.data.MAX_PAST_ROUNDS is thirty — that cap has
      its own paragraph and its own measurement, and it is a readability bound
@@ -1181,7 +1220,7 @@
      be the reverse of the one the room sees. */
   .ld-list{
     display:flex;flex-direction:column;gap:12px;
-    max-height:46vh;overflow-y:auto;
+    max-height:34vh;overflow-y:auto;
     padding:2px;
   }
 
@@ -1392,6 +1431,232 @@
     padding:1px 10px;border-radius:999px;
     background:color-mix(in srgb, var(--gold) 14%, transparent);
     border:1px solid color-mix(in srgb, var(--gold) 45%, transparent);
+  }
+
+  /* ===================== [C14.2] THE LEDGER ===================== */
+  /* The `.ld-` rules [S06.8] paints with, plan 05-08. The frame above is
+     [C14]'s and this block adds nothing to it: NO width, NO margin, NO
+     overflow and NO position anywhere below, so the sticky gotcha and the
+     shorthand trap that block records are both left exactly where they were
+     closed. #ledger and .ld-list keep their rules up there and nothing in here
+     writes either of them again.
+
+     THE STICKY GOTCHA IS RESTATED HERE RATHER THAN POINTED AT, because this is
+     the block a later author will be editing when they break it. A sticky
+     element sticks to its nearest ancestor with a scrolling mechanism, and ANY
+     overflow value other than visible creates one. #topbar and #strip are both
+     sticky. So NO ANCESTOR OF EITHER may be given overflow of hidden, scroll or
+     auto — and the cost of getting it wrong is the whole of the rule: THERE IS
+     NO ERROR AND NO WARNING WHEN IT GOES WRONG. STICKY SIMPLY STOPS WORKING.
+     The ledger therefore SCROLLS ON ITSELF, on .ld-list, which is [C12]'s
+     action list for the third time in this file. Plan 05-06's probe V drove the
+     violation — the scroll moved off the list and onto .shell — and the whole
+     suite stayed spotlessly green over it, which is the measurement behind this
+     paragraph rather than a worry. Plan 05-08's probe AA drove it again from
+     the ledger's own side and got the same silence.
+
+     THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT HERE AND ARE
+     WORTH RE-READING BEFORE ADDING A LINE: no reference function that takes a
+     URI, so no background image, no data-URI icon and no stylesheet-loaded
+     font; no namespaced inline markup and no namespaced element constructor;
+     NO NEW HEX — every colour below is a [C00] token or a color-mix() of one.
+     And the fourth, which is [C14]'s own: the property that evens out a short
+     heading's line lengths carries a stem the dev gate refuses document-wide,
+     so it is DESCRIBED and never spelled. Wrapping here is handled by measure.
+
+     UX-02'S 18px FLOOR BINDS ON EVERY LABEL IN THIS REGION and the round label
+     is the one that matters most: it is PERMANENT, VISIBLE and 18px, never an
+     icon and never a title= tooltip. A row whose round number was a tooltip
+     would be a row nobody in the room can place. */
+
+  /* THE ROUNDS AND THE READING SIT SIDE BY SIDE, AND THE REASON IS A MEASURED
+     DEFECT RATHER THAN A PREFERENCE. Stacked, this region was 723px tall at
+     1920x1080 with a single round in it, and #board's top sat at 1500 of a
+     1080px screen — the live board entirely off the bottom before the second
+     Advance. That is the same failure plan 05-07 measured on #fightbar and
+     fixed the same day, arriving from the other side: two regions above the
+     board, each bounded on itself, each correct alone, and their SUM is what a
+     room actually sees.
+
+     Side by side, the region's height is the TALLER of its two halves instead
+     of their sum, and the reading — which is the half a student looks at after
+     every Advance — is beside the rounds rather than under them. Document order
+     is untouched, so a screen reader still walks heading, rounds, reading; the
+     column arrangement is a two-dimensional placement of that same order and
+     never a reordering of it. Below the breakpoint the two stack again, which
+     is what a narrow window has room for.
+
+     THE BREAKPOINT IS THE SHELL'S OWN and not a second number, in [C03]'s
+     manner: 1100px is where a 300px reading column stops leaving the rounds a
+     readable measure. The one arrangement property this block writes on
+     #ledger is grid-template-columns, and it deliberately writes NO width, NO
+     margin, NO overflow and NO position on it — [C14]'s frame, the shorthand
+     trap and the sticky gotcha all stay exactly where they were closed. */
+  @media (min-width:1100px){
+    #ledger{grid-template-columns:minmax(0, 1fr) minmax(300px, 26%)}
+    .ld-head{grid-column:1 / -1}
+  }
+
+  /* PAST ROUNDS READ AS PAST, AND THE MECHANISM IS RECESSION RATHER THAN
+     DISABLEMENT. A past round is not unavailable, it is not switched off and
+     it is not waiting to be pressed — it is a reading that has already
+     happened. So it steps BACK: a flatter panel than the live surfaces wear,
+     a hairline instead of a border with weight, and the dimmer of [C00]'s two
+     body inks. Every colour is a color-mix() of a token this file already
+     ships, so a palette change moves the ledger with everything else and there
+     is not one new hex in this block.
+
+     THE LIVE BOARD STAYS THE LOUDEST THING ON SCREEN, which is the projection's
+     own standing rule applied to a whole region: nothing in here is drawn at
+     the board's 24px value size, nothing carries the board's --ink at full
+     weight except a unit's own name, and the region's own bound stops it
+     growing into the board's space at all. */
+  .ld-row{
+    display:flex;flex-direction:column;gap:6px;
+    padding:10px 12px;
+    border:1px solid color-mix(in srgb, var(--line) 70%, transparent);
+    border-radius:var(--radius);
+    background:color-mix(in srgb, var(--panel) 55%, transparent);
+    color:var(--ink-dim);
+  }
+
+  /* THE ENTRY ANIMATION IS ON THE ROW AND ON NOTHING INSIDE IT, and that is a
+     correctness decision with [S06.8]'s name on it rather than a styling one.
+     A row's INTERIOR is rewritten whenever a name it draws moves — a student
+     renaming a token type mid-fight has to see round one's row change on the
+     frame it happens — so an animation on any node inside a row would replay
+     on every rename, on every row, at once. The ROW is the node whose identity
+     [S06.8] preserves, and it is therefore the only node here that can carry an
+     animation honestly. .tok--in is the shipped precedent and this is its
+     reasoning applied one level up. */
+  @keyframes ld-in{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+  .ld-row--in{animation:ld-in 160ms ease-out}
+  @media (prefers-reduced-motion: reduce){
+    .ld-row--in{animation:none}
+  }
+
+  /* The round label: permanent, visible, 18px, and the one thing in a row that
+     is allowed the full ink, because it is what a person scans the column for.
+     tabular-nums for [C03]'s reason on the board's own values — these are
+     numbers a reader compares down a column. */
+  .ld-round{
+    margin:0;font-size:18px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  /* The sentence under it, which says WHICH board the numbers below are. It is
+     at the floor too, because it is a label and not a footnote. */
+  .ld-note{margin:0;font-size:18px;color:var(--ink-faint);line-height:1.4}
+
+  /* The two sides of a past round, along the line for the reason .fg-sides is:
+     they are two halves of one round and reading them as a pair is the point.
+     WRAPS rather than shrinking its type — [C12]'s rule, for its own reason: a
+     narrow window may cost height and may never cost legibility. */
+  .ld-board{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+  /* THE UNIT READINGS WRAP ALONG THE LINE RATHER THAN STACKING, AND THAT IS
+     THE ONE DECISION IN THIS BLOCK THAT WAS TAKEN OFF A MEASUREMENT RATHER
+     THAN OFF A PREFERENCE. One line per unit makes a single row of the shipped
+     nine-and-three board 497px tall — taller than the whole region is allowed
+     to be — so the newest round could not be seen whole and the region ate the
+     live board's screen. Wrapped, the same twelve readings occupy four lines a
+     side and a whole round fits inside the bound with room for the round
+     before it. The readings are still one per unit and still say both numbers;
+     what changed is the direction they run in. */
+  .ld-side{flex:1 1 260px;min-width:0;display:flex;flex-wrap:wrap;gap:0 16px}
+  .ld-side-name{flex:1 0 100%;margin:0 0 2px;font-size:18px;font-weight:700;color:var(--ink)}
+  .ld-unit{
+    margin:0;font-size:18px;line-height:1.35;color:var(--ink-dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+
+  .ld-acts{display:flex;flex-direction:column;gap:8px}
+  /* THE SPLIT'S THREE FACTS STAY THREE SEPARATE NODES AND RUN ALONG THE LINE,
+     which is the same measured trade the unit readings take one rule up and it
+     is worth being explicit that the requirement is untouched by it. FIGHT-16
+     asks for the split to be shown as three facts rather than collapsed into
+     one number, and three nodes with a gap between them are three facts
+     wherever they sit; what stacking them bought was vertical space this
+     region does not have. Measured: three facts a line takes an action from
+     four lines to two, and a whole newest round from 462px to 350px, which is
+     what lets one fit inside the bound with the round before it still on
+     screen. They are indented under the action they belong to, because three
+     facts about one hit read as three facts only when it is obvious which hit
+     they are about. */
+  .ld-act{
+    display:flex;flex-wrap:wrap;gap:0 14px;
+    padding-left:12px;
+    border-left:2px solid color-mix(in srgb, var(--line) 90%, transparent);
+  }
+  .ld-act-line{flex:1 0 100%;margin:0;font-size:18px;line-height:1.4;color:var(--ink)}
+  /* Same size as the line above them — they are the arithmetic, not a footnote
+     to it — and one step dimmer, so the action reads first and the numbers
+     read second. */
+  .ld-fact{
+    margin:0;font-size:18px;line-height:1.35;color:var(--ink-dim);
+    font-variant-numeric:tabular-nums;white-space:nowrap;
+  }
+  .ld-sub{margin:2px 0 0;font-size:18px;font-weight:700;color:var(--ink-dim)}
+  /* A round nobody declared in is saying something, so it is drawn as
+     something — .fg-decl-none's ruling, taken again for its reason. */
+  .ld-none{margin:0;font-size:18px;line-height:1.4;color:var(--ink-faint)}
+
+  /* .ld-say AND .ld-word ARE COMPUTED-IDENTICAL ON PURPOSE, and that is the
+     point rather than an oversight to tidy away. The split between them exists
+     for the dev gate — one node per fragment, with the student's own words
+     marked so the rendered-page walk skips them — and A STUDENT MUST NOT BE
+     ABLE TO TELL WHICH WORDS THE ARTIFACT CHOSE. .fg-say and .fg-word carry the
+     same ruling one region up and were driven identical across eight computed
+     properties in both browsers. Neither takes a rule of its own here for
+     exactly that reason: a declaration is what would make them differ. */
+
+  /* FIGHT-15's READING, AND WHERE IT SITS IS HALF OF WHAT IT IS.
+     It is the LAST child of #ledger, which is #board's immediate previous
+     sibling, so it lands directly above the live board's top edge and travels
+     with it. It could not go inside #board: structure() rebuilds both column
+     interiors and owns every node in them, and keyed() takes the first
+     [data-k] match scoped to #board.
+
+     LEGIBLE BESIDE THE LIVE NUMBERS WITHOUT BECOMING LOUDER THAN THEM. It is
+     given a tint so a reader can see where the past stops and the present
+     starts — derived from --accent with color-mix, because that is the token
+     this file already uses for a thing the tool is pointing at, and no new hex
+     — but it is drawn at the same 18px every other reading on this page uses
+     and never at the board's 24px value size. The board underneath stays the
+     largest type on the screen, which is the projection's standing rule. */
+  .ld-now{
+    display:flex;flex-direction:column;gap:6px;
+    padding:10px 12px;
+    border:1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+    border-radius:var(--radius);
+    background:color-mix(in srgb, var(--accent) 7%, transparent);
+  }
+  /* The reserved-line rule .fg-prompt, .fg-said, .pk-warn, .prj-note, .sh-warn
+     and .sh-said each carry, and for their reason: [hidden]{display:none} is a
+     user-agent rule this flex display WOULD have beaten, so the author rule has
+     to be written or the region ships visible and empty with nothing anywhere
+     to say why. #ledger's own [hidden] rule up in [C14] carries exactly this
+     note; this is the second node in the region that needs it. */
+  .ld-now[hidden]{display:none}
+  .ld-now-head{margin:0;font-size:18px;font-weight:700;color:var(--ink)}
+  /* AND IT IS BOUNDED, FOR THE REASON [C14] BOUNDS THE LIST AND [C14.1] BOUNDS
+     THE TWO SIDES: this reading draws one line per unit that MOVED, so at
+     twenty-four units a side it grows to seventy-two lines, directly above the
+     live board, with nothing to stop it. Unbounded it is the third region in
+     this phase to push the board down the page, and it is the one that grows on
+     the axis a student is most likely to turn. THE SCROLL IS ON THIS ELEMENT
+     and never on an ancestor — .ld-now-body is not an ancestor of #topbar or
+     #strip, and [C14]'s sticky gotcha is why that sentence is here rather than
+     assumed. The height is a REHEARSAL DIAL in .ld-list's and .fg-sides'
+     manner; the three of them are ONE budget and the arithmetic is written
+     into [C14]'s list rule. */
+  .ld-now-body{
+    display:flex;flex-direction:column;gap:2px;
+    max-height:20vh;overflow-y:auto;
+    padding-right:2px;
+  }
+  .ld-now-side{margin:4px 0 0;font-size:18px;font-weight:700;color:var(--ink-dim)}
+  .ld-now-line{
+    margin:0;font-size:18px;line-height:1.35;color:var(--ink);
+    font-variant-numeric:tabular-nums;
   }
 </style>
 </head>
