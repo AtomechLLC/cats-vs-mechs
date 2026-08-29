@@ -1632,7 +1632,14 @@
 
     <div class="sh-actions">
       <button class="brd-btn" type="button" id="sh-load-do" data-sh="load" data-k="sh/load">Load</button>
-      <button class="brd-btn" type="button" id="sh-load-back" data-sh="to-copy" data-k="sh/to-copy">Done</button>
+      <!-- ITS LEGEND SAYS WHERE IT GOES, which it did not when plan 04-05
+           shipped it: the id is sh-load-back and the act is to-copy, so this
+           returns to the copy pane, and a legend reading "Done" told a student
+           it would end the visit. Nothing pressed it until plan 04-06 wired the
+           pane switch, which is the change that made the wrong word reachable
+           and therefore the change that had to fix it. The one control on this
+           surface that ends the visit is #share-done, on the other pane. -->
+      <button class="brd-btn" type="button" id="sh-load-back" data-sh="to-copy" data-k="sh/to-copy">Back to your code</button>
     </div>
   </section>
 </dialog>
@@ -11777,6 +11784,370 @@ App.interactions = (function () {
   // for, and every control on that pane is page work with no op behind it.
   UI_ACTS.push('openActionEditor', 'selectAction', 'selectActionSide');
   // #endregion [S07.3] INTERACTIONS — ACTION EDITOR
+
+  // #region [S07.4] INTERACTIONS — SHARE AND CONFIRM
+
+  /* THE SHARE SURFACE AND THE RESET CONFIRMATION (SHARE-01, SHARE-04 — plan
+     04-06). It ATTACHES rather than edits, in exactly the shape [S07.2] and
+     [S07.3] do: it pushes two entries into UI_ACTS, assigns two entries in
+     UI_HANDLERS, pushes two entries into LATE_BINDERS, and changes NOT ONE LINE
+     of [S07.1], of [S07.2] or of [S07.3]. UI_ACTS' own comment names this
+     phase by name as one of the arrivals it was built for.
+
+     ================================================================
+     WHERE EACH THING THIS SURFACE DOES LIVES, AND WHY.
+     ================================================================
+     The partition below is read back off the page by a numbered check in
+     tests/selftest-node.cjs rather than taken on trust, because the one way to
+     make a refused op stop refusing is to move it quietly into UI_ACTS.
+
+     PAGE WORK — UI_ACTS, handled here, never dispatched:
+       openShare, openResetAsk        the two topbar controls
+       the pane switch, both ways     data-sh="to-load" / "to-copy"
+       ending the visit               data-sh="done", data-rs="cancel"
+       everything the copy press does data-sh="copy"
+     None of it reads or writes state. [S05] OPS' banner says that layer never
+     reads or writes the page, and opening a dialog is nothing but page work, so
+     a UI-only act has no legal home there.
+
+     STATE WORK — real ops, dispatched, and deliberately ABSENT from UI_ACTS:
+       loading a pasted build code    data-sh="load"
+       resetting to the defaults      data-rs="confirm"
+     Both are plan 04-07's, and neither is pre-empted here. Both controls exist
+     in the shell with no arm in the listeners below, which is [S07.1]'s own
+     documented "claimed and ignored" window said one layer down: the press does
+     nothing, throws nothing and opens no panel.
+
+     THE CLIPBOARD WRITE IS NEITHER, and it is worth saying so out loud because
+     the next reader will look for its home in one of the two lists above and
+     not find it. It is a side effect on the PLATFORM — not on state, and not on
+     this page. It changes nothing a repaint could redraw and nothing an undo
+     could take back, so there is nothing for [S05] to own and nothing for
+     UI_ACTS to claim. Research over this repo found no analog for it anywhere:
+     before plan 04-06 the file called no API with a permission model, no API
+     with an asynchronous result, and no API whose failure the page had to
+     branch on. The whole of it lives inside the copy press below.
+
+     NO SECOND fire() PAYLOAD KEY WAS NEEDED. [S07.1]'s fire() carries four keys
+     and the tokenId one is the file's single recorded exception to attaching
+     rather than editing. This region needed no exception, for the reason
+     03.1-05 declined to add one: every control INSIDE both dialogs carries a
+     private data-sh or data-rs that this region's own delegated listener reads
+     off the pressed control, and only the two topbar openers carry a data-act
+     at all. Neither of those two carries a payload of any kind. */
+
+  // The two panes, restated here rather than reached for in [S06.6], for the
+  // reason setShareEnabled is a two-line function rather than a reach into
+  // [S06.5]'s: a sub-region reaching into another sub-region's private helper
+  // is the first step of the two of them becoming one. [S06.6] falls back to
+  // the first of these for an attribute naming nothing; so does the opener
+  // below, and both fall back to the SAME one because both read this shape.
+  var SH_PANES = ['copy', 'load'];
+
+  // Null rather than a throw when either surface is absent, for the reason
+  // pickerDialog and editorDialog both give: an error panel raised on a button
+  // that ships in every build is the one outcome worse than nothing happening.
+  // close() is the capability probed, because it is the method every consumer
+  // below calls.
+  function shareDialog() {
+    if (typeof document === 'undefined') { return null; }
+    var dlg = document.getElementById('share');
+    if (!dlg || typeof dlg.close !== 'function') { return null; }
+    return dlg;
+  }
+
+  function resetDialog() {
+    if (typeof document === 'undefined') { return null; }
+    var dlg = document.getElementById('reset-ask');
+    if (!dlg || typeof dlg.close !== 'function') { return null; }
+    return dlg;
+  }
+
+  // THE one place that says "the share surface is now showing this pane", in
+  // showAction's shape and for its reason: several call sites each doing the
+  // same two things in their own order is how the attribute and the painted
+  // pane end up disagreeing on some path nobody thought to check.
+  //
+  // The attribute is written HERE rather than left to App.render.share, because
+  // that function returns early when its fingerprint has not moved and would
+  // then never reach its own write — and the fingerprint has the pane in it, so
+  // writing the attribute first is what makes the frame happen at all.
+  function showPane(dlg, pane) {
+    dlg.dataset.shPane = pane;
+    App.render.share(App.state.get());
+  }
+
+  // THE authorized handler for this plan's opening act. routeUi has already
+  // found the button, already matched UI_ACTS and already returned before
+  // App.ops.dispatch was reachable — on the pointerdown path AND on the
+  // detail === 0 keyboard path, so Enter on the button behaves exactly like a
+  // click. The button is not in HOLD_ACTS, so holding it starts no ramp and
+  // opens the surface exactly once.
+  //
+  // An already-open surface keeps the pane it is showing; a cold open starts on
+  // the copy pane. The button carries no pane and no side, and it must never
+  // grow one: a hidden data-pane here would be the topbar growing a control per
+  // anything, which is the collapse the comment beside that button says out
+  // loud it exists to prevent.
+  UI_HANDLERS.openShare = function () {
+    var dlg = shareDialog();
+    if (dlg === null) { return; }
+
+    var pane = (dlg.open === true) ? String(dlg.dataset.shPane || '') : '';
+    if (SH_PANES.indexOf(pane) === -1) { pane = SH_PANES[0]; }
+
+    showPane(dlg, pane);
+    if (dlg.open !== true) { dlg.showModal(); }
+  };
+
+  // Its opposite number, and it is three lines shorter for a reason worth
+  // stating: nothing on the confirmation is drawn from state, so it rides no
+  // SYNC_HOOKS entry and there is no pane, no fingerprint and no repaint to ask
+  // for. Opening it is the whole of the page work.
+  UI_HANDLERS.openResetAsk = function () {
+    var dlg = resetDialog();
+    if (dlg === null) { return; }
+    if (dlg.open !== true) { dlg.showModal(); }
+  };
+
+  function closeShare() {
+    var dlg = shareDialog();
+    if (dlg !== null && dlg.open === true) { dlg.close(); }
+  }
+
+  function closeConfirm() {
+    var dlg = resetDialog();
+    if (dlg !== null && dlg.open === true) { dlg.close(); }
+  }
+
+  // The paste field, told apart by its class exactly as [S07.2] tells .pk-name
+  // apart and [S07.3] tells .ae-amt apart. The class is load-bearing rather
+  // than decoration and the shell's own comment says so: a typo in it is not a
+  // red run, it is a green one over a field nothing is listening to.
+  function isPasteField(el) {
+    return !!(el && el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('sh-paste'));
+  }
+
+  function revertPaste(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // ONE delegated listener on the dialog, never one per control: the surface
+  // repaints on every frame while it is open, and per-node listeners on a
+  // region that repaints have to be rebound on every frame — the first missed
+  // rebind is a dead control nobody notices.
+  //
+  // Every arm below is PAGE WORK and stops here. Nothing is dispatched and
+  // nothing is committed, so [S07.2]'s dispatch-first ordering has nothing to
+  // order: there is no op that could refuse. The one press in this region that
+  // inverts an ordering is the copy press, and it says so where it lives.
+  function onSharePress(e) {
+    // The same rule [S07.1] applies at #app, for the same reason: without it a
+    // right-click on a control acts on it under the context menu.
+    if (!isPrimaryPress(e)) { return; }
+
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+
+    if (node.closest('[data-sh="done"]') !== null) { closeShare(); return; }
+
+    var dlg = shareDialog();
+    if (dlg === null) { return; }
+
+    if (node.closest('[data-sh="to-load"]') !== null) { showPane(dlg, 'load'); return; }
+    if (node.closest('[data-sh="to-copy"]') !== null) { showPane(dlg, 'copy'); return; }
+
+    // data-sh="load" has NO ARM HERE, and the absence is the point. Loading a
+    // pasted code writes state, so it is a real op reached through
+    // App.ops.dispatch and it belongs to plan 04-07 — parking it in UI_ACTS to
+    // get it working one plan early would be exactly the move check 90b reads
+    // this partition off the page to catch.
+  }
+
+  // The same anti-double-fire rule every other root in this file uses, and for
+  // the same measured reason: a mouse click was already served by pointerdown,
+  // and running here as well would apply every press twice. detail === 0 is the
+  // keyboard.
+  function onShareClick(e) {
+    if (e.detail !== 0) { return; }
+    onSharePress(e);
+  }
+
+  function onResetPress(e) {
+    if (!isPrimaryPress(e)) { return; }
+
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+
+    if (node.closest('[data-rs="cancel"]') !== null) { closeConfirm(); return; }
+
+    // data-rs="confirm" has NO ARM HERE, for the same reason data-sh="load"
+    // does not: resetting the board is the most destructive op in the file and
+    // it is plan 04-07's to wire. Cancel IS here because declining is page work
+    // — it closes a dialog and touches nothing else — and a confirmation a
+    // student cannot back out of would be worse than no confirmation at all.
+  }
+
+  function onResetClick(e) {
+    if (e.detail !== 0) { return; }
+    onResetPress(e);
+  }
+
+  // The baseline Escape puts back, and NOTHING ELSE. The paste field
+  // dispatches nothing on blur — plan 04-07's Load button is the only thing
+  // that will ever read it — so there is no target to bind this to and
+  // recording one anyway would be a hook a later plan could mistake for a write
+  // path. This is [S07.3]'s onProposalFocusIn, stated again for the same
+  // reason it was stated there.
+  function onShareFocusIn(e) {
+    if (!isPasteField(e.target)) { return; }
+    e.target.dataset.was = e.target.value;
+  }
+
+  function onShareKeyDown(e) {
+    // The same rule [S07.1] applies at #app and [S07.2] and [S07.3] each repeat
+    // on their own roots, and it has to be written a fourth time because the
+    // four roots are disjoint by construction: this dialog is a SIBLING of #app
+    // and of both other dialogs, so no key pressed in here reaches any of those
+    // listeners. The reason is [S07.1]'s own measured one — a held Enter on a
+    // focused button makes the browser synthesise one click{detail:0} per
+    // repeat, and onShareClick has no e.repeat to test because click events do
+    // not carry one. Held on Copy that is one clipboard write per OS
+    // auto-repeat, each one racing the last for whose result the line ends up
+    // naming.
+    //
+    // The scope is a BUTTON, because in this dialog that is the same set said
+    // two ways: every control that does anything is a real button, and the two
+    // things that are not are the code field and the paste field. So a held key
+    // in either field still types, and only a button is silenced, and only on a
+    // repeat.
+    if (e.repeat === true && (e.key === 'Enter' || e.key === ' ')) {
+      var btn = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('button') : null;
+      if (btn !== null) { e.preventDefault(); return; }
+    }
+
+    // Escape puts the recorded text back. Keeping the dialog OPEN while it does
+    // is a separate job and belongs to the cancel listener in bindShare, which
+    // is the only place a close request can be declined.
+    if (e.key === 'Escape' && isPasteField(e.target)) { revertPaste(e.target); }
+  }
+
+  function onResetKeyDown(e) {
+    // The repeat guard and nothing else: there is no field on this surface, so
+    // there is no text for Escape to put back and no reason to decline a close
+    // request. Escape on a confirmation MEANS Cancel, which is what <dialog>'s
+    // own default already does, and the close listener below hands focus back
+    // either way.
+    if (e.repeat === true && (e.key === 'Enter' || e.key === ' ')) {
+      var btn = (e.target && typeof e.target.closest === 'function')
+        ? e.target.closest('button') : null;
+      if (btn !== null) { e.preventDefault(); }
+    }
+  }
+
+  // The same keyboard failure onPickerClose and onEditorClose each solve, for
+  // the same reason: <dialog> restores the opener itself, but only for the
+  // element that held focus at the moment the modal opened, and a student who
+  // reached the button with the pointer was never focused on it. The selector
+  // is a CONSTANT — the topbar button carries no pane and no side, so there is
+  // no caller-shaped string here to guard.
+  function onShareClose() {
+    if (typeof document === 'undefined') { return; }
+    var opener = document.querySelector('[data-k="sh"]');
+    if (opener && typeof opener.focus === 'function') { opener.focus(); }
+  }
+
+  function onResetClose() {
+    if (typeof document === 'undefined') { return; }
+    var opener = document.querySelector('[data-k="rs"]');
+    if (opener && typeof opener.focus === 'function') { opener.focus(); }
+  }
+
+  // The seam, used exactly as [S07.1] describes it: both dialogs live outside
+  // #app, so each needs a root of its own, and bind() runs these through the
+  // same App.boot.wrap boundary its own listeners use. No edit to bind(), and
+  // the number of places that invoke it is unchanged.
+  //
+  // EVERY LISTENER GOES THROUGH App.boot.wrap. A handler bound raw would throw
+  // past the boundary and leave the surface dead with nothing on screen to say
+  // so — the failure the boundary exists for — and there is a numbered check in
+  // tests/selftest-node.cjs that reads the registrations on both of these roots
+  // back and reddens if any one of them is not wrapped, by the handler's own
+  // name and arity.
+  function bindShare() {
+    var dlg = shareDialog();
+    if (dlg === null) { return; }
+    dlg.addEventListener('pointerdown', App.boot.wrap('share press', onSharePress));
+    dlg.addEventListener('click', App.boot.wrap('share key-press', onShareClick));
+    // <dialog> fires close for the Done button and for Escape alike, so the
+    // focus hand-back has one home rather than two.
+    dlg.addEventListener('close', App.boot.wrap('share close', onShareClose));
+    // focusin rather than focus, for the reason [S07.1] gives: only the first
+    // bubbles, and a delegated root is the only arrangement that survives the
+    // surface underneath it repainting on every frame.
+    dlg.addEventListener('focusin', App.boot.wrap('share field focus', onShareFocusIn));
+    dlg.addEventListener('keydown', App.boot.wrap('share keydown', onShareKeyDown));
+
+    // Escape inside the paste field must put the old text back WITHOUT taking
+    // the surface away underneath it. <dialog> fires cancel on a close request,
+    // preventDefault() on that event keeps the dialog open and suppresses
+    // close, and the event does not bubble — so it has to be bound on the
+    // dialog itself, which is where this binder already binds.
+    //
+    // NOT EXERCISED by the Node gate, and this is now the FOURTH surface for
+    // which that is true. The stub <dialog> there has .open, showModal() and
+    // close() and no close-request behaviour at all, so this path cannot be
+    // driven without a browser. It is carried to the phase's closing rehearsal
+    // as a numbered item, exactly as the other three are, and the harness's own
+    // limitations entry 12 says adding a dialog adds one.
+    dlg.addEventListener('cancel', App.boot.wrap('share close request', function (e) {
+      var el = (typeof document === 'undefined') ? null : document.activeElement;
+      if (!isPasteField(el)) { return; }
+      e.preventDefault();
+      revertPaste(el);
+    }));
+  }
+
+  LATE_BINDERS.push(bindShare);
+
+  // A SECOND binder rather than a second root inside the first, because the
+  // confirmation IS a second root — plan 04-05 gave it one deliberately, and
+  // the three reasons are written into the shell beside it.
+  //
+  // THERE IS NO cancel LISTENER HERE, and that is a decision rather than the
+  // omission it looks like. A cancel listener exists on the three surfaces that
+  // have one for exactly one job: declining a close request so a field can put
+  // its text back without the dialog going away underneath it. This surface has
+  // no field. Escape here means Cancel, <dialog>'s default close is precisely
+  // that, and it fires the close listener below — so a listener bound here
+  // could only re-implement the default or, worse, decline a student's Escape
+  // out of a destructive confirmation. A no-op listener bound to make the four
+  // roots look alike would be dead code inside the error boundary, which is a
+  // worse thing to hand the next reader than this paragraph.
+  function bindResetAsk() {
+    var dlg = resetDialog();
+    if (dlg === null) { return; }
+    dlg.addEventListener('pointerdown', App.boot.wrap('reset ask press', onResetPress));
+    dlg.addEventListener('click', App.boot.wrap('reset ask key-press', onResetClick));
+    dlg.addEventListener('close', App.boot.wrap('reset ask close', onResetClose));
+    dlg.addEventListener('keydown', App.boot.wrap('reset ask keydown', onResetKeyDown));
+  }
+
+  LATE_BINDERS.push(bindResetAsk);
+
+  // The two acts this region claims. Pushed rather than assigned, so [S07.1]'s
+  // own array literal is untouched and the frozen copy taken below describes
+  // the seam as it finally is.
+  //
+  // TWO, AND NOT FOUR. The pane switches and the copy press claim none, for the
+  // reason the proposal pane claims none: an entry here is a name
+  // App.ops.dispatch's router looks for, and every control inside both dialogs
+  // is read by this region's own delegated listener off a private data-sh or
+  // data-rs that dispatch never sees.
+  UI_ACTS.push('openShare', 'openResetAsk');
+  // #endregion [S07.4] INTERACTIONS — SHARE AND CONFIRM
 
   return Object.freeze({
     bind: bind,
