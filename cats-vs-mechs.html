@@ -19070,9 +19070,19 @@ App.selftest = (function () {
     //    Advance — Fly over Slash and Lasers over Hairball — and what is read
     //    back is that each unit moved by the action's OWN declared amount and
     //    by nothing else. An op that halved a hit when a relationship matched,
-    //    or doubled it, or refused it, changes one of those two numbers. The
-    //    table's own length is read beside them so the row cannot be green
+    //    or doubled it, or refused it outright, changes one of those numbers.
+    //    The table's own length is read beside them so the row cannot be green
     //    over an empty table.
+    //
+    //    HAIRBALL IS GIVEN A TRANSFORMATION FIRST, THROUGH THE SHIPPED OP, AND
+    //    THAT LINE IS LOAD-BEARING. It ships with an empty `xf`, so the second
+    //    relationship's LOSING side has no number to move and a violation that
+    //    fired only on that pair would leave this row spotlessly green. PROBE O
+    //    measured the first spelling of this row doing exactly that: only the
+    //    Fly-over-Slash reading moved. With the term authored, BOTH `under`
+    //    actions carry a hit and either pair can redden the row. The edit is a
+    //    student edit driven through setActionXf, and the board is restored
+    //    afterwards.
     //
     //    The keyword half is read as DRIFT FROM THE SHIPPED VALUE rather than
     //    as a before-and-after string, which is check 74's shape in
@@ -19100,6 +19110,7 @@ App.selftest = (function () {
         // able to take the run down with it.
         try {
           App.ops.resetToDefaults();
+          App.ops.setActionXf('cats', 'hairball', 0, App.data.XF_WHO[1], 'hp', -2);
           App.ops.startFight();
           App.ops.declareAction('cats', 'slash', 'c1', 'm1');
           App.ops.declareAction('mechs', 'fly', 'm1', 'c1');
@@ -19134,6 +19145,7 @@ App.selftest = (function () {
           out = [
             App.data.REFERENCE.beats.length,
             f.mechs.units[0].shield,
+            f.mechs.units[1].shield,
             f.cats.units[1].hp,
             drift.join(','),
             inFight.join(','),
@@ -19146,7 +19158,7 @@ App.selftest = (function () {
           App.state.flush();
         }
         return out;
-      })(), [2, 2, 0, '', '', '']);
+      })(), [2, 2, 1, 0, '', '', '']);
 
     App.state.restore(savedAll);
     App.state.flush();
