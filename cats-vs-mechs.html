@@ -2899,6 +2899,7 @@
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
  *     [S07.4] the share and confirm dialogs' handlers                      (plan 04-06)
+ *     [S07.5] the fight's presses — the bar's and the board's         (plan 05-10)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
  *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
@@ -17695,6 +17696,394 @@ App.interactions = (function () {
   // data-rs that dispatch never sees.
   UI_ACTS.push('openShare', 'openResetAsk');
   // #endregion [S07.4] INTERACTIONS — SHARE AND CONFIRM
+
+  // #region [S07.5] INTERACTIONS — THE FIGHT
+
+  /* THE FIGHT'S PRESSES (FIGHT-01, FIGHT-02, FIGHT-04, FIGHT-05, FIGHT-07,
+     FIGHT-12, FIGHT-13, REF-03, SHARE-07 — plan 05-10). It ATTACHES rather than
+     edits, in exactly the shape [S07.2], [S07.3] and [S07.4] each do: it pushes
+     two entries into LATE_BINDERS and changes NOT ONE LINE of [S07.1], of
+     [S07.2], of [S07.3] or of [S07.4]. UI_ACTS' own comment names "Phase 5's
+     fight controls" by name as one of the arrivals it was built for.
+
+     ================================================================
+     WHERE EACH THING THIS SURFACE DOES LIVES, AND WHY.
+     ================================================================
+     The partition below is read back off the page by a numbered check in
+     tests/selftest-node.cjs rather than taken on trust, because the one way to
+     make a refused op stop refusing is to move it quietly into UI_ACTS.
+
+     PAGE WORK — handled here, never dispatched:
+       data-fg="act"   which action this side's declaration will name
+       data-fg="by"    which of this side's units performs it
+       data-fg="at"    which unit on either side it is pointed at
+     None of the three reads or writes state. Each moves ONE attribute on the
+     side's own declaration root and asks [S06.7] to paint the surface onto it,
+     which is exactly what [S07.3] does for the editor's selection and [S07.4]
+     for the share pane. A chooser position is a form's transient selection —
+     [S06.7]'s fgSettle says where it lives and why, and [S09.3] pins the `ui`
+     key set so there is nowhere else legitimate for it to go — and [S05] OPS'
+     banner says that layer never reads or writes the page, so it has no home
+     there either.
+
+     STATE WORK — real ops, dispatched, and deliberately ABSENT from UI_ACTS:
+       data-act="startFight"  on #fight-start        -> startFight
+       data-fg="declare"      on each side           -> declare
+       data-fg="clear"        on a declaration line  -> clearDeclaration
+       data-fg="advance"      on the round controls  -> advanceRound
+       data-fg="reset"        on the round controls  -> resetFight
+       data-dc="alive"        on a unit card         -> setAlive
+     NOT ONE OF THOSE SIX NAMES IS IN UI_ACTS AND NONE EVER MAY BE: an entry
+     there is a name this section handles ITSELF instead of dispatching, which
+     is exactly how a refusal is made to stop being raised. The partition check
+     reads all six off the page and names them, so the move reddens rather than
+     shipping. #fight-start is the one of the six that needs no line in here at
+     all — it carries a data-act, so [S07.1]'s own delegated listener has
+     dispatched it since plan 05-06, and SHARE-07's build surviving a fight is
+     reachable through it and through the topbar controls beside it.
+
+     THIS REGION PUSHES NOTHING INTO UI_ACTS AT ALL, and that is the point
+     rather than an omission — it is the proposal pane's "claims none" and
+     [S07.4]'s "two, and not four", one step further along the same argument.
+     UI_ACTS is a table of data-act names routeUi looks up BEFORE
+     App.ops.dispatch is reachable. Every control this region reads carries a
+     private data-fg or data-dc and no data-act at all, so routeUi never sees
+     one of them; and the single fight control that DOES carry a data-act
+     carries the name of a real op, which is the one kind of name that must
+     never appear in this list. An entry here could therefore only be a name
+     nothing on the page sends, or a name that turns a state op into page work.
+     There is no third possibility, so there is no entry.
+
+     HOLD_ACTS IS UNTOUCHED, AND THE CHOICE WAS OFFERED RATHER THAN ASSUMED
+     AWAY. AN ADVANCE MUST NEVER BE HELD: HOLD_FAST_MS is 40, so a held Advance
+     would resolve rounds at up to twenty-five a second, MAX_PAST_ROUNDS is 30,
+     and one accidental hold would push the whole history a student just played
+     off the end of the list — with each of those presses its own undo entry,
+     because advanceRound's label carries the round number. The fight HEALTH
+     nudge is the one control the phase deliberately left the choice open for:
+     plan 05-05 gave nudgeFightHp a boolean return precisely so a ramp could
+     read it, and HOLD_ACTS' own comment says what happens to a ramp over an op
+     returning undefined. IT IS NOT HELD EITHER, and the first reason is
+     mechanical rather than a judgement — NO CONTROL ON THE PAGE CARRIES THAT
+     OP. [S06.9] draws a dead marker, a by-hand marker and one toggle, and the
+     steppers on the board go on editing the BUILD, which is the whole of what
+     FIGHT-10's line says out loud. So a HOLD_ACTS entry would be a name nothing
+     sends. The second reason is that it could not fire if it were there:
+     [S07.1]'s ramp reads btn.dataset.act and every control in this region has
+     none. An entry pushed to make this region look like the stepper block
+     would be dead code inside the error boundary, which is a worse thing to
+     hand the next reader than this paragraph — bindResetAsk's register, and
+     its ruling.
+
+     NO SECOND fire() PAYLOAD KEY. [S07.3] declined one, [S07.4] declined again,
+     and this declines a third time. fire()'s four keys are the file's ONE
+     documented exception to the section banner and [S07.1]'s single recorded
+     exception is still plan 02.1-03's tokenId. Every call below is built FIELD
+     BY FIELD from the pressed control and from the side's own declaration root,
+     in 03.1-05's arrangement — the four keys `declare` takes are assembled at
+     the call site and never carried on a shared payload shape.
+
+     DISPATCH FIRST, PAGE WORK AFTER. onPickerPress' rule: an op that refuses
+     throws out of this handler into [S08]'s listener boundary and the page work
+     never runs. [S07.4] inverted it exactly once, for the clipboard's
+     user-gesture requirement, and recorded the inversion in writing. THIS
+     REGION HAS NO REASON TO INVERT IT AND DOES NOT — the arms that dispatch
+     write nothing to the page at all, and the arms that do page work dispatch
+     nothing, so the two halves never appear in one handler.
+
+     NOTHING HERE IS EVER DISABLED FOR ANYTHING A STUDENT DID. Not one line
+     below sets the property that takes a control away, and the property is
+     described here rather than spelled so that a grep over this region for it
+     answers zero — [C11]'s rule about a word the file must not carry, applied
+     to a word this region must not USE. The Advance control stays enabled on a
+     side that cannot pay for what it declared — D-23, and affordability carries
+     the never-disable rule in its own comment — and the alive toggle stays
+     enabled on a unit already marked, which is the direction that makes a
+     Shield ruling recoverable at all. A PRESS THAT HAS NOTHING TO DO DECLINES
+     QUIETLY instead: clearDeclarations returning false over an empty list is
+     the shipped precedent, and an error panel raised in the middle of a
+     workshop is exactly what a disabled button would have been avoiding.
+
+     TWO ROOTS AND TWO BINDERS, because the two surfaces are two static shell
+     elements and neither is inside the other. #fightbar and #board both outlive
+     every rebuild — [S06.7] replaces the two declaration-root interiors inside
+     the first and structure() replaces the two COLUMN interiors inside the
+     second — so a listener bound any deeper would be thrown away by the first
+     repaint, and the alive toggle lives inside a unit card, which is precisely
+     one of the things that gets thrown away.
+
+     NO focusin, focusout OR cancel LISTENER, and that is a decision rather than
+     the omission it looks like. Those three exist on the other surfaces for one
+     job each: recording what a FIELD held on focus, putting it back on blur,
+     and declining a close request so a field can put its text back without the
+     dialog going away underneath it. NOT ONE NODE IN EITHER OF THESE TWO ROOTS
+     IS A FIELD — [S06.7]'s own banner argues that at length, and it is why the
+     static-row rule does not bind this surface — and neither root is a
+     <dialog>, so there is no close request to decline. There IS a keydown
+     listener, and the paragraph beside it says what it is for. */
+
+  // The two declaration roots, by the ids [S06.7] writes into. Restated here
+  // rather than reached for through that region's FIGHT_DECL_IDS, for the
+  // reason SH_PANES is restated rather than shared: a sub-region reaching into
+  // another section's private table is the first step of the two of them
+  // becoming one, and [S06] is a different IIFE that does not export it.
+  var FG_DECL_IDS = { cats: 'decl-cats', mechs: 'decl-mechs' };
+
+  // Which dataset key each chooser writes onto its side's root. ONE table, read
+  // in both directions — as the allowlist that decides whether a data-fg value
+  // is a chooser at all, and as the key that chooser records into — so a
+  // chooser cannot come to exist without a place to record it.
+  var FG_PICK_KEY = { act: 'fgAct', by: 'fgBy', at: 'fgAt' };
+
+  // Null rather than a throw when the surface is absent, for the reason
+  // pickerDialog, editorDialog and shareDialog each give: an error panel raised
+  // on a control that ships in every build is the one outcome worse than
+  // nothing happening. hasOwnProperty rather than a bare lookup, because `side`
+  // is read off an attribute and a bare lookup on a two-key literal answers for
+  // 'constructor' and for 'toString'.
+  function fgSideRoot(side) {
+    if (typeof document === 'undefined') { return null; }
+    if (!Object.prototype.hasOwnProperty.call(FG_DECL_IDS, side)) { return null; }
+    var root = document.getElementById(FG_DECL_IDS[side]);
+    return root ? root : null;
+  }
+
+  // Nobody is a VALUE, and the empty string is how the chooser spells it:
+  // [S06.7]'s fgFillPicks builds that entry with an empty data-fg-val on
+  // purpose, and declareAction stores null in either position so that
+  // "Hairball, no target" stays recordable. The empty string becomes null HERE,
+  // at the boundary, rather than being sent on as a unit id nothing resolves —
+  // which would meet unitAnywhere's refusal and raise the panel on a
+  // declaration the student made correctly.
+  function fgUnitOrNull(raw) {
+    var id = String(raw || '');
+    return (id === '') ? null : id;
+  }
+
+  // PAGE WORK, and the whole of it: move one attribute, then ask for the
+  // surface to be painted onto it. App.render.fightBar is exported for exactly
+  // this caller and its own comment says why — a press that changed the
+  // attribute and waited for the next frame would leave the pressed chooser
+  // looking unpressed for a frame, which in front of a room is a student
+  // pressing a unit twice because the first press appeared to do nothing.
+  function pressChoose(btn, kind) {
+    var root = fgSideRoot(String(btn.dataset.fgSide || ''));
+    if (root === null) { return; }
+    root.dataset[FG_PICK_KEY[kind]] = String(btn.dataset.fgVal || '');
+    App.render.fightBar(App.state.get());
+  }
+
+  // STATE WORK. The three ids are read off the side's own root rather than off
+  // the pressed control, which is what keeps the Declare button free of a
+  // payload and keeps fire()'s four keys the file's only exception. The side is
+  // read off the control, because there are two Declare buttons and each one
+  // says which side it speaks for.
+  function pressDeclare(btn) {
+    var side = String(btn.dataset.fgSide || '');
+    var root = fgSideRoot(side);
+    if (root === null) { return; }
+    var actionId = String(root.dataset.fgAct || '');
+
+    // A PRESS THAT HAS NOTHING TO DO DECLINES QUIETLY. Declaring with no action
+    // named is not a mistake a student made — it is a form they have not
+    // finished, and the report directly above the button already says "Pick an
+    // action for this side." Dispatching anyway would meet requireActionId's
+    // refusal and put the styled error panel over a workshop, which is the
+    // whole reason the control is not disabled instead.
+    if (actionId === '') { return; }
+
+    App.ops.dispatch('declare', {
+      side: side,
+      actionId: actionId,
+      by: fgUnitOrNull(root.dataset.fgBy),
+      at: fgUnitOrNull(root.dataset.fgAt)
+    });
+  }
+
+  // The index is read back as a WHOLE NUMBER and never as a clamped quantity —
+  // clearDeclaration's own comment draws that line: "a clamped index removes a
+  // declaration the student did not name." An attribute that is not a run of
+  // digits is a declined press rather than a dispatched guess, in the register
+  // parseField refuses an empty field: Number('') is 0, and 0 is a real index.
+  function pressClear(btn) {
+    var raw = String(btn.dataset.fgIndex || '');
+    if (!/^\d{1,3}$/.test(raw)) { return; }
+    App.ops.dispatch('clearDeclaration', { index: Number(raw) });
+  }
+
+  // The flag, read off STATE and not off the button's aria-pressed. The
+  // renderer writes that attribute FROM this flag, so reading it back would be
+  // asking the page what the state is through a copy the page made — the shape
+  // this file refuses everywhere else, and the one that goes wrong on the first
+  // frame a repaint is skipped. Null for a unit that is not on that side, so a
+  // stale attribute declines rather than dispatching against findUnit's throw.
+  function fgAliveOn(state, side, unitId) {
+    var units = state.fight[side].units;
+    for (var i = 0; i < units.length; i++) {
+      if (units[i].id === unitId) { return units[i].alive === true; }
+    }
+    return null;
+  }
+
+  function pressAlive(btn) {
+    var side = String(btn.dataset.dcSide || '');
+    if (!Object.prototype.hasOwnProperty.call(FG_DECL_IDS, side)) { return; }
+    var state = App.state.get();
+    if (state.fight === null) { return; }
+    var alive = fgAliveOn(state, side, String(btn.dataset.dcUnit || ''));
+    if (alive === null) { return; }
+    App.ops.dispatch('setAlive', {
+      side: side,
+      unitId: String(btn.dataset.dcUnit || ''),
+      value: !alive
+    });
+  }
+
+  // The delegated listener for #fightbar. closest() rather than a test on
+  // e.target, because every control on this surface has a span or two inside it
+  // — a pill carries its name and its tick as real nodes, which is [C07]'s rule
+  // and what makes the tick reachable by a screen reader and by the
+  // rendered-page walk alike — so the press arrives on the span.
+  function onFightPress(e) {
+    // The same rule [S07.1] applies at #app and [S07.4] applies at both
+    // dialogs, for the same measured reason: without it a right-click on a
+    // control acts on it underneath the native context menu.
+    if (!isPrimaryPress(e)) { return; }
+
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+    var btn = node.closest('[data-fg]');
+    if (btn === null) { return; }
+    var kind = String(btn.dataset.fg || '');
+
+    // The four state arms first, each one dispatched and none of them touching
+    // the page. Advance and Reset take no argument at all: every number Advance
+    // needs is already on the board, which is the reason dispatch's own arm
+    // gives for declining a payload shape for it.
+    if (kind === 'declare') { pressDeclare(btn); return; }
+    if (kind === 'clear') { pressClear(btn); return; }
+    if (kind === 'advance') { App.ops.dispatch('advanceRound', {}); return; }
+    if (kind === 'reset') { App.ops.dispatch('resetFight', {}); return; }
+
+    // Then the three page arms, and nothing below dispatches.
+    if (Object.prototype.hasOwnProperty.call(FG_PICK_KEY, kind)) {
+      pressChoose(btn, kind);
+    }
+  }
+
+  // Keyboard activation ONLY, and the guard is [S07.1]'s verbatim for its
+  // measured reason: a keyboard-activated click presents with detail 0 because
+  // detail is the click count and there was no click, while a mouse click
+  // carries detail >= 1 and was already served by pointerdown — running here as
+  // well DOUBLES every press, which on Advance is two rounds resolved for one
+  // press and two entries on the undo stack.
+  function onFightClick(e) {
+    if (e.detail !== 0) { return; }
+    onFightPress(e);
+  }
+
+  // The board's half. It reads data-dc and only data-dc, so the partition
+  // between this handler and [S07.1]'s stays a matter of ATTRIBUTE NAME rather
+  // than of root: both are bound inside #app, [S07.1] reads data-act and this
+  // reads data-dc, and neither can be reached by a control carrying the other's
+  // spelling. That is bindProposal's arrangement, working a second time.
+  //
+  // [data-dc] is an EXACT attribute name and matches neither data-dc-side,
+  // data-dc-unit nor data-dc-hand — the three attributes [S06.9] puts on the
+  // line, the marker and the card around this control — so the walk up from a
+  // stepper inside a unit card finds nothing here.
+  function onBoardFightPress(e) {
+    if (!isPrimaryPress(e)) { return; }
+
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+    var btn = node.closest('[data-dc]');
+    if (btn === null) { return; }
+    if (String(btn.dataset.dc || '') !== 'alive') { return; }
+    pressAlive(btn);
+  }
+
+  function onBoardFightClick(e) {
+    if (e.detail !== 0) { return; }
+    onBoardFightPress(e);
+  }
+
+  /* THE KEYBOARD'S OWN RAMP, CLOSED HERE BECAUSE [S07.1]'s SUPPRESSION CANNOT
+     REACH THESE CONTROLS. onKeyDown suppresses a repeated Enter or Space
+     through actTarget, and actTarget returns null for any node without a
+     data-act — so every control in this region sits outside it. D-17's own
+     paragraph describes exactly what that costs: "Holding Enter on a focused
+     BUTTON makes the browser synthesise a click{detail:0} per repeated keydown,
+     and onClick — which has no e.repeat to test, because click events do not
+     carry one — served every single one."
+
+     Held on Advance that is the forty-rounds outcome the banner above says
+     HOLD_ACTS must never be given the chance to produce, arriving through the
+     other door. Held on Reset it throws a played fight away over and over. Held
+     on a chooser it repaints the surface at the OS auto-repeat rate. So the
+     suppression lives on the keydown that GENERATES the click, and
+     preventDefault is what stops the browser synthesising it.
+
+     ONLY A REPEAT IS SILENCED — the first press is untouched, which is what
+     keeps Enter on a fight control behaving exactly like a click. And the scope
+     is this region's two private attributes, so a held Space inside any field
+     anywhere still types spaces. */
+  function onFightKeyDown(e) {
+    if (e.repeat !== true) { return; }
+    if (e.key !== 'Enter' && e.key !== ' ') { return; }
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+    if (node.closest('[data-fg]') === null && node.closest('[data-dc]') === null) {
+      return;
+    }
+    e.preventDefault();
+  }
+
+  // The seam, used exactly as [S07.1] describes it. bind() runs both of these
+  // through the same App.boot.wrap boundary its own listeners use, so no edit
+  // to bind() is needed and the number of places that invoke it is unchanged.
+  //
+  // EVERY LISTENER GOES THROUGH App.boot.wrap, and the check that reads the
+  // registrations back is floored on the COUNT for the reason it states: a root
+  // carrying no listeners at all passes a per-listener test spotlessly. wrap
+  // returns an anonymous zero-arity function, so a raw binding is visible by
+  // name and by arity.
+  function bindFight() {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('fightbar');
+    if (!root) { return; }
+    root.addEventListener('pointerdown', App.boot.wrap('fight press', onFightPress));
+    root.addEventListener('click', App.boot.wrap('fight key-press', onFightClick));
+    root.addEventListener('keydown', App.boot.wrap('fight keydown', onFightKeyDown));
+  }
+
+  LATE_BINDERS.push(bindFight);
+
+  // A SECOND binder rather than one listener on #app covering both, and the
+  // reason is the one the two dialogs' binders give: two surfaces are two
+  // roots. #board is also the narrower scope of the two — every node this
+  // handler can reach is a unit card's, and a listener at #app would be walking
+  // up from every stepper press on the board to discover it has nothing to do.
+  function bindBoardFight() {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('board');
+    if (!root) { return; }
+    root.addEventListener('pointerdown',
+      App.boot.wrap('board fight press', onBoardFightPress));
+    root.addEventListener('click',
+      App.boot.wrap('board fight key-press', onBoardFightClick));
+    root.addEventListener('keydown',
+      App.boot.wrap('board fight keydown', onFightKeyDown));
+  }
+
+  LATE_BINDERS.push(bindBoardFight);
+
+  // THE ACTS THIS REGION CLAIMS: NONE. The paragraph at the head of this region
+  // gives the whole argument and it is not repeated here — but the line itself
+  // is written down rather than left as an absence, because an absence reads as
+  // an oversight and this is a ruling. UI_ACTS is untouched by this plan, and
+  // so is HOLD_ACTS.
+  // #endregion [S07.5] INTERACTIONS — THE FIGHT
 
   return Object.freeze({
     bind: bind,
