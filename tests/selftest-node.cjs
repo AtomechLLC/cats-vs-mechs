@@ -5402,9 +5402,50 @@ check(
    fragments — and this row cannot see either outcome. THE FIX IS ONE LINE: this
    harvest must be taken with at least one declaration on the page, on each
    side, through the real op. Plan 05-10 owns it. */
+/* THE HOLE ABOVE IS NOW CLOSED, AND THE LEDGER IS WHY IT HAD TO BE. Plan 05-08
+   built [S06.8], whose rows carry every word this artifact writes about a
+   round that has already resolved — the action lines, the damage split as
+   three facts, and every by-hand ruling. NOT ONE OF THOSE STRINGS EXISTS ON A
+   PAGE WHERE startFight() HAS JUST BEEN CALLED: `past` is empty, so the region
+   paints its heading and one sentence and stops. A floor taken off that page
+   bounds the ledger at exactly nothing, and the plan's own threat register
+   assigns the mitigation for "a ledger row that comments on what happened
+   instead of reporting it" to THIS HARVEST. A mitigation that reads an empty
+   region is not one.
+
+   So the drive below PLAYS A ROUND rather than starting a fight: one
+   declaration a side, a real Advance, and one declaration a side again. That
+   is three surfaces on the page at once instead of one —
+
+     the declaration list, which probe X measured as invisible to this row and
+       which plan 05-07 named as requirement 2 on plan 05-10. The second pair
+       of declarations is there for exactly that, because advanceRound EMPTIES
+       the declaration list and a harvest taken straight after an Advance would
+       have closed the ledger's hole and left that one open;
+     one resolved round in the ledger, with its actions and its split;
+     the what-changed reading, on a board that now has something to say.
+
+   Every op below is a REAL op driven through App.ops, and the frame is ASKED
+   FOR rather than hoped for — openDialogs' recorded lesson, restated one more
+   time because it is the lesson this whole harvest exists on top of. */
 const fightSaved = JSON.stringify(A.state.get());
 
 A.ops.startFight();
+A.state.invalidate();
+A.state.flush();
+const fightCatIds = A.state.get().build.cats.units.map((u) => u.id);
+const fightMechIds = A.state.get().build.mechs.units.map((u) => u.id);
+A.ops.declareAction('cats', 'slash', fightCatIds[0], fightMechIds[0]);
+A.ops.declareAction('mechs', 'lasers', fightMechIds[0], fightCatIds[0]);
+A.state.invalidate();
+A.state.flush();
+A.ops.advanceRound();
+A.state.invalidate();
+A.state.flush();
+A.ops.declareAction('cats', 'slash',
+  fightCatIds[fightCatIds.length - 1], fightMechIds[fightMechIds.length - 1]);
+A.ops.declareAction('mechs', 'lasers',
+  fightMechIds[fightMechIds.length - 1], fightCatIds[fightCatIds.length - 1]);
 A.state.invalidate();
 A.state.flush();
 const fightText = harvestInto(dom.byId['app'], [], '#app');
@@ -5526,9 +5567,50 @@ A.state.flush();
    reference band names them by id), so 83 is measured at the floor of that axis
    too and a student authoring actions can only clear it by more.
 
-   STILL OWING: plans 05-08 (the ledger) and 05-09 (the board in fight mode).
-   Both add rendered fight copy and both owe this number the same re-measure. */
-const FIGHT_FLOOR = 83;
+   HISTORY — 83 -> 108, PLAN 05-08, AND THE DRIVE MOVED WITH THE FLOOR.
+   [S06.8] arrived: the ledger of resolved rounds and the what-changed reading
+   beneath it. This is the entry where the number and the BOARD IT IS TAKEN OFF
+   both change, so the two readings are recorded separately and the reason the
+   drive changed is written above the drive rather than here.
+
+   On the drive AS IT STOOD — startFight() and nothing else — the region paints
+   its heading and the one sentence that says round 1 has not resolved yet, and
+   the harvest goes 215 -> 217. Measured on three roster sizes:
+
+       cards on the board          12    4    2
+       harvest, old drive         217  129  107      per card 11, unchanged
+       roster-independent part                       85
+
+   That +2 is the whole of what a floor over the OLD drive can ever see of this
+   region, because every row it draws needs a round that has resolved.
+
+   On the drive as it now stands — one declaration a side, an Advance, one
+   declaration a side again — the same three boards read:
+
+       cards on the board          12    4    2
+       harvest, new drive         276  164  136
+       per card                          14   14
+       roster-independent part                       108
+
+   AND THE MARGINAL COST OF A UNIT CARD MOVED AGAIN, 11 -> 14, which is the
+   part a plan reading only the totals would get wrong for the third time
+   running. The extra 3 are the ledger row's own line for that unit: the walk
+   reads its name-and-dash fragment, the fragment between its two numbers and
+   the fragment after the second, and SKIPS the two token-name nodes between
+   them because those carry the rename exemption marker. Three strings a unit,
+   one row, and it is three rather than five for exactly the reason the pool's
+   label was not counted in the 41 -> 56 entry: the marker doing its job.
+
+   276 - 12x14 = 108, and 108 is the reading off THIS row's board, which is the
+   one the floor is compared against. TWO AXES NOW MOVE THE ROSTER-INDEPENDENT
+   PART AND BOTH ONLY EVER MOVE IT UPWARD: the action count, recorded in the
+   entry above, and now THE NUMBER OF ROUNDS ALREADY RESOLVED — one more row is
+   one more round label, one more note, two more faction words, one line per
+   unit and the action lines with their three-fact split. The drive resolves
+   exactly one round, so 108 is measured at the floor of that axis too.
+
+   STILL OWING: plan 05-09 (the board in fight mode). */
+const FIGHT_FLOOR = 108;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');

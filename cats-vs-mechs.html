@@ -2355,6 +2355,7 @@
  *     [S06.5] the action editor — the authoring dialog's repaint            (plan 03.1-05)
  *     [S06.6] the share surface — the build code, kept from going stale     (plan 04-05)
  *     [S06.7] the fight bar — the round, both pools, the declarations   (plan 05-07)
+ *     [S06.8] the ledger — past rounds, and what the last one changed    (plan 05-08)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
@@ -12587,6 +12588,726 @@ App.render = (function () {
   SYNC_HOOKS.push(syncFight);
   // #endregion [S06.7] RENDER — THE FIGHT BAR
 
+  /* ===================== [S06.8] RENDER — THE LEDGER ====================
+   * FIGHT-14's history of resolved rounds and FIGHT-15's reading of the live
+   * board against the round before it, appended as its own sub-region for the
+   * mechanical reason [S06.2], [S06.3], [S06.5], [S06.6] and [S06.7] all
+   * state: it reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure variable
+   * of this IIFE, and it paints a different page region on a different
+   * trigger. IT CHANGES NOTHING IN [S06.1] THROUGH [S06.7].
+   *
+   * THIS IS THE FIRST APPEND-ONLY LIST IN THE ARTIFACT, and that is a fact
+   * about the file rather than a boast. Every other list surface here is
+   * replaceChildren-and-rebuild or build-once-and-write-every-frame; the one
+   * structure that only ever grows — the undo stack — is capped at thirty and
+   * never drawn. So this region's growth policy has no precedent, and the
+   * nearest analog is syncRow, whose two rules are about token nodes inside
+   * one row rather than rows inside a region but whose REASON is exactly this
+   * one, restated in substance because the cost is what makes a rule stick:
+   *
+   *   RULE 2 — GROW AND SHRINK BY DELTA ONLY. Node identity is the animation
+   *   contract: ten rows to eleven keeps all ten original nodes and appends
+   *   exactly one.
+   *   RULE 3 — NEVER RE-APPEND AND NEVER REORDER. appendChild on a node that
+   *   is ALREADY a child is a MOVE, which is a remove plus an insert, and
+   *   removal from the document CANCELS that element's CSS animations, so
+   *   re-insertion replays them from the beginning.
+   *
+   * A LEDGER THAT REBUILT ITSELF ON EVERY ADVANCE WOULD REPLAY EVERY PAST
+   * ROUND'S ENTRY ANIMATION AT ONCE, ON THE ARTIFACT FOR A GAME-FEEL COURSE.
+   * syncRow's closing sentence is that a token replaying its pop here is a
+   * correctness bug and not a polish item; THIS is the region where that
+   * sentence will actually be violated, so it is written at the site rather
+   * than pointed at. [C14.2] keeps the other half of the bargain: the entry
+   * animation is on .ld-row and on NOTHING inside a row, because a row's
+   * interior IS rewritten every time a name it draws moves (the two tiers
+   * below), and an animation in there would replay on every rename.
+   *
+   * THE COST IS NOT THE CONSTRAINT, AND SAYING SO IS WHAT STOPS THE NEXT
+   * AUTHOR OPTIMISING THE WRONG THING. Measured in Chrome 151 from file:// on
+   * the shipped 9-and-3 board with a fight running: one more full-board row
+   * costs a FLAT 1.9-2.1 ms all the way to 60 rounds and 26,132 nodes, and
+   * App.render.sync() DOES NOT MOVE AT ALL with a 50-round ledger on the page
+   * — 0.154 ms against a 0.17 ms baseline. At 24 units a side with a 30-round
+   * ledger the page holds 29,846 nodes and sync() reads 0.57 ms against 0.535
+   * without it. The ledger is inert DOM that the keyed reconcile never walks.
+   * The real constraints are node identity, data-k uniqueness and READABILITY.
+   *
+   * THE ROW DESIGN, CHOSEN EXPLICITLY, WITH ALL THREE MEASUREMENTS AND THE
+   * CONSTRAINT THAT DECIDED IT. Three shapes were measured, in nodes per
+   * round: a FULL CLONE of the board at 300, a COMPACT TEXT row at 66, and
+   * TOKEN SQUARES at 67. All three are affordable at any size a workshop will
+   * reach — the shipped board resolves in three rounds and the slowest retune
+   * measured took nine — so cost decided nothing. The compact text row is
+   * taken, and the constraint is READABILITY ON A PROJECTOR inside [C14]'s
+   * 46vh bound:
+   *   - a full clone reproduces, directly above the live board and at the same
+   *     size, the exact thing a room is already reading. The past would then
+   *     compete with the present for the same eye, which is the one thing the
+   *     live board may not lose;
+   *   - token squares ask a student to COUNT a board that is no longer live,
+   *     which is work with no reading at the end of it;
+   *   - the compact row STATES each unit's numbers in words and digits, so a
+   *     past round is read rather than counted, and it survives being scrolled
+   *     past at a glance.
+   * NO PERFORMANCE REASON IS BEING IMPLIED HERE and the paragraph above is why.
+   * App.data.MAX_PAST_ROUNDS is thirty for the same readability reason and its
+   * own comment says so: a page of past boards stops being readable long
+   * before it stops being fast. This region does not enforce that cap — [S05]'s
+   * advanceRound does — it follows it, by dropping from the FRONT when the
+   * oldest record has gone.
+   *
+   * NO data-k, NO data-act, NO data-amt, NO .brd-value AND NO .brd-line--opt
+   * ANYWHERE IN THIS REGION. A ledger row is A READING AND NOT A CONTROL, and
+   * these are the projection admission line's four silent-failure rules applied
+   * to a whole region: nothing dispatches off a row and no focus restore can
+   * land on one; no per-frame numeric pass writes into it; the optional-line
+   * hide pass cannot pin it shut. refCard already keeps exactly this rule and
+   * check 63b already asserts it for reference cards; plan 05-10 adds the
+   * parallel for these rows.
+   *
+   * AND THE MEASURED HAZARD BEHIND IT, WRITTEN DOWN SO THE NEXT READER WHO
+   * WANTS TO MOVE THIS REGION KNOWS WHAT IT COSTS: keyed() takes the FIRST
+   * [data-k] match inside its container and withPreservedFocus scopes that to
+   * #board. Five cloned past boards placed INSIDE #board above the columns
+   * were driven directly, and the first scoped match came back A DEAD LEDGER
+   * NODE — so focus restore after any structural rebuild landed on a clone of
+   * the board instead of on the control the student was using. As a SIBLING of
+   * #board the first scoped match is the live one. The region is outside
+   * #board by plan 05-06's design; carrying no key at all is the belt to that
+   * braces.
+   *
+   * NOTHING DERIVED IS STORED. Every row is built from state.fight.past and
+   * the LIVE build; the reading below is derived from past[last] against the
+   * live side on the frame it is drawn. A stored delta would be a second,
+   * MECHANICAL reason for the board and this region to disagree, on top of the
+   * pedagogical disagreement the whole project is built around. [S06.6]'s
+   * paragraph and [S06.7]'s both say this; this is the region where the
+   * temptation is strongest, because the record is right there.
+   *
+   * NOTHING HERE RULES ON A FIGHT. A ledger of past rounds is the surface on
+   * which a sentence setting one side against the other writes itself, so the
+   * rule this file already states twice binds hardest here: a row reports WHAT
+   * HAPPENED
+   * ARITHMETICALLY and never WHAT IT WAS LIKE. `Health 3 to 1` is bookkeeping.
+   * A sentence naming a side and a direction is a ruling. No figure on any row
+   * is set against the other side's, none is set against a threshold (D-13,
+   * PROJ-06), and nothing announces that a fight is over or renders a terminal
+   * state (D-26) — every unit on one side being marked dead is a thing a
+   * student can READ off these rows, never a thing the tool SAYS. Every word
+   * below was screened against all three of the dev gate's word lists before
+   * it was written. The eight that CLEAR the gate and still do not ship are
+   * the ones describing how a fight is GOING rather than what is on the board,
+   * and none of them appears here. The gate is a floor; this paragraph is the
+   * rest of the height.
+   *
+   * deps: App.model, App.data, [S06.1]'s helpers
+   * owner: plan 05-08
+   * ===================================================================== */
+  // #region [S06.8] RENDER — THE LEDGER
+
+  // The two sides again, and a FOURTH spelling of the same two ids rather than
+  // a reuse of [S06.5]'s SIDE_IDS or [S06.7]'s FIGHT_SIDES — for the mechanical
+  // reason [S06.7]'s own comment gives. Every sub-region in [S06] shares ONE
+  // function scope, so a second `var FIGHT_SIDES` here would be a
+  // REDECLARATION of that binding rather than a restatement of the decision:
+  // the two names would be one variable, and a later plan narrowing either one
+  // would move the other without touching it.
+  var LD_SIDES = ['cats', 'mechs'];
+
+  /* A line the page ASSEMBLES out of its own words and the student's, one node
+     per fragment. It is sayInto's and fgSay's idiom RESTATED rather than
+     borrowed, for the reason [S06.7] restates sayInto and [C13] restates its
+     own spacer class: a sub-region reaching into another sub-region's private
+     helper is the first step of the two of them becoming one. The class prefix
+     differs because [C14]'s banner says one prefix per surface; the RULE does
+     not differ at all.
+
+     THE SPLIT IS A GATE CONCERN AND NOT A STYLING ONE. The rendered-page walk
+     reads the text of every leaf under #app and skips any node carrying an
+     exemption key. A line built as ONE string would have to be either wholly
+     read — which reddens CI the day a classmate names an action after a
+     comparative word and a student replays their fight, the gate then
+     asserting the opposite of what ACT-01 promises — or wholly exempt, which
+     would take every word the ARTIFACT chose out of the only layer that can
+     see copy assembled at render time. Not one sentence this region produces
+     exists as a literal anywhere, so Layer C is the only layer that can ever
+     read them.
+
+     THE THREE PER-FRAME EXEMPTION PASSES IN sync() ARE SCOPED TO #board AND DO
+     NOT REACH THIS REGION, which is why the marker here is a marker and never
+     a request to be written. This region writes its own text and marks the
+     node so the walk skips it.
+
+     The two node classes look identical on screen on purpose. A student
+     reading a row must not be able to tell which words came from where. */
+  function ldSay(box, parts) {
+    parts.forEach(function (part) {
+      if (part.said !== undefined) {
+        box.appendChild(text('span', 'ld-say', part.said));
+        return;
+      }
+      var node = text('span', 'ld-word', part.word);
+      setData(node, (part.tok !== undefined) ? { lbl: part.tok } : { anm: part.act });
+      box.appendChild(node);
+    });
+  }
+
+  function ldLine(cls, parts) {
+    var line = el('p', cls);
+    ldSay(line, parts);
+    return line;
+  }
+
+  /* A token type's NAME as a fragment, and the fall-through is the whole
+     reason this is a function. fillProposal's recorded trap and [S06.7]'s
+     departed-term refusal are the same one: labelFor falls back to the shipped
+     health label for an id it cannot find, so asking it about a type that has
+     since been removed prints a name that is ACTIVELY WRONG and sends the
+     student looking for the wrong type. A past round can name a type that is
+     no longer on the board — the record is older than the vocabulary — so this
+     is the ordinary case here rather than an edge one.
+
+     When the type has gone the ID is printed as one of the ARTIFACT'S OWN
+     fragments and carries no exemption marker, which is [S06.7]'s ruling and
+     is safe because requireTokenId has already bounded what an id may be. */
+  function ldTokenWord(state, tok) {
+    var vocab = state.build.tokens;
+    if (typeof tok === 'string' && vocab
+      && Object.prototype.hasOwnProperty.call(vocab, tok)) {
+      return { word: labelFor(state, tok), tok: tok };
+    }
+    return { said: (typeof tok === 'string') ? tok : 'a type this board no longer holds' };
+  }
+
+  /* The unit a record names, looked up across BOTH rosters, and off the BUILD
+     roster rather than the fight one — [S06.7]'s fgUnitName restated for its
+     stated reason: sideFromBuild carries a unit's id, health, shield and flag
+     into the fight slice and NOT its name, so the fight roster has no name to
+     read. A name is therefore one more thing this surface computes at render
+     time, which is what makes a rename land on the frame it happens. A
+     dangling id is NAMED rather than printed as a blank or as somebody else's
+     unit, which is actionNameFor's fall-through rule. */
+  function ldUnitName(state, unitId) {
+    for (var i = 0; i < LD_SIDES.length; i++) {
+      var units = state.build[LD_SIDES[i]].units;
+      for (var j = 0; j < units.length; j++) {
+        if (units[j].id === unitId) { return units[j].name; }
+      }
+    }
+    return String(unitId);
+  }
+
+  // The two ends of a term, said in the words the safe list carries rather than
+  // in the record's own key. WHO_SAID one region up renders the raw ids; this
+  // surface is read by a room off a projector, so it says what they mean.
+  function ldWho(who) {
+    if (who === 'caster') { return 'the unit acting'; }
+    if (who === 'target') { return 'the unit acted on'; }
+    return 'nobody';
+  }
+
+  /* ---- ONE ROW OF THE PAST ------------------------------------------------
+   *
+   * What a row says, and every one of these is a fact the record already
+   * holds: the round number; the board as it stood when that round began; each
+   * action that resolved, naming who acted, what they used and what it pointed
+   * at; THE DAMAGE SPLIT AS THREE SEPARATE FACTS; the two things a board diff
+   * cannot show (a cost the pool could not meet, and a term that landed on
+   * nothing); and every by-hand ruling made in that round, naming the unit, the
+   * token, and the value it went from and to.
+   *
+   * THAT IS FIGHT-08'S "each turn's actions and every manual override in
+   * readable order", RENDERED OFF ONE RECORD AND NOT TWO. `did` plus `hand` is
+   * the whole of that log — plan 05-02 deleted `fight.log` for exactly this
+   * reason and plan 05-05 wrote the other half of the same decision. A second
+   * structure would be two things both claiming to be what happened, and they
+   * would disagree.
+   */
+  function ldUnitParts(state, u) {
+    return [
+      { said: ldUnitName(state, u.id) + ' — ' },
+      ldTokenWord(state, 'hp'),
+      { said: ' ' + u.hp + ', ' },
+      ldTokenWord(state, 'shield'),
+      { said: ' ' + u.shield + (u.alive ? '.' : ', no longer standing.') }
+    ];
+  }
+
+  function ldBoardSide(state, side, was) {
+    var box = el('div', 'ld-side');
+    box.appendChild(text('p', 'ld-side-name', state.build[side].name));
+    if (!was || !Array.isArray(was.units)) { return box; }
+    was.units.forEach(function (u) {
+      box.appendChild(ldLine('ld-unit', ldUnitParts(state, u)));
+    });
+    return box;
+  }
+
+  /* THE SPLIT GETS THREE NODES AND NOT ONE, and the division is [S02]'s: that
+     section returns three numbers and no prose, and this region owns the
+     sentence. damageSplit's own comment says why the arithmetic hands back
+     three facts rather than a total — "3 damage" and "2 off the shield, 1 off
+     the health" teach different things, and a function returning one number is
+     green over an implementation that put everything through health.
+
+     THE THIRD FACT IS THE OVERKILL PROJECT.md NAMES AS A THING A STUDENT
+     SHOULD BE ABLE TO SEE: what the hit had nothing left to take. IT IS
+     REPORTED AND NOT COMMENTED ON. It is said even when it is nothing, because
+     three facts of a fixed shape are a reading a room learns once, and a fact
+     that appears only sometimes is one a student has to notice the absence of.
+
+     Nothing is said at all when no damage landed — an action that spends no
+     health is not a hit with a split of zeroes, and printing one would be a
+     confident reading of a swing nobody took, which is damageSplit's own
+     objection to clamping. */
+  function ldSplitInto(box, state, entry) {
+    var hit = entry.hit;
+    if (!hit) { return; }
+    var total = hit.shield + hit.health + hit.spare;
+    if (!(total > 0)) { return; }
+    box.appendChild(ldLine('ld-fact', [ldTokenWord(state, 'shield'),
+      { said: ' took ' + hit.shield + ' of the ' + total + '.' }]));
+    box.appendChild(ldLine('ld-fact', [ldTokenWord(state, 'hp'),
+      { said: ' took ' + hit.health + '.' }]));
+    box.appendChild(ldLine('ld-fact', [{ said: (hit.spare === 0)
+      ? 'Nothing was spare.' : 'Spare: ' + hit.spare + '.' }]));
+  }
+
+  /* The two things a board diff CANNOT show, which is advanceRound's own
+     reason for putting them on the record at all. Leaving them undrawn would
+     make them stored values nothing renders, which is the shape plan 05-02
+     deleted `log` to avoid.
+
+     The shortfall line is drawn ONLY when there was one. A pool that met the
+     cost is already said by the board; a line saying so on every action would
+     be four more strings a round for a fact nobody is looking for. The
+     unlanded lines are drawn one per term, because a student's own declared
+     term quietly moving nothing with no record of it is the tool dropping
+     their rule. */
+  function ldOddsInto(box, state, entry) {
+    if (entry.apShort > 0) {
+      box.appendChild(ldLine('ld-fact', [ldTokenWord(state, 'ap'),
+        { said: ': ' + entry.apPaid + ' paid, ' + entry.apShort + ' short.' }]));
+    }
+    if (!Array.isArray(entry.unlanded)) { return; }
+    entry.unlanded.forEach(function (u) {
+      box.appendChild(ldLine('ld-fact', [{ said: 'A term aimed at ' + ldWho(u.who) + ' named ' },
+        ldTokenWord(state, u.tok), { said: ' and moved nothing.' }]));
+    });
+  }
+
+  function ldDidInto(acts, state, record) {
+    var did = Array.isArray(record.did) ? record.did : [];
+    if (did.length === 0) {
+      acts.appendChild(text('p', 'ld-none', 'Nobody declared an action for this round.'));
+      return;
+    }
+    did.forEach(function (entry) {
+      var box = el('div', 'ld-act');
+      box.appendChild(ldLine('ld-act-line', [
+        { said: (entry.by === null ? 'This side' : ldUnitName(state, entry.by)) + ' uses ' },
+        { word: actionNameFor(state, entry.side, entry.act), act: entry.act },
+        { said: ' on ' + (entry.at === null ? 'nobody' : ldUnitName(state, entry.at)) + '.' }
+      ]));
+      ldSplitInto(box, state, entry);
+      ldOddsInto(box, state, entry);
+      acts.appendChild(box);
+    });
+  }
+
+  /* THE ROUND'S BY-HAND RULINGS, READ DEFENSIVELY. plan 05-05 records a ruling
+     as AN EVENT IN THE ROUND rather than as a flag on the number it changed,
+     and `hand` IS PRESENT ONLY WHEN THE ROUND HELD ONE (D-04) — the rule a
+     tally bag with no keys already keeps. hasOwnProperty before reading it;
+     never assume an array. A round nobody ruled in says nothing, which is
+     correct: silence here is the absence of an event, not a surface that
+     failed to draw. */
+  function ldHandInto(acts, state, record) {
+    if (!Object.prototype.hasOwnProperty.call(record, 'hand')) { return; }
+    if (!Array.isArray(record.hand) || record.hand.length === 0) { return; }
+    acts.appendChild(text('p', 'ld-sub', 'Set by hand this round'));
+    record.hand.forEach(function (r) {
+      acts.appendChild(ldLine('ld-fact', [
+        { said: ldUnitName(state, r.unit) + ' — ' },
+        ldTokenWord(state, r.tok),
+        { said: ' set by hand, ' + r.from + ' to ' + r.to + '.' }
+      ]));
+    });
+  }
+
+  /* TIER TWO: the interior, rewritten from the record and the LIVE build.
+     This is [S06.4]'s build-once-write-every-frame division applied to a row:
+     the ROW is the node whose identity is the animation contract, and its
+     interior is text drawn from two sources — an immutable record, and names
+     the student can still change while the fight runs. A token type renamed on
+     round nine has to land on round one's row on the frame it happens, which
+     is fgUnitName's own argument one region up.
+
+     row.replaceChildren() IS SAFE HERE AND IS NOT RULE 3's VIOLATION. Rule 3
+     is about the ROWS: moving a row cancels the row's animation. Nothing
+     inside a row is animated — [C14.2] states that and gives this as the
+     reason — so rebuilding an interior replays nothing at all. */
+  function ldFill(row, state, record) {
+    row.replaceChildren();
+    row.appendChild(text('h3', 'ld-round', 'Round ' + record.round));
+    row.appendChild(text('p', 'ld-note',
+      'The board as it stood when round ' + record.round + ' began.'));
+    var board = el('div', 'ld-board');
+    LD_SIDES.forEach(function (side) {
+      board.appendChild(ldBoardSide(state, side, record.was ? record.was[side] : null));
+    });
+    row.appendChild(board);
+    var acts = el('div', 'ld-acts');
+    ldDidInto(acts, state, record);
+    ldHandInto(acts, state, record);
+    row.appendChild(acts);
+  }
+
+  /* TIER ONE: the rows themselves, GROWN AND SHRUNK BY DELTA ONLY.
+     ---------------------------------------------------------------------
+     THE PAIRING IS POSITION, and syncReference's paragraph is the reason,
+     copied in substance: position IS the pairing, and a stored index would be
+     a second copy of that fact to keep in step. The round number IS stored on
+     each row, and it is NOT an index — it is the record's own field, and it is
+     here to answer one question a position cannot: WHICH end of the list moved.
+
+     THAT QUESTION IS NOT ACADEMIC AND THE PLAIN ANSWER IS WRONG. The obvious
+     cheap exit is "as many rows as records, so there is nothing to do". It is
+     correct for the first thirty rounds and WRONG FOR EVERY ROUND AFTER THAT:
+     at App.data.MAX_PAST_ROUNDS the list stops growing and starts SHIFTING —
+     advanceRound pushes one record and drops the oldest, so past.length stays
+     at thirty while its contents move by one. A row-count exit freezes the
+     ledger on round thirty for the rest of the fight, and nothing would say
+     so. So the front is trimmed against the OLDEST SURVIVING RECORD'S ROUND
+     NUMBER, and only then does position pair the rest.
+
+     AND THE LENGTH GUARD IS WHAT MAKES THAT POSITION SAFE TO TRUST RATHER THAN
+     MERELY LIKELY — syncReference's own sentence. Undo can shorten `past`, so
+     rows past the end are dropped from the BACK. And if after both trims the
+     first row still does not pair with the first record, the two disagree
+     about what the list is, and the only correct repair is to start again:
+     that is a REBUILD, it is the one place in this region where every row's
+     animation replays, and it is taken deliberately in preference to drawing a
+     ledger whose rows are one round out. It is reachable only by undoing an
+     Advance that had already shifted the cap. */
+  function ldGrow(list, past) {
+    var rows = list.children;
+    while (rows.length > 0 && past.length > 0
+      && Number(rows[0].dataset.ldRound) < past[0].round) {
+      list.removeChild(list.firstElementChild);
+    }
+    while (rows.length > past.length) {
+      list.removeChild(list.lastElementChild);
+    }
+    if (rows.length > 0 && Number(rows[0].dataset.ldRound) !== past[0].round) {
+      list.replaceChildren();
+    }
+    // syncRow's own line, and its own reason: a row appended to a list that was
+    // EMPTY is a ledger arriving all at once — a page reloaded onto a fight
+    // already several rounds deep — and nothing about that is an event to
+    // announce. A row appended to a list that already has rows is a round that
+    // just resolved, which is the one moment this animation is for.
+    var animate = rows.length > 0;
+    var added = 0;
+    while (rows.length < past.length) {
+      var row = el('article', 'ld-row' + (animate ? ' ld-row--in' : ''));
+      row.dataset.ldRound = String(past[rows.length].round);
+      list.appendChild(row);
+      added++;
+    }
+    return added;
+  }
+
+  /* ---- FIGHT-15: what changed since the previous round --------------------
+   *
+   * WHERE IT GOES, AND WHY IT IS NOT INSIDE #board. The requirement asks for it
+   * beside the live board's own numbers, so a student reads the effect of their
+   * own declaration where they are already looking. It cannot be inside #board:
+   * structure() rebuilds both column interiors and owns every node in them
+   * ([S06.1]'s), and keyed() takes the first [data-k] match scoped to #board.
+   * The nearest position outside #board is the FOOT of this region, which is
+   * #board's immediate previous sibling in the document — so the reading sits
+   * directly above the live board's top edge and moves with it.
+   *
+   * DERIVED AT RENDER TIME AND NEVER STORED. The comparison is past[last].was
+   * against the live side. Storing it would be a second, MECHANICAL reason for
+   * the board and this reading to disagree, which is the one kind of
+   * disagreement this project is not built around.
+   *
+   * TWO NUMBERS AND NO ADJECTIVE. `Health 3 to 1` is a statement of what the
+   * board holds now against what it held then. A reading that said a unit
+   * "took a beating" is exactly the sentence this file refuses twice already,
+   * and it would be the same sentence with the arithmetic hidden inside it.
+   *
+   * THE FOUR SILENT-FAILURE RULES, CHECKED OFF BY NAME, because this node sits
+   * where the projection's admission line sits and fails the same four ways:
+   * NO data-k, so keyed() cannot take its first match here and no focus restore
+   * can land on it; NO data-amt and NOT a .brd-value, so the per-frame value
+   * pass cannot paint a confident zero over it; NOT .brd-line--opt, whose hide
+   * pass reads a tally and would pin it shut for good; and BUILT ONCE, hidden
+   * AND empty together — there is one decision about emptiness and it is made
+   * here.
+   *
+   * ROUND ONE HAS NOTHING TO SET THE BOARD AGAINST, AND THAT IS A STATE RATHER
+   * THAN AN ERROR. It says so in a sentence. A row of zeroes would be
+   * arithmetic that is technically true and reads as though nothing happened,
+   * which is the opposite of what is true on the first round of a fight.
+   */
+  function ldUnitIn(units, id) {
+    if (!Array.isArray(units)) { return null; }
+    for (var i = 0; i < units.length; i++) {
+      if (units[i].id === id) { return units[i]; }
+    }
+    return null;
+  }
+
+  function ldNowSide(body, state, side, prev) {
+    var was = prev.was ? prev.was[side] : null;
+    var live = state.fight[side];
+    body.appendChild(text('p', 'ld-now-side', state.build[side].name));
+    if (was === null) {
+      body.appendChild(ldLine('ld-now-line', [{ said: 'Round ' + prev.round
+        + ' recorded no board for this side, so there is nothing to set this one against.' }]));
+      return;
+    }
+    var said = 0;
+    if (live.ap !== was.ap) {
+      body.appendChild(ldLine('ld-now-line', [ldTokenWord(state, 'ap'),
+        { said: ' ' + was.ap + ' to ' + live.ap + '.' }]));
+      said++;
+    }
+    live.units.forEach(function (u) {
+      var before = ldUnitIn(was.units, u.id);
+      if (before === null) { return; }
+      if (before.hp !== u.hp) {
+        body.appendChild(ldLine('ld-now-line', [{ said: ldUnitName(state, u.id) + ' — ' },
+          ldTokenWord(state, 'hp'), { said: ' ' + before.hp + ' to ' + u.hp + '.' }]));
+        said++;
+      }
+      if (before.shield !== u.shield) {
+        body.appendChild(ldLine('ld-now-line', [{ said: ldUnitName(state, u.id) + ' — ' },
+          ldTokenWord(state, 'shield'), { said: ' ' + before.shield + ' to ' + u.shield + '.' }]));
+        said++;
+      }
+      if (before.alive !== u.alive) {
+        body.appendChild(ldLine('ld-now-line', [{ said: ldUnitName(state, u.id) + ' — '
+          + (u.alive ? 'standing again.' : 'no longer standing.') }]));
+        said++;
+      }
+    });
+    if (said === 0) {
+      body.appendChild(ldLine('ld-now-line',
+        [{ said: 'Nothing on this side changed in round ' + prev.round + '.' }]));
+    }
+  }
+
+  function ldNow(root, state) {
+    var now = root.querySelector('.ld-now');
+    if (!now) { return; }
+    var body = now.querySelector('.ld-now-body');
+    if (!body) { return; }
+    body.replaceChildren();
+    var past = state.fight.past;
+    if (past.length === 0) {
+      body.appendChild(ldLine('ld-now-line', [{ said: 'Round ' + state.fight.round
+        + ' has not resolved yet. There is no earlier round to set this board against.' }]));
+    } else {
+      var prev = past[past.length - 1];
+      LD_SIDES.forEach(function (side) { ldNowSide(body, state, side, prev); });
+    }
+    now.hidden = false;
+  }
+
+  // BUILT ONCE, and the flag that says so is cleared by the teardown, so the
+  // next fight builds again. The heading is permanent, visible and at [C14]'s
+  // 18px floor — never an icon and never a title= tooltip (UX-02).
+  function ldBuild(root) {
+    if (root.querySelector('.ld-now')) { return; }
+    var now = el('div', 'ld-now');
+    now.appendChild(text('h3', 'ld-now-head', 'What changed since the previous round'));
+    now.appendChild(el('div', 'ld-now-body'));
+    now.hidden = true;
+    root.appendChild(now);
+  }
+
+  /* The teardown, and it EMPTIES rather than merely hides, which is [S06.7]'s
+     ruling and its mechanical half: Layer C's walk reads the text of every leaf
+     under #app WITHOUT asking whether an ancestor is hidden, so a fight's rows
+     left standing under a hidden root after endFight would be harvested onto
+     the SETUP page's scan and counted into a floor whose whole job is to bound
+     the setup page. */
+  function ldRest(root) {
+    var list = document.getElementById('ledger-list');
+    if (list) { list.replaceChildren(); }
+    var now = root.querySelector('.ld-now');
+    if (now) { root.removeChild(now); }
+    root.hidden = true;
+  }
+
+  /* THE THREE REPAINT GATES, AND THEY ARE THREE BECAUSE THEY ANSWER THREE
+     QUESTIONS. [S06.6]'s rule about an attribute answering exactly one question
+     and never two, applied to a fingerprint rather than to a flag:
+
+       data-ld-rows  — WHICH ROWS EXIST. The whole of `past`: a round resolving,
+         an undo, or the cap shifting all change it.
+       data-ld-names — WHETHER A NAME A ROW DRAWS HAS MOVED. The whole build
+         slice, because every row draws token names, action names, unit names
+         and faction names LIVE, and a rename moves what is on screen without
+         moving a single number. That is probe S's recorded finding and it is
+         the reason this is not narrowed: a fingerprint cut back to what LOOKS
+         like the source passes every row that drives an op which moves a
+         number, and ships a stale surface for the one that does not.
+       data-ld-now   — WHAT THE READING IS DRAWN FROM. The last record and both
+         live rosters, so a by-hand ruling — which moves the live board and no
+         past record at all — repaints one sentence instead of touching a row.
+
+     THE SECOND ONE IS WHAT MAKES THE FIRST ONE CHEAP, AND THE MEASUREMENT IS
+     WHY IT EXISTS. A PAST RECORD IS IMMUTABLE ONCE advanceRound HAS PUSHED IT,
+     so a row's interior can go stale for exactly one reason: a name it draws
+     moved. The first draft rewrote every row's interior whenever anything at
+     all moved, and measured 7.46 ms at the thirty-round cap ON EVERY ADVANCE.
+     Split in two, the Advance-shaped repaint measures 0.079 ms and the 8.2 ms
+     is paid only by the thing that actually needs it — a mid-fight rename,
+     which has to land on round one's row on the frame it happens. Two
+     fingerprints, two answers, neither of them guessing.
+
+     JSON.stringify of an ARRAY, never a joined string, for pickerSig's stated
+     reason: a name is text a student types, so any delimiter is a character
+     they can enter, and a joined fingerprint can be made to report that nothing
+     changed for a change. NOTHING EVER READS A VALUE OUT OF ANY OF THE THREE —
+     [S06.2] states that rule and [S06.5], [S06.6] and [S06.7] restate it.
+
+     MEASURED AT THE CAP, in the sandbox, on the shipped board:
+
+       ledger() on a frame where nothing moved      0.0729 ms
+       ledger() on an Advance-shaped repaint        0.079  ms
+       ledger() on a rename-shaped repaint          8.2    ms
+       one Advance and one frame, whole             4.1 / 3.1 / 3.8 ms at
+                                                    0 / 10 / 30 rounds behind
+
+     sync()'s own baseline on this board is 0.17 ms, so the resting cost of this
+     region is under half a sync, and THE COST OF AN ADVANCE DOES NOT GROW WITH
+     THE DEPTH OF THE LEDGER — which is the browser measurement quoted in the
+     banner said again from the other end. The rows fingerprint is the expensive
+     part of the resting figure because `past` is 18 KB at thirty rounds, and it
+     is taken WHOLE anyway: a fraction of a frame is the right price for the one
+     guarantee that stops this surface going stale. */
+  function ldRowsSig(state) {
+    return JSON.stringify(state.fight.past);
+  }
+
+  function ldNamesSig(state) {
+    return JSON.stringify(state.build);
+  }
+
+  function ldNowSig(state) {
+    var past = state.fight.past;
+    return JSON.stringify([past.length === 0 ? null : past[past.length - 1],
+      state.fight.cats, state.fight.mechs, state.build]);
+  }
+
+  /* The one entry point. The null guard is repeated here on purpose, for the
+     reason picker(), editor(), share() and fightBar() each give: a guard on an
+     exported entry point is a boundary and not a duplicate of the one inside
+     the caller. */
+  function ledger(state) {
+    if (typeof document === 'undefined') { return; }
+    if (state.fight === null) { return; }
+    var root = document.getElementById('ledger');
+    if (!root) { return; }
+    var list = document.getElementById('ledger-list');
+    if (!list) { return; }
+
+    if (root.dataset.ldUp !== '1') {
+      ldBuild(root);
+      root.dataset.ldUp = '1';
+      root.dataset.ldRows = '';
+      root.dataset.ldNames = '';
+      root.dataset.ldNow = '';
+    }
+    // THE REGION IS SHOWN FOR A FIGHT AND NOT FOR A PAST ROUND, which is a
+    // decision plan 05-06 left to this plan in substance if not in words. Its
+    // reason for shipping the root hidden was "there are no past rounds on a
+    // board NOBODY HAS FOUGHT ON, and a labelled empty box above the board is a
+    // thing a student has to interpret for nothing". A running fight is a board
+    // somebody is fighting on, and on round one this region is not empty: it
+    // carries the reading below, which says in a sentence that there is no
+    // earlier round yet. That sentence is the answer to the heading, so the
+    // heading is not standing over nothing.
+    root.hidden = false;
+
+    var rowsSig = ldRowsSig(state);
+    var namesSig = ldNamesSig(state);
+    var rowsMoved = (root.dataset.ldRows !== rowsSig);
+    var namesMoved = (root.dataset.ldNames !== namesSig);
+    if (rowsMoved || namesMoved) {
+      var past = state.fight.past;
+      var added = rowsMoved ? ldGrow(list, past) : 0;
+      var rows = list.children;
+      // BY POSITION, WITH THE LENGTH GUARD — syncReference's manner and its
+      // sentence: if the two ever disagree this writes the pairs it can account
+      // for and leaves the rest as built, instead of reading past the end of
+      // the record list and printing the word `undefined` on a projector.
+      var n = Math.min(rows.length, past.length);
+      // AND THE START OF THE WALK IS THE SECOND FINGERPRINT'S ANSWER. A record
+      // already drawn cannot have changed, so when only the row list moved the
+      // walk begins at the first APPENDED row; when a name moved it begins at
+      // the top, because a rename has to land on round one.
+      var from = namesMoved ? 0 : (n - added);
+      if (from < 0) { from = 0; }
+      for (var i = from; i < n; i++) { ldFill(rows[i], state, past[i]); }
+      // SCROLLED TO ITS END ON APPEND, AND IT DOES NOT HAPPEN BY ITSELF.
+      // Measured in a real browser by plan 05-06: once the list is taller than
+      // [C14]'s bound the newest row is BELOW THE FOLD OF ITS OWN SCROLLER, and
+      // scrolled to the end its bottom sits 20px above the live board's top —
+      // which is the whole of what "nearest the board" means. The stub DOM
+      // models no layout and reports no scrollHeight, so this line is a
+      // browser-verified claim and the guard is what keeps it from writing
+      // undefined into a scroll offset in the harness.
+      if (added > 0 && typeof list.scrollHeight === 'number') {
+        list.scrollTop = list.scrollHeight;
+      }
+      root.dataset.ldRows = rowsSig;
+      root.dataset.ldNames = namesSig;
+    }
+
+    var nowSig = ldNowSig(state);
+    if (root.dataset.ldNow !== nowSig) {
+      ldNow(root, state);
+      root.dataset.ldNow = nowSig;
+    }
+  }
+
+  /* The per-frame half, attached to [S06.1]'s seam in syncFight's exact shape.
+     A region that repainted only from its own handlers would keep showing the
+     rounds the board no longer holds after any OTHER commit — an undo, a build
+     edit, an Advance driven from anywhere else.
+
+     THE CHEAP EXIT IS FIRST AND IT IS THE WHOLE COST OF THIS REGION FOR A
+     STUDENT WHO NEVER STARTS A FIGHT: the lookup, the null test, and the flag
+     that says whether there is anything to put back. The teardown below runs on
+     exactly one frame — the one where the fight ended — because that flag is
+     cleared by it. */
+  function syncLedger(state) {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('ledger');
+    if (!root) { return; }
+    if (state.fight === null) {
+      if (root.dataset.ldUp !== '1') { return; }
+      ldRest(root);
+      root.dataset.ldUp = '';
+      root.dataset.ldRows = '';
+      root.dataset.ldNames = '';
+      root.dataset.ldNow = '';
+      return;
+    }
+    ledger(state);
+  }
+
+  SYNC_HOOKS.push(syncLedger);
+  // #endregion [S06.8] RENDER — THE LEDGER
+
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
   // units goes through its commitStructural helper -- and hiding
@@ -12617,6 +13338,16 @@ App.render = (function () {
     // — and on this surface that is a student pressing a unit twice, in front
     // of a room, because the first press appeared to do nothing.
     fightBar: fightBar,
+    // Exported to the same standard the four above are, and the honest note is
+    // that it has NO handler caller today and is not expected to grow one: a
+    // ledger row is a reading and not a control, so nothing presses into this
+    // region and nothing moves an attribute it would have to be repainted onto.
+    // It is exported because a surface that can only be reached by waiting for
+    // the next frame cannot be DRIVEN — plan 05-10's parallel to check 63b has
+    // to paint this region onto a state it just wrote and then read the rows
+    // back — and because an entry point reachable only through SYNC_HOOKS is an
+    // entry point no reader can find from the outside.
+    ledger: ledger,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the
