@@ -2152,6 +2152,7 @@
  *     [S06.4] the reference band below both columns                        (plan 03-05)
  *     [S06.5] the action editor — the authoring dialog's repaint            (plan 03.1-05)
  *     [S06.6] the share surface — the build code, kept from going stale     (plan 04-05)
+ *     [S06.7] the fight bar — the round, both pools, the declarations   (plan 05-07)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
@@ -11323,6 +11324,627 @@ App.render = (function () {
   SYNC_HOOKS.push(syncShare);
   // #endregion [S06.6] RENDER — SHARE SURFACE
 
+  /* ===================== [S06.7] RENDER — THE FIGHT BAR =================
+   * The round, both pools, both survivor readings and what each side has
+   * declared so far (FIGHT-03, FIGHT-09, FIGHT-12), appended as its own
+   * sub-region for the mechanical reason [S06.2], [S06.3], [S06.5] and [S06.6]
+   * all state: it reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure
+   * variable of this IIFE, and it paints a different page region on a different
+   * trigger. IT CHANGES NOTHING IN [S06.1] THROUGH [S06.6].
+   *
+   * IT IS [S06.5]'s PROPOSAL PANE ONE REQUIREMENT LATER, and it differs in
+   * exactly two ways that both matter. The first is that a declaration IS
+   * state: FIGHT-12's "before anything resolves" means an intent has to exist,
+   * be undoable and survive a repaint, so it lives in state.fight.decl and this
+   * region READS it rather than holding it on a node. [S05]'s own paragraph
+   * beside declareAction makes that argument in full and says why the proposal
+   * pane's opposite answer is right about a proposal and does not transfer. The
+   * second is that this surface is ON THE PAGE rather than in a <dialog>, so it
+   * has no `open` to test and its cheap exit is a test on the slice instead.
+   *
+   * THE CHEAP EXIT IS THE WHOLE COST OF THIS PHASE FOR A STUDENT WHO NEVER
+   * STARTS A FIGHT — [S06.6]'s closing sentence about its own hook, adapted.
+   * `if (state.fight === null)` is the first thing the hook asks, and at rest
+   * the cost of this region is one getElementById, one null test and one string
+   * compare. No fingerprint is taken and no slice is stringified, because the
+   * fingerprint is something the RUNNING arm pays for.
+   *
+   * WHAT THE PAGE SHOWS IN THAT STATE, written here because the exit above is
+   * what decides it: #fightbar holds its heading and ONE PROMPT and nothing
+   * else. There is no empty labelled box above the board of a student who never
+   * fights — the same ruling plan 05-06 took for the ledger, for the same
+   * reason it gave: a legend with nothing under it is a thing a student has to
+   * interpret for nothing.
+   *
+   * AND THE RESTING STATE IS EMPTIED, NOT MERELY HIDDEN. That is
+   * [S06.5]'s emptyProposal rule — "hidden" and "empty" say the same thing
+   * about a surface, so no later check has to work out which of the two it
+   * means — and here it has a second, mechanical half worth writing down. Layer
+   * C's walk reads the text of every leaf under #app WITHOUT asking whether an
+   * ancestor is hidden, so a fight's sentences left standing under a hidden
+   * root after endFight would be harvested onto the SETUP page's scan and
+   * counted into a floor whose whole job is to bound the setup page. The
+   * teardown costs one rebuild on the next start, which is the one frame a
+   * rebuild is free on: the fight has just begun, nothing on this surface holds
+   * a caret, and startFight is structural so the board has just been rebuilt
+   * anyway.
+   *
+   * BUILD ONCE, WRITE EVERY FRAME — [S06.3]'s division, which [S06.6] keeps
+   * too. The shape of each side is built the first frame a fight runs and
+   * flagged on the root; every frame after that writes values into nodes that
+   * already exist. The declaration lines are the deliberate exception and they
+   * are rebuilt, which is fillPicks' shipped answer and for its reason: not one
+   * node in them holds text of the student's own making that a rebuild could
+   * throw away, and the focus contract puts the keyboard back on the node's
+   * data-k.
+   *
+   * NOTHING DERIVED IS STORED. Points spent, points left, units still standing,
+   * what a declaration names — every one of them is computed here, at render
+   * time, from App.model and the live slices. [S06.6]'s paragraph applies
+   * verbatim and with extra force: a stored figure would be a second,
+   * MECHANICAL reason for this surface and the board to disagree, on top of the
+   * pedagogical disagreement this whole project is built around.
+   *
+   * IT DISABLES NOTHING A STUDENT DID. [S06.5]'s banner is the rule and D-23 is
+   * that rule applied to a declaration: a cost that exceeds the pool is
+   * REPORTED, NEVER PREVENTED. [S05]'s declareAction already refuses to hold
+   * that guard and says so in writing, and a surface holding it instead would
+   * put the refusal one layer up where no gate is watching. THE ONE DISABLE
+   * THIS REGION WRITES is #fight-start while a fight is running, and it is the
+   * sanctioned kind: startFight throws on a fight that is already going, so the
+   * button is bounded by what the TOOL can do to itself and never by what the
+   * STUDENT may do — setShareEnabled and the picker's Remove are the two
+   * shipped examples of exactly that. It is also the only control this region
+   * touches that is NOT inside #fightbar, which is why a whole-set comparison
+   * over this region reads it separately rather than being surprised by it.
+   *
+   * NOTHING HERE RULES ON A BUILD, and the word for the thing this region may
+   * not produce is itself refused document-wide by the dev gate — so it is
+   * described here rather than spelled, which is the rule [C11] and refCard
+   * both keep and which [C14]'s banner has already had to keep once. No figure
+   * compares the two sides to each other
+   * or to a threshold (D-13, PROJ-06), no figure is the loudest thing on the
+   * page, and the region does not know what a relationship between two actions
+   * is — it never reads App.data.REFERENCE.beats. Every word below was screened
+   * against all three of the gate's word lists before it was written, and the
+   * words that CLEAR the gate and still do not ship — the ones that describe
+   * how a fight is GOING rather than what is on the board — are named in plan
+   * 05-07 and are not here. The gate is a floor and this paragraph is the rest.
+   *
+   * deps: App.model, App.data, [S06.1]'s helpers
+   * owner: plan 05-07
+   * ===================================================================== */
+  // #region [S06.7] RENDER — THE FIGHT BAR
+
+  // The two sides again, and a THIRD spelling of the same two ids rather than a
+  // reuse of [S06.5]'s SIDE_IDS — for a mechanical reason on top of the one
+  // SIDE_IDS' own comment gives about a fourth literal pair. Every sub-region
+  // in [S06] shares ONE function scope, so a second `var SIDE_IDS` here would
+  // be a redeclaration of that binding rather than a restatement of the
+  // decision: the two names would be one variable, and a later plan narrowing
+  // either one would move the other without touching it.
+  var FIGHT_SIDES = ['cats', 'mechs'];
+
+  // The nodes plan 05-06 reserved, mapped once. Read in one place each, so an
+  // id renamed in the shell fails the stub-drift gate in both directions rather
+  // than silently painting nothing into a node that is no longer there.
+  var FIGHT_POOL_IDS = { cats: 'pool-cats', mechs: 'pool-mechs' };
+  var FIGHT_DECL_IDS = { cats: 'decl-cats', mechs: 'decl-mechs' };
+
+  /* A line the page ASSEMBLES out of its own words and the student's, one node
+     per fragment. It is sayInto's idiom RESTATED rather than borrowed, for the
+     reason [S06.6] restates setShareEnabled and [C13] restates its own spacer
+     class: a sub-region reaching into another sub-region's private helper is
+     the first step of the two of them becoming one. The class prefix differs
+     because [C14]'s banner says one prefix per surface; the RULE does not
+     differ at all.
+
+     THE SPLIT IS A GATE CONCERN AND NOT A STYLING ONE, and sayInto's own
+     paragraph states the failure in full. The rendered-page walk reads the text
+     of every leaf under #app and skips any node carrying an exemption key. A
+     line built as ONE string would have to be either wholly read — which
+     reddens CI the day a student names an action after a comparative word, the
+     gate then asserting the opposite of what ACT-01 promises — or wholly
+     exempt, which would take every word the ARTIFACT chose out of the only
+     layer that can see copy assembled at render time. Layers A and B read the
+     source, so a whole-string literal is already covered; not one of the
+     sentences this region produces exists as a literal anywhere, so this layer
+     is the only one that can ever read them.
+
+     THE THREE PER-FRAME EXEMPTION PASSES IN sync() ARE SCOPED TO #board AND
+     DO NOT REACH THIS REGION, which is why the marker here is a marker and
+     never a request to be written. This region writes its own text and marks
+     the node so the walk skips it — exactly what sayInto does inside a dialog,
+     which those passes do not reach either.
+
+     The two node classes look identical on screen on purpose. A student reading
+     one of these lines must not be able to tell which words came from where. */
+  function fgSay(box, parts) {
+    parts.forEach(function (part) {
+      if (part.said !== undefined) {
+        box.appendChild(text('span', 'fg-say', part.said));
+        return;
+      }
+      var node = text('span', 'fg-word', part.word);
+      setData(node, (part.tok !== undefined) ? { lbl: part.tok } : { anm: part.act });
+      box.appendChild(node);
+    });
+  }
+
+  function fgSayOver(node, parts) {
+    if (!node) { return; }
+    node.replaceChildren();
+    fgSay(node, parts);
+  }
+
+  // A missing list is an empty list, everywhere — [S06.5]'s termList rule and
+  // [S05]'s, for the measured reason about what the state's own clone does to
+  // an absent field.
+  function fgTerms(record, field) {
+    var list = record[field];
+    return Array.isArray(list) ? list : [];
+  }
+
+  // The action a declaration names, off the LIVE build list, by an id-equality
+  // scan and never a keyed lookup — the rule styleFor, labelFor and
+  // actionNameFor each state at length: from Phase 4 an id can arrive from a
+  // pasted build code, and a bare lookup for a prototype key resolves on the
+  // prototype and hands the page a function where a record belongs.
+  function fgAction(state, side, actionId) {
+    var list = state.build[side].actions;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === actionId) { return list[i]; }
+    }
+    return null;
+  }
+
+  /* The unit a declaration names, looked up across BOTH rosters because `at`
+     may name either side's — 03.1-07's ruling, carried in declareAction's own
+     comment.
+
+     IT READS THE BUILD ROSTER AND NOT THE FIGHT ONE, and that is a fact about
+     the two shapes rather than a preference. sideFromBuild carries a unit's id,
+     its health, its shield and its flag into the fight slice and NOT its name,
+     so the fight roster has no name to read. A name is therefore one more thing
+     this surface computes at render time from the build, which is what makes a
+     unit rename — the day an op for one exists — land on the frame it happens.
+
+     A dangling id is NAMED rather than printed as a blank or as somebody else's
+     unit, which is actionNameFor's fall-through rule and its reason: printing
+     the id names the data defect on the page instead of quietly printing the
+     wrong name. */
+  function fgUnitName(state, unitId) {
+    for (var i = 0; i < FIGHT_SIDES.length; i++) {
+      var units = state.build[FIGHT_SIDES[i]].units;
+      for (var j = 0; j < units.length; j++) {
+        if (units[j].id === unitId) { return units[j].name; }
+      }
+    }
+    return String(unitId);
+  }
+
+  /* A CONTROL DISABLED WHILE IT HOLDS FOCUS DROPS THE KEYBOARD ONTO <body>, and
+     #fight-start is the one press in this file that does it: a student presses
+     Start, this region's very next frame disables the button under their
+     finger, and a keyboard user is left at the top of the document with nothing
+     but Tab to get back.
+
+     [S06.1]'s collapsing-optional-line paragraph records the same trap from the
+     other end, and its answer was to KEEP the control on screen while the
+     student is standing on it. That answer is not available here, because the
+     entire reason for the disable is that this button must not be pressed a
+     second time. So the keyboard is handed FORWARD instead — to the first
+     control of the surface the press just opened, which is where the student
+     was going anyway.
+
+     It is called after the surface has been drawn rather than beside the
+     disable, because the control it hands to has to be this frame's and not the
+     last frame's. It hands off to nothing at all on the one frame where there
+     is nothing to hand to, which today is the first frame of a fight before any
+     round control exists; plan 05-07's second task puts Advance in this region
+     and closes that case for good. */
+  function fgHandOff(root) {
+    var next = root.querySelector('[data-k]');
+    if (next && typeof next.focus === 'function') {
+      next.focus({ preventScroll: true });
+    }
+  }
+
+  /* ACT-07's refusal, applied to a DECLARATION rather than to a proposal, and
+     it is missingTerm's shape restated for the reason fgSay restates sayInto.
+     Asked BEFORE the line is drawn: an action naming a token type this board no
+     longer holds does not MEAN what it says any more, so the honest answer is
+     to refuse it by name rather than to draw a sentence with a hole in it or to
+     skip the term silently.
+
+     THE MESSAGE NAMES THE TOKEN'S ID AND NOT ITS NAME, and the reason is
+     mechanical rather than stylistic. fillProposal's comment one region up
+     records it: the type's record has gone, so labelFor falls back to the
+     shipped health label for an id it cannot find, and asking it here would
+     print a name that is actively wrong and send the student looking for the
+     wrong type.
+
+     ONE REFUSAL NAMES ONE TERM — the FIRST found — for missingTerm's reason: a
+     student who has to fix two still fixes them one at a time, and a list of
+     them is a longer sentence saying the same thing. */
+  function fgGoneTerm(state, action) {
+    var vocab = state.build.tokens;
+    var gone = null;
+    ['cost', 'req', 'xf'].forEach(function (field) {
+      fgTerms(action, field).forEach(function (term) {
+        if (gone !== null) { return; }
+        var tok = (term && typeof term.tok === 'string') ? term.tok : null;
+        if (tok !== null && vocab
+          && Object.prototype.hasOwnProperty.call(vocab, tok)) { return; }
+        gone = (tok === null) ? '' : tok;
+      });
+    });
+    return gone;
+  }
+
+  /* "Cat 1 uses Slash on Mech 2." — the record said back, one node per
+     fragment.
+
+     A UNIT'S NAME TRAVELS AS ONE OF THE ARTIFACT'S OWN FRAGMENTS AND CARRIES NO
+     EXEMPTION MARKER, which is unitPick's decision and its stated reason:
+     makeUnits builds these names and no op in this file renames one, so the day
+     a unit-rename op exists is the day this node and the faction head on the
+     board both need the marker, not one of them. An ACTION's name is a word a
+     student typed, so it takes the marker.
+
+     NOBODY IS A VALUE HERE AND NOT A HOLE. declareAction stores null in either
+     position deliberately — "Hairball, no target" has to be recordable, and its
+     comment says so — so an absence is said in words rather than left as a gap
+     in the sentence a room is reading. */
+  function fgDeclParts(state, side, entry) {
+    var live = fgAction(state, side, entry.act);
+    var name = actionNameFor(state, side, entry.act);
+
+    if (live === null) {
+      return [
+        { said: 'Cannot fire ' },
+        { word: name, act: entry.act },
+        { said: '. This side no longer carries that action. Nothing has changed.' }
+      ];
+    }
+
+    var gone = fgGoneTerm(state, live);
+    if (gone !== null) {
+      return [
+        { said: 'Cannot fire ' },
+        { word: name, act: entry.act },
+        { said: '. It names ' + gone + ', which is no longer a token type on '
+          + 'this board. Nothing has changed.' }
+      ];
+    }
+
+    return [
+      { said: (entry.by === null ? 'This side' : fgUnitName(state, entry.by)) + ' uses ' },
+      { word: name, act: entry.act },
+      { said: ' on ' + (entry.at === null ? 'nobody' : fgUnitName(state, entry.at)) + '.' }
+    ];
+  }
+
+  /* FIGHT-09's PAIR OF READINGS, AND THEY ARE TWO RATHER THAN ONE ON PURPOSE.
+     "1 of 3 spent" and "2 left to spend" are the same board said twice, and
+     saying it twice is what [C07]'s standing rule asks for a fourth time: the
+     difference between spent and available is carried by the WORDS and by the
+     class, never by colour alone. A single "1/3" would be one reading a room
+     has to do arithmetic on, from the back, off a projector.
+
+     apSpent IS FLOORED IN THE DERIVATION AND IS NOT REPAIRED HERE. Its own
+     comment says why: nothing stops a student lowering the build pool while a
+     fight is running, and the raw subtraction then reads a negative on a
+     projector. A caller repairing it would be a second definition of the same
+     fact, in the tier that is least able to hold one.
+
+     AND THE SECOND READING CARRIES NO DENOMINATOR, which is that same hazard
+     answered rather than ignored. `build.ap` and `fight.ap` are independent
+     slices by design; after a mid-fight build edit the pool can sit BELOW what
+     the fight still holds, and "3 of 1 left to spend" is an arithmetically
+     impossible sentence that would read as a defect in the tool. The spent
+     reading keeps the denominator because that is the pair apSpent's derivation
+     is actually made of. The remainder is a fact about the fight slice alone
+     and is said as one. What that edit MEANS is FIGHT-10's line and plan
+     05-09's node, not this reading's business.
+
+     The pool's label is read live through labelFor, so a student who renamed
+     Action points reads their own word here on the next frame — and it carries
+     the token-name exemption marker for the reason every other rendered token
+     name does. This node is on #topbar, which sync()'s [data-lbl] pass does NOT
+     walk (that pass is scoped to #board), so this region writes the word
+     itself and the marker is only ever a marker. */
+  function fgFillPool(state, side) {
+    var node = document.getElementById(FIGHT_POOL_IDS[side]);
+    if (!node) { return; }
+    var build = state.build[side];
+    var live = state.fight[side];
+    var who = node.querySelector('.fg-pool-who');
+    var lbl = node.querySelector('.fg-pool-lbl');
+    var spent = node.querySelector('.fg-pool-spent');
+    var left = node.querySelector('.fg-pool-left');
+    if (who) { who.textContent = build.name; }
+    if (lbl) { lbl.textContent = labelFor(state, 'ap'); }
+    if (spent) {
+      spent.textContent = App.model.apSpent(build, live) + ' of ' + build.ap + ' spent';
+    }
+    if (left) { left.textContent = live.ap + ' left to spend'; }
+  }
+
+  // ALIVE IS READ, NEVER INFERRED. aliveCount reads the stored flag, which is
+  // the rule the whole phase turns on and which setUnitHp's comment, the
+  // derivation's own comment and D-00d all state: a unit at zero health that a
+  // student ruled survived on a Shield has to stay representable, so nothing
+  // anywhere derives death from a number.
+  function fgFillStanding(root, state, side) {
+    var node = root.querySelector('.fg-standing');
+    if (!node) { return; }
+    var live = state.fight[side];
+    node.textContent = App.model.aliveCount(live) + ' of ' + live.units.length
+      + ' still standing';
+  }
+
+  /* One line per declaration THIS side made, in the order they were made, each
+     assembled one node per fragment.
+
+     THE INDEX PASSED TO THE CLEAR CONTROL IS THE INDEX IN state.fight.decl AND
+     NEVER THE POSITION IN THIS LIST, and the distinction is the whole reason
+     this loop walks the shared list rather than a filtered copy of it.
+     clearDeclaration takes an index into the one list both sides share and
+     deliberately does not clamp it — its comment says why: a clamped index
+     removes a declaration the student did not name. A per-side position handed
+     to it would remove the Cats' first declaration when the Mechs' first was
+     the one pressed.
+
+     A SIDE WITH NOTHING DECLARED SAYS SO. Silence would read as a surface that
+     failed to draw rather than as a round nobody has spoken for yet, which is
+     fillSays' ruling about a rule with nothing in it, taken again. */
+  function fgFillDecls(root, state, side) {
+    var box = root.querySelector('.fg-decls');
+    if (!box) { return; }
+    box.replaceChildren();
+    var said = 0;
+    state.fight.decl.forEach(function (entry, index) {
+      if (entry.side !== side) { return; }
+      said++;
+      var row = el('div', 'fg-decl');
+      var line = el('p', 'fg-decl-line');
+      fgSay(line, fgDeclParts(state, side, entry));
+      row.appendChild(line);
+
+      // A control, and therefore a .fg- class and a PRIVATE data-fg — never a
+      // data-act. data-act is for the topbar's openers and for the board's own
+      // controls, and check 90b reads that partition off the page; a control in
+      // here wearing one would be dispatched by [S07.1]'s delegated listener,
+      // which is the elevation this region's threat register names first.
+      // Plan 05-10 attaches the listener that reads data-fg; nothing presses
+      // this today.
+      var clear = text('button', 'brd-btn fg-btn fg-clear', 'Clear');
+      clear.type = 'button';
+      setData(clear, {
+        fg: 'clear',
+        fgIndex: String(index),
+        k: 'fg/clear/' + index
+      });
+      row.appendChild(clear);
+      box.appendChild(row);
+    });
+    if (said === 0) {
+      box.appendChild(text('p', 'fg-decl-none',
+        'Nobody declared for the ' + state.build[side].name + ' this round.'));
+    }
+  }
+
+  /* The shape of one side, built once. Every node below is empty here and
+     written by the passes above, which is [S06.3]'s build-once / write-every-
+     frame division and the reason a token animation does not replay and a caret
+     is not thrown away.
+
+     UX-02's 18px LEGEND FLOOR binds every heading in here, [C14]'s banner says
+     so for the fourth time in this file, and [C14.1] carries the rule. */
+  function fgBuildSide(root, state, side) {
+    root.replaceChildren();
+    root.appendChild(text('h3', 'fg-side-head', state.build[side].name));
+    root.appendChild(text('p', 'fg-standing', ''));
+
+    var declGroup = el('div', 'fg-group');
+    declGroup.appendChild(text('h4', 'fg-legend', 'Declared so far'));
+    declGroup.appendChild(el('div', 'fg-decls'));
+    root.appendChild(declGroup);
+  }
+
+  /* The three value nodes plan 05-06 reserved on the bar, given the four spans
+     each reading is made of. They are built here rather than in the shell for
+     the reason that comment gives about itself: the per-side words arrive with
+     the figures they qualify, because a faction's name beside a number is part
+     of a reading rather than a control legend the shell owes. */
+  function fgBuildBar(root, state) {
+    FIGHT_SIDES.forEach(function (side) {
+      var pool = document.getElementById(FIGHT_POOL_IDS[side]);
+      if (pool) {
+        pool.replaceChildren();
+        pool.appendChild(text('span', 'fg-pool-who', ''));
+        var lbl = text('span', 'fg-pool-lbl', '');
+        setData(lbl, { lbl: 'ap' });
+        pool.appendChild(lbl);
+        pool.appendChild(text('span', 'fg-pool-spent', ''));
+        pool.appendChild(text('span', 'fg-pool-left', ''));
+      }
+      var node = document.getElementById(FIGHT_DECL_IDS[side]);
+      if (node) { fgBuildSide(node, state, side); }
+    });
+  }
+
+  /* The teardown, and the banner above says why it empties rather than merely
+     hides. Everything this region ever wrote is put back to the state the shell
+     ships in, so a page with no fight running is byte-for-byte the page a
+     student who never started one has been looking at all along. */
+  function fgRest(root) {
+    var prompt = document.getElementById('fight-prompt');
+    if (prompt) { prompt.hidden = false; }
+    var round = document.getElementById('round-count');
+    if (round) { round.textContent = ''; }
+    var start = document.getElementById('fight-start');
+    if (start) { start.disabled = false; }
+    FIGHT_SIDES.forEach(function (side) {
+      var pool = document.getElementById(FIGHT_POOL_IDS[side]);
+      if (pool) { pool.replaceChildren(); }
+      var node = document.getElementById(FIGHT_DECL_IDS[side]);
+      if (node) { node.replaceChildren(); node.hidden = true; }
+    });
+  }
+
+  /* THE REPAINT GATE, and it fingerprints the whole of both slices.
+
+     JSON.stringify of an ARRAY, never a joined string, for the reason pickerSig
+     states at length and shareSig restates: a name is text a student types, so
+     any delimiter is a character they can enter, and a joined fingerprint can
+     be made to report "nothing changed" for a change. Every value goes into a
+     slot of its own and JSON.stringify escapes it there.
+
+     THE WHOLE FIGHT SLICE AND THE WHOLE BUILD SLICE, and neither is narrowed.
+     Measured on the same board and in the same session shareSig's figures were
+     taken on, JSON.stringify of the build slice is 0.030 ms against encode's
+     0.483 ms, and the fight slice is the same order as the first — so the
+     running cost of taking both whole is a fraction of a frame, and it is only
+     ever paid while a fight is on. The build slice is in it because this region
+     reads the build pool, the faction names, the action list and the token
+     vocabulary; the fight slice is in it because this region reads the round,
+     both pools, both rosters and every declaration.
+
+     AND IT IS WIDE BEFORE THE CODE THAT DRAWS THE THING, which is 03.1-05's
+     recorded lesson and the pre-02.1-04 defect it names: a surface whose
+     fingerprint is widened in the same change as the thing it draws is a
+     surface that was born stale in every release before that change. The third
+     slot below is the CHOOSER BOOKKEEPING plan 05-07's second task writes, read
+     off the page rather than out of a slice, because a form's transient
+     selection is not state (the shell comment on #act-edit-propose makes that
+     argument in full). It is in this fingerprint now, before one chooser
+     exists, for exactly that reason.
+
+     AND PROBE S'S FINDING IS CARRIED FORWARD AS A REQUIREMENT ON PLAN 05-10,
+     written here so that plan inherits it rather than rediscovering it. A
+     fingerprint narrowed to unit health passed every share row in plan 04-05
+     except the one whose driving op CHANGES WHAT IS DRAWN WITHOUT MOVING A
+     STEPPER. The rows that drive this region must include one of that character
+     — renaming an action, or clearing a declaration — or a narrowed fingerprint
+     would pass every one of them. */
+  function fgSig(state) {
+    return JSON.stringify([state.fight, state.build,
+      FIGHT_SIDES.map(function (side) {
+        var node = document.getElementById(FIGHT_DECL_IDS[side]);
+        if (!node) { return ['', '', '']; }
+        return [String(node.dataset.fgAct || ''), String(node.dataset.fgBy || ''),
+          String(node.dataset.fgAt || '')];
+      })]);
+  }
+
+  /* The one entry point, and it takes no second argument for share()'s reason:
+     everything transient this surface holds lives on the two declaration roots'
+     own datasets rather than in the `ui` slice, whose exact key set [S09.3]
+     asserts.
+
+     THE NULL GUARD IS REPEATED HERE ON PURPOSE. The hook below owns the resting
+     arm, and this function is exported — so it is reachable from a handler that
+     moved a chooser attribute and wants the surface painted onto it before the
+     next frame, which is exactly why picker(), editor() and share() are each
+     exported. A guard on an exported entry point is a boundary and not a
+     duplicate of the one inside the caller. */
+  function fightBar(state) {
+    if (typeof document === 'undefined') { return; }
+    if (state.fight === null) { return; }
+    var root = document.getElementById('fightbar');
+    if (!root) { return; }
+
+    if (root.dataset.fgUp !== '1') {
+      fgBuildBar(root, state);
+      root.dataset.fgUp = '1';
+      root.dataset.fgSig = '';
+    }
+
+    var sig = fgSig(state);
+    if (root.dataset.fgSig === sig) { return; }
+
+    /* withPreservedFocus, scoped to THIS region and never to #board. The
+       declaration lines are rebuilt on every repaint, so the node the keyboard
+       is on can be destroyed under it — which is the one situation that
+       contract exists for. Scoping it here is also what keeps this region out
+       of #board's: structure() calls withPreservedFocus(board, ...) and keyed()
+       takes the FIRST [data-k] match inside it, and #fightbar is not inside
+       #board at all, so no key this region writes can ever be that match. Plan
+       05-06 measured the same property for the ledger and wrote it down. */
+    withPreservedFocus(root, function () {
+      var prompt = document.getElementById('fight-prompt');
+      if (prompt) { prompt.hidden = true; }
+
+      var round = document.getElementById('round-count');
+      if (round) { round.textContent = String(state.fight.round); }
+
+      // THE ONE DISABLE, and the banner says which kind it is: startFight
+      // throws on a fight that is already running, so this is the tool bounding
+      // what it can do to itself. Re-decided from state on every repaint rather
+      // than toggled by whoever last pressed something — setEditorEnabled's
+      // rule and its reason: re-deciding is what makes an undo move it too.
+      var start = document.getElementById('fight-start');
+      var held = false;
+      if (start) {
+        held = (start === document.activeElement);
+        start.disabled = true;
+      }
+
+      FIGHT_SIDES.forEach(function (side) {
+        fgFillPool(state, side);
+        var node = document.getElementById(FIGHT_DECL_IDS[side]);
+        if (!node) { return; }
+        node.hidden = false;
+        fgFillStanding(node, state, side);
+        fgFillDecls(node, state, side);
+      });
+
+      if (held) { fgHandOff(root); }
+    });
+
+    // TWO attributes, each answering exactly one question and neither answering
+    // two, in [S06.6]'s words:
+    //   data-fg-up  is WHETHER this region's shape has been built. It is what
+    //               makes the build-once half of the division real, and it is
+    //               cleared by the teardown so the next start builds again.
+    //   data-fg-sig is WHETHER anything drawn here has moved since the last
+    //               frame, and NOTHING EVER READS A VALUE OUT OF IT. [S06.2]
+    //               states that rule, [S06.5] and [S06.6] restate it, and it is
+    //               restated again because a signature parsed for its parts is
+    //               a selector-bound value recovered out of text a student can
+    //               type.
+    root.dataset.fgSig = sig;
+  }
+
+  /* The per-frame half, attached to [S06.1]'s seam in syncShare's exact shape.
+     A surface that repainted only from its own handlers would keep showing the
+     round, the pools and the declarations the board no longer holds after any
+     OTHER commit — an undo, a build edit, an Advance driven from anywhere else.
+
+     THE CHEAP EXIT IS FIRST AND IT IS THE WHOLE COST OF THIS PHASE FOR A
+     STUDENT WHO NEVER STARTS A FIGHT. Three comparisons and no allocation: the
+     lookup, the null test, and the flag that says whether there is anything to
+     put back. The teardown below it runs on exactly one frame — the one where
+     the fight ended — because that flag is cleared by it. */
+  function syncFight(state) {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('fightbar');
+    if (!root) { return; }
+    if (state.fight === null) {
+      if (root.dataset.fgUp !== '1') { return; }
+      fgRest(root);
+      root.dataset.fgUp = '';
+      root.dataset.fgSig = '';
+      return;
+    }
+    fightBar(state);
+  }
+
+  SYNC_HOOKS.push(syncFight);
+  // #endregion [S06.7] RENDER — THE FIGHT BAR
+
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
   // units goes through its commitStructural helper -- and hiding
@@ -11345,6 +11967,14 @@ App.render = (function () {
     // and on the copy pane, one frame of the wrong code is one frame in which
     // Ctrl+C takes the wrong code.
     share: share,
+    // Exported for exactly the reason picker(), editor() and share() are, and
+    // to exactly one caller: [S07.5]'s handlers, in plan 05-10, which move a
+    // chooser attribute on a declaration root and then ask for the surface to
+    // be painted onto it. A press that changed the attribute and waited for the
+    // next frame would leave the pressed chooser looking unpressed for a frame
+    // — and on this surface that is a student pressing a unit twice, in front
+    // of a room, because the first press appeared to do nothing.
+    fightBar: fightBar,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the

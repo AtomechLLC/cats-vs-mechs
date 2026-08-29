@@ -5441,8 +5441,43 @@ A.state.flush();
    surface arrives is a floor that has quietly stopped bounding anything, which
    is the same silent shrink DIALOG_FLOOR's history note exists to prevent — and
    it is a likelier failure here than anywhere else in this file, because this
-   floor was written before the thing it bounds. */
-const FIGHT_FLOOR = 41;
+   floor was written before the thing it bounds.
+
+   HISTORY — 41 -> 56, PLAN 05-07, THE FIRST OF THE THREE TO PAY IT.
+   [S06.7] arrived and put the round, both pools, both survivor readings and a
+   declaration list on the fight page. The move was measured on ONE artifact
+   before and after the change, on two roster sizes, rather than reasoned about:
+
+       board                       before [S06.7]   after   delta
+       the suite's board here             101        116     +15
+       a reset-to-defaults 9-and-3         97        112     +15
+       one unit a side                     47         62     +15
+
+   THE DELTA IS THE SAME ON EVERY BOARD, WHICH IS WHAT MAKES IT THE
+   ROSTER-INDEPENDENT PART, and it is fifteen strings that can be named one at a
+   time: the round number (1); each side's faction word, its spent reading and
+   its remainder reading on the bar (3 x 2 = 6); and inside each declaration
+   root the faction word, the survivor reading, the list's legend and the line a
+   side with nothing declared says (4 x 2 = 8). The pool's own LABEL is a
+   sixteenth string and is deliberately not counted: it carries the token-name
+   exemption marker, so the walk skips it — which is the marker doing exactly
+   its job, on a word a student can rename.
+
+   41 + 15 = 56, and 56 is what 116 - 12x5 comes to on the board this row
+   actually harvests. The two readings agree, which is the check on the
+   arithmetic rather than a coincidence worth noting.
+
+   ONE FIGURE IN THE PARAGRAPH ABOVE IS BOARD-SPECIFIC AND IS WORTH SAYING SO,
+   because the next plan to re-measure will hit it: the roster-independent part
+   is 41 on the board THIS ROW harvests and 37 on a reset-to-defaults board.
+   Four strings of difference, and they are earlier checks' content rather than
+   a defect in the 5-per-card model — which reproduces both boards exactly. Take
+   the reading off THIS row's board, which is the one the floor is compared
+   against.
+
+   STILL OWING: plans 05-08 (the ledger) and 05-09 (the board in fight mode).
+   Both add rendered fight copy and both owe this number the same re-measure. */
+const FIGHT_FLOOR = 56;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
