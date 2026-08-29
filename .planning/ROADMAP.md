@@ -321,16 +321,24 @@ parallel if desired.
 
 ## Coverage
 
-All 40 v1 requirements are mapped to exactly one phase. See REQUIREMENTS.md Traceability.
+All 56 v1 requirements are mapped to exactly one phase. See REQUIREMENTS.md Traceability.
 
 | Phase | Requirements | Count |
 |-------|--------------|-------|
 | 1 | ALLOC-08, UX-01, UX-03, UX-04 | 4 |
 | 2 | ALLOC-01…07, ALLOC-09, UX-02, UX-05 | 10 |
+| 2.1 | ALLOC-10, ALLOC-11 | 2 |
 | 3 | PROJ-01, PROJ-02, PROJ-03, PROJ-04, PROJ-06, REF-01, REF-02 | 7 |
-| 4 | SHARE-01…06 | 6 |
-| 5 | FIGHT-01…11, PROJ-05, REF-03, SHARE-07 | 14 |
-| | **Total** | **40** |
+| 3.1 | ACT-01…ACT-07 | 7 |
+| 4 | SHARE-01…06, SHARE-08 | 7 |
+| 5 | FIGHT-01…16, PROJ-05, REF-03, SHARE-07 | 19 |
+| | **Total** | **56** |
+
+> **Corrected 2026-08-29.** This table had drifted badly against REQUIREMENTS.md: it still read
+> "40 requirements", omitted both inserted decimal phases entirely (ALLOC-10/11 and ACT-01…07),
+> undercounted Phase 4 by leaving out SHARE-08, and undercounted Phase 5 by five FIGHT ids
+> (FIGHT-12…16). Counts above are derived from REQUIREMENTS.md's own Traceability rows, which are
+> the source of truth.
 
 **Three requirements were deliberately pulled forward into Phase 5** rather than staying with their
 category, because their observable behaviour only exists once the fight view does: PROJ-05 (the
