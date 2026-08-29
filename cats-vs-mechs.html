@@ -15146,6 +15146,42 @@ App.selftest = (function () {
       [App.serialize.unb64('a'), App.serialize.unb64('a,b'),
         App.serialize.unb64('a b'), App.serialize.unb64(null)],
       [null, null, null, null]);
+    /* --- THE BYTE SHAPE, AND WHY A ROUND TRIP ALONE CANNOT SEE IT. Measured
+           during the probe this plan owed: replacing the surrogate-pair arm of
+           bytesFromText with the naive spelling that reads one UTF-16 unit at
+           a time left every round-trip row above GREEN. It has to. The pair is
+           SYMMETRIC — a naive writer emits an astral code point as two
+           three-byte lone-surrogate sequences and the reader hands both units
+           straight back, so the string agrees with itself while the bytes are
+           not UTF-8 at all and are half again as long. A round trip proves the
+           two halves agree with each other; it can never prove either half is
+           right. So the byte shape and the MEASURED cost are asserted here,
+           against the figures in the research table, and those are the rows
+           the probe reddens. --- */
+    t.eq('an astral code point is FOUR bytes with the 0xF0 head UTF-8 gives it, not two '
+      + 'three-byte lone-surrogate sequences — the naive one-unit-at-a-time spelling produces '
+      + 'the second, and every round-trip row above stays green over it',
+      App.serialize.bytesFromText('\u{1F480}'), [0xF0, 0x9F, 0x92, 0x80]);
+    t.eq('a BMP symbol is three bytes and a plain ASCII letter is one, so the arms are picked '
+      + 'by code point rather than by code unit',
+      [App.serialize.bytesFromText('\u{2620}').length, App.serialize.bytesFromText('A').length],
+      [3, 1]);
+    t.eq('half a surrogate pair is written as its OWN three bytes, which is the reversible '
+      + 'spelling and the reason it comes back intact',
+      App.serialize.bytesFromText('\uD83D'), [0xED, 0xA0, 0xBD]);
+    [
+      { text: 'Poison', bytes: 6, chars: 8 },
+      { text: 'Poison \u{2620}', bytes: 10, chars: 14 },
+      { text: 'Vigueur \u{E9}l\u{E9}v\u{E9}e', bytes: 17, chars: 23 },
+      { text: '\u{1F480}\u{1F525}\u{26A1}', bytes: 11, chars: 15 },
+      { text: CAP_NAME, bytes: 96, chars: 128 }
+    ].forEach(function (row) {
+      t.eq('the measured cost of a name of ' + Array.from(row.text).length + ' code points is '
+        + row.bytes + ' bytes and ' + row.chars + ' base64url characters — the figures the '
+        + 'phase budget was built on, and the rows a byte layer that writes the wrong shape reddens',
+        [App.serialize.bytesFromText(row.text).length, App.serialize.b64(row.text).length],
+        [row.bytes, row.chars]);
+    });
     t.ok('the prototype is intact after the text rows', protoIntact());
 
     /* --- BASE36, both directions. The parse refuses rather than handing back

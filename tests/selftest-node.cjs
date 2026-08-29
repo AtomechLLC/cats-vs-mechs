@@ -394,12 +394,17 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //   plan 03.1-07 takes it to 789 and floors it at 760 — a margin of 29, which
 //     is more than any single row group this phase added and far above the
 //     zero a suite that failed to register would report;
-//   plan 04-01 opens [S09.11], the build-code suite, at 101 rows and takes the
-//     run to 890, floored at 860 — the same margin of 30, and worth stating
-//     plainly: all 101 of those rows run HERE. A codec is state work, so the
+//   plan 04-01 opens [S09.11], the build-code suite, at 109 rows and takes the
+//     run to 898, floored at 868 — the same margin of 30, and worth stating
+//     plainly: all 109 of those rows run HERE. A codec is state work, so the
 //     suite sits entirely above the no-DOM bracket five other suites stop at,
-//     and this floor is the only thing bounding it.
-const SUITE_FLOOR = 860;
+//     and this floor is the only thing bounding it. Eight of the 109 were
+//     added AFTER the deliberate-failure probe that plan owed: the round-trip
+//     rows alone stayed green over a byte layer written the naive way, because
+//     the writer and the reader are symmetric and agree with each other while
+//     both are wrong. The byte-shape and measured-cost rows are what the probe
+//     reddens, and they are the reason this figure is 109 rather than 101.
+const SUITE_FLOOR = 868;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
