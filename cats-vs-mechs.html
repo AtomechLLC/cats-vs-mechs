@@ -2599,6 +2599,27 @@ App.model = (function () {
     return c.n;
   }
 
+  // THE ONE READING OF A SINGLE TRANSFORMATION TERM AS DAMAGE, and it is the
+  // only place in this file that measures a term against DAMAGE_KEYS. It hands
+  // back a POSITIVE amount — "how much this takes off" is the number every
+  // caller actually wants, and a signed delta passed around as though it were
+  // damage is a sign error waiting for somebody to make it. A term that is not
+  // damage at all reads 0, which is a number rather than a refusal: the caller
+  // compares, and nobody here rules.
+  //
+  // IT EXISTS AS ITS OWN FUNCTION FOR THE REASON DAMAGE_KEYS IS A FROZEN
+  // CONSTANT RATHER THAN AN INLINE 'hp'. The projection below sums these over
+  // an action; plan 05-04's applier spends them ONE AT A TIME, because the
+  // shield-then-health split further down is taken per hit and not per turn.
+  // Two spellings of "is this term damage" are two things to keep in step, and
+  // the one that drifts is always the one nobody is reading that week.
+  function termDamage(x) {
+    if (!x || x.who !== 'target') { return 0; }
+    if (DAMAGE_KEYS.indexOf(x.tok) === -1) { return 0; }
+    if (!Number.isInteger(x.d) || x.d >= 0) { return 0; }
+    return -x.d;
+  }
+
   // What ONE use of this action takes off the target, in the tokens
   // DAMAGE_KEYS names. A record with no transformation list falls back to the
   // shipped `dmg` scalar, so the six shipped actions and every fixture built in
@@ -2606,14 +2627,7 @@ App.model = (function () {
   function actionDamage(a) {
     if (!a.xf) { return Number.isInteger(a.dmg) ? a.dmg : 0; }
     if (!Array.isArray(a.xf)) { return 0; }
-    var d = 0;
-    a.xf.forEach(function (x) {
-      if (!x || x.who !== 'target') { return; }
-      if (DAMAGE_KEYS.indexOf(x.tok) === -1) { return; }
-      if (!Number.isInteger(x.d) || x.d >= 0) { return; }
-      d -= x.d;
-    });
-    return d;
+    return a.xf.reduce(function (d, x) { return d + termDamage(x); }, 0);
   }
 
   // The pair the whole projection rests on: what one hit takes, and what a turn
@@ -2689,11 +2703,13 @@ App.model = (function () {
     // probe can hold to account. There is exactly one place that decides a
     // bare record is covered, and it is the line above.
     if (!Array.isArray(a.xf)) { return false; }
-    return a.xf.every(function (x) {
-      return !!x && x.who === 'target'
-        && DAMAGE_KEYS.indexOf(x.tok) !== -1
-        && Number.isInteger(x.d) && x.d < 0;
-    });
+    // Read through termDamage above rather than re-typing its four tests here.
+    // The two are exactly equivalent — a term reads a positive amount if and
+    // only if it is a negative delta on the target in a token DAMAGE_KEYS names
+    // — and the equivalence is the point: this predicate and the sum below have
+    // to agree about what damage IS, and the cheapest way to guarantee that is
+    // for there to be one of them.
+    return a.xf.every(function (x) { return termDamage(x) > 0; });
   }
 
   // The NAMES of this faction's actions the derivation above refuses, in board
@@ -2775,6 +2791,76 @@ App.model = (function () {
   // can hold the floor.
   function apSpent(buildFaction, fightSide) {
     return Math.max(0, buildFaction.ap - fightSide.ap);
+  }
+
+  // FIGHT-16, AND IT IS THE ONE RESOLUTION RULE THE DEVELOPER SPECIFIED
+  // DIRECTLY. Damage spends SHIELD before it reaches HEALTH, point for point,
+  // and only the remainder overflows — three against three shield and six
+  // health leaves shield at zero and health at six. That is CONTEXT D-05c, and
+  // DAMAGE_KEYS' own comment carries the reading at length together with the
+  // other available one it is not, so it is not spelled a second time here.
+  //
+  // THREE NUMBERS, NOT ONE, AND THAT IS THE WHOLE REASON THIS FUNCTION EXISTS.
+  // The requirement is that the split is SHOWN rather than applied silently, so
+  // the arithmetic has to hand back the three facts separately and let [S06.8]
+  // write "Shield absorbed 2 of the 3. Health took 1." A function returning a
+  // single total is green over an implementation that put everything through
+  // health, and "3 damage" and "2 off the shield, 1 off the health" teach
+  // different things. The third number is the overkill PROJECT.md names as a
+  // thing a student should be able to see: what the hit had nothing left to
+  // take. It is reported and not commented on.
+  //
+  // NO PROSE LEAVES [S02] — the banner's rule, and affordability's closing line
+  // says it again. Numbers only. Every word about this split is the page's.
+  //
+  // THE REFUSAL SITS ABOVE THE ARITHMETIC, in soakTotal's and turnsToWipe's
+  // register: an amount that is not a whole number greater than zero, and a
+  // pool that is not a whole number at or above zero, are all refused by the
+  // SAME line, so there is no second case left to forget below it. `'3'` is why
+  // the line is not soakTotal's bare `!(amount > 0)`: a string coerces through
+  // that test and would then subtract its way into a NaN split.
+  //
+  // WHICH OF turnsToWipe's TWO SHAPES WAS CHOSEN, and why, because that
+  // function offers both and picking one silently is how the next reader picks
+  // the other. turnsToWipe REFUSES with null; soakTotal CLAMPS to 0. This one
+  // refuses, and its refusal is three zeroes rather than a null: nothing was
+  // absorbed, nothing reached health, and nothing was spare is a TRUTHFUL
+  // reading of a hit that did not happen, and it keeps the shape every caller
+  // reads. What it is not is a clamp — substituting 1 for an absent hit would
+  // print a confident split for a swing nobody took, which is turnsToWipe's own
+  // objection to clamping a throughput of zero.
+  //
+  // WHAT IT DOES NOT DO, NAMED HERE BECAUSE IT IS THE OBVIOUS NEXT LINE. It
+  // WRITES NOTHING — it is [S02], it takes numbers and hands numbers back, and
+  // it never sees a unit. And when plan 05-04 spends it, `alive` IS NOT
+  // TOUCHED: zero health PROMPTS a death ruling from the table, it never causes
+  // one. setUnitHp's comment says this and aliveCount's says it again; this
+  // makes three, and [S09.12] carries a driven row that reddens the day
+  // somebody adds the line anyway. A unit a student ruled "survived via Shield"
+  // has to stay representable, and a tool that killed it first has already
+  // taken the ruling away.
+  //
+  // AND THE FACT [S09.2] AND [S09.8] BOTH DEPEND ON: SHIPPING A REAL SHIELD
+  // RULE DOES NOT CHANGE WHAT THE PROJECTION MODELS. A shield strip is a
+  // transformation other than a negative target delta on a token DAMAGE_KEYS
+  // names, so actionModelled still refuses it, unmodelled() still NAMES it, and
+  // the page still writes a sentence around that name (D-16). The projection's
+  // shipped hit figures of 1 and 3 are pinned and stay pinned. This function is
+  // what the BOARD does with a hit; the derivations above are what the
+  // PROJECTION can promise about one, and the two answer different questions.
+  function pool(n) { return Number.isInteger(n) && n >= 0; }
+
+  function damageSplit(shield, hp, amount) {
+    if (!(pool(shield) && pool(hp) && Number.isInteger(amount) && amount > 0)) {
+      return { shield: 0, health: 0, spare: 0 };
+    }
+    var absorbed = Math.min(shield, amount);
+    var toHealth = Math.min(hp, amount - absorbed);
+    return {
+      shield: absorbed,
+      health: toHealth,
+      spare: amount - absorbed - toHealth
+    };
   }
 
   // What a roster actually absorbs, as opposed to what it is worth. A hit
@@ -2862,6 +2948,10 @@ App.model = (function () {
     factionEhp: factionEhp,
     DAMAGE_KEYS: DAMAGE_KEYS,
     actionApCost: actionApCost,
+    // The term-level reading of damage, exported beside the sum it feeds so
+    // plan 05-04's applier reads the constant through this rather than writing
+    // a second membership test of its own inside [S05].
+    termDamage: termDamage,
     actionDamage: actionDamage,
     bestPair: bestPair,
     bestDamage: bestDamage,
@@ -2871,6 +2961,11 @@ App.model = (function () {
     affordability: affordability,
     aliveCount: aliveCount,
     apSpent: apSpent,
+    // FIGHT-16. Exported for the fight loop to spend and for [S09.12] to drive
+    // exhaustively — six shapes of hit and six refusals — because a resolution
+    // rule the developer stated in one sentence is the rule that gets quietly
+    // re-derived somewhere else the moment it is not readable from one place.
+    damageSplit: damageSplit,
     soakTotal: soakTotal,
     turnsToWipe: turnsToWipe
   });
