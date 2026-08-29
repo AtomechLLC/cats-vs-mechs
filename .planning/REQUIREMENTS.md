@@ -67,7 +67,7 @@ Requirements for initial release. Each maps to roadmap phases.
 
 ### Share & Reset
 
-- [ ] **SHARE-01**: Student can copy a compact build code to the clipboard
+- [x] **SHARE-01**: Student can copy a compact build code to the clipboard
 - [x] **SHARE-02**: Student can paste a build code to load someone else's build
 - [x] **SHARE-03**: A build code round-trips exactly; a malformed or wrong-version code fails with a clear message rather than silently loading garbage
 - [x] **SHARE-04**: The build code stays well under Discord's 2000-character message limit at realistic roster sizes
@@ -177,7 +177,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | REF-01 | Phase 3 | Pending |
 | REF-02 | Phase 3 | Pending |
 | REF-03 | Phase 5 | Pending |
-| SHARE-01 | Phase 4 | Pending |
+| SHARE-01 | Phase 4 | Complete |
 | SHARE-02 | Phase 4 | Complete |
 | SHARE-03 | Phase 4 | Complete |
 | SHARE-04 | Phase 4 | Complete |
