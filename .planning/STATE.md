@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: verifying
-stopped_at: Completed 04-06-PLAN.md
-last_updated: "2026-08-29T07:40:47.931Z"
+status: executing
+stopped_at: Completed 05-01-PLAN.md
+last_updated: "2026-08-29T09:04:50.272Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
-  total_plans: 32
-  completed_plans: 33
-  percent: 86
+  total_plans: 43
+  completed_plans: 34
+  percent: 79
 ---
 
 # Project State
@@ -21,16 +21,16 @@ progress:
 See: .planning/PROJECT.md (updated 2026-08-26)
 
 **Core value:** A student builds two factions that look nothing alike and discovers they can still be balanced — and discovers it by playing, not by being told a number.
-**Current focus:** Phase 04 — share reset
+**Current focus:** Phase 05 — fight loop & playtest
 
 ## Current Position
 
-Phase: 04
-Plan: 8 of 8
-Status: Phase complete — ready for verification
+Phase: 05
+Plan: 1 of 11
+Status: In progress — 05-01 complete (gate infrastructure)
 Last activity: 2026-08-29
 
-Progress: [██████████] 100%
+Progress: [████████░░] 79%
 
 ## Performance Metrics
 
@@ -69,6 +69,7 @@ Progress: [██████████] 100%
 | Phase 04 P06 | 80min | 3 tasks | 2 files |
 | Phase 04 P07 | 105min | 3 tasks tasks | 2 files files |
 | Phase 04 P08 | 35min | 2 tasks tasks | 0 files files |
+| Phase 05 P01 | 95min | 2 tasks tasks | 1 file files |
 
 ## Accumulated Context
 
@@ -129,6 +130,10 @@ Recent decisions affecting current work:
 - [Phase ?]: 04-06: the copy press asks [S06.6] for a repaint rather than calling encode a second time — one producer, so the string reaching the clipboard is the string on screen
 - [Phase ?]: 04-06: tiers 1 and 2 say the same sentence; which tier fired is recorded on data-sh-tier, where a check and a rehearsal can read it and no student has to
 - [Phase ?]: 04-06: no cancel listener on #reset-ask — it has no field, Escape there means Cancel, and a no-op listener bound for symmetry would be dead code inside the error boundary
+- [Phase ?]: 05-01: a word goes in the HIGHEST verdict layer whose measured hit count over cats-vs-mechs.html is zero — Layer A, then B, then the new Layer-C-only list
+- [Phase ?]: 05-01: beat/beats/beaten is closed by READ-SITE scope (#refband), never by stem or text allowlist, so the shipped 'Fly beats Slash' survives
+- [Phase ?]: 05-01: FIGHT_FLOOR is set AT the roster-independent part of the measurement (41 of 101), not below the total — 05-07/05-08/05-09 own the re-measure
+- [Phase ?]: 05-01: the eight clean-but-unshippable words are harness limitation 18 and 05-11's item 31, not a silent widening
 
 ### Pending Todos
 
@@ -152,6 +157,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T07:40:21.701Z
-Stopped at: Completed 04-06-PLAN.md
+Last session: 2026-08-29T09:04:42.346Z
+Stopped at: Completed 05-01-PLAN.md
 Resume file: None
