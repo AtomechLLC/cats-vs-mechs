@@ -1007,6 +1007,86 @@
   <div class="brd-topbar" id="topbar">
     <div class="brd-brand">Cats vs Mechs</div>
     <div class="brd-cluster">
+      <!-- THE FIFTH AND SIXTH PERMANENT ADDITIONS TO THIS BAR, AND THE ONES
+           THAT SPEND THE LAST OF D-04'S RESERVATION. Both were reserved BY NAME
+           at the top of this cluster — "Phase 5 adds turn state and
+           start-fight" — so neither arrived because somebody needed somewhere
+           to put it, and the two together are exactly the two the paragraph
+           below the Actions button said were still owing.
+
+           THE RESERVATION IS NOW SPENT, AND SAYING SO IS THIS PARAGRAPH'S JOB.
+           Nothing is held back here any more. A later phase wanting a control
+           per action, per side or per round gets the answer D-05 already gave
+           and the paragraph below already restated: put it in the surface, not
+           on the bar, because the bar is the one place UX-02 says a projector
+           may not grow a queue of controls. The surface is directly beneath
+           this bar — #fightbar carries this phase's declaration step, its
+           Advance and its fight reset, and every one of those three would have
+           been a one-per-round or a one-per-side control up here. IT MUST NOT
+           BECOME ONE-PER-ANYTHING, for the fourth time and the last.
+
+           ONE OF THE TWO IS NOT A CONTROL AT ALL. The round-and-pool reading
+           carries no data-act and no data-k, because it is a reading: FIGHT-09
+           asks that the round and what each side has left to spend be
+           unambiguous from across the room, and this bar is the only thing on
+           the page that is always in view. Its three value nodes are EMPTY
+           here and [S06.7] writes them, in plan 05-07 — the same reservation
+           #share-said and #sh-load-said already ship under, with the reason
+           written down at the site rather than left as a gap. The group's own
+           label is permanent, visible and at UX-02's 18px floor; the per-side
+           words arrive with the figures they qualify, because "Cats" beside a
+           number is a reading and not a control legend.
+
+           START THE FIGHT IS ONE CONTROL AND IT ONLY EVER STARTS ONE. Resetting
+           a fight (SHARE-07) lives in the surface below, beside the Advance it
+           takes back, and it is deliberately NOT a second meaning bolted onto
+           this button. Two reasons. The bound is the first: a fight reset up
+           here would be a permanent control this paragraph has just finished
+           saying there is no room for. A mis-press is the second, and it is the
+           one that would be felt: a single button reading "Start the fight"
+           before a fight and "Reset the fight" during one changes what it does
+           under a cursor that has not moved, in front of a room, and the two
+           acts are not symmetrical — one of them throws a played fight away. So
+           this button does one thing, and it is DISABLED while a fight is
+           running, which .brd-btn already draws and which [S06.7] sets in plan
+           05-07.
+
+           startFight IS STATE WORK AND IS THEREFORE DISPATCHED. It is a real
+           [S05] op with a real dispatch arm, so it is deliberately NOT in
+           UI_ACTS, which is the partition check 90b reads back off this page.
+           Undo below is dispatched for the same reason; the three surface
+           openers beside it are page work and are claimed by UI_ACTS instead.
+           This button therefore needs no handler registered anywhere, and
+           nothing in this repo presses it until plan 05-10.
+
+           Static markup and a unique data-k, for the reason every button below
+           gives: the structural rebuild restores focus by taking the FIRST
+           [data-k="..."] match, so a key rendered inside a repeated region
+           would silently break focus restore.
+
+           THE SECOND-ORDER COST, WHICH THIS FILE ALREADY MEASURED AND PLANNED
+           FOR. #topbar is min-height with a wrapping cluster, and [S08]
+           republishes the bar's measured height into --topbar-now on every
+           resize precisely BECAUSE the comment at the top of this cluster
+           planned for Phase 4 and Phase 5 to add to it. Two more groups make
+           the cluster wrap onto a second row at a wider viewport than it used
+           to, and #strip's sticky offset follows the measurement rather than
+           the 64px floor, so it moves with it rather than parking underneath.
+           That path now has a reason to run on an ordinary laptop instead of
+           only on a narrow window. Whether a two-row bar still leaves the board
+           readable is a layout question no gate in this repo can answer: it is
+           plan 05-10's acceptance run and plan 05-11's rehearsal, both named
+           here so neither has to rediscover it. -->
+      <div class="brd-tokedit fg-read">
+        <span class="brd-tokedit-label" id="round-label">Round</span>
+        <span class="fg-round" id="round-count"></span>
+        <span class="fg-pool" id="pool-cats"></span>
+        <span class="fg-pool" id="pool-mechs"></span>
+      </div>
+      <div class="brd-tokedit fg-apart" role="group" aria-labelledby="fight-label">
+        <span class="brd-tokedit-label" id="fight-label">The fight</span>
+        <button class="brd-btn" type="button" id="fight-start" data-k="fg" data-act="startFight">Start the fight</button>
+      </div>
       <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
       <!-- ONE button, and that is the whole of D-05. What was here was a row of
            them, one per type the board ships with, and it does not survive a
@@ -1101,6 +1181,129 @@
       </div>
     </div>
   </div>
+
+  <!-- ============ THE FIGHT REGION, plan 05-06 =========================
+       IT IS IN THE PAGE AND IT IS NOT A DIALOG, and that is the one scope
+       statement this markup makes. Every surface added to this file since
+       Phase 2 is a <dialog> — the token picker, the action editor, the share
+       surface, the reset confirmation — and the id budget, DIALOG_ROOTS and
+       the harvest roots all key on that pattern. This one breaks it on
+       purpose. A student declaring what their side does this round is LOOKING
+       AT THE BOARD while they do it, and a modal covering the board would put
+       the declaration a step away from the thing it is about. The roadmap and
+       the developer's own request both put this surface at the top of the
+       page, in view, alongside the board.
+
+       What the trade costs, said out loud rather than discovered: there is no
+       DIALOG_ROOTS entry for this region, no close-request question to answer,
+       no backdrop and no focus trap, and none of the four things the shipped
+       dialogs each needed. THAT ABSENCE IS A DECISION AND NOT A GAP.
+
+       What the trade BUYS is the reason it is worth taking: the whole surface
+       sits inside #app, so Layer C's fight-mode harvest — the one plan 05-01
+       built precisely because fight copy was invisible to the only layer that
+       reads rendered words — reads every word of it without a root of its own.
+
+       BOOKKEEPING: #refband's and #strip's, exactly. This root is static, it
+       is built once by [S06.7] and flagged, and it is never thrown away —
+       render.structure() replaces only the two column interiors inside #board,
+       and this is not inside #board at all.
+
+       THE RESERVED NODES, and what each is waiting for:
+         #fight-prompt  the region is never an empty box. It says what the
+                        region is for while no fight is running, and [S06.7]
+                        hides it when one starts (plan 05-07).
+         #decl-cats /   one root per side for the declaration step. Empty and
+         #decl-mechs    hidden together, filled by [S06.7] (plan 05-07).
+                        Whether the slots INSIDE them are static markup is
+                        plan 05-07's decision to make and to write down; if it
+                        chooses static, the rows and their ids arrive here in
+                        the shell beside these two roots.
+         #fight-said    FIGHT-10's line: a build edit made while a fight is
+                        running applies to the build and not to this fight.
+                        Plan 05-09 fills it.
+
+       #fight-said CHECKS OFF THE ADMISSION LINE'S FOUR SILENT-FAILURE RULES BY
+       NAME, because that is the block where the decision about a reserved
+       notice node was made: it carries no data-k, so nothing dispatches off it
+       and no focus restore can land on it; it carries no data-amt and is not a
+       .brd-value, so no per-frame numeric pass writes into it; it is not
+       .brd-line--opt, whose hide pass reads a tally and would pin it shut; it
+       is built once and never rebuilt; and it is `hidden` AND EMPTY TOGETHER,
+       which is the whole of "there is one decision about emptiness and it is
+       made here". Reserving an empty hidden node for a later plan with the
+       reason written at the site is shipped practice — #share-said and
+       #sh-load-said are the precedent.
+
+       THE THREE-PART RULE, which the two dialog comments above already carry
+       and which every id below obeys: THE ID, THE KNOWN_IDS ENTRY AND THE STUB
+       NODE ARRIVE TOGETHER, and tests/selftest-node.cjs fails the run in BOTH
+       directions if one of the three is missing. The fourth part those two
+       comments carry does NOT apply here: no <dialog> is added by this plan,
+       so there is no DIALOG_ROOTS entry to make, and the dialog harvest stays
+       at the four roots it already walks. -->
+  <section id="fightbar" aria-labelledby="fight-head">
+    <h2 class="fg-head" id="fight-head">This round</h2>
+    <p class="fg-prompt" id="fight-prompt">No fight is running. Start one from the bar above.</p>
+    <div class="fg-sides">
+      <div class="fg-side" id="decl-cats" hidden></div>
+      <div class="fg-side" id="decl-mechs" hidden></div>
+    </div>
+    <p class="fg-said" id="fight-said" hidden></p>
+  </section>
+
+  <!-- ============ THE LEDGER OF PAST ROUNDS, plan 05-06 =================
+       IT IS A SIBLING OF #board AND NEVER A CHILD OF IT, and the reason is
+       measured rather than stylistic. render.structure() calls
+       withPreservedFocus(board, ...), so #board is the focus-restore scope,
+       and keyed(container, k) is a querySelector for the FIRST [data-k="..."]
+       match inside it. Five cloned past boards placed INSIDE #board above the
+       columns were driven directly: the first match scoped to #board came back
+       a DEAD LEDGER NODE, so focus restore after any structural rebuild lands
+       on a clone of the board rather than on the control the student was
+       using. The same five as a SIBLING of #board: the first scoped match is
+       the live one. Both DOM orders were measured; this is the safe one.
+
+       AND THE SECOND HALF OF THE RULE, which is what makes the first half
+       belt-and-braces rather than a single point of failure: A LEDGER ROW
+       CARRIES NO data-k AND NO data-act AT ALL. A past round is a reading and
+       not a control. refCard already keeps exactly this rule and check 63b
+       already asserts it for reference cards — no card on the page carries an
+       attribute the interaction layer dispatches on or the sync pass writes —
+       and plan 05-10 adds the parallel check for these rows.
+
+       THE NEWEST ROUND SITS NEAREST THE LIVE BOARD, and the mechanism is the
+       plainest one available rather than a clever one: this region sits ABOVE
+       #board in the document, [S06.8] APPENDS one row per resolved round in
+       the order the rounds happened, and a column lays the last child out at
+       the bottom — so the newest row is the one touching the live board and
+       each new round pushes the earlier ones up and away from it. That is the
+       roadmap's "stacks upward", got by document order alone. No `order` and
+       no reversed flex direction is used, deliberately: either would put this
+       region's DOM order and its reading order out of step, and the sequence a
+       screen reader walks would then be the reverse of the one the room sees.
+
+       The live board does not move down the page as rounds pile up, and what
+       buys that is the bounded height [C14] gives .ld-list — the region above
+       the board stops growing and scrolls ON ITSELF instead. A region above
+       the board that grew without a bound would push the live board off the
+       bottom of a projector within a few rounds, which is the one failure this
+       arrangement exists to avoid.
+
+       The root ships HIDDEN and its list ships EMPTY: there are no past rounds
+       on a board nobody has fought on, and a labelled empty box above the board
+       is a thing a student has to interpret for nothing. [S06.8] shows it (plan
+       05-08). It is hidden as a REGION, in #refband's build-once-and-flag
+       bookkeeping — the admission line's stricter hidden-AND-empty rule governs
+       a notice node, and #fight-said above is the node that keeps it.
+
+       Same three-part rule as the region above: the id, the KNOWN_IDS entry
+       and the stub node arrive together, and the run fails in both directions
+       if one of the three is missing. No <dialog>, so no DIALOG_ROOTS entry. -->
+  <section id="ledger" aria-labelledby="ledger-head" hidden>
+    <h2 class="ld-head" id="ledger-head">Earlier rounds</h2>
+    <div class="ld-list" id="ledger-list"></div>
+  </section>
 
   <!-- The five children below are static siblings, never built by
        render.structure(): a delegated listener bound to a root that outlives
