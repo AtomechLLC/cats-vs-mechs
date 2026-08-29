@@ -17158,11 +17158,18 @@ App.selftest = (function () {
     var drivenBoard = liveBuild();
     var drivenBack = App.serialize.decode(App.serialize.encode(drivenBoard));
 
-    // What each decoded action's two unwritten fields MUST reconstruct to —
-    // read off DEFAULTS for the six the file ships and off createAction's own
-    // two constants for the rest, never off the board that went in, because a
-    // comparison against the input is a comparison a codec that carried the
-    // fields would also pass.
+    /* THREE READINGS PER ACTION, NOT TWO, and the third is the one probe K
+       forced. The row as first written compared the DECODED value against the
+       RECONSTRUCTED one and nothing else — which is a tautology, because
+       [S04.3] produces the decoded value BY reconstructing it. A setActionDmg
+       shipped and driven left that comparison spotlessly green while the
+       figure the student set was gone. So each action is read three ways: what
+       went IN, what came BACK, and what the two constants say it should be.
+       The first pair is the tripwire — it reddens on data loss. The second
+       pair is the DECISION, stated as an equality: nothing writes either
+       field, so what a student's board holds is always what the file would
+       reconstruct, and the day that stops being true this is where it is
+       said. */
     function reconstructed(sideId, actionId) {
       var found = null;
       App.data.DEFAULTS[sideId].actions.forEach(function (shipped) {
@@ -17172,31 +17179,41 @@ App.selftest = (function () {
         ? { dmg: 0, keywords: [] }
         : { dmg: found.dmg, keywords: found.keywords.slice() };
     }
-    var reconRead = [];
+    function twoFields(act) {
+      return act.id + '=' + act.dmg + ':' + (act.keywords || []).join('+');
+    }
+    var reconWentIn = [];
+    var reconCameBack = [];
     var reconWant = [];
     ['cats', 'mechs'].forEach(function (sideId) {
-      (drivenBack.ok === true ? drivenBack.build[sideId].actions : []).forEach(function (act) {
+      drivenBoard[sideId].actions.forEach(function (act, at) {
+        var back = (drivenBack.ok === true) ? drivenBack.build[sideId].actions[at] : null;
         var want = reconstructed(sideId, act.id);
-        reconRead.push(act.id + '=' + act.dmg + ':' + act.keywords.join('+'));
+        reconWentIn.push(twoFields(act));
+        reconCameBack.push(back === null ? 'the code was refused' : twoFields(back));
         reconWant.push(act.id + '=' + want.dmg + ':' + want.keywords.join('+'));
       });
     });
     t.eq('THE RECONSTRUCTION TRIPWIRE. On a board driven through EVERY op that touches an '
       + 'action — created, renamed, costed, both requirement slots, both transformation '
       + 'slots, a slot cleared, one action removed and a shipped one rewritten — every '
-      + 'decoded action\'s damage and keyword list equal their RECONSTRUCTED values: the '
-      + 'shipped figures from DEFAULTS for the six the file ships, and createAction\'s own '
-      + 'two constants for the rest. Neither field is on the wire, which is only safe while '
-      + 'nothing writes them. THIS ROW IS TRIVIALLY TRUE TODAY AND THAT IS THE POINT — the '
-      + 'day an op ships that writes an action\'s damage or its keywords and a student uses '
-      + 'it, this is what goes red instead of every shared build quietly losing the value. '
-      + 'Read [S04]\'s banner and [S05]\'s absence block before changing this row',
-      reconRead.join(' '), reconWant.join(' '));
+      + 'action\'s damage and keyword list come BACK exactly as they went IN. Neither field '
+      + 'is on the wire at all, so this holds only because the decoder can rebuild them. '
+      + 'THE DAY AN OP SHIPS THAT WRITES EITHER AND A STUDENT USES IT, THIS IS THE ROW '
+      + 'THAT GOES RED, instead of every shared build quietly losing the value inside a '
+      + 'codec nobody thought to revisit. Read [S04]\'s banner and [S05]\'s absence block '
+      + 'before changing it', reconCameBack.join(' '), reconWentIn.join(' '));
+    t.eq('and what went in was itself the RECONSTRUCTED value on every action — the shipped '
+      + 'figures from DEFAULTS for the six the file ships, createAction\'s own two constants '
+      + 'for the rest. That is the decision stated as an equality rather than as a comment: '
+      + 'nothing writes either field, so a student\'s board never holds a value the file '
+      + 'could not rebuild, and this is where that stops being true',
+      reconWentIn.join(' '), reconWant.join(' '));
     t.eq('and the sweep was not vacuous — it read both sides of a board carrying shipped '
-      + 'actions and actions of the student\'s own, and every id it walked is one this file '
-      + 'could have made',
-      [reconRead.length > 0, drivenBack.ok,
-        reconRead.length === (drivenBack.ok === true
+      + 'actions and actions of the student\'s own, and the decoded board carries the same '
+      + 'number of actions the driven one does',
+      [reconWentIn.length > 0, drivenBack.ok,
+        reconWentIn.length === (drivenBack.ok === true
           ? drivenBack.build.cats.actions.length + drivenBack.build.mechs.actions.length : -1)],
       [true, true, true]);
     t.ok('and the whole driven board round trips exactly as well, so the two fields above '

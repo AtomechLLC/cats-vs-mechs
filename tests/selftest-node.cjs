@@ -424,10 +424,10 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     vocabulary written down in another order and require the identical code
 //     back. The run is 941 and the floor is 911.
 //   plan 04-03 adds the HOSTILE half — the refusal matrix, the bad-input table,
-//     the prototype rows and the reconstruction tripwire: 152 rows becomes 242
-//     and the run goes to 1031, floored at 1001, which is the same margin of 30
-//     the three plans before it kept. Ninety rows, and what makes them rows
-//     about ninety things rather than one thing ninety times is a single step
+//     the prototype rows and the reconstruction tripwire: 152 rows becomes 243
+//     and the run goes to 1032, floored at 1002, which is the same margin of 30
+//     the three plans before it kept. Ninety-one rows, and what makes them rows
+//     about ninety-one things rather than one thing ninety-one times is a single step
 //     that is invisible from the count: every tamper that names a CONTENT guard
 //     changes the body and then RECOMPUTES the four-character digest, so it
 //     arrives at the content guard instead of stopping at the checksum. Two
@@ -435,7 +435,7 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     one row, and removing the checksum comparison entirely reddened exactly
 //     two and left all twelve content rows green, which is the proof they were
 //     reaching past the digest all along.
-const SUITE_FLOOR = 1001;
+const SUITE_FLOOR = 1002;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
