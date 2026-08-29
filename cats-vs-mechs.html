@@ -11788,7 +11788,8 @@ App.interactions = (function () {
   // #region [S07.4] INTERACTIONS — SHARE AND CONFIRM
 
   /* THE SHARE SURFACE AND THE RESET CONFIRMATION (SHARE-01, SHARE-04 — plan
-     04-06). It ATTACHES rather than edits, in exactly the shape [S07.2] and
+     04-06; SHARE-02 and SHARE-03's on-screen half — plan 04-07). It ATTACHES
+     rather than edits, in exactly the shape [S07.2] and
      [S07.3] do: it pushes two entries into UI_ACTS, assigns two entries in
      UI_HANDLERS, pushes two entries into LATE_BINDERS, and changes NOT ONE LINE
      of [S07.1], of [S07.2] or of [S07.3]. UI_ACTS' own comment names this
@@ -11811,10 +11812,12 @@ App.interactions = (function () {
      a UI-only act has no legal home there.
 
      STATE WORK — real ops, dispatched, and deliberately ABSENT from UI_ACTS:
-       loading a pasted build code    data-sh="load"
+       loading a pasted build code    data-sh="load"    WIRED, plan 04-07
        resetting to the defaults      data-rs="confirm"
-     Both are plan 04-07's, and neither is pre-empted here. Both controls exist
-     in the shell with no arm in the listeners below, which is [S07.1]'s own
+     Both are plan 04-07's. The load arm is wired below and dispatches
+     'loadBuildCode'; neither name is in UI_ACTS and neither ever may be,
+     because an entry there is what makes a refusal stop being raised. The
+     reset one still has no arm in the listeners below, which is [S07.1]'s own
      documented "claimed and ignored" window said one layer down: the press does
      nothing, throws nothing and opens no panel.
 
@@ -11875,8 +11878,11 @@ App.interactions = (function () {
   function showPane(dlg, pane) {
     dlg.dataset.shPane = pane;
     // Nothing said about the last press survives a pane move or a fresh open —
-    // see dropSaid, which is where the whole reason is written down.
+    // see dropSaid, which is where the whole reason is written down. Both
+    // panes' lines: a refusal about a code that is no longer the one on the
+    // field is the same stale claim as a "Copied" about a board that has moved.
     dropSaid();
+    dropLoadSaid();
     App.render.share(App.state.get());
   }
 
@@ -12140,6 +12146,201 @@ App.interactions = (function () {
     //    says so, and this is the tier the requirement names in as many words.
   }
 
+  /* ---- the load press (SHARE-02, SHARE-03 — plan 04-07) ------------------ */
+
+  /* ================================================================
+     WHICH OF THE TWO PRESS SHAPES THIS IS, AND WHY IT IS THE OTHER ONE.
+     ================================================================
+     There are exactly two shapes a state-changing press takes in this file and
+     this is the second of them, so the next reader does not have to work out
+     which by reading the body.
+
+     THE ORDINARY SHAPE, which every press in [S07.1], [S07.2] and [S07.3]
+     takes: dispatch FIRST, page work only after dispatch has returned. An op
+     that refuses THROWS, App.boot.wrap catches it into [S08]'s styled panel,
+     and the page work below the dispatch never runs — so a surface can never
+     be updated to describe a write that did not happen.
+
+     THIS SHAPE: dispatch first, exactly as above, and then READ THE RECORD IT
+     HANDED BACK. The dispatch still comes first and there is still no page work
+     ahead of it, so the ordering rule is honoured rather than inverted — the
+     copy press above is this region's one genuine inversion and it says so
+     where it lives. What is different is the REFUSAL: App.ops.loadBuildCode is
+     the one op in [S05] that returns a refusal rather than throwing one, and
+     its own comment says why in as many words. A bad paste is an EXPECTED
+     OUTCOME of this feature — a code cut short by a chat client, a code from a
+     workshop run ago — and SHARE-03 asks for a sentence a student can act on
+     rather than a full-page error panel. So the page work below is not skipped
+     on a refusal; it is the whole point of a refusal.
+
+     WHAT THE PAGE OWNS AND WHAT THE MODEL OWNS is the split turnsToWipe and
+     turnsText have drawn since Phase 3, and it is drawn here for the same
+     reason. [S04.3] hands back a TOKEN — 'shape', 'version', 'checksum',
+     'content' — and never a sentence; [S05] passes that record through
+     untouched and never touches the page; and the four sentences live here,
+     in the page layer, spelled once each.
+
+     WHY FOUR SENTENCES AND NOT ONE. They are four different problems a student
+     can act on FOUR DIFFERENT WAYS: paste the right thing; get a fresh code
+     from a current copy of this file; copy the code again because this one
+     arrived cut short; and — the only one where the tool knows something
+     specific — the code is well-formed and names a value this board has no such
+     thing as, which the record can name exactly. Collapsing them into one
+     message throws away the only diagnosis this tool is able to offer, and
+     there is a numbered check in tests/selftest-node.cjs that drives all four
+     shapes and reddens if any two of the sentences are the same string. */
+
+  var LOAD_SAID = {
+    // Not a build code at all. The commonest real case is a student pasting the
+    // wrong thing entirely — a message, a link, half a sentence — so this one
+    // says what the string is not rather than what is wrong with it.
+    shape: 'That doesn\'t look like a build code.',
+    // A code from another wire version. CODE_VERSION is compared BY NAME in
+    // [S04.3], so this is the only refusal whose cause is nothing to do with
+    // the string being damaged: the code is intact and this file cannot read
+    // it. Naming the FILE is what makes it actionable — the fix is a current
+    // copy of the artifact, not a fresh copy of the code.
+    version: 'That build code was written by an older version of this file.',
+    // The checksum disagreed. It is spelled as "incomplete" and "cut off"
+    // rather than "corrupted", because truncation on paste is what actually
+    // happens: a chat client wrapping a long code, a selection that missed the
+    // last characters. The fix is to copy it again, and the sentence points
+    // at the copying rather than at the code.
+    checksum: 'That build code looks incomplete — it may have been cut off when '
+      + 'it was copied.',
+    // Well-formed, intact, this version — and it names a value this board has
+    // no such thing as. This is the one refusal where the record carries a
+    // `what`, and loadWords below appends it, because "something is wrong" and
+    // "the roster is out of bounds" are not the same amount of help.
+    content: 'That build code names something this board can\'t show.'
+  };
+
+  // NONE OF THE FOUR SAYS ANYTHING ABOUT THE BUILD. A code being unreadable is
+  // a fact about a string, and the board the string describes — a classmate's —
+  // is not on screen and has not been read. PROJ-06 would forbid a remark about
+  // it even if it had been.
+
+  function loadField() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('sh-load-field');
+  }
+
+  function loadSaidNode() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('sh-load-said');
+  }
+
+  // The load pane's line is a SEPARATE NODE from the copy pane's with separate
+  // words, so it needs its own drop rather than a share of dropSaid's — which
+  // plan 04-06 wrote as #share-said's and only #share-said's. The reason for
+  // dropping it is the same one written out at dropSaid, one pane across: a
+  // sentence about a paste stops being true the moment the text it was about
+  // changes, and the field is the one thing on this surface a student can
+  // change without pressing anything.
+  function dropLoadSaid() {
+    var said = loadSaidNode();
+    if (said === null) { return; }
+    said.textContent = '';
+    said.hidden = true;
+    said.dataset.shWhy = '';
+  }
+
+  // data-sh-why is data-sh-tier's idiom, one pane across and for the same
+  // reason: the TOKEN is written where a numbered check and the closing
+  // rehearsal can read it, and the student reads the sentence. It is a
+  // diagnosis aid and never the thing the four-sentences check asserts on —
+  // that row compares the SENTENCES, because four tokens on four identical
+  // sentences is exactly the failure it exists to catch.
+  function sayLoad(why, words) {
+    var said = loadSaidNode();
+    if (said === null) { return; }
+    said.textContent = words;
+    said.hidden = false;
+    said.dataset.shWhy = why;
+  }
+
+  // The record in, the sentence out. Split from the press so the four spellings
+  // are readable in one place and so a token this file does not know about —
+  // which can only mean [S04.3] grew a fifth and nobody came back here — falls
+  // to the shape sentence rather than to an empty line. An empty line is the
+  // one outcome worse than the wrong sentence: the student presses Load, sees
+  // nothing at all, and cannot tell a refusal from a dead button.
+  function loadWords(read) {
+    var why = (read && typeof read.why === 'string') ? read.why : 'shape';
+    var words = Object.prototype.hasOwnProperty.call(LOAD_SAID, why)
+      ? LOAD_SAID[why] : LOAD_SAID.shape;
+
+    // The `what` is [S04.3]'s own wording for the thing it could not accept and
+    // it is pasted in rather than re-spelled here, so a decoder that learns to
+    // refuse something new says so on this surface without an edit in [S07.4].
+    //
+    // The table above holds four COMPLETE sentences, so all four read side by
+    // side in one place; the content one is the only one that grows, and its
+    // full stop moves to the end of what it grew. Written as a replace rather
+    // than by storing that entry half-punctuated, because a table where three
+    // entries end in a stop and the fourth does not is a table a later reader
+    // will "fix".
+    if (why === 'content' && read && typeof read.what === 'string' && read.what !== '') {
+      words = words.replace(/\.$/, '') + ' — ' + read.what + '.';
+    }
+    return { why: why, words: words };
+  }
+
+  function pressLoad() {
+    var field = loadField();
+    if (field === null) { return; }
+
+    // TRIMMED BEFORE ANYTHING ELSE, and this is a COURTESY ON TOP OF A DECODER
+    // THAT DOES NOT NEED IT. [S04.3] trims its own input and plan 04-03 pinned
+    // that with two rows of its bad-input table that deliberately ADMIT the
+    // code: a good code with a trailing newline is a good code. A code pasted
+    // out of a chat message arrives with exactly that, and sometimes with
+    // spaces either side.
+    //
+    // SO DO NOT REMOVE THE DECODER'S OWN TRIM ON THE GROUNDS THAT THE PAGE
+    // ALREADY DOES IT. The decoder is reached from two other places — [S08]'s
+    // boot read of the address bar, and every row of the suite — and neither
+    // goes through this field. The two trims are not a duplication; they are
+    // one guard per entry point, and this one exists so the page never asks the
+    // op a question it could have answered itself.
+    var code = String(field.value || '').replace(/^\s+|\s+$/g, '');
+
+    // DISPATCH FIRST, page work after — the file's rule, unmodified. Read the
+    // banner above for why the page work still runs when this one refuses.
+    var read = App.ops.dispatch('loadBuildCode', { code: code });
+
+    if (read && read.ok === true) {
+      // Nothing left claiming anything about the paste before this one.
+      dropLoadSaid();
+
+      // THE PASTED TEXT IS LEFT WHERE IT IS, and that is a choice rather than
+      // an omission. Blanking the field on success would blank the evidence of
+      // what the student just did: a student who pastes the wrong classmate's
+      // code and only notices when the board arrives has the string still on
+      // screen to compare against the one in the thread, and a student who
+      // meant it pastes over it. It is also the D-19 answer this surface
+      // already gives that field — [S06.6] never writes it, because the text in
+      // it is the student's and not the artifact's, and a success is no more a
+      // licence to overwrite it than a repaint is.
+      //
+      // AND THE BOARD REDRAWS ITSELF FROM HERE. loadBuildCode commits
+      // STRUCTURALLY, so [S06]'s existing machinery rebuilds from state and
+      // this handler renders nothing. That is asserted rather than assumed: a
+      // loaded build moves units.length, and a sync-only frame over a moved
+      // roster is the exact bug commitStructural's own comment records — orphan
+      // cards on the page with no units behind them.
+      //
+      // AND NOTHING HERE TOUCHES THE ADDRESS BAR. [S04.4]'s mirror runs off the
+      // commit the op just made, so a loaded build reaches the hash by the same
+      // path every other edit in this file does. A second write from this
+      // handler would be a second producer for one string.
+      return;
+    }
+
+    var told = loadWords(read);
+    sayLoad(told.why, told.words);
+  }
+
   // ONE delegated listener on the dialog, never one per control: the surface
   // repaints on every frame while it is open, and per-node listeners on a
   // region that repaints have to be rebound on every frame — the first missed
@@ -12158,9 +12359,12 @@ App.interactions = (function () {
     if (!node || typeof node.closest !== 'function') { return; }
 
     // The line from the LAST press stops being on screen before this one does
-    // anything. pressCopy writes its own immediately afterwards; every other
-    // arm leaves the surface with nothing claimed.
+    // anything. pressCopy and pressLoad each write their own immediately
+    // afterwards; every other arm leaves the surface with nothing claimed.
+    // BOTH panes' lines, because the two panes are one dialog and a student
+    // moves between them without the surface ever closing.
     dropSaid();
+    dropLoadSaid();
 
     if (node.closest('[data-sh="done"]') !== null) { closeShare(); return; }
 
@@ -12171,11 +12375,18 @@ App.interactions = (function () {
     if (node.closest('[data-sh="to-copy"]') !== null) { showPane(dlg, 'copy'); return; }
     if (node.closest('[data-sh="copy"]') !== null) { pressCopy(); return; }
 
-    // data-sh="load" has NO ARM HERE, and the absence is the point. Loading a
-    // pasted code writes state, so it is a real op reached through
-    // App.ops.dispatch and it belongs to plan 04-07 — parking it in UI_ACTS to
-    // get it working one plan early would be exactly the move check 90b reads
-    // this partition off the page to catch.
+    // THE ONE ARM IN THIS LISTENER THAT REACHES [S05], and it reaches it the
+    // way every state-changing press in this file does: through
+    // App.ops.dispatch, with the op still absent from UI_ACTS. Plan 04-06 left
+    // this arm out deliberately and wrote down why; check 90b reads the
+    // partition off the page and reddens the day 'loadBuildCode' appears in
+    // UI_ACTS, which is the move that would make a refusal stop refusing.
+    //
+    // NO SECOND fire() PAYLOAD KEY WAS NEEDED FOR IT. The pasted text is read
+    // off the FIELD by this region's own handler rather than carried on the
+    // pressed control, which is 03.1-05's arrangement working a second time —
+    // [S07.1]'s single recorded exception is still plan 02.1-03's tokenId.
+    if (node.closest('[data-sh="load"]') !== null) { pressLoad(); return; }
   }
 
   // The same anti-double-fire rule every other root in this file uses, and for
@@ -12223,7 +12434,15 @@ App.interactions = (function () {
     // listener runs before the Ctrl+Z shortcut [S08] binds on document — so
     // this is the one moment at which a line claiming a copy can be taken down
     // ahead of the undo that would make it a claim about a different board.
+    //
+    // The load pane's line goes for a SECOND reason as well, and it is the
+    // stronger one: that sentence is a fact about the text in the paste field,
+    // and a keystroke in that field is the one way the text can change without
+    // anything being pressed. So typing over a refused code takes the refusal
+    // down with it rather than leaving a sentence about a string that is no
+    // longer there.
     dropSaid();
+    dropLoadSaid();
 
     // The same rule [S07.1] applies at #app and [S07.2] and [S07.3] each repeat
     // on their own roots, and it has to be written a fourth time because the
@@ -12275,8 +12494,9 @@ App.interactions = (function () {
   function onShareClose() {
     if (typeof document === 'undefined') { return; }
     // The visit ended, so nothing it said about a press is still on screen when
-    // the next one starts.
+    // the next one starts. Both panes, for the reason the pane move drops both.
     dropSaid();
+    dropLoadSaid();
     var opener = document.querySelector('[data-k="sh"]');
     if (opener && typeof opener.focus === 'function') { opener.focus(); }
   }
