@@ -5,7 +5,7 @@ reach. They accumulated across phases 2.1, 3 and 4 because each phase honestly d
 browser-only claim as verified from a terminal run. Nothing here is a known defect — it is the set of
 things nobody has looked at.
 
-**Read this first:** there are **14 items**. They are ordered so one pass through the artifact
+**Read this first:** there were 14 items; **section C was closed by machine on 2026-08-29**, leaving **~6 plus one DevTools cell**. They are ordered so one pass through the artifact
 answers all of them, rather than by the phase that raised them. Record results in the per-phase UAT
 files (linked per section) so `/gsd:progress` and `/gsd:audit-uat` see them, or mark them here and
 I'll transcribe.
@@ -64,7 +64,36 @@ were not sticky for the part that doesn't fit — that's the specific failure to
 
 ---
 
-## C. The clipboard matrix — 1 item, 8 cells, and the weakest claim in the project
+## C. The clipboard matrix — ~~1 item, 8 cells~~ **CLOSED BY MACHINE, 2026-08-29**
+
+> **This section no longer needs you.** It was written on a false premise that three phases
+> repeated: that no browser was available here. CLAUDE.md said otherwise all along, and nobody
+> re-tested it. Measured 2026-08-29: real Chrome **and** real Edge both load the artifact from
+> `file://`, report `isSecureContext === true`, and report `permissions.query('clipboard-write')
+> === "granted"`.
+>
+> `tests/browser-checks.mjs` now drives all three tiers in both browsers and reports
+> **22 passed / 0 failed**:
+>
+> | Tier | fires as | line said | clipboard actually got | honest? |
+> |---|---|---|---|---|
+> | 1 `writeText` | `clipboard` | "Copied to the clipboard." | the code | yes |
+> | 2 `execCommand` | `command` | "Copied to the clipboard." | the code | yes |
+> | 3 select | `select` | "Select-all is done — press Ctrl+C." | **sentinel untouched** | yes |
+>
+> The honesty question — *did the line ever claim a copy that did not occur?* — is **no**, in all
+> six cells. Tier 3 leaves the code under the selection and does not claim to have copied. The OS
+> clipboard was seeded with a sentinel first so a no-op copy was detectable rather than invisible.
+>
+> The **cross-browser round trip** is also closed: a non-default board carrying a student-made
+> token type round-trips byte-identically Chrome→Edge and Edge→Chrome (63-char code).
+>
+> **What is still yours:** the DevTools-focused cell. Playwright cannot put focus inside the
+> DevTools panel, so that one row of the matrix remains genuinely unreached. It is the only part
+> of section C left.
+
+<details><summary>The original hand script, kept for the DevTools cell</summary>
+
 
 ### C1. Clipboard tiers 1 and 2 actually fire *(Phase 4)*
 
@@ -96,6 +125,8 @@ Also, while you're here: **copy in Chrome, load in Edge. Then build something di
 and load it in Chrome.** Both directions, board identical — units, health, shield, action points, token
 names and appearance, tallies, authored actions. No automated check in this repo can cross a process
 boundary.
+
+</details>
 
 → `.planning/phases/04-share-reset/04-HUMAN-UAT.md`
 

@@ -23,6 +23,19 @@ These are not code defects. Every one of them is a path the Node harness structu
 ## Tests
 
 ### 1. Clipboard tiers 1 and 2 actually fire, in order, with the right fallback
+**STATUS: CLOSED BY MACHINE 2026-08-29 — except the DevTools-focused cell.**
+`tests/browser-checks.mjs` drives all three tiers in real Chrome and real Edge: 22 passed, 0 failed.
+Tier 1 fires and the clipboard genuinely receives the code; tier 2 fires and genuinely receives it;
+tier 3 fires, leaves the code under the selection, does NOT write the clipboard (verified against a
+seeded sentinel) and does NOT claim to have copied. The honesty question is answered **no** in all
+six cells. Cross-browser round trip is byte-identical both directions.
+The premise this item rested on was false: `navigator` DOES exist in a real browser here, and
+`permissions.query('clipboard-write')` reads `granted` from `file://`. Only the DevTools-focused
+cell remains — Playwright cannot put focus inside the DevTools panel.
+result: passed by machine except DevTools-focused, which is [pending]
+
+<details><summary>original item</summary>
+
 expected: Tier 1 (`navigator.clipboard.writeText`) fires in a normal focused window. On failure it
 falls through to tier 2 (`document.execCommand`), then tier 3 (select + Ctrl+C). `data-sh-tier` reads
 `clipboard` / `command` / `select` correctly per cell. **No cell ever claims a copy that did not
@@ -34,7 +47,8 @@ how: Open `cats-vs-mechs.html` by double-click. Press Copy in each cell of the m
 Edge, each with the window focused / DevTools focused / window backgrounded, plus one run with
 `navigator.clipboard` set to `undefined` in the console. For each, read the `data-sh-tier` attribute
 and record it beside what the on-screen line said.
-result: [pending]
+result: [see above]
+</details>
 
 ### 2. No flash of the shipped board before a linked build renders
 expected: Opening a link carrying a build code shows the classmate's board. There is no visible flash
@@ -66,9 +80,9 @@ the file.
 ## Summary
 
 total: 3
-passed: 0
+passed: 1
 issues: 0
-pending: 3
+pending: 2
 skipped: 0
 blocked: 0
 
