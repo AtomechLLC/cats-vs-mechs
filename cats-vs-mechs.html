@@ -5617,6 +5617,400 @@ App.ops = (function () {
     return true;
   }
 
+  /* ===== FIGHT-02, FIGHT-13: ADVANCE — THE ONE APPLIER IN THIS FILE =========
+
+     THE TABLE BELOW IS THE PHASE'S LOAD-BEARING DECISION AND IT IS WRITTEN
+     HERE RATHER THAN IN A PLAN FILE, in the register resetToDefaults and the
+     reset confirmation both use for a ruling that had admissible alternatives.
+     It is the paragraph most likely to erode under implementation pressure,
+     and a plan file is not where it will be read.
+
+     ADVANCE MAY RESTATE; IT MAY NEVER DECIDE. Every number Advance writes has
+     to be one the student put on the board themselves — an action's own
+     declared cost, an action's own declared terms, the unit they named as
+     performer, the unit they named as the one it points at. The moment Advance
+     would have to CHOOSE between two admissible readings, it stops and the
+     table rules.
+
+     ADVANCE DOES                              WHY
+     ----------------------------------------  -------------------------------
+     subtract the declared action's own cost    ACT-02: a cost is consumed when
+       from that side's pool                      the action fires
+     apply the action's own xf terms to the      ACT-04 and ACT-05: the terms
+       units the student named                    are the student's own rule
+     split a negative delta on a token in        FIGHT-16, the one resolution
+       DAMAGE_KEYS across shield then health       rule the developer set
+     clamp every write through int()             int()'s shipped contract
+     record what it did, and the board as it     FIGHT-14: bookkeeping is this
+       stood BEFORE the round resolved             tool's whole job
+     step the round and empty the declarations   FIGHT-13
+     refill each side's pool from the build      the shipped projection already
+                                                   assumes it — paragraph below
+
+     ADVANCE DOES NOT                          WHY
+     ----------------------------------------  -------------------------------
+     choose an action                           the student declares it, and
+                                                  nothing here picks one
+     choose a unit for an action to point at    03.1-07 ruled it: who an action
+                                                  may be pointed at is exactly
+                                                  the sort of question this
+                                                  tool does not answer
+     decide whether a relationship applies      PROJECT.md's oldest Out of
+                                                  Scope entry. REFERENCE.beats
+                                                  has NO consumer in [S05] and
+                                                  gains none here
+     decide whether an effect keyword fires     the same entry. `keywords` has
+                                                  NO writer at all and gains
+                                                  none here
+     test a requirement against a unit          App.model.affordability REPORTS
+                                                  what is present; whether a
+                                                  requirement is met is the
+                                                  table's ruling
+     decide whether a unit is dead              D-00d. `alive` is stored and
+                                                  never inferred, so a unit at
+                                                  zero health that a student
+                                                  ruled survived stays
+                                                  representable
+     refuse a declaration a side cannot pay     D-23. The shortfall is
+       for                                        reported, never a gate
+     refill a shield                            Recharge's shield gain is
+                                                  DELIBERATELY ABSENT from
+                                                  DEFAULTS, defended there by a
+                                                  paragraph and an [S09.1] row
+     decide the fight is over                   D-26. A board where one side is
+                                                  all dead is a thing a student
+                                                  READS. It is not a thing this
+                                                  tool SAYS
+
+     [S09.10] carries the same claim read off the live export list, and
+     [S09.12] carries it driven through a real round. Two angles on one rule,
+     because this is the rule that will be argued about.
+     ---------------------------------------------------------------------- */
+
+  // WHICH SIDE HOLDS A UNIT, refused BY NAME. `at` may name a unit on EITHER
+  // side — 03.1-07's ruling, carried in declareAction's comment above — so the
+  // side a term's unit belongs to is a fact to look up and never one to assume
+  // from the declaration. The performer needs no lookup at all: `by` names one
+  // of the acting side's units, so a caster-side term lands on d.side whether
+  // or not a performer was named.
+  function sideHolding(f, unitId) {
+    for (var i = 0; i < SIDES.length; i++) {
+      var units = f[SIDES[i]].units;
+      for (var j = 0; j < units.length; j++) {
+        if (units[j].id === unitId) { return SIDES[i]; }
+      }
+    }
+    throw new Error('No unit "' + String(unitId) + '" anywhere on this board');
+  }
+
+  /* THE RULING PASS, and it is tallyOwner's two-call shape widened to a whole
+     round: every refusal is taken HERE, on the LIVE board and OUTSIDE the
+     commit, so the mutator below writes on the detached copy with nothing left
+     to throw. That property is startFight's paragraph and it is the one this
+     op needs most — a round that refused halfway through would leave a board
+     no single Ctrl+Z can reach.
+
+     THE FOUR NUMBERS THE FIGHT SLICE HOLDS, written as a list because the
+     slice's shape IS a list: a unit carries `hp` and `shield`, a side carries
+     `ap`, and any type a student invented carries a tally at whichever scope
+     it was created with. `dmg` and `dead` are the two shipped types that are
+     DRAWING VOCABULARY with no number anywhere on the board, so a term naming
+     one lands nowhere. That is D-16's treatment rather than a gap: the
+     shipped projection already NAMES a term it cannot model through
+     unmodelled(), the page writes a sentence around that name, and the
+     alternative is Advance inventing a home for a number the board does not
+     hold.
+
+     D-24 IS KEPT BY HAVING NO SPECIAL CASE. A student-made type reaches
+     tallyType and tallyOwner, which are the same two functions setTally runs,
+     and there is no second tier anywhere below. */
+  function ruleTerm(f, d, act, x, vocab) {
+    var who = requireXfWho(x && x.who);
+    var tok = (x && typeof x.tok === 'string') ? x.tok : '';
+
+    // ACT-07's rule applied at the one place a term is SPENT rather than
+    // drawn: a term naming a type this board no longer holds is refused BY
+    // NAME, naming the action and the type, instead of being skipped in
+    // silence. A student who removed a type has to fix it where the mistake is.
+    if (!Object.prototype.hasOwnProperty.call(vocab, tok)) {
+      throw new Error('"' + String(act.name) + '" changes "' + String(tok)
+        + '", and there is no token type "' + String(tok) + '" on this board.');
+    }
+
+    var caster = (who === App.data.XF_WHO[0]);
+    var unitId = caster ? d.by : d.at;
+    var side = caster ? d.side : (unitId === null ? null : sideHolding(f, unitId));
+    var plan = { who: who, tok: tok, side: side, unitId: unitId, kind: '', rec: null };
+
+    // An amount that is not a whole number cannot be applied, and it is read
+    // through the same Number.isInteger test termDamage takes: from Phase 4 a
+    // term can arrive out of a pasted build code, and a delta of "3" would
+    // subtract its way to a NaN on a projector.
+    if (!Number.isInteger(x.d)) { return plan; }
+    plan.delta = x.d;
+
+    if (tok === 'ap') {
+      // The pool is per side, so this one needs a side and not a unit.
+      if (side !== null) { plan.kind = 'ap'; }
+      return plan;
+    }
+    if (tok === 'hp' || tok === 'shield') {
+      if (unitId !== null) { plan.kind = tok; }
+      return plan;
+    }
+    if (App.data.TOKEN_IDS.indexOf(tok) !== -1) { return plan; }
+
+    plan.rec = tallyType(vocab, tok);
+    if (plan.rec.scope === 'side') {
+      if (side !== null) { plan.kind = 'tally'; }
+      return plan;
+    }
+    if (unitId !== null) { plan.kind = 'tally'; }
+    return plan;
+  }
+
+  function ruleRound(state, f) {
+    var vocab = state.build.tokens;
+    return f.decl.map(function (d) {
+      // The action is read off the LIVE build through the shipped lookup and a
+      // departed one is refused BY NAME — ACT-07's case applied to Advance,
+      // because firing a rule with a term missing out of it is worse than
+      // saying which rule went away.
+      var act = findAction(d.side, d.act);
+      if (act === null) {
+        throw new Error('There is no action "' + String(d.act) + '" on this side.');
+      }
+      var terms = termsOf(act, 'xf').map(function (x) {
+        return ruleTerm(f, d, act, x, vocab);
+      });
+      // `req` is NOT walked, and the absence is the ruling: Advance does not
+      // test a requirement against a unit. affordability reports what is
+      // present and the table rules whether that meets the requirement.
+      return { d: d, act: act, terms: terms };
+    });
+  }
+
+  /* THE ONE GENUINELY NEW RULING THIS OP OWES A WRITTEN ANSWER, WITH ITS TWO
+     DECLINED ALTERNATIVES BESIDE IT: WHAT HAPPENS WHEN THE POOL CANNOT PAY.
+
+     Taken: THE POOL FLOORS AT 0, THE SHORTFALL IS RECORDED, AND THE TERMS
+     STILL LAND. int()'s floor is 0 everywhere in this file, and apSpent is
+     floored IN THE DERIVATION with a comment saying that a caller repairing it
+     afterwards would be a second definition of what the number means — a
+     projector reading "AP spent: -2" is the failure that comment exists to
+     prevent, and it is the same failure from the other end here.
+
+     Declined 1: let the pool go negative and show it. Truthful about the
+     over-commitment and untruthful about the pool, which is a quantity of
+     tokens on a board and cannot be less than none of them.
+     Declined 2: apply nothing, and record that the cost was unpaid. That is
+     Advance deciding whether an action happens, which is D-23's other half:
+     the declaration was allowed to stand precisely so the table could argue
+     about it, and refusing it one layer down puts the refusal where no gate is
+     watching.
+
+     THE TERMS STILL LAND for the same reason. What an over-committed round
+     does to a board is the student's ruling; the tool records what was
+     declared, what was actually paid, and by how much the pool fell short.
+
+     THE POOL REFILLS EACH ROUND, AND THIS IS AN INFERENCE BEING PROMOTED TO A
+     RULING RATHER THAN A PREFERENCE. Nothing in this file states it today, but
+     bestPair computes per-turn throughput from faction.ap and turnsToWipe
+     multiplies that across turns, so the shipped projection ALREADY assumes a
+     refill — and measured, a non-refilling pool makes the shipped fight never
+     resolve at all. So it is written down here instead of left to be
+     rediscovered. The refill is the LAST act of the round, from
+     state.build[side].ap, which puts two facts on the record at once:
+       - the pool a student reads while declaring is the pool for the round
+         they are declaring, always full, never last round's leftovers;
+       - FIGHT-10's boundary, stated rather than accidental — a build edit made
+         mid-fight reaches the fight at the NEXT refill and not before.
+     Its cost, named: action points do not carry across a round boundary in
+     either direction. Unspent points are gone and a student-authored term that
+     GAINED points applies to the round it landed in and no later one. That is
+     one rule rather than two, and the alternative — carrying a delta forward —
+     makes the pool a second drifting number the projection cannot see.
+
+     THE SHIELD DOES NOT REFILL. Recharge carries the `shield` keyword and its
+     shield gain is deliberately absent from DEFAULTS, defended there by a
+     paragraph and a shipped [S09.1] row. Advance restores no shield on its
+     own; a student who rules "Recharge gives 3 shield" records it by hand
+     through plan 05-05's op. A student's OWN authored `+shield` term is a
+     different thing entirely and it lands, because that is a number they wrote
+     down themselves.
+
+     THE SPLIT IS TAKEN THROUGH App.model.termDamage, WHICH IS THE FILE'S ONE
+     READING OF A TERM AS DAMAGE, rather than through a second membership test
+     written here. That reader answers 0 for anything that is not a negative
+     delta on a DAMAGE_KEYS token aimed at the unit the declaration points at —
+     so a caster-side negative delta is a plain signed write and no shield
+     absorbs it. Named because it is arguable: whether self-inflicted harm
+     should spend a shield is a ruling, and it belongs to the table rather than
+     to a second definition of damage in here. */
+  function applyTerm(g, record, plan, entry) {
+    if (plan.kind === '') { entry.unlanded.push({ who: plan.who, tok: plan.tok }); return; }
+    if (plan.kind === 'ap') {
+      var pool = g[plan.side];
+      pool.ap = int(pool.ap + plan.delta, 0, MAX_ALLOC, 'action points');
+      return;
+    }
+    if (plan.kind === 'tally') {
+      // tallyOwner's second call, on the detached copy, where it cannot throw
+      // because ruleTerm already ruled on the live board. The fight side has
+      // the same { units: [ { id } ] } shape the build side has, which is what
+      // lets one function serve both.
+      var owner = tallyOwner(g, plan.side, (plan.rec.scope === 'side') ? null : plan.unitId, plan.rec);
+      writeTally(owner, plan.tok, int(readTally(owner, plan.tok) + plan.delta,
+        0, MAX_ALLOC, 'a tally of "' + plan.rec.name + '"'));
+      return;
+    }
+    var unit = findUnit(plan.side, plan.unitId, g[plan.side].units);
+    if (plan.kind === 'shield') {
+      unit.shield = int(unit.shield + plan.delta, 0, MAX_ALLOC, 'shield');
+      return;
+    }
+    var damage = App.model.termDamage({ who: plan.who, tok: plan.tok, d: plan.delta });
+    if (damage === 0) {
+      unit.hp = int(unit.hp + plan.delta, 0, MAX_ALLOC, 'health');
+      return;
+    }
+    var split = App.model.damageSplit(unit.shield, unit.hp, damage);
+    unit.shield = int(unit.shield - split.shield, 0, MAX_ALLOC, 'shield');
+    unit.hp = int(unit.hp - split.health, 0, MAX_ALLOC, 'health');
+    entry.hit.shield += split.shield;
+    entry.hit.health += split.health;
+    entry.hit.spare += split.spare;
+    // AND `alive` IS NOT TOUCHED, HERE OR ANYWHERE ELSE IN THIS OP. Zero health
+    // PROMPTS a death ruling from the table; it never causes one (D-00d).
+    // setUnitHp's comment says it, aliveCount's says it, damageSplit's says it,
+    // and this is the fourth — because this is the line where somebody would
+    // actually write it, and [S09.12] reddens both directions the day they do.
+  }
+
+  function advanceRound() {
+    // Every guard OUTSIDE the commit, this section's stated rule, and fightOf
+    // on the LIVE state for two reasons at once: the ids below have to be
+    // checked against the board that is actually there, and the label needs the
+    // round number before the funnel is entered.
+    var state = App.state.get();
+    var f = fightOf(state);
+    var plans = ruleRound(state, f);
+    var next = f.round + 1;
+
+    // THE LABEL CARRIES THE ROUND NUMBER AND SHORTENING IT IS THE BUG.
+    // Measured: two commit() calls under the SAME label inside COALESCE_MS
+    // (500) fold into ONE undo entry, and the window slides on each repeat — so
+    // two fast Advances both labelled 'advance' become a single Ctrl+Z that
+    // rewinds two rounds and leaves the round between them unreachable. Plan
+    // 03.1-06 recorded the same trap and the same fix for term slots, and
+    // resetFight's comment names this op as the contrasting case: two resets in
+    // a row SHOULD fold, because a second reset with nothing in between
+    // produces the identical board. Two Advances never do.
+    //
+    // commitStructural RATHER THAN commit, and commitStructural's own rule asks
+    // for exactly this sentence. Its stated trigger is an op whose mutator
+    // changes what structure() would BUILD, and today Advance changes neither
+    // units.length nor s.fight. It is taken now anyway because FIGHT-14's
+    // history is one region PER RESOLVED ROUND — plan 05-08's, and card
+    // creation by definition — and the op that pushes the record and the frame
+    // that draws it must not be able to disagree about which tier they are on.
+    // The declaration ops took the other answer and named the condition that
+    // would change it; this one meets that condition by requirement rather than
+    // by possibility. The cost is one structure() pass per press, measured at
+    // 2.24 ms on the shipped board, once per Advance rather than per frame.
+    commitStructural('advance to round ' + next, function (s) {
+      var g = fightOf(s);
+
+      /* THE ORDER, FIXED AND STATED HERE RATHER THAN LEFT TO READING ORDER:
+           1. push the round record, carrying the board as it stood BEFORE this
+              round resolved — through this file's own JSON deep-copy idiom,
+              which doubles as enforcement of the JSON-clonable rule;
+           2. drop the oldest record once the list is over MAX_PAST_ROUNDS;
+           3. walk the declarations in the order the STUDENT made them;
+           4. empty the declarations;
+           5. step the round and refill both pools from the build.
+
+         WHY THE WALK IS SEQUENTIAL RATHER THAN TAKEN AGAINST A FROZEN
+         PRE-ROUND SNAPSHOT, which is the reading "at once" most invites: two
+         hits landing on the same unit have to spend the SAME shield point once
+         between them, and a snapshot reading would let each of them spend it
+         in full. That is a shield refilling by arithmetic, which is the one
+         thing the paragraph above says Advance may not do. So each term reads
+         the board as the terms before it left it.
+
+         WHICH MEANS THE ORDER CAN MATTER, and saying so is cheaper than
+         implying it cannot. Measured on the shipped board and recorded in
+         05-04-SUMMARY.md: reordering the declarations changes nothing there,
+         because no two shipped declarations reach the same shield. The order
+         is DECLARATION ORDER — the order the student made them in, which is
+         the order the ledger reads back — and it is chosen for legibility. It
+         is not a claim about who acts first: both sides resolve in one press,
+         one commit and one Ctrl+Z, which is what FIGHT-13's "at once" means. */
+      var record = {
+        round: g.round,
+        was: {
+          cats: JSON.parse(JSON.stringify(g.cats)),
+          mechs: JSON.parse(JSON.stringify(g.mechs))
+        },
+        did: []
+      };
+      g.past.push(record);
+      // A READABILITY CAP AND NOT A PERFORMANCE ONE — plan 05-02's register,
+      // and the constant is read rather than the number re-typed. The OLDEST
+      // goes, because a history whose newest entry silently vanished would
+      // still be the right length.
+      while (g.past.length > App.data.MAX_PAST_ROUNDS) { g.past.shift(); }
+
+      plans.forEach(function (p) {
+        var pool = g[p.d.side];
+        // actionApCost is the file's ONE reader of a cost and it answers null
+        // for a cost it has no denominator for — a cost a student wrote in
+        // health, say. Advance pays what that reader prices and pays nothing
+        // when it prices nothing, because inventing a price is deciding.
+        var cost = App.model.actionApCost(p.act);
+        var priced = Number.isInteger(cost) ? cost : 0;
+        var paid = Math.min(priced, pool.ap);
+        pool.ap = int(pool.ap - paid, 0, MAX_ALLOC, 'action points');
+
+        /* WHAT THE RECORD CARRIES, AND WHAT IT DELIBERATELY DOES NOT.
+           `was` above plus the live board IS the complete record of every
+           number that moved — that is FIGHT-15's own design, a diff derived at
+           render time and never stored. So this entry carries only the two
+           things a board diff CANNOT show: what was actually paid against what
+           was declared, and the split's three numbers, of which `spare` leaves
+           no mark on any board at all. A second list of from/to pairs beside
+           the diff would be two structures both claiming to be what happened,
+           which is exactly why plan 05-02 deleted `log` rather than giving it
+           a writer.
+           `unlanded` is the third thing a diff cannot show: a term that named
+           no unit, or named a type this board holds no number for, moved
+           nothing — and a student's own declared term quietly doing nothing
+           with no record of it is the tool dropping their rule. `hand` is NOT
+           seeded: plan 05-05 records a ruling made by hand, and a field with
+           no writer beside a record that already has one is `log` again. */
+        var entry = {
+          side: p.d.side,
+          act: p.d.act,
+          by: p.d.by,
+          at: p.d.at,
+          apPaid: paid,
+          apShort: priced - paid,
+          hit: { shield: 0, health: 0, spare: 0 },
+          unlanded: []
+        };
+        p.terms.forEach(function (plan) { applyTerm(g, record, plan, entry); });
+        record.did.push(entry);
+      });
+
+      g.decl = [];
+      g.round = next;
+      SIDES.forEach(function (side) {
+        g[side].ap = int(s.build[side].ap, 0, MAX_ALLOC, 'action points');
+      });
+    });
+    return next;
+  }
+
   // One commit, therefore one undo entry (D-12). The undo stack is never
   // cleared here: a mis-clicked reset has to be recoverable.
   //
@@ -6832,6 +7226,12 @@ App.ops = (function () {
       case 'declare': return declareAction(p.side, p.actionId, p.by, p.at);
       case 'clearDeclaration': return clearDeclaration(p.index);
       case 'clearDeclarations': return clearDeclarations();
+      // FIGHT-13, ONE KEY, AND NO NEW fire() PAYLOAD SHAPE. [S07.3] declined to
+      // add a second payload key and [S07.4] declined again; this arm declines
+      // a third time. Advance takes no argument at all — every number it needs
+      // is already on the board — and the control plan 05-10 attaches carries a
+      // private data-* its own delegated listener reads.
+      case 'advanceRound': return advanceRound();
       case 'reset': return resetToDefaults();
       // One key, named, like every arm around it. The BOOT loader beside this
       // op deliberately has no arm at all — see the absence block below.
@@ -6994,6 +7394,13 @@ App.ops = (function () {
     clearDeclaration: clearDeclaration,
     clearDeclarations: clearDeclarations,
     MAX_DECLARATIONS: MAX_DECLARATIONS,
+    // FIGHT-13. THE ONE APPLIER IN THIS FILE, and the table above it says in
+    // full what it does and what it never decides. It is exported here rather
+    // than tucked beside the lifecycle ops because it is neither a lifecycle op
+    // nor a declaration op: it is the single thing that SPENDS a declaration.
+    // [S09.10]'s first boundary row is an allowlist holding exactly this name,
+    // so every other spelling of an applier still reddens the day one arrives.
+    advanceRound: advanceRound,
     resetToDefaults: resetToDefaults,
     // The student's paste, and [S08]'s boot load. The second has no dispatch
     // arm on purpose — the absence block above says why.
