@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student (plans complete 2026-08-28, human verification outstanding)
 - [x] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides (completed 2026-08-29)
 - [x] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back (completed 2026-08-29)
-- [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it
+- [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it (plans complete 2026-08-29, 11 plans)
 
 ## Phase Details
 
@@ -291,15 +291,55 @@ resolution rule the developer specified directly.
 student's own rule would do. This phase is where a declared action *lands*, on Advance. That split
 is why Phase 3.1 ships a preview rather than an apply.
 
-**Plans**: 3 plans
+**Plans**: 11 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 05-01: Fight state slice + turn/round advance and rewind + shared AP pool spend/refill + reset-fight — owns the `state.fight` and `ops.fight` blocks
-- [ ] 05-02: Fight render and interactions — damage application, `alive` toggle and dead-unit presentation, universal override with marker, append-only combat log, mid-fight-edit notice, projection/reference persistence into fight mode — owns the `render.fight` and `interactions.fight` blocks
-- [ ] 05-03: Playtest the shipped 9v3 default twice end to end, tune `data` defaults if it blows out, replay, record the result
+- [ ] 05-01-PLAN.md — the gate learns to read a fight: eleven of the nineteen measured word-list holes closed by measurement, the relationship verb closed by SCOPE rather than by stem so `Fly beats Slash` survives, and a SECOND Layer C harvest taken with a fight running plus `FIGHT_FLOOR` — owns `tests/selftest-node.cjs`'s word lists, harvests and limitations entries (wave 1)
+- [ ] 05-02-PLAN.md — `[S03]`'s slice shape rewritten in the change that makes it untrue: `turn` retired, `log` folded into `past`, `decl`/`past`/`tally` added, `resetFight` in one commit, the DELIBERATELY ABSENT block at :6397-6412 turned into its positive form, and `[S09.12]` opened above any no-DOM bracket (wave 2)
+- [ ] 05-03-PLAN.md — `[S02]`'s shield-then-health split as three numbers and no prose, and `[S05]`'s declare / clear ops writing `{ side, act, by, at }` — keys chosen to clear check 73c rather than widen it — with the nothing-resolves-while-declaring row (wave 3)
+- [ ] 05-04-PLAN.md — `advanceRound`: one op, one commit, the round number in the label, and `[S09.10]` rows 1 and 3 turned in the open into their positive form while row 2 stays intact — plus a fourth row making "no relationship consumer, no keyword writer" mechanical (wave 4)
+- [ ] 05-05-PLAN.md — hand rulings: `setFightShield` (the writer named for this plan two phases ago), `nudgeFightHp`, the withheld `setUnitHp` / `setAlive` arms, and a ruling recorded as an event in its round rather than as a flag on a value — `[S09.3]`'s shield tripwire turned (wave 5)
+- [ ] 05-06-PLAN.md — the shell: two topbar controls spending D-04's last reservation with the closure written down, an in-page fight region at the top of the page, a ledger root OUTSIDE `#board`, `[C14]`'s frame, and `KNOWN_IDS` + stubs arriving with the ids (wave 6)
+- [ ] 05-07-PLAN.md — `[S06.7]` the fight bar: the round, both pools as spent and available separately, both survivor counts, and the declaration form — nothing disabled, nothing pre-selected, one node per fragment — plus `[C14.1]` (wave 7)
+- [ ] 05-08-PLAN.md — `[S06.8]` the ledger: past boards grown by DELTA only with node identity asserted, each row carrying that round's actions, splits as three facts and by-hand rulings, and the live board's what-changed reading derived at render time — plus `[C14.2]` (wave 8)
+- [ ] 05-09-PLAN.md — the board in fight mode: the dead marker off the stored flag, an alive toggle the marking does not hide, the by-hand marker derived from the round's record, FIGHT-10's permanent line, and PROJ-05 reconciled — the strip keeps describing the allocation, the fight's figures sit beside it, `turnsToWipe`'s third argument finally used — plus `[C14.3]` (wave 9)
+- [ ] 05-10-PLAN.md — `[S07.5]` through the four seams with not one line of `[S07.1]` edited, and the interaction gate's fight checks: the act partition read off the page, the ledger's attributes by walking the region, the disabled set across three boards, and the phase's own acceptance run (wave 10)
+- [ ] 05-11-PLAN.md — the playtest: the shipped 9v3 played end to end TWICE, hot-seat, adjudicating as a student would; retune `[S01] DEFAULTS` and replay until it holds; thirty-eight numbered items with D-26 first; and the two research documents that predicted the blowout backwards corrected (wave 11, blocking human-verify checkpoint)
 
-**Verification note** (flagged by research): Pitfall 10 (Lanchester's square law) cannot be verified by reading code. Plan 05-03 is a scheduled activity, not a review step, and it is a gate on the phase — not optional polish.
+**Plan-split note (set during planning).** Eleven sequential waves, no parallelism, for the reason
+Phases 2.1, 3, 3.1 and 4 each recorded: everything lands in one HTML file, so two plans in the same
+wave could not own disjoint regions. The count grew from 3 to 11 because the ROADMAP's sketch predates
+THE ROUND LOOP being specified: nineteen requirements is the largest phase in the project, and Phases
+3.1 and 4 each needed 8 for seven. Each plan is capped at 2-3 tasks to stay inside a single context
+window.
+
+**Two prerequisites are deliberately in wave 1**, following plan 03.1-01's precedent. Layer C harvests
+`#app` in SETUP MODE ONLY — harness limitations entry 5 — so every word the fight surface renders is
+currently invisible to the one layer that reads render-time copy. And nineteen evaluative words were
+measured clean against the live lists, of which this phase would walk into every one. Both are closed
+before a word of this phase's copy exists.
+
+**Three shipped tripwires are aimed at this phase and each is turned in the change that invalidates
+it**, never deleted, following plan 03.1-04: `[S09.10]` row 1 (no applier export) and row 3 (which
+*drives* `dispatch('advanceRound')` expecting a throw) become positive forms naming `advanceRound` as
+the one applier that exists; `[S09.3]`'s shield row becomes a pair distinguishing the two slices; and
+`[S05]`'s DELIBERATELY ABSENT block at :6397-6412, which names this phase's ops by number, is
+rewritten rather than left as a banner that lies. **`[S09.10]` row 2 is NOT touched** — its key-name
+walk is honoured by naming (`by`/`at`, `hand`/`from`/`to`) rather than widened, because widening it
+would cost the guarantee it exists for.
+
+**Verification note** (flagged by research, and now measured): Pitfall 10 cannot be verified by reading
+code — and reading code got its direction wrong. Simulated over the artifact's own functions, the
+shipped default fails at **67% of the winning force intact against a ~30% bar**, and the loser is the
+**swarm**, not the elites: the shared action-point pool of 3 caps Cat throughput at three attacks per
+round, so 3, 6 and 9 cats produce a byte-identical outcome and Lanchester's square law never fires.
+Both shipped relationships also point Mechs-over-Cats, so faithful adjudication widens the gap. Plan
+05-11 is a scheduled activity and a gate, not a review step, and it carries the measured AP sweep so
+the person playing has the candidate dial in hand.
+
+**Per D-25, no plan before 05-11 touches `DEFAULTS.cats.ap`.** The measurement is a strong prediction
+and criterion 5 asks for a played fight on purpose.
 
 ## Progress
 
@@ -317,7 +357,7 @@ parallel if desired.
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
-| 5. Fight Loop & Playtest | 0/3 | Not started | - |
+| 5. Fight Loop & Playtest | 0/11 | Plans complete 2026-08-29 | - |
 
 ## Coverage
 
