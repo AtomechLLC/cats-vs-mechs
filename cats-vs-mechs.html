@@ -20843,15 +20843,33 @@ App.selftest = (function () {
     App.ops.startFight();
     App.state.flush();
     var pricey = build().cats.actions.filter(function (a) { return a.id === 'slash'; })[0];
-    var landedAt = App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+
+    // THE DRIVE IS INSIDE A try, AND THAT IS THE POINT OF THE ROW RATHER THAN
+    // CAUTION AROUND IT. The failure this row exists to catch is a refusal, and
+    // a refusal is an exception — so driving it bare makes the row THROW rather
+    // than FAIL. Measured: PROBE J did exactly that and cost the suite thirteen
+    // of its own rows, a dirty board and an unrelated red interaction check,
+    // reporting a stack trace where a reader needed two numbers. Plan 05-02
+    // learned the same thing from tallyOf and the rule it wrote down holds
+    // here: a row must be able to say "REFUSED, expected 0"; it must not be
+    // able to abort the run.
+    var landedAt;
+    try {
+      landedAt = App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    } catch (refused) {
+      landedAt = 'REFUSED: ' + refused.message;
+    }
     App.state.flush();
     var shortfall = App.model.affordability(fight().cats, pricey);
+    var standing = fight().decl[0] || {};
 
     t.eq('A SIDE WITH NO ACTION POINTS LEFT CAN STILL DECLARE, and the tool '
       + 'reports the shortfall in numbers instead of refusing the press. A '
       + 'student who wants to declare something they cannot pay for and argue '
-      + 'about it at the table is the workshop working correctly',
-      [landedAt, fight().decl.length, fight().decl[0].act,
+      + 'about it at the table is the workshop working correctly. A REFUSAL '
+      + 'HERE IS A PLAN FAILURE AND NOT A SAFETY FEATURE — it would be the tool '
+      + 'adjudicating, which is PROJECT.md\'s oldest Out of Scope entry',
+      [landedAt, fight().decl.length, standing.act || 'nothing declared',
         shortfall.apCost, shortfall.apHave],
       [0, 1, 'slash', 1, 0]);
 
