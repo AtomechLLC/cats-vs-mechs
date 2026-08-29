@@ -11874,6 +11874,9 @@ App.interactions = (function () {
   // writing the attribute first is what makes the frame happen at all.
   function showPane(dlg, pane) {
     dlg.dataset.shPane = pane;
+    // Nothing said about the last press survives a pane move or a fresh open —
+    // see dropSaid, which is where the whole reason is written down.
+    dropSaid();
     App.render.share(App.state.get());
   }
 
@@ -11933,6 +11936,210 @@ App.interactions = (function () {
     if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
   }
 
+  /* ---- the copy press (SHARE-01, plan 04-06) ---------------------------- */
+
+  /* ================================================================
+     THE ONE PLACE IN THIS FILE WHERE PAGE WORK COMES FIRST, AND WHY.
+     ================================================================
+     Every other press in this file follows the ordering [S07.2] states and
+     [S07.3] repeats: DISPATCH FIRST, page work only after dispatch has
+     returned, so an op that refuses throws into [S08]'s boundary and the page
+     work never runs. This press inverts it, exactly once, deliberately, and the
+     reason is written here rather than left to be read as the rule having been
+     forgotten.
+
+     CLAUDE.md's verified finding: navigator.clipboard.writeText() works from
+     file:// with a user gesture, and from Chrome 107 the call must be made
+     INSIDE the gesture handler. An await between the press and the write
+     forfeits the gesture and the write is refused. So the code has to exist
+     BEFORE anything asynchronous happens, which means the page work — asking
+     [S06.6] to re-produce the code onto the field — has to come first.
+
+     There is nothing for the old ordering to protect here anyway: this press
+     dispatches NOTHING. It writes no state, it makes no commit, it leaves no
+     undo entry, and [S05] never sees it. There is no op that could refuse and
+     therefore no refusal for a dispatch-first ordering to catch.
+
+     THIS IS ALSO WHY CompressionStream IS NOT USED ANYWHERE IN THIS PHASE, and
+     the size measurement is not what decided it. CompressionStream is
+     asynchronous by construction — it is a stream, its output arrives in a
+     promise — so a code produced through it could not exist at the moment the
+     clipboard call has to be made. The measured 35-versus-1554 comparison in
+     CLAUDE.md made the compact codec the better choice; the gesture rule made
+     it the only one.
+
+     THERE IS NO FOURTH TIER, and it was considered and declined rather than
+     forgotten. D-18 ruled out offering the code as a file saved to disk: the
+     measured sizes do not justify a second sharing story, and it would mean
+     teaching students two ways to share to serve a board no workshop will
+     produce by accident. A live character count and a plain warning past
+     App.data.CODE_WARN are what D-18 shipped instead, and [S06.6] draws both.
+
+     NOTHING HERE PRESENTS THE ADDRESS BAR. The surface offers the code and only
+     the code. [S04.4]'s mirror is a reload-and-bookmark convenience and its own
+     comment states the prohibition at length — a home-directory path in a
+     message, a link that opens nothing for the recipient, and a chat client
+     that will not make it a link at all. No control in [S07.4] reads or
+     presents the location. */
+
+  // The two sentences, spelled once each. They are TWO and not three: from the
+  // student's side tiers 1 and 2 are the same fact — the code is on their
+  // clipboard — and naming which platform API put it there would be jargon on a
+  // projector. WHICH tier fired is recorded on the node as data-sh-tier
+  // instead, where the closing rehearsal and a numbered check can read it and
+  // no student has to.
+  var SAID_COPIED = 'Copied to the clipboard.';
+  var SAID_SELECT = 'Select-all is done — press Ctrl+C.';
+
+  function saidNode() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('share-said');
+  }
+
+  // THE LINE NEVER OUTLIVES THE PRESS THAT WROTE IT. A "Copied" standing on
+  // screen after the board has moved is the same failure as a stale code on the
+  // field, one node down: the student reads it as a statement about the code
+  // they are looking at now. The surface is modal, so the only way the board
+  // can move while it is open is the Ctrl+Z shortcut [S08] binds on document —
+  // and that listener runs AFTER this root's, because the dialog is where the
+  // event starts and document is where it ends up. Dropping the line on every
+  // keydown therefore closes that window rather than narrowing it.
+  function dropSaid() {
+    var said = saidNode();
+    if (said === null) { return; }
+    said.textContent = '';
+    said.hidden = true;
+    said.dataset.shTier = '';
+  }
+
+  function say(tier, words) {
+    var said = saidNode();
+    if (said === null) { return; }
+    said.textContent = words;
+    said.hidden = false;
+    said.dataset.shTier = tier;
+  }
+
+  // TIER 2. Deprecated per MDN and functional everywhere measured, which is
+  // exactly what a fallback tier is for. Its RETURN VALUE is read rather than
+  // assumed: a command that reported it did nothing and a line that said it did
+  // is the anti-pattern this whole press is arranged around.
+  function copyCommand() {
+    if (typeof document === 'undefined') { return false; }
+    if (typeof document.execCommand !== 'function') { return false; }
+    var ran = false;
+    try { ran = document.execCommand('copy'); } catch (err) { ran = false; }
+    return ran === true;
+  }
+
+  function codeField() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('share-code');
+  }
+
+  function pressCopy() {
+    // 1. THE CODE, PRODUCED SYNCHRONOUSLY, BEFORE ANYTHING ELSE HAPPENS.
+    //    [S06.6] is asked for a repaint and it re-produces the code from the
+    //    live build slice through App.serialize.encode, which is synchronous
+    //    and refuses rather than repairs. Asking for the repaint rather than
+    //    calling encode again HERE is deliberate and is the whole of plan
+    //    04-05's note about this press: one producer, so the string that
+    //    reaches the clipboard is the same string the student can see and
+    //    select. A second encode in this handler would be a second, mechanical
+    //    reason for the copied code and the drawn code to disagree — and the
+    //    student would have no way to see which of the two they had.
+    App.render.share(App.state.get());
+
+    var field = codeField();
+    if (field === null) { return; }
+
+    var code = String(field.value || '');
+
+    // encode refused, so there is nothing to copy and nothing to select.
+    // [S06.6] has already disabled the control for exactly this state; this is
+    // the second reading of it, because a disabled button is a fact about the
+    // last frame and a keyboard press can arrive on the same frame it changed.
+    if (code === '') { return; }
+
+    // 2. THE SELECTION, ALWAYS, AND BEFORE EITHER TIER IS TRIED. SHARE-01's
+    //    first criterion asks for a selectable field with the code already
+    //    highlighted, and it asks for it as a REAL SURFACE rather than as
+    //    something that appears once something else has failed. So the
+    //    selection happens on every press whatever the tiers do afterwards, and
+    //    tiers 1 and 2 are enhancements on top of a surface that already works
+    //    without either of them.
+    //
+    //    Focus first, then select: a selection on an unfocused field is not
+    //    what Ctrl+C acts on. Focusing the field also takes the Ctrl+Z shortcut
+    //    out of play for as long as the student is standing on it, because
+    //    [S08]'s listener declines whenever a text-editing surface holds focus.
+    if (typeof field.focus === 'function') { field.focus(); }
+    if (typeof field.select === 'function') { field.select(); }
+
+    // 3. TIER 3'S LINE, WRITTEN NOW AND STANDING UNTIL SOMETHING BETTER IS
+    //    TRUE. It is the honest reading at this instant: the code is selected
+    //    and Ctrl+C will take it. Tier 1's answer arrives asynchronously and
+    //    may never arrive at all, so a "Copied" written here would be a claim
+    //    about a future the page does not have yet — which CLAUDE.md names as
+    //    a specific anti-pattern, because a silent clipboard failure sends a
+    //    student to the course thread with stale text.
+    say('select', SAID_SELECT);
+
+    // 4. TIER 1, INSIDE THE GESTURE, WITH NO AWAIT ANYWHERE ABOVE IT.
+    //    typeof-guarded rather than read straight off the property: there is no
+    //    navigator at all in the Node sandbox this file's gate runs in, and a
+    //    bare read would throw on the first press under that gate.
+    var api = (typeof navigator !== 'undefined' && navigator && navigator.clipboard)
+      ? navigator.clipboard
+      : null;
+
+    if (api !== null && typeof api.writeText === 'function') {
+      var wrote = null;
+      // A synchronous throw is a real outcome for this call — a document that
+      // is not focused rejects it that way in some engines — and it must fall
+      // through to tier 2 rather than out of this handler.
+      try { wrote = api.writeText(code); } catch (err) { wrote = null; }
+
+      if (wrote !== null && typeof wrote.then === 'function') {
+        // BOTH ARMS ARE HANDLED, and that is not tidiness. [S08] installs an
+        // unhandledrejection listener that raises the styled error panel, so an
+        // unhandled clipboard refusal would put a full-page failure in front of
+        // a student over a permission decision that is not a defect and must
+        // not look like one.
+        wrote.then(function () {
+          // The board may have moved between the press and this answer. The
+          // copy really did happen, but saying so beside a code that is no
+          // longer the one on the field would be the stale claim this surface
+          // exists to prevent — so the select-all line stands instead, which
+          // is still true of what is on screen.
+          if (field.value !== code) { return; }
+          say('clipboard', SAID_COPIED);
+        }, function () {
+          // Refused. Tier 2 over the same selection, if the student is still
+          // standing on it — and if they have moved on, or the board has, the
+          // line is dropped rather than left saying something that was true a
+          // moment ago.
+          if (field.value !== code
+            || (typeof document !== 'undefined' && document.activeElement !== field)) {
+            dropSaid();
+            return;
+          }
+          if (copyCommand()) { say('command', SAID_COPIED); }
+          // Otherwise the select-all line written above still stands, and it is
+          // still the honest reading: the code is selected and Ctrl+C works.
+        });
+        return;
+      }
+    }
+
+    // 5. TIER 2 SYNCHRONOUSLY, for a browser with no clipboard API at all.
+    //    Read, never assumed.
+    if (copyCommand()) { say('command', SAID_COPIED); return; }
+
+    // 6. TIER 3 NEEDS NOTHING FURTHER. The field is selected, the line above
+    //    says so, and this is the tier the requirement names in as many words.
+  }
+
   // ONE delegated listener on the dialog, never one per control: the surface
   // repaints on every frame while it is open, and per-node listeners on a
   // region that repaints have to be rebound on every frame — the first missed
@@ -11950,6 +12157,11 @@ App.interactions = (function () {
     var node = e.target;
     if (!node || typeof node.closest !== 'function') { return; }
 
+    // The line from the LAST press stops being on screen before this one does
+    // anything. pressCopy writes its own immediately afterwards; every other
+    // arm leaves the surface with nothing claimed.
+    dropSaid();
+
     if (node.closest('[data-sh="done"]') !== null) { closeShare(); return; }
 
     var dlg = shareDialog();
@@ -11957,6 +12169,7 @@ App.interactions = (function () {
 
     if (node.closest('[data-sh="to-load"]') !== null) { showPane(dlg, 'load'); return; }
     if (node.closest('[data-sh="to-copy"]') !== null) { showPane(dlg, 'copy'); return; }
+    if (node.closest('[data-sh="copy"]') !== null) { pressCopy(); return; }
 
     // data-sh="load" has NO ARM HERE, and the absence is the point. Loading a
     // pasted code writes state, so it is a real op reached through
@@ -12006,6 +12219,12 @@ App.interactions = (function () {
   }
 
   function onShareKeyDown(e) {
+    // BEFORE the repeat guard and before anything else, because this root's
+    // listener runs before the Ctrl+Z shortcut [S08] binds on document — so
+    // this is the one moment at which a line claiming a copy can be taken down
+    // ahead of the undo that would make it a claim about a different board.
+    dropSaid();
+
     // The same rule [S07.1] applies at #app and [S07.2] and [S07.3] each repeat
     // on their own roots, and it has to be written a fourth time because the
     // four roots are disjoint by construction: this dialog is a SIBLING of #app
@@ -12055,6 +12274,9 @@ App.interactions = (function () {
   // no caller-shaped string here to guard.
   function onShareClose() {
     if (typeof document === 'undefined') { return; }
+    // The visit ended, so nothing it said about a press is still on screen when
+    // the next one starts.
+    dropSaid();
     var opener = document.querySelector('[data-k="sh"]');
     if (opener && typeof opener.focus === 'function') { opener.focus(); }
   }
