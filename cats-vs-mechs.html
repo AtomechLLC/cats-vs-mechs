@@ -15185,15 +15185,56 @@ App.selftest = (function () {
     });
     t.eq('a refused step left the value alone', buildUnit('cats', 'c1').maxHp, 0);
 
-    /* --- shield is a BUILD write. Phase 5 owns the fight slice's own copy. --- */
+    /* --- THE TWO SHIELD WRITERS, ONE PER SLICE, TOLD APART BY AN ASSERTION
+           RATHER THAN BY A COMMENT.
+
+           THIS IS A TRIPWIRE PLAN 05-05 TURNED RATHER THAN DELETED. What stood
+           here read "shield is a BUILD write. Phase 5 owns the fight slice's
+           own copy," and it asserted one half of that: it drove setUnitShield
+           with a fight running and required the fight copy not to move. Phase 5
+           has now taken its half — setFightShield ships — so the sentence goes
+           into the past tense with the plan named, in plan 03.1-04's register.
+
+           AND IT BECOMES A PAIR RATHER THAN A REPHRASING, BECAUSE THE OLD ROW
+           COULD NOT TELL THE TWO SLICES APART. It only ever drove the BUILD
+           writer. A setFightShield that wrote `build` instead of `fight` would
+           have left it spotlessly green — the fight copy would not have moved,
+           which is the whole of what it asked. So both writers are driven, each
+           against BOTH slices:
+             - setUnitShield writes the build and ONLY the build, and a fight
+               running does not change that. That is FIGHT-10 at the state
+               level, and it is the reason there are two ops rather than one op
+               with a mode.
+             - setFightShield writes the fight and ONLY the fight, and leaves
+               the whole build slice byte-identical.
+           The untouched side is read as the WHOLE SLICE and not as the one
+           number, because a writer that reached across would not necessarily
+           reach the unit this row happened to name. --- */
     App.ops.setUnitShield('mechs', 'm1', 7);
     t.eq('setUnitShield writes the build slice', buildUnit('mechs', 'm1').shield, 7);
     App.ops.startFight();
-    var fightShield = App.state.get().fight.mechs.units[0].shield;
+
+    var fightPinned = JSON.stringify(App.state.get().fight);
     App.ops.setUnitShield('mechs', 'm1', 2);
-    t.eq('the build shield moved', buildUnit('mechs', 'm1').shield, 2);
-    t.eq('and the fight slice was left for Phase 5',
-      App.state.get().fight.mechs.units[0].shield, fightShield);
+    t.eq('THE BUILD WRITER WRITES THE BUILD AND ONLY THE BUILD, driven with a '
+      + 'fight actually running: the build shield moved to what was asked and '
+      + 'the whole fight slice is byte-identical afterwards. An allocation edit '
+      + 'reaching the fight would change a board a student is mid-argument over',
+      [buildUnit('mechs', 'm1').shield,
+        JSON.stringify(App.state.get().fight) === fightPinned],
+      [2, true]);
+
+    var buildPinned = JSON.stringify(App.state.get().build);
+    App.ops.setFightShield('mechs', 'm1', 1);
+    t.eq('AND THE FIGHT WRITER WRITES THE FIGHT AND ONLY THE FIGHT: the fight '
+      + 'slice\'s own copy moved to what was asked, the build\'s stayed where '
+      + 'the build writer left it, and the whole build slice is byte-identical '
+      + '— which is also why a mid-fight ruling can never change a shareable '
+      + 'build, since [S04].encode reads the build slice and nothing else',
+      [App.state.get().fight.mechs.units[0].shield,
+        buildUnit('mechs', 'm1').shield,
+        JSON.stringify(App.state.get().build) === buildPinned],
+      [1, 2, true]);
     App.ops.endFight();
 
     /* --- roster shape, and the id-collision gate. c2 is removed from the
@@ -22297,6 +22338,408 @@ App.selftest = (function () {
         App.data.MAX_PAST_ROUNDS + 4]);
 
     t.ok('the prototype is intact after the cap row', protoIntact());
+
+    /* ===== FIGHT-04, FIGHT-05, FIGHT-07, FIGHT-08: THE HAND RULINGS =========
+
+       The ops here are the OTHER HALF of the line the section above draws.
+       Advance computes what a declared rule says; these four are how a student
+       OVERRULES it, and every one of them exists because the tool must not
+       decide. So what the rows below assert is mostly about what does NOT
+       happen: no op writes a number it was not asked to write, nothing infers a
+       death in either direction, and no fact about a by-hand change is stored
+       anywhere except in the round it was made in. */
+
+    // A pure read over state alone, written HERE rather than imported, because
+    // this is the exact question plan 05-09's renderer asks and the whole point
+    // of the row that uses it is that the answer needs nothing stored on a unit.
+    function setByHand(state, side, unitId, tok) {
+      var g = state.fight;
+      if (g === null || !Object.prototype.hasOwnProperty.call(g, 'hand')) { return false; }
+      for (var i = 0; i < g.hand.length; i++) {
+        var h = g.hand[i];
+        if (h.side === side && h.unit === unitId && h.tok === tok) { return true; }
+      }
+      return false;
+    }
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+
+    t.eq('A FIGHT OPENS CARRYING NO RECORD OF A RULING AT ALL — no `hand` key '
+      + 'on the slice, not an empty array. That is the rule a tally bag already '
+      + 'keeps in both slices (D-04), and it is what keeps the opening key set '
+      + 'at exactly five, which the first row in this suite reads whole',
+      [Object.prototype.hasOwnProperty.call(fight(), 'hand'),
+        Object.keys(fight()).sort().join(',')],
+      [false, 'cats,decl,mechs,past,round']);
+
+    App.ops.setUnitHp('cats', 'c1', 1);
+    App.ops.setFightShield('mechs', 'm1', 5);
+    App.ops.setAlive('cats', 'c2', false);
+    App.ops.nudgeFightHp('mechs', 'm2', -2);
+    App.state.flush();
+
+    t.eq('FOUR RULINGS APPEND FOUR RECORDS, one each, and every one carries the '
+      + 'side, the unit, the token, the value it came from and the value it '
+      + 'went to. Read as the whole list rather than as a length, because a '
+      + 'length is green over a list of four copies of the same entry',
+      fight().hand,
+      [{ side: 'cats', unit: 'c1', tok: 'hp', from: 3, to: 1 },
+        { side: 'mechs', unit: 'm1', tok: 'shield', from: 3, to: 5 },
+        { side: 'cats', unit: 'c2', tok: 'dead', from: 0, to: 1 },
+        { side: 'mechs', unit: 'm2', tok: 'hp', from: 6, to: 4 }]);
+
+    t.eq('every record holds exactly those five keys and no sixth, and the key '
+      + 'set is read as the distinct set over the whole list — a shape row that '
+      + 'checks entry zero is green over a list whose later entries grew a key',
+      fight().hand.map(function (h) { return Object.keys(h).sort().join(','); })
+        .filter(function (shape, i, all) { return all.indexOf(shape) === i; }),
+      ['from,side,to,tok,unit']);
+
+    t.eq('and `tok` IS A TOKEN ID rather than a field name, drawn from the three '
+      + 'the ops write and no others — because no hand op takes a token id from '
+      + 'a caller at all, which removes the position rather than guarding it. '
+      + 'The alive flag is recorded as the shipped `dead` type with the 0-or-1 '
+      + 'the board draws, so plan 05-09\'s marker compares like with like',
+      [fight().hand.map(function (h) { return h.tok; })
+        .filter(function (tok) { return App.data.TOKEN_IDS.indexOf(tok) === -1; }),
+        fight().hand.filter(function (h) {
+          return !Number.isInteger(h.from) || !Number.isInteger(h.to);
+        })],
+      [[], []]);
+
+    t.eq('A SET THAT MOVED NOTHING IS NOT A RULING. Two ops driven at values '
+      + 'the board already holds append no record — "a number went from one '
+      + 'value to another" is false of a set that landed where it started, and '
+      + 'a press-and-hold ramp saturated against a clamp would otherwise fill '
+      + 'this list with rulings nobody made',
+      (function () {
+        var was = fight().hand.length;
+        App.ops.setUnitHp('cats', 'c1', 1);
+        App.ops.setAlive('cats', 'c2', false);
+        App.ops.setFightShield('mechs', 'm1', 5);
+        App.state.flush();
+        return [was, fight().hand.length];
+      })(),
+      [4, 4]);
+
+    /* ===== FIGHT-08: THE RULINGS BELONG TO A ROUND, AND THAT IS THE CLAIM ===
+       FIGHT-08 asks for each round's actions and every override IN READABLE
+       ORDER. A list that ACCUMULATED across rounds would hold every ruling ever
+       made and would pass any row that only counted them — the ledger would
+       then print round one's rulings under round three, which is a wrong
+       history rather than a missing one. So this asserts MEMBERSHIP: which
+       round each ruling ended up in. */
+
+    App.ops.advanceRound();
+    App.state.flush();
+    var handRound1 = JSON.stringify(fight().past[0].hand);
+
+    t.eq('ADVANCE CARRIES THE ROUND\'S RULINGS INTO `past` WITH THE ROUND THEY '
+      + 'BELONG TO, and the next round opens with none. The live list is '
+      + 'REMOVED rather than emptied, so the same D-04 rule holds on the slice '
+      + 'as on the record',
+      [Object.keys(fight().past[0]).sort().join(','),
+        fight().past[0].hand.length,
+        Object.prototype.hasOwnProperty.call(fight(), 'hand'),
+        roundNow()],
+      ['did,hand,round,was', 4, false, 2]);
+
+    t.eq('AND `did` PLUS `hand` IS FIGHT-08\'S COMBAT LOG. There is no `log` '
+      + 'anywhere in the slice and no second structure claiming to be what '
+      + 'happened: the round record holds what each declaration did and what '
+      + 'the table ruled by hand, in one object, which is the same object plan '
+      + '05-08\'s ledger renders',
+      [Object.prototype.hasOwnProperty.call(fight(), 'log'),
+        /"log"/.test(JSON.stringify(fight())),
+        Array.isArray(fight().past[0].did),
+        Array.isArray(fight().past[0].hand)],
+      [false, false, true, true]);
+
+    t.eq('ROUND TWO\'S RULINGS ARE IN ROUND TWO AND NOT IN ROUND THREE, and a '
+      + 'round in which the table ruled on nothing carries NO `hand` key at '
+      + 'all. This is the row a list that accumulated across rounds would fail '
+      + 'and a length check would not: it reads WHICH round each ruling landed '
+      + 'in, over four rounds of which one is deliberately empty',
+      (function () {
+        App.ops.setUnitHp('mechs', 'm3', 2);
+        App.state.flush();
+        App.ops.advanceRound();
+        App.state.flush();
+        App.ops.advanceRound();
+        App.state.flush();
+        App.ops.setAlive('mechs', 'm3', false);
+        App.state.flush();
+        App.ops.advanceRound();
+        App.state.flush();
+        return fight().past.map(function (r) {
+          return String(r.round) + ':' + (Object.prototype.hasOwnProperty.call(r, 'hand')
+            ? r.hand.map(function (h) { return h.tok + '/' + h.unit; }).join('+')
+            : 'no ruling');
+        });
+      })(),
+      ['1:hp/c1+shield/m1+dead/c2+hp/m2', '2:hp/m3', '3:no ruling', '4:dead/m3']);
+
+    t.eq('and round one\'s record did not change when rounds two, three and '
+      + 'four resolved on top of it — the same list, byte for byte, four '
+      + 'rounds later',
+      JSON.stringify(fight().past[0].hand), handRound1);
+
+    t.ok('the prototype is intact after the round-membership rows', protoIntact());
+
+    /* ===== FIGHT-05 AND D-00d, BOTH DIRECTIONS, IN ONE PLACE ================
+       Plan 05-04 asserted this at the APPLIER. These three assert it at the
+       HAND OPS, which is the half a student actually presses: a Shield or an
+       Evade ruling has to be representable, and so does a death the table
+       called at full health. aliveCount is read in every one of the three,
+       because a reader that fell back to health would be right in exactly the
+       ordinary case and wrong in both interesting ones. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+    App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+    App.ops.advanceRound();
+    App.state.flush();
+    App.ops.setUnitHp('cats', 'c3', 0);
+    App.state.flush();
+
+    t.eq('A UNIT AT ZERO HEALTH IS STILL ALIVE UNTIL THE TABLE SAYS OTHERWISE, '
+      + 'DRIVEN BOTH WAYS INTO ZERO IN ONE ROW: c1 was taken there by a real '
+      + 'Advance resolving a declared Lasers, and c3 was taken there by hand. '
+      + 'Neither is dead, and the roster still counts them both. Zero health '
+      + 'PROMPTS a death ruling; it never causes one, and there is no line '
+      + 'anywhere in this file that flips the flag from a number',
+      [fight().cats.units[0].hp, fight().cats.units[0].alive,
+        fight().cats.units[2].hp, fight().cats.units[2].alive,
+        App.model.aliveCount(fight().cats)],
+      [0, true, 0, true, 9]);
+
+    App.ops.setAlive('cats', 'c2', false);
+    App.state.flush();
+
+    t.eq('A UNIT RULED DEAD AT FULL HEALTH IS DEAD AND STILL HAS ITS HEALTH. '
+      + 'The flag moved, the number did not, and aliveCount reads the flag — '
+      + 'this is the direction a health-derived marker gets wrong',
+      [fight().cats.units[1].hp, fight().cats.units[1].alive,
+        App.model.aliveCount(fight().cats)],
+      [3, false, 8]);
+
+    App.ops.setAlive('cats', 'c1', false);
+    App.state.flush();
+    App.ops.setAlive('cats', 'c1', true);
+    App.state.flush();
+
+    t.eq('AND A UNIT RULED ALIVE AT ZERO HEALTH IS ALIVE AND STILL HAS ZERO '
+      + 'HEALTH — the Shield ruling and the Evade ruling, which is the whole of '
+      + 'FIGHT-05. Ruled dead and then ruled back, so the toggle is driven in '
+      + 'both directions rather than once',
+      [fight().cats.units[0].hp, fight().cats.units[0].alive,
+        App.model.aliveCount(fight().cats)],
+      [0, true, 8]);
+
+    t.eq('and not one of those three rulings moved a number it was not asked '
+      + 'to move: the health ops left both flags alone, the alive ops left both '
+      + 'health values alone, and neither pool moved at all',
+      [fight().cats.units[0].shield, fight().cats.units[1].shield,
+        fight().cats.ap, fight().mechs.ap],
+      [0, 0, 3, 3]);
+
+    App.ops.setUnitHp('mechs', 'm1', 2);
+    App.state.flush();
+
+    t.eq('THE MARKER IS DERIVABLE FROM STATE, WITH NOTHING STORED ON THE UNIT. '
+      + 'The question plan 05-09 renders — "was this value set by hand this '
+      + 'round?" — is answered by reading the round\'s own list, and a unit '
+      + 'carries exactly the four fields it has carried since Phase 1. This row '
+      + 'exists so that plan is not tempted to store a flag.\n'
+      + 'READ THE THIRD FIGURE, WHICH IS `false` AND WAS EXPECTED TO BE `true` '
+      + 'ON THIS ROW\'S FIRST RUN. Lasers had already taken c1 to zero in the '
+      + 'Advance above, so the setUnitHp(c1, 0) two rows up landed on the value '
+      + 'the board already held and recorded NOTHING — which is the "a set that '
+      + 'moved nothing is not a ruling" rule meeting a real resolved round. The '
+      + 'marker on that unit\'s health therefore reads false, and it is right '
+      + 'to: nobody changed that number by hand. A student\'s health ruling that '
+      + 'DID move a number is m1\'s, one line up, and it reads true',
+      [setByHand(App.state.get(), 'mechs', 'm1', 'hp'),
+        setByHand(App.state.get(), 'cats', 'c1', 'dead'),
+        setByHand(App.state.get(), 'cats', 'c1', 'hp'),
+        setByHand(App.state.get(), 'cats', 'c1', 'shield'),
+        setByHand(App.state.get(), 'mechs', 'm2', 'hp'),
+        Object.keys(fight().cats.units[0]).sort().join(',')],
+      [true, true, false, false, false, 'alive,hp,id,shield']);
+
+    t.eq('and the marker is a fact about THIS ROUND: one Advance later the same '
+      + 'question answers false for every value on the board, because the '
+      + 'rulings went into the record with the round they were made in',
+      (function () {
+        App.ops.advanceRound();
+        App.state.flush();
+        return [setByHand(App.state.get(), 'mechs', 'm1', 'hp'),
+          setByHand(App.state.get(), 'cats', 'c1', 'dead'),
+          Object.prototype.hasOwnProperty.call(fight(), 'hand')];
+      })(),
+      [false, false, false]);
+
+    t.ok('the prototype is intact after the D-00d rows', protoIntact());
+
+    /* ===== THE HAND OPS' BAD-INPUT TABLE ([S09.10]'s form) ==================
+       The hostile SIDE values are driven one section up, across all four ops
+       and all four router arms. This covers the other caller-supplied position
+       — the unit id — and the VALUE, which int() bounds rather than refuses.
+       There is no token-id position to cover: every hand op writes its own
+       `tok` from a fixed set of three, which the shape rows above read back. */
+
+    // `c9` is taken off the BUILD before the fight opens, so the id below is
+    // one this board genuinely used to have. THE REMOVAL IS DELIBERATELY ABOVE
+    // THE READING TAKEN FOR THE BYTE-IDENTICAL ROW — it was written below it on
+    // the first pass and that row went red naming a board that had moved,
+    // correctly: a fixture step inside the window a row is comparing is a row
+    // comparing its own setup.
+    App.ops.resetToDefaults();
+    App.ops.removeUnit('cats', 'c9');
+    App.ops.startFight();
+    App.state.flush();
+    var handBoard = JSON.stringify(App.state.get());
+    var handDepth = App.state.undoDepth();
+    var handWrong = [];
+    var handProtoHeld = true;
+    var HAND_REFUSAL = /^(Unknown side |No unit |Expected a whole number)/;
+
+    function handRefuses(what, run) {
+      try {
+        run();
+        handWrong.push(what + ' DID NOT THROW');
+      } catch (refused) {
+        if (!HAND_REFUSAL.test(String(refused.message))) {
+          handWrong.push(what + ': ' + refused.message);
+        }
+      }
+      if (!protoIntact()) { handProtoHeld = false; }
+    }
+
+    // `m1` is a real id on the OTHER side and `c9` was on this one until the
+    // removal above — a lookup that walked the board rather than the side, or
+    // that reached a roster this fight was not opened from, would take one.
+    ['__proto__', 'constructor', 'prototype', 'c99', 'm1', '', 5, null, {}]
+      .forEach(function (bad) {
+        handRefuses('setUnitHp unit ' + JSON.stringify(bad), function () {
+          App.ops.setUnitHp('cats', bad, 1);
+        });
+        handRefuses('nudgeFightHp unit ' + JSON.stringify(bad), function () {
+          App.ops.nudgeFightHp('cats', bad, 1);
+        });
+        handRefuses('setFightShield unit ' + JSON.stringify(bad), function () {
+          App.ops.setFightShield('cats', bad, 1);
+        });
+        handRefuses('setAlive unit ' + JSON.stringify(bad), function () {
+          App.ops.setAlive('cats', bad, false);
+        });
+      });
+    [null, '', '7', [5], NaN, 1.5, undefined, {}].forEach(function (bad) {
+      handRefuses('setUnitHp value ' + JSON.stringify(bad), function () {
+        App.ops.setUnitHp('cats', 'c1', bad);
+      });
+      handRefuses('setFightShield value ' + JSON.stringify(bad), function () {
+        App.ops.setFightShield('cats', 'c1', bad);
+      });
+      handRefuses('nudgeFightHp delta ' + JSON.stringify(bad), function () {
+        App.ops.nudgeFightHp('cats', 'c1', bad);
+      });
+    });
+
+    t.eq('sixty hostile drives across the unit-id position and the value '
+      + 'position of every hand op — a unit that never existed, one that was '
+      + 'removed from the build, one that is real on the OTHER side, three '
+      + 'reserved prototype keys, and eight values every one of which Number(), '
+      + 'parseInt() and Math.trunc() would each have taken silently — and every '
+      + 'one refused BY NAME rather than reading as undefined or laundering '
+      + 'into zero mid-fight',
+      handWrong, []);
+    t.ok('and the prototype held after every single one, checked inside the '
+      + 'walk rather than once at the end', handProtoHeld);
+
+    t.eq('NOT ONE OF THEM MOVED THE BOARD OR LEFT AN UNDO ENTRY BEHIND. The '
+      + 'guards that can run outside the commit do, and the one that cannot — '
+      + 'int() on the value — runs inside a mutator on the detached copy, so '
+      + 'its throw leaves no phantom step either. The `hand` list is part of '
+      + 'that reading: a refusal that recorded a ruling would put a marker on '
+      + 'the board for a change that never happened',
+      [JSON.stringify(App.state.get()) === handBoard,
+        App.state.undoDepth() - handDepth,
+        Object.prototype.hasOwnProperty.call(fight(), 'hand')],
+      [true, 0, false]);
+
+    t.eq('AND A VALUE MERELY OUT OF RANGE IS CLAMPED RATHER THAN REFUSED, '
+      + 'which is int()\'s existing contract and the one bound these ops keep. '
+      + 'A student ruling a unit to forty health because their own house rule '
+      + 'says so is the workshop working correctly — the bound is on what a '
+      + 'FIELD can hold, never on what a fight can mean, and the RECORD shows '
+      + 'the clamped value rather than the one that was asked for',
+      (function () {
+        App.ops.setUnitHp('cats', 'c1', 40);
+        App.ops.setUnitHp('cats', 'c1', -5);
+        App.ops.setUnitHp('cats', 'c1', App.data.MAX_ALLOC + 500);
+        App.state.flush();
+        return [fight().cats.units[0].hp,
+          fight().hand.map(function (h) { return h.from + '->' + h.to; }).join(' ')];
+      })(),
+      [App.data.MAX_ALLOC, '3->40 40->0 0->99']);
+
+    t.ok('the prototype is intact after the hand bad-input table', protoIntact());
+
+    /* ===== THE CAP ON THE RULING LIST ===== */
+
+    t.eq('THE RULING LIST HOLDS EXACTLY MAX_HAND_RULINGS AND WHAT DROPS IS THE '
+      + 'OLDEST, driven three past the bound and read as four figures for the '
+      + 'cap row above\'s reason: a bound that silently dropped the NEWEST '
+      + 'ruling would be green on length alone, and a student would watch their '
+      + 'own last ruling vanish from the ledger. It is a bound on a RECORD and '
+      + 'not a ruling on what a student may do — the board keeps every value '
+      + 'that was set, and it is the history of them that is capped',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.state.flush();
+        var over = App.ops.MAX_HAND_RULINGS + 3;
+        for (var i = 0; i < over; i++) {
+          App.ops.setUnitHp('cats', 'c1', (i % 40) + 1);
+        }
+        App.state.flush();
+        var list = fight().hand;
+        return [list.length, list[0].to, list[list.length - 1].to,
+          fight().cats.units[0].hp];
+      })(),
+      [App.ops.MAX_HAND_RULINGS, 4, 27, 27]);
+
+    t.eq('and the constant is the arithmetic rather than a number somebody '
+      + 'typed: the roster ceiling per side, times the two sides, times the '
+      + 'three values a unit carries that a student can rule on — its health, '
+      + 'its shield and whether it is still standing',
+      App.ops.MAX_HAND_RULINGS, App.ops.MAX_UNITS * 2 * 3);
+
+    t.eq('A ROUND OF HAND RULINGS LEAVES THE BUILD CODE BYTE-IDENTICAL, which '
+      + 'is FIGHT-10 read from the codec\'s end: [S04].encode takes the build '
+      + 'slice and there is nothing of the fight anywhere it reads, so nothing '
+      + 'a student rules mid-fight can change the link they share',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.state.flush();
+        var codeBefore = App.serialize.encode(App.state.get().build);
+        App.ops.setUnitHp('cats', 'c1', 1);
+        App.ops.setFightShield('mechs', 'm1', 9);
+        App.ops.setAlive('cats', 'c2', false);
+        App.ops.nudgeFightHp('mechs', 'm2', -3);
+        App.ops.advanceRound();
+        App.state.flush();
+        return [App.serialize.encode(App.state.get().build) === codeBefore,
+          fight().past[0].hand.length];
+      })(),
+      [true, 4]);
+
+    t.ok('the prototype is intact after the hand-ruling rows', protoIntact());
 
     /* ===== MEASUREMENTS, NOT GATES =====
        t.info records a number and can never redden a run. These are here

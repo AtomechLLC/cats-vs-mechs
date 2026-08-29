@@ -590,7 +590,26 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     "declaration naming a removed unit" refusal the plan asked for is NOT
 //     reachable: removeUnit edits the build, the fight roster is copied once
 //     at startFight and never rebuilt, so no unit ever leaves a running fight.
-const SUITE_FLOOR = 1126;
+//   plan 05-05 adds the hand rulings to [S09.12]: 102 rows becomes 128 and the
+//     run goes from 1156 to 1182, floored at 1152 — the same margin of 30 the
+//     seven plans before it kept. Twenty-six rows, and the [S09.3] shield
+//     tripwire rewritten in place rather than added to: it said "shield is a
+//     BUILD write, Phase 5 owns the fight slice's own copy" and asserted only
+//     the build half, so a setFightShield that wrote `build` would have left it
+//     spotlessly GREEN. It never reddened on this plan at all — a comment
+//     tripwire rather than a mechanical one — and it is now a PAIR that drives
+//     each writer against both slices.
+//     THE THREE DEFECTS THE ROWS HAD ON THEIR FIRST RUN ARE THE PART WORTH
+//     KEEPING, and all three were found by running them rather than by a probe.
+//     One compared the board against a reading taken BEFORE its own fixture
+//     step. One called the encoder by a namespace that does not exist and took
+//     the suite down with a TypeError — the fifth plan in a row taught that a
+//     row must be able to FAIL and not to THROW. And the marker row expected a
+//     by-hand health ruling that was never recorded, because a real Advance had
+//     already taken that unit to zero and the set landed where the board
+//     already was: "a set that moved nothing is not a ruling", met in a
+//     resolved round rather than in a comment. The row now reads both.
+const SUITE_FLOOR = 1152;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
