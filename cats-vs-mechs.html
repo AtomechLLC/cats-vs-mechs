@@ -2621,6 +2621,7 @@
  *     [S06.6] the share surface — the build code, kept from going stale     (plan 04-05)
  *     [S06.7] the fight bar — the round, both pools, the declarations   (plan 05-07)
  *     [S06.8] the ledger — past rounds, and what the last one changed    (plan 05-08)
+ *     [S06.9] the board in fight mode — the markers and the live read   (plan 05-09)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
@@ -9002,6 +9003,32 @@ App.render = (function () {
     }
     card.appendChild(head);
 
+    /* --- A CROSS-PLAN EDIT into this function, by plan 05-09, named as one
+           rather than done quietly: section ownership is the only thing keeping
+           a single-file project's plans from colliding, and this function is
+           plan 02-01's. This is the SECOND such append into [S06.1] and it is
+           declared in the register plan 03-05 opened for the first, in
+           buildColumn below — WAVE ORDERING, NOT OVERLAPPING OWNERSHIP, is what
+           makes it safe. The edit is additive and sits at exactly this one
+           place. Nothing above it is modified, reordered or removed, and
+           structure(), withPreservedFocus, buildColumn and factionHead are
+           untouched.
+
+           IT IS THE MIRROR OF THE setup BRANCH DIRECTLY ABOVE. That branch
+           gates a control that belongs to building a roster; this one gates the
+           two things that belong to fighting with one. The line is built by
+           [S06.9] and every node in it is that region's — this call site is the
+           whole of the seam.
+
+           WHY IT CANNOT LIVE ANYWHERE ELSE: the alive toggle has to be a child
+           of the card whose unit it names. A control for c1 sitting outside c1's
+           card is a control a student has to pair with a unit by reading, on a
+           projector, mid-fight.
+
+           AND IT IS OUTSIDE ANYTHING THE DEAD STATE HIDES, which is the whole
+           of T-05-38 and is stated at the builder rather than only here. --- */
+    if (!setup) { card.appendChild(dcStandingLine(state, side, unit)); }
+
     card.appendChild(statLine('unit-label', 'Health', stepper({
       key: side + '/' + unit.id + '/maxHp', act: 'maxHp', nudge: 'nudgeMaxHp', amt: 'hp',
       side: side, unitId: unit.id, owner: unit.name,
@@ -9023,6 +9050,13 @@ App.render = (function () {
     tallyLines(state, side, unit.id, unit.name).forEach(function (line) {
       card.appendChild(line);
     });
+
+    // The second half of plan 05-09's declared append, and it is deliberately
+    // LAST: the by-hand markers are decorations on lines this function has
+    // already finished building, so the decorator runs over a complete card
+    // rather than being threaded through four call sites above it. Nothing it
+    // does can change what those lines hold.
+    if (!setup) { dcMarkCard(card, side, unit); }
 
     return card;
   }
@@ -9316,6 +9350,41 @@ App.render = (function () {
     // the five the board is built on out: their quantity is the health, shield
     // or action points already on the card, and a second number beside it
     // would be a purely mechanical reason for the two to disagree.
+    /* THE DEAD MARKER'S QUANTITY, plan 05-09, and it is placed ABOVE the
+       `if (!unit) { return 0; }` below for the SAME reason the tally arm under
+       this paragraph is — the reason is identical and the consequence is
+       identical, so the placement is too.
+
+       That arm sits above the early return because a side-scope type is asked
+       for with a null unit id BY CONSTRUCTION, so anywhere below it the arm
+       would be unreachable and the number would draw as zero forever. This one
+       sits above it because ITS OWNER IS THE FIGHT ROSTER AND THE GUARD BELOW
+       IS ABOUT THE BUILD ONE. The two rosters carry the same ids today, so the
+       wrong placement would look correct on the shipped board — and would be
+       wrong the moment they diverge, which they can: addUnit and removeUnit
+       still work with a fight running (that is the whole of what the mid-fight
+       line one region down exists to say), and neither touches the fight slice.
+       A unit added to the build mid-fight has no fight record at all, and it
+       must draw as ALIVE rather than as a lookup that failed.
+
+       IT DRAWS THE STORED FLAG AND NEVER THE HEALTH. aliveCount's comment says
+       it once and setUnitHp's says it again: death is never inferred. A unit at
+       zero health that a student has ruled alive draws as alive — that is the
+       Shield ruling staying representable — and a unit at full health a student
+       has ruled dead draws as dead. Both were asserted in plan 05-05 at the
+       ops; this line is their rendered half, and probe AB drives the
+       health-derived spelling to show which row catches it.
+
+       Nothing is stored, exactly as the paragraph at the top of this function
+       requires: the 0-or-1 is read off the fight slice on every frame, like
+       every other number this function hands back. */
+    if (amt === 'dead') {
+      var fight = state.fight;
+      if (fight === null || !fight[side]) { return 0; }
+      var standing = findUnit(fight[side], unitId);
+      return (standing && standing.alive === false) ? 1 : 0;
+    }
+
     var vocab = state.build.tokens;
     if (vocab && App.data.TOKEN_IDS.indexOf(amt) === -1
       && Object.prototype.hasOwnProperty.call(vocab, amt)) {
@@ -13573,6 +13642,383 @@ App.render = (function () {
   SYNC_HOOKS.push(syncLedger);
   // #endregion [S06.8] RENDER — THE LEDGER
 
+  /* ===================== [S06.9] RENDER — FIGHT MODE ON THE BOARD =======
+   * FIGHT-04's dead marker and its manual toggle, FIGHT-07's by-hand marker,
+   * FIGHT-10's mid-fight line and PROJ-05's live reading, appended as its own
+   * sub-region for the mechanical reason [S06.2], [S06.3], [S06.5], [S06.6],
+   * [S06.7] and [S06.8] all state: it reconciles through SYNC_HOOKS, SYNC_HOOKS
+   * is a closure variable of this IIFE, and the surface returned below is
+   * frozen, so there is no route to the seam from a top-level section.
+   *
+   * IT CHANGES NOT ONE LINE OF [S06.1] THROUGH [S06.8] AND ONE APPEND IS
+   * DECLARED. The append is unitCard's fight branch, named at its site in the
+   * register plan 03-05 opened when it appended reference cards into
+   * buildColumn, plus one NEW arm in amountFor which is an addition and not a
+   * change to an existing one. Everything else this region draws it creates.
+   *
+   * NOTHING ON THIS BOARD DECIDES ANYTHING, and that is the whole line this
+   * region walks:
+   *
+   *   the dead marker draws the STORED FLAG. It never reads health. A unit at
+   *     zero health that a student ruled alive draws as alive, which is the
+   *     Shield ruling staying representable, and a unit at full health that a
+   *     student ruled dead draws as dead. D-00d is upstream of this region and
+   *     an inference drawn here would undo it everywhere;
+   *   the by-hand marker draws a FACT ABOUT WHAT THE STUDENT DID. It does not
+   *     say the number is wrong, unusual, or overridden by the tool — it says a
+   *     person set it;
+   *   the mid-fight line states a CONSEQUENCE, in the register #reset-ask's own
+   *     comment uses: a plain statement with no colour and no alarm. It reports
+   *     and it disables nothing, which is #tok-pick-names' closing line and it
+   *     binds here;
+   *   nothing here announces a fight is over, names a side, or renders a
+   *     terminal state (D-26). A board on which every unit of one side is
+   *     marked dead is a thing a student READS;
+   *   no figure added here compares the two sides against each other or against
+   *     a threshold (D-13), and every figure is a whole number (D-06).
+   *
+   * THE WORDS THAT CLEAR THE GATE AND STILL DO NOT SHIP ARE DESCRIBED HERE
+   * RATHER THAN SPELLED, which is [C11]'s rule and refCard's, and it earned its
+   * place the direct way: the first draft of this paragraph listed them, and
+   * Layer B reddened on the list itself. So — a dead marker is exactly the
+   * place where a word naming a unit's REMOVAL FROM THE FIGHT, and a word
+   * naming how the fight as a whole is GOING for one side against the other,
+   * write themselves without anyone deciding to write them. Neither kind
+   * appears in any string this region renders. Every word below was screened
+   * against all three of the dev gate's word lists before it was written. The
+   * gate is a floor; this paragraph is the rest of the height.
+   *
+   * deps: App.model, App.data, [S06.1]'s helpers
+   * owner: plan 05-09
+   * ===================================================================== */
+  // #region [S06.9] RENDER — FIGHT MODE ON THE BOARD
+
+  // The two sides again, and a FIFTH spelling of the same two ids rather than a
+  // reuse of [S06.5]'s SIDE_IDS, [S06.7]'s FIGHT_SIDES or [S06.8]'s LD_SIDES —
+  // for the mechanical reason those comments already give. Every sub-region in
+  // [S06] shares ONE function scope, so a second `var LD_SIDES` here would be a
+  // REDECLARATION of that binding rather than a restatement of the decision:
+  // the two names would be one variable, and a later plan narrowing either one
+  // would move the other without touching it.
+  var DC_SIDES = ['cats', 'mechs'];
+
+  /* THE THREE NUMBERS A RULING CAN NAME, and the list is closed rather than
+     open on purpose. Plan 05-05 shipped four hand ops and every one of them
+     writes its own `tok` from a fixed set of three — health, shield, and
+     whether the unit is still standing, recorded under the shipped `dead`
+     type's own 0-or-1. There is no caller-supplied token position anywhere in
+     that layer, so there is nothing here to validate and nothing to widen: a
+     fourth entry in this array would be a marker for a ruling no op can make. */
+  var DC_RULABLE = ['hp', 'shield', 'dead'];
+
+  // The artifact's own words, held as constants because each of them is written
+  // in two places — a builder and a per-frame pass, or a node and its accessible
+  // name — and two copies of one sentence is two things to keep in step.
+  var DC_HAND_SAID = 'Set by hand';
+  var DC_DEAD_SAID = 'Still on the roster, ruled dead.';
+
+  /* THE READ PLAN 05-05 PROVED DERIVABLE, WRITTEN OUT HERE VERBATIM.
+     `setByHand(state, side, unitId, tok)` was added to [S09.12] one plan ago as
+     a pure read over state alone, and its own comment says why: it is the exact
+     question this renderer asks, and the whole point of the row that uses it is
+     that the answer needs NOTHING STORED ON A UNIT.
+
+     So this region stores nothing. A ruling is an EVENT IN THE ROUND — plan
+     05-05's decision, taken because a per-value flag beside `hp` is a second
+     copy of a fact the round already holds and drifts the first time a value is
+     set by hand twice or set back. It also clears the `override` key-name ban
+     naturally rather than by being widened around, which check 73c and
+     [S09.10]'s second boundary row both hold, and which is T-05-39.
+
+     `hand` IS READ THROUGH hasOwnProperty BEFORE ANYTHING TOUCHES IT. It is
+     present ONLY when the round held a ruling (D-04) — a round nobody ruled in
+     carries no key for one — and a bare index would be reading a prototype
+     property on a slice a pasted build code can reach.
+
+     IT ANSWERS FOR THE CURRENT ROUND AND FOR NO OTHER. advanceRound moves the
+     live list into `past` with the round it belongs to and the next round opens
+     with none, so the marker clears itself on an Advance with no line here to
+     clear it. That is what the driven readings check. */
+  function dcSetByHand(state, side, unitId, tok) {
+    var g = state.fight;
+    if (g === null || !Object.prototype.hasOwnProperty.call(g, 'hand')) { return false; }
+    for (var i = 0; i < g.hand.length; i++) {
+      var h = g.hand[i];
+      if (h.side === side && h.unit === unitId && h.tok === tok) { return true; }
+    }
+    return false;
+  }
+
+  /* THE STANDING LINE, and every decision in it is a decision about the bug it
+     must not repeat.
+
+     THE BUG, IN THE HIDE PASS'S OWN WORDS: "the rule above took the control away
+     on the last press of the − that reached zero: the button under the student's
+     finger went inside a display:none ancestor, which drops keyboard focus to
+     the body, and the only route back to the control was to reopen the editor
+     and re-select the type." A dead unit whose alive-toggle is inside the thing
+     the death hides is that bug again, one phase later, in a place where the
+     only route back would be to undo the fight.
+
+     SO: the toggle is a SIBLING of the marker and never a descendant of it. It
+     is not inside the token row, not inside the sentence node, and nothing this
+     region ever sets `hidden` on is an ancestor of it. It is reachable in BOTH
+     directions — a dead unit's toggle must be pressable to bring the unit back,
+     which is the direction a tidy implementation loses, because the tidy shape
+     is to hide "the dead part" as one block and the toggle looks like part of
+     it. IT IS NOT. Probe AC drives exactly that shape.
+
+     THE MARKER IS A MARKER AND NOT A REMOVAL, which is FIGHT-06 already decided
+     and must not be re-decided here. The hide pass's third dependency says it:
+     "a line the board is built on is never touched here … a unit at zero health
+     is something a student meant, and it stays on screen." A dead unit keeps its
+     card, its health line, its shield line and every stepper on it, because a
+     table may rule anything about it at any point in the round.
+
+     THE VOCABULARY IT DRAWS SHIPPED TWO PHASES AGO WITH NO CONSUMER.
+     DEFAULTS.tokens.dead is a rectangle carrying a skull, and its own paragraph
+     calls it "the concrete proof that this renderer can already draw Phase 5's
+     dead marker without any of Phase 5's mechanic being built". It is drawn
+     through the shipped makeToken / styleFor path and through no second one:
+     the row below is an ordinary .tok-row, [S06.1]'s per-frame pass fills it
+     from amountFor and styleFor exactly as it fills every other row on the
+     board, and the whole of this region's contribution to it is one arm.
+
+     data-lbl ON THE NAME, AND labelFor's TRAP CONSIDERED RATHER THAN IGNORED.
+     fillProposal records that labelFor's fall-through would "print a name that
+     is actively wrong" for a type the board no longer holds, and [S06.8]'s
+     ldTokenWord refuses by name for exactly that reason. This node carries the
+     marker anyway, and the difference is WHICH IDS CAN REACH IT: `dead` is one
+     of the five in TOKEN_IDS, removeTokenType refuses all five BY NAME, and
+     [S04]'s decoder seeds all five from DEFAULTS before it reads a record — so
+     there is no path, op or pasted code, on which this id is absent from the
+     vocabulary. A past round in [S06.8] can name a type older than the
+     vocabulary; a live card cannot. Where this region ASSEMBLES a sentence
+     naming a type it goes through dcTokenWord, which refuses by name.
+
+     THE DATA KEY IS UNIQUE PER UNIT IN THE FILE'S SLASH-PATH IDIOM and never
+     carries the student's text. Unit ids are unique document-wide — tallyLine's
+     comment states the property, "no unit is on two sides" — so `fg/alive/c1`
+     is unique by construction, which is what focus restore needs, because
+     keyed() takes the FIRST match inside #board and this line is inside it.
+
+     AND IT CARRIES NO data-act, WHICH IS THE SAFETY BOUNDARY [S06.7]'s control
+     register spells out at length: [S07.1]'s delegated listener routes any node
+     carrying one straight into App.ops.dispatch, so a control here wearing one
+     would fire an op with a payload nothing on this surface meant to send. The
+     private key is data-dc, in [S06.7]'s data-fg manner. Plan 05-10 attaches
+     the listener that reads it; until then the press does nothing, throws
+     nothing and opens no panel, which is UI_HANDLERS' recorded "claimed and
+     ignored" window and the only honest behaviour for it. */
+  function dcStandingLine(state, side, unit) {
+    var line = el('div', 'dc-line');
+    setData(line, { dcSide: side, dcUnit: unit.id });
+
+    var name = text('span', 'unit-label dc-label', labelFor(state, 'dead'));
+    setData(name, { lbl: 'dead' });
+    line.appendChild(name);
+
+    /* THE TOGGLE, in overPill's register: STATE SAID TWICE, in the class and in
+       an accessible name, never in colour alone — [C07]'s standing rule,
+       restated in [C12] and [C13] and binding a fourth time in [C14]. The tick
+       is a REAL NODE and not a pseudo-element, so a screen reader and the
+       rendered-page walk both reach it, which is overPill's own arrangement.
+
+       UX-02: a permanent, visible text label at 18px. Never an icon alone and
+       never a title= tooltip. NEVER DISABLED, in either direction, which is
+       [S06.7]'s never-disable banner and D-23 one region over — a toggle
+       disabled because the tool thinks the unit is obviously dead is the tool
+       adjudicating, and adjudication is the students'. */
+    var btn = el('button', 'dc-alive');
+    btn.type = 'button';
+    setData(btn, {
+      k: 'fg/alive/' + unit.id, dc: 'alive', dcSide: side, dcUnit: unit.id
+    });
+    btn.setAttribute('aria-pressed', 'false');
+    btn.appendChild(text('span', 'dc-alive-t', 'Marked dead'));
+    btn.appendChild(text('span', 'dc-check', '✓'));
+    line.appendChild(btn);
+
+    // The marker itself. An ordinary token row, built EMPTY like every other
+    // one on this board — structure() creates no token node at any point, which
+    // is what makes "a rebuild repopulates from an empty row, so nothing
+    // animates" true by construction, and what makes a unit going from standing
+    // to marked append exactly one token with the entry pop it deserves.
+    line.appendChild(tokenRow('dead', side, unit.id));
+
+    // The third saying of the state, and the one a person reads off a
+    // projector. Built once, written per frame, EMPTY AND HIDDEN TOGETHER at
+    // rest — the admission line's rule, and it is not .brd-line--opt, whose
+    // hide pass reads a tally and would pin it shut.
+    var said = text('p', 'dc-state', '');
+    said.hidden = true;
+    line.appendChild(said);
+
+    return line;
+  }
+
+  /* THE BY-HAND MARKER, and it takes .ae-prop-over versus .ae-prop-row's lesson
+     rather than restating it: THE MARKED THING GETS ITS OWN CLASS AND IS NOT
+     SELECTED BY THE CLASS THE ORDINARY THING USES. `.dc-hand` is on a node this
+     region created and on nothing else, so no later selector written for a
+     .brd-line, a .unit-label or a .tok-row can reach it and no rule written for
+     it can reach them — which is how a shared class becomes a selector reaching
+     something it was not written for.
+
+     STATE SAID TWICE AGAIN — the class and an accessible name — and the glyph
+     is a REAL NODE. The accessible name carries the ARTIFACT'S OWN WORDS and no
+     type name, and the reason was MEASURED rather than assumed. The first draft
+     of this paragraph said an aria-label is not text the rendered-page walk
+     reads and therefore must not carry a student's word. THAT IS BACKWARDS AND
+     THE FIGHT_FLOOR RE-MEASURE FOUND IT: harvestInto reads every attribute in
+     LABEL_ATTRS, aria-label among them, and skips one only when the node
+     carries the stepper's own data-albl channel — so this mark is read TWICE
+     per unit per value, once as text and once as its label, and eleven of the
+     eleven strings a unit card gained are accounted for by that arithmetic.
+     The rule that survives the correction is the one that matters: an
+     accessible name is copy, it is read by the gate like any other copy, and a
+     type's name belongs in the ONE place that keeps a rename live — the label
+     at the head of the line this marker sits in.
+
+     IT SAYS A PERSON SET THIS AND NOTHING ELSE. Not that the number is wrong,
+     not that it is unusual, not that the tool disagrees. `override` is clean as
+     a rendered word and banned as a state key — plan 05-05 settled that — and
+     this region stores nothing anyway, so the word is not needed at all.
+
+     BUILT ONCE, TOGGLED PER FRAME, and it checks off the admission line's four
+     silent-failure rules the way #fight-said's own shell comment does: no
+     data-k, so keyed() cannot take its first document match here; no data-amt
+     and not a .brd-value, so the value pass cannot write into it; not
+     .brd-line--opt, whose hide pass would pin it shut; and built once. */
+  function dcHandMark(side, unitId, tok) {
+    var node = el('span', 'dc-hand');
+    setData(node, { dcHand: tok, dcSide: side, dcUnit: unitId });
+    node.setAttribute('aria-label', DC_HAND_SAID);
+    node.appendChild(text('span', 'dc-hand-g', '✎'));   // LOWER RIGHT PENCIL
+    node.appendChild(text('span', 'dc-hand-t', DC_HAND_SAID));
+    node.hidden = true;
+    return node;
+  }
+
+  /* The decorator, run over a card unitCard has already finished. It reads the
+     card's own rows rather than being threaded through the four call sites that
+     built them, so not one of those four changes shape.
+
+     THE SELECTOR IS BUILT FROM A LOCAL LITERAL AND NEVER FROM STATE, which is
+     the one thing keyed() reaches for CSS.escape to do: DC_RULABLE is a list of
+     three ids this file wrote, so there is no student text anywhere near this
+     string. A tally row for a type a student invented is NOT decorated, and
+     that is correct rather than an omission — no hand op can write one, so a
+     marker on one would be a marker for a ruling that cannot be made. */
+  function dcMarkCard(card, side, unit) {
+    DC_RULABLE.forEach(function (tok) {
+      var row = card.querySelector('.tok-row[data-amt="' + tok + '"]');
+      if (!row || !row.parentNode) { return; }
+      row.parentNode.appendChild(dcHandMark(side, unit.id, tok));
+    });
+  }
+
+  /* THE PER-FRAME PASS, and it has NO FINGERPRINT on purpose — which is a
+     departure from [S06.5], [S06.6], [S06.7] and [S06.8] and is therefore
+     written down rather than left to be noticed.
+
+     Every one of those four REBUILDS a surface out of state, so a repaint they
+     did not need is a repaint that throws nodes away, and the fingerprint is
+     what buys the node identity back. This region rebuilds NOTHING. Every write
+     below is a boolean property, an attribute or a class on a node that already
+     exists and goes on existing, so a frame on which nothing moved writes the
+     values that are already there and costs one pass over about thirty nodes on
+     the shipped board. A fingerprint over the alive flags and the ruling list
+     would cost a walk of the same data to save that, which is the wrong side of
+     the trade at this size: [S06.8] measured a whole ledger repaint at 0.079 ms
+     and sync()'s own baseline on this board is 0.17 ms.
+
+     THE ONE THING THAT IS NOT IDEMPOTENT IS TEXT, so the sentence node is
+     written ONLY when it changes. Assigning textContent replaces the text node
+     even when the string is identical, and a node replaced every frame is a
+     node a selection cannot survive. */
+  // add / remove and never classList.toggle, which is the shipped idiom here
+  // (makeToken's entry class is the precedent) and is also the only one the
+  // stub DOM models — teaching that stub a fourth method to save two lines here
+  // would be a change to the harness in order to fit the artifact, which is the
+  // wrong direction for a gate.
+  function dcClass(node, cls, on) {
+    if (!node || !node.classList) { return; }
+    if (on) { node.classList.add(cls); } else { node.classList.remove(cls); }
+  }
+
+  function dcFillStanding(state, line) {
+    var side = String(line.dataset.dcSide || '');
+    var unitId = String(line.dataset.dcUnit || '');
+
+    // READ THROUGH amountFor AND NOT OFF THE SLICE, so the sentence, the class
+    // and the token row beside them are three SAYINGS OF ONE READING rather
+    // than three readings that can disagree. That is the rule this whole file
+    // keeps about derived values, applied to a flag: there is one place that
+    // answers "is this unit marked dead on this board", and everything on the
+    // card is drawn from it.
+    var dead = (amountFor(state, 'dead', side, unitId) === 1);
+
+    dcClass(line.parentNode, 'dc-card--dead', dead);
+
+    var btn = line.querySelector('.dc-alive');
+    if (btn) {
+      btn.setAttribute('aria-pressed', dead ? 'true' : 'false');
+      dcClass(btn, 'dc-alive--on', dead);
+    }
+
+    var said = line.querySelector('.dc-state');
+    if (said) {
+      var want = dead ? DC_DEAD_SAID : '';
+      if (said.textContent !== want) { said.textContent = want; }
+      said.hidden = (want === '');
+    }
+  }
+
+  function boardFight(state) {
+    if (typeof document === 'undefined') { return; }
+    var board = document.getElementById('board');
+    if (!board || state.fight === null) { return; }
+
+    var lines = board.querySelectorAll('.dc-line');
+    for (var i = 0; i < lines.length; i++) { dcFillStanding(state, lines[i]); }
+
+    // FIGHT-07, derived and not stored. The marker answers "was this value set
+    // by hand THIS round?" off the round's own record, and it clears itself on
+    // an Advance because advanceRound moves that record into `past` and opens
+    // the next round with none.
+    var marks = board.querySelectorAll('.dc-hand');
+    for (i = 0; i < marks.length; i++) {
+      var m = marks[i];
+      m.hidden = !dcSetByHand(state, String(m.dataset.dcSide || ''),
+        String(m.dataset.dcUnit || ''), String(m.dataset.dcHand || ''));
+    }
+  }
+
+  /* The per-frame half, attached to [S06.1]'s seam in syncLedger's exact shape.
+     A region that repainted only from its own handlers would keep showing the
+     markers the board no longer holds after any OTHER commit — an undo, a build
+     edit, an Advance driven from anywhere else.
+
+     THE CHEAP EXIT IS FIRST AND IT IS THE WHOLE COST OF THIS REGION FOR A
+     STUDENT WHO NEVER STARTS A FIGHT: the null test and nothing else.
+
+     THERE IS NO TEARDOWN FLAG AND NO TEARDOWN PASS, unlike the four sub-regions
+     above, and the reason is that every node this region owns is INSIDE #board.
+     endFight is a structural commit, so structure() rebuilds both column
+     interiors with `setup` true and each of those nodes is gone by construction
+     rather than by bookkeeping — which is also why unitCard's branch is the
+     right seam and a sync-time append into a column would not have been. */
+  function syncBoardFight(state) {
+    if (typeof document === 'undefined') { return; }
+    if (state.fight === null) { return; }
+    boardFight(state);
+  }
+
+  SYNC_HOOKS.push(syncBoardFight);
+  // #endregion [S06.9] RENDER — FIGHT MODE ON THE BOARD
+
+
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
   // units goes through its commitStructural helper -- and hiding
@@ -13613,6 +14059,17 @@ App.render = (function () {
     // back — and because an entry point reachable only through SYNC_HOOKS is an
     // entry point no reader can find from the outside.
     ledger: ledger,
+    // Exported to the same standard the five above are, and with the same
+    // honest note ledger's carries: it has NO handler caller today. The alive
+    // toggle IS a control, so unlike a ledger row this one is expected to grow
+    // a presser — plan 05-10's, which attaches the listener that reads data-dc
+    // — but a press moves state and asks for the next frame, so even then this
+    // entry point is not what it calls. It is exported because a surface
+    // reachable only by waiting for the next frame cannot be DRIVEN: the
+    // markers on this board have to be painted onto a state a row just wrote
+    // and then read back off the page, which is the one reading that can tell a
+    // marker drawn from the stored flag apart from one drawn from the health.
+    boardFight: boardFight,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the
