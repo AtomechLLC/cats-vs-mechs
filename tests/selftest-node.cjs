@@ -10124,6 +10124,655 @@ check(
     + ' | every =true entry=' + JSON.stringify(fgFlowTrue)
 );
 
+/* --- 106-106i. THE BATTLEFIELD, READ OFF THE PAGE (plan 05-15). D-27's
+   addendum, verbatim: "a visual presentation of the battle field on the current
+   turn (shapes for cats with smaller shapes for status points / health on them
+   - on one side, same on the right for the other side)".
+
+   THEY ARE NUMBERED FROM 106 AND 105 IS DELIBERATELY LEFT UNUSED, which is
+   worth a sentence rather than a gap nobody can explain. [S06.7]'s banner says
+   "check 105 is the numbered row that holds it" about the disable-is-a-render-
+   decision property — and that row shipped as 95b, beside the check it was
+   re-homed from. The banner names a number this file has never had. Taking 105
+   here would make that sentence point at a battlefield row, which is worse than
+   a dangling reference: it would be an actively wrong one. The correction
+   belongs to [S06.7]'s owner and plan 05-16 owns every other fight row's claim,
+   so it is handed on by name rather than reached for.
+
+   EVERY ROW BELOW READS THE PAGE AND NOT THE STATE. That is the whole reason
+   they exist next to [S09.12]'s and plan 05-13's: probe AB's lesson, now three
+   surfaces and two phases old — a derivation computed correctly and then
+   ignored on the way to the screen leaves every state row green. --- */
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+// The battlefield's own readers. Scoped to a side's declaration root for the
+// reason fgActBtnOf is: a lookup from the document would take the FIRST match
+// and #fightbar sits ahead of #board.
+function bfShapesOf(side) {
+  return fgSideRootOf(side).querySelectorAll('[data-fg="bf"]');
+}
+function bfShapeOf(side, unitId) {
+  return bfShapesOf(side).filter((n) => n.dataset.fgVal === unitId)[0] || null;
+}
+function bfLineOf(side, unitId, tok) {
+  const n = bfShapeOf(side, unitId);
+  return n === null
+    ? null : (n.querySelectorAll('.bf-line[data-bf-amt="' + tok + '"]')[0] || null);
+}
+// The token COUNT on one line, and -1 for a line that is not there at all, so a
+// missing line and an empty one can never be read as the same answer.
+function bfToksOf(side, unitId, tok) {
+  const line = bfLineOf(side, unitId, tok);
+  return line === null ? -1 : line.querySelectorAll('.tok').length;
+}
+function bfLineTextOf(side, unitId, tok) {
+  const line = bfLineOf(side, unitId, tok);
+  return line === null ? null : fgLeaves(line).join('|');
+}
+function bfLabelOf(side, unitId, tok) {
+  const line = bfLineOf(side, unitId, tok);
+  if (line === null) { return null; }
+  const lbl = line.querySelectorAll('.bf-lbl')[0] || null;
+  return lbl === null ? null : lbl.textContent;
+}
+function bfLineNames(side, unitId) {
+  const n = bfShapeOf(side, unitId);
+  return n === null ? [] : n.querySelectorAll('.bf-line').map((l) => l.dataset.bfAmt);
+}
+function bfHasClass(node, cls) {
+  return node !== null && String(node.className).split(/\s+/).indexOf(cls) !== -1;
+}
+// Every LIT shape on the page, by key, so the set can be compared against a
+// roster rather than counted.
+function bfLitKeys() {
+  const out = [];
+  fgBar.querySelectorAll('[data-fg="bf"]').forEach((n) => {
+    if (bfHasClass(n, 'bf-unit--lit')) { out.push(String(n.dataset.k)); }
+  });
+  return out.sort();
+}
+function bfRosterKeys(side) {
+  return A.state.get().fight[side].units
+    .map((u) => 'fg/bf/' + side + '/' + u.id).sort();
+}
+// The REAL control this time, and not plan 05-14's stub: the whole point of
+// this plan is that the node exists now.
+function bfPressUnit(side, unitId) {
+  const n = bfShapeOf(side, unitId);
+  if (n !== null) { fgPress(n); }
+  return n;
+}
+
+/* 106. BOTH CLUSTERS ARE ON THE FIGHT TAB AND EACH DRAWS ONE SHAPE PER UNIT OF
+   ITS OWN SIDE'S FIGHT ROSTER — the addendum's "on one side, same on the right
+   for the other side", read off the page.
+
+   AND THE ROSTER IT FOLLOWS IS THE FIGHT'S, WHICH IS FIGHT-10's DIVISION
+   ARRIVING ON A ROSTER RATHER THAN ON A NUMBER. A mid-fight addUnit moves the
+   BUILD and leaves the fight slice alone — addUnit's own mutator touches
+   s.build and nothing else — so the battlefield must NOT grow a shape for a
+   unit that is not in the fight, and it must grow one on the next startFight.
+   The harvest comment above row 92 records the same fact from the other end and
+   nothing asserted it.
+
+   THE ROSTER-SIGNATURE REBUILD IS DRIVEN THROUGH THE OTHER AXIS THE SIGNATURE
+   WATCHES, because the roster axis cannot be moved mid-fight at all: a
+   unit-scoped token type created while a fight is running adds a line to every
+   shape on the board, and the build-once flag has to notice. Driven through the
+   real op and read back as a LINE COUNT per shape. */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+fgPress(fgStart);
+const bfCatsN = bfShapesOf('cats').length;
+const bfMechsN = bfShapesOf('mechs').length;
+const bfRoster = [A.state.get().fight.cats.units.length,
+  A.state.get().fight.mechs.units.length];
+const bfKeysSeen = bfShapesOf('cats').map((n) => String(n.dataset.k)).sort();
+const bfNamesSeen = bfShapesOf('mechs')
+  .map((n) => n.querySelectorAll('.bf-name')[0].textContent);
+A.ops.addUnit('cats');
+A.state.flush();
+const bfCatsAfterAdd = bfShapesOf('cats').length;
+const bfBuildAfterAdd = A.state.get().build.cats.units.length;
+A.ops.endFight();
+A.state.flush();
+fgPress(fgStart);
+const bfCatsAfterRestart = bfShapesOf('cats').length;
+const bfLinesBefore = bfLineNames('cats', 'c1').length;
+const bfMidTok = A.ops.createTokenType({
+  name: 'Fury', shape: 'tri', color: 'coral', glyph: '', scope: 'unit'
+});
+A.state.flush();
+const bfLinesAfter = bfLineNames('cats', 'c1');
+const bfEveryShapeGrew = bfShapesOf('cats')
+  .every((n) => n.querySelectorAll('.bf-line').length === bfLinesBefore + 1);
+A.ops.removeTokenType(bfMidTok);
+A.state.flush();
+const bfLinesBack = bfLineNames('cats', 'c1').length;
+check(
+  '106. THE BATTLEFIELD IS ON THE FIGHT TAB, ONE CLUSTER PER SIDE INSIDE THAT '
+    + 'SIDE\'S OWN COLUMN, WITH ONE LABELLED SHAPE PER UNIT — D-27\'s addendum '
+    + 'read off the page. Counted per side against the FIGHT roster and not the '
+    + 'build one, which is FIGHT-10\'s division arriving on a roster: a '
+    + 'mid-fight addUnit moves the build and leaves the fight slice alone, so '
+    + 'the cluster must NOT grow a shape for a unit that is not in the fight '
+    + 'and MUST grow one on the next start. AND THE BUILD-ONCE FLAG CARRIES A '
+    + 'ROSTER SIGNATURE, driven through the axis that can actually move while a '
+    + 'fight is running: a unit-scoped token type created mid-fight adds a line '
+    + 'to EVERY shape and removing it takes the line away again. A flag that '
+    + 'was a bit rather than a fingerprint leaves the cluster drawn for a board '
+    + 'that has gone',
+  bfCatsN === bfRoster[0] && bfMechsN === bfRoster[1]
+    && bfCatsN > 0 && bfMechsN > 0
+    && bfKeysSeen.length === bfCatsN
+    && bfKeysSeen[0].indexOf('fg/bf/cats/') === 0
+    && bfNamesSeen.length === bfMechsN
+    && bfNamesSeen.every((s) => typeof s === 'string' && s !== '')
+    && bfCatsAfterAdd === bfCatsN && bfBuildAfterAdd === bfCatsN + 1
+    && bfCatsAfterRestart === bfCatsN + 1
+    && bfLinesAfter.length === bfLinesBefore + 1
+    && bfLinesAfter.indexOf(bfMidTok) !== -1
+    && bfEveryShapeGrew === true && bfLinesBack === bfLinesBefore
+    && errPanel.hidden === true,
+  'shapes cats=' + bfCatsN + ' mechs=' + bfMechsN
+    + ' against the fight roster ' + JSON.stringify(bfRoster)
+    + ' | the mechs\' shapes are labelled ' + JSON.stringify(bfNamesSeen)
+    + ' | a mid-fight addUnit left the cluster at ' + bfCatsAfterAdd
+    + ' while the build went to ' + bfBuildAfterAdd
+    + ' and the next start drew ' + bfCatsAfterRestart
+    + ' | lines per shape ' + bfLinesBefore + ' -> ' + bfLinesAfter.length
+    + ' -> ' + bfLinesBack + ', every shape grew=' + bfEveryShapeGrew
+    + ' | the lines now read ' + JSON.stringify(bfLinesAfter)
+);
+
+/* 106b. EACH SHAPE DRAWS THE FIGHT'S HEALTH AND NOT THE BUILD'S ALLOCATION, and
+   this row is the MIRROR of check 102's clause about the board.
+
+   102 asserts that the board's own health row does NOT move when a hand ruling
+   changes the fight's health, because that row draws the ALLOCATION. This
+   asserts the other half on the other surface, in the same drive and at the
+   same moment: one hand ruling, and the battlefield's token row moves while the
+   board's stands. A later plan pointing either surface at the other slice
+   reddens one of the two rows rather than shipping a second, silent answer to
+   what a health number on this artifact means. Probe AY drives the violation. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+const bfHpWas = bfToksOf('mechs', 'm1', 'hp');
+const bfBoardRow = () =>
+  fgBoard.querySelectorAll('.tok-row[data-amt="hp"][data-unit="m1"]')[0] || null;
+const bfBoardWas = bfBoardRow() === null ? -1 : bfBoardRow().children.length;
+const bfAllocWas = A.state.get().build.mechs.units[0].maxHp;
+A.ops.dispatch('setUnitHp', { side: 'mechs', unitId: 'm1', value: bfAllocWas - 2 });
+A.state.flush();
+const bfHpNow = bfToksOf('mechs', 'm1', 'hp');
+const bfBoardNow = bfBoardRow() === null ? -1 : bfBoardRow().children.length;
+const bfAllocNow = A.state.get().build.mechs.units[0].maxHp;
+const bfLiveNow = A.state.get().fight.mechs.units[0].hp;
+check(
+  '106b. THE SHAPE DRAWS THE FIGHT\'S HEALTH AND THE BOARD DRAWS THE BUILD\'S '
+    + 'ALLOCATION, and both are read off the page in ONE drive so the division '
+    + 'cannot be half-kept. FIGHT-10: state.build[].units[].maxHp is what a '
+    + 'student spent setting the faction up and state.fight[].units[].hp is '
+    + 'what the board holds now. A hand ruling moves the battlefield\'s token '
+    + 'row and does NOT move the board\'s, which is check 102\'s clause from '
+    + 'the other end. Drawn from the build here, a fight\'s damage would appear '
+    + 'not to land at all — a whole exercise spent wondering why the tool was '
+    + 'broken',
+  bfHpWas === bfAllocWas && bfHpNow === bfAllocWas - 2
+    && bfHpNow === bfLiveNow
+    && bfBoardWas > 0 && bfBoardNow === bfBoardWas
+    && bfAllocNow === bfAllocWas && errPanel.hidden === true,
+  'the shape\'s health row ' + bfHpWas + ' -> ' + bfHpNow
+    + ' | the board\'s health row ' + bfBoardWas + ' -> ' + bfBoardNow
+    + ' | the ALLOCATION ' + bfAllocWas + ' -> ' + bfAllocNow
+    + ' | the fight\'s live health is now ' + bfLiveNow
+);
+
+/* 106c. A TYPE A STUDENT INVENTED AND STYLED APPEARS IN THE BATTLE EXACTLY AS
+   THEY AUTHORED IT — D-07's "they are the same kind of thing", ALLOC-10 and
+   D-24's no-second-tier, on the surface that was most likely to grow a second
+   token vocabulary of its own.
+
+   DRIVEN THROUGH THE REAL OPS AND NEVER A PLANTED STRING, which is check 47d's
+   shipped shape and its reason: a planted string proves nothing about the path
+   the word actually travels. The type is CREATED with a shape, a colour and a
+   glyph, RESTYLED through setTokenStyle, and RENAMED through renameTokenType,
+   and each of the three is read back off the shapes.
+
+   AND THE LABEL CARRIES THE EXEMPTION CHANNEL. This is a new place a student's
+   own word reaches the page, and an unmarked one turns a rename into a red CI
+   run — the gate asserting the opposite of the requirement, which is 47d's own
+   sentence about itself. */
+A.ops.resetToDefaults();
+A.state.flush();
+const bfOwnTok = A.ops.createTokenType({
+  name: 'Zeal', shape: 'hex', color: 'violet', glyph: '\u{1F49C}', scope: 'unit'
+});
+A.ops.setTally('cats', 'c1', bfOwnTok, 4);
+A.state.flush();
+fgPress(fgStart);
+const bfOwnCount = bfToksOf('cats', 'c1', bfOwnTok);
+const bfOwnTokNode = bfLineOf('cats', 'c1', bfOwnTok)
+  ? bfLineOf('cats', 'c1', bfOwnTok).querySelectorAll('.tok')[0] : null;
+const bfOwnClass = bfOwnTokNode === null ? '(no token)' : bfOwnTokNode.className;
+const bfOwnGlyph = bfOwnTokNode === null
+  ? '(no token)'
+  : ((bfOwnTokNode.querySelectorAll('.tok-g')[0] || { textContent: '(no glyph node)' }).textContent);
+const bfOwnLabel = bfLabelOf('cats', 'c1', bfOwnTok);
+const bfOwnLblNode = bfLineOf('cats', 'c1', bfOwnTok).querySelectorAll('.bf-lbl')[0];
+const bfOwnMarked = ('lbl' in bfOwnLblNode.dataset) && bfOwnLblNode.dataset.lbl === bfOwnTok;
+A.ops.setTokenStyle(bfOwnTok, { shape: 'dia', color: 'gold', glyph: '\u{1F49B}' });
+A.ops.renameTokenType(bfOwnTok, 'Ardour');
+A.state.flush();
+const bfOwnTokNode2 = bfLineOf('cats', 'c1', bfOwnTok).querySelectorAll('.tok')[0];
+const bfOwnClass2 = bfOwnTokNode2 === null ? '(no token)' : bfOwnTokNode2.className;
+const bfOwnGlyph2 = bfOwnTokNode2 === null
+  ? '(no token)'
+  : ((bfOwnTokNode2.querySelectorAll('.tok-g')[0] || { textContent: '(no glyph node)' }).textContent);
+const bfOwnLabel2 = bfLabelOf('cats', 'c1', bfOwnTok);
+const bfOwnHarvest = harvestInto(dom.byId['app'], [], '#app')
+  .filter((e) => e.s === 'Ardour').length;
+check(
+  '106c. A TOKEN TYPE A STUDENT INVENTED, STYLED AND RENAMED APPEARS ON THE '
+    + 'BATTLEFIELD EXACTLY AS THEY AUTHORED IT — the shape suffix, the colour '
+    + 'suffix and the glyph on the token node, and their own name on the label '
+    + 'beside it. Driven through createTokenType, setTokenStyle and '
+    + 'renameTokenType rather than by planting a string, which is 47d\'s shape: '
+    + 'a planted string proves nothing about the path the word travels. This is '
+    + 'what calling the shipped styleFor / makeToken buys, and it is why this '
+    + 'region may not build token nodes of its own. AND THE LABEL CARRIES THE '
+    + 'TOKEN-NAME EXEMPTION CHANNEL, so the student\'s word is not harvested '
+    + 'into the no-verdict scan — an unmarked one would redden CI on a word the '
+    + 'STUDENT chose rather than on one the artifact says',
+  bfOwnCount === 4
+    && bfOwnClass === 'tok tok--hex tok--violet'
+    && bfOwnGlyph === '\u{1F49C}'
+    && bfOwnLabel === 'Zeal' && bfOwnMarked === true
+    && bfOwnClass2 === 'tok tok--dia tok--gold'
+    && bfOwnGlyph2 === '\u{1F49B}'
+    && bfOwnLabel2 === 'Ardour'
+    && bfOwnHarvest === 0
+    && errPanel.hidden === true,
+  'as authored: ' + bfOwnCount + ' tokens, class ' + JSON.stringify(bfOwnClass)
+    + ', glyph ' + JSON.stringify(bfOwnGlyph)
+    + ', label ' + JSON.stringify(bfOwnLabel)
+    + ', label carries data-lbl=' + bfOwnMarked
+    + ' | after a real restyle and rename: class ' + JSON.stringify(bfOwnClass2)
+    + ', glyph ' + JSON.stringify(bfOwnGlyph2)
+    + ', label ' + JSON.stringify(bfOwnLabel2)
+    + ' | the renamed word appears in the Layer C harvest ' + bfOwnHarvest
+    + ' times'
+);
+
+/* 106d. COMPACTION IS THE SHIPPED THRESHOLD AND THERE IS NO SECOND ONE. D-20's
+   one constant, D-21's count-then-one-token form, read off the live export
+   rather than typed as 12 — a row carrying its own copy of the number would
+   agree with itself and with nothing else.
+
+   AND THE BOARD IT IS TAKEN ON IS ONE WHERE THE DISTINCTION SHOWS. A compacted
+   row is FEWER token nodes and MORE rendered strings than an uncompacted one,
+   so a row that only counted nodes would read a compacted row as a smaller
+   number rather than as a different form. Both are read: the node count and the
+   words. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+const BF_AT = A.render.COMPACT_AT;
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c1', value: BF_AT - 1 });
+A.state.flush();
+const bfLooseToks = bfToksOf('cats', 'c1', 'hp');
+const bfLooseText = bfLineTextOf('cats', 'c1', 'hp');
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c1', value: BF_AT });
+A.state.flush();
+const bfTightToks = bfToksOf('cats', 'c1', 'hp');
+const bfTightText = bfLineTextOf('cats', 'c1', 'hp');
+const bfTightCount = (bfLineOf('cats', 'c1', 'hp')
+  .querySelectorAll('.tok-count')[0] || { textContent: '(none)' }).textContent;
+check(
+  '106d. THE BATTLEFIELD COMPACTS AT App.render.COMPACT_AT AND AT NO SECOND '
+    + 'THRESHOLD OF ITS OWN. One below it the row draws one token per point; at '
+    + 'it the row draws a count, a multiplication sign and exactly ONE token — '
+    + 'D-20 and D-21, held on this surface because the same syncRow decides '
+    + 'them rather than because this region agreed to. A student who learned '
+    + 'the board\'s compaction reads this one the same way. The threshold is '
+    + 'read off the LIVE export and never typed here, and both the node count '
+    + 'and the rendered words are taken, because a compacted row is fewer nodes '
+    + 'and more strings than an uncompacted one and a count alone cannot tell '
+    + 'the two forms apart',
+  BF_AT > 1 && bfLooseToks === BF_AT - 1 && bfTightToks === 1
+    && bfTightCount === String(BF_AT) + '×'
+    && bfLooseText !== bfTightText
+    && errPanel.hidden === true,
+  'COMPACT_AT read off the live export=' + BF_AT
+    + ' | at ' + (BF_AT - 1) + ' the row draws ' + bfLooseToks + ' tokens: '
+    + JSON.stringify(bfLooseText)
+    + ' | at ' + BF_AT + ' it draws ' + bfTightToks + ' token: '
+    + JSON.stringify(bfTightText)
+    + ' with the count node reading ' + JSON.stringify(bfTightCount)
+);
+
+/* 106e. A UNIT RULED DEAD STAYS DRAWN AND IS MARKED, AND A ZERO-HEALTH UNIT
+   NOBODY RULED IS DRAWN AS STANDING. FIGHT-06 and D-00d together, on the second
+   surface that now has to keep both, and taken FOUR WAYS as check 98 takes them
+   on the board — because a state is said more than once and never in colour
+   alone, and because probe AB proved a marker derived wrongly on the way to the
+   screen leaves the whole repository green.
+
+   THE SECOND DIRECTION IS THE ONE A TIDY IMPLEMENTATION LOSES. A unit driven to
+   zero health that nobody ruled has to draw as standing, because that is what
+   keeps a student's "it survived on its Shield" ruling representable at all.
+   Probe AZ drives the violation from both ends. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+A.ops.dispatch('setUnitHp', { side: 'cats', unitId: 'c2', value: 0 });
+A.state.flush();
+const bfZeroShape = bfShapeOf('cats', 'c2');
+const bfZeroRead = {
+  drawn: bfZeroShape !== null,
+  marked: bfHasClass(bfZeroShape, 'bf-unit--dead'),
+  markerTokens: bfToksOf('cats', 'c2', 'dead'),
+  says: (bfZeroShape === null
+    ? null : fgLeaves(bfZeroShape).filter((s) => s.indexOf('ruled dead') !== -1)),
+  hp: bfToksOf('cats', 'c2', 'hp'),
+  flag: A.state.get().fight.cats.units[1].alive
+};
+fgPress(fgAliveBtn('cats', 'c1'));
+const bfDeadShape = bfShapeOf('cats', 'c1');
+const bfDeadRead = {
+  drawn: bfDeadShape !== null,
+  marked: bfHasClass(bfDeadShape, 'bf-unit--dead'),
+  markerTokens: bfToksOf('cats', 'c1', 'dead'),
+  says: (bfDeadShape === null
+    ? null : fgLeaves(bfDeadShape).filter((s) => s.indexOf('ruled dead') !== -1)),
+  hp: bfToksOf('cats', 'c1', 'hp'),
+  flag: A.state.get().fight.cats.units[0].alive,
+  disabled: bfDeadShape === null ? null : bfDeadShape.disabled
+};
+fgPress(fgAliveBtn('cats', 'c1'));
+const bfBackRead = {
+  drawn: bfShapeOf('cats', 'c1') !== null,
+  marked: bfHasClass(bfShapeOf('cats', 'c1'), 'bf-unit--dead'),
+  markerTokens: bfToksOf('cats', 'c1', 'dead'),
+  flag: A.state.get().fight.cats.units[0].alive
+};
+check(
+  '106e. A UNIT A STUDENT RULED DEAD IS STILL A SHAPE ON THE BATTLEFIELD AND IT '
+    + 'IS MARKED, AND A UNIT AT ZERO HEALTH THAT NOBODY RULED IS DRAWN AS '
+    + 'STANDING. FIGHT-06 — dead units stay visible rather than disappearing — '
+    + 'and D-00d, the file\'s oldest ruling, on the surface a student is '
+    + 'actually looking at during a fight. FOUR READINGS each, as check 98 '
+    + 'takes them on the board: the shape is still there, its class says dead, '
+    + 'the marker token is there, and the artifact\'s own sentence is beside '
+    + 'it. The shape at zero health keeps its full health row and NO marker, '
+    + 'which is the direction a tidy implementation loses and the one that '
+    + 'keeps a Shield ruling representable. And a unit ruled and then ruled '
+    + 'back returns to the first, so nothing here is sticky. NEITHER IS EVER '
+    + 'DISABLED',
+  bfZeroRead.drawn === true && bfZeroRead.marked === false
+    && bfZeroRead.markerTokens === 0 && bfZeroRead.says.length === 0
+    && bfZeroRead.hp === 0 && bfZeroRead.flag === true
+    && bfDeadRead.drawn === true && bfDeadRead.marked === true
+    && bfDeadRead.markerTokens === 1 && bfDeadRead.says.length === 1
+    && bfDeadRead.hp > 0 && bfDeadRead.flag === false
+    && bfDeadRead.disabled === false
+    && bfBackRead.drawn === true && bfBackRead.marked === false
+    && bfBackRead.markerTokens === 0 && bfBackRead.flag === true
+    && errPanel.hidden === true,
+  'c2 at zero health that nobody ruled=' + JSON.stringify(bfZeroRead)
+    + ' | c1 at full health that a student ruled=' + JSON.stringify(bfDeadRead)
+    + ' | c1 ruled back=' + JSON.stringify(bfBackRead)
+);
+
+/* 106f. THE LIT SET IS EXACTLY THE OPPOSING SIDE'S UNITS WHILE A CHANGE OF
+   TARGET IS HALF MADE, AND EMPTY AT EVERY OTHER MOMENT.
+
+   THIS ROW EXISTS BECAUSE THE RULE LIVES IN TWO PLACES AND NEITHER CAN CALL THE
+   OTHER. [S07.5]'s fgMayPoint decides which side a press may COMPLETE on;
+   [S06.11] decides which side LIGHTS; they are in different IIFEs. Widening one
+   without the other lights a unit a press then declines, or leaves a legal pick
+   dark, and neither of those raises anything. So the set is COMPARED AGAINST
+   THE ROSTER rather than counted — a count would be green over a page that lit
+   the wrong side's units in the right number. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+const bfLitRest = bfLitKeys();
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const bfLitDeclared = bfLitKeys();
+fgPress(fgAtBtnOf('cats', 'c1'));
+const bfLitArmed = bfLitKeys();
+const bfLitWant = bfRosterKeys('mechs');
+const bfLitWords = fgBar.querySelectorAll('[data-fg="bf"]')
+  .filter((n) => {
+    const w = n.querySelectorAll('.bf-pick')[0];
+    return w !== undefined && w.hidden === false && w.textContent !== '';
+  }).length;
+const bfLitDisabled = fgBar.querySelectorAll('[data-fg="bf"]')
+  .filter((n) => n.disabled === true).length;
+fgPress(fgAtBtnOf('cats', 'c1'));
+const bfLitCancelled = bfLitKeys();
+check(
+  '106f. WHILE A CHANGE OF TARGET IS HALF MADE THE OPPOSING SIDE\'S UNITS LIGHT '
+    + 'ON THE BATTLEFIELD AND NOTHING ELSE DOES, and at every other moment '
+    + 'NOTHING lights. The lit set is compared against the opposing roster as a '
+    + 'SET rather than counted, because the rule that decides it lives in two '
+    + 'regions that cannot call each other — [S07.5]\'s one-line predicate says '
+    + 'which side a press may complete on and [S06.11] says which side lights, '
+    + 'and a count would be green over a page that lit the wrong side\'s units '
+    + 'in the right number. THE STATE IS SAID IN TWO CHANNELS AND COLOUR IS '
+    + 'NEITHER: the class, and a real text node a screen reader and this walk '
+    + 'both read. AND NOTHING LIT IS DISABLED — lit is not enabled and unlit is '
+    + 'not disabled',
+  bfLitRest.length === 0 && bfLitDeclared.length === 0
+    && bfLitArmed.join('|') === bfLitWant.join('|')
+    && bfLitWant.length > 0
+    && bfLitWords === bfLitWant.length
+    && bfLitDisabled === 0
+    && bfLitCancelled.length === 0 && errPanel.hidden === true,
+  'lit at rest=' + JSON.stringify(bfLitRest)
+    + ' | lit with a declaration standing=' + JSON.stringify(bfLitDeclared)
+    + ' | lit with the change half made=' + JSON.stringify(bfLitArmed)
+    + ' | the opposing roster=' + JSON.stringify(bfLitWant)
+    + ' | shapes showing the word=' + bfLitWords
+    + ' | lit shapes disabled=' + bfLitDisabled
+    + ' | lit after the change was cancelled=' + JSON.stringify(bfLitCancelled)
+);
+
+/* 106g. A PRESS ON A LIT SHAPE MOVES ONLY WHAT THE DECLARATION POINTS AT, AND A
+   PRESS AT REST MOVES NOTHING AT ALL.
+
+   THIS IS 104d AND 104e's CLAIM DRIVEN THROUGH THE REAL CONTROL. Those two rows
+   pressed a stub node plan 05-14 built to the key contract and took away again,
+   because the arm existed and its sender did not; the sender exists now, so the
+   same claim is taken on the node a student actually presses. Both rows stay:
+   theirs assert the ARM, this asserts the CONTROL, and a plan that broke the
+   spelling between them would redden here while they stayed green.
+
+   THE SECOND PERFORMER IS NOT DECORATION, and 104d's paragraph says why at
+   length: commit() coalesces two commits under the same label inside 500ms, a
+   declare and an immediate retarget of ONE performer share a label by design,
+   and an undo over the pair would take the declaration with it. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+A.state.restore(JSON.stringify(A.state.get()));
+A.state.flush();
+fgDeclare('cats', fgAtCatsAct, 'c1');
+const bfRtFirst = JSON.stringify(fgDeclOf('cats', 'c1'));
+fgDeclare('cats', fgAtCatsAct, 'c2');
+const bfRtDepthWas = A.state.undoDepth();
+const bfRtLenWas = A.state.get().fight.decl.length;
+fgPress(fgAtBtnOf('cats', 'c1'));
+const bfRtPressed = bfPressUnit('mechs', 'm3');
+const bfRtMoved = fgDeclOf('cats', 'c1');
+const bfRtHalfAfter = fgHalfOf('cats');
+const bfRtLenNow = A.state.get().fight.decl.length;
+const bfRtDepthNow = A.state.undoDepth();
+fgPress(fgUndoBtn);
+const bfRtUndone = JSON.stringify(fgDeclOf('cats', 'c1'));
+const bfRtOther = fgDeclOf('cats', 'c2');
+// and a press at rest
+const bfRestState = JSON.stringify(A.state.get());
+const bfRestPage = fgLeaves(fgBar).join('|');
+bfPressUnit('mechs', 'm2');
+const bfRestStateNow = JSON.stringify(A.state.get());
+const bfRestPageNow = fgLeaves(fgBar).join('|');
+check(
+  '106g. A PRESS ON A LIT BATTLEFIELD SHAPE MOVES ONLY WHAT THE DECLARATION '
+    + 'POINTS AT, AND A PRESS AT REST MOVES NOTHING AND OPENS NOTHING. The '
+    + 'side, the action and the performer all stand, the declaration list does '
+    + 'not grow because [S05] replaces a performer\'s record in place, the two '
+    + 'half-made attributes are cleared by the same press, and ONE press of the '
+    + 'topbar undo puts the old target back while the neighbour declaration '
+    + 'stands untouched. THIS IS 104d AND 104e\'s CLAIM ON THE REAL CONTROL '
+    + 'RATHER THAN ON THE STUB PLAN 05-14 BUILT TO THE KEY CONTRACT: both rows '
+    + 'stay, because theirs assert the arm and this asserts the sender, and a '
+    + 'plan that broke the spelling between them reddens here while they stay '
+    + 'green',
+  bfRtPressed !== null
+    && bfRtMoved !== null && bfRtMoved.at === 'm3'
+    && bfRtMoved.act === fgAtCatsAct && bfRtMoved.by === 'c1'
+    && bfRtMoved.side === 'cats'
+    && bfRtLenNow === bfRtLenWas && bfRtHalfAfter === '/'
+    && bfRtDepthNow === bfRtDepthWas + 1
+    && bfRtUndone === bfRtFirst && bfRtOther !== null
+    && bfRestState === bfRestStateNow && bfRestPage === bfRestPageNow
+    && errPanel.hidden === true,
+  'the control pressed carries data-k='
+    + JSON.stringify(bfRtPressed === null ? null : bfRtPressed.dataset.k)
+    + ' | the record ' + bfRtFirst + ' -> ' + JSON.stringify(bfRtMoved)
+    + ' | declarations standing ' + bfRtLenWas + ' -> ' + bfRtLenNow
+    + ' | the half-made change after the press='
+    + JSON.stringify(bfRtHalfAfter)
+    + ' | undo depth ' + bfRtDepthWas + ' -> ' + bfRtDepthNow
+    + ' | one undo left ' + bfRtUndone
+    + ' | at rest: state moved=' + (bfRestState !== bfRestStateNow)
+    + ' page moved=' + (bfRestPage !== bfRestPageNow)
+    + ' | error panel hidden=' + errPanel.hidden
+);
+
+/* 106h. AND NO KEY COLLIDES, WITH THE BATTLEFIELD PAINTED. Check 94b's reading
+   taken again on a page that now carries one more key per unit per side.
+   keyed() takes the FIRST match, so a repeated key is a repaint handing the
+   keyboard to a node the student was not on. The space is disjoint by
+   construction — `fg/bf/{side}/{unit}` cannot collide with `fg/act/...`,
+   `fg/at/...` or `fg/alive/...`, and no unit is on two sides — and this row is
+   what says the construction held rather than assuming it. THE COUNT IS
+   RECORDED so the next plan starts from a reading. */
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgAtCatsAct, 'c1');
+fgPress(fgAtBtnOf('cats', 'c1'));
+const bfKeys = {};
+const bfKeyDupes = [];
+let bfKeyCount = 0;
+let bfBfKeys = 0;
+(function walk(n) {
+  if (n.dataset && typeof n.dataset.k === 'string' && n.dataset.k !== '') {
+    bfKeyCount++;
+    if (n.dataset.k.indexOf('fg/bf/') === 0) { bfBfKeys++; }
+    if (Object.prototype.hasOwnProperty.call(bfKeys, n.dataset.k)) {
+      bfKeyDupes.push(n.dataset.k);
+    }
+    bfKeys[n.dataset.k] = true;
+  }
+  n.children.forEach(walk);
+})(fgApp);
+const bfKeyWant = A.state.get().fight.cats.units.length
+  + A.state.get().fight.mechs.units.length;
+check(
+  '106h. EVERY data-k ON THE PAGE IS STILL UNIQUE WITH THE BATTLEFIELD PAINTED '
+    + 'AND A CHANGE OF TARGET HALF MADE — 94b\'s reading, taken again on the '
+    + 'page this plan added one key per unit per side to. The two key spaces '
+    + 'are disjoint by construction and this row is what says the construction '
+    + 'held: `fg/bf/` cannot collide with `fg/act/`, `fg/at/` or `fg/alive/`, '
+    + 'and no unit is on two sides. Floored on the battlefield\'s own keys '
+    + 'being FOUND and counted against both rosters, because a walk over a '
+    + 'cluster that was never painted finds no duplicates spotlessly',
+  bfKeyDupes.length === 0 && bfBfKeys === bfKeyWant && bfKeyWant > 0
+    && bfKeyCount >= 120,
+  'keys on the page=' + bfKeyCount + ' of which battlefield keys=' + bfBfKeys
+    + ' against both rosters=' + bfKeyWant
+    + ' duplicates=' + JSON.stringify(bfKeyDupes)
+);
+
+/* 106i. NOTHING ON THE BATTLEFIELD IS EVER DISABLED, on any board, in any
+   state. [S07.5]'s banner requires it of this plan BY NAME — "it must never
+   disable one. UNLIT IS NOT DISABLED" — and a fourth disable condition is
+   exactly what the D-27 overrule does not license: it is scoped to the grid's
+   action buttons and this surface is outside it.
+
+   THE WHOLE SET IS COMPARED ACROSS THREE BOARDS rather than one control being
+   watched, which is 71c's shape and its reason. The three are the ones on which
+   a disable would arrive if it were going to: a funded board, a board driven to
+   nothing, and a board with three units ruled dead — the third condition of the
+   grid's contract, applied to units whose shapes are right here. */
+function bfDisabledField() {
+  const out = [];
+  // The side list is read off the LIVE export rather than typed here, which is
+  // the rule every list in this file keeps: a re-typed copy checks itself.
+  A.ops.SIDES.forEach((side) => {
+    fgSideRootOf(side).querySelectorAll('[data-fg="bf"]').forEach((n) => {
+      out.push(String(n.dataset.k) + '=' + (n.disabled === true));
+    });
+  });
+  return out.sort().join('|');
+}
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+const bfOffFunded = bfDisabledField();
+// The pool is driven to zero through a REAL Advance rather than by writing a
+// number into the slice, which is check 95's own method and its reason:
+// advanceRound is the only thing in this file that refills it, so the build is
+// set to nothing first and the Advance carries that through.
+A.ops.setFactionAp('cats', 0);
+A.ops.setFactionAp('mechs', 0);
+A.state.flush();
+fgAdvancePress();
+const bfOffStarved = bfDisabledField();
+const bfPools = [A.state.get().fight.cats.ap, A.state.get().fight.mechs.ap];
+fgPress(fgAliveBtn('cats', 'c1'));
+fgPress(fgAliveBtn('cats', 'c2'));
+fgPress(fgAliveBtn('mechs', 'm1'));
+const bfOffRuled = bfDisabledField();
+const bfRuledFlags = [A.state.get().fight.cats.units[0].alive,
+  A.state.get().fight.cats.units[1].alive,
+  A.state.get().fight.mechs.units[0].alive];
+const bfOffTrue = bfOffRuled.split('|').filter((e) => e.indexOf('=true') !== -1);
+check(
+  '106i. NOTHING ON THE BATTLEFIELD IS DISABLED, ON ANY BOARD. The whole set of '
+    + 'battlefield controls is read on a funded board, on a board whose pools '
+    + 'have been driven to nothing, and on a board with three units ruled dead, '
+    + 'and compared as a SET both times — 71c\'s shape and its reason: a row '
+    + 'watching one control would be green over a page that took every other '
+    + 'one away. [S07.5]\'s banner requires this of this plan BY NAME, because '
+    + 'an unlit shape is a press that DECLINES QUIETLY and a fourth disable '
+    + 'condition is exactly what the D-27 overrule does not license — it is '
+    + 'scoped to the grid\'s action buttons and this surface is outside it. '
+    + 'Floored on controls being FOUND, because an empty set is identical to '
+    + 'an empty set',
+  bfOffFunded.split('|').length > 1
+    && bfOffFunded === bfOffStarved && bfOffFunded === bfOffRuled
+    && bfOffTrue.length === 0
+    && bfPools[0] === 0 && bfPools[1] === 0
+    && bfRuledFlags.join(',') === 'false,false,false'
+    && errPanel.hidden === true,
+  'controls compared=' + bfOffFunded.split('|').length
+    + ' | funded === starved=' + (bfOffFunded === bfOffStarved)
+    + ' | funded === three ruled dead=' + (bfOffFunded === bfOffRuled)
+    + ' | fight pools driven to ' + JSON.stringify(bfPools)
+    + ' | the three ruled flags=' + JSON.stringify(bfRuledFlags)
+    + ' | every =true entry=' + JSON.stringify(bfOffTrue)
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
