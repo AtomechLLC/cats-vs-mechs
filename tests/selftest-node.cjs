@@ -9344,27 +9344,43 @@ clearPanel();
             readings above are the shape of the row that belongs in
             tests/browser-checks.mjs.
         21. THE VIEWPORT BUDGET: WHETHER THE FIGHT REGIONS FIT ABOVE THE BOARD
-            ON A LAPTOP SCREEN. #fightbar and #ledger are two full-width regions
-            STACKED above #board, so the page pays their SUM. Measured in real
-            Chrome and real Edge by plan 05-09, one round resolved, identical in
-            both, with the shipped dials 34vh / 34vh / 20vh:
+            ON A LAPTOP SCREEN. FIXED, AND THE ENTRY IS REWRITTEN RATHER THAN
+            TICKED, because what it still cannot see is the point of keeping it.
+            #fightbar and #ledger were two full-width regions STACKED above
+            #board, so the page paid their SUM. Measured by plan 05-09 and again
+            by plan 05-10, one round resolved, identical in Chrome and Edge:
               board top @1920x1080 = 1257      @1366x768 = 1048
-            and the whole sweep of the three dials, down to 18/18/10, reads
-              922 @1080 and 825 @768 — SO NO SETTING AT ALL CLEARS A 768-TALL
-            SCREEN, and every setting below 34vh gives up the whole-newest-round
-            property plan 05-08 chose 34vh for. What DOES clear it, measured:
-            laying the two regions SIDE BY SIDE reads 844 @1080 and 788 @768
-            with the dials untouched, because the page then pays the TALLER
-            rather than the sum.
-            THIS IS A DECISION AND NOT A DIAL, and it is why it is on this list
-            rather than in a row: it needs a wrapper element in the static shell
-            and a rewrite of [C14]'s `#fightbar, #ledger` rule, which are plan
-            05-06's markup and plan 05-06's frame rule — and that rule is the
-            one whose own paragraph records a shorthand silently zeroing a
-            longhand and putting a region 182px out of alignment. It is
-            REHEARSAL.md B3 and it is the phase's largest item. Plan 05-10 did
-            not paper over it: no row below asserts that the board is on screen,
-            because it is not.
+            and the whole sweep of the three dials, down to 18/18/10, read
+              922 @1080 and 825 @768 — NO SETTING AT ALL CLEARED A 768-TALL
+            SCREEN, and every setting below 34vh gave up the whole-newest-round
+            property plan 05-08 chose 34vh for.
+            WHAT WAS DONE, OUTSIDE THE PLAN SEQUENCE AND BY THE ORCHESTRATOR,
+            because plan 05-11 is a blocking playtest and a person cannot play a
+            board that is off the bottom of the screen: the two regions were put
+            SIDE BY SIDE in a .fg-band wrapper and [C14]'s frame rule was
+            rewritten onto it. Driven with one round resolved, in real Chrome AND
+            real Edge, at both sizes, identical in all four:
+              board top @1920x1080 = 844 of 1080     @1366x768 = 730 of 768
+            and unchanged at thirty rounds, because the ledger is shorter than
+            the fight bar beside it and the page pays the taller of the two.
+            THE THREE HEIGHT DIALS WERE NOT TURNED DOWN. .fg-sides is still 34vh
+            and .ld-now-body is still 20vh. .ld-list went 34vh -> 46vh, which is
+            the number plan 05-06 set it at: side by side it is no longer in
+            #fightbar's budget, and 34vh in the narrower column no longer held a
+            whole round. Whole-newest-round at 1920x1080 was LOST by the
+            rearrangement and RECOVERED by that dial, and it is asserted here
+            rather than assumed: 446px round inside a 450px list.
+            WHAT IS STILL NOT TRUE, STATED PLAINLY. At 1366x768 the newest round
+            does NOT fit whole — 46vh is 353px there and a round in that column
+            is 740px, so it scrolls. That is not a regression: every row of plan
+            05-09's sweep read "no" at 768 including the shipped one. It is a
+            property of a 768-tall screen and not of an arrangement.
+            AND WHAT THIS HARNESS STILL CANNOT SEE IS THE WHOLE OF IT. Not one
+            number above came from this file. tests/selftest-node.cjs computes no
+            layout, and a board below the fold is invisible to every row in it —
+            which is exactly how four consecutive plans each set a height dial
+            against a page the next plan then changed. A plan that writes CSS or
+            shell markup must drive a real browser before claiming it clean.
         22. WHETHER THE LEDGER SCROLLING ON ITSELF LEAVES #strip STILL PINNING.
             [C14.2] puts the scroll on .ld-list rather than on an ancestor, and
             entry 20 above is the measurement of what happens when a scroll goes
@@ -9374,6 +9390,15 @@ clearPanel();
             entry exists for. Machine-closable, in tests/browser-checks.mjs, in
             entry 20's exact shape: scroll the ledger to its end at 1366x768 and
             read #strip's viewport top at four page scroll offsets.
+            DRIVEN AND CLEAN, BUT NOT YET A ROW, and the difference matters. The
+            viewport fix took exactly that reading in both browsers at both
+            sizes, thirty rounds deep with the list scrolled to its end: #strip
+            reports position sticky, every ancestor of it reports overflow
+            visible, and its viewport top reads 107 at 1080 and 99 at 768 at
+            every page scroll offset. That is the measurement this entry asked
+            for and it came back clean. It is still an entry rather than a check
+            because nothing in tests/browser-checks.mjs asserts it, so nothing
+            would go red if a later plan took it away.
         23. WHETHER THE TOPBAR CLUSTER WRAPS. Plan 05-06 added #fight-start to a
             bar that already carried four controls, and [S08] MEASURES the bar's
             height to set the sticky offset every region below it uses. A bar

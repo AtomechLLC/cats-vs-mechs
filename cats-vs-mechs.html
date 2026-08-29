@@ -1053,14 +1053,50 @@
      for the very token a helpful comment would spell out. Wrapping is handled
      by measure and by flex-wrap instead. */
 
-  /* Both new regions carry #board's width and its computed negative margin,
-     spelled the same way and for the reason [C03] gives about the board: the
+  /* THE TWO REGIONS ARE LAID SIDE BY SIDE IN ONE BAND, AND THE BAND CARRIES
+     THE FRAME. Plan 05-06 wrote this rule for two STACKED full-width regions
+     and every plan after it turned a height dial against a page the next plan
+     then changed. Re-measured with one round resolved, the sum was 1257 of a
+     1080px projector and 1048 of a 768px laptop: THE LIVE BOARD — the thing a
+     student plays on — was off the bottom of both. Side by side the page pays
+     the TALLER of the two rather than their SUM, which is the move [S06.8]
+     already made one level down inside the ledger. Measured, one round
+     resolved, real Chrome and real Edge, identical in both:
+
+       arrangement                                 @1920x1080   @1366x768
+         stacked, dials 34/34/20 (was shipped)        1257         1048
+         side by side, even split, 34vh ledger         844          788
+         side by side, 736px bar, 46vh ledger          844          730   <- shipped
+
+     BOTH SCREENS NOW HOLD THE LIVE BOARD WITHOUT SCROLLING, with 236px to
+     spare at 1080 and 38px at 768. The even split is recorded because it is
+     the arrangement plan 05-09 measured and it lands 20px SHORT of a 768-tall
+     screen; the width split below is what closes that gap, and its own comment
+     carries the arithmetic.
+
+     THE BAND CARRIES THE WIDTH AND THE MARGIN NOW, AND THE TWO REGIONS CARRY
+     NEITHER. One element writes the frame instead of two, which is one fewer
+     place for the failure this comment records below to happen again.
+
+     The band carries #board's width and its computed left margin, spelled the
+     way [C03] spells the board's and for [C03]'s reason: the
      1280px document measure is narrower than the board, so a region sitting
      directly above the board that took the measure instead would be visibly
      inset from the thing it describes on the 1920px projector this file
      targets. Deliberately NOT a transform, for [C03]'s stated reason — a
      transform on an ancestor of a sticky element re-parents its containing
-     block and kills the sticking silently.
+     block and kills the sticking silently. AND NO OVERFLOW OF ANY KIND ON THE
+     BAND, for the gotcha in this block's banner: the band is not an ancestor
+     of #strip today, and a rule that becomes load-bearing only when somebody
+     moves an element is a rule to write down rather than to rely on. Driven
+     after this change: #strip is still sticky and still pins, at 107 on a
+     1080-tall screen and 99 on a 768-tall one, in both browsers.
+
+     align-items is flex-start rather than the default stretch, deliberately.
+     The bar wears the panel treatment and the ledger does not, so stretching
+     the two to a common height would draw the bar's border down past the last
+     thing inside it for no reading. They are two surfaces on one line, not two
+     columns of one table.
 
      AND THE BOTTOM MARGIN IS SPELLED HERE, IN THE SAME DECLARATION, ON PURPOSE.
      The first draft of this block set the width and the computed left margin
@@ -1070,10 +1106,85 @@
      real browser at 1920: the fight region sat 182px to the right of the board
      it describes, both of them 1600px wide. There is no error and no warning
      when a shorthand resets a longhand, which makes it the same class of
-     failure as the sticky gotcha above. Nothing below writes `margin` again. */
-  #fightbar, #ledger{
+     failure as the sticky gotcha above. Nothing below writes `margin` again —
+     and after the side-by-side change there is nothing below that WOULD: the
+     two regions are flex items now and take no width and no margin at all.
+     Re-driven at every width the original defect was measured at: #fightbar,
+     #ledger and #board all report left 152 at 1920 and left 14 at 1366, and
+     the band reads the board's own width at both. */
+  .fg-band{
+    display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px;
     width:min(var(--boardw), calc(100vw - 44px));
     margin:0 0 18px calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
+
+  /* THE BAR TAKES THE WIDTH ITS TWO DECLARATION COLUMNS NEED AND NO MORE;
+     THE LEDGER TAKES EVERYTHING LEFT OVER. Both halves of that are measured
+     rather than preferred.
+
+     736px is not a round number and it is not meant to be one. .fg-sides
+     lays the two declaration roots along the line at .fg-side 1 1 340px with
+     a 16px gap, so the bar's CONTENT box needs 696px for them to sit side by
+     side; below that they stack and the bar grows by roughly 60px. Add this
+     region's own 18px of side padding twice and its 1px border twice and the
+     BORDER box needs 736. Measured at 1366x768, which is the width where it
+     decides: at a 652px bar the sides stack and the bar stands at 539px; at
+     736 they sit along the line and it stands at 481px. That 58px is most of
+     what puts the live board on a 768-tall screen.
+
+     AND THE SURPLUS GOES TO THE LEDGER, because width is what makes a ROUND
+     short. A ledger row wraps, so every pixel of width it gains comes back as
+     height it does not spend: measured with one round resolved at 1920x1080,
+     the newest round is 690px tall in a 631px column, 616px in a 791px one
+     and 446px in the 846px one this split gives it. The bar gains nothing
+     from extra width once its two columns fit, so it does not grow: flex-grow
+     is 0 on it and 1 on the ledger.
+
+     EXCEPT WHEN THERE IS NO LEDGER, WHICH IS THE ONE CASE flex-grow:0 GETS
+     WRONG. #ledger ships hidden and stays hidden until a fight is running, so
+     on the setup page the bar would be a 736px panel left-aligned inside a
+     1600px band above a 1600px board — the exact "visibly inset from the thing
+     it describes" the frame comment above exists to prevent. :has() answers it
+     in one line, and it is the first use of :has() in this file: Baseline
+     Widely Available since 2026-06-19, which is inside this artifact's stated
+     browser floor. Measured: the bar reads 1600 wide against the board's 1600
+     with no fight running, and 736 with one.
+
+     THE OVERRIDE IS A LONGHAND OVER A SHORTHAND AND THAT DIRECTION IS THE SAFE
+     ONE, said out loud because this block is where the opposite direction cost
+     182px of alignment. flex-grow lands after flex and replaces exactly the
+     one component it names; the basis and the shrink factor above survive it.
+     The failure recorded in the frame comment was a SHORTHAND landing after a
+     LONGHAND and silently zeroing it. Nothing here writes flex again. */
+  /* THE DEFAULT IS THE ARRANGEMENT THIS FILE ALREADY SHIPPED — two full-width
+     regions, one under the other — and the side-by-side split is a rule that
+     turns ON above a measured width rather than a rule that has to be turned
+     OFF below one. Written that way round on purpose: the narrow arrangement is
+     the one nothing has to be true for, so it is the one that should not depend
+     on a query matching.
+
+     1180 IS NOT A CHOSEN NUMBER AND THAT IS WHY IT IS NOT A ROUND ONE. The two
+     bases and the gap come to 736 + 380 + 18 = 1134, and the band is
+     min(--boardw, 100vw - 44px) wide, so a 1178px viewport is the first one at
+     which both regions fit on one line. Driven either side of it in both
+     browsers, and the two pixels of cushion are there because a media query is
+     NOT evaluated against the same width the band is laid out in: measured in
+     Chrome at a viewport of exactly 1177, matchMedia("(max-width:1177px)")
+     reported FALSE while the band was already 1133px wide and wrapping. A
+     breakpoint written to the pixel would have left a window a couple of pixels
+     wide in which the bar sat inset inside a wider band, which is the defect the
+     frame comment above is about, arriving from the other direction. If either
+     basis moves, this number moves with it, and the arithmetic is here so that
+     is one subtraction rather than a guess.
+
+     flex-wrap on the band is still set and is still doing its job — it is what
+     makes the fall-back a fall-back rather than a cliff — but nothing depends
+     on it alone for a WIDTH. */
+  #fightbar, #ledger{flex:1 1 100%;min-width:0}
+  @media(min-width:1180px){
+    #fightbar{flex:0 1 736px}
+    #ledger{flex:1 1 380px}
+    .fg-band:has(#ledger[hidden]) #fightbar{flex-grow:1}
   }
 
   /* The fight region: the panel treatment #strip already wears, because it is
@@ -1169,46 +1280,41 @@
      row's bottom now measures 211px above the live board's top in both
      browsers at every depth from one round to thirty.
 
-     THE DIAL WAS 46vh AND IS NOW 34vh, PLAN 05-08, AND THE PARAGRAPH IS
-     AMENDED RATHER THAN LEFT STANDING. The 46 above was measured honestly and
-     against a page that no longer exists: when it was set, #fightbar held six
-     nodes and cost almost nothing, so the ledger's bound was very nearly the
-     only thing between #topbar and the board. Plan 05-07 then filled that
-     region and bounded it at 34vh, and the two bounds became one budget that
-     neither plan could see whole. Driven at 1920x1080 with the ledger drawn:
-     at 46vh the live board's top sat at 1313 of a 1080px screen.
+     THE DIAL'S WHOLE HISTORY, BECAUSE IT IS THE HISTORY OF AN ARITHMETIC AND
+     NOT OF A NUMBER: 46vh (plan 05-06) -> 34vh (plan 05-08) -> 46vh again,
+     with the side-by-side band. The middle number was never wrong; the page it
+     was measured against was.
 
-     Re-measured across four settings, thirty rounds deep, in both browsers:
+       - PLAN 05-06 SET 46vh. #fightbar held six nodes then and cost almost
+         nothing, so this bound was very nearly the only thing between #topbar
+         and the board. Honest, and measured.
+       - PLAN 05-07 FILLED #fightbar and bounded it at 34vh. Two bounds, one
+         budget, and neither plan could see it whole. Plan 05-08 re-measured
+         and turned this dial to 34vh: at 46vh the live board's top sat at
+         1313 of a 1080px screen, and 34 was the smallest setting that still
+         held the WHOLE of the newest round.
 
-       .ld-list      1920x1080        1440x900      newest round fits whole
-         46vh        board top 1313   1169          yes
-         34vh        board top 1183   1061          yes  <- shipped
-         28vh        board top 1118   1007          no
-         24vh        board top 1075    980          no
+           .ld-list      1920x1080        1440x900      newest round fits whole
+             46vh        board top 1313   1169          yes
+             34vh        board top 1183   1061          yes
+             28vh        board top 1118   1007          no
+             24vh        board top 1075    980          no
 
-     34vh is taken for two reasons that agree. It is the smallest setting in
-     which the WHOLE of the newest round is on screen at once — a round is
-     353px on the shipped board — and it is the SAME NUMBER .fg-sides already
-     carries, so the page above the board is one dial repeated rather than two
-     to keep in step.
+       - PLAN 05-09 SWEPT ALL THREE DIALS TOGETHER and found that NO SETTING
+         clears a 768-tall screen at all. That table is kept below, because a
+         reader arriving at a dial will reach for it first and deserves to know
+         it was already tried.
+       - AND THEN THE TWO REGIONS WERE LAID SIDE BY SIDE, which took this dial
+         out of #fightbar's budget entirely. The page now pays the TALLER of
+         the two regions, so every pixel the ledger spends below the fight
+         bar's own height is FREE. 46vh comes back, and not out of sentiment:
+         34vh in a narrower column no longer holds a whole round.
 
-     AND THE HONEST FIGURE, STATED PLAINLY BECAUSE A DIAL WITH A COMFORTING
-     COMMENT BESIDE IT IS A GUESS: THE LIVE BOARD IS BELOW THE FOLD OF A 1080px
-     SCREEN. With a fight running and one round resolved, the page above #board
-     is taller than the viewport and the live board is reached by scrolling.
-     That is not this region's doing alone — with the ledger hidden entirely the
-     board's top already sits at 759, which plan 05-07 measured and handed on.
-     #strip is sticky and every ancestor of it still reports overflow visible on
-     every board driven, so the projection stays on screen through that scroll.
-
-     PLAN 05-09 RE-DROVE THE WHOLE BUDGET AND FOUND THAT TURNING THESE DIALS
-     CANNOT FIX IT. That is the finding, and it is written here because a reader
-     arriving at three dials with a board below the fold will reach for them
-     first. Measured in Chrome, one round resolved, at both the projector size
-     and the smallest laptop this artifact is likely to meet:
+     THE SWEEP THAT SAYS THE DIALS CANNOT DO IT, KEPT VERBATIM. Real Chrome,
+     one round resolved, the two regions STACKED as they were:
 
        .fg-sides/.ld-list/.ld-now-body   board top @1920x1080   @1366x768   newest round whole
-         34 / 34 / 20  (shipped)                 1257               1048          yes / no
+         34 / 34 / 20  (was shipped)             1257               1048          yes / no
          30 / 30 / 18                            1181                986          no  / no
          26 / 26 / 16                            1095                930          no  / no
          24 / 24 / 14                            1052                902          no  / no
@@ -1216,39 +1322,55 @@
          20 / 20 / 12                             965                856          no  / no
          18 / 18 / 10                             922                825          no  / no
 
-     TWO THINGS FALL OUT OF THAT TABLE AND BOTH MATTER. NO SETTING AT ALL clears
-     a 768-tall screen — 18/18/10 is 825 against a 768px viewport, and 18vh of
-     the fight bar is a declaration form nobody can use. And every setting below
-     34vh loses the property plan 05-08 chose 34vh FOR, which is that the whole
-     of the newest round is on screen at once. So turning them trades a measured
-     property away for a board that is still below the fold. They are not turned.
+     TWO THINGS FALL OUT OF THAT TABLE AND BOTH STILL MATTER. NO SETTING AT ALL
+     cleared a 768-tall screen: 18/18/10 is 825 against a 768px viewport, and
+     18vh of the fight bar is a declaration form nobody can use. And every
+     setting below 34vh gave up the property 34vh was chosen FOR. So the dials
+     were not turned down, and they are not to be turned down now either.
 
-     WHAT DOES FIX IT IS STRUCTURAL, IT IS MEASURED, AND IT IS NOT PLAN 05-09's
-     TO SHIP. #fightbar and #ledger are two full-width regions stacked above the
-     board, so the page pays their SUM. Laid SIDE BY SIDE it pays the taller of
-     them — which is the move plan 05-08 already made one level down, inside the
-     ledger, and recorded as a pattern. Driven with the two wrapped in a flex
-     band, everything else untouched:
+     WHY 46vh AND NOT MORE, WHICH IS THE ONLY QUESTION THIS DIAL HAS LEFT. The
+     ledger costs the live board nothing for as long as it is SHORTER THAN THE
+     FIGHT BAR BESIDE IT, and that is the bound to keep rather than a height in
+     the abstract. Driven with one round resolved, in both browsers:
 
-       arrangement                    board top @1920x1080   @1366x768
-         stacked (shipped)                    1257              1048
-         side by side, 34 / 34 / 20            844               788
-         side by side, 28 / 28 / 16            779               742
-         ledger hidden entirely                844               730
+       .ld-list   ledger height / bar height   board top @1920x1080   @1366x768
+         34vh            406 / 587                     844               730
+         46vh            489 / 587                     844               730   <- shipped
+         52vh            489 / 587                     844               730
+         60vh            489 / 587                     943               748
 
-     SIDE BY SIDE AT THE SHIPPED DIALS CLEARS 1080 WITH 236px TO SPARE and comes
-     within 20px of clearing 768; at 28/28/16 it clears both. It costs a wrapper
-     element in the shell and a rewrite of the rule directly above this comment
-     — plan 05-06's markup and plan 05-06's frame rule, and that frame rule is
-     the one whose own paragraph records a shorthand silently zeroing a longhand
-     and putting a region 182px out of alignment. That is not a change to make on
-     the last wave before a checkpoint, and it is not plan 05-09's section to
-     make it in. IT IS WRITTEN HERE AS A DECISION WITH ITS NUMBERS RATHER THAN
-     LEFT AS A SYMPTOM: REHEARSAL.md B3, first item.
+     46 and 52 measure identically because at 1080 the list is CONTENT-sized at
+     450px and never reaches either ceiling; 60vh crosses the fight bar's height
+     at 768 and the board starts moving again. 46vh is taken as the smallest
+     setting that holds a whole round with headroom to spare, and it is the
+     number this dial started at.
 
-     A FOURTH DIAL EXISTS NOW AND IT IS ON A DIFFERENT AXIS. [C14.3] bounds
-     .dc-live at 24vh. The three dials above are ONE budget because all three
-     regions sit above the board and their heights add; the fourth is inside
+     AND THE WHOLE-NEWEST-ROUND PROPERTY, RE-CHECKED RATHER THAN ASSUMED,
+     because a side-by-side band is exactly the kind of change that takes one
+     away quietly. A ledger row wraps, so a narrower column is a taller round:
+     the newest round measured 353px at the old full 1600px width and 446px in
+     the 846px column it has now. At 34vh, which is 367px, the whole round no
+     longer fitted. THE PROPERTY WAS LOST BY THE REARRANGEMENT AND RECOVERED BY
+     THE DIAL. As shipped, at 1920x1080, the whole of the newest round is on
+     screen at once, in both browsers.
+
+     AT 1366x768 IT IS NOT, AND IT WAS NOT BEFORE EITHER. 46vh is 353px there
+     and a round in a 568px column is 740px, so the newest round scrolls. That
+     is not a regression: the stacked file measured the same "no" at 768 in
+     every row of plan 05-09's sweep above, including the shipped one. It is
+     the honest reading, and it is written here rather than left for somebody
+     to find on a laptop.
+
+     THE THREE DIALS ARE NO LONGER ONE BUDGET, AND THE SIDE-BY-SIDE BAND IS
+     WHY. .fg-sides and .ld-list are now in PARALLEL rather than in series:
+     the page pays the taller of the two regions, so raising the ledger costs
+     the live board exactly nothing until the ledger passes the fight bar.
+     .ld-now-body sits inside the ledger and is bounded by it. Anybody
+     turning one of these should read the two paragraphs above before
+     assuming the old arithmetic.
+
+     A FOURTH DIAL EXISTS AND IT IS ON A DIFFERENT AXIS AGAIN. [C14.3] bounds
+     .dc-live at 24vh; the fourth is inside
      #board, in the sticky middle column, and it bounds nothing on this page's
      vertical budget at all — it exists because a sticky element taller than the
      space it has stops pinning, which is a different failure with a different
@@ -1268,7 +1390,7 @@
      be the reverse of the one the room sees. */
   .ld-list{
     display:flex;flex-direction:column;gap:12px;
-    max-height:34vh;overflow-y:auto;
+    max-height:46vh;overflow-y:auto;
     padding:2px;
   }
 
@@ -1276,7 +1398,7 @@
      [C03] makes exactly this move for #board and #topbar, and a second number
      here would be a second place for one decision to live. */
   @media(max-width:760px){
-    #fightbar, #ledger{width:auto;margin-left:0}
+    .fg-band{width:auto;margin-left:0}
   }
 
   /* ===================== [C14.1] THE FIGHT BAR ===================== */
@@ -1376,14 +1498,25 @@
      is still `sticky`, in both browsers and on all three boards above.
 
      34vh IS A REHEARSAL DIAL in --tok's manner and in the ledger's, shipped
-     with the measurement that makes it one rather than with a guess — AND IT IS
-     HALF OF AN ARITHMETIC THAT NEITHER HALF CAN SETTLE ALONE. The ledger's dial
-     is 46vh and it sits above the board too, so the two regions can claim 80vh
-     of a 100vh screen between them, and 759px is already the live board's top
-     with the ledger still hidden. The two dials have to be turned TOGETHER,
-     against a real projector, and that is plan 05-11's — named here with both
-     figures in hand so it is a decision rather than a discovery. Plan 05-08
-     inherits the same sentence.
+     with the measurement that makes it one rather than with a guess.
+
+     AND THE SENTENCE THAT USED TO FOLLOW IS AMENDED RATHER THAN LEFT STANDING,
+     because it stated an arithmetic that is no longer the page's. It read: the
+     ledger's dial is 46vh and it sits above the board too, so the two regions
+     can claim 80vh of a 100vh screen between them, and the two dials have to
+     be turned TOGETHER. That was true while #fightbar and #ledger were STACKED.
+     They are not: [C14]'s frame rule now lays them SIDE BY SIDE in one band, so
+     the page pays the TALLER of the two rather than their sum and these two
+     dials are in PARALLEL. This one still binds the live board's top; the
+     ledger's is free until it passes this region's own height. The frame rule's
+     comment carries the whole before-and-after table and the reason 46vh came
+     back.
+
+     THIS BOUND STILL BINDS, AND IT BINDS HARDER IN A NARROWER BAR. The region
+     is 736px wide during a fight rather than the board's full width, which is
+     the width its two declaration columns need and no more — [C14]'s own
+     comment measures it. A narrower column is a taller list, so the thing this
+     bound was written for happens sooner rather than later.
 
      The 2px of padding is the ledger list's, for its reason: an outline on a
      focused control at the edge of a scroller is clipped by the scroller
@@ -2187,6 +2320,36 @@
        comments carry does NOT apply here: no <dialog> is added by this plan,
        so there is no DIALOG_ROOTS entry to make, and the dialog harvest stays
        at the four roots it already walks. -->
+  <!-- ============ THE FIGHT BAND, the frame the two regions share ==========
+       ONE WRAPPER, NO ID, AND THE REASON FOR EACH IS ITS OWN SENTENCE.
+       #fightbar and #ledger were two full-width regions STACKED above #board,
+       so the page paid their SUM and the live board — the thing a student
+       actually plays on — sat below the fold of both a 1080px projector and a
+       768px laptop. Measured in real Chrome and real Edge, one round resolved
+       through real ops: board top 1257 of 1080 and 1048 of 768. Laid side by
+       side the page pays the TALLER of the two instead, which is the move
+       [S06.8] already made one level down inside the ledger and recorded as a
+       pattern. [C14] carries the whole before-and-after table.
+
+       NO ID ON IT, DELIBERATELY. The three-part rule every id in this shell
+       obeys — the id, the KNOWN_IDS entry and the stub node arrive together —
+       is a real cost, and this element is a frame and not a surface: nothing
+       queries it, nothing dispatches off it, nothing paints into it and no
+       reading is ever taken from it. A class is the whole of what it needs.
+
+       DOCUMENT ORDER IS UNTOUCHED. A screen reader still walks the fight bar
+       and then the ledger, because a flex row is a two-dimensional placement
+       of that same order and never a reordering of it. No order property and
+       no reversed direction here, for the reason the ledger comment below
+       gives about its own rows.
+
+       AND IT IS NOT AN OVERFLOW. This wrapper is an ancestor of nothing that
+       sticks — #strip is inside #board, which is the band's SIBLING — but the
+       band takes no overflow of any kind regardless, because [C03]'s gotcha
+       is the one failure in this file that arrives with no error and no
+       warning. [C14] lays this element out and nothing else does. -->
+  <div class="fg-band">
+
   <section id="fightbar" aria-labelledby="fight-head">
     <h2 class="fg-head" id="fight-head">This round</h2>
     <p class="fg-prompt" id="fight-prompt">No fight is running. Start one from the bar above.</p>
@@ -2249,6 +2412,8 @@
     <h2 class="ld-head" id="ledger-head">Earlier rounds</h2>
     <div class="ld-list" id="ledger-list"></div>
   </section>
+
+  </div><!-- .fg-band -->
 
   <!-- The five children below are static siblings, never built by
        render.structure(): a delegated listener bound to a root that outlives
