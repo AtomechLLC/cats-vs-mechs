@@ -6118,6 +6118,175 @@ domSandbox.location.hash = '';
 A.serialize.flushUrlSync();
 clearPanel();
 
+/* --- 79-82. A SECOND STUB PAGE, BOOTED WITH A PREPARED HASH.
+       WHY THIS EXISTS AND WHAT IT COSTS, so the next reader does not fold it
+       back into the load above. The gate loads the artifact ONCE, into a
+       sandbox whose hash is empty, and [S10] LAUNCH calls boot.start() during
+       that load — so the boot-time hash read has already happened before the
+       first check in this file runs, and there is no way to re-drive it on a
+       page that has already booted. The thing under test is what start() does
+       on the way UP.
+
+       So each row below gets its OWN page and its OWN script evaluation.
+       makeStubDom() is a function rather than a singleton, which is what makes
+       that possible. The cost is one more parse and evaluation of the whole
+       artifact per boot, measured and printed below so it stays visible.
+
+       Every reading is taken off the RENDERED page rather than off state,
+       because the claim is that a link opens on the classmate's board — which
+       is the whole path, from the hash through decode through the rebuild
+       through the boot writer to the first paint, and a reading off state
+       would see all of it except the last step. --- */
+
+// A distinctive board to carry on the link: an action-point pool nobody
+// ships, one cat at eight health, and a fourth mech. Each of the three is
+// visible on the page as a different kind of change. EIGHT rather than a
+// larger figure on purpose: past COMPACT_AT the row draws a count and one
+// token instead of one token per point, so a bigger number would be read
+// through a different render path than the one a workshop board takes.
+const linkSaved = JSON.stringify(A.state.get());
+A.ops.resetToDefaults();
+A.ops.setFactionAp('cats', 7);
+A.ops.setUnitMaxHp('cats', 'c1', 8);
+A.ops.addUnit('mechs');
+const linkCode = A.serialize.encode(A.state.get().build);
+const linkCats = A.state.get().build.cats.units.length;
+const linkMechs = A.state.get().build.mechs.units.length;
+A.state.restore(linkSaved);
+A.state.flush();
+domSandbox.location.hash = '';
+
+function bootWithHash(hashText, label) {
+  const page = makeStubDom();
+  const box = {
+    console: console,
+    ResizeObserver: StubResizeObserver,
+    setTimeout: setTimeout,
+    clearTimeout: clearTimeout,
+    queueMicrotask: queueMicrotask,
+    requestAnimationFrame: (fn) => setTimeout(fn, 0),
+    document: page.document,
+    window: page.window,
+    location: { hash: hashText },
+    history: { replaceState: (d, t, fragment) => { box.location.hash = String(fragment); } },
+    CSS: page.CSS
+  };
+  vm.runInNewContext(match[1], box, { filename: 'cats-vs-mechs.html (' + label + ')' });
+  box.App.state.flush();
+  return { box: box, page: page, App: box.App };
+}
+function cardsIn(booted, side) {
+  return booted.page.byId['col-' + side].querySelectorAll('.unit-card').length;
+}
+function healthRowOf(booted, unitId) {
+  const row = booted.page.document
+    .querySelector('.tok-row[data-amt="hp"][data-unit="' + unitId + '"]');
+  return row === null ? -1 : row.children.length;
+}
+
+const bootClock = Date.now();
+const fromLink = bootWithHash('#b=' + linkCode, 'boot from a link');
+const bootCostMs = Date.now() - bootClock;
+console.log('second stub page: the artifact parsed, evaluated and booted from a prepared '
+  + 'hash in ' + bootCostMs + ' ms');
+
+check(
+  '79. A LINK CARRYING A BUILD CODE OPENS ON THAT BOARD. A second page is booted with the '
+    + 'code already in its hash, and the rendered board is the one the code describes — '
+    + 'the health row under c1 is eight tokens long and the mech column carries a fourth '
+    + 'card. Read off the PAGE and not off state, because a reading off state would see '
+    + 'every step of this except the one that matters, which is that the first paint drew '
+    + 'the loaded board rather than the shipped one',
+  healthRowOf(fromLink, 'c1') === 8
+    && cardsIn(fromLink, 'cats') === linkCats
+    && cardsIn(fromLink, 'mechs') === linkMechs
+    && fromLink.App.state.get().build.cats.ap === 7
+    && fromLink.page.byId['err-panel'].hidden === true,
+  'c1 health row=' + healthRowOf(fromLink, 'c1') + ' (want 8)'
+    + ' cats cards=' + cardsIn(fromLink, 'cats') + '/' + linkCats
+    + ' mechs cards=' + cardsIn(fromLink, 'mechs') + '/' + linkMechs
+    + ' cats ap=' + fromLink.App.state.get().build.cats.ap
+    + ' error panel hidden=' + fromLink.page.byId['err-panel'].hidden
+);
+
+check(
+  '80. AND THE UNDO STACK AT THAT MOMENT IS EMPTY. This is D-20 asserted rather than '
+    + 'asserted ABOUT: a board arriving on a link is the starting state, so there is '
+    + 'nothing to undo back to, and the stack holds the student\'s own edits and nothing '
+    + 'else. Ctrl+Z on a freshly-opened link therefore does nothing, which is also read '
+    + 'here — undo() returns false at the bottom of the stack rather than throwing',
+  fromLink.App.state.undoDepth() === 0
+    && fromLink.App.ops.undo() === false
+    && fromLink.App.state.undoDepth() === 0,
+  'undo depth after boot=' + fromLink.App.state.undoDepth()
+);
+
+const damagedCode = linkCode.slice(0, linkCode.length - 1)
+  + (linkCode.charAt(linkCode.length - 1) === 'z' ? 'y' : 'z');
+const fromBadLink = bootWithHash('#b=' + damagedCode, 'boot from a damaged link');
+const badPanelMessage = fromBadLink.page.byId['err-message'].textContent;
+const badPanelTitle = fromBadLink.page.byId['err-title'].textContent;
+check(
+  '81. A LINK CARRYING A DAMAGED CODE OPENS ON THE SHIPPED BOARD, SAYS WHAT WAS WRONG, '
+    + 'AND STAYS USABLE. The failure is NON-TERMINAL on purpose: a terminal one hides '
+    + 'Dismiss and tells the student to reload, which for a bad link means reloading the '
+    + 'same bad link. So Dismiss is offered, the panel names the diagnosis the codec '
+    + 'handed back rather than a stack trace, and the shipped nine-and-three board is on '
+    + 'screen behind it',
+  fromBadLink.page.byId['err-panel'].hidden === false
+    && fromBadLink.page.byId['err-dismiss'].hidden === false
+    && badPanelTitle === 'Build code in the link'
+    && badPanelMessage.indexOf('did not arrive intact') !== -1
+    && cardsIn(fromBadLink, 'cats') === 9
+    && cardsIn(fromBadLink, 'mechs') === 3
+    && fromBadLink.App.state.undoDepth() === 0,
+  'panel hidden=' + fromBadLink.page.byId['err-panel'].hidden
+    + ' dismiss hidden=' + fromBadLink.page.byId['err-dismiss'].hidden
+    + ' title=' + JSON.stringify(badPanelTitle)
+    + ' message=' + JSON.stringify(badPanelMessage)
+    + ' cards=' + cardsIn(fromBadLink, 'cats') + '/' + cardsIn(fromBadLink, 'mechs')
+    + ' undo depth=' + fromBadLink.App.state.undoDepth()
+);
+
+const fromBoth = bootWithHash('#selftest,b=' + linkCode, 'boot from a link beside the flag');
+check(
+  '82. A LINK CARRYING BOTH DOES BOTH. #selftest and a build code are two tokens in one '
+    + 'comma-separated hash, and neither breaks the other: the board is the classmate\'s '
+    + 'and the developer report still opens, read back through the artifact\'s own '
+    + 'hasFlag rather than by looking at the string. This is the coexistence check 78 '
+    + 'holds for the WRITE half, held here for the READ half',
+  fromBoth.App.hasFlag('selftest') === true
+    && healthRowOf(fromBoth, 'c1') === 8
+    && cardsIn(fromBoth, 'mechs') === linkMechs
+    && fromBoth.App.state.undoDepth() === 0,
+  'hasFlag(selftest)=' + fromBoth.App.hasFlag('selftest')
+    + ' c1 health row=' + healthRowOf(fromBoth, 'c1')
+    + ' mechs cards=' + cardsIn(fromBoth, 'mechs')
+    + ' undo depth=' + fromBoth.App.state.undoDepth()
+);
+
+check(
+  '82b. AND THE BOOT WRITER CANNOT RUN TWICE, asserted on the one page in this repo that '
+    + 'has legitimately run it once. Calling it again on the booted page throws by its '
+    + 'own guard, and the board does not move — so a later plan wiring a second caller '
+    + 'gets a red run rather than a second board with nothing on the stack behind it',
+  (() => {
+    const wasText = JSON.stringify(fromLink.App.state.get());
+    let outcome = 'it ran a second time';
+    try { fromLink.App.ops.loadBuildCodeAtBoot(linkCode); } catch (refused) {
+      outcome = String(refused.message).indexOf('commitInitial(') === 0
+        ? 'refused by its own single-use guard'
+        : 'threw for another reason: ' + refused.message;
+    }
+    return outcome === 'refused by its own single-use guard'
+      && JSON.stringify(fromLink.App.state.get()) === wasText
+      && fromLink.App.state.undoDepth() === 0;
+  })(),
+  'a second boot-load on the booted page was refused and the board did not move'
+);
+
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. The behaviours numbered
@@ -6190,7 +6359,24 @@ clearPanel();
             frame land and reads what is on it — so a line that appears only
             after a control in the dialog has been used is unread, exactly as
             entry 5 describes for the fight. Closing that needs the drive to be
-            extended per surface, not the list. --- */
+            extended per surface, not the list.
+        14. A REAL RELOAD AND A REAL BOOKMARK. Checks 75 to 78 prove the board
+            reaches location.hash and checks 79 to 82 prove a prepared hash
+            reaches the board, but the stub has no reload and never navigates,
+            so the two halves are joined here by a second script load rather
+            than by a browser. "Close the tab, open the bookmark, and the build
+            comes back" is therefore a rehearsal item — it is item 9 in plan
+            04-08. The same goes for whether history.replaceState behaves on
+            file:// outside Chrome 151, which is where the research measured
+            it, and for whether this alphabet round-trips through location.hash
+            verbatim in a browser other than Chrome.
+        15. Whether a boot-time load lands before the first paint with NO
+            VISIBLE FLASH of the shipped board. The ordering is real and
+            deliberate — the hash step sits above the first structural
+            invalidate in start() — but a flash is a thing only a person can
+            see. Moving the step below that line changes what a student watches
+            and reddens nothing here, which was measured rather than assumed.
+            Rehearsal, same afternoon. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks

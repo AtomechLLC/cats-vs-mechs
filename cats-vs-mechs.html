@@ -11327,6 +11327,35 @@ App.boot = (function () {
     if (!terminal) { dismiss.focus(); }
   }
 
+  // The token a refused build code carries, turned into a sentence. [S04]
+  // hands back a diagnosis and never prose — the same split turnsToWipe and
+  // turnsText already run on — and this is the page half of it for the ONE
+  // surface this plan has: a link that would not open. Plan 04-07 writes the
+  // paste dialog's own wording, which is a different surface with a different
+  // thing to say next, and the two do not share a sentence.
+  //
+  // `what` is a diagnosis rather than a sentence, so it is quoted INSIDE one
+  // rather than shown raw. It is assembled partly out of text somebody else
+  // wrote, and it reaches the panel through textContent like every other
+  // string here — the panel's own comment above names this phase for exactly
+  // that reason.
+  function linkRefusal(read) {
+    if (read.why === 'version') {
+      return 'That link carries a build code from a different version of this file, '
+        + 'so the board it describes cannot be read here';
+    }
+    if (read.why === 'checksum') {
+      return 'The build code in that link did not arrive intact: it looks cut short '
+        + 'or mistyped, and nothing was loaded from it';
+    }
+    if (read.why === 'content') {
+      return 'The build code in that link describes something this board cannot hold ('
+        + String(read.what) + '), and nothing was loaded from it';
+    }
+    return 'That link does not carry a build code this file can read, and nothing was '
+      + 'loaded from it';
+  }
+
   // One wiring step, non-terminal.
   function attempt(label, fn) {
     try {
@@ -11408,6 +11437,38 @@ App.boot = (function () {
       });
 
       ensurePanelButtons();
+
+      // A BUILD CODE CARRIED IN ON A LINK, and this step is placed where it is
+      // for two reasons rather than one.
+      //
+      // BEFORE THE FIRST PAINT, which is the invalidate near the bottom of this
+      // function. A load that landed after it would make the student watch the
+      // shipped board appear and be replaced, and a flash is a thing only a
+      // person can see — no check in this repo can, so plan 04-08's rehearsal
+      // owns it and this comment is the only thing holding the ordering.
+      //
+      // BEFORE ANYTHING COMMITS, because [S03]'s boot writer refuses once
+      // anything has. That guard is what keeps the writer unreachable from a
+      // press, and this is the one call site that sits inside its window.
+      //
+      // The ordinary case is a hash with no such token, and that does nothing
+      // at all. Nothing here presents the address bar as a way to share —
+      // [S04.4]'s own comment states that prohibition at length and this is
+      // only the read half of the same mirror.
+      //
+      // NON-TERMINAL ON A REFUSAL, and that distinction is the whole of why
+      // attempt() is the wrapper rather than a bare throw. A terminal failure
+      // hides Dismiss and tells the student to reload, which for a bad link
+      // means reloading the same bad link. So: the panel appears naming what
+      // was wrong, Dismiss is offered, and the shipped board stays on screen
+      // and stays usable.
+      attempt('Build code in the link', function () {
+        var carried = App.serialize.codeInHash();
+        if (carried === null) { return; }
+        var read = App.ops.loadBuildCodeAtBoot(carried);
+        if (read.ok === true) { return; }
+        throw new Error(linkRefusal(read));
+      });
 
       // A caller, never the implementation (D-11). A Phase 2 undo button calls
       // this same one line.
