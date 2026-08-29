@@ -435,7 +435,7 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     one row, and removing the checksum comparison entirely reddened exactly
 //     two and left all twelve content rows green, which is the proof they were
 //     reaching past the digest all along.
-const SUITE_FLOOR = 1002;
+const SUITE_FLOOR = 1019;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
