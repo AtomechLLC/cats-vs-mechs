@@ -1411,10 +1411,22 @@
 
 /* ===================== [S00] APP =====================
  * The single global. Every section hangs off it.
- * hasFlag() is the only place hash text is read anywhere in this file, and it
- * compares whole tokens by exact equality: a link ending #notselftest or
- * #selftestx must not open the developer report. Hash text never reaches a
- * page sink or a dynamic code path.
+ * hasFlag() compares whole tokens by exact equality: a link ending
+ * #notselftest or #selftestx must not open the developer report.
+ *
+ * IT IS ONE OF EXACTLY TWO PLACES HASH TEXT IS READ IN THIS FILE. This
+ * sentence used to say "the only place", and plan 04-04 amended it in the
+ * same change that made it false rather than leaving a banner that quietly
+ * lies. The second reader is [S04.4]'s codeInHash(), which takes the token
+ * carrying a build code, is called from [S08] at boot, and is called from
+ * nowhere else. hasFlag answers "is this exact token present" and cannot
+ * answer "what follows this prefix", which is why there are two rather than
+ * one; both split the hash on the comma the same way.
+ *
+ * WHAT STILL HOLDS FOR BOTH OF THEM, and it is the part worth repeating: hash
+ * text never reaches a page sink and never reaches a dynamic code path.
+ * [S04.4] hands its token to decode, which hands back a record or a refusal
+ * and writes nothing anywhere at all.
  * deps: none
  * owner: plan 01-01
  * ===================================================== */
@@ -2734,9 +2746,12 @@ App.state = (function () {
  * Compact positional build code: encode(build) -> string,
  * decode(string) -> build, a mandatory version prefix and a checksum.
  * Knows about `build` only — never about `fight` or `ui`.
- * scheduleUrlSync() is a declared no-op today so that the commit() call site
- * exists from the first day and is never retrofitted.
- * deps: App.data
+ * [S04.4] mirrors the board into the address bar after every commit and every
+ * undo, and reads a build code back out of it at boot. It was a declared no-op
+ * from day one so that the commit() call site existed before there was
+ * anything to put behind it and never had to be retrofitted; plan 04-04
+ * filled it.
+ * deps: App.data, and App.state at ONE deferred call site — see claim 3
  * owner: Phase 4, plan 04-01
  *
  * The sub-regions, in file order. The table of contents at the top of the
@@ -2784,13 +2799,27 @@ App.state = (function () {
  *    on whether what it says is admissible. Two different questions, asked in
  *    that order, and the second one is never skipped because the first passed.
  *
- * 3. THE SECTION READS App.data AND NOTHING ELSE. encode takes the build slice
- *    as an ARGUMENT and never reaches App.state, which is the posture [S02]'s
- *    banner sets out at length and this section inherits through its own
- *    deps line. Section order is fixed and the dependency arrows point DOWN
- *    only, so a primitive here reaching for the state singleton would be
- *    editing this contract rather than using it — and would have to say so in
- *    this banner rather than quietly.
+ * 3. THE SECTION READS App.data AND NOTHING ELSE, WITH ONE NAMED EXCEPTION.
+ *    encode takes the build slice as an ARGUMENT and never reaches App.state,
+ *    which is the posture [S02]'s banner sets out at length and this section
+ *    inherits through its own deps line. Section order is fixed and the
+ *    dependency arrows point DOWN only, so a primitive here reaching for the
+ *    state singleton would be editing this contract rather than using it —
+ *    and would have to say so in this banner rather than quietly.
+ *
+ *    THE EXCEPTION IS [S04.4]'s SCHEDULED MIRROR WRITE, and this paragraph is
+ *    it saying so. scheduleUrlSync() is called from [S03] with no argument, at
+ *    two call sites that predate this section having any content, and it is
+ *    DEBOUNCED — so the build it must write is the one that is live when the
+ *    frame arrives, not the one that was live when the first of three
+ *    coalesced commits landed. It therefore reads App.state.get().build inside
+ *    the scheduled callback, and nowhere else. Two properties make that legal
+ *    rather than a contract quietly edited: it is a CALL-SITE reference and
+ *    never a capture while this section's body is being evaluated, which is
+ *    the rule the table of contents states and the rule [S03]'s own `cur`
+ *    comment turns on; and no other function here acquired one, so encode,
+ *    decode and every primitive still take what they need as an argument and
+ *    are still reachable from a sandbox holding nothing at all.
  * =========================================================== */
 // #region [S04] SERIALIZE
 App.serialize = (function () {
@@ -3876,17 +3905,167 @@ App.serialize = (function () {
   }
 
   /* --- [S04.4] THE HASH MIRROR — owner plan 04-04 ------------------------
-     Still the declared no-op it has been since plan 01-02, and left that way
-     ON PURPOSE rather than forgotten: this plan lays the primitives, plan
-     04-04 fills this in. It is named here so the diff cannot be read as an
-     oversight.
+     The board's own build code written into the address bar after every commit
+     and every undo, and the one reader that takes it back out again at boot.
+     That is the whole of what this sub-region is for.
 
-     Whatever lands here has to be SURVIVABLE when it fails, not merely correct
-     when it works. [S03]'s commit() and undo() both call it inside a try whose
-     finally owes the frame regardless, and that finally's own comment says
-     why: state has already moved by the time this runs.
+     THE ADDRESS BAR IS NOT A WAY TO SHARE, and this is where that is written
+     down rather than left to be inferred from an absence. A path on this
+     student's machine carries their home directory and therefore usually their
+     real name; it opens nothing on anybody else's machine; and a chat client
+     does not turn it into a link. SHARE-05 and REQUIREMENTS.md both say so at
+     length. The share surface offers THE CODE, which is a string a student can
+     paste into a message. Nothing in the page may point at the address bar, and
+     a later plan adding a control that does would be editing this decision
+     rather than using it. What the mirror buys is narrower and worth having on
+     its own: press reload, or open a bookmark, and the board comes back.
+
+     THREE THINGS DECIDE THE SHAPE.
+
+     1. ONLY THIS SECTION'S OWN TOKEN IS REPLACED. [S00]'s hasFlag reads the
+        hash as a comma-separated token list, so a mirror that wrote the whole
+        hash would wipe #selftest on the student's first stepper press and the
+        developer report would vanish mid-demo. Every other token is carried
+        through untouched. This is the highest-consequence line down here and
+        it has its own check in the interaction gate.
+
+     2. IT IS WRITTEN THROUGH history.replaceState, NOT BY ASSIGNING TO THE
+        HASH. An assignment pushes a history entry per debounced commit, so the
+        Back button would walk the student's entire edit history and the address
+        bar would start behaving as a second undo stack — which is precisely
+        what SHARE-05 says never to present. An assignment also fires a
+        hashchange at this file's own listeners, which is a loop waiting for the
+        first plan that adds one. There is deliberately NO fallback for a host
+        without replaceState: such a host is not a target, and a silent second
+        write path is a second thing to keep in step. The one existing hash
+        write in this file, in [S08]'s recovery button, stays an assignment on
+        purpose — it clears the hash and reloads from a state where memory is
+        untrustworthy, which is a different act with a different requirement.
+
+     3. NOTHING HERE MAY COST A FRAME. [S03]'s commit() calls this inside a try
+        whose finally owes the frame regardless, and that finally's comment says
+        why: state has already moved by the time this runs. But a throw would
+        still travel out of commit() into the student's own handler, where
+        App.boot.wrap would raise the styled error panel over an ordinary edit.
+        So the scheduled body swallows. A convenience that fails QUIETLY is
+        right; a convenience that fails INVISIBLY is not — so every swallowed
+        failure is tallied and the tally is exported, and a gate row asserts it
+        is zero on a board that has been driven.
      ----------------------------------------------------------------------- */
-  function scheduleUrlSync() {}
+
+  // The token this sub-region owns inside the comma-separated hash. [S01]
+  // names the key; the one character joining it to the code is spelled once
+  // here and read at all three call sites below, so the reader and the writer
+  // cannot drift into two spellings of the same token.
+  var HASH_MARK = App.data.CODE_HASH_KEY + '=';
+
+  var syncDue = false;   // a mirror write is scheduled and has not run yet
+  var syncLost = 0;      // scheduled writes that swallowed a failure
+
+  // Every non-empty token in the hash, trimmed. hasFlag splits the same string
+  // the same way and trims each token the same way; this is a second reader of
+  // the same grammar rather than a second grammar, and [S00]'s banner names it.
+  function hashTokens() {
+    var raw = location.hash || '';
+    if (raw.charAt(0) === '#') { raw = raw.slice(1); }
+    var found = raw.split(',');
+    var kept = [];
+    for (var i = 0; i < found.length; i++) {
+      var one = found[i].trim();
+      if (one !== '') { kept.push(one); }
+    }
+    return kept;
+  }
+
+  // THE READ HALF. [S08] calls this once at boot and nothing else calls it.
+  // It hands back the code TEXT and never a build: whether that text is
+  // admissible is decode's question, and this function has no opinion about it
+  // whatsoever. A hash with no such token reads null, which is not a failure —
+  // it is the ordinary case of somebody opening the file by double-click.
+  function codeInHash() {
+    if (typeof location === 'undefined') { return null; }
+    var tokens = hashTokens();
+    for (var i = 0; i < tokens.length; i++) {
+      if (tokens[i].slice(0, HASH_MARK.length) === HASH_MARK) {
+        return tokens[i].slice(HASH_MARK.length);
+      }
+    }
+    return null;
+  }
+
+  // The write, per decision 1 and decision 2 above. A code of null drops the
+  // token rather than keeping the last good one: a build this codec cannot
+  // write must not leave a STALE code in the address bar for a reload to load
+  // back, because a board that came back subtly wrong with nothing to say so is
+  // the outcome this whole section is built to refuse.
+  function writeHash(code) {
+    var kept = [];
+    var tokens = hashTokens();
+    for (var i = 0; i < tokens.length; i++) {
+      if (tokens[i].slice(0, HASH_MARK.length) === HASH_MARK) { continue; }
+      kept.push(tokens[i]);
+    }
+    if (typeof code === 'string' && code !== '') { kept.push(HASH_MARK + code); }
+    history.replaceState(null, '', '#' + kept.join(','));
+  }
+
+  // Runs a scheduled mirror write right now and reports whether there was one.
+  // Same shape and same reason as [S03]'s flush(): the gate has to be able to
+  // drive a real op and read the hash back without becoming asynchronous, and
+  // a row that asserted the mirror by grepping this section for an assignment
+  // would be asserting the spelling rather than the behaviour.
+  //
+  // Idempotent by design, exactly as frame() is: the scheduled callback
+  // arriving after a manual flush finds nothing due and does nothing, so the
+  // board is never written twice for one commit.
+  function flushUrlSync() {
+    if (!syncDue) { return false; }
+    syncDue = false;
+    try {
+      writeHash(encode(App.state.get().build));
+    } catch (mirrorFailed) {
+      syncLost += 1;
+      void mirrorFailed;
+    }
+    return true;
+  }
+
+  // The debounce, in the shape [S03]'s invalidate() already uses: one pending
+  // flag and one scheduled callback, and a later call while one is pending does
+  // nothing at all. The mirror therefore runs once per frame at most rather
+  // than once per repeat of a press-and-hold.
+  //
+  // The environment guard is hasFlag's, and it is the first line for the reason
+  // hasFlag's is: section 3 of the harness loads this whole script with no
+  // location and no document at all, deliberately, and a codec that assumed one
+  // would turn that sandbox red for something that is not a defect.
+  //
+  // The try around the scheduling call is not noise either. Everything above it
+  // is a typeof test, but the scheduler itself is a host function, and this
+  // runs inside commit() where a throw would reach the student's handler.
+  function scheduleUrlSync() {
+    if (typeof location === 'undefined') { return; }
+    if (typeof history === 'undefined') { return; }
+    if (syncDue) { return; }
+    syncDue = true;
+    try {
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(flushUrlSync);
+      } else {
+        setTimeout(flushUrlSync, 16);
+      }
+    } catch (cannotSchedule) {
+      syncDue = false;
+      syncLost += 1;
+      void cannotSchedule;
+    }
+  }
+
+  // How many scheduled mirror writes swallowed a failure. Exported because a
+  // swallow nobody can see is indistinguishable from a mirror that was never
+  // written, and the difference between those two is the whole of what makes
+  // decision 3 above quiet rather than invisible.
+  function syncFailures() { return syncLost; }
 
   return Object.freeze({
     bytesFromText: bytesFromText,
@@ -3904,7 +4083,14 @@ App.serialize = (function () {
     // Exported so [S09.11] asserts them against the constants the ops actually
     // run, which is what keeps a deliberate duplication from becoming drift.
     WIRE_BOUNDS: WIRE_BOUNDS,
-    scheduleUrlSync: scheduleUrlSync
+    // [S04.4]. scheduleUrlSync is [S03]'s; codeInHash is [S08]'s; flushUrlSync
+    // and syncFailures exist so the gate can drive the mirror and then read
+    // back both what it wrote and what it swallowed, rather than asserting
+    // either by reading this section's source.
+    scheduleUrlSync: scheduleUrlSync,
+    codeInHash: codeInHash,
+    flushUrlSync: flushUrlSync,
+    syncFailures: syncFailures
   });
 })();
 // #endregion [S04] SERIALIZE
@@ -15959,8 +16145,27 @@ App.selftest = (function () {
     t.eq('the run-length writer is exported', typeof App.serialize.runs, 'function');
     t.eq('the run-length reader is exported', typeof App.serialize.unruns, 'function');
     t.eq('the checksum is exported', typeof App.serialize.checksum, 'function');
-    t.eq('the hash mirror is still the declared no-op plan 04-04 owns',
-      typeof App.serialize.scheduleUrlSync, 'function');
+    // [S04.4]'s four exports. THE BEHAVIOUR OF THE MIRROR IS NOT ASSERTED
+    // HERE and cannot be: this suite runs in a sandbox with no location and no
+    // history at all, which is the same reason the rows below never touch the
+    // page. What the mirror actually writes is driven and read back in the
+    // interaction gate, where there is a hash to write into.
+    t.eq('the hash mirror is exported', typeof App.serialize.scheduleUrlSync, 'function');
+    t.eq('the hash reader [S08] calls at boot is exported',
+      typeof App.serialize.codeInHash, 'function');
+    t.eq('the mirror\'s manual flush is exported, so a driven op can be read back '
+      + 'without waiting for a frame', typeof App.serialize.flushUrlSync, 'function');
+    t.eq('the swallowed-failure tally is exported, which is what makes a mirror that '
+      + 'fails QUIETLY different from one that fails INVISIBLY',
+      typeof App.serialize.syncFailures, 'function');
+    t.eq('and with no location anywhere in this sandbox the mirror is inert rather than '
+      + 'broken: scheduling one writes nothing, flushing reports that there was nothing '
+      + 'to flush, and nothing has been swallowed',
+      [App.serialize.scheduleUrlSync(), App.serialize.flushUrlSync(), App.serialize.syncFailures()],
+      [undefined, false, 0]);
+    t.eq('and the reader hands back null rather than throwing when there is no hash to '
+      + 'read at all — [S08] branches on that null and a throw would reach the boundary '
+      + 'as a defect', App.serialize.codeInHash(), null);
     t.ok('[S04] is frozen, so no caller can add a primitive to it after the fact',
       Object.isFrozen(App.serialize));
     t.ok('the prototype is intact after reading the export list', protoIntact());

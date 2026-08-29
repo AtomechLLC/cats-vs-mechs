@@ -1250,6 +1250,20 @@ const domSandbox = {
   document: dom.document,
   window: dom.window,
   location: { hash: '' },
+  // [S04.4] writes the mirror through history.replaceState and deliberately
+  // has no fallback, so without these three lines the mirror is inert here and
+  // every check below it would be green about nothing. The spelling is COPIED
+  // from the artifact rather than recalled: a typo in this object name is not a
+  // red run, it is a green one over a mirror that never wrote anything --
+  // exactly the failure mode the stub-drift gate exists for one tier up.
+  // A real browser normalises the fragment onto location.hash with its leading
+  // '#'; the artifact writes one and reads one back off, so the stub stores
+  // what it is handed.
+  history: {
+    replaceState: (data, title, fragment) => {
+      domSandbox.location.hash = String(fragment);
+    }
+  },
   CSS: dom.CSS
 };
 
@@ -5971,6 +5985,137 @@ check(
     ? walkSeen + ' terms walked, every value an allowlisted string or a whole number'
     : walkBad.join(' | ')
 );
+clearPanel();
+
+/* --- 75-78. THE ADDRESS-BAR MIRROR, DRIVEN AND READ BACK.
+       Never grepped for. Phase 3's WR-01 is the reason: a row that searched
+       [S04.4] for an assignment would be asserting a spelling, and the mirror
+       is reached through a debounce, a scheduler and a token rewrite, none of
+       which a source search can see. So every row below drives a real op
+       through the real funnel, flushes the mirror the way [S03].flush() lets a
+       frame be flushed, and reads location.hash back off the stub.
+
+       The stub's history.replaceState is three lines beside domSandbox above.
+       Without it the mirror is inert and every row here would be green about a
+       write that never happened, which is why the first row asserts the hash
+       MOVED before it asserts anything about what it moved to. --- */
+const mirrorSaved = JSON.stringify(A.state.get());
+
+// Key order is not part of the claim: the decoder rebuilds a build field by
+// field and the ops build one their own way, so two spellings of the same
+// board must compare equal. Same shape and same reason as [S09.11]'s
+// stableText, which cannot be reached from here.
+function stableJson(value) {
+  if (Array.isArray(value)) { return '[' + value.map(stableJson).join(',') + ']'; }
+  if (value !== null && typeof value === 'object') {
+    return '{' + Object.keys(value).sort()
+      .map((k) => JSON.stringify(k) + ':' + stableJson(value[k])).join(',') + '}';
+  }
+  return JSON.stringify(value);
+}
+function codeFromHash() {
+  return A.serialize.codeInHash();
+}
+
+domSandbox.location.hash = '';
+const mirrorBlank = domSandbox.location.hash;
+const apBeforeMirror = A.state.get().build.cats.ap;
+A.ops.setFactionAp('cats', apBeforeMirror === 5 ? 4 : 5);
+const mirrorFlushed = A.serialize.flushUrlSync();
+const mirrorFirst = domSandbox.location.hash;
+const mirrorFirstCode = codeFromHash();
+const mirrorFirstBack = mirrorFirstCode === null
+  ? { ok: false, why: 'the hash carries no build-code token' }
+  : A.serialize.decode(mirrorFirstCode);
+check(
+  '75. a real op reaches the address bar. Driving setFactionAp through the ops layer '
+    + 'schedules one mirror write, and the code sitting in the hash afterwards decodes '
+    + 'back to THIS BOARD rather than to any board — which is the reload-and-bookmark '
+    + 'half of SHARE-05, and the only half of it a gate with no browser can assert',
+  mirrorFlushed === true
+    && mirrorFirst !== mirrorBlank
+    && mirrorFirstBack.ok === true
+    && stableJson(mirrorFirstBack.build) === stableJson(A.state.get().build),
+  'flushed=' + mirrorFlushed + ' hash=' + JSON.stringify(mirrorFirst)
+    + ' decoded=' + (mirrorFirstBack.ok === true ? 'ok' : String(mirrorFirstBack.why))
+    + ' same board=' + (mirrorFirstBack.ok === true
+      && stableJson(mirrorFirstBack.build) === stableJson(A.state.get().build))
+);
+
+check(
+  '75b. and nothing was swallowed getting it there. [S04.4] catches everything inside '
+    + 'the scheduled write so a mirror failure can never cost a frame or raise the error '
+    + 'panel over an ordinary edit — and it TALLIES what it caught, because a convenience '
+    + 'that fails quietly is right and one that fails invisibly is not. This row is the '
+    + 'difference between those two',
+  A.serialize.syncFailures() === 0,
+  'swallowed failures: ' + A.serialize.syncFailures()
+);
+
+A.ops.undo();
+A.serialize.flushUrlSync();
+const mirrorAfterUndo = domSandbox.location.hash;
+const mirrorUndoCode = codeFromHash();
+const mirrorUndoBack = mirrorUndoCode === null
+  ? { ok: false, why: 'the hash carries no build-code token' }
+  : A.serialize.decode(mirrorUndoCode);
+check(
+  '76. an undo moves the address bar back with it. undo() calls the mirror at the same '
+    + 'call site commit() does and inside the same try, so the hash tracks the board in '
+    + 'both directions — a reload after taking an edit back must not bring the edit back',
+  mirrorAfterUndo !== mirrorFirst
+    && mirrorUndoBack.ok === true
+    && mirrorUndoBack.build.cats.ap === apBeforeMirror
+    && stableJson(mirrorUndoBack.build) === stableJson(A.state.get().build),
+  'hash moved=' + (mirrorAfterUndo !== mirrorFirst)
+    + ' decoded=' + (mirrorUndoBack.ok === true ? 'ok' : String(mirrorUndoBack.why))
+    + ' ap back to ' + (mirrorUndoBack.ok === true ? mirrorUndoBack.build.cats.ap : '?')
+    + ' (was ' + apBeforeMirror + ')'
+);
+
+const mirrorBeforeUi = domSandbox.location.hash;
+A.ops.setUi('kbdNav', true);
+const uiFlushed = A.serialize.flushUrlSync();
+check(
+  '77. a ui-only commit moves it NOT AT ALL. commitUi is the one funnel that deliberately '
+    + 'does not call the mirror (D-09): keyboard-navigation mode is a view preference and '
+    + 'not part of anybody\'s build, so it belongs in neither the undo stack nor a shared '
+    + 'code. Nothing was even scheduled, which is a stronger reading than a hash that '
+    + 'happened to be rewritten with the same text',
+  uiFlushed === false && domSandbox.location.hash === mirrorBeforeUi,
+  'a write was scheduled=' + uiFlushed
+    + ' hash before=' + JSON.stringify(mirrorBeforeUi)
+    + ' hash after=' + JSON.stringify(domSandbox.location.hash)
+);
+A.ops.setUi('kbdNav', false);
+
+domSandbox.location.hash = '#selftest';
+A.ops.setFactionAp('mechs', A.state.get().build.mechs.ap === 5 ? 4 : 5);
+A.serialize.flushUrlSync();
+const coexistHash = domSandbox.location.hash;
+const coexistCode = codeFromHash();
+const coexistBack = coexistCode === null
+  ? { ok: false, why: 'the hash carries no build-code token' }
+  : A.serialize.decode(coexistCode);
+check(
+  '78. #selftest SURVIVES A STEPPER PRESS. The mirror replaces only its own '
+    + 'comma-separated token and carries every other one through untouched, because '
+    + 'hasFlag reads the hash as a token list — a mirror that wrote the whole hash would '
+    + 'wipe the flag on the student\'s first press and the developer report would vanish '
+    + 'mid-demo. Both halves are read live: the flag is still true through the artifact\'s '
+    + 'own reader, and the code beside it still decodes to this board',
+  A.hasFlag('selftest') === true
+    && coexistBack.ok === true
+    && stableJson(coexistBack.build) === stableJson(A.state.get().build),
+  'hash=' + JSON.stringify(coexistHash)
+    + ' hasFlag(selftest)=' + A.hasFlag('selftest')
+    + ' decoded=' + (coexistBack.ok === true ? 'ok' : String(coexistBack.why))
+);
+
+A.state.restore(mirrorSaved);
+A.state.flush();
+domSandbox.location.hash = '';
+A.serialize.flushUrlSync();
 clearPanel();
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
