@@ -215,14 +215,46 @@ once actions are programmable is part of this phase, not an afterthought.
   3. A corrupted, truncated, or wrong-version code produces a clear on-screen message and leaves the current build untouched — nothing loads silently wrong. A round trip through both a Chromium browser and a second browser produces an identical build in both directions.
   4. Reset to Workshop 16 defaults asks for confirmation first and sits apart from the non-destructive controls; after confirming, Ctrl+Z still brings the build back.
   5. Reloading the page or reopening a bookmark restores the student's own current build from the address bar — and nothing in the UI presents the address bar as the way to share.
-**Plans**: 2 plans
+**Plans**: 8 plans
 **UI hint**: yes
 
 Plans:
-- [ ] 04-01: Versioned positional codec (encode/decode of the `build` slice only), URL-safe alphabet, debounced `location.hash` mirror, round-trip + alphabet assertions in `selftest` — owns section `serialize`
-- [ ] 04-02: Share dialog and reset controls — three-tier clipboard fallback, paste-to-load with error messaging, `<dialog>` confirmation on reset-to-defaults — owns the `ops.share` / `ops.reset` and `render.dialogs` blocks
+- [ ] 04-01-PLAN.md — `[S01]`'s wire constants (version, separators, alphabet allowlist, the three size figures), the index-stability paragraph added to the four positional allowlists that lacked it, the 480-of-512 prediction replaced by six measured figures, `[S04]` opened as a real section with `[S04.1]`'s hand-rolled UTF-8 / base64url / base36 / run-length / FNV-1a primitives, and `[S09.11]` opened above the no-DOM bracket (wave 1)
+- [ ] 04-02-PLAN.md — `[S04.2] encode` and `[S04.3] decode`: the name table, the two independently run-length-encoded unit streams, differences-from-defaults only, the biased signed amounts, the four-token refusal record, and the round trip asserted byte-identical over six boards driven through the shipped ops (wave 2)
+- [ ] 04-03-PLAN.md — the refusal proved guard by guard: seventeen tamper shapes each reaching its own guard past a recomputed checksum, the hostile-input table, a reserved key in every text position, a refusal that leaves the board byte-identical, and both `setActionDmg` tripwires (wave 3)
+- [ ] 04-04-PLAN.md — `[S04.4]` the address-bar mirror (debounced, token-preserving, survivable, `history.replaceState`), `[S00]`'s banner amended for the file's second hash reader, `[S05]`'s two load ops, `[S03]`'s second named writer so a boot load leaves no undo entry (D-20), and `[S08]` reading a shared link before the first paint (wave 4)
+- [ ] 04-05-PLAN.md — the surface: one share dialog with two panes (D-21) and a separate reset confirmation carrying the D-19 argument in full, their ids / stub nodes / `DIALOG_ROOTS` entries / `[C13]` styles arriving together, two topbar controls paid for in a comment, and `[S06.6]`'s fingerprint-keyed repaint that cannot leave a stale code on screen (wave 5)
+- [ ] 04-06-PLAN.md — `[S07.4]` attached through the four seams, and the copy: produced synchronously inside the gesture, three tiers deep, with the line branched on the tier that actually succeeded — plus the floored listener-boundary and act-partition checks and an honest limitations entry for the tiers CI cannot reach (wave 6)
+- [ ] 04-07-PLAN.md — paste-to-load with four distinct sentences the page owns, the reset confirmation wired in front of an op that does not change, and the phase's own acceptance run: copy, confirm a reset, paste it back, and read six values off the page (wave 7)
+- [ ] 04-08-PLAN.md — the rehearsal: the roadmap's matrix cell by cell, twenty numbered LOW-confidence items closed by a person, and six decisions taken on the developer's behalf handed back (wave 8, blocking human-verify checkpoint)
 
-**Verification note** (flagged by research): the failure modes here are cross-browser and silent. This phase needs a real test matrix — 2 browsers × focused / DevTools-focused / backgrounded × forced Tier-3 fallback — not a smoke test.
+**Plan-split note (set during planning).** Eight sequential waves, no parallelism, for the reason
+Phases 2.1, 3 and 3.1 each recorded: everything lands in one HTML file, so two plans in the same wave
+could not own disjoint regions. The ROADMAP sketched two work units and their section ownership is
+preserved exactly — 04-01 through 04-04 are the `serialize` unit and 04-05 through 04-07 are the
+surface unit, with 04-08 as the checkpoint split out on its own. The count grew from 2 to 8 because
+research surfaced far more inside the codec than "encode/decode" implies: a name table, two split
+unit streams, a version prefix, a four-character checksum, seventeen bounds to re-run on hostile
+input, and an alphabet constrained not by the browser but by `App.hasFlag` splitting the hash on a
+comma. Each plan is capped at 2-3 tasks to stay inside a single context window.
+
+**The codec is the lucky part and it is deliberately separated from the surface.** A codec is state
+work, so `[S09.11]` sits entirely above the `typeof document === 'undefined'` bracket and every row
+of it runs in CI — unlike the DOM rows Phase 3.1 learned the hard way about. The dialog and clipboard
+work cannot, so it is planned apart and its unreachable half is written into the limitations list and
+into the rehearsal by item number rather than folded into a claim.
+
+**Six decisions taken during planning that `04-CONTEXT.md` did not cover**, each written into the
+file beside the code and each put to the developer at the 04-08 checkpoint: reset gets its own dialog
+rather than a third pane of the share surface; the mirror is written with `history.replaceState`
+rather than by assigning the hash, so Back does not walk the student's edit history; D-20's no-undo-
+entry boot load is implemented as a second named writer in `[S03]`, guarded to run once and only
+before any commit; `loadBuildCode` returns a refusal record instead of throwing, because a bad paste
+is an expected outcome rather than a defect; the mirror replaces only its own comma-separated token so
+`#selftest` survives; and the share dialog's code field is rewritten even while focused while the
+paste field never is, which are opposite answers to D-19 for opposite reasons.
+
+**Verification note** (flagged by research): the failure modes here are cross-browser and silent. This phase needs a real test matrix — 2 browsers × focused / DevTools-focused / backgrounded × forced Tier-3 fallback — not a smoke test. Plan 04-08 writes that matrix out cell by cell; the clipboard is absent from the Node runtime entirely, so exactly one of the four copy tiers is reachable from CI and it is the last one.
 
 ### Phase 5: Fight Loop & Playtest
 **Goal**: A student declares what both sides do, advances the round, and reads what changed — with the tool doing bookkeeping and the student doing adjudication — and the shipped default is confirmed contested by actually playing it
@@ -284,7 +316,7 @@ parallel if desired.
 | 2.1 Token Authoring (INSERTED) | 6/6 | Human UAT outstanding | 2026-08-28 |
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
-| 4. Share & Reset | 0/2 | Not started | - |
+| 4. Share & Reset | 0/8 | Plans complete | - |
 | 5. Fight Loop & Playtest | 0/3 | Not started | - |
 
 ## Coverage
