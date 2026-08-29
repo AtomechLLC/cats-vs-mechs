@@ -10096,7 +10096,37 @@ check(
    division said back to it: the topbar pair follows a student across the view
    switch and reports the pool; the grid pair sits above the picker and reports
    the intent. A run that printed only one of them would be a run that had
-   quietly picked a side in a question the developer answered. */
+   quietly picked a side in a question the developer answered.
+
+   ==========================================================================
+   PROBE AU — WHY THE READING IS PRINTED RATHER THAN ASSERTED, MEASURED. The
+   obvious tidy-up of this row is to compare the reading against an expected
+   string instead of printing it. That was DRIVEN rather than argued about, and
+   it costs three things, in ascending order of how quiet they are:
+
+     AU(a)  the substitution is INVISIBLE on the shipped board. Hard-coding
+            "Action points 0 of 3 spoken for 3 left to spend" and dropping the
+            four comparisons leaves the run at 1216 passed, 0 failed and the
+            gate at 180 of 180. Nothing says anything.
+     AU(b)  it couples the gate to a DEFAULT rather than to a behaviour. With
+            the cats' pool set to 5 — a board any student can make in two
+            presses — the hard-coded row goes red at 179 of 180 while the
+            surface is behaving perfectly. Worse than the redness: the evidence
+            line then reads `the spoken-for reading matched the expected
+            string=true`, because a row that asserts a string has no reading
+            left to print. A red row whose evidence cannot show what made it
+            red is a row somebody edits rather than reads.
+     AU(c)  IT SILENTLY STOPS ASSERTING THE UNDO. A hard-coded expectation has
+            nothing to compare the undone moment against, so the undo clause
+            goes with it — and a run that never presses undo at all then passes
+            SPOTLESSLY: 180 of 180. The same removal against the verbatim form
+            is 179 of 180, because `undone === idle` fails. That is the whole
+            argument in two numbers: half of FIGHT-09 is the reading coming
+            BACK, and an assertion about a string cannot see a direction.
+
+   So the reading is read back verbatim, in both directions, and the probe is
+   recorded here rather than only in a summary — because the next reader of
+   this row will have the same tidy-up idea. */
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
