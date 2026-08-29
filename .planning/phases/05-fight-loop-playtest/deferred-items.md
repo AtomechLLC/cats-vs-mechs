@@ -92,3 +92,58 @@ which is the failure `05-VIEWPORT-FIX.md` is a record of. Plan 05-12 recorded th
 **What the two plans owe:** a re-measure of `#strip`'s viewport top in the fight view at both
 viewports in both browsers, after their own column lands. `[C15]`'s sticky table is the baseline
 to measure against.
+
+## 4. REF-03 IS NOT SERVED ON THE FIGHT TAB — the per-action cards are inside the hidden columns
+
+**Found:** plan 05-16, task 2, by row 101 the first time it was taken WITH A VIEW.
+**Not a browser finding.** It came out of `tests/selftest-node.cjs` — no layout engine needed,
+because the mechanism is a selector and a parent, not a pixel.
+
+REF-03 is *"the action reference is readable without leaving the fight view."* Measured on the
+played board with `#app[data-view="fight"]`:
+
+```
+the view while the reading is taken     "fight"
+action/reference cards on the board      6
+  of which inside #refband               0
+  of which inside a roster column        6      <-- and .brd-col is display:none in this view
+leaf strings still readable in #refband  3      (the "What beats what" head and its map)
+```
+
+**The mechanism.** `refCard()` is appended by `buildColumn()` into `#col-cats` / `#col-mechs`, and
+`[C15]` writes `#app[data-view="fight"] .brd-col{display:none}`. So the six cards that say what
+Slash does, what it costs and what it damages are on the page and off the screen whenever a fight
+is being played. `#refband` and `#strip` survive because they are children of `#board` rather than
+of a column — which is the arrangement check 103b asserts, and it is the half of REF-03 that holds.
+
+**Why it went unseen for four plans.** `buildColumn`'s own cross-plan comment (plan 03-05) states
+the premise in as many words: *"these cards are reference MATERIAL, and a student reading what
+Lasers does needs it at least as much mid-fight as mid-build — which is REF-03, in Phase 5. One
+branch placement now costs nothing and saves that phase a re-layout."* That was true for three
+phases. Plan 05-12 put the columns behind a switch and nothing in the repository read the cards
+**with a view**, so nothing went red. Check 62 reads them at the moment a fight starts; row 101 read
+them mid-fight — but neither had a view to read until this plan added one.
+
+**Why it is deferred rather than fixed.** This plan's `section_ownership` says it edits
+`cats-vs-mechs.html` **not at all**, and the fix is an artifact change in a function this plan does
+not own (`buildColumn`, [S06.1], plan 02-01, carrying plan 03-05's edit). It is also a real design
+choice rather than a typo, and the two candidates differ in what they cost a projector:
+
+1. **Move the cards into `#refband`.** One append site changes. `#refband` is already outside the
+   hidden columns, already built once and flagged, and already the thing called "the reference".
+   Cost: the band grows from three strings to seventeen and gets taller in BOTH views, which is a
+   height dial nobody has measured and this phase's own recorded failure mode.
+2. **Stop hiding the columns and hide only the unit cards.** `.brd-col` becomes visible in the
+   fight view with `.unit-card` and `.brd-add` hidden instead. Cost: the fight tab regains the two
+   columns' width and the tab stops being the clean structural answer entry 21 credits it with.
+
+**What it costs today:** a student mid-round who wants to know what an action does has to press
+the board tab, read the card, and press back — which is precisely the navigation REF-03 exists to
+forbid. It is not a data loss and nothing is mis-set.
+
+**Row 101 asserts the defect in the direction it is TRUE** (`all six in a column, none in the
+band`), so the day somebody moves them the gate reddens and this entry gets read. That is the
+95-turned-in-the-open treatment rather than a row that quietly stopped counting.
+
+**Owner:** the developer, at the 05-11 playtest — it is a question about what a room needs in
+front of it, and item 2 of that plan (PROJ-05, the two readings side by side) is where it lands.
