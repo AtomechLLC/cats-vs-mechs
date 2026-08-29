@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student (plans complete 2026-08-28, human verification outstanding)
 - [x] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides (completed 2026-08-29)
 - [x] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back (completed 2026-08-29)
-- [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it (plans complete 2026-08-29, 11 plans)
+- [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it (plans complete 2026-08-29, 15 plans — 05-12..05-15 are D-27's gap closure and run BEFORE the 05-11 playtest)
 
 ## Phase Details
 
@@ -291,7 +291,7 @@ resolution rule the developer specified directly.
 student's own rule would do. This phase is where a declared action *lands*, on Advance. That split
 is why Phase 3.1 ships a preview rather than an apply.
 
-**Plans**: 11 plans
+**Plans**: 15 plans (05-11 runs last)
 **UI hint**: yes
 
 Plans:
@@ -306,6 +306,19 @@ Plans:
 - [x] 05-09-PLAN.md — the board in fight mode: the dead marker off the stored flag, an alive toggle the marking does not hide, the by-hand marker derived from the round's record, FIGHT-10's permanent line, and PROJ-05 reconciled — the strip keeps describing the allocation, the fight's figures sit beside it, `turnsToWipe`'s third argument finally used — plus `[C14.3]` (wave 9)
 - [x] 05-10-PLAN.md — `[S07.5]` through the four seams with not one line of `[S07.1]` edited, and the interaction gate's fight checks: the act partition read off the page, the ledger's attributes by walking the region, the disabled set across three boards, and the phase's own acceptance run (wave 10)
 - [ ] 05-11-PLAN.md — the playtest: the shipped 9v3 played end to end TWICE, hot-seat, adjudicating as a student would; retune `[S01] DEFAULTS` and replay until it holds; thirty-eight numbered items with D-26 first; and the two research documents that predicted the blowout backwards corrected (wave 11, blocking human-verify checkpoint)
+- [ ] 05-12-PLAN.md — D-27's tab: a view switch in the shell, `[C15]`, `[S06.10]` and `[S07.6]`, with `#strip` and `#refband` outside both sides of it so PROJ-05 and REF-03 survive — and the viewport budget dissolved structurally rather than by a dial (wave 12, gap closure)
+- [ ] 05-13-PLAN.md — the arithmetic behind the preview: `App.model.spokenFor` and `App.model.needsAt`, and `declareAction` given radio-per-performer semantics so one unit holds one action from the RECORD rather than from a button (wave 13, gap closure)
+- [ ] 05-14-PLAN.md — the declaration grid: `[ROUND]`, both sides in columns, a row per unit with a button per action, the two-click target flow, the spoken-for pools, and the disable contract — with D-23 and the never-disable rule on this region TURNED IN THE OPEN, red recorded then green (wave 14, gap closure)
+- [ ] 05-15-PLAN.md — gate surgery: `FIGHT_FLOOR` re-measured off the new tab with declarations standing, every fight row rewritten to its new claim, the acceptance run re-driven through the grid, browser checks at 1920x1080 and 1366x768 in Chrome and Edge, and 05-11's script brought up to date without being renumbered (wave 15, gap closure)
+
+**D-27 gap closure (2026-08-29).** At the 05-11 checkpoint the developer redesigned the fight
+declaration surface: a full tab on the main screen, a unit-by-action grid with radio semantics, a
+live resource preview, and disabled actions whose requirements are unmet. That supersedes the
+declaration form plans 05-07 and 05-10 built and knowingly overrules two recorded rules (D-23, and
+the never-disable rule **on the fight declaration surface only** — it stays in force on build and
+proposal). The record is `05-REDIRECT-D27.md`. Plans 05-12 through 05-15 close it, sequentially, and
+**05-11 is not renumbered and not rewritten** — it remains the blocking playtest and it runs after
+them, on the new surface.
 
 **Plan-split note (set during planning).** Eleven sequential waves, no parallelism, for the reason
 Phases 2.1, 3, 3.1 and 4 each recorded: everything lands in one HTML file, so two plans in the same
