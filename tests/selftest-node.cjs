@@ -4634,17 +4634,17 @@ const DIALOG_ROOTS = [
   // which is the whole point of the check below being bidirectional: this entry
   // could not have been forgotten, because leaving it out fails the run.
   { id: 'act-edit', act: 'openActionEditor' },
-  // plan 04-05's two new surfaces, both harvested from the moment they exist
-  // for the same reason. BOTH CARRY act: null, and that is a statement rather
-  // than an omission: the openers they will be reached by are page work claimed
-  // by [S07.4], which is plan 04-06's, so there is no handler to drive yet and
-  // driving an unregistered act would put the styled error panel on screen
-  // instead of opening anything. The list's own comment says the act is named
-  // "where the static markup supplies one"; here it does not yet, so openDialogs
-  // falls through to showModal() and the walk still reads the surface. Plan
-  // 04-06 replaces both nulls with the acts it registers.
-  { id: 'share', act: null },
-  { id: 'reset-ask', act: null }
+  // plan 04-05's two new surfaces. Both carried act: null for exactly one
+  // plan — the openers are page work and [S07.4] is plan 04-06's, so there was
+  // no handler to drive and driving an unregistered act would have put the
+  // styled error panel on screen instead of opening anything. Plan 04-06
+  // registered both, so both nulls are gone and the walk now reaches these two
+  // surfaces the way a student does rather than through showModal(). That
+  // matters here for the reason this list's own comment gives: a dialog whose
+  // opener was unregistered would harvest an empty box and trip its own floor
+  // instead of passing on nothing.
+  { id: 'share', act: 'openShare' },
+  { id: 'reset-ask', act: 'openResetAsk' }
 ];
 
 const stubDialogIds = [];
@@ -6788,6 +6788,309 @@ check(
 closeShareSurface();
 clearPanel();
 
+/* --- 90 to 90f. PLAN 04-06's HANDLERS, AND THE ONE CLIPBOARD TIER THIS GATE
+       CAN ACTUALLY REACH.
+
+       Everything below goes through a REAL control — the topbar button, the
+       pane switches, Copy, Done, Cancel — because that is the difference
+       between these rows and 83 to 89's: those assert what the surface PAINTS,
+       and these assert that a student pressing something reaches it.
+
+       The one thing worth saying before the rows: there is no `navigator` in
+       this sandbox and no `document.execCommand` on the stub page, so a Copy
+       press here lands on tier 3 by construction. That is not a gap being
+       worked around — it is the reason row 90e exists and can assert anything
+       at all. Tier 3 is the tier SHARE-01's first criterion names in as many
+       words ("a selectable field appears with the code already highlighted"),
+       and a bare sandbox is the only place in this repo it can be driven. What
+       that leaves unreachable is written into the limitations list below as its
+       own numbered entry rather than left for a reader to notice. --- */
+
+const shareOpener = stub.querySelector('[data-act="openShare"]');
+const resetOpener = stub.querySelector('[data-act="openResetAsk"]');
+const resetDlg = dom.byId['reset-ask'];
+const shareSaidLine = dom.byId['share-said'];
+const shareCopyBtn = dom.byId['share-copy'];
+const shareToLoad = dom.byId['share-to-load'];
+const shareBackBtn = dom.byId['sh-load-back'];
+const shareDoneBtn = dom.byId['share-done'];
+const resetCancelBtn = dom.byId['reset-ask-cancel'];
+const sharePaneCopy = dom.byId['share-pane-copy'];
+const sharePaneLoad = dom.byId['sh-load'];
+
+function shPress(node) { press(node); release(node); A.state.flush(); }
+
+/* 90. BOTH OPENERS REACH A REGISTERED HANDLER. An act sitting in UI_ACTS with
+   nothing registered against it is the file's documented "claimed and ignored"
+   window, which is honest between two plans and is a dead button if a plan
+   ships in it — and that is exactly the window these two controls sat in for
+   the whole of plan 04-05. So this reads the LIVE registration rather than the
+   claim, and it drives the control rather than calling showModal(). */
+shPress(shareOpener);
+const shOpened = shareDlg.open;
+const shColdPane = shareDlg.dataset.shPane;
+shPress(resetOpener);
+const rsOpened = resetDlg.open;
+check(
+  '90. both topbar controls reach a handler the LIVE registration holds rather '
+    + 'than one merely claimed, and the share surface opens COLD on the copy '
+    + 'pane. A claimed act with no handler is the file\'s documented '
+    + '"claimed and ignored" window — honest between two plans, a dead button '
+    + 'if a plan ships in it, and the window both of these sat in for the whole '
+    + 'of plan 04-05',
+  shareOpener !== null && resetOpener !== null
+    && shOpened === true && rsOpened === true && shColdPane === 'copy'
+    && ['openShare', 'openResetAsk'].every((a) =>
+      A.interactions.UI_ACTS.indexOf(a) !== -1
+      && A.interactions.UI_HANDLED.indexOf(a) !== -1)
+    && errPanel.hidden === true,
+  'share opened=' + shOpened + ' cold pane=' + JSON.stringify(shColdPane)
+    + ' reset opened=' + rsOpened
+    + ' claimed=' + JSON.stringify(['openShare', 'openResetAsk']
+      .filter((a) => A.interactions.UI_ACTS.indexOf(a) !== -1))
+    + ' handled=' + JSON.stringify(['openShare', 'openResetAsk']
+      .filter((a) => A.interactions.UI_HANDLED.indexOf(a) !== -1))
+);
+
+/* 90b. THE ACT PARTITION, COLLECTED OFF THE PAGE, in 68d's shape and for its
+   reason — with one difference from 68d that is a fact about this surface and
+   is stated rather than smoothed over.
+
+   68d walks the action editor and finds acts INSIDE it, because that dialog's
+   own controls carry data-act. BOTH of plan 04-05's dialogs carry ZERO acts
+   inside them, deliberately: every control in there carries a private data-sh
+   or data-rs, which is #act-prop-open's shipped idiom, and 04-05's summary
+   records the two reasons. So "acts collected off the dialog" is legitimately
+   zero here and a row demanding it be non-zero would be demanding the surface
+   be built differently. What IS counted off each dialog is the private
+   controls, and both of those counts are floored.
+
+   The half that catches the failure this row exists for is asserted directly
+   and in the general form rather than by name: NO act in the live UI_ACTS may
+   be a function [S05] exports. That is what "a state op quietly moved into
+   UI_ACTS to make a refusal go away" IS, and stating it generally catches the
+   move for any op rather than for the two this phase happens to know about.
+   Those two are then also named, because they are the two plan 04-07 will add
+   and the whole point is that they are not here yet. */
+function actsUnder(root) {
+  const found = [];
+  (function walk(n) {
+    if (n.dataset && typeof n.dataset.act === 'string' && n.dataset.act !== ''
+      && found.indexOf(n.dataset.act) === -1) {
+      found.push(n.dataset.act);
+    }
+    n.children.forEach(walk);
+  })(root);
+  return found;
+}
+function privateUnder(root, key) {
+  const found = [];
+  (function walk(n) {
+    if (n.dataset && typeof n.dataset[key] === 'string' && n.dataset[key] !== ''
+      && found.indexOf(n.dataset[key]) === -1) {
+      found.push(n.dataset[key]);
+    }
+    n.children.forEach(walk);
+  })(root);
+  return found;
+}
+const shInsideActs = actsUnder(shareDlg);
+const rsInsideActs = actsUnder(resetDlg);
+const shPrivate = privateUnder(shareDlg, 'sh');
+const rsPrivate = privateUnder(resetDlg, 'rs');
+const shOpenerActs = [shareOpener.dataset.act, resetOpener.dataset.act];
+const shAllActs = shInsideActs.concat(rsInsideActs, shOpenerActs);
+const shUiOnly = shAllActs.filter((a) => A.interactions.UI_ACTS.indexOf(a) !== -1);
+const shUnhandled = shUiOnly.filter((a) => A.interactions.UI_HANDLED.indexOf(a) === -1);
+const shStateActs = shAllActs.filter((a) => A.interactions.UI_ACTS.indexOf(a) === -1);
+const shNotOps = shStateActs.filter((a) => typeof A.ops[a] !== 'function');
+const uiActsThatAreOps = A.interactions.UI_ACTS.filter((a) => typeof A.ops[a] === 'function');
+const laterOps = ['loadBuildCode', 'resetToDefaults'];
+const laterOpsParked = laterOps.filter((a) => A.interactions.UI_ACTS.indexOf(a) !== -1);
+const laterOpsMissing = laterOps.filter((a) => typeof A.ops[a] !== 'function');
+check(
+  '90b. every act these two surfaces dispatch is a UI-only act the LIVE '
+    + 'registration handles, and NO act in UI_ACTS is a function [S05] exports '
+    + '— collected off the page rather than re-typed here. The second half is '
+    + 'the one that matters: parking a state op in UI_ACTS is how a refusal is '
+    + 'made to go away, and the two ops plan 04-07 will wire are named as still '
+    + 'being ops and still not being here. Both dialogs carry ZERO acts inside '
+    + 'them on purpose (04-05 gave every control in them a private data-sh or '
+    + 'data-rs), so it is those private controls that are floored',
+  shPrivate.length >= 5 && rsPrivate.length >= 2
+    && shUiOnly.length >= 2 && shUnhandled.length === 0 && shNotOps.length === 0
+    && uiActsThatAreOps.length === 0
+    && laterOpsParked.length === 0 && laterOpsMissing.length === 0,
+  'acts inside #share=' + JSON.stringify(shInsideActs)
+    + ' inside #reset-ask=' + JSON.stringify(rsInsideActs)
+    + ' | private controls #share=' + JSON.stringify(shPrivate)
+    + ' #reset-ask=' + JSON.stringify(rsPrivate)
+    + ' | UI-only=' + JSON.stringify(shUiOnly)
+    + ' claimed but unhandled=' + JSON.stringify(shUnhandled)
+    + ' state acts [S05] does not export=' + JSON.stringify(shNotOps)
+    + ' | UI_ACTS entries that ARE ops=' + JSON.stringify(uiActsThatAreOps)
+    + ' | 04-07\'s ops parked in UI_ACTS=' + JSON.stringify(laterOpsParked)
+    + ' missing from [S05]=' + JSON.stringify(laterOpsMissing)
+);
+
+/* 90c. EVERY LISTENER ON BOTH NEW ROOTS WENT THROUGH THE ERROR BOUNDARY, in
+   68c's shape and for its reason: App.boot.wrap returns an ANONYMOUS zero-arity
+   function, and every handler in [S07.4] is a named function declared with its
+   own parameter, so a raw binding is visible by name AND by arity. TWO roots
+   and TWO floors, because a root carrying no listeners at all passes a
+   per-listener test spotlessly and one floor covering both would be satisfied
+   by either one of them alone. */
+function rawOn(root) {
+  const raw = [];
+  Object.keys(root._listeners).forEach((type) => {
+    root._listeners[type].forEach((fn) => {
+      if (typeof fn !== 'function' || fn.name !== '' || fn.length !== 0) {
+        raw.push(type + ' -> ' + (typeof fn === 'function'
+          ? (fn.name || '(anonymous)') + '/' + fn.length : typeof fn));
+      }
+    });
+  });
+  return raw;
+}
+function countOn(root) {
+  return Object.keys(root._listeners)
+    .reduce((n, type) => n + root._listeners[type].length, 0);
+}
+const shRaw = rawOn(shareDlg);
+const rsRaw = rawOn(resetDlg);
+const shCount = countOn(shareDlg);
+const rsCount = countOn(resetDlg);
+check(
+  '90c. every listener bound on BOTH of plan 04-05\'s roots went through '
+    + 'App.boot.wrap. One bound raw would throw past the boundary and leave the '
+    + 'surface dead with nothing on screen to say so — and on the share surface '
+    + 'that means a student pressing Copy, seeing nothing happen, and pasting '
+    + 'whatever was on their clipboard already. Two roots and two floors, '
+    + 'because a root carrying no listeners passes a per-listener test '
+    + 'spotlessly',
+  shCount >= 6 && rsCount >= 4 && shRaw.length === 0 && rsRaw.length === 0,
+  'listeners on #share=' + shCount + ' (floor 6) on #reset-ask=' + rsCount
+    + ' (floor 4) | bound outside the boundary: #share='
+    + (shRaw.join(', ') || 'none') + ' #reset-ask=' + (rsRaw.join(', ') || 'none')
+);
+
+/* 90d. THE PANES MOVE BOTH WAYS AND THE VISIT ENDS WITH FOCUS BACK ON THE
+   CONTROL THAT STARTED IT. <dialog> restores only the element that HELD focus
+   when the modal opened, which a student who reached the button with a pointer
+   never did — the same keyboard failure 68e asserts one surface down, and it is
+   asserted separately per surface because the two hand-backs name two different
+   constant selectors. */
+shPress(shareToLoad);
+const paneAfterToLoad = [shareDlg.dataset.shPane, sharePaneCopy.hidden, sharePaneLoad.hidden];
+shPress(shareBackBtn);
+const paneAfterBack = [shareDlg.dataset.shPane, sharePaneCopy.hidden, sharePaneLoad.hidden];
+shPress(shareDoneBtn);
+const shClosedOn = [shareDlg.open, stub.activeElement === shareOpener];
+shPress(resetCancelBtn);
+const rsClosedOn = [resetDlg.open, stub.activeElement === resetOpener];
+check(
+  '90d. the pane switch moves the surface both ways and hides the pane it is '
+    + 'not showing, Done ends the visit, Cancel declines the reset, and each '
+    + 'close hands focus back to the topbar control that opened it. A modal '
+    + 'that drops focus onto <body> is the keyboard failure 68e asserts one '
+    + 'surface down; the hand-back is asserted per surface because the two name '
+    + 'two different constant selectors',
+  JSON.stringify(paneAfterToLoad) === JSON.stringify(['load', true, false])
+    && JSON.stringify(paneAfterBack) === JSON.stringify(['copy', false, true])
+    && JSON.stringify(shClosedOn) === JSON.stringify([false, true])
+    && JSON.stringify(rsClosedOn) === JSON.stringify([false, true])
+    && errPanel.hidden === true,
+  'after "paste a build code"=' + JSON.stringify(paneAfterToLoad)
+    + ' after back=' + JSON.stringify(paneAfterBack)
+    + ' | share [open, focus back]=' + JSON.stringify(shClosedOn)
+    + ' reset [open, focus back]=' + JSON.stringify(rsClosedOn)
+);
+
+/* 90e. THE ONE CLIPBOARD TIER THIS GATE CAN REACH, DRIVEN RATHER THAN DESCRIBED
+   — and the only row in this project that will ever assert anything about the
+   copy at all, which is why it asserts the branch and not merely the press.
+
+   There is no `navigator` in this sandbox and no `document.execCommand` on the
+   stub page, so this press lands on tier 3 by construction. Three things are
+   read back and all three are the point: the press did not throw; the code
+   field is FOCUSED and selected over the whole of the code, because SHARE-01
+   asks for the selection to be a real surface rather than something that
+   appears on failure; and the line on screen is the select-all one and NOT a
+   "Copied".
+
+   That last assertion is the whole row. CLAUDE.md names an optimistic "Copied"
+   as a specific anti-pattern, because a silent clipboard failure sends a
+   student to the course thread with stale text and they debug this tool instead
+   of their build. A row that drove the press and read only "something was said"
+   would go green over exactly that. The tier the artifact believes it took is
+   read off data-sh-tier as well, so the two halves — what was DONE and what was
+   SAID — are asserted against each other rather than one standing for both. */
+clearPanel();
+shPress(shareOpener);
+A.ops.nudgeFactionAp('mechs', 1);
+A.state.flush();
+const beforeCopyLive = liveCode();
+let copyThrew = null;
+try { shPress(shareCopyBtn); } catch (err) { copyThrew = String(err && err.message); }
+const copySaid = shareSaidLine.textContent;
+const copyTier = shareSaidLine.dataset.shTier;
+const copySelection = [shareCodeField.selectionStart, shareCodeField.selectionEnd];
+check(
+  '90e. a real Copy press in a sandbox with NO clipboard API and NO copy '
+    + 'command does not throw, leaves the code field focused with the whole of '
+    + 'the code selected, and says the select-all line rather than a "Copied". '
+    + 'The line naming the tier that actually fired is the whole of this row: '
+    + 'an optimistic one sends a student to the course thread with stale text '
+    + 'on their clipboard, and tier 3 is the only tier this repo can ever drive',
+  copyThrew === null
+    && errPanel.hidden === true
+    && shareSaidLine.hidden === false
+    && copySaid === 'Select-all is done — press Ctrl+C.'
+    && copySaid.indexOf('Copied') === -1
+    && copyTier === 'select'
+    && stub.activeElement === shareCodeField
+    && copySelection[0] === 0
+    && copySelection[1] === shareCodeField.value.length
+    && shareCodeField.value.length > 0,
+  'threw=' + JSON.stringify(copyThrew) + ' panel hidden=' + errPanel.hidden
+    + ' | said=' + JSON.stringify(copySaid) + ' tier=' + JSON.stringify(copyTier)
+    + ' hidden=' + shareSaidLine.hidden
+    + ' | focused=' + (stub.activeElement === shareCodeField)
+    + ' selection=' + copySelection[0] + '..' + copySelection[1]
+    + ' of ' + shareCodeField.value.length
+);
+
+/* 90f. AND THE CODE THAT PRESS PRODUCED IS THE LIVE ONE. Check 84 closes this
+   loop from the REPAINT side — a frame lands and the field is current. This
+   closes it from the PRESS side, which is a different claim: the press asks
+   [S06.6] for the code synchronously inside the gesture, before anything
+   asynchronous can happen, and a press that read something produced at open
+   would pass 84 and ship a stale code anyway. The op above ran with the surface
+   already open, so the field the press read had to have been re-produced. */
+const copiedCode = shareCodeField.value;
+const copiedRead = A.serialize.decode(copiedCode);
+check(
+  '90f. the code the press put under the selection is the code for the board '
+    + 'that is on screen, driven after a REAL op with the surface already open. '
+    + 'It decodes, and what it decodes to re-encodes to the same string — so '
+    + 'the trip is closed from the press side as well as from the repaint side',
+  copiedCode === beforeCopyLive
+    && copiedCode === liveCode()
+    && copiedRead.ok === true
+    && A.serialize.encode(copiedRead.build) === liveCode(),
+  'field===live encode=' + (copiedCode === liveCode())
+    + ' decode ok=' + copiedRead.ok
+    + ' why=' + JSON.stringify(copiedRead.why || null)
+    + ' round trip=' + (copiedRead.ok === true
+      && A.serialize.encode(copiedRead.build) === liveCode())
+    + ' length=' + copiedCode.length
+);
+
+shPress(shareDoneBtn);
+A.ops.nudgeFactionAp('mechs', -1);
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        There is no browser and no layout engine in this repo, and the stub page
        is a hand-made stand-in rather than a parser. The behaviours numbered
@@ -6855,6 +7158,18 @@ clearPanel();
             adds one. What the bidirectional DIALOG_ROOTS gate does guarantee is
             that the new surface cannot be forgotten by the WALK; it says
             nothing about this behaviour.
+            PLAN 04-05 ADDED TWO DIALOGS AND PLAN 04-06 WIRED THEM, so this
+            entry now stands for FOUR roots rather than two, and the two new
+            ones divide differently. #share binds a cancel listener with a real
+            job — Escape inside the paste field must put the recorded text back
+            and leave the surface OPEN — and that listener is unreachable here
+            for the reason above, so it is one more rehearsal item. #reset-ask
+            binds NO cancel listener, deliberately: it has no field, Escape
+            there means Cancel, and <dialog>'s own default close is exactly
+            that. The reason is written into bindResetAsk rather than left as an
+            absence, and what remains unrehearsed for that root is only that the
+            default fires the close listener and hands focus back, which is one
+            more thing to watch in the same afternoon.
         13. Words a dialog paints only after something happens INSIDE it. The
             harvest opens each dialog the way a student reaches it, lets one
             frame land and reads what is on it — so a line that appears only
@@ -6877,7 +7192,32 @@ clearPanel();
             invalidate in start() — but a flash is a thing only a person can
             see. Moving the step below that line changes what a student watches
             and reddens nothing here, which was measured rather than assumed.
-            Rehearsal, same afternoon. --- */
+            Rehearsal, same afternoon.
+        16. THE CLIPBOARD, which is a FOURTH KIND of unreachable and is worth
+            saying plainly rather than folding into entry 5. The other three
+            kinds are a thing not yet rendered, a thing with no layout engine to
+            measure it, and a thing only a person can see. This one is none of
+            those: `navigator` does not exist in this runtime at all, and
+            `document.execCommand` is not on the stub page, so tiers 1 and 2 of
+            [S07.4]'s copy press are never executed here — not in any browser,
+            not under any flag, not once.
+            WHAT THAT COSTS, stated rather than softened. Row 90e drives a real
+            Copy press and asserts the tier-3 branch, which is the tier SHARE-01
+            names in as many words and the only one a bare sandbox can reach. So
+            the branch is proved to EXIST and proved to be taken when nothing
+            better is available. What is NOT proved is that the other two arms
+            ever fire, that they fire in the right order, that the promise's
+            resolve arm upgrades the line, that its reject arm falls through to
+            the copy command, or that a refusal stays out of the styled error
+            panel. Those are LOW confidence here and are stated as such.
+            All of it is plan 04-08's rehearsal, items 1 through 6, by number:
+            tier 1 in Chrome with the window focused; tier 1 in Edge, because
+            Firefox could not be launched in the environment that measured any
+            of this and CLAUDE.md's Firefox gap stands; a copy with DevTools
+            focused; a copy with the window backgrounded; a forced tier 3 with
+            the clipboard API deliberately blocked; and, in each of those five,
+            whether the line the student reads genuinely names the tier that
+            succeeded. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
