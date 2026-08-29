@@ -9559,7 +9559,18 @@ check(
    one. A control that started a change and also wrote into a slice would put a
    half-made intention into a build code and under undo, which is precisely what
    the shell comment on #act-edit-propose argues at length and what [S09.3] pins
-   the `ui` key set to prevent. Probe AN drives exactly that. */
+   the `ui` key set to prevent. Probe AN drives exactly that.
+
+   AND THE NAME WALK RIDES IN THIS ROW BECAUSE 73c CANNOT REACH HERE, which
+   probe AN measured rather than this row assuming. Check 73c walks the whole
+   live state for a key named after a proposal, an override, a caster, a target
+   or a pending anything — but it runs at the top of this file, hundreds of
+   drives before the fight surface is ever pressed, and every board it reads was
+   built through OPS. A key written by a HANDLER during a flow is invisible to
+   it. Probe AN wrote `state.fight.pendingTarget` from pressAt and 73c stayed
+   green over it; the byte-identical clause below caught it, and this walk is
+   what makes the CATCH NAME THE KEY instead of only reporting that something
+   moved. */
 A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
@@ -9575,6 +9586,16 @@ fgPress(fgAtBtnOf('cats', 'c1'));
 const fgAtHalfBack = fgHalfOf('cats');
 const fgAtStateNow = JSON.stringify(A.state.get());
 const fgAtDeclStands = fgDeclOf('cats', 'c1');
+const fgAtNamed = [];
+(function walkKeys(node, where) {
+  if (!node || typeof node !== 'object') { return; }
+  Object.keys(node).forEach((k) => {
+    if (/propos|override|caster|target|pending/i.test(k)) {
+      fgAtNamed.push(where + '.' + k);
+    }
+    walkKeys(node[k], where + '.' + k);
+  });
+})(A.state.get(), 'state');
 check(
   '104c. PRESSING THE CHANGE-TARGET CONTROL DISPATCHES NOTHING AND PRESSING IT '
     + 'TWICE PUTS IT BACK. The whole state is serialised before, between and '
@@ -9584,14 +9605,21 @@ check(
     + 'may never live, because from there it would ride in a build code and '
     + 'step under undo. The declaration itself is still standing afterwards, '
     + 'unchanged, which is what makes the second press a CANCEL rather than an '
-    + 'undo',
-  fgAtHalfWas === '/' && fgAtHalfNow === fgAtCatsAct + '/c1'
+    + 'undo. AND NOTHING REACHABLE FROM THE STATE IS NAMED after a proposal, an '
+    + 'override, a caster, a target or a pending anything, walked at any depth '
+    + 'HERE because check 73c runs before this surface is ever pressed and '
+    + 'every board it reads was built through ops — a key written by a handler '
+    + 'is invisible to it',
+  fgAtNamed.length === 0
+    && fgAtHalfWas === '/' && fgAtHalfNow === fgAtCatsAct + '/c1'
     && fgAtHalfBack === '/' && fgAtPressed === 'true'
     && fgAtStateWas === fgAtStateMid && fgAtStateWas === fgAtStateNow
     && A.state.undoDepth() === fgAtDepthWas
     && fgAtDeclStands !== null && fgAtDeclStands.act === fgAtCatsAct
     && errPanel.hidden === true,
-  'the two attributes ' + JSON.stringify(fgAtHalfWas) + ' -> '
+  'keys named after a proposal, an override, a caster, a target or a pending '
+    + 'anything=' + JSON.stringify(fgAtNamed)
+    + ' | the two attributes ' + JSON.stringify(fgAtHalfWas) + ' -> '
     + JSON.stringify(fgAtHalfNow) + ' -> ' + JSON.stringify(fgAtHalfBack)
     + ' | the control reads pressed=' + JSON.stringify(fgAtPressed)
     + ' | state byte-identical across press one='
