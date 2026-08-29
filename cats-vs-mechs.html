@@ -4385,8 +4385,168 @@ App.model = (function () {
   // The raw subtraction then reads "AP spent: -2" on a projector. The
   // derivation owns the meaning of this number, so it is the only place that
   // can hold the floor.
+  //
+  // WHAT THIS NUMBER MEASURED, AND WHAT D-27 DECIDED ABOUT IT — amended by
+  // plan 05-13 rather than left standing while a plan file held the answer.
+  // Plan 05-07 measured, and plan 05-10's acceptance run read back verbatim,
+  // that on an unedited build this figure is 0 at EVERY moment a frame can
+  // see: advanceRound spends each declared cost and then, in the SAME commit,
+  // refills both pools from the build, so no frame is ever rendered between
+  // the two writes. Two admissible fixes were written into the file beside
+  // [S06.7]'s reading — move the refill to the start of a round, or add a
+  // reading for what this round's declarations have SPOKEN FOR and leave the
+  // refill alone. D-27 chose the second one and promoted it from a bar figure
+  // to the core interaction, so spokenFor below is that reading and
+  // advanceRound is untouched.
+  //
+  // AND THIS DERIVATION IS KEPT RATHER THAN RETIRED, WHICH IS A DECISION AND
+  // NOT AN OMISSION. It still has two live readers — [S06.7]'s pool line and
+  // [S06.9]'s ledger figure — and it still answers a question spokenFor does
+  // not: what a MID-FIGHT BUILD EDIT did to the pool, which is FIGHT-10's own
+  // hazard and the direction the floor above guards. The two numbers are
+  // different facts about the same board and neither is the other's
+  // replacement: this one looks BACKWARD at two slices that have drifted, and
+  // spokenFor looks FORWARD at a list of intents nothing has resolved.
   function apSpent(buildFaction, fightSide) {
     return Math.max(0, buildFaction.ap - fightSide.ap);
+  }
+
+  /* WHAT THIS ROUND'S DECLARATIONS HAVE SPOKEN FOR — D-27's live preview,
+     as arithmetic and nothing else.
+
+     WHAT THIS NUMBER IS NOT, SAID FIRST BECAUSE IT IS THE WHOLE HAZARD. It is
+     NOT spent. Nothing has resolved. No pool has moved, no unit has been
+     touched, no round has been walked, and advanceRound is byte-for-byte the
+     op it was before this derivation existed. A side whose declarations have
+     spoken for three points still HOLDS those three points, and will hold
+     them until a student presses Advance. This is a reading over a list of
+     intents, taken at read time, storing nothing — which is CLAUDE.md's rule
+     against a derived figure kept in state, and the rule this project cannot
+     afford to break, because a MECHANICAL disagreement between the board and
+     a reading of it is indistinguishable from the PEDAGOGICAL one the whole
+     artifact is built around.
+
+     THE FOUR RULES, EACH WITH ITS REASON:
+       - the action is found by an Array.find over the record's own `id`, never
+         by a bare keyed lookup — the rule styleFor, labelFor, actionApCost and
+         affordability all state, and its reason: from Phase 4 an id can arrive
+         from a pasted build code, and a bare lookup for `constructor` resolves
+         on the prototype;
+       - a declaration naming an action this side no longer carries contributes
+         0 and is NOT a refusal. An action removed between the declaration and
+         the frame is a thing a student can read and correct, and this tier
+         does not rule;
+       - a cost actionApCost cannot price contributes 0, for the same reason
+         affordability hands back apCost: null rather than throwing;
+       - the answer is floored at 0 HERE and is not repaired at the call site.
+         apSpent's own paragraph gives the reason and it transfers word for
+         word: a caller repairing it afterwards is a second definition of what
+         the number means, and a projector reading a negative pool is the
+         failure the floor exists to prevent.
+
+     Numbers only. No prose leaves [S02] — the banner's rule, and
+     affordability's closing line says it again. */
+  function spokenFor(actions, decl, side) {
+    var pool = Array.isArray(actions) ? actions : [];
+    var list = Array.isArray(decl) ? decl : [];
+    var total = list.reduce(function (n, d) {
+      if (!d || typeof d !== 'object' || d.side !== side) { return n; }
+      var act = pool.find(function (a) { return a && a.id === d.act; });
+      if (!act) { return n; }
+      var cost = actionApCost(act);
+      return Number.isInteger(cost) ? n + cost : n;
+    }, 0);
+    return Math.max(0, total);
+  }
+
+  // WHETHER AN ACTION NEEDS SOMEBODY TO POINT AT, answered once so no surface
+  // has to re-derive it. True when the action carries at least one
+  // transformation term aimed at the unit the declaration points at.
+  //
+  // XF_WHO IS READ OFF App.data RATHER THAN THE WORD BEING SPELLED HERE. That
+  // array carries an index-stability rule of its own — the codec stores the
+  // SLOT and not the word — so a second spelling in this tier would be a place
+  // for the two to drift apart while both look right. Reading the table keeps
+  // this derivation and the codec looking at one list.
+  //
+  // EVERY MALFORMED SHAPE ANSWERS false RATHER THAN THROWING, in changesFrom's
+  // and affordability's defensive register, because this object can arrive
+  // from a pasted build code: no `xf` at all, an `xf` that is not an array,
+  // and a term that is not an object are three ways a decoded record can be
+  // wrong and none of them is a question this tier may refuse to answer.
+  function needsAt(action) {
+    if (!action || typeof action !== 'object') { return false; }
+    if (!Array.isArray(action.xf)) { return false; }
+    var pointedAt = App.data.XF_WHO[1];
+    return action.xf.some(function (term) {
+      return !!term && typeof term === 'object' && term.who === pointedAt;
+    });
+  }
+
+  /* WHICH ENEMY A DECLARATION POINTS AT UNLESS THE STUDENT SAYS OTHERWISE —
+     D-27's addendum, verbatim: "Default target to the lowest health enemy."
+
+     WHAT THIS DEFAULT IS, AND IT IS WRITTEN OUT BECAUSE THIS IS THE ONE
+     DERIVATION IN THIS FILE THAT MAKES A SUGGESTION. A lowest-health default
+     is a mild focus-fire suggestion by the tool. The developer chose it
+     explicitly, at the 05-11 checkpoint, in their own words. Four things keep
+     it a CHANGEABLE DEFAULT and not a resolution, and an unexplained
+     suggestion is how a tool starts adjudicating:
+       1. the change-target control is ONE press away, so the student overrules
+          it with a single act rather than by undoing anything;
+       2. the record that comes out is INDISTINGUISHABLE from one a student
+          picked by hand — same four keys, same values, no marker saying the
+          tool chose it — which is what makes that control a CHANGE rather than
+          an override of something the tool decided;
+       3. nothing about it survives into advanceRound, which reads `at` and has
+          no way to know, and no reason to care, how it got there;
+       4. it is not called by any op. The SURFACE calls it and passes the
+          answer in; declareAction neither knows about it nor may learn.
+
+     THE DERIVATION, EXACTLY:
+       - the candidates are the units of the side that is NOT `side`, taken
+         from the shipped side list rather than spelled here, so a third side
+         could never make this quietly answer for the wrong roster. The list is
+         read at CALL time, the way XF_WHO is above, so this is a read of a
+         frozen constant and not a dependency on the tier that holds it;
+       - a unit with alive === false is excluded, and that is the ONLY
+         exclusion. A UNIT AT ZERO HEALTH THAT NOBODY RULED IS NOT EXCLUDED.
+         D-00d is the file's oldest ruling about that flag — death is stored,
+         never inferred — and this derivation is exactly where a tidy
+         implementation loses it, because skipping a zero would look like
+         common sense and would be the tool ruling a unit dead;
+       - among the rest the lowest health is the answer, and A TIE IS BROKEN BY
+         ROSTER ORDER, the first of them standing. That is an orchestrator call
+         recorded in 05-REDIRECT-D27.md and recorded again here, and it is
+         chosen because it is the only tie-break that is stable across
+         repaints: a "most recently damaged" or a random pick would move a
+         target under a student between two frames, so the unit they read would
+         not be the unit they declared;
+       - NO LIVING ENEMY AT ALL ANSWERS null, which is a real answer and not a
+         refusal. The declaration then names nobody, exactly as namedOr already
+         permits, and the surface says so in words;
+       - a unit whose health is not a whole number is passed over rather than
+         compared, in the defensive register above: a decoded record that is
+         wrong may not become the answer, and a comparison against a
+         non-number is how a null would silently take the place of a unit.
+
+     It reads and it writes nothing. Same tier, same rule, same banner. */
+  function defaultAt(fight, side) {
+    if (!fight || typeof fight !== 'object') { return null; }
+    var sides = App.ops.SIDES;
+    var best = null;
+    for (var i = 0; i < sides.length; i++) {
+      if (sides[i] === side) { continue; }
+      var roster = fight[sides[i]] ? fight[sides[i]].units : null;
+      if (!Array.isArray(roster)) { continue; }
+      for (var j = 0; j < roster.length; j++) {
+        var u = roster[j];
+        if (!u || u.alive === false) { continue; }
+        if (!Number.isInteger(u.hp)) { continue; }
+        if (best === null || u.hp < best.hp) { best = u; }
+      }
+    }
+    return best === null ? null : best.id;
   }
 
   // FIGHT-16, AND IT IS THE ONE RESOLUTION RULE THE DEVELOPER SPECIFIED
@@ -4557,6 +4717,24 @@ App.model = (function () {
     affordability: affordability,
     aliveCount: aliveCount,
     apSpent: apSpent,
+    // D-27's THREE FACTS, exported together because the declaration grid reads
+    // all three on every frame and re-deriving any one of them at a surface is
+    // how two readings of the same board start disagreeing.
+    //
+    // NOT ONE OF THEM IS NAMED spend*, apply*, resolve* OR ANY OTHER STEM IN
+    // [S09.10]'s applier list. That allowlist is over App.ops and these are
+    // App.model exports, so it is arithmetically outside its reach — but the
+    // near-miss is exactly what a later reader greps for, and a derivation
+    // called spendPreview would read as the file having grown a second
+    // applier. spokenFor SPEAKS FOR; it spends nothing.
+    //
+    // And not one of them matches /propos|override|caster|target|pending/,
+    // which is check 73c's stem list. defaultAt uses this file's `at`
+    // vocabulary on purpose — the same choice the declaration record made when
+    // { side, act, by, at } was picked over the natural spelling.
+    spokenFor: spokenFor,
+    needsAt: needsAt,
+    defaultAt: defaultAt,
     // FIGHT-16. Exported for the fight loop to spend and for [S09.12] to drive
     // exhaustively — six shapes of hit and six refusals — because a resolution
     // rule the developer stated in one sentence is the rule that gets quietly
@@ -6339,7 +6517,14 @@ App.ops = (function () {
   // on the page inherits a phantom key that deepFreeze and JSON.stringify both
   // walk straight past. An unknown side also has to fail in this file's own
   // named style, not as "Cannot read properties of undefined".
-  var SIDES = ['cats', 'mechs'];
+  //
+  // FROZEN BY PLAN 05-13, ON THE CHANGE THAT EXPORTED IT. A constant handed
+  // out of a frozen return object is only as constant as the thing behind the
+  // key, and this one is the allowlist the paragraph above is about: a reader
+  // that pushed a third id onto it would widen the guard from outside. XF_WHO
+  // is frozen for the same reason and nothing in this file has ever written
+  // to either.
+  var SIDES = Object.freeze(['cats', 'mechs']);
 
   // Named bounds. `99` was a bare literal at three call sites and would have
   // been at seven by the end of plan 02-02 — one number in seven places, quietly
@@ -9311,6 +9496,16 @@ App.ops = (function () {
     clearDeclaration: clearDeclaration,
     clearDeclarations: clearDeclarations,
     MAX_DECLARATIONS: MAX_DECLARATIONS,
+    // THE TWO SIDE IDS, exported by plan 05-13 for the reason every constant
+    // above it is exported: a reader asserts against the list the ops actually
+    // run, never a re-typed copy that can drift away from this definition.
+    // App.model.defaultAt reads it at CALL time to derive "the side that is
+    // not the acting one", which is the alternative to a fourth ['cats',
+    // 'mechs'] literal in this file — [S04]'s WIRE_SIDES and [S06]'s
+    // FIGHT_SIDES are the first two copies and each states a reason of its
+    // own, and a third with no reason is how a side added in one place stops
+    // existing in another.
+    SIDES: SIDES,
     // FIGHT-13. THE ONE APPLIER IN THIS FILE, and the table above it says in
     // full what it does and what it never decides. It is exported here rather
     // than tucked beside the lifecycle ops because it is neither a lifecycle op
@@ -26754,6 +26949,236 @@ App.selftest = (function () {
     App.ops.clearDeclarations();
     App.state.flush();
     t.ok('the prototype is intact after the declaration rows', protoIntact());
+
+    /* ===== D-27'S THREE DERIVATIONS — THE ARITHMETIC BEHIND THE PREVIEW =====
+       Plan 05-13. Three pure reads in [S02] that store nothing, driven here
+       rather than in [S09.2] because the boards they answer about are FIGHT
+       boards and this is the suite that owns those — and because every row in
+       this suite runs in the terminal harness, which is where a wrong eHP or a
+       wrong default has to be caught. A wrong number in a teaching artifact
+       teaches a wrong lesson, which is the worst failure this file has.
+
+       THE BOARDS ARE DRIVEN THROUGH THE SHIPPED OPS wherever the ops can
+       produce them — [S09.11]'s rule and PROBE I's finding, which is that a
+       literal agrees with whatever its author believed the shape was while a
+       driven board agrees with THIS FILE. Three shapes the ops deliberately
+       cannot make are written as literals and each says so at the row: an
+       empty enemy roster (MIN_UNITS forbids it), a cost in a token that is not
+       action points (setActionCost forbids it), and a malformed term (every
+       authoring op refuses one). All three arrive from a pasted build code,
+       which is the reason the derivations are defensive about them at all. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+
+    t.eq('spokenFor OVER A ROUND NOBODY HAS DECLARED IN IS 0, and it is a '
+      + 'number rather than a refusal — an empty round is a state the page '
+      + 'renders on every first frame of every fight',
+      App.model.spokenFor(build().cats.actions, fight().decl, 'cats'), 0);
+
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.state.flush();
+
+    t.eq('one costing declaration speaks for exactly what actionApCost prices '
+      + 'it at, read THROUGH that derivation and never re-derived here — Slash '
+      + 'ships at one point and the reading is one',
+      [App.model.spokenFor(build().cats.actions, fight().decl, 'cats'),
+        App.model.actionApCost(build().cats.actions[0])], [1, 1]);
+
+    App.ops.declareAction('cats', 'screech', 'c2', null);
+    App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+    App.state.flush();
+
+    t.eq('two declarations on one side speak for the SUM, and the other side\'s '
+      + 'declaration contributes nothing to it. The list is shared between both '
+      + 'sides, so a reading that forgot to filter would show a side depleted '
+      + 'by an action the other side declared — which is the first thing a '
+      + 'student would see and the last thing they would understand',
+      [App.model.spokenFor(build().cats.actions, fight().decl, 'cats'),
+        App.model.spokenFor(build().mechs.actions, fight().decl, 'mechs'),
+        fight().decl.length], [2, 1, 3]);
+
+    t.eq('AND A DECLARATION NAMING AN ACTION THE SIDE NO LONGER CARRIES '
+      + 'CONTRIBUTES 0 RATHER THAN RAISING ANYTHING. Driven by authoring an '
+      + 'action, declaring it, and then taking it away out from under the '
+      + 'standing declaration — which is a thing a student can do and can read '
+      + 'and can correct. This tier reports and does not rule, so the reading '
+      + 'simply stops counting a record it can no longer price. The action is '
+      + 'one of the student\'s own because the six the board ships with cannot '
+      + 'be removed at all',
+      (function () {
+        var made = App.ops.createAction('cats', 'Pounce');
+        App.ops.setActionCost('cats', made, 'ap', 2);
+        App.ops.declareAction('cats', made, 'c3', 'm2');
+        App.state.flush();
+        var withIt = App.model.spokenFor(build().cats.actions, fight().decl, 'cats');
+        App.ops.removeAction('cats', made);
+        App.state.flush();
+        return [withIt,
+          App.model.spokenFor(build().cats.actions, fight().decl, 'cats'),
+          fight().decl.length];
+      })(), [4, 2, 4]);
+
+    t.eq('a cost this file cannot price contributes 0 too, and the answer is '
+      + 'never below zero. The action list is a literal here BECAUSE THE OPS '
+      + 'REFUSE TO BUILD ONE — setActionCost takes action points and nothing '
+      + 'else — so the only way this shape reaches the page is a pasted build '
+      + 'code, which is exactly the arrival affordability hands back a null '
+      + 'price for rather than throwing over',
+      (function () {
+        var unpriceable = [{ id: 'slash', name: 'Slash',
+          cost: [{ tok: 'hp', n: 2 }], req: [], xf: [] }];
+        var answer = App.model.spokenFor(unpriceable, fight().decl, 'cats');
+        return [answer, answer >= 0];
+      })(), [0, true]);
+
+    t.eq('and the reading STORED NOTHING getting there: the fight slice still '
+      + 'opens on its five keys and no side grew one. A preview that cached '
+      + 'itself would be the stored-derived-figure defect probe Z drove, one '
+      + 'tier further out',
+      [Object.keys(fight()).sort().join(','),
+        Object.keys(fight().cats).sort().join(',')],
+      ['cats,decl,mechs,past,round', 'ap,units']);
+
+    /* --- needsAt: a fact about the action's own terms --- */
+
+    App.ops.resetToDefaults();
+    App.state.flush();
+
+    t.eq('needsAt IS TRUE FOR THE TWO SHIPPED ACTIONS THAT AIM A TERM AT WHAT '
+      + 'THEY POINT AT, and it is read off the live board rather than asserted '
+      + 'about the data: Slash takes a point of health off what it names and '
+      + 'Lasers takes three',
+      [App.model.needsAt(build().cats.actions.find(function (a) { return a.id === 'slash'; })),
+        App.model.needsAt(build().mechs.actions.find(function (a) { return a.id === 'lasers'; }))],
+      [true, true]);
+
+    t.eq('and FALSE for the four that ship with no transformation at all, and '
+      + 'false for a term aimed at the one who acts rather than at what is '
+      + 'named. The second half is what makes this read the party table rather '
+      + 'than a spelled word: the derivation asks XF_WHO which slot means '
+      + '"what this points at", so this row and the codec are reading one list',
+      [App.model.needsAt(build().cats.actions.find(function (a) { return a.id === 'hairball'; })),
+        App.model.needsAt(build().cats.actions.find(function (a) { return a.id === 'screech'; })),
+        App.model.needsAt(build().mechs.actions.find(function (a) { return a.id === 'fly'; })),
+        App.model.needsAt(build().mechs.actions.find(function (a) { return a.id === 'recharge'; })),
+        App.model.needsAt({ id: 'x', xf: [{ who: App.data.XF_WHO[0], tok: 'hp', d: -1 }] })],
+      [false, false, false, false, false]);
+
+    t.eq('an action carrying NO transformation list at all answers false '
+      + 'rather than raising — the shape a build code from an older schema '
+      + 'arrives in, and changesFrom\'s and affordability\'s defensive register',
+      App.model.needsAt({ id: 'x', name: 'X' }), false);
+
+    t.eq('and so does one whose transformation list is not a list, which is '
+      + 'the shape a hand-edited build code arrives in',
+      [App.model.needsAt({ id: 'x', xf: 'target' }),
+        App.model.needsAt({ id: 'x', xf: { who: 'target' } }),
+        App.model.needsAt({ id: 'x', xf: 3 })], [false, false, false]);
+
+    t.eq('and a list whose entries are not objects answers false rather than '
+      + 'reading a property off a string. A bare `term.who` on the string '
+      + '"target" is undefined and would answer false by luck; on a decoded '
+      + 'record it is the read that throws, and a derivation the page calls '
+      + 'once per action per frame may not be one press from a stack trace',
+      App.model.needsAt({ id: 'x', xf: [null, 'target', 7, undefined] }), false);
+
+    /* --- defaultAt: the lowest-health living enemy, and the four ways that
+           sentence can be got wrong --- */
+
+    App.ops.startFight();
+    App.state.flush();
+
+    t.eq('defaultAt POINTS AT THE LOWEST-HEALTH ENEMY, driven by ruling one '
+      + 'Mech down by hand rather than by a literal. It answers for the side '
+      + 'that is NOT the acting one, taken from the shipped side list, so the '
+      + 'same board gives the Cats a Mech and the Mechs a Cat',
+      (function () {
+        App.ops.setUnitHp('mechs', 'm3', 2);
+        App.state.flush();
+        return [App.model.defaultAt(fight(), 'cats'),
+          App.model.defaultAt(fight(), 'mechs')];
+      })(), ['m3', 'c1']);
+
+    t.eq('A UNIT THE TABLE RULED DEAD IS SKIPPED EVEN WHEN IT IS THE LOWEST, '
+      + 'and the answer moves to the next one standing. This is the direction a '
+      + 'default that read only health would get right by accident and the next '
+      + 'row is the one it would get wrong',
+      (function () {
+        App.ops.setAlive('mechs', 'm3', false);
+        App.state.flush();
+        return [App.model.defaultAt(fight(), 'cats'),
+          fight().mechs.units[2].hp, fight().mechs.units[2].alive];
+      })(), ['m1', 2, false]);
+
+    t.eq('AND A UNIT AT ZERO HEALTH THAT NOBODY RULED IS STILL POINTED AT — '
+      + 'D-00d, and this derivation is exactly where a tidy implementation '
+      + 'loses it. Skipping a zero here would look like common sense and would '
+      + 'be the tool ruling a unit dead, which is the one thing it may never '
+      + 'do: a student who ruled "survived on a Shield" has to stay '
+      + 'representable and has to stay pointable-at',
+      (function () {
+        App.ops.setUnitHp('mechs', 'm2', 0);
+        App.state.flush();
+        return [App.model.defaultAt(fight(), 'cats'),
+          fight().mechs.units[1].hp, fight().mechs.units[1].alive];
+      })(), ['m2', 0, true]);
+
+    t.eq('A TIE IS BROKEN BY ROSTER ORDER AND THE SAME BOARD ANSWERS THE SAME '
+      + 'TWICE, which is one claim and not two: the tie-break is roster order '
+      + 'BECAUSE that is the only one stable across repaints. A most-recently-'
+      + 'damaged or a random pick would move the unit under a student between '
+      + 'two frames, so what they read would not be what they declared',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.setUnitHp('mechs', 'm2', 1);
+        App.ops.setUnitHp('mechs', 'm3', 1);
+        App.state.flush();
+        return [App.model.defaultAt(fight(), 'cats'),
+          App.model.defaultAt(fight(), 'cats'),
+          fight().mechs.units[1].hp, fight().mechs.units[2].hp];
+      })(), ['m2', 'm2', 1, 1]);
+
+    t.eq('EVERY ENEMY RULED DEAD ANSWERS NOBODY, and nobody is a real answer '
+      + 'rather than a refusal. The declaration then names null in the `at` '
+      + 'position, which namedOr already stores on purpose and which the '
+      + 'surface says in words',
+      (function () {
+        App.ops.setAlive('mechs', 'm1', false);
+        App.ops.setAlive('mechs', 'm2', false);
+        App.ops.setAlive('mechs', 'm3', false);
+        App.state.flush();
+        return [App.model.defaultAt(fight(), 'cats'),
+          App.model.aliveCount(fight().mechs)];
+      })(), [null, 0]);
+
+    t.eq('and so does an enemy roster with nobody on it at all. This one is a '
+      + 'literal because MIN_UNITS forbids the ops from emptying a roster — it '
+      + 'is the shape a decoded build code could hand over, and a derivation '
+      + 'that reduced over it without a floor would answer undefined rather '
+      + 'than a value the surface can read',
+      App.model.defaultAt({
+        cats: { ap: 3, units: [{ id: 'c1', hp: 3, shield: 0, alive: true }] },
+        mechs: { ap: 3, units: [] }
+      }, 'cats'), null);
+
+    t.eq('AND IT NEVER POINTS AT A UNIT ON THE ACTING SIDE, asserted on a board '
+      + 'where the acting side holds the lowest health anywhere. A derivation '
+      + 'that reduced over both rosters would hand the Cats one of their own '
+      + 'Cats here and every other row above would stay green over it',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.setUnitHp('cats', 'c1', 1);
+        App.state.flush();
+        return [App.model.defaultAt(fight(), 'cats'),
+          App.model.defaultAt(fight(), 'mechs'),
+          fight().cats.units[0].hp];
+      })(), ['m1', 'c1', 1]);
+
+    t.ok('the prototype is intact after D-27\'s three derivations', protoIntact());
 
     /* ===== THE BAD-INPUT TABLE OVER ALL THREE DECLARATION OPS =====
        [S09.10]'s form: a list of values and one row per value, every refusal

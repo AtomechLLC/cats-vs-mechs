@@ -611,7 +611,23 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     already taken that unit to zero and the set landed where the board
 //     already was: "a set that moved nothing is not a ruling", met in a
 //     resolved round rather than in a comment. The row now reads both.
-const SUITE_FLOOR = 1158;
+//   plan 05-13 ships D-27's three derivations — App.model.spokenFor, needsAt
+//     and defaultAt — and the run goes from 1188 to 1207, floored at 1177,
+//     which is the same margin of 30 the nine plans before it kept. NINETEEN
+//     rows, all of them in [S09.12] and all of them above any no-DOM bracket,
+//     because this plan is pure state work and draws nothing: six for
+//     spokenFor (an empty round, one cost, a sum with the other side's
+//     declaration excluded, an authored action taken away out from under a
+//     standing declaration, a cost the file cannot price, and the fight slice
+//     still opening on its five keys afterwards), five for needsAt (the two
+//     shipped actions that aim a term at what they point at, the four that do
+//     not plus one aimed at the one who acts, and the three malformed shapes a
+//     pasted build code can hand over) and eight for defaultAt (the lowest
+//     health, a dead-ruled unit skipped, a zero-health unit NOBODY ruled kept
+//     — which is D-00d and the one a tidy implementation loses — a tie broken
+//     by roster order and answered the same twice, nobody left standing,
+//     an empty roster, never a unit on the acting side, and the prototype).
+const SUITE_FLOOR = 1177;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
