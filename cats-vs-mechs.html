@@ -16954,10 +16954,16 @@ App.selftest = (function () {
         + 'object under a key it took from the code string, because that sets the '
         + 'prototype instead of adding an entry and leaves the shared one spotless',
         keyBack !== null && keyBack.ok === true && protosOrdinary(keyBack.build));
+      // The first term is not decoration: keysAnywhere over a refusal walks
+      // nothing and would report zero occurrences of a word it never looked
+      // for, which is a row green over a decoder that stopped working.
       t.eq('and NO key anywhere in the decoded record is "' + key + '" — a name is a value '
         + 'and never a key, which is what makes the whole class harmless rather than '
         + 'merely unexercised',
-        keysAnywhere(keyBack.build, []).filter(function (k) { return k === key; }).length, 0);
+        [keyBack !== null && keyBack.ok === true,
+          keysAnywhere(keyBack.ok === true ? keyBack.build : {}, [])
+            .filter(function (k) { return k === key; }).length],
+        [true, 0]);
       t.ok('the shared prototype is intact after the round trip over "' + key + '"',
         protoIntact());
 
@@ -16988,19 +16994,33 @@ App.selftest = (function () {
     App.ops.resetToDefaults();
     var pinBoard = BOARDS[1].drive();
     var pinBack = App.serialize.decode(App.serialize.encode(pinBoard));
+    // Every row below reads through this rather than through pinBack.build
+    // directly. A refusal carries no build at all — which is the whole of the
+    // no-partial-build row further down — so a row reaching into one would
+    // throw and take every row after it with it, and a suite that stops is a
+    // suite that reports nothing about the rows it never reached.
+    function pinnedKeys(path) {
+      if (pinBack === null || pinBack.ok !== true) { return 'the code was refused'; }
+      var at = pinBack.build;
+      for (var i = 0; i < path.length && at !== undefined && at !== null; i++) {
+        at = at[path[i]];
+      }
+      return (at === undefined || at === null) ? 'nothing is there' : Object.keys(at).join(',');
+    }
     t.eq('a decoded build holds EXACTLY the four keys the slice holds, in the order the '
-      + 'slice holds them', Object.keys(pinBack.build).join(','), 'schema,cats,mechs,tokens');
+      + 'slice holds them', pinnedKeys([]), 'schema,cats,mechs,tokens');
     t.eq('and each faction holds exactly its five, plus the tally bag on the side that '
       + 'carries one and nothing else anywhere',
-      [Object.keys(pinBack.build.cats).join(','), Object.keys(pinBack.build.mechs).join(',')],
+      [pinnedKeys(['cats']), pinnedKeys(['mechs'])],
       ['id,name,ap,units,actions,tally', 'id,name,ap,units,actions']);
     t.ok('and every key of the decoded vocabulary is an id this file could have MADE — a '
       + 'built-in from TOKEN_IDS or a sequence number behind the letter, never a word that '
-      + 'arrived as text', Object.keys(pinBack.build.tokens).every(function (id) {
-        return App.data.TOKEN_IDS.indexOf(id) !== -1 || App.data.TOKEN_ID_PATTERN.test(id);
-      }));
+      + 'arrived as text', pinBack.ok === true
+        && Object.keys(pinBack.build.tokens).every(function (id) {
+          return App.data.TOKEN_IDS.indexOf(id) !== -1 || App.data.TOKEN_ID_PATTERN.test(id);
+        }));
     t.ok('and every action of the decoded build carries an id of the same two kinds',
-      ['cats', 'mechs'].every(function (side) {
+      pinBack.ok === true && ['cats', 'mechs'].every(function (side) {
         return pinBack.build[side].actions.every(function (act) {
           return App.data.ACTION_IDS.indexOf(act.id) !== -1
             || App.data.ACTION_ID_PATTERN.test(act.id);
@@ -17008,7 +17028,7 @@ App.selftest = (function () {
       }));
     t.ok('and the decoded record\'s prototypes are ordinary at every depth on the realistic '
       + 'board too, not only on the ones carrying a reserved word',
-      protosOrdinary(pinBack.build));
+      pinBack.ok === true && protosOrdinary(pinBack.build));
 
     /* --- "LEAVES THE CURRENT BUILD UNTOUCHED", WHICH IS SHARE-03'S OWN
            WORDING AND THEREFORE ITS OWN ROW. decode is pure, so this is
