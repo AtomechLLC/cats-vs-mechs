@@ -1372,6 +1372,10 @@
  *   [S02] MODEL         pure eHP / damage-throughput derivations           (plan 01-01)
  *   [S03] STATE         the state slices, commit() funnel, snapshot undo   (plan 01-02)
  *   [S04] SERIALIZE     build-code encode / decode + hash sync             (Phase 4, plan 04-01)
+ *     [S04.1] the text, number, run-length and checksum primitives        (plan 04-01)
+ *     [S04.2] encode — a build slice to a code string                     (plan 04-02)
+ *     [S04.3] decode — a code string to a build slice, or a refusal       (plan 04-03)
+ *     [S04.4] the location.hash mirror                                    (plan 04-04)
  *   [S05] OPS           every state transformation, one per student action (plan 01-02)
  *   [S06] RENDER        page structure and per-tick reconcile from state   (Phase 2, plan 02-01)
  *     [S06.1] the board renderer, both tiers                               (plan 02-01)
@@ -1761,8 +1765,11 @@ App.data = (function () {
   // those is 2.4 times what a message holds, and beyond rescue without a
   // compression step.
   //
-  // And CompressionStream — the escalation path this comment used to name — is
-  // ruled out, on a reason that is not size. It is ASYNCHRONOUS, and an await
+  // And the deflate-raw compression stream — the escalation path this comment
+  // used to name — is ruled out, on a reason that is not size. Spelled here in
+  // words rather than by its global's name on purpose: this file carries a
+  // scan that reads zero call sites for it, and a comment naming it would be
+  // the only reading. It is ASYNCHRONOUS, and an await
   // between the click and the clipboard write forfeits the Chrome-107 user
   // gesture SHARE-01 depends on. It is also undefined in the terminal harness's
   // sandbox, so every assertion about it would be documentation rather than a
@@ -2731,12 +2738,341 @@ App.state = (function () {
  * exists from the first day and is never retrofitted.
  * deps: App.data
  * owner: Phase 4, plan 04-01
+ *
+ * The sub-regions, in file order. The table of contents at the top of the
+ * script names sections rather than sub-regions, so this banner is where
+ * [S04]'s own split is written down — the same job [S09]'s banner does for
+ * its suites. Each is named here BEFORE it exists so the plans that fill them
+ * land where this one said they would.
+ *   [S04.1] the text, number, run-length and checksum primitives  (plan 04-01)
+ *   [S04.2] encode — a build slice to a code string               (plan 04-02)
+ *   [S04.3] decode — a code string to a build slice, or a refusal (plan 04-03)
+ *   [S04.4] the location.hash mirror                              (plan 04-04)
+ *
+ * THREE THINGS THIS SECTION OWES THE NEXT READER, all of them decisions rather
+ * than descriptions, and none of them recoverable by reading the code:
+ *
+ * 1. `dmg` AND `keywords` ARE DELIBERATELY NOT ENCODED, and that is only safe
+ *    for as long as nothing writes them. No [S05] op does: dispatch carries no
+ *    arm for either, and createAction ships every authored action at zero
+ *    damage with an empty keyword list. So both are RECONSTRUCTIBLE — a
+ *    shipped action's from DEFAULTS, an authored one's from those two
+ *    constants — and a build code carrying them would be paying characters for
+ *    a value it already knows. THE DAY A LATER PHASE ADDS A WRITER FOR EITHER,
+ *    this turns into silent data loss inside a codec nobody thought to
+ *    revisit: a student sets a damage number, shares the link, and the
+ *    classmate who opens it reads a different action with no error anywhere to
+ *    say so. Plan 04-03 builds the tripwire that reddens on that day. This
+ *    banner is where the decision itself is stated, because a tripwire without
+ *    a written reason reads as an arbitrary check to whoever trips it.
+ *
+ * 2. THE CHECKSUM IS NOT A SECURITY BOUNDARY. Four characters of FNV-1a catch
+ *    truncation and transcription damage — a code cut short by a chat client,
+ *    a character dropped on a retype, a paste that took half a line — which
+ *    are precisely the failures SHARE-03 names. Anyone who edits a code and
+ *    recomputes those four characters walks straight past it. That is why
+ *    every content guard lives BEHIND it rather than being replaced by it: the
+ *    checksum rules on whether the string arrived intact, and the guards rule
+ *    on whether what it says is admissible. Two different questions, asked in
+ *    that order, and the second one is never skipped because the first passed.
+ *
+ * 3. THE SECTION READS App.data AND NOTHING ELSE. encode takes the build slice
+ *    as an ARGUMENT and never reaches App.state, which is the posture [S02]'s
+ *    banner sets out at length and this section inherits through its own
+ *    deps line. Section order is fixed and the dependency arrows point DOWN
+ *    only, so a primitive here reaching for the state singleton would be
+ *    editing this contract rather than using it — and would have to say so in
+ *    this banner rather than quietly.
  * =========================================================== */
 // #region [S04] SERIALIZE
-App.serialize = Object.freeze({
-  // Declared no-op until Phase 4 plan 04-01 fills it in.
-  scheduleUrlSync: function () {}
-});
+App.serialize = (function () {
+  'use strict';
+
+  /* --- [S04.1] THE PRIMITIVES — owner plan 04-01 -------------------------
+     Pure, synchronous, and reachable from a sandbox holding NO host globals at
+     all. The platform's own base64 pair, its text encoder and decoder, its URL
+     class and its deflate-raw compression stream are every one of them
+     undefined in the terminal harness's sandbox — measured, and written up in
+     04-RESEARCH.md's environment table, which names each one. A codec resting
+     on any of them could only be asserted below a no-DOM bracket, and [S09]'s
+     own split makes an assertion down there documentation rather than a gate.
+     Hand-rolling the text half costs about thirty-five lines and buys the
+     whole suite instead, so [S09.11] sits entirely above every bracket.
+
+     There is a second reason, and it is the stronger one. The platform text
+     encoder substitutes the replacement character for a lone surrogate rather
+     than refusing it, and so does location.hash — measured, both. A value that
+     changes on the way through WITHOUT AN ERROR is worse than one that is
+     refused, because a student's name comes back subtly different and nothing
+     reports a failure. The pair below writes half a surrogate as its own three
+     bytes, so it round-trips exactly and can then be refused BY NAME by the
+     decoder's re-run of TOKEN_NAME_REFUSE.
+
+     Nothing here throws and nothing here produces a sentence. A primitive that
+     cannot read its input returns null and the CALLER decides what a student
+     is told — the page owns every word a student reads, which is the rule
+     [S02]'s banner states and this section inherits.
+     ----------------------------------------------------------------------- */
+
+  // The base64url alphabet in its canonical order. Its last two characters are
+  // the two that make it URL-safe, and they are also CODE_SEP's record and
+  // item separators — which looks like a violation of "a separator may never
+  // appear in anything it delimits" and is not, because of WHERE base64url
+  // output is allowed to sit. Every b64 payload in the grammar lives in the
+  // name table, whose entries are joined with the FIELD separator inside a
+  // section delimited by the SECTION separator. Neither of those two
+  // characters is in this alphabet, so the rule holds at the level it is
+  // applied. Move a b64 payload into a record or a list and it stops holding.
+  var B64_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789-_';
+
+  // A string to an array of byte values, in UTF-8, by hand. Half a surrogate
+  // pair falls through the three-byte arm and comes back out of textFromBytes
+  // unchanged, which is the reversibility the banner above is about.
+  function bytesFromText(text) {
+    if (typeof text !== 'string') { return null; }
+    var out = [];
+    var i = 0;
+    while (i < text.length) {
+      var c = text.charCodeAt(i);
+      i += 1;
+      if (c >= 0xD800 && c <= 0xDBFF && i < text.length) {
+        var low = text.charCodeAt(i);
+        if (low >= 0xDC00 && low <= 0xDFFF) {
+          c = 0x10000 + ((c - 0xD800) << 10) + (low - 0xDC00);
+          i += 1;
+        }
+      }
+      if (c < 0x80) {
+        out.push(c);
+      } else if (c < 0x800) {
+        out.push(0xC0 | (c >> 6), 0x80 | (c & 63));
+      } else if (c < 0x10000) {
+        out.push(0xE0 | (c >> 12), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      } else {
+        out.push(0xF0 | (c >> 18), 0x80 | ((c >> 12) & 63), 0x80 | ((c >> 6) & 63), 0x80 | (c & 63));
+      }
+    }
+    return out;
+  }
+
+  // And back. A guard per assumption, each on its own line, in actionApCost's
+  // idiom: a byte that is not a byte, a head byte where none is legal, a
+  // sequence that runs off the end, a continuation byte that is not one, a
+  // code point above the Unicode ceiling, and an OVERLONG spelling — the last
+  // of those matters because two spellings of one name are two build codes
+  // that read as different strings and mean the same thing, which is the same
+  // class of bug as a separator appearing inside what it delimits.
+  function textFromBytes(bytes) {
+    if (!Array.isArray(bytes)) { return null; }
+    var text = '';
+    var i = 0;
+    while (i < bytes.length) {
+      var b = bytes[i];
+      if (!Number.isInteger(b)) { return null; }
+      if (b < 0 || b > 255) { return null; }
+      i += 1;
+      var need = 0;
+      var c = 0;
+      if (b < 0x80) { c = b; }
+      else if (b >= 0xC0 && b < 0xE0) { c = b & 31; need = 1; }
+      else if (b >= 0xE0 && b < 0xF0) { c = b & 15; need = 2; }
+      else if (b >= 0xF0 && b < 0xF8) { c = b & 7; need = 3; }
+      else { return null; }
+      if (i + need > bytes.length) { return null; }
+      for (var k = 0; k < need; k++) {
+        var cont = bytes[i];
+        if (!Number.isInteger(cont)) { return null; }
+        if ((cont & 0xC0) !== 0x80) { return null; }
+        c = (c * 64) + (cont & 63);
+        i += 1;
+      }
+      if (need === 1 && c < 0x80) { return null; }
+      if (need === 2 && c < 0x800) { return null; }
+      if (need === 3 && c < 0x10000) { return null; }
+      if (c > 0x10FFFF) { return null; }
+      if (c > 0xFFFF) {
+        c -= 0x10000;
+        text += String.fromCharCode(0xD800 + (c >> 10), 0xDC00 + (c & 1023));
+      } else {
+        text += String.fromCharCode(c);
+      }
+    }
+    return text;
+  }
+
+  // A string to base64url, no padding. Used instead of encodeURIComponent for
+  // two MEASURED reasons rather than a preference: encodeURIComponent THROWS
+  // URIError on a lone surrogate — the exact failure [S01]'s name-cap comment
+  // predicted by name three phases early — and it costs 288 characters for a
+  // 24-emoji name where this costs 128. Padding is dropped because it buys
+  // nothing here: the length modulo four already says how many bytes the last
+  // group carries, and unb64 refuses the one remainder that cannot occur.
+  function b64(text) {
+    var bytes = bytesFromText(text);
+    if (bytes === null) { return null; }
+    var out = '';
+    for (var i = 0; i < bytes.length; i += 3) {
+      var x = bytes[i];
+      var y = bytes[i + 1];
+      var z = bytes[i + 2];
+      out += B64_ALPHABET.charAt(x >> 2);
+      out += B64_ALPHABET.charAt(((x & 3) << 4) | ((y === undefined ? 0 : y) >> 4));
+      if (y === undefined) { break; }
+      out += B64_ALPHABET.charAt(((y & 15) << 2) | ((z === undefined ? 0 : z) >> 6));
+      if (z === undefined) { break; }
+      out += B64_ALPHABET.charAt(z & 63);
+    }
+    return out;
+  }
+
+  // And back, refusing rather than repairing. A remainder of one is the length
+  // no unpadded base64url string can have — six bits is not a byte — so it is
+  // refused before a single character is read, and any character outside the
+  // alphabet is refused where it is found.
+  function unb64(code) {
+    if (typeof code !== 'string') { return null; }
+    if (code.length % 4 === 1) { return null; }
+    var bytes = [];
+    var acc = 0;
+    var bits = 0;
+    for (var i = 0; i < code.length; i++) {
+      var n = B64_ALPHABET.indexOf(code.charAt(i));
+      if (n === -1) { return null; }
+      acc = (acc << 6) | n;
+      bits += 6;
+      if (bits >= 8) {
+        bits -= 8;
+        bytes.push((acc >> bits) & 255);
+        acc = acc & ((1 << bits) - 1);
+      }
+    }
+    return textFromBytes(bytes);
+  }
+
+  // A whole number to base36 and back. The parse REFUSES anything that is not
+  // a base36 whole number instead of handing a NaN to a later line to trip
+  // over — the same choice actionApCost makes, and for the same reason: a
+  // value this cannot price never reaches arithmetic at all.
+  function n36(n) {
+    if (!Number.isInteger(n)) { return null; }
+    if (n < 0) { return null; }
+    return n.toString(36);
+  }
+
+  function p36(code) {
+    if (typeof code !== 'string') { return null; }
+    if (code === '') { return null; }
+    if (!/^[0-9a-z]+$/.test(code)) { return null; }
+    var value = parseInt(code, 36);
+    if (!Number.isSafeInteger(value)) { return null; }
+    return value;
+  }
+
+  // Run-length over a list of ALREADY-STRINGIFIED payloads, which is what lets
+  // the unit streams stay split: 48 units with different health but the same
+  // six tallies collapse the tally stream to one run, and fusing the two into
+  // one record means a single differing byte defeats both. Measured at 1,104
+  // characters against 50 on the fully authored board.
+  //
+  // The count marker is written whenever the run is longer than one OR the
+  // payload is EMPTY. The second half is not an optimisation, it is what makes
+  // the writing unambiguous: an empty list and a list holding one empty
+  // payload both spell as nothing at all otherwise, and the reader has no way
+  // to tell them apart.
+  function runs(list) {
+    if (!Array.isArray(list)) { return null; }
+    var out = [];
+    for (var i = 0; i < list.length; i++) {
+      var payload = list[i];
+      if (typeof payload !== 'string') { return null; }
+      var last = out.length > 0 ? out[out.length - 1] : null;
+      if (last !== null && last.payload === payload) {
+        last.n += 1;
+      } else {
+        out.push({ payload: payload, n: 1 });
+      }
+    }
+    return out.map(function (r) {
+      var marked = r.n > 1 || r.payload === '';
+      return (marked ? n36(r.n) + App.data.CODE_SEP.run : '') + r.payload;
+    }).join(App.data.CODE_SEP.item);
+  }
+
+  // And back, against the total it is asked to fill. A run structure that does
+  // not fill EXACTLY that total is refused: a run length disagreeing with the
+  // roster is one of the thirteen refusals the research matrix measured, and
+  // it is the shape a truncated paste takes most often.
+  //
+  // The running total is checked INSIDE the loop as well as at the end, so a
+  // hostile count of zzzzzzz asks for nothing rather than for billions of
+  // entries before the final comparison gets its turn.
+  function unruns(code, total) {
+    if (typeof code !== 'string') { return null; }
+    if (!Number.isInteger(total)) { return null; }
+    if (total < 0) { return null; }
+    var out = [];
+    if (code !== '') {
+      var parts = code.split(App.data.CODE_SEP.item);
+      for (var i = 0; i < parts.length; i++) {
+        var part = parts[i];
+        var mark = part.indexOf(App.data.CODE_SEP.run);
+        var n = 1;
+        var payload = part;
+        if (mark !== -1) {
+          n = p36(part.slice(0, mark));
+          payload = part.slice(mark + 1);
+        }
+        if (n === null) { return null; }
+        if (n < 1) { return null; }
+        if (out.length + n > total) { return null; }
+        for (var k = 0; k < n; k++) { out.push(payload); }
+      }
+    }
+    if (out.length !== total) { return null; }
+    return out;
+  }
+
+  // FNV-1a to base36, truncated to four characters. Six lines, synchronous,
+  // and no host global anywhere near it — the platform's own subtle-crypto
+  // digest is asynchronous, which is the same disqualification the compression
+  // path carries, and it is absent from the harness sandbox besides. Read the
+  // banner above before treating the four characters as more than they are.
+  function checksum(text) {
+    if (typeof text !== 'string') { return null; }
+    var h = 0x811c9dc5;
+    for (var i = 0; i < text.length; i++) {
+      h = h ^ text.charCodeAt(i);
+      h = Math.imul(h, 0x01000193) >>> 0;
+    }
+    return ('000' + h.toString(36)).slice(-4);
+  }
+
+  /* --- [S04.4] THE HASH MIRROR — owner plan 04-04 ------------------------
+     Still the declared no-op it has been since plan 01-02, and left that way
+     ON PURPOSE rather than forgotten: this plan lays the primitives, plan
+     04-04 fills this in. It is named here so the diff cannot be read as an
+     oversight.
+
+     Whatever lands here has to be SURVIVABLE when it fails, not merely correct
+     when it works. [S03]'s commit() and undo() both call it inside a try whose
+     finally owes the frame regardless, and that finally's own comment says
+     why: state has already moved by the time this runs.
+     ----------------------------------------------------------------------- */
+  function scheduleUrlSync() {}
+
+  return Object.freeze({
+    bytesFromText: bytesFromText,
+    textFromBytes: textFromBytes,
+    b64: b64,
+    unb64: unb64,
+    n36: n36,
+    p36: p36,
+    runs: runs,
+    unruns: unruns,
+    checksum: checksum,
+    scheduleUrlSync: scheduleUrlSync
+  });
+})();
 // #endregion [S04] SERIALIZE
 
 /* ===================== [S05] OPS =====================
