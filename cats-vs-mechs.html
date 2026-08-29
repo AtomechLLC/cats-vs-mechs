@@ -3386,6 +3386,476 @@ App.serialize = (function () {
     return App.data.CODE_VERSION + SEP.section + body + SEP.section + digest;
   }
 
+  /* --- [S04.3] DECODE — owner plan 04-02 ---------------------------------
+     A code string in, a RECORD out. Never a sentence, never an exception and
+     never a write of any kind: this function is pure, it touches no slice, and
+     the op that consumes it decides whether to commit. A half-applied build is
+     the worst outcome SHARE-03 has, so nothing is applied here at all.
+
+         decode(code) -> { ok: true,  build: {...} }
+                      |  { ok: false, why: 'shape' | 'version' | 'checksum'
+                                           | 'content', saw?: ..., what?: ... }
+
+     `why` IS A TOKEN AND THE PAGE OWNS THE WORDS, which is the arrangement the
+     projection already runs on: turnsToWipe hands back a record of whole
+     numbers and formats nothing, and turnsText writes the sentence. Four
+     refusals is the MINIMUM this requirement needs, not a nicety — "the code
+     was damaged", "the code was cut short", "that code is from an older
+     version of this file" and "that is not a build code at all" are four
+     different things a student can act on differently, and collapsing them
+     into one message throws away the only diagnosis this tool can offer.
+
+     THEY ARE READ IN THAT ORDER — shape, version, checksum, content — and the
+     version is compared BY NAME against CODE_VERSION rather than by any looser
+     test, so reserving a later wire version is a one-arm addition here instead
+     of a schema break. Nothing is reserved behind that comparison today.
+
+     THE BUILD IS REBUILT FIELD BY FIELD, KEY BY KEY, ALL THE WAY DOWN, and
+     never by a merge helper. createAction's mutator states the rule this
+     section makes earn its keep: a merge copies whatever keys the caller
+     supplied, which is how a reserved key slips past an allowlist that only
+     inspected the values. A decoded build is caller-supplied data by
+     definition. The rule holds INSIDE a term too — every cost, requirement and
+     transformation entry is built out of named fields.
+
+     EVERY BOUND THE WRITE PATH ENFORCES IS RE-RUN HERE, because every guard in
+     [S05] protects a value a HANDLER supplied and a pasted code reaches none
+     of them. int()'s own comment names this phase by name for exactly that
+     reason. So: the allocation ceiling on every health, shield, pool and
+     tally; both roster bounds; the caps on types, on authored actions and on
+     each term list; the signed change bounds once the bias is removed; every
+     allowlist index inside its list's length; a tally only on a type that
+     carries one, and on the right side of the unit/side split; a run structure
+     that fills the roster exactly; no two units sharing an id; and a name
+     index that names something.
+
+     AND THE NAME BOUNDARY IS RE-RUN ON EVERY DECODED NAME — the trim, the
+     non-empty test, TOKEN_NAME_REFUSE for control characters and lone
+     surrogates, and the cap COUNTED IN CODE POINTS with Array.from. The last
+     of those is not a detail: a name of 24 emoji is 48 UTF-16 units, so a
+     length check would refuse a name the write path allows. [S01]'s own
+     comment on the term-list shape says the general case out loud — from this
+     phase a term arrives out of somebody else's pasted build code — and the
+     same sentence applies to every name.
+
+     IDS ARE REBUILT FROM THE ENCODED SEQUENCE NUMBER AND NEVER FROM ANYTHING
+     NAME-SHAPED. That is D-13 held at the one boundary it was written for: a
+     decoded name of a prototype key is a harmless display string precisely
+     because a name is never a key. Every term carries `tok` as a FIELD and is
+     found by walking the list over that field, never by key position.
+     ----------------------------------------------------------------------- */
+
+  // The three bounds this section re-runs that live in [S05] rather than in
+  // [S01], RE-TYPED here and frozen. THE DUPLICATION IS DELIBERATE AND MUST
+  // NOT BE "FIXED" INTO AN UPWARD CALL. Section order in this file is fixed
+  // and the dependency arrows point DOWN only: [S04] sits above [S05], so
+  // reading App.ops from here would reverse an arrow and reorder the file to
+  // make it legal. Re-typing three numbers is the cheaper of the two, and the
+  // drift a re-typed number invites is closed the way this file closes it
+  // everywhere else — [S09.11] asserts each of these against the constant the
+  // op actually runs, so the day one moves and the other does not is a red run
+  // rather than a build code that admits a roster the board would refuse.
+  var WIRE_BOUNDS = Object.freeze({
+    minUnits: 1,        // [S05] MIN_UNITS — a side with no units is not a faction
+    maxUnits: 24,       // [S05] MAX_UNITS — the roster ceiling
+    maxActionCost: 1    // [S05] MAX_ACTION_COST — one cost term per action
+  });
+
+  function decode(code) {
+    var SEP = App.data.CODE_SEP;
+
+    /* SHAPE — is this a build code at all? The alphabet is checked FIRST and
+       as an ALLOWLIST, which is what makes prose, a percent escape and a
+       comma-fragmented paste all refusable before anything is read out of
+       them. A blocklist would read green about every character nobody has
+       thought of yet. */
+    if (typeof code !== 'string') { return { ok: false, why: 'shape' }; }
+    var text = code.trim();
+    if (text === '') { return { ok: false, why: 'shape' }; }
+    if (!App.data.CODE_ALPHABET.test(text)) { return { ok: false, why: 'shape' }; }
+    var opens = text.indexOf(SEP.section);
+    if (opens === -1) { return { ok: false, why: 'shape' }; }
+
+    /* VERSION — refused BY NAME, and what was seen is handed back so the page
+       can say which version it was rather than only that it was wrong. */
+    var prefix = text.slice(0, opens);
+    if (prefix !== App.data.CODE_VERSION) {
+      return { ok: false, why: 'version', saw: prefix };
+    }
+
+    /* CHECKSUM — did the string arrive intact? Read [S04]'s banner before
+       treating these four characters as more than that. */
+    var rest = text.slice(opens + 1);
+    var closes = rest.lastIndexOf(SEP.section);
+    if (closes === -1) { return { ok: false, why: 'shape' }; }
+    var body = rest.slice(0, closes);
+    var digest = rest.slice(closes + 1);
+    var mine = checksum(body);
+    if (mine === null) { return { ok: false, why: 'shape' }; }
+    if (digest !== mine) { return { ok: false, why: 'checksum' }; }
+
+    var parts = body.split(SEP.section);
+    if (parts.length !== 2 + WIRE_SIDES.length * WIRE_SIDE_FIELDS) {
+      return { ok: false, why: 'shape' };
+    }
+    if (parts[0].charAt(0) !== 'N') { return { ok: false, why: 'shape' }; }
+    if (parts[1].charAt(0) !== 'V') { return { ok: false, why: 'shape' }; }
+
+    /* CONTENT — is what it says admissible? Every guard below sits BEHIND the
+       digest rather than being replaced by it, because the two answer
+       different questions and the second is never skipped because the first
+       passed. `problem` carries the reading of the first guard that refused;
+       the page decides whether to show it. */
+    var problem = null;
+    function stop(what) {
+      if (problem === null) { problem = what; }
+      return null;
+    }
+    function content(what) { return { ok: false, why: 'content', what: what }; }
+
+    function entryAt(list, written, what) {
+      var at = p36(written);
+      if (at === null) { return stop(what); }
+      if (at >= list.length) { return stop(what); }
+      return list[at];
+    }
+    function amountAt(written) {
+      var n = p36(written);
+      if (n === null) { return stop('a value is out of bounds'); }
+      if (n > App.data.MAX_ALLOC) { return stop('a value is out of bounds'); }
+      return n;
+    }
+
+    /* THE NAME TABLE, and the name boundary re-run over every entry of it. */
+    var names = [];
+    var nameField = parts[0].slice(1);
+    if (nameField !== '') {
+      var written = nameField.split(SEP.field);
+      for (var ni = 0; ni < written.length; ni++) {
+        var read = unb64(written[ni]);
+        if (read === null) { return content('a name could not be read'); }
+        var trimmed = read.trim();
+        if (trimmed === '') { return content('a name is out of bounds'); }
+        if (Array.from(trimmed).length > App.data.MAX_TOKEN_NAME) {
+          return content('a name is out of bounds');
+        }
+        if (App.data.TOKEN_NAME_REFUSE.test(trimmed)) {
+          return content('a name carries a character the board cannot show');
+        }
+        names.push(trimmed);
+      }
+    }
+    function nameAt(written2) {
+      var at = p36(written2);
+      if (at === null) { return stop('no such name'); }
+      if (at >= names.length) { return stop('no such name'); }
+      return names[at];
+    }
+
+    /* THE VOCABULARY. Built-ins start at their shipped record, field by field,
+       and only the records the code actually carries move them. */
+    var tokens = {};
+    var order = [];
+    var moved = Object.create(null);
+    App.data.TOKEN_IDS.forEach(function (id) {
+      var shipped = App.data.DEFAULTS.tokens[id];
+      tokens[id] = {
+        shape: shipped.shape,
+        color: shipped.color,
+        glyph: shipped.glyph,
+        name: shipped.name
+      };
+      order.push(id);
+    });
+
+    var vocabField = parts[1].slice(1);
+    if (vocabField !== '') {
+      var vocabRecords = vocabField.split(SEP.record);
+      for (var vi = 0; vi < vocabRecords.length; vi++) {
+        var vf = vocabRecords[vi].split(SEP.field);
+        if (vocabRecords[vi].charAt(0) === 'C') {
+          if (vf.length !== 6) { return content('a token type is the wrong shape'); }
+          var seq = p36(vf[0].slice(1));
+          if (seq === null) { return content('no such token type'); }
+          var madeId = 't' + seq;
+          if (!App.data.TOKEN_ID_PATTERN.test(madeId)) { return content('no such token type'); }
+          if (Object.prototype.hasOwnProperty.call(tokens, madeId)) {
+            return content('two token types share an id');
+          }
+          var cShape = entryAt(App.data.SHAPES, vf[1], 'no such shape');
+          var cColor = entryAt(App.data.COLORS, vf[2], 'no such colour');
+          var cGlyph = entryAt(App.data.GLYPHS, vf[3], 'no such glyph');
+          var cScope = entryAt(App.data.TOKEN_SCOPES, vf[4], 'no such scope');
+          var cName = nameAt(vf[5]);
+          if (cShape === null || cColor === null || cGlyph === null
+            || cScope === null || cName === null) { return content(problem); }
+          tokens[madeId] = {
+            shape: cShape, color: cColor, glyph: cGlyph, name: cName, scope: cScope
+          };
+          order.push(madeId);
+        } else {
+          if (vf.length !== 5) { return content('a token type is the wrong shape'); }
+          var builtinId = entryAt(App.data.TOKEN_IDS, vf[0], 'no such token type');
+          if (builtinId === null) { return content(problem); }
+          if (moved[builtinId] === true) {
+            return content('two records name the same token type');
+          }
+          var bShape = entryAt(App.data.SHAPES, vf[1], 'no such shape');
+          var bColor = entryAt(App.data.COLORS, vf[2], 'no such colour');
+          var bGlyph = entryAt(App.data.GLYPHS, vf[3], 'no such glyph');
+          var bName = nameAt(vf[4]);
+          if (bShape === null || bColor === null || bGlyph === null
+            || bName === null) { return content(problem); }
+          moved[builtinId] = true;
+          tokens[builtinId] = {
+            shape: bShape, color: bColor, glyph: bGlyph, name: bName
+          };
+        }
+      }
+    }
+    if (order.length - App.data.TOKEN_IDS.length > App.data.MAX_CUSTOM_TYPES) {
+      return content('too many token types');
+    }
+
+    /* A tally bag, and the scope split held in both directions: a type kept on
+       each unit may never be tallied on the whole side, and the reverse. */
+    function unbag(field, scope) {
+      var out = {};
+      var items = field.split(SEP.field);
+      for (var i = 0; i < items.length; i++) {
+        var g = items[i].split(SEP.term);
+        if (g.length !== 2) { return stop('a tally is the wrong shape'); }
+        var id = entryAt(order, g[0], 'no such token type');
+        if (id === null) { return null; }
+        if (App.data.TOKEN_IDS.indexOf(id) !== -1) {
+          return stop('a built-in type carries no tally');
+        }
+        if (Object.prototype.hasOwnProperty.call(out, id)) {
+          return stop('a type is tallied twice');
+        }
+        if (tokens[id].scope !== scope) {
+          return stop(scope === 'unit'
+            ? 'that type is kept on the whole side'
+            : 'that type is kept on each unit');
+        }
+        var n = amountAt(g[1]);
+        if (n === null) { return null; }
+        if (n === 0) { return stop('a tally of zero is not written down'); }
+        out[id] = n;
+      }
+      return out;
+    }
+
+    // A cost or requirement list. `tok` is a FIELD of each record.
+    function termsFrom(field) {
+      if (field === '') { return []; }
+      var items = field.split(SEP.item);
+      var list = [];
+      for (var i = 0; i < items.length; i++) {
+        var g = items[i].split(SEP.term);
+        if (g.length !== 2) { return stop('a term is the wrong shape'); }
+        var id = entryAt(order, g[0], 'no such token type');
+        if (id === null) { return null; }
+        var n = amountAt(g[1]);
+        if (n === null) { return null; }
+        list.push({ tok: id, n: n });
+      }
+      return list;
+    }
+
+    // A transformation list. The bias comes off FIRST and the signed bounds
+    // are then re-run on the real number, so a hostile amount is refused
+    // against MIN_XF_DELTA and MAX_XF_DELTA rather than against the biased
+    // spelling nobody reasons in.
+    function changesFrom(field) {
+      if (field === '') { return []; }
+      var items = field.split(SEP.item);
+      var list = [];
+      for (var i = 0; i < items.length; i++) {
+        var g = items[i].split(SEP.term);
+        if (g.length !== 3) { return stop('a change is the wrong shape'); }
+        var who = entryAt(App.data.XF_WHO, g[0], 'no such party');
+        if (who === null) { return null; }
+        var id = entryAt(order, g[1], 'no such token type');
+        if (id === null) { return null; }
+        var biased = p36(g[2]);
+        if (biased === null) { return stop('a change is out of bounds'); }
+        var d = biased - App.data.MAX_XF_DELTA;
+        if (d < App.data.MIN_XF_DELTA) { return stop('a change is out of bounds'); }
+        if (d > App.data.MAX_XF_DELTA) { return stop('a change is out of bounds'); }
+        if (d === 0) { return stop('a change of nothing is not written down'); }
+        list.push({ who: who, tok: id, d: d });
+      }
+      return list;
+    }
+
+    var out = { schema: App.data.DEFAULTS.schema };
+
+    for (var si = 0; si < WIRE_SIDES.length; si++) {
+      var sideId = WIRE_SIDES[si];
+      var base = 2 + si * WIRE_SIDE_FIELDS;
+
+      var mark = parts[base];
+      if (mark.charAt(0) !== WIRE_SIDE_MARKS[si]) { return { ok: false, why: 'shape' }; }
+      var count = p36(mark.slice(1));
+      if (count === null) { return content('the roster is out of bounds'); }
+      if (count < WIRE_BOUNDS.minUnits) { return content('the roster is out of bounds'); }
+      if (count > WIRE_BOUNDS.maxUnits) { return content('the roster is out of bounds'); }
+
+      var ap = amountAt(parts[base + 1]);
+      if (ap === null) { return content(problem); }
+
+      var stats = unruns(parts[base + 2], count);
+      if (stats === null) { return content('a run length disagrees with the roster'); }
+      var tallies = unruns(parts[base + 3], count);
+      if (tallies === null) { return content('a run length disagrees with the roster'); }
+
+      // The gaps: the positions where a unit id breaks the run. Everywhere
+      // else the suffix is simply the previous one plus one.
+      var gapField = parts[base + 4];
+      var gapAt = Object.create(null);
+      if (gapField !== '') {
+        var gapItems = gapField.split(SEP.item);
+        for (var gi = 0; gi < gapItems.length; gi++) {
+          var gf = gapItems[gi].split(SEP.term);
+          if (gf.length !== 2) { return content('a unit id is the wrong shape'); }
+          var where = p36(gf[0]);
+          var which = p36(gf[1]);
+          if (where === null || which === null) { return content('a unit id is the wrong shape'); }
+          if (where >= count) { return content('a unit id is the wrong shape'); }
+          if (which < 1) { return content('a unit id is the wrong shape'); }
+          if (gapAt[String(where)] !== undefined) { return content('a unit id is the wrong shape'); }
+          gapAt[String(where)] = which;
+        }
+      }
+
+      var units = [];
+      var suffix = 0;
+      var seenSuffix = Object.create(null);
+      for (var ui = 0; ui < count; ui++) {
+        suffix = (gapAt[String(ui)] !== undefined) ? gapAt[String(ui)] : suffix + 1;
+        if (seenSuffix[String(suffix)] === true) { return content('two units share an id'); }
+        seenSuffix[String(suffix)] = true;
+        var pair = stats[ui].split(SEP.term);
+        if (pair.length !== 2) { return content('a unit is the wrong shape'); }
+        var maxHp = amountAt(pair[0]);
+        var shield = amountAt(pair[1]);
+        if (maxHp === null || shield === null) { return content(problem); }
+        var unit = {
+          id: WIRE_UNIT_PREFIX[sideId] + suffix,
+          name: WIRE_UNIT_LABEL[sideId] + suffix,
+          maxHp: maxHp,
+          shield: shield
+        };
+        if (tallies[ui] !== '') {
+          var unitBag = unbag(tallies[ui], 'unit');
+          if (unitBag === null) { return content(problem); }
+          unit.tally = unitBag;
+        }
+        units.push(unit);
+      }
+
+      // The side's own record. `id` and `name` are RESTORED rather than read,
+      // for the reason the wire vocabulary above states: nothing writes them.
+      var side = {
+        id: App.data.DEFAULTS[sideId].id,
+        name: App.data.DEFAULTS[sideId].name,
+        ap: ap,
+        units: units,
+        actions: []
+      };
+      App.data.DEFAULTS[sideId].actions.forEach(function (shipped) {
+        side.actions.push({
+          id: shipped.id,
+          name: shipped.name,
+          dmg: shipped.dmg,
+          keywords: shipped.keywords.map(function (word) { return word; }),
+          cost: shipped.cost.map(function (t) { return { tok: t.tok, n: t.n }; }),
+          req: shipped.req.map(function (t) { return { tok: t.tok, n: t.n }; }),
+          xf: shipped.xf.map(function (x) { return { who: x.who, tok: x.tok, d: x.d }; })
+        });
+      });
+
+      var sideField = parts[base + 5];
+      if (sideField !== '') {
+        var sideBag = unbag(sideField, 'side');
+        if (sideBag === null) { return content(problem); }
+        side.tally = sideBag;
+      }
+
+      var actionField = parts[base + 6];
+      if (actionField !== '') {
+        var actionRecords = actionField.split(SEP.record);
+        var namedShipped = Object.create(null);
+        for (var ai = 0; ai < actionRecords.length; ai++) {
+          var af = actionRecords[ai].split(SEP.field);
+          if (af.length !== 5) { return content('an action is the wrong shape'); }
+          var head = af[0];
+          var target = null;
+          var authored = head.charAt(0) === 'C';
+          if (authored) {
+            var aseq = p36(head.slice(1));
+            if (aseq === null) { return content('no such action'); }
+            var madeActionId = 'x' + aseq;
+            if (!App.data.ACTION_ID_PATTERN.test(madeActionId)) { return content('no such action'); }
+            for (var dup = 0; dup < side.actions.length; dup++) {
+              if (side.actions[dup].id === madeActionId) { return content('two actions share an id'); }
+            }
+            // dmg and keywords are NOT on the wire. An authored action is
+            // rebuilt at createAction's own two constants, a shipped one keeps
+            // the values it was copied out of DEFAULTS with. [S04]'s banner
+            // states why that is safe and what makes it stop being safe.
+            target = { id: madeActionId, name: '', dmg: 0, keywords: [], cost: [], req: [], xf: [] };
+            side.actions.push(target);
+          } else {
+            var shippedId = entryAt(App.data.ACTION_IDS, head, 'no such action');
+            if (shippedId === null) { return content(problem); }
+            if (namedShipped[shippedId] === true) {
+              return content('two records name the same action');
+            }
+            namedShipped[shippedId] = true;
+            for (var look = 0; look < side.actions.length; look++) {
+              if (side.actions[look].id === shippedId) { target = side.actions[look]; }
+            }
+            if (target === null) { return content('that action is not on this side'); }
+          }
+
+          if (af[1] !== '') {
+            var actionName = nameAt(af[1]);
+            if (actionName === null) { return content(problem); }
+            target.name = actionName;
+          } else if (authored) {
+            return content('an action of your own has no name');
+          }
+
+          var cost = termsFrom(af[2]);
+          if (cost === null) { return content(problem); }
+          var req = termsFrom(af[3]);
+          if (req === null) { return content(problem); }
+          var xf = changesFrom(af[4]);
+          if (xf === null) { return content(problem); }
+          if (cost.length > WIRE_BOUNDS.maxActionCost) { return content('too many costs'); }
+          if (req.length > App.data.MAX_ACTION_REQ) { return content('too many requirements'); }
+          if (xf.length > App.data.MAX_ACTION_XF) { return content('too many changes'); }
+          target.cost = cost;
+          target.req = req;
+          target.xf = xf;
+        }
+      }
+
+      var ownCount = 0;
+      for (var own = 0; own < side.actions.length; own++) {
+        if (App.data.ACTION_IDS.indexOf(side.actions[own].id) === -1) { ownCount += 1; }
+      }
+      if (ownCount > App.data.MAX_CUSTOM_ACTIONS) { return content('too many actions'); }
+
+      out[sideId] = side;
+    }
+
+    out.tokens = tokens;
+    return { ok: true, build: out };
+  }
+
   /* --- [S04.4] THE HASH MIRROR — owner plan 04-04 ------------------------
      Still the declared no-op it has been since plan 01-02, and left that way
      ON PURPOSE rather than forgotten: this plan lays the primitives, plan
@@ -3410,6 +3880,11 @@ App.serialize = (function () {
     unruns: unruns,
     checksum: checksum,
     encode: encode,
+    decode: decode,
+    // The three [S05] bounds [S04.3] re-types rather than reaches upward for.
+    // Exported so [S09.11] asserts them against the constants the ops actually
+    // run, which is what keeps a deliberate duplication from becoming drift.
+    WIRE_BOUNDS: WIRE_BOUNDS,
     scheduleUrlSync: scheduleUrlSync
   });
 })();
