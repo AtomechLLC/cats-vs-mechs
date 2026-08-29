@@ -3633,6 +3633,17 @@ App.serialize = (function () {
         if (Object.prototype.hasOwnProperty.call(out, id)) {
           return stop('a type is tallied twice');
         }
+        // The ordinal list and the vocabulary are built in lockstep above, so
+        // an id taken off `order` always names a record here — and that is an
+        // INVARIANT OF THIS FUNCTION rather than a property of the input,
+        // which is exactly the kind of assumption that stops holding quietly.
+        // Plan 04-03's probe J broke the lockstep by one line and this
+        // dereference threw a TypeError out of a function whose banner says it
+        // never throws, which would have surfaced the styled panel instead of
+        // a sentence a student can act on. One line turns an internal
+        // disagreement into the same refusal every other unreadable ordinal
+        // collects.
+        if (!tokens[id]) { return stop('no such token type'); }
         if (tokens[id].scope !== scope) {
           return stop(scope === 'unit'
             ? 'that type is kept on the whole side'
