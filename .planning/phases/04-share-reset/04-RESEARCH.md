@@ -866,15 +866,25 @@ state — with the one documented exception those two also carry, which needs th
 
 ---
 
-## Open Questions
+## Open Questions (RESOLVED)
+
+> **Resolution status, added 2026-08-29 after the developer answered.** Questions 1-4 are settled;
+> see `04-CONTEXT.md` for the locked decisions and their reasoning. Question 5 (confidence in
+> Discord's 2,000-character limit) remains genuinely open and is deferred to rehearsal item 26 of
+> `04-08-PLAN.md`. Do not re-open 1-4 during execution -- treat a disagreement with them as a
+> deviation to raise, not a choice to re-make.
 
 1. **One dialog with two panes, or two dialogs?**
+   **RESOLVED -- see CONTEXT.md D-21** (one dialog, two panes, for share+load). The separate reset
+   confirmation dialog is a distinct planner decision, handed back at rehearsal item 21.
    - Known: `#act-edit`'s comment (`:1099-1112`) gives three costs that all transfer; 73 shell ids
      today; share ≈ 10–12 more ids, a separate confirm ≈ 4–5.
    - Unclear: whether Phase 5's topbar wants reset as its own control beside share.
    - Recommendation: `/gsd:discuss-phase`. Research has no basis to decide it.
 
 2. **Should the boot-time hash load create an undo entry?**
+   **RESOLVED -- see CONTEXT.md D-20** (no undo entry at boot). The mechanism -- a second guarded
+   named writer in `[S03]` rather than `commit()` -- is a planner decision, handed back at item 23.
    - Known: committing creates one; `restore()` is `[S09]`-only and named as such in `[S03]`'s banner,
      so there is no third option that keeps the state contract.
    - Recommendation: commit, and write the consequence into the comment. Flag for the developer.
