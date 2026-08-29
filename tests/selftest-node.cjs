@@ -4951,7 +4951,7 @@ function relationshipHitsIn(items) {
    prose. A list widened to catch those is a build that goes red on a sentence
    somebody wrote two phases ago, which is how a gate stops being trusted. That
    these stay off the page is a WRITTEN RULE, not a regular expression, and it is
-   plan 05-11's to judge with a person in the room. Harness limitation 14 names
+   plan 05-11's to judge with a person in the room. Harness limitation 18 names
    it as such.
 
    AND ONE GAP THIS PLAN MEASURED AND COULD NOT CLOSE: camelCase evades every
@@ -4959,7 +4959,7 @@ function relationshipHitsIn(items) {
    Layer B today and would pass Layer C. Reported, not exploited, and not
    widened — a camelCase-splitting scanner over 5582 literals is a change with
    its own false-positive budget and no phase has needed it yet. Harness
-   limitation 15. */
+   limitation 19. */
 const renderedHits = verdictHitsIn(renderedText.concat(dialogText))
   .concat(relationshipHitsIn(renderedText.concat(dialogText)));
 
@@ -5150,6 +5150,121 @@ check(
       + ' rendered strings (' + renderedText.length + ' from #app, '
       + dialogText.length + ' from the dialogs)'
     : renderedHits.join(' | ')
+);
+
+/* --- 92. LAYER C READS THE PAGE A SECOND TIME, WITH A FIGHT RUNNING ----------
+   Every harvest above this line is taken in SETUP MODE. That was written down as
+   entry 5 on the closing list — "a string that appears only once the fight has
+   started is outside its reach until that surface is built and the walk is
+   pointed at it" — and it was named there as Phase 5's to close. This is the
+   walk being pointed at it, deliberately BEFORE the phase writes a word of fight
+   copy, for the reason plan 03.1-01 gave when it did the same thing for the
+   dialogs: a gate extended after the copy exists is a gate that was green for
+   the whole of the window in which the copy was written.
+
+   THE DRIVE FOLLOWS openDialogs' RECORDED LESSON EXACTLY, and the lesson is
+   worth restating because it was learned the expensive way one plan up. Drive
+   the REAL op, then ASK FOR A FRAME rather than hoping one is due. flush() runs
+   a PENDING frame and does nothing at all when none is pending; the per-frame
+   hooks a fight surface will hang off do not run otherwise, and the walk would
+   read a page that happens to still be painted from setup and call it clean —
+   which is the precise failure this whole harvest exists to prevent. One
+   invalidate makes the frame due.
+
+   ONE WORD LIST, THREE SURFACES. This scans through the same verdictHitsIn and
+   the same relationshipHitsIn the two harvests above use, over the same
+   RENDERED_VERDICT_WORDS. A second list would be a second thing to keep in step
+   and the only difference between a word on the setup board and the same word on
+   the fight board is which of them was on screen when it was read — which the
+   record already carries.
+
+   WHY THE HITS ARE HELD HERE RATHER THAN CONCATENATED INTO renderedHits ABOVE:
+   so that a red run names WHICH PAGE said it. Row 48 is over a board a student
+   is building; this row is over a board a student is playing, and those are two
+   different conversations to have with whoever is reading the failure. */
+const fightSaved = JSON.stringify(A.state.get());
+
+A.ops.startFight();
+A.state.invalidate();
+A.state.flush();
+const fightText = harvestInto(dom.byId['app'], [], '#app');
+const fightHits = verdictHitsIn(fightText).concat(relationshipHitsIn(fightText));
+
+A.ops.endFight();
+A.state.invalidate();
+A.state.flush();
+// THE BOARD IS PUT BACK AND THE PUTTING BACK IS ASSERTED, in check 62's manner.
+// A harvest that costs the board something is a harvest no later row can trust,
+// and "it costs nothing" is a claim worth reading rather than a habit worth
+// having. endFight() is the op that owes this, not restore() — so the reading is
+// taken BEFORE the restore, and the restore below is the belt to its braces.
+const fightBoardBack = JSON.stringify(A.state.get()) === fightSaved;
+A.state.restore(fightSaved);
+A.state.flush();
+
+/* THE FIGHT PAGE'S OWN FLOOR, kept apart from the #app floor of 117 above for
+   exactly the reason PICKER_FLOOR and PROPOSE_FLOOR are kept apart from
+   DIALOG_FLOOR: 117 is a bound on the SETUP page, and a floor over one state of
+   a surface cannot bound another state of it. A fight page that painted nothing
+   at all would clear 117 by not being compared against it.
+
+   AND IT IS SMALL TODAY, WHICH IS A FACT ABOUT THE SURFACE AND NOT A WEAK GATE —
+   said out loud here for the reason SHARE_FLOOR's comment says it. NONE of this
+   phase's fight surface exists yet. The fight page is the setup page minus the
+   setup-only roster chrome and plus nothing, so this number is BELOW the setup
+   figure rather than above it, and a reader arriving from 117 would otherwise
+   assume a typo.
+
+   MEASURED, four readings this session, and the arithmetic is written down
+   rather than the answer:
+     the shipped 9-and-3 board harvests 101 strings with a fight running,
+       against 127 in setup. The 26 that go missing are exactly the setup-only
+       chrome: 2 strings per unit card for the Remove button, 12 cards, plus one
+       Add button per side worth 1 each;
+     each unit card is worth EXACTLY 5 here, measured by adding three Mechs one
+       at a time and watching 101 go 106, 111, 116 — two fewer than the 7 a card
+       is worth in setup, which is the Remove button that left;
+     so 12 cards carry 60 of the 101 and 41 move with no roster at all;
+     and the model was CHECKED rather than assumed: a board shrunk to one unit a
+       side reads 41 + 2x5 = 51, and 51 is what it measured. The same arithmetic
+       reproduces setup exactly — 127 - 12x7 = 43, and the shrunk board reads
+       43 + 2x7 = 57, measured — so the 41 and the 43 differ by the two Add
+       buttons and nothing else, which is the whole of the difference between
+       these two pages today.
+   41 IS THEREFORE THE ROSTER-INDEPENDENT PART, and the floor is set AT it rather
+   than below it, in PROPOSE_FLOOR's manner. The comparison is strictly greater
+   than, so this is the exact reading of a fight page whose two columns went dark
+   entirely — that trips it — while the smallest board this file can produce
+   clears it by two whole unit cards. A walk pointed at the wrong node reads 0
+   and does not come close.
+
+   THE RULE FOR THE PLANS THAT BUILD THIS SURFACE — 05-07, 05-08 and 05-09, named
+   here so the obligation has an owner rather than a hope: re-measure, and move
+   this number by the roster-independent part alone. A floor left unmoved when a
+   surface arrives is a floor that has quietly stopped bounding anything, which
+   is the same silent shrink DIALOG_FLOOR's history note exists to prevent — and
+   it is a likelier failure here than anywhere else in this file, because this
+   floor was written before the thing it bounds. */
+const FIGHT_FLOOR = 41;
+
+console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
+  + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
+
+check(
+  '92. Layer C reads the page a SECOND time, with a fight actually running, and '
+    + 'nothing the fight page paints judges a build. The floor and the scan ride '
+    + 'in one row because they are two halves of one claim — a scan of a page '
+    + 'that was never painted is a spotlessly clean scan of nothing, which is '
+    + 'the failure row 47c exists to catch one surface down. The board is put '
+    + 'back afterwards and the putting back is read here too, because a harvest '
+    + 'that costs the board something is a harvest no row below can trust',
+  fightHits.length === 0 && fightText.length > FIGHT_FLOOR && fightBoardBack,
+  (fightHits.length === 0 ? '' : fightHits.join(' | ') + ' | ')
+    + 'harvested ' + fightText.length + ' strings from #app with a fight running'
+    + ' (floor ' + FIGHT_FLOOR + ')'
+    + '; board after endFight is '
+    + (fightBoardBack ? 'byte-identical to the board before startFight'
+      : 'NOT the board it was before startFight')
 );
 
 /* --- 47d. THE CONTROL FOR THE EXEMPTION, because an exemption nothing exercises
@@ -7714,16 +7829,26 @@ clearPanel();
          4. Whether eleven rows of the type list are legible on a projector.
             That is an empirical question a rehearsal answers and nothing else
             does.
-         5. Any words Layer C's page does not currently show. The walk reads
-            #app as the stub page renders it in setup mode, so a string that
-            appears only once the fight has started is outside its reach until
-            that surface is built and the walk is pointed at it. The dialog half
-            of this entry was closed by plan 03.1-01 — see 12 and 13 below for
-            what remains of it. The same goes for the static markup of the
-            shell: the stub is a hand-made stand-in and not a parser, so text
-            written directly into the HTML is empty here and only the text the
-            artifact renders is read. Layers A and B still read all of those in
-            the source; it is only the assembled-at-render case that waits.
+         5. Any words Layer C's page does not currently show. THE FIGHT-MODE
+            HALF OF THIS ENTRY IS CLOSED, by plan 05-01, and the sentence that
+            used to stand here is kept so the closure is legible rather than
+            merely absent: "The walk reads #app as the stub page renders it in
+            setup mode, so a string that appears only once the fight has started
+            is outside its reach until that surface is built and the walk is
+            pointed at it." The walk is now pointed at it. Row 92 takes a SECOND
+            harvest of #app with a fight actually running, driven through the
+            real startFight(), and scans it through the same word list — so the
+            copy plans 05-07, 05-08 and 05-09 are about to write is inside the
+            gate's reach before any of it exists. The dialog half was closed the
+            same way one phase earlier, by plan 03.1-01.
+            WHAT STILL STANDS, and it is the static-markup half rather than the
+            fight half: the stub is a hand-made stand-in and not a parser, so
+            text written directly into the HTML is empty here and only the text
+            the artifact RENDERS is read. Layers A and B still read all of it in
+            the source; it is the assembled-at-render case that Layer C exists
+            for, and now reads in three page states rather than one. What no
+            number of page states reaches is copy that is never painted in any of
+            them — see 13, which this plan widened to say so.
          6. Whether the strip's content still STICKS on a short viewport. Its
             reserved minimum height is gone and the content sets the height now,
             and a sticky box taller than the space between the bar and the
@@ -7769,12 +7894,31 @@ clearPanel();
             absence, and what remains unrehearsed for that root is only that the
             default fires the close listener and hands focus back, which is one
             more thing to watch in the same afternoon.
-        13. Words a dialog paints only after something happens INSIDE it. The
+            PLAN 05-01 ADDS NO DIALOG AND PHASE 5 ADDS NONE, which is worth
+            recording as a fact rather than leaving as an omission: this entry
+            still stands for FOUR roots after this phase, and a reader checking
+            whether a fight dialog was forgotten can stop here. The phase's
+            surfaces are regions inside #app, which is why the harvest it needed
+            was a second page state and not a fifth root.
+        13. Words a surface paints only after something happens INSIDE it. The
             harvest opens each dialog the way a student reaches it, lets one
             frame land and reads what is on it — so a line that appears only
-            after a control in the dialog has been used is unread, exactly as
-            entry 5 describes for the fight. Closing that needs the drive to be
-            extended per surface, not the list.
+            after a control in the dialog has been used is unread. Closing that
+            needs the drive to be extended per surface, not the list; row 71e's
+            proposal pane is that done once, for one surface, and PROPOSE_FLOOR
+            is its floor.
+            PLAN 05-01 GIVES THIS ENTRY THE FIGHT PAGE AS A SECOND INSTANCE, and
+            it is the more consequential one, because it is what remains of entry
+            5 after that entry's fight half was closed. Row 92 harvests #app with
+            a fight running, which reads every word the fight page paints ON
+            ARRIVAL — and nothing a student has to act to reveal. A declaration
+            row nobody has opened paints nothing; a ledger with no rounds in it
+            has no rows; a shield split that appears only once damage lands is
+            not there to read. So a second harvest is a second page state, not a
+            second surface, and the copy behind an interaction inside it is still
+            unread. THE PLAN THAT OWES THE REST OF IT is 05-10, whose driven
+            round is the only place in this phase where a fight has actually been
+            played far enough for those lines to exist.
         14. A REAL RELOAD AND A REAL BOOKMARK. Checks 75 to 78 prove the board
             reaches location.hash and checks 79 to 82 prove a prepared hash
             reaches the board, but the stub has no reload and never navigates,
@@ -7837,7 +7981,40 @@ clearPanel();
             One thing the run DOES prove about the crossing, and it is worth
             naming because it is the failure a chat client actually causes: the
             paste it drives carries a leading space and a trailing newline, and
-            the board still arrives. --- */
+            the board still arrives.
+        18. EIGHT WORDS THAT ARE MECHANICALLY CLEAN AND STILL NOT SHIPPABLE.
+            `contested`, `one-sided`, `blowout`, `lopsided`, `even`, `close`,
+            `tight`, `behind`. Every one of them passes all three layers today,
+            and plan 05-01 measured each and DELIBERATELY DID NOT ADD IT. The
+            readings are why, and they are kept beside the word lists as well:
+            /\bclose\b/ alone has 77 document hits and 16 literal hits over the
+            artifact, /\bbehind\b/ has 50 and 13, /\beven\b/ has 15 and 4. A list
+            widened far enough to catch a balance judgement wearing a neutral
+            coat is a list that reddens on ordinary English across roughly a
+            megabyte of deliberate prose, and a gate that goes red on a sentence
+            somebody wrote two phases ago is a gate that stops being trusted.
+            SO THIS IS A WRITTEN RULE AND NOT A REGULAR EXPRESSION, which is a
+            FIFTH kind of unreachable and belongs on this list for the reason
+            entry 16 belongs on it: it is not a thing unrendered, a thing with no
+            layout engine, or a thing only a person can see — it is a thing no
+            mechanism in this file can decide. The standing rule it stands on is
+            the artifact's own: report what happened arithmetically, never what
+            it was like. Whether these eight read as neutral to a student in the
+            room is plan 05-11's judgement, item 31 on its list, and that is the
+            only place it can be settled.
+        19. camelCase EVADES EVERY WORD-BOUNDARY RULE IN ALL THREE LAYERS.
+            `winsBy`, `leadBy` and `edgeOf` pass Layer B today and would pass
+            Layer C, because \b does not fire inside a hump. Plan 05-01 measured
+            this and reported it rather than closing it: a camelCase-splitting
+            scanner over 5582 literals is a change with its own false-positive
+            budget, and it would have to be measured the way every widening in
+            that plan was measured. Reported, not exploited.
+            WHAT IT DOES AND DOES NOT LEAVE OPEN, because the entry reads worse
+            than it is: a rendered SENTENCE is written in words with spaces
+            between them, so this is a hole in the layers that read CODE rather
+            than in the layer that reads the page. An identifier named winsBy is
+            a smell in a file whose comments are half of its documentation; it is
+            not something a student ever sees. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks
