@@ -5445,6 +5445,178 @@ App.ops = (function () {
     });
   }
 
+  /* ---- FIGHT-12: THE DECLARATION, AND NOTHING RESOLVES WHILE IT STANDS ----
+
+     The round loop, in the developer's own words (2026-08-28): both sides
+     declare what they do, THEN Advance resolves it, THEN the board that was
+     moves up into the history. Declaration is PENDING INTENT AND NOTHING ELSE
+     — the three ops below append a record, remove a record and empty the list,
+     and not one of them moves a pool, a health value, a shield or a flag. Plan
+     05-04's advanceRound is the one applier in this file; [S09.12] carries the
+     row that proves a board carrying declarations is byte-identical to one
+     carrying none apart from the list itself.
+
+     WHY THIS LIVES IN THE SLICE, AND WHY THE FILE'S MOST RECENT PRECEDENT SAYS
+     THE OPPOSITE FOR A DIFFERENT REASON. The proposal pane's shell comment
+     argues at length that a proposal belongs on the DOM, so that "there is no
+     state in which a proposal exists and has not been accepted" — and that
+     argument is right about a proposal and does not transfer to a declaration.
+     A declaration IS a state in which an intent exists and has not resolved,
+     BY DESIGN: that is exactly what FIGHT-12's "before anything resolves"
+     means. It must survive a repaint, survive structure(), be undoable, and be
+     readable by Advance, and every one of those four is a thing the DOM cannot
+     give it. So it is written here rather than left for the next reader to
+     weigh a paragraph four thousand lines away that answers a different
+     question.
+
+     THE RECORD IS SPELLED { side, act, by, at }, AND THE SPELLING IS A
+     WORKAROUND FOR A SHIPPED ASSERTION RATHER THAN A PREFERENCE. `caster` and
+     `target` are the natural names, they are perfectly fine as WORDS on the
+     page — WHO_SAID renders both today — and they are refused AS OBJECT KEYS
+     AT ANY DEPTH by a numbered check in tests/selftest-node.cjs whose job is to
+     keep a proposal out of every slice. Both spellings were measured:
+     { side, act, caster, target } reddens it naming state.fight.decl.0.caster;
+     { side, act, by, at } is clean. Widening that check to let this through
+     would cost the guarantee it exists for, so the record moved instead.
+
+     NOTHING HERE READS App.model.affordability, AND THAT IS D-23. A declared
+     cost that exceeds the pool is REPORTED, NEVER PREVENTED. affordability
+     carries the never-disable rule in its own comment, and a numbered check in
+     tests/selftest-node.cjs compares the proposal pane's whole disabled set of
+     thirty-three controls across a side driven to zero action points — so the
+     surface already may not refuse this, and an op that refused it would put
+     the refusal one layer down where no gate is watching. A student who wants
+     to declare something they cannot pay for and argue about it at the table is
+     the workshop working correctly; the tool records what was declared and
+     shows the shortfall. THIS IS THE GUARD A LATER READER WILL MOST WANT TO
+     ADD, which is why it is named here and asserted in [S09.12] rather than
+     left as an intention.
+
+     SYNC-ONLY, NOT STRUCTURAL, and commitStructural's own rule asks for exactly
+     this sentence. Its trigger is an op whose mutator changes what structure()
+     would BUILD — units.length, or s.fight flipping between null and not. None
+     of the three below touches either, and today nothing on the page is built
+     out of `decl` at all, so App.state.commit is the right funnel and a
+     structural frame would be a rebuild bought for nothing. THE CONDITION UNDER
+     WHICH THAT STOPS BEING TRUE, so plan 05-07 meets the question instead of
+     inheriting it: the moment a declaration list is rendered as one NODE PER
+     DECLARATION, appending and clearing become card creation and card removal,
+     and these three move to commitStructural on the same day. A list rendered
+     as text inside a node that always exists stays sync-only.
+     ----------------------------------------------------------------------- */
+
+  // The bound on the RECORD, and it is a bound on a record rather than a ruling
+  // on what a student may do — the distinction affordability's comment draws
+  // between the tool bounding itself and the tool adjudicating. It is here
+  // because [S03]'s commit() stringifies the WHOLE state on every single write
+  // and keeps thirty of those snapshots, so an array with no ceiling on it is
+  // an array a stuck key can grow inside thirty copies at once.
+  //
+  // The arithmetic, written down rather than a bare number: MAX_UNITS is the
+  // roster ceiling per side and there are two sides, so 48 is one declaration
+  // for every unit that can be on the board at once — which is the most a round
+  // can honestly hold, and comfortably more than any workshop board will use.
+  // [S09.12] asserts against this constant rather than a re-typed 48.
+  var MAX_DECLARATIONS = MAX_UNITS * SIDES.length;
+
+  // The unit a declaration POINTS AT, looked up across BOTH sides.
+  //
+  // THE ASYMMETRY WITH `by` IS A FACT ABOUT THE RECORD AND NOT A RULING, and it
+  // is 03.1-07's answer carried over in its own words: who an action may be
+  // pointed at is exactly the sort of question this tool does not answer. So
+  // `at` may name ANY unit on the board, either side — a student healing their
+  // own Mech and a student hitting a Cat produce the same shape of record — and
+  // `by` names one of the acting side's, because the side is what the record
+  // already says. Said here as well as on the surface, so this op does not
+  // quietly become the place the restriction gets added.
+  //
+  // It refuses BY NAME rather than reading as undefined, which is findUnit's
+  // whole reason for existing: a unit removed between the declaration and the
+  // press has to fail where the mistake is.
+  function unitAnywhere(f, unitId) {
+    for (var i = 0; i < SIDES.length; i++) {
+      var units = f[SIDES[i]].units;
+      for (var j = 0; j < units.length; j++) {
+        if (units[j].id === unitId) { return units[j]; }
+      }
+    }
+    throw new Error('No unit "' + String(unitId) + '" anywhere on this board');
+  }
+
+  // Absent is a value here, not a mistake. A student saying "Hairball, no
+  // target" has to be recordable, so both positions accept null and store null.
+  function namedOr(value, resolve) {
+    if (value === null || value === undefined) { return null; }
+    return resolve(value).id;
+  }
+
+  // THE LABEL CARRIES THE SIDE AND THE INDEX, in the register plan 03.1-06
+  // already recorded for term slots: the slot index inside the commit label, so
+  // one field burst is one Ctrl+Z step and two slots stay two. Same trap and
+  // same fix here — two declarations made 400 ms apart share COALESCE_MS, and
+  // under one label they would fold into a single undo entry and one Ctrl+Z
+  // would take back a declaration the student never touched.
+  function declareAction(side, actionId, byUnitId, atUnitId) {
+    requireSide(side);
+    requireActionId(actionId);
+    // Every guard outside the commit, this section's stated rule, and fightOf
+    // on the LIVE state rather than inside the mutator for the same reason
+    // setTally rules on the live board first: the ids below have to be checked
+    // against the board that is actually there.
+    var f = fightOf(App.state.get());
+    if (findAction(side, actionId) === null) {
+      throw new Error('There is no action "' + String(actionId) + '" on this side.');
+    }
+    var by = namedOr(byUnitId, function (id) { return findUnit(side, id, f[side].units); });
+    var at = namedOr(atUnitId, function (id) { return unitAnywhere(f, id); });
+    if (f.decl.length >= MAX_DECLARATIONS) {
+      throw new Error('This round already holds ' + MAX_DECLARATIONS
+        + ' declarations. Clear one before adding another.');
+    }
+    var index = f.decl.length;
+    App.state.commit('declare ' + side + '/' + index, function (s) {
+      // Field by field, never the arguments object and never a merge, for
+      // createAction's reason one op down: a merge copies whatever keys the
+      // caller supplied, and this record is walked at any depth by the key-name
+      // check the spelling above was chosen to clear.
+      fightOf(s).decl.push({ side: side, act: actionId, by: by, at: at });
+    });
+    return index;
+  }
+
+  // int() IS DELIBERATELY NOT USED HERE, and the reason is the one thing that
+  // makes an index different from a quantity: int()'s answer to an out-of-range
+  // value is a CLAMP, and a clamped index removes a declaration the student did
+  // not name. A health value one past the ceiling landing ON the ceiling is a
+  // repair; an index one past the end landing on the last entry is a silent
+  // wrong answer. The range is read off the LIVE list, so the refusal can say
+  // how many there actually are.
+  function clearDeclaration(index) {
+    var f = fightOf(App.state.get());
+    if (!Number.isInteger(index) || index < 0 || index >= f.decl.length) {
+      throw new Error('There is no declaration ' + JSON.stringify(index)
+        + ' to clear — this round holds ' + f.decl.length + '.');
+    }
+    App.state.commit('declare clear ' + index, function (s) {
+      fightOf(s).decl.splice(index, 1);
+    });
+    return true;
+  }
+
+  // The boolean is nudgeTally's contract and it is here for the same reason:
+  // clearing a list that is already empty is a no-op rather than an error, so
+  // an over-press during a live demo does not flash the error panel, and no
+  // do-nothing Ctrl+Z step is put between the student and the edit they want
+  // back.
+  function clearDeclarations() {
+    var f = fightOf(App.state.get());
+    if (f.decl.length === 0) { return false; }
+    App.state.commit('declare clear all', function (s) {
+      fightOf(s).decl = [];
+    });
+    return true;
+  }
+
   // One commit, therefore one undo entry (D-12). The undo stack is never
   // cleared here: a mis-clicked reset has to be recoverable.
   //
@@ -6648,6 +6820,18 @@ App.ops = (function () {
       // spelling is still the right one — it is named here so the question is
       // asked rather than inherited.
       case 'resetFight': return resetFight();
+      // FIGHT-12's three, one key each. Read key by key rather than forwarding
+      // the payload whole, for the reason the term arms above give: the op's
+      // own guards would refuse a stray key's VALUE but would never see a key
+      // nobody meant to send, and naming them here is what keeps the page's
+      // payload and the op's contract the same list. NONE of these is a UI_ACT
+      // — they are state work, they are dispatched, and [S07]'s partition is
+      // read back off the page by a numbered check. Plan 05-10 attaches the
+      // presses; until then these arms are reachable and unpressed, which is
+      // the honest window this file already names.
+      case 'declare': return declareAction(p.side, p.actionId, p.by, p.at);
+      case 'clearDeclaration': return clearDeclaration(p.index);
+      case 'clearDeclarations': return clearDeclarations();
       case 'reset': return resetToDefaults();
       // One key, named, like every arm around it. The BOOT loader beside this
       // op deliberately has no arm at all — see the absence block below.
@@ -6695,7 +6879,16 @@ App.ops = (function () {
      WHAT NOW EXISTS, so the next reader is not looking for it:
        - the fight LIFECYCLE — startFight, endFight, resetFight, with arms.
        - the fight RECORD's home — the `decl` and `past` arrays on the slice,
-         seeded empty by freshFight. Plan 05-04 fills them.
+         seeded empty by freshFight. `past` is still filled by plan 05-04 alone.
+       - THE DECLARATION, as of plan 05-03: declareAction, clearDeclaration and
+         clearDeclarations, with arms. They append, remove and empty a record of
+         PENDING INTENT and they resolve nothing — no pool moves, no health
+         moves, no flag flips. That is FIGHT-12's "before anything resolves"
+         and [S09.12] holds it to account with a byte-identical row rather than
+         with this sentence.
+       - THE SHIELD-THEN-HEALTH SPLIT, in [S02] as damageSplit — the arithmetic
+         only. It is pure, it hands back three numbers, and NOTHING IN [S05]
+         SPENDS IT YET. Plan 05-04's advanceRound is the first and only caller.
        - ROUND ADVANCE, in plan 05-04, AND IT IS ONE OP. There is exactly one
          applier in this file and its name is advanceRound. Anything that walks
          a round goes through it; a second one is how two readings of the same
@@ -6792,6 +6985,15 @@ App.ops = (function () {
     // than beside resetToDefaults below, because what it resets is a fight and
     // not a build, and the two resets answer different questions.
     resetFight: resetFight,
+    // FIGHT-12. Three ops that record an intent and resolve nothing — exported
+    // for plan 05-10's presses, for plan 05-04's Advance to read, and for
+    // [S09.12] to drive. The cap goes with them for the reason MAX_ALLOC and
+    // MAX_PAST_ROUNDS are exported: a suite asserts against the constant the op
+    // actually runs, never a re-typed copy of it that can drift away.
+    declareAction: declareAction,
+    clearDeclaration: clearDeclaration,
+    clearDeclarations: clearDeclarations,
+    MAX_DECLARATIONS: MAX_DECLARATIONS,
     resetToDefaults: resetToDefaults,
     // The student's paste, and [S08]'s boot load. The second has no dispatch
     // arm on purpose — the absence block above says why.
