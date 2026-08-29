@@ -7578,12 +7578,79 @@ App.ops = (function () {
     return resolve(value).id;
   }
 
-  // THE LABEL CARRIES THE SIDE AND THE INDEX, in the register plan 03.1-06
-  // already recorded for term slots: the slot index inside the commit label, so
-  // one field burst is one Ctrl+Z step and two slots stay two. Same trap and
-  // same fix here — two declarations made 400 ms apart share COALESCE_MS, and
-  // under one label they would fold into a single undo entry and one Ctrl+Z
-  // would take back a declaration the student never touched.
+  // The standing declaration by a named performer on one side, or -1. A null
+  // performer never matches, which is the whole of the append rule below.
+  //
+  // The side is compared as well as the performer, because `decl` is ONE list
+  // shared by both sides and this op may only ever replace a record belonging
+  // to the side it was called for. findUnit already bounds `by` to this side's
+  // roster, so the two agree today; the clause is here so they cannot stop
+  // agreeing quietly if a roster ever carries an id the other side also holds.
+  function standingBy(f, side, by) {
+    if (by === null) { return -1; }
+    for (var i = 0; i < f.decl.length; i++) {
+      var d = f.decl[i];
+      if (d && d.side === side && d.by === by) { return i; }
+    }
+    return -1;
+  }
+
+  /* ONE PERFORMER HOLDS ONE ACTION, AND IT IS THE RECORD THAT SAYS SO.
+
+     D-27's grid is "[C1] [ACTION] [ACTION] [ACTION] ← buttons to pick one":
+     one unit, one row, one action. A second declaration naming the same
+     performer REPLACES the first rather than standing beside it. The rule is
+     here rather than on the surface because a surface enforcing it would put
+     it one layer up where no gate is watching, which is exactly the failure
+     [S06.7]'s banner names about D-23 — the tool's rules have to live where
+     they can be driven.
+
+     WHAT D-27 DID NOT NARROW, said because a replace reads like a
+     restriction. Nothing about what a student may DECLARE has changed: a unit
+     may still name any action its side carries and may still point at any unit
+     on the board, either side. A declaration that costs more than the pool
+     holds is still recorded and still reported rather than refused (D-23). And
+     advanceRound reads the same list it always did, in the same order, with
+     the same four keys — the record's SHAPE is untouched and only its
+     multiplicity moved.
+
+     A NULL PERFORMER ALWAYS APPENDS, AND THAT IS NOT AN OVERSIGHT. "Hairball,
+     no target" — and its sibling, an action nobody in particular takes — has
+     to stay recordable; namedOr stores null in either position on purpose; and
+     there is no ROW on the grid for nobody to be one-of-a-kind about. So
+     collapsing two nobody-declarations into one would take away a record the
+     student made and that the surface never offered to make singular.
+
+     THE CEILING'S REFUSAL SITS ON THE APPEND PATH ONLY. A replace adds nothing
+     to the list, so refusing one at MAX_DECLARATIONS would refuse a student
+     changing their mind on a full board — a bound on the RECORD turned into a
+     ruling on what a student may do, which is the distinction affordability's
+     comment draws and the one this op is careful about everywhere else. The
+     wording is unchanged; only the branch it sits on moved.
+
+     THE LABEL CARRIES THE PERFORMER AND NO LONGER THE SLOT INDEX. The index
+     was in the label for a stated reason — plan 03.1-06's trap, two writes
+     400 ms apart sharing COALESCE_MS and folding into one undo entry — and the
+     performer serves that reason BETTER under the new shape. Two units
+     declared in a burst are two labels and stay two Ctrl+Z steps. A student
+     re-picking for the SAME unit inside the window folds into one, which is
+     one act of changing their mind and should cost one step back. AND A
+     RETARGET IS THE SAME ACT: the change-target flow re-declares for the same
+     performer, so declare-then-immediately-retarget is one undo entry, which
+     is what a student will expect. The null case is spelled out rather than
+     left to fall through, so a burst of nobody-declarations coalesces exactly
+     as it did before this change.
+
+     atUnitId KEEPS ITS EXACT MEANING AND THIS OP DOES NOT LEARN ABOUT THE
+     DEFAULT. null in is null stored. App.model.defaultAt is NOT called from
+     here and must not be. An op that filled a target in would make "Hairball,
+     no target" unrecordable, and it would move a SUGGESTION into the one layer
+     that may only restate what it was handed. The SURFACE computes the default
+     and passes it, so the record that arrives here is a record the student
+     owns — which is also what makes the change-target control a CHANGE rather
+     than an override, and why advanceRound neither knows nor needs to know how
+     `at` was chosen. [S09.12] carries the row that reddens the day somebody
+     moves it in here. */
   function declareAction(side, actionId, byUnitId, atUnitId) {
     requireSide(side);
     requireActionId(actionId);
@@ -7595,19 +7662,32 @@ App.ops = (function () {
     if (findAction(side, actionId) === null) {
       throw new Error('There is no action "' + String(actionId) + '" on this side.');
     }
+    // findUnit bounds `by` to THIS side's roster and unitAnywhere lets `at`
+    // name EITHER side's — 03.1-07's ruling, and this op must not quietly
+    // become the place a restriction gets added.
     var by = namedOr(byUnitId, function (id) { return findUnit(side, id, f[side].units); });
     var at = namedOr(atUnitId, function (id) { return unitAnywhere(f, id); });
-    if (f.decl.length >= MAX_DECLARATIONS) {
-      throw new Error('This round already holds ' + MAX_DECLARATIONS
-        + ' declarations. Clear one before adding another.');
+    var index = standingBy(f, side, by);
+    if (index === -1) {
+      if (f.decl.length >= MAX_DECLARATIONS) {
+        throw new Error('This round already holds ' + MAX_DECLARATIONS
+          + ' declarations. Clear one before adding another.');
+      }
+      index = f.decl.length;
     }
-    var index = f.decl.length;
-    App.state.commit('declare ' + side + '/' + index, function (s) {
+    App.state.commit('declare ' + side + '/' + (by || 'nobody'), function (s) {
       // Field by field, never the arguments object and never a merge, for
       // createAction's reason one op down: a merge copies whatever keys the
       // caller supplied, and this record is walked at any depth by the key-name
       // check the spelling above was chosen to clear.
-      fightOf(s).decl.push({ side: side, act: actionId, by: by, at: at });
+      //
+      // ONE ASSIGNMENT SERVES BOTH PATHS, because an index equal to the length
+      // appends and any lower one overwrites. The record is BUILT rather than
+      // patched even on the replace path: writing `act` and `at` onto the
+      // record that is already there would leave whatever keys a previous
+      // shape had put on it, which is the same hazard the merge rule above is
+      // about, one press further in.
+      fightOf(s).decl[index] = { side: side, act: actionId, by: by, at: at };
     });
     return index;
   }
@@ -9358,11 +9438,16 @@ App.ops = (function () {
        - the fight RECORD's home — the `decl` and `past` arrays on the slice,
          seeded empty by freshFight. `past` is still filled by plan 05-04 alone.
        - THE DECLARATION, as of plan 05-03: declareAction, clearDeclaration and
-         clearDeclarations, with arms. They append, remove and empty a record of
+         clearDeclarations, with arms. They RECORD, remove and empty a record of
          PENDING INTENT and they resolve nothing — no pool moves, no health
          moves, no flag flips. That is FIGHT-12's "before anything resolves"
          and [S09.12] holds it to account with a byte-identical row rather than
          with this sentence.
+         "RECORD" RATHER THAN "APPEND" AS OF PLAN 05-13, and the word was
+         changed rather than left standing while untrue: under D-27 a
+         declaration naming a performer who already holds one REPLACES it in
+         place, so the list is a row per performer and not a log. A nameless
+         declaration still appends, and declareAction's own paragraph says why.
        - THE SHIELD-THEN-HEALTH SPLIT, in [S02] as damageSplit — the arithmetic
          only. It is pure, it hands back three numbers, and NOTHING IN [S05]
          SPENDS IT YET. Plan 05-04's advanceRound is the first and only caller.
@@ -27179,6 +27264,174 @@ App.selftest = (function () {
       })(), ['m1', 'c1', 1]);
 
     t.ok('the prototype is intact after D-27\'s three derivations', protoIntact());
+
+    /* ===== ONE PERFORMER HOLDS ONE ACTION — D-27'S RADIO, AS A RECORD =====
+       Plan 05-13. declareAction used to append unconditionally, so the same
+       unit could hold three actions at once and the grid would have had to
+       prevent it on the surface — one layer above where any gate can see.
+       These rows hold the rule where it now lives.
+
+       THE ROWS THIS CHANGE DID NOT INVALIDATE, VERIFIED BY READING RATHER THAN
+       ASSUMED. Every existing drive of this op in this file names a DIFFERENT
+       performer per side within a round, and the one pair that names `c1`
+       twice has an advanceRound between them — whose step 4 empties `decl`, so
+       the second is an append onto an empty list exactly as it always was. The
+       MAX_DECLARATIONS reading further down pushes onto a detached CLONE and
+       never reaches the op at all. Both were read; neither moved. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+
+    t.eq('A SECOND DECLARATION BY THE SAME PERFORMER REPLACES THE FIRST RATHER '
+      + 'THAN STANDING BESIDE IT: the list does not grow, the record names the '
+      + 'new action and the new unit it points at, and the op hands back the '
+      + 'index it replaced rather than a fresh one. One unit, one action — and '
+      + 'it is the RECORD that says so, not a button that stopped a student',
+      (function () {
+        var first = App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+        var again = App.ops.declareAction('cats', 'screech', 'c1', 'm2');
+        App.state.flush();
+        return [first, again, fight().decl.length,
+          fight().decl[0].act, fight().decl[0].by, fight().decl[0].at,
+          Object.keys(fight().decl[0]).sort().join(',')];
+      })(), [0, 0, 2, 'screech', 'c1', 'm2', 'act,at,by,side']);
+
+    t.eq('and a declaration by a DIFFERENT performer on the same side still '
+      + 'appends, which is the other half of the same rule — the grid has a row '
+      + 'per unit and every one of them may hold one',
+      (function () {
+        var third = App.ops.declareAction('cats', 'hairball', 'c2', 'm3');
+        App.state.flush();
+        return [third, fight().decl.length,
+          fight().decl.map(function (d) { return d.by; }).join(',')];
+      })(), [2, 3, 'c1,m1,c2']);
+
+    t.eq('A RETARGET IS A REPLACE THAT MOVES ONLY WHAT THE ACTION POINTS AT, '
+      + 'and that is the shape D-27\'s change-target control makes: the same '
+      + 'performer, the same action, a different unit named — list the same '
+      + 'length, same index handed back, and the record afterwards is '
+      + 'INDISTINGUISHABLE from one made in a single press',
+      (function () {
+        var re = App.ops.declareAction('cats', 'screech', 'c1', 'm3');
+        App.state.flush();
+        return [re, fight().decl.length, fight().decl[0].act,
+          fight().decl[0].by, fight().decl[0].at];
+      })(), [0, 3, 'screech', 'c1', 'm3']);
+
+    t.eq('A DECLARATION THAT NAMES NOBODY ALWAYS APPENDS, AND THREE OF THEM '
+      + 'STAND AS THREE. This is not an oversight in the replace rule and the '
+      + 'op\'s own paragraph says so: "Hairball, no target" has to stay '
+      + 'recordable, namedOr stores null in either position on purpose, and '
+      + 'there is no row on the grid for nobody — so folding them together '
+      + 'would take away a record the student made and the surface never '
+      + 'offered to make singular',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.declareAction('cats', 'hairball', null, null);
+        App.ops.declareAction('cats', 'screech', null, null);
+        App.ops.declareAction('cats', 'slash', null, 'm1');
+        App.state.flush();
+        return [fight().decl.length,
+          fight().decl.map(function (d) { return d.act; }).join(','),
+          fight().decl.map(function (d) { return d.by === null; }).join(',')];
+      })(), [3, 'hairball,screech,slash', 'true,true,true']);
+
+    t.eq('AT THE CEILING A REPLACE STILL SUCCEEDS WHILE AN APPEND IS REFUSED BY '
+      + 'NAME. The bound is on the RECORD and not on what a student may do, so '
+      + 'refusing a student who is changing their mind on a full board would '
+      + 'turn one into the other. The refusal keeps its shipped wording and '
+      + 'names the constant the op actually runs; the drive is inside a try, '
+      + 'because the failure this row catches IS an exception and a row must be '
+      + 'able to fail rather than to abort the run',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        while (fight().decl.length < App.ops.MAX_DECLARATIONS) {
+          App.ops.declareAction('cats', 'hairball', null, null);
+        }
+        App.state.flush();
+        var full = fight().decl.length;
+        var replaced = 'REFUSED';
+        try {
+          replaced = App.ops.declareAction('cats', 'screech', 'c1', 'm2');
+        } catch (stopped) {
+          replaced = 'REFUSED: ' + stopped.message;
+        }
+        var appended = 'DID NOT REFUSE';
+        try {
+          App.ops.declareAction('cats', 'hairball', null, null);
+        } catch (stopped) {
+          appended = String(stopped.message);
+        }
+        App.state.flush();
+        return [full, replaced, fight().decl.length, fight().decl[0].act, appended];
+      })(), [App.ops.MAX_DECLARATIONS, 0, App.ops.MAX_DECLARATIONS, 'screech',
+        'This round already holds ' + App.ops.MAX_DECLARATIONS
+          + ' declarations. Clear one before adding another.']);
+
+    t.eq('THE OP STORES EXACTLY WHAT IT WAS HANDED: null in the `at` position '
+      + 'is null stored, on an action for which App.model.defaultAt would have '
+      + 'answered a real unit. THIS IS THE ROW THAT FAILS THE DAY SOMEBODY '
+      + 'MOVES THE DEFAULT INTO THE OP — and it is taken on a board where the '
+      + 'two answers differ, because a row taken where they agree is asserting '
+      + 'nothing. The surface computes the default and passes it in; an op that '
+      + 'filled one in would make "Hairball, no target" unrecordable and would '
+      + 'move a suggestion into the one layer that may only restate',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.declareAction('cats', 'slash', 'c1', null);
+        App.state.flush();
+        return [fight().decl[0].at,
+          Object.prototype.hasOwnProperty.call(fight().decl[0], 'at'),
+          App.model.defaultAt(fight(), 'cats'),
+          App.model.needsAt(build().cats.actions[0])];
+      })(), [null, true, 'm1', true]);
+
+    t.eq('TWO UNITS DECLARED IN A BURST ARE TWO UNDO ENTRIES, driven on ONE '
+      + 'side rather than across two — which is what the performer in the '
+      + 'commit label is newly responsible for. Under a label carrying only the '
+      + 'side these two would share one and a single Ctrl+Z would take back a '
+      + 'declaration the student never touched',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.declareAction('cats', 'screech', 'c2', 'm2');
+        App.state.flush();
+        var both = fight().decl.map(function (d) { return d.by; }).join(',');
+        App.ops.undo();
+        App.state.flush();
+        return [both, fight().decl.length, fight().decl[0].by, fight().decl[0].act];
+      })(), ['c1,c2', 1, 'c1', 'slash']);
+
+    t.eq('AND A RE-PICK FOR THE SAME UNIT INSIDE THE COALESCING WINDOW IS ONE '
+      + 'UNDO ENTRY, however many times the student changed their mind. Two '
+      + 're-picks for c1 fold under one label and ONE undo puts c1 back on the '
+      + 'action it held before either of them — which is one act of changing '
+      + 'their mind costing one step back, and it is the same arithmetic a '
+      + 'declare followed immediately by a retarget gets',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+        App.ops.declareAction('cats', 'screech', 'c1', 'm2');
+        App.ops.declareAction('cats', 'hairball', 'c1', 'm3');
+        App.state.flush();
+        var after = [fight().decl.length, fight().decl[0].act, fight().decl[0].at];
+        App.ops.undo();
+        App.state.flush();
+        return after.concat([fight().decl.length, fight().decl[0].act,
+          fight().decl[0].at, fight().decl[0].by]);
+      })(), [2, 'hairball', 'm3', 2, 'slash', 'm1', 'c1']);
+
+    t.ok('the prototype is intact after the one-action-per-performer rows',
+      protoIntact());
 
     /* ===== THE BAD-INPUT TABLE OVER ALL THREE DECLARATION OPS =====
        [S09.10]'s form: a list of values and one row per value, every refusal

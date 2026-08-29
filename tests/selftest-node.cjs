@@ -627,7 +627,22 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     — which is D-00d and the one a tidy implementation loses — a tie broken
 //     by roster order and answered the same twice, nobody left standing,
 //     an empty roster, never a unit on the acting side, and the prototype).
-const SUITE_FLOOR = 1177;
+//     Then D-27's radio: declareAction replaces rather than appends when the
+//     declaration names a performer who already holds one, and the run goes
+//     from 1207 to 1216, floored at 1186 — the same margin of 30 again. NINE
+//     more rows in [S09.12]: a replace that does not grow the list, a
+//     different performer on the same side appending, a retarget (a replace
+//     that moves only `at`), three nameless declarations all standing, a
+//     replace succeeding at the ceiling while an append is refused by name
+//     with the shipped wording, `at: null` in and `at: null` out on a board
+//     where App.model.defaultAt would have answered a unit, two units in a
+//     burst being two undo entries, two re-picks for ONE unit being one, and
+//     the prototype. NOT ONE EXISTING ROW'S CLAIM CHANGED, and that was
+//     verified by reading rather than assumed: every drive of this op in the
+//     repo names a different performer per side within a round, and the one
+//     pair that names `c1` twice has an advanceRound between them, whose step
+//     4 empties `decl`.
+const SUITE_FLOOR = 1186;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '
