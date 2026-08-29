@@ -147,3 +147,38 @@ band`), so the day somebody moves them the gate reddens and this entry gets read
 
 **Owner:** the developer, at the 05-11 playtest — it is a question about what a room needs in
 front of it, and item 2 of that plan (PROJ-05, the two readings side by side) is where it lands.
+
+---
+
+## Item 3 — RE-MEASURED BY PLAN 05-16, and the answer is: still below the fold at 768
+
+Plan 05-12 handed the re-measure of `#strip`'s viewport top in the FIGHT view to "the two plans that
+then changed the column underneath it" (05-14's grid and 05-15's battlefield). Neither took it —
+neither drove a browser — so plan 05-16's browser checks take it. Real Chrome and real Edge, from
+`file://`, with a fight running, at page scroll 0:
+
+```
+                         plan 05-12        plan 05-16 (the shipped surface)
+@1920x1080                906 of 1080       690 of 1080     <- improved by 216px
+@1366x768                 792 of  768       787 of  768  (Chrome)
+                                            608 of  768  (Edge)
+```
+
+**Still below the fold at 1366x768 in Chrome.** It comes into view on any scroll and `#strip` reports
+`position: sticky` with every ancestor at `overflow: visible` in both views, so nothing is broken —
+this is a budget question, not a stickiness one. At 1920x1080 the grid and the battlefield cost less
+than the declaration column they replaced, and the projection moved 216px up the page.
+
+**The Chrome/Edge disagreement at 768 is the second finding and it is about SCROLL, not layout.**
+Every layout number the checks take is byte-identical between the two browsers at every size. What
+differs is where the page sits when the fight view is entered: `window.scrollTo(0, 0)` reached
+scrollY 0 in Chrome and scrollY 179 in Edge, so Edge's reading is the same strip 179px further up a
+scrolled page. Recorded rather than reconciled — the browser checks assert what holds in both (the
+strip never leaves the top of the window, and two stops that reached the same scroll offset report
+the same top) and print the four numbers.
+
+**Not fixed here.** Plan 05-16 edits `cats-vs-mechs.html` not at all, and the lever is a height dial
+— `.fg-sides`' 26vh bound or `.ld-list`'s 46vh — which is exactly the class of change that four
+consecutive plans in this phase each made against a page the next plan then moved. It is
+`REHEARSAL.md` B3's first open bullet and it is a question for a room: **on a 768-tall screen, is one
+scroll to reach the projection acceptable, or does the projection need to sit above the fight?**

@@ -115,16 +115,47 @@ adding PROJ-05's live reading to `#strip` first took the strip to **984px agains
 **stops pinning** — its top measured **-203** where it should have read 64. FIGHT-10's line moved
 to the column heads and `.dc-live` took a 24vh bound.
 
-**WHAT ONLY THE ROOM CAN ANSWER, and this is the whole of what B3 still is:**
-- Does the fight bar and the ledger **side by side** read as one surface, or as two things
-  competing for the same glance? The fight bar is 736px wide during a fight and the ledger takes
-  whatever is left (846px at 1920, 568px at 1366) — the bar is now the *narrower* of the two on a
-  projector, which is not the emphasis it had when it was full width.
-- The ledger's rows are in a **narrower column** now, so each past round is taller and reads as
-  more lines. Is a past round still legible at a glance, from the back of a room?
-- At 1366×768 the newest round **scrolls**. Watch whether a student notices there is more of it.
-- On the actual workshop projector, is 844px of page above the board still too much to ask
-  somebody to look past?
+---
+
+**AND THEN D-27 DISSOLVED THE PROBLEM STRUCTURALLY. Re-measured by plan 05-16, 2026-08-29, in real
+Chrome AND real Edge at both sizes, on the surface that ships.**
+
+The fight is a **tab** now (plan 05-12), so the page no longer pays the fight regions' height and
+the board's height at the same time. The board is not below anything.
+
+| | Chrome 1920×1080 | Edge 1920×1080 | Chrome 1366×768 | Edge 1366×768 |
+|---|---|---|---|---|
+| `#board` top, before the tab | 844 | 844 | 730 | 730 |
+| `#board` top, **after the tab** | **301** | **301** | **293** | **293** |
+| `#views` / `.fg-band` / `#board` left | 152 / 152 / 152 | 152 / 152 / 152 | 14 / 14 / 14 | 14 / 14 / 14 |
+| the same three, width | 1600 | 1600 | 1322 | 1322 |
+| `#refband` box, both views | 1600×120 | 1600×120 | 1322×120 | 1322×120 |
+| the grid's own box (`.fg-sides`) | 415→696 of 1080 | 415→696 of 1080 | 407→607 of 768 | 407→607 of 768 |
+
+`#strip` still reports `position: sticky` with **every** ancestor at `overflow: visible` in both
+views, and it never leaves the top of the window at any scroll offset the page can reach.
+
+**WHAT THE TAB DID NOT FIX, and this is the whole of what B3 still is:**
+- **The projection starts below the fold in the FIGHT view at 1366×768.** Measured: `#strip`'s top
+  reads **787 of 768** in Chrome and **608** in Edge at that size — the two browsers land on
+  different starting scroll positions, which is itself the finding, and in both it comes into view
+  on any scroll. At 1920×1080 it reads 690. PROJ-05 asks for the projection to be readable during a
+  fight; on a 768-tall screen that costs one scroll. **Is that acceptable in a room, or does the
+  projection need to move above the fight?**
+- **At 24 a side the battlefield clusters are tall** — measured 884px for the Cats and 1779px for
+  the Mechs, inside a `.fg-sides` box that is 281px at 1080 and 200px at 768 and scrolls on itself.
+  So a full-size board's battlefield is mostly *below* the scroll line. **Does that read as "there
+  is more here" or as "half the battle is missing"?**
+- **The grid at 24 a side is 72 buttons a side, 144 on the page.** The arithmetic holds and the box
+  stays inside the viewport at both sizes. Whether a person can *find one row* in it from the back
+  of a room is the question, and it is limitations entry 34.
+- **The tab traded a scroll for a switch.** Anything you want to see at once that is now on two tabs
+  — a hand ruling and the picker row for the same unit is the case to try — is 05-11's item 14.
+- **The per-action reference cards are not on the fight tab at all.** They live inside the roster
+  columns and the fight view hides those. `deferred-items.md` item 4, and 05-11's item 29.
+- The two questions the side-by-side arrangement raised — the ledger in a narrower column, and the
+  newest round scrolling at 768 — **still stand**, because the band's internal arrangement did not
+  change. A past round is still taller and still scrolls at 768.
 
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
