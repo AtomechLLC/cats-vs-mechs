@@ -4,13 +4,13 @@ milestone: v1.0
 milestone_name: milestone
 status: executing
 stopped_at: Completed 05-05-PLAN.md
-last_updated: "2026-08-29T10:50:44.368Z"
+last_updated: "2026-08-29T11:11:19.527Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 43
-  completed_plans: 38
+  completed_plans: 39
   percent: 86
 ---
 
@@ -26,11 +26,11 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 6 of 11
+Plan: 7 of 11
 Status: Ready to execute
 Last activity: 2026-08-29
 
-Progress: [█████████░] 88%
+Progress: [█████████░] 91%
 
 ## Performance Metrics
 
@@ -74,6 +74,7 @@ Progress: [█████████░] 88%
 | Phase 05 P03 | 95min | 3 tasks | 2 files |
 | Phase 05 P04 | 150min | 3 tasks tasks | 2 files files |
 | Phase 05 P05 | 135min | 2 tasks | 2 files |
+| Phase 05 P06 | 95min | 2 tasks | 2 files |
 
 ## Accumulated Context
 
@@ -151,6 +152,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 05-05: a by-hand ruling is stored as an EVENT IN THE ROUND ({side,unit,tok,from,to} on fight.hand, carried into past by Advance), never as a flag on the value — it clears check 73c's key-name ban naturally, makes FIGHT-07's marker derivable at render time, and IS FIGHT-08's log alongside did[]
 - [Phase ?]: 05-05: the router arms 'hp' and 'alive' renamed to setUnitHp and setAlive (the decision plan 05-04 handed forward) — they were one-key names shaped like FIELD_OPS keys that were never in FIELD_OPS, so no control could reach them; no aliases kept
 - [Phase ?]: 05-05: no nudgeFightShield — plan 05-09 draws no shield pair and 05-10's control table lists four ops, so the asymmetry is written into the artifact rather than left as an omission
+- [Phase ?]: 05-06: the fight surface is IN THE PAGE and not a dialog — the trade buys the whole surface sitting inside #app, so the fight-mode Layer C harvest reads it without a root of its own
+- [Phase ?]: 05-06: the topbar reservation is SPENT — two groups, one of them a readout carrying no act; SHARE-07's fight reset lives in the surface, not as a second meaning on the start control
+- [Phase ?]: 05-06: the ledger is a sibling of #board with no data-k and no data-act on its rows, newest nearest the board by document order alone, bounded and scrolling on itself
 
 ### Pending Todos
 
@@ -174,6 +178,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T10:50:44.356Z
+Last session: 2026-08-29T11:11:13.159Z
 Stopped at: Completed 05-05-PLAN.md
 Resume file: None
