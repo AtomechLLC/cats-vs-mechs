@@ -37,7 +37,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 2: Allocation Surface** - Steppers, token rows and roster editing that survive live-workshop hammering
 - [ ] **Phase 2.1: Token Authoring (INSERTED)** - Students name their tokens and invent new ones, so the vocabulary stops being ours and starts being theirs
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student
-- [ ] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides
+- [x] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides (completed 2026-08-29)
 - [ ] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back
 - [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it
 
@@ -173,7 +173,7 @@ Plans:
 - [x] 03.1-05-PLAN.md — the action editor: one new `<dialog>` with two panes, its ids / stub nodes / `DIALOG_ROOTS` entry / `[C12]` styles together, `[S06.5]` sig-keyed repaint and `[S07.3]` attached through the four seams (wave 5)
 - [x] 03.1-06-PLAN.md — cost, requirements and transformations: `setActionCost` / `setActionReq` / `setActionXf`, the editors for them, and the rows proving the rule is a record rather than a program (wave 6)
 - [x] 03.1-07-PLAN.md — the proposal: a restatement of the student's own rule, an affordability report that disables nothing, refusal by name for a departed token, editable numbers and an override row — and two checks proving nothing lands (wave 7)
-- [ ] 03.1-08-PLAN.md — the browser rehearsal: every LOW-confidence layout / legibility / close-request item answered by a person, plus the two decisions made on the developer's behalf confirmed or redirected (wave 8, blocking human-verify checkpoint)
+- [x] 03.1-08-PLAN.md — the browser rehearsal: every LOW-confidence layout / legibility / close-request item answered by a person, plus the two decisions made on the developer's behalf confirmed or redirected (wave 8, blocking human-verify checkpoint)
 
 **Plan-split note (set during planning).** Eight sequential waves, no parallelism: everything lands
 in one HTML file, so two plans in the same wave could not own disjoint regions. Phase 2.1 needed six

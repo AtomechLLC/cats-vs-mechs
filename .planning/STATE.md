@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
-stopped_at: Completed 03.1-06-PLAN.md
-last_updated: "2026-08-28T21:31:09.315Z"
-last_activity: 2026-08-28
+status: verifying
+stopped_at: Completed 03.1-08-PLAN.md
+last_updated: "2026-08-29T00:07:16.640Z"
+last_activity: 2026-08-29
 progress:
   total_phases: 7
-  completed_phases: 4
+  completed_phases: 5
   total_plans: 24
-  completed_plans: 24
-  percent: 57
+  completed_plans: 25
+  percent: 71
 ---
 
 # Project State
@@ -27,8 +27,8 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 
 Phase: 03.1 (action-authoring-inserted) — EXECUTING
 Plan: 8 of 8
-Status: Ready to execute
-Last activity: 2026-08-28
+Status: Phase complete — ready for verification
+Last activity: 2026-08-29
 
 Progress: [██████████] 100%
 
@@ -59,6 +59,7 @@ Progress: [██████████] 100%
 | Phase 03.1 P05 | 118min | 3 tasks | 2 files |
 | Phase 03.1 P06 | 132min | 3 tasks | 2 files |
 | Phase 03.1 P07 | 148min | 3 tasks | 2 files |
+| Phase 03.1 P08 | 25min | 2 tasks | 1 files |
 
 ## Accumulated Context
 
@@ -95,6 +96,9 @@ Recent decisions affecting current work:
 - [Phase ?]: 03.1-07: the proposal is a FORM on the dialog, never a slice — there is then no state in which a proposal exists and has not been accepted, so undo, the build code and the projection can never read one
 - [Phase ?]: 03.1-07: ACT-05 is half-delivered on purpose (D-05b) — confirm writes on Advance in Phase 5, and the absence of an applier is asserted by two numbered checks rather than left as an intention
 - [Phase ?]: 03.1-07: every assembled proposal line is built one node per fragment, so Layer C reads the artifact's words and skips the student's inside a single sentence
+- [Phase 3.1]: Decision 14 CONFIRMED by the developer at the 03.1-08 rehearsal — DAMAGE_KEYS stays health-only; a shield strip is named in the admission line rather than counted, because counting a bounded pool as unbounded throughput reads about 5 turns where the board delivers about 9
+- [Phase 3.1]: Decision 15 CONFIRMED by the developer at the 03.1-08 rehearsal — the proposal pane applies nothing; a declared action lands on Advance in Phase 5, and PROJECT.md's Out of Scope entry stands unchanged
+- [Phase 3.1]: The 03.1-08 rehearsal closed on a one-word blanket approval, so item 5's tone judgement and item 10's close-request behaviour are approvals of a description rather than recorded prose — named as the record's two weakest lines rather than fabricated
 
 ### Pending Todos
 
@@ -116,6 +120,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-28T21:30:52.303Z
-Stopped at: Completed 03.1-06-PLAN.md
+Last session: 2026-08-29T00:07:16.627Z
+Stopped at: Completed 03.1-08-PLAN.md
 Resume file: None
