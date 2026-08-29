@@ -565,7 +565,32 @@ console.log(result.passed + ' passed, ' + result.failed + ' failed');
 //     SUITE had written rather than the one the op writes. The row now drives
 //     the shipped op, and the same probe reddens naming
 //     state.fight.decl.0.caster.
-const SUITE_FLOOR = 1098;
+//   plan 05-04 ships advanceRound — the ONE applier in the file — and the run
+//     goes from 1128 to 1156, floored at 1126, which is the same margin of 30
+//     the six plans before it kept. Twenty-eight rows: one in [S09.10], where
+//     the two boundary assertions written AGAINST this phase were turned in the
+//     open into their positive form (an allowlist of exactly ['advanceRound'],
+//     and a row that still DRIVES the router but now against a board with no
+//     fight running), plus a fourth row holding "no op reads REFERENCE.beats
+//     and no op writes keywords"; and the rest in [S09.12], where one round is
+//     driven end to end with every consequence asserted separately. Check 72b
+//     in THIS file carries the same allowlist and was turned in the same
+//     change — it banned the applier family outright and would otherwise have
+//     been a boundary assertion deleted by going quiet.
+//     FOUR THINGS THE PROBES FOUND ARE WORTH KEEPING. PROBE M renamed the op
+//     away and the new relationship row THREW a TypeError instead of failing,
+//     aborting [S09.10] with one of its own rows never run and the board left
+//     dirty for every suite after it — the third time in three plans that a
+//     row which could throw was the defect. PROBE O then found that same row
+//     half-blind: Hairball ships with an empty transformation list, so the
+//     second of the two shipped relationships had no number to move and a
+//     violation firing only on that pair would have passed; the row now
+//     authors a term onto Hairball first. PROBE P found the undo row honest
+//     and PROBE Q found the history row honest, both first time. And the
+//     "declaration naming a removed unit" refusal the plan asked for is NOT
+//     reachable: removeUnit edits the build, the fight roster is copied once
+//     at startFight and never rebuilt, so no unit ever leaves a running fight.
+const SUITE_FLOOR = 1126;
 if (result.passed < SUITE_FLOOR) {
   fail('SUITE TOTAL COLLAPSED: ' + result.passed + ' rows passed against a floor of '
     + SUITE_FLOOR + '. Nothing failed, which means rows went MISSING rather than red '

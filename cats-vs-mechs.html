@@ -20888,20 +20888,21 @@ App.selftest = (function () {
        it was reaching a fight THIS SUITE had written rather than the fight the
        op writes. Driven, the same probe reddens naming state.fight.decl.0.caster.
 
-       The ROUND RECORD below is still hand-placed, and for the original reason
-       unchanged: advanceRound does not exist yet — plan 05-04 writes it. The
-       same repair is owed to it on the day it ships, and this paragraph is the
-       instruction to make it. */
+       THE ROUND RECORD IS NOW DRIVEN TOO, AND PLAN 05-04 IS WHERE THAT DEBT
+       WAS PAID. What stood here was a hand-placed App.state.commit pushing a
+       record shaped the way plan 05-02 believed advanceRound would shape it,
+       with the instruction to re-drive it on the day the op shipped. It has
+       shipped. So the round below is resolved by advanceRound itself, and the
+       key names this walk reads are the ones the OP writes rather than the ones
+       a suite author guessed — which is the whole of PROBE I's finding, applied
+       to the second of the two records it named. A declaration is left standing
+       afterwards on purpose, so the walk covers a fight that carries BOTH an
+       unresolved intent and a resolved round. */
     App.ops.declareAction('cats', 'slash', 'c1', 'm1');
-    App.state.commit('round record probe', function (s) {
-      s.fight.past.push({
-        round: 1,
-        was: { cats: { ap: 3, units: [] }, mechs: { ap: 3, units: [] } },
-        did: [{ side: 'cats', act: 'slash', by: 'c1', at: 'm1',
-          hit: { shield: 0, health: 1, spare: 0 } }],
-        hand: [{ side: 'mechs', unit: 'm1', tok: 'hp', from: 6, to: 5 }]
-      });
-    });
+    App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+    App.ops.advanceRound();
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.state.flush();
 
     t.eq('NOTHING ANYWHERE IN A RUNNING FIGHT IS NAMED AFTER A PROPOSAL, AN '
       + 'OVERRIDE, A CASTER, A TARGET OR A PENDING ANYTHING — walked at every '
@@ -20917,6 +20918,17 @@ App.selftest = (function () {
       [fight().decl[0].by, fight().decl[0].at,
         Object.keys(fight().decl[0]).sort().join(',')],
       ['c1', 'm1', 'act,at,by,side']);
+
+    t.eq('and the ROUND RECORD the op writes carries the same discipline, read '
+      + 'off the record advanceRound actually pushed rather than off one this '
+      + 'suite wrote: the round it resolved, the board as it stood, and what '
+      + 'each declaration did — with the two unit positions still spelled `by` '
+      + 'and `at` one level further down',
+      [Object.keys(fight().past[0]).sort().join(','),
+        Object.keys(fight().past[0].was).sort().join(','),
+        Object.keys(fight().past[0].did[0]).sort().join(',')],
+      ['did,round,was', 'cats,mechs',
+        'act,apPaid,apShort,at,by,hit,side,unlanded']);
 
     t.ok('the prototype is intact after the key-name walk', protoIntact());
 
@@ -21545,8 +21557,405 @@ App.selftest = (function () {
       [JSON.stringify(App.state.get()) === declBoard,
         App.state.undoDepth() - declDepth], [true, 0]);
 
+    /* ===== FIGHT-02, FIGHT-13: ONE ROUND, DRIVEN END TO END =================
+       The board is BUILT rather than written out — addUnit, setUnitMaxHp,
+       setUnitShield, createAction, setActionCost and setActionXf — for
+       [S09.11]'s reason, which is the reason PROBE I proved twice over in this
+       very suite: a literal agrees with whatever its author believed the shape
+       was, and a driven board agrees with THIS FILE.
+
+       EVERY CONSEQUENCE IS ASSERTED SEPARATELY. A single row reading the whole
+       board after an Advance is green over an implementation that got the right
+       total by the wrong arithmetic, which is the objection the split's own rows
+       make one section up. So the round moves, the list empties, the record
+       arrives, the pools pay, the units take the split, the flags hold and the
+       build stands still — seven claims, seven rows.
+
+       THE FIXTURE, AND WHY EACH PIECE OF IT IS THERE:
+         a fourth Mech with 4 health and 2 shield, so a hit larger than the
+           shield and smaller than the shield plus health lands on a unit whose
+           numbers are not any shipped unit's;
+         an action of the student's own costing TWO points, so a cost that is
+           not the shipped one is what gets paid;
+         its first term is a hit and its second is a shield the CASTER gains,
+           so the round carries a non-damage write as well as a damage one;
+         and both are declared in the same round with the Mechs' Lasers aimed
+           back at the caster, so the caster's own new shield is standing when
+           the hit arrives. That last one is what pins the resolution ORDER. */
+
+    App.ops.resetToDefaults();
+    App.ops.addUnit('mechs');
+    App.ops.setUnitMaxHp('mechs', 'm4', 4);
+    App.ops.setUnitShield('mechs', 'm4', 2);
+    var pounce = App.ops.createAction('cats', 'Pounce');
+    App.ops.setActionCost('cats', pounce, 'ap', 2);
+    App.ops.setActionXf('cats', pounce, 0, App.data.XF_WHO[1], 'hp', -3);
+    App.ops.setActionXf('cats', pounce, 1, App.data.XF_WHO[0], 'shield', 1);
+    App.ops.startFight();
+    App.state.flush();
+
+    var roundBuild = JSON.stringify(build());
+    var roundCode = App.serialize.encode(build());
+    var roundBoard = JSON.parse(JSON.stringify(fight()));
+
+    App.ops.declareAction('cats', pounce, 'c1', 'm4');
+    App.ops.declareAction('mechs', 'lasers', 'm4', 'c1');
+    App.ops.advanceRound();
+    App.state.flush();
+
+    var roundRec = fight().past[0];
+
+    t.eq('ONE PRESS RESOLVES THE DECLARED ROUND FOR BOTH SIDES AT ONCE: the '
+      + 'round steps by one, the declaration list is emptied, and the history '
+      + 'gains EXACTLY ONE record. Three separate readings, because a round '
+      + 'that stepped without recording and a record pushed without stepping '
+      + 'are different defects and a reader needs to know which one happened',
+      [fight().round, fight().decl.length, fight().past.length], [2, 0, 1]);
+
+    t.eq('THE RECORD HOLDS THE BOARD AS IT STOOD BEFORE THE ROUND RESOLVED, '
+      + 'NOT A COPY OF THE BOARD AFTER. Read as a PAIR — the recorded numbers '
+      + 'AND the live ones — because a record that was pushed after the walk '
+      + 'holds the same values the live board does, and a row reading only the '
+      + 'record would be comparing a copy against itself and calling it a '
+      + 'history. This is FIGHT-14 and FIGHT-15 at once: the previous board is '
+      + 'what moves up, and what changed is derived from the two',
+      [roundRec.round,
+        roundRec.was.mechs.units[3].shield, roundRec.was.mechs.units[3].hp,
+        fight().mechs.units[3].shield, fight().mechs.units[3].hp],
+      [1, 2, 4, 0, 3]);
+
+    t.eq('WHAT WAS ACTUALLY PAID IS IN THE RECORD, per declaration, beside how '
+      + 'far the pool fell short — two numbers rather than one, because "paid '
+      + 'two of the two it cost" and "paid two of the five it cost" are the '
+      + 'same subtraction and a different round',
+      [roundRec.did[0].apPaid, roundRec.did[0].apShort,
+        roundRec.did[1].apPaid, roundRec.did[1].apShort], [2, 0, 1, 0]);
+
+    t.eq('AND THE POOLS READ FULL AFTERWARDS, BECAUSE THE POOL REFILLS EACH '
+      + 'ROUND. This is the consequence of that ruling stated as a fact rather '
+      + 'than left to be discovered: the pool a student reads while declaring '
+      + 'is the pool for the round they are declaring, always the build\'s, '
+      + 'never last round\'s leftovers — so what a round SPENT is a thing the '
+      + 'record holds and the live board does not',
+      [fight().cats.ap, fight().mechs.ap, build().cats.ap, build().mechs.ap],
+      [3, 3, 3, 3]);
+
+    t.eq('THE UNIT THE DECLARATION POINTED AT TOOK THE HIT THROUGH ITS SHIELD '
+      + 'FIRST AND THEN ITS HEALTH, and the three numbers of the split are in '
+      + 'the record beside the two the board now shows. Three against two '
+      + 'shield and four health: two absorbed, one through to health, none '
+      + 'spare — asserted as five separate figures, because the total alone is '
+      + 'identical over an implementation with no shield rule in it',
+      [roundRec.did[0].hit.shield, roundRec.did[0].hit.health,
+        roundRec.did[0].hit.spare,
+        fight().mechs.units[3].shield, fight().mechs.units[3].hp],
+      [2, 1, 0, 0, 3]);
+
+    t.eq('THE CASTER-SIDE TERM LANDED, AND IT LANDED BEFORE THE HIT THAT CAME '
+      + 'AFTER IT. Pounce gives its own performer a point of shield and the '
+      + 'Mechs\' Lasers are aimed at that same performer in the same round: the '
+      + 'new point is standing when the hit arrives, so the Cat reads no shield '
+      + 'and one health. Resolved the other way round it would read one shield '
+      + 'and no health, so this row is what pins BOTH that a non-damage term '
+      + 'lands at all and that the walk reads the board the terms before it '
+      + 'left rather than a frozen pre-round copy',
+      [fight().cats.units[0].shield, fight().cats.units[0].hp,
+        roundRec.did[1].hit.shield, roundRec.did[1].hit.health],
+      [0, 1, 1, 2]);
+
+    t.eq('AND NO OTHER UNIT ON THE BOARD MOVED A NUMBER. Every unit neither '
+      + 'declaration named is byte-identical to the copy taken before the '
+      + 'press, which is the reading that catches a walk that applied a term '
+      + 'to the wrong roster or to all of one',
+      (function () {
+        var off = [];
+        ['cats', 'mechs'].forEach(function (side) {
+          fight()[side].units.forEach(function (u, i) {
+            if (u.id === 'c1' || u.id === 'm4') { return; }
+            if (JSON.stringify(u) !== JSON.stringify(roundBoard[side].units[i])) {
+              off.push(side + '.' + u.id);
+            }
+          });
+        });
+        return off;
+      })(), []);
+
+    t.eq('EVERY `alive` FLAG IS EXACTLY WHERE IT WAS. Advance writes health and '
+      + 'shield and pools and tallies, and it does not write this one — the '
+      + 'row below drives a unit to zero through a real Advance and holds the '
+      + 'same line where it actually bites',
+      [fight().cats.units.filter(function (u) { return u.alive === true; }).length,
+        fight().mechs.units.filter(function (u) { return u.alive === true; }).length,
+        App.model.aliveCount(fight().cats), App.model.aliveCount(fight().mechs)],
+      [9, 4, 9, 4]);
+
+    t.eq('AND THE BUILD DID NOT MOVE A NUMBER THROUGH ANY OF IT, read as the '
+      + 'slice AND as the build code it produces — the fight is a separate '
+      + 'slice by design and the codec cannot see one, so a shared link is the '
+      + 'allocation the student made and never the fight they are in the '
+      + 'middle of',
+      [JSON.stringify(build()) === roundBuild,
+        App.serialize.encode(build()) === roundCode], [true, true]);
+
+    t.ok('the prototype is intact after the one-round rows', protoIntact());
+
+    /* ===== D-00d AT THE PLACE IT ACTUALLY BITES =====
+       Plan 05-03 drove this through the SPLIT'S numbers and its own summary
+       named where the hazard really lives: not in the arithmetic, which never
+       sees a unit, but at the applier that spends it. This is that row, driven
+       through a real Advance. PROBE K's shape reddens it. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+    App.ops.advanceRound();
+    App.state.flush();
+
+    t.eq('A REAL ADVANCE TAKES A UNIT TO ZERO HEALTH AND THE UNIT IS STILL '
+      + 'ALIVE. Zero health PROMPTS a death ruling from the table; it never '
+      + 'causes one (D-00d). A tool that marked the unit dead has already taken '
+      + 'the ruling away from the room, and a student who ruled "the Shield '
+      + 'absorbed the last of it" would have nowhere to write that down',
+      [fight().cats.units[0].hp, fight().cats.units[0].alive,
+        App.model.aliveCount(fight().cats)], [0, true, 9]);
+
+    t.eq('AND THE OTHER DIRECTION, WHICH IS THE HALF A ONE-SIDED ROW WOULD '
+      + 'MISS: a unit the table ruled dead STAYS dead across an Advance, and a '
+      + 'unit ruled dead at FULL health stays dead too. The flag moves when '
+      + 'setAlive is called and at no other moment, so Advance can neither kill '
+      + 'nor revive',
+      (function () {
+        App.ops.setAlive('cats', 'c1', false);
+        App.ops.setAlive('cats', 'c2', false);
+        App.ops.advanceRound();
+        App.state.flush();
+        return [fight().cats.units[0].alive, fight().cats.units[0].hp,
+          fight().cats.units[1].alive, fight().cats.units[1].hp,
+          App.model.aliveCount(fight().cats)];
+      })(), [false, 0, false, 3, 7]);
+
+    t.ok('the prototype is intact after the death-ruling rows', protoIntact());
+
+    /* ===== THE UNDO ACCOUNTING, WHICH IS WHERE THIS OP IS MOST FRAGILE =====
+       COALESCE_MS is 500 and two commits under the SAME label inside it are ONE
+       undo entry. Both rows below DRIVE two real Advances rather than read the
+       label string, because a row that inspected the label would be green over
+       a label that carried the round number and coalesced anyway, and red over
+       a different spelling that worked. PROBE P shortens the label and this is
+       what catches it.
+
+       AND THE HONEST CONSEQUENCE, said here rather than left for a student to
+       find: UNDO_LIMIT is thirty. Thirty commits into a fight the round before
+       last is off the bottom of the stack, and THE HISTORY IS THE MECHANISM FOR
+       READING FURTHER BACK — undo is not. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.state.flush();
+    var undoSnap = JSON.stringify(App.state.get());
+    var undoDepthBefore = App.state.undoDepth();
+    App.ops.advanceRound();
+    App.state.flush();
+    var undoMoved = (JSON.stringify(App.state.get()) !== undoSnap);
+    App.ops.undo();
+    App.state.flush();
+
+    t.eq('ONE ADVANCE IS ONE UNDO ENTRY, therefore one Ctrl+Z — driven, and '
+      + 'with the "it really moved" half beside it, because a row asserting '
+      + 'only that the board came back is spotlessly green over an Advance that '
+      + 'never did anything',
+      [undoMoved, JSON.stringify(App.state.get()) === undoSnap], [true, true]);
+
+    t.eq('AND TWO ADVANCES ARE TWO ENTRIES, not one, driven with TWO REAL '
+      + 'CALLS microseconds apart rather than by reading the label. The label '
+      + 'carries the round number for exactly this: under one shared label the '
+      + 'pair would fall inside COALESCE_MS, fold into a single entry, and one '
+      + 'Ctrl+Z would rewind two rounds — leaving the round in between with no '
+      + 'step of its own and nothing able to reach it',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.state.flush();
+        App.ops.advanceRound();
+        App.ops.advanceRound();
+        App.state.flush();
+        var both = fight().round;
+        App.ops.undo();
+        App.state.flush();
+        var one = fight().round;
+        App.ops.undo();
+        App.state.flush();
+        return [both, one, fight().round];
+      })(), [3, 2, 1]);
+
+    t.info('undo entries the fight-loop rows have used by this point — recorded '
+      + 'and deliberately not gated on, because UNDO_LIMIT is thirty and by '
+      + 'here the stack is at its cap, so a DELTA reads zero over a run where '
+      + 'each Advance was its own entry AND over one where they all folded '
+      + 'together. The claim above is driven for that reason',
+      App.state.undoDepth() - undoDepthBefore);
+
+    t.ok('the prototype is intact after the undo rows', protoIntact());
+
+    /* ===== THE LINE, ASSERTED FROM INSIDE A REAL RESOLUTION =====
+       [S09.10]'s fourth boundary row makes this claim over the LIVE EXPORT
+       LIST. This one makes it from inside a resolved round on the SHIPPED
+       board, which is the angle an export-name check cannot reach: a
+       relationship consumed through a helper has no name of its own. Two
+       angles on one rule, because this is the rule that will be argued about. */
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.ops.declareAction('cats', 'slash', 'c2', 'm1');
+    App.ops.declareAction('cats', 'slash', 'c3', 'm1');
+    App.ops.declareAction('mechs', 'fly', 'm1', 'c1');
+    App.ops.advanceRound();
+    App.state.flush();
+
+    t.eq('THREE SLASHES LAND FOR EXACTLY WHAT SLASH DECLARES, ON A BOARD WHERE '
+      + 'THE REFERENCE BAND NAMES FLY AS THE ONE OVER SLASH, and '
+      + 'Fly is declared in the same round. Three points came off the Mech\'s '
+      + 'shield and not two, not one and not none: the tool applied the '
+      + 'student\'s own number and did not consult a table the student did not '
+      + 'write. Whether the relationship applies is the argument the room is '
+      + 'there to have, and PROJECT.md\'s oldest entry is that taking it away '
+      + 'removes the exercise',
+      [fight().mechs.units[0].shield, fight().mechs.units[0].hp,
+        fight().past[0].did.length,
+        fight().past[0].did[0].hit.shield + fight().past[0].did[1].hit.shield
+          + fight().past[0].did[2].hit.shield],
+      [0, 6, 4, 3]);
+
+    t.ok('the prototype is intact after the relationship row', protoIntact());
+
+    /* ===== THE REFUSALS, AND WHAT EACH ONE COSTS THE BOARD =====
+       Every one is taken OUTSIDE the commit, so a refusal leaves the board
+       byte-identical and no phantom undo entry — the property every guard in
+       [S05] is placed for, read back here rather than promised.
+
+       ONE SHAPE THE PLAN ASKED FOR IS NOT REACHABLE AND THE FINDING IS WORTH
+       MORE THAN THE ROW WOULD HAVE BEEN: "a declaration naming a REMOVED UNIT"
+       cannot be produced through the shipped ops. removeUnit edits the BUILD,
+       and the fight roster is copied once at startFight and never rebuilt — so
+       no unit ever leaves a running fight, and declareAction already refuses an
+       id that is not on it. The refusal exists at declaration time and the
+       declaration bad-input table above drives it there. A departed ACTION and
+       a departed TOKEN TYPE are both genuinely reachable, because both live in
+       the build and Advance reads the build live. */
+
+    var advWrong = [];
+    var advProtoHeld = true;
+    var advMessages = [];
+
+    function advRefuses(what, run) {
+      var before = JSON.stringify(App.state.get());
+      var depth = App.state.undoDepth();
+      try {
+        run();
+        advWrong.push(what + ' DID NOT REFUSE');
+        advMessages.push('');
+      } catch (stopped) {
+        advMessages.push(String(stopped.message));
+      }
+      App.state.flush();
+      if (JSON.stringify(App.state.get()) !== before) { advWrong.push(what + ' MOVED THE BOARD'); }
+      if (App.state.undoDepth() !== depth) { advWrong.push(what + ' LEFT AN UNDO ENTRY'); }
+      if (!protoIntact()) { advProtoHeld = false; }
+    }
+
+    App.ops.resetToDefaults();
+    App.state.flush();
+    advRefuses('no fight running', function () { App.ops.advanceRound(); });
+
+    App.ops.resetToDefaults();
+    var goneAct = App.ops.createAction('cats', 'Pounce');
+    App.ops.setActionXf('cats', goneAct, 0, App.data.XF_WHO[1], 'hp', -1);
+    App.ops.startFight();
+    App.ops.declareAction('cats', goneAct, 'c1', 'm1');
+    App.ops.removeAction('cats', goneAct);
+    App.state.flush();
+    advRefuses('a declaration naming an action that has since gone',
+      function () { App.ops.advanceRound(); });
+
+    App.ops.resetToDefaults();
+    var goneTok = App.ops.createTokenType({
+      name: 'Rage', shape: 'sq', color: 'coral', glyph: '', scope: 'unit'
+    });
+    var tokAct = App.ops.createAction('cats', 'Pounce');
+    App.ops.setActionXf('cats', tokAct, 0, App.data.XF_WHO[1], goneTok, -1);
+    App.ops.startFight();
+    App.ops.declareAction('cats', tokAct, 'c1', 'm1');
+    App.ops.removeTokenType(goneTok);
+    App.state.flush();
+    advRefuses('a term naming a token type that has since gone',
+      function () { App.ops.advanceRound(); });
+
+    // The `who` that is off the allowlist is hand-placed, and it is the ONE
+    // state here no shipped op can produce: setActionXf runs requireXfWho. It
+    // is reachable in the real world all the same — from Phase 4 an action can
+    // arrive out of a pasted build code — so the guard has to be driven against
+    // the state that source could hand over.
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.commit('a party the allowlist does not hold', function (s) {
+      s.build.cats.actions[0].xf = [{ who: 'bystander', tok: 'hp', d: -1 }];
+    });
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.state.flush();
+    advRefuses('a term naming a party the allowlist does not hold',
+      function () { App.ops.advanceRound(); });
+
+    var whoRefusal = '';
+    try { App.ops.requireXfWho('bystander'); } catch (stopped) { whoRefusal = String(stopped.message); }
+
+    t.eq('FOUR REFUSALS, EACH BY NAME, and the message is read against the '
+      + 'GUARD the op actually runs rather than a re-typed copy of it. A '
+      + 'departed action names the action; a departed token type names the '
+      + 'action AND the type, which is ACT-07\'s rule met at the one place a '
+      + 'term is spent rather than drawn; and an unknown party is refused by '
+      + 'the exported allowlist itself',
+      advMessages,
+      ['No fight in progress',
+        'There is no action "' + goneAct + '" on this side.',
+        '"Pounce" changes "' + goneTok + '", and there is no token type "'
+          + goneTok + '" on this board.',
+        whoRefusal]);
+
+    t.eq('and not one of the four moved the board or left a phantom undo entry '
+      + 'behind, which is what every guard running OUTSIDE the commit buys — a '
+      + 'round that refused halfway through would leave a board no single '
+      + 'Ctrl+Z can reach', advWrong, []);
+    t.ok('and the prototype held after every one, checked inside the walk '
+      + 'rather than once at the end', advProtoHeld);
+
+    /* ===== THE CAP ON THE HISTORY ===== */
+
+    t.eq('THE HISTORY HOLDS EXACTLY MAX_PAST_ROUNDS AND WHAT DROPS IS THE '
+      + 'OLDEST. Driven three rounds past the cap, and read as FOUR figures '
+      + 'rather than one: a cap that silently dropped the NEWEST record would '
+      + 'be green on length alone, so the first record kept and the last one '
+      + 'are both named, and the live round number is read beside them because '
+      + 'a history that stopped growing must not stop the fight',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.state.flush();
+        var over = App.data.MAX_PAST_ROUNDS + 3;
+        for (var i = 0; i < over; i++) { App.ops.advanceRound(); }
+        App.state.flush();
+        var list = fight().past;
+        return [list.length, list[0].round, list[list.length - 1].round,
+          fight().round];
+      })(),
+      [App.data.MAX_PAST_ROUNDS, 4, App.data.MAX_PAST_ROUNDS + 3,
+        App.data.MAX_PAST_ROUNDS + 4]);
+
+    t.ok('the prototype is intact after the cap row', protoIntact());
+
     /* ===== MEASUREMENTS, NOT GATES =====
-       t.info records a number and can never redden a run. These four are here
+       t.info records a number and can never redden a run. These are here
        so the numbers appear in every report and plans 05-04 and 05-08 have
        something to read a delta against. */
     App.ops.resetToDefaults();
@@ -21575,6 +21984,47 @@ App.selftest = (function () {
         }
         return JSON.stringify(wide.fight).length;
       })());
+
+    /* THE HISTORY'S COST, MEASURED AT THREE DEPTHS RATHER THAN ASSERTED AT ONE.
+       [S03]'s commit() stringifies the WHOLE state on every write and keeps
+       thirty of those snapshots, so the slice's size is not a curiosity — it is
+       multiplied by thirty and paid on every press in the file. Research
+       measured 613 B / 21,243 B / 35,003 B and 0.063 / 0.315 / 0.485 ms per
+       commit in a browser; these are the sandbox's own figures beside them, and
+       they are what the interaction gate's 50 ms budget for a hundred commits
+       should be read against. Recorded and not gated on, for the reason every
+       t.info in this file is: a wall-clock number that reddens a workshop
+       projector because the tab was throttled teaches a room nothing. */
+    (function () {
+      function costPerCommitMs() {
+        var runs = 40;
+        var started = Date.now();
+        for (var i = 0; i < runs; i++) {
+          App.state.commit('history cost reading ' + i, function (s) {
+            s.build.cats.ap = s.build.cats.ap;
+          });
+        }
+        return (Date.now() - started) / runs;
+      }
+      function readAt(rounds) {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.state.flush();
+        for (var i = 0; i < rounds; i++) { App.ops.advanceRound(); }
+        App.state.flush();
+        return { bytes: JSON.stringify(fight()).length, cost: costPerCommitMs() };
+      }
+      var at0 = readAt(0);
+      var at10 = readAt(10);
+      var atCap = readAt(App.data.MAX_PAST_ROUNDS);
+      t.info('bytes of fight slice at 0 / 10 / MAX_PAST_ROUNDS resolved rounds '
+        + '— the object [S03] snapshots on every commit and keeps thirty of',
+        [at0.bytes, at10.bytes, atCap.bytes].join(' / '));
+      t.info('milliseconds per commit at those same three depths, averaged over '
+        + 'forty writes each — the figure the perf gate\'s hundred-commit '
+        + 'budget is a hundred times',
+        [at0.cost, at10.cost, atCap.cost].join(' / '));
+    })();
 
     App.state.restore(savedAll);
     App.state.flush();
