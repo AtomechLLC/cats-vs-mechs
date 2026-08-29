@@ -937,6 +937,19 @@ function makeStubDom() {
       return child;
     };
     node.remove = () => { if (node.parentNode) { node.parentNode.removeChild(node); } };
+    // ADDED BY PLAN 05-14, and it is a gap in this stub rather than a new
+    // capability: insertBefore is ordinary DOM and this page simply never
+    // needed it until [S06.7] had to put the round figure ABOVE .fg-sides
+    // without touching the shell markup. A null reference appends, which is
+    // what a browser does, so the artifact's fall-through arm is modelled too.
+    node.insertBefore = (child, before) => {
+      if (child.parentNode) { child.parentNode.removeChild(child); }
+      const i = before === null || before === undefined
+        ? -1 : node.children.indexOf(before);
+      child.parentNode = node;
+      if (i === -1) { node.children.push(child); } else { node.children.splice(i, 0, child); }
+      return child;
+    };
     node.replaceChildren = (...kids) => {
       node.children.forEach((c) => { c.parentNode = null; });
       node.children.length = 0;
@@ -8351,19 +8364,46 @@ function fgPress(node) {
 function fgSideRootOf(side) { return dom.byId['decl-' + side]; }
 function fgOne(root, sel) { return root.querySelectorAll(sel)[0] || null; }
 
-// The chooser press, found by the VALUE it carries rather than by position, so
-// a row cannot pass by pressing whatever happens to be first.
-function fgPick(side, kind, value) {
-  const btn = fgSideRootOf(side).querySelectorAll('[data-fg="' + kind + '"]')
-    .filter((b) => b.dataset.fgVal === value)[0] || null;
+/* THE DECLARATION PRESS, REWIRED BY PLAN 05-14 ONTO D-27's GRID. The three
+   choosers and the Declare button are gone — [S07.5]'s own banner records the
+   four arms that retired with them — so what these two helpers PRESS has moved.
+   NOT ONE ROW'S CLAIM MOVED WITH THEM: every row below still asserts exactly
+   what it asserted, on a surface that reaches the same ops by one press instead
+   of four.
+
+   THE BUTTON IS FOUND BY SIDE, BY PERFORMER AND BY ACTION — never by position —
+   for the reason the retired helper gave about its own lookup: a row that
+   pressed whatever happened to be first would pass over a grid that drew the
+   wrong buttons in the right order.
+
+   AND `atId` IS GONE FROM fgDeclare's SIGNATURE RATHER THAN IGNORED IN ITS
+   BODY. Under D-27 one press declares and the tool points the declaration at
+   the lowest-health living enemy; there is no target argument to give, and a
+   parameter that silently did nothing would let a row go on claiming it chose
+   something. Where a row needs a target the default would not pick, it drives
+   the change-target flow instead. */
+function fgActBtnOf(side, byId, actionId) {
+  return fgSideRootOf(side).querySelectorAll('[data-fg="act"]')
+    .filter((b) => b.dataset.fgBy === byId && b.dataset.fgVal === actionId)[0] || null;
+}
+function fgPick(side, byId, actionId) {
+  const btn = fgActBtnOf(side, byId, actionId);
   if (btn !== null) { fgPress(btn); }
   return btn;
 }
-function fgDeclare(side, actionId, byId, atId) {
-  fgPick(side, 'act', actionId);
-  fgPick(side, 'by', byId);
-  fgPick(side, 'at', atId);
-  fgPress(fgOne(fgSideRootOf(side), '[data-fg="declare"]'));
+function fgDeclare(side, actionId, byId) {
+  fgPick(side, byId, actionId);
+}
+// The change-target control on one row, and the reading beside it.
+function fgAtBtnOf(side, byId) {
+  return fgSideRootOf(side).querySelectorAll('[data-fg="at"]')
+    .filter((b) => b.dataset.fgBy === byId)[0] || null;
+}
+function fgLandsOn(side, byId) {
+  const at = fgAtBtnOf(side, byId);
+  if (at === null) { return null; }
+  const lands = at.parentNode.querySelectorAll('.fg-lands')[0] || null;
+  return lands === null ? null : fgLeaves(lands).join('');
 }
 function fgAdvancePress() { fgPress(fgOne(fgBar, '[data-fg="advance"]')); }
 function fgAliveBtn(side, unitId) {
@@ -8387,7 +8427,16 @@ function fgActNamed(side, name) {
 }
 
 const fgCatsAct = A.state.get().build.cats.actions[0].id;
-const fgMechsAct = A.state.get().build.mechs.actions[0].id;
+// THE MECHS' ACTION IS CHOSEN BY WHAT IT DOES RATHER THAN BY ITS POSITION, and
+// plan 05-14 moved it for a reason a row's own label states: row 102 claims
+// that BOTH sides declare "an action naming who acts and what it lands on", and
+// under D-27 the target is the tool's answer to App.model.needsAt rather than a
+// chooser press. The mechs' FIRST action aims nothing at anybody, so a
+// declaration of it names nobody and the claim would have quietly stopped being
+// true. Read through the shipped derivation, so the row and the artifact agree
+// about which actions have a target at all.
+const fgMechsAct = A.state.get().build.mechs.actions
+  .filter((a) => A.model.needsAt(a))[0].id;
 
 // A BOARD SOMEBODY HAS ACTUALLY PLAYED ON, built through real presses, because
 // every reading below is taken on it. Two rounds resolved and a declaration
@@ -8396,12 +8445,12 @@ const fgMechsAct = A.state.get().build.mechs.actions[0].id;
 // been called — which is what probe X measured about check 92 before plan
 // 05-08 moved that drive.
 fgPress(fgStart);
-fgDeclare('cats', fgCatsAct, 'c1', 'm1');
-fgDeclare('mechs', fgMechsAct, 'm1', 'c1');
+fgDeclare('cats', fgCatsAct, 'c1');
+fgDeclare('mechs', fgMechsAct, 'm1');
 fgAdvancePress();
-fgDeclare('cats', fgCatsAct, 'c2', 'm2');
+fgDeclare('cats', fgCatsAct, 'c2');
 fgAdvancePress();
-fgDeclare('mechs', fgMechsAct, 'm1', 'c3');
+fgDeclare('mechs', fgMechsAct, 'm1');
 
 /* 93. THE ACT PARTITION, COLLECTED OFF THE PAGE, in 68d and 90b's shape and
    extended over the three regions this phase paints. The two halves together
@@ -8468,6 +8517,15 @@ const fgActsInside = fgBar.querySelectorAll('[data-act]').length
   + fgLedgerRoot.querySelectorAll('[data-act]').length;
 const fgPrivateCount = fgBar.querySelectorAll('[data-fg]').length
   + fgBoard.querySelectorAll('[data-dc]').length;
+// THE FLOOR MOVED WITH THE SURFACE AND NOT WITH THE CLAIM (plan 05-14). It was
+// 60 and it is 45, because D-27 retired three choosers whose entries were one
+// per unit on BOTH rosters — twenty-six "what it lands on" pills alone — and
+// replaced the whole form with one button per unit per action. Counted on this
+// exact played board: 27 cats buttons + 9 mechs buttons + 1 change-target
+// control + Advance + Reset + 12 alive toggles = 51. The floor is not a
+// measurement of the surface; it exists for the sentence in this row's own
+// label — "a region with no controls at all passes an all-clear spotlessly" —
+// so it is set below what the smallest legal board draws and above zero.
 check(
   '93. THE ACT PARTITION FOR THE FIGHT, read off a page somebody has played on. '
     + 'Every act #fightbar, #ledger, #board and the start control dispatch is '
@@ -8482,7 +8540,7 @@ check(
     + 'spotlessly',
   fgActsInside === 0 && fgUnhandled.length === 0 && fgNotOps.length === 0
     && fgParked.length === 0 && fgNoOpBehind.length === 0
-    && fgPrivateCount >= 60 && fgStateActs.indexOf('startFight') !== -1,
+    && fgPrivateCount >= 45 && fgStateActs.indexOf('startFight') !== -1,
   'acts on data-act inside #fightbar + #ledger=' + fgActsInside
     + ' | acts found=' + JSON.stringify(fgActsFound)
     + ' | UI-only=' + JSON.stringify(fgUiOnly)
@@ -8699,12 +8757,12 @@ function fgFundedBoard() {
   A.ops.resetToDefaults();
   A.state.flush();
   fgPress(fgStart);
-  fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+  fgDeclare('cats', fgCatsAct, 'c1');
 }
 fgFundedBoard();
 const fgDisabledFunded = disabledIn(fgApp);
 const fgFundedTrue = fgDisabledFunded.split('|').filter((e) => e.indexOf('=true') !== -1);
-const fgFundedReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-report')).join('');
+const fgFundedReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-reportbox')).join('');
 
 // NOTHING TO SPEND AND BELOW EVERY REQUIREMENT. The pool is driven to zero
 // through a real Advance rather than by writing a number into the slice,
@@ -8720,9 +8778,9 @@ A.state.get().build.cats.units.forEach((u) => { A.ops.setUnitMaxHp('cats', u.id,
 A.state.get().build.mechs.units.forEach((u) => { A.ops.setUnitMaxHp('mechs', u.id, 1); });
 A.state.flush();
 fgAdvancePress();
-fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgDeclare('cats', fgCatsAct, 'c1');
 const fgDisabledOwing = disabledIn(fgApp);
-const fgOwingReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-report')).join('');
+const fgOwingReport = fgLeaves(fgOne(fgSideRootOf('cats'), '.fg-reportbox')).join('');
 const fgPoorAp = [A.state.get().fight.cats.ap, A.state.get().fight.mechs.ap];
 const fgAdvanceEntry = fgDisabledOwing.split('|')
   .filter((e) => e.indexOf('fg/advance=') === 0);
@@ -8778,8 +8836,8 @@ check(
 A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
-fgDeclare('cats', fgCatsAct, 'c1', 'm1');
-fgDeclare('mechs', fgMechsAct, 'm1', 'c1');
+fgDeclare('cats', fgCatsAct, 'c1');
+fgDeclare('mechs', fgMechsAct, 'm1');
 const fgPageBefore = fgLeaves(fgBar).join('') + ''
   + fgLeaves(fgLedgerRoot).join('') + ''
   + fgLeaves(dom.byId['col-cats']).join('');
@@ -8919,13 +8977,15 @@ check(
    owes instead. The chooser is pressed, the region rebuilds under it, and the
    keyboard is read back on the node it was on: a DIFFERENT node object carrying
    the SAME key, which is withPreservedFocus doing exactly its job. */
-const fgPickBefore = fgSideRootOf('cats').querySelectorAll('[data-fg="by"]')
-  .filter((b) => b.dataset.fgVal === 'c1')[0];
+// THE CONTROL THIS ROW PRESSES MOVED WITH THE SURFACE (plan 05-14). The "who
+// acts" chooser is gone; the node that rebuilds under a student now is an
+// action button on a picker row, and it is the same claim about the same
+// contract — press it, let the region rebuild, read the keyboard back.
+const fgPickBefore = fgActBtnOf('cats', 'c1', fgCatsAct);
 const fgPickKey = fgPickBefore.dataset.k;
 fgPickBefore.focus();
 fgPress(fgPickBefore);
-const fgPickAfter = fgSideRootOf('cats').querySelectorAll('[data-fg="by"]')
-  .filter((b) => b.dataset.fgVal === 'c1')[0];
+const fgPickAfter = fgActBtnOf('cats', 'c1', fgCatsAct);
 const fgFocusK = stub.activeElement && stub.activeElement.dataset
   ? stub.activeElement.dataset.k : null;
 check(
@@ -8957,9 +9017,9 @@ check(
 A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
-fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgDeclare('cats', fgCatsAct, 'c1');
 fgAdvancePress();
-fgDeclare('cats', fgCatsAct, 'c2', 'm2');
+fgDeclare('cats', fgCatsAct, 'c2');
 const fgBarTextWas = fgLeaves(fgBar).join('|');
 const fgLdTextWas = fgLeaves(fgLedgerRoot).join('|');
 const fgLdRowWas = fgLedgerRoot.querySelectorAll('.ld-row')[0];
@@ -9043,10 +9103,16 @@ clearPanel();
 const accBuildWas = JSON.stringify(A.state.get().build);
 fgPress(fgStart);
 const accStarted = A.state.get().fight !== null;
-fgDeclare('cats', fgCatsAct, 'c1', 'm1');
-fgDeclare('mechs', fgMechsAct, 'm1', 'c1');
-const accDeclLines = fgSideRootOf('cats').querySelectorAll('.fg-decl').length
-  + fgSideRootOf('mechs').querySelectorAll('.fg-decl').length;
+fgDeclare('cats', fgCatsAct, 'c1');
+fgDeclare('mechs', fgMechsAct, 'm1');
+// TWO DECLARATIONS STANDING, COUNTED OFF THE PAGE. The separate "Declared so
+// far" list is gone — the pressed button IS the declaration now — so what this
+// counts is the buttons reading as pressed. Same claim, same number, read off
+// the control that carries it instead of off a second spelling of it.
+const accDeclLines = fgSideRootOf('cats').querySelectorAll('[data-fg="act"]')
+  .filter((b) => b.getAttribute('aria-pressed') === 'true').length
+  + fgSideRootOf('mechs').querySelectorAll('[data-fg="act"]')
+    .filter((b) => b.getAttribute('aria-pressed') === 'true').length;
 fgAdvancePress();
 
 // THE SIX, off the page.
@@ -9314,7 +9380,7 @@ fgPress(fgStart);
 vwEdges.push('after startFight=' + fgApp.dataset.view);
 fgPress(vwBuildBtn);
 vwEdges.push('after pressing the board=' + fgApp.dataset.view);
-fgDeclare('cats', fgCatsAct, 'c1', 'm1');
+fgDeclare('cats', fgCatsAct, 'c1');
 fgAdvancePress();
 vwEdges.push('after an advance=' + fgApp.dataset.view);
 A.ops.endFight();
