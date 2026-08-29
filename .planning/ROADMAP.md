@@ -222,7 +222,7 @@ Plans:
 - [x] 04-01-PLAN.md — `[S01]`'s wire constants (version, separators, alphabet allowlist, the three size figures), the index-stability paragraph added to the four positional allowlists that lacked it, the 480-of-512 prediction replaced by six measured figures, `[S04]` opened as a real section with `[S04.1]`'s hand-rolled UTF-8 / base64url / base36 / run-length / FNV-1a primitives, and `[S09.11]` opened above the no-DOM bracket (wave 1)
 - [x] 04-02-PLAN.md — `[S04.2] encode` and `[S04.3] decode`: the name table, the two independently run-length-encoded unit streams, differences-from-defaults only, the biased signed amounts, the four-token refusal record, and the round trip asserted byte-identical over six boards driven through the shipped ops (wave 2)
 - [x] 04-03-PLAN.md — the refusal proved guard by guard: seventeen tamper shapes each reaching its own guard past a recomputed checksum, the hostile-input table, a reserved key in every text position, a refusal that leaves the board byte-identical, and both `setActionDmg` tripwires (wave 3)
-- [ ] 04-04-PLAN.md — `[S04.4]` the address-bar mirror (debounced, token-preserving, survivable, `history.replaceState`), `[S00]`'s banner amended for the file's second hash reader, `[S05]`'s two load ops, `[S03]`'s second named writer so a boot load leaves no undo entry (D-20), and `[S08]` reading a shared link before the first paint (wave 4)
+- [x] 04-04-PLAN.md — `[S04.4]` the address-bar mirror (debounced, token-preserving, survivable, `history.replaceState`), `[S00]`'s banner amended for the file's second hash reader, `[S05]`'s two load ops, `[S03]`'s second named writer so a boot load leaves no undo entry (D-20), and `[S08]` reading a shared link before the first paint (wave 4)
 - [ ] 04-05-PLAN.md — the surface: one share dialog with two panes (D-21) and a separate reset confirmation carrying the D-19 argument in full, their ids / stub nodes / `DIALOG_ROOTS` entries / `[C13]` styles arriving together, two topbar controls paid for in a comment, and `[S06.6]`'s fingerprint-keyed repaint that cannot leave a stale code on screen (wave 5)
 - [ ] 04-06-PLAN.md — `[S07.4]` attached through the four seams, and the copy: produced synchronously inside the gesture, three tiers deep, with the line branched on the tier that actually succeeded — plus the floored listener-boundary and act-partition checks and an honest limitations entry for the tiers CI cannot reach (wave 6)
 - [ ] 04-07-PLAN.md — paste-to-load with four distinct sentences the page owns, the reset confirmation wired in front of an op that does not change, and the phase's own acceptance run: copy, confirm a reset, paste it back, and read six values off the page (wave 7)
@@ -316,7 +316,7 @@ parallel if desired.
 | 2.1 Token Authoring (INSERTED) | 6/6 | Human UAT outstanding | 2026-08-28 |
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
-| 4. Share & Reset | 3/8 | In Progress|  |
+| 4. Share & Reset | 4/8 | In Progress|  |
 | 5. Fight Loop & Playtest | 0/3 | Not started | - |
 
 ## Coverage

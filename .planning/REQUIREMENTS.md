@@ -71,7 +71,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [x] **SHARE-02**: Student can paste a build code to load someone else's build
 - [x] **SHARE-03**: A build code round-trips exactly; a malformed or wrong-version code fails with a clear message rather than silently loading garbage
 - [x] **SHARE-04**: The build code stays well under Discord's 2000-character message limit at realistic roster sizes
-- [ ] **SHARE-05**: The current build mirrors to `location.hash` for the student's own reload and bookmark, without being presented as the sharing mechanism
+- [x] **SHARE-05**: The current build mirrors to `location.hash` for the student's own reload and bookmark, without being presented as the sharing mechanism
 - [ ] **SHARE-06**: Student can reset to Workshop 16 board defaults, behind a confirmation
 - [ ] **SHARE-07**: Student can reset the fight without discarding their build
 - [x] **SHARE-08**: Custom token appearance, names, student-created token types and authored actions all round-trip through the build code, so a shared build looks and behaves the same for the recipient
@@ -181,7 +181,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | SHARE-02 | Phase 4 | Complete |
 | SHARE-03 | Phase 4 | Complete |
 | SHARE-04 | Phase 4 | Complete |
-| SHARE-05 | Phase 4 | Pending |
+| SHARE-05 | Phase 4 | Complete |
 | SHARE-06 | Phase 4 | Pending |
 | SHARE-07 | Phase 5 | Pending |
 | SHARE-08 | Phase 4 | Complete |
