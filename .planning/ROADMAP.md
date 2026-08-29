@@ -310,7 +310,7 @@ Plans:
 - [x] 05-13-PLAN.md — the arithmetic behind the preview: `App.model.spokenFor`, `App.model.needsAt` and `App.model.defaultAt` (the lowest-health living enemy, ties by roster order), and `declareAction` given radio-per-performer semantics so one unit holds one action from the RECORD rather than from a button — with the default computed by the SURFACE so `at: null` stays recordable (wave 13, gap closure)
 - [x] 05-14-PLAN.md — the declaration grid in the addendum's column order — `[ROUND]` above both, then per side `[SIDE]` → battlefield slot → team resources → a picker row per unit with a button per action — one-click declare against the default target, a change-target button, the spoken-for resources, and the disable contract, with D-23 and the never-disable rule on this region TURNED IN THE OPEN, red recorded then green (wave 14, gap closure)
 - [x] 05-15-PLAN.md — the battlefield: `[S06.11]` and `[C14.4]`, Cats left and Mechs right matching the columns, one labelled shape per unit carrying its health, shield and every tally as the student authored them, dead units still drawn and marked, CSS shapes and glyphs only — read-only except as the click surface the change-target flow lights (wave 15, gap closure)
-- [ ] 05-16-PLAN.md — gate surgery: `FIGHT_FLOOR` re-measured off the new tab with the battlefield painted and declarations standing, every fight row rewritten to its new claim, the acceptance run re-driven through the grid, browser checks at 1920x1080 and 1366x768 in Chrome and Edge, and 05-11's script brought up to date without being renumbered (wave 16, gap closure)
+- [x] 05-16-PLAN.md — gate surgery: `FIGHT_FLOOR` re-measured off the new tab with the battlefield painted and declarations standing, every fight row rewritten to its new claim, the acceptance run re-driven through the grid, browser checks at 1920x1080 and 1366x768 in Chrome and Edge, and 05-11's script brought up to date without being renumbered (wave 16, gap closure)
 
 **D-27 gap closure (2026-08-29).** At the 05-11 checkpoint the developer redesigned the fight
 declaration surface: a full tab on the main screen, a unit-by-action grid with radio semantics, a
@@ -375,7 +375,7 @@ parallel if desired.
 | 3. Advisory Projection & Reference Material | 5/5 | Human verification outstanding | 2026-08-28 |
 | 3.1 Action Authoring (INSERTED) | 8/8 | Complete | 2026-08-29 |
 | 4. Share & Reset | 8/8 | Complete   | 2026-08-29 |
-| 5. Fight Loop & Playtest | 14/16 | In Progress|  |
+| 5. Fight Loop & Playtest | 15/16 | In Progress|  |
 
 ## Coverage
 

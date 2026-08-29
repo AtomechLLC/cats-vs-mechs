@@ -56,7 +56,7 @@ Requirements for initial release. Each maps to roadmap phases.
 - [ ] **PROJ-02**: The projection is expressed as a range in the fight's own unit ("≈3–5 turns to wipe"), never as an abstract score
 - [ ] **PROJ-03**: The arithmetic producing the projection is visible on screen
 - [ ] **PROJ-04**: A permanent, always-visible list states what the projection ignores — counters, effects, focus fire, overkill, and the student's own rulings
-- [ ] **PROJ-05**: The projection stays visible during the fight, so the student sees it at the moment the fight contradicts it
+- [x] **PROJ-05**: The projection stays visible during the fight, so the student sees it at the moment the fight contradicts it
 - [ ] **PROJ-06**: The projection never renders a verdict, traffic light, difficulty badge, or balance judgement
 
 ### Reference Material
@@ -172,7 +172,7 @@ Which phases cover which requirements. Updated during roadmap creation.
 | PROJ-02 | Phase 3 | Pending |
 | PROJ-03 | Phase 3 | Pending |
 | PROJ-04 | Phase 3 | Pending |
-| PROJ-05 | Phase 5 | Pending |
+| PROJ-05 | Phase 5 | Complete |
 | PROJ-06 | Phase 3 | Pending |
 | REF-01 | Phase 3 | Pending |
 | REF-02 | Phase 3 | Pending |

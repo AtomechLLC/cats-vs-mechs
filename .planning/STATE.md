@@ -2,16 +2,16 @@
 gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
-status: executing
+status: verifying
 stopped_at: Completed 05-15-PLAN.md
-last_updated: "2026-08-29T18:23:45.893Z"
+last_updated: "2026-08-29T19:21:07.957Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
   completed_phases: 6
   total_plans: 48
-  completed_plans: 47
-  percent: 98
+  completed_plans: 48
+  percent: 86
 ---
 
 # Project State
@@ -26,11 +26,12 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 — 05-15 complete, 05-16 next
-Status: Ready to execute
+Plan: 16 of 16 — 05-16 complete; every autonomous plan in the phase is done
+Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate, it is
+still plan 11, and it now runs on the surface D-27 shipped with a 46-item script.
 Last activity: 2026-08-29
 
-Progress: [██████████] 98%
+Progress: [██████████] 100%
 
 ## Performance Metrics
 
@@ -83,6 +84,7 @@ Progress: [██████████] 98%
 | Phase 05 P13 | 82 | 2 tasks | 2 files |
 | Phase 05 P14 | 191min | 3 tasks | 2 files |
 | Phase 05 P15 | 168min | 2 tasks | 2 files |
+| Phase 05 P16 | 214min | 3 tasks tasks | 5 files files |
 
 ## Accumulated Context
 
@@ -194,6 +196,10 @@ Recent decisions affecting current work:
 - [Phase 05]: 05-15: the unit shape IS the control — the addendum makes the battlefield the click surface for the change-target flow, so the thing a student aims at is the thing they press. Costs 12 Tab stops; recorded as a playtest question
 - [Phase 05]: 05-15: the lit state is an outline plus a real text node, never aria-pressed — a lit unit is available rather than pressed, and content is what a screen reader and the rendered-page walk both reach
 - [Phase 05]: 05-15: .fg-side flex basis 340 -> 320. The two declaration columns were STACKED at every viewport in both browsers on the SHIPPED artifact — the 736px derivation never subtracted .fg-sides' own padding or its scrollbar gutter. flex-grow fills, so the columns render at 332px and the dial costs nothing
+- [Phase ?]: FIGHT_FLOOR 120 -> 116 and the per-card cost is now a figure PER SIDE (29 a cat, 30 a mech) — D-27 moved strings out of the roster-independent constant and into the coefficient; the one string of difference is the lit retarget
+- [Phase 05]: Check 92 asserts its own dressing: probe AS measured the old drive spotlessly green (1216/0, 180 of 180, exit 0) on a board where nothing was declared, ruled, lit or authored
+- [Phase 05]: REF-03 is half unserved on the fight tab — the six per-action reference cards sit inside the roster columns the fight view hides. Row 101 asserts the defect in the direction it is TRUE; deferred-items item 4
+- [Phase 05]: The spoken-for reading is printed VERBATIM, never asserted against a string: probe AU measured hard-coding it invisible today, red on a two-press board, and silently no longer asserting the UNDO
 
 ### Pending Todos
 
@@ -208,6 +214,7 @@ None yet.
 - 04-08: the clipboard matrix carries NO transcribed per-cell tier reading. Tiers 1 and 2 of the copy press have never executed anywhere in this repo (limitations entry 16), so the one-word approval is the only evidence they work. Re-ask for the DevTools-focused and window-backgrounded cells first — that is where Chrome's user-gesture rule is most likely to reject writeText and where the untested fall-through actually runs.
 - 05-07 finding for 05-11: the spent reading measures zero at every observable moment because advanceRound refills both pools in the same commit that spends them. Two admissible fixes are written into the file; the choice is the developer's
 - 05-08: with a fight running and one round resolved, #board's top sits at 1183px of a 1080px screen. Three dials are one budget (.fg-sides 34vh, .ld-list 34vh, .ld-now-body 20vh). REHEARSAL.md B3, plan 05-11
+- REF-03 is only HALF served on the fight tab: the six per-action reference cards are inside the roster columns, which the fight view hides. Measured by row 101, the first row in the repo to read them WITH A VIEW. deferred-items item 4 carries the mechanism and two candidate fixes; the developer settles it at 05-11 item 29.
 
 ## Deferred Items
 
@@ -219,6 +226,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T18:23:45.880Z
+Last session: 2026-08-29T19:20:19.430Z
 Stopped at: Completed 05-15-PLAN.md
 Resume file: None
