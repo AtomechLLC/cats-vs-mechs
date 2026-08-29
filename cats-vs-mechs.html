@@ -998,19 +998,27 @@
      03.1-05 and 04-05 both did — the styles arrive with the region that paints
      into them, never ahead of it.
 
-     THREE NEW PREFIXES, .fg-, .ld- AND .dc-, AND THEY ARE THREE RATHER THAN
-     ONE for the reason [C13]'s banner gives about .sh- and .rs- and names this
-     phase in by name: a single stylesheet has no real scope, so a rule for a
-     bare .row or .line would reach every region in this file from four thousand
-     lines away. One prefix per surface, and each surface's rules land in its
-     own sub-region, in the manner [S04.1] through [S04.4] divide their section:
+     FOUR NEW PREFIXES, .fg-, .ld-, .dc- AND .bf-, AND THEY ARE FOUR RATHER
+     THAN ONE for the reason [C13]'s banner gives about .sh- and .rs- and names
+     this phase in by name: a single stylesheet has no real scope, so a rule for
+     a bare .row or .line would reach every region in this file from four
+     thousand lines away. One prefix per surface, and each surface's rules land
+     in its own sub-region, in the manner [S04.1] through [S04.4] divide their
+     section:
 
        [C14.1]   .fg-   the fight bar                 plan 05-07
        [C14.2]   .ld-   the ledger of past rounds     plan 05-08
        [C14.3]   .dc-   the board in fight mode       plan 05-09
+       [C14.4]   .bf-   the battlefield               plan 05-15
 
      A plan writing into another plan's sub-region has taken a wrong turn, and
-     the three lines above are what stop the next author guessing at which.
+     the four lines above are what stop the next author guessing at which.
+
+     THIS SENTENCE SAID "THREE" UNTIL PLAN 05-15 AND IS AMENDED IN THE SAME
+     CHANGE THAT MADE IT FALSE, which is [S03]'s rule about a banner that
+     quietly lies and the move [S00]'s own stylesheet paragraph has already had
+     to make once this phase. A table of contents that has quietly stopped being
+     complete is worse than none, because a reader trusts it.
 
      [C03]'S STICKY GOTCHA BINDS THIS BLOCK HARDER THAN ANY OTHER IN THE FILE,
      because this is the first region added ABOVE #board since #topbar and
@@ -1123,14 +1131,34 @@
      rather than preferred.
 
      736px is not a round number and it is not meant to be one. .fg-sides
-     lays the two declaration roots along the line at .fg-side 1 1 340px with
-     a 16px gap, so the bar's CONTENT box needs 696px for them to sit side by
+     lays the two declaration roots along the line at .fg-side 1 1 320px with
+     a 16px gap, so the bar's CONTENT box needs 656px for them to sit side by
      side; below that they stack and the bar grows by roughly 60px. Add this
      region's own 18px of side padding twice and its 1px border twice and the
-     BORDER box needs 736. Measured at 1366x768, which is the width where it
-     decides: at a 652px bar the sides stack and the bar stands at 539px; at
-     736 they sit along the line and it stands at 481px. That 58px is most of
-     what puts the live board on a 768-tall screen.
+     BORDER box needs 728, and 736 is shipped with the eight pixels of headroom
+     the paragraph below explains. Measured at 1366x768, which is the width
+     where it decides: at a 652px bar the sides stack and the bar stands at
+     539px; at 736 they sit along the line and it stands at 481px. That 58px is
+     most of what puts the live board on a 768-tall screen.
+
+     THE SIDE BASIS IN THAT SUBTRACTION READ 340 UNTIL PLAN 05-15 AND THE
+     SUBTRACTION WAS INCOMPLETE, WHICH IS WHY IT IS RE-DERIVED HERE RATHER THAN
+     LEFT STANDING. Plan 05-14 measured that this bar reads 736 during a fight,
+     found the number still holding, and handed the RE-DERIVATION to plan 05-15
+     by name because the battlefield lands inside these same two columns. Plan
+     05-15 took the measurement and found that the two columns WERE NOT IN
+     COLUMNS AT ALL: 340 + 16 + 340 is 696, the bar's content box is 698, and
+     .fg-sides then spends 4px of its own padding and about 15px of scrollbar
+     gutter out of that 698 — leaving 679, which is less than 696. The pair
+     wrapped at every viewport in both browsers, silently, and D-27's own
+     sentence "Show both sides at the same time in columns" was not being kept.
+     [C14.1]'s .fg-side rule carries the sweep, the fix and what it costs; what
+     belongs HERE is that 736 IS NOT THE NUMBER THAT WAS WRONG. It is unmoved,
+     it now carries 23px of slack instead of a 17px deficit, and the 1180px
+     breakpoint derived from it below is unmoved with it. The lesson for the
+     next author of this paragraph is that a basis derived from a CONTENT width
+     has to subtract everything the container between them spends, and a
+     scroller spends two things rather than one.
 
      AND THE SURPLUS GOES TO THE LEDGER, because width is what makes a ROUND
      short. A ledger row wraps, so every pixel of width it gains comes back as
@@ -1209,9 +1237,66 @@
      own reason: this surface is this size because a room reads it off a
      projector, so a narrow window may cost height and may never cost
      legibility. The basis is a whole flex line's worth, so the two sides stack
-     rather than squeezing when there is no room for both. */
+     rather than squeezing when there is no room for both.
+
+     ==================================================================
+     THE BASIS WAS 340 AND IT IS 320, BECAUSE 340 NEVER FITTED — A DEFECT
+     THE SUITE WAS GREEN OVER AND A REAL BROWSER FOUND. Plan 05-15.
+     ==================================================================
+     D-27's own headline sentence is "Show both sides at the same time in
+     columns", and on the shipped artifact THEY WERE NOT IN COLUMNS: they were
+     stacked, one under the other, inside a 200px scroller on a 1366x768 laptop.
+     Measured in real Chrome and real Edge at 1920x1080 and 1366x768, on plan
+     05-15's own branch AND on the commit before it, so this is a defect that
+     shipped with the grid rather than one the battlefield introduced.
+
+     WHY 340 COULD NOT FIT, AND IT IS ARITHMETIC THE ORIGINAL DERIVATION LEFT
+     OUT RATHER THAN A NUMBER THAT DRIFTED. [C14]'s 736px basis is derived from
+     this one: two 340px bases plus this 16px gap need 696px of CONTENT, and
+     #fightbar's own 18px padding twice and 1px border twice make 736. What that
+     subtraction never counted is what [C14.1] then puts on .fg-sides:
+       #fightbar content box       736 - 36 padding - 2 border   =  698
+       .fg-sides own padding                          -4         =  694
+       the SCROLLER'S GUTTER, measured 15.33 in Chrome            =  679
+     679 is less than 696, so the pair wrapped — every time, at every viewport,
+     in both browsers, with no error and no warning. It is the same class of
+     failure as [C14]'s own shorthand trap and [C03]'s sticky gotcha: nothing
+     reports it, the page simply stops doing the thing it was laid out to do.
+
+     THE SWEEP, and the flip is between two adjacent rows:
+
+       .fg-side basis   along the line?   the width each column RENDERS at
+         340                 no                 679 (stacked, full width)
+         336                 no                 679
+         332                 no                 679
+         330                YES                 332
+         320  <- shipped    YES                 332
+         300                YES                 332
+
+     AND TURNING THIS DIAL DOWN COSTS NOTHING, WHICH IS WORTH SAYING BECAUSE A
+     DIAL TURNED DOWN USUALLY COSTS SOMETHING. flex-grow is 1, so the basis
+     decides only whether the pair FITS ON ONE LINE; once it does, both columns
+     grow to fill and land at 332px each — 8px short of the 340 the derivation
+     was reaching for, and those 8px are exactly what the scrollbar takes. The
+     reading a room gets is not 20px narrower, it is 347px wider, because the
+     alternative was one column at a time.
+
+     320 RATHER THAN 330, and the ten pixels are headroom rather than taste. A
+     scrollbar's width is a PLATFORM number this file cannot measure at author
+     time: 15.33 here, wider on a Windows box with classic scrollbars, and zero
+     where the OS draws overlay ones. 330 leaves 1.67px of slack and would flip
+     back to stacked on any machine whose gutter is two pixels wider; 320 leaves
+     23px and tolerates a gutter up to about 27px. The scrollbar-gutter property
+     would answer this exactly, and it is NOT used: it is Baseline newly
+     available and its Safari support lands after this artifact's stated floor.
+
+     [C14]'s 736 IS NOT MOVED AND DOES NOT NEED TO BE. With a 320 basis the pair
+     needs 656 of content and has 679, so the bar's basis holds with 23px to
+     spare and the 1180px breakpoint derived from it holds unchanged. Moving the
+     bar instead would have taken width off the ledger AND moved the breakpoint,
+     which is two dials and a media query for a defect that is one number. */
   .fg-sides{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
-  .fg-side{flex:1 1 340px;min-width:0}
+  .fg-side{flex:1 1 320px;min-width:0}
 
   /* The reading on the bar. tabular-nums for the reason [C03] uses it on the
      board's own values and [C13] restates on the code length: these figures
@@ -1666,20 +1751,40 @@
      screen with a tab on it rather than a regression. It is PROJ-05's question
      and it belongs to the playtest.
 
-     AND THE OTHER DIAL IS NAMED HERE RATHER THAN MOVED, because it is not this
-     block's. [C14] gives #fightbar a 736px flex basis, and its own comment
-     derives that number from .fg-side's 340px basis, a 16px gap and this
-     region's padding and border. THE ARITHMETIC BEHIND 736 WAS MEASURED
-     AGAINST THE OLD CONTENT AND THE GRID IS WIDER PER ROW: a picker row is a
-     unit name plus one button per action, and at three actions it fits 340px
-     while at six it wraps to two lines. Measured with the grid shipped, the
-     bar reads 736 wide during a fight and both columns sit along the line at
-     both viewports, so the number still HOLDS today; what it no longer has is
-     a derivation that matches what is inside it. PLAN 05-15 OWES THE
-     RE-MEASURE, because the battlefield cluster lands inside these same two
-     columns and will move both numbers again, and it owns [C14] for that
-     change. This paragraph is the hand-off, written here rather than left as a
-     number nobody re-derived.
+     AND THE OTHER DIAL WAS NAMED HERE AND HANDED ON, AND PLAN 05-15 HAS NOW
+     TAKEN THE MEASUREMENT. What stood here said that [C14]'s 736px basis "still
+     HOLDS today" while its derivation no longer matched what was inside it, and
+     handed the re-derivation to plan 05-15 by name. That plan took it, and the
+     finding is recorded rather than tidied away: THE COLUMNS WERE NOT SITTING
+     ALONG THE LINE AT ALL. The sentence above used to end "and both columns sit
+     along the line at both viewports", which was measured off the BAR's width
+     rather than off the two columns' positions — they were stacked, at every
+     viewport, in both browsers, on the commit before 05-15 as well as on it.
+     736 was not the wrong number; .fg-side's 340px basis was, because the
+     derivation subtracted the bar's padding and border and never subtracted
+     .fg-sides' own 2px padding or the gutter this rule's own overflow-y creates.
+     The basis is 320 now, the sweep and the arithmetic are at that rule in
+     [C14], and the pair renders at 332px each — which is what 340 was reaching
+     for and never got. This paragraph is kept rather than deleted because a
+     hand-off that has been honoured should say what came back, and because the
+     next author of a dial derived from a content width needs the lesson more
+     than they need a tidy comment.
+
+     AND THE BATTLEFIELD'S HEIGHT COST IS PAID BY THIS SAME BOUND, MEASURED.
+     [S06.11] paints inside .fg-field, which is a descendant of this scroller,
+     so the cluster grows into the window rather than past it: the Advance
+     control sits at 841 of 1080 and 752 of 768 both before and after the
+     battlefield landed — the same two figures the sweep above shipped 26vh for,
+     unchanged to the pixel. What DID move is what is inside the window: the
+     scrolled content goes from 1838px to 2221px on the shipped 9-and-3 board,
+     so a room now scrolls past roughly 214px of battlefield to reach the picker
+     rows. THAT IS THE COST AND IT IS SAID OUT LOUD RATHER THAN LEFT TO BE
+     NOTICED: at 1366x768 the 200px window holds the two side headings, the
+     survivor readings and the first row of shapes, and the action buttons are
+     below the fold of the scroller. Whether that ordering is right — the
+     addendum fixes it, [SIDE] then battlefield then resources then picker — is
+     a question for the playtest and is recorded as one in plan 05-15's summary
+     rather than settled by turning a dial.
 
      THE SCROLL IS ON THE ELEMENT ITSELF, which is [C12]'s action list, [C14]'s
      ledger list, and this — the third time. It is safe from [C03]'s sticky
@@ -2199,6 +2304,179 @@
      these lines must not be able to tell which words came from where. */
   .dc-say, .dc-word{color:inherit}
   .dc-tail{color:inherit}
+
+  /* ===================== [C14.4] THE BATTLEFIELD ===================== */
+  /* The `.bf-` rules [S06.11] paints with, plan 05-15 — D-27's addendum, in the
+     developer's own words: "a visual presentation of the battle field on the
+     current turn (shapes for cats with smaller shapes for status points /
+     health on them - on one side, same on the right for the other side)".
+
+     IT PAINTS INSIDE .fg-field AND NOWHERE ELSE. [C14.1] laid that container
+     out, named this plan as its owner and gave it a box and nothing else; every
+     rule below describes what goes IN it. The "one side … same on the right"
+     half of the sentence needs no rule at all, and that is worth saying rather
+     than leaving as a happy accident: .fg-field sits inside each side's own
+     column, so the clusters follow .fg-sides' two columns automatically and
+     would follow them still if a later plan ever reordered them.
+
+     THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT HERE AND ARE
+     RESTATED RATHER THAN POINTED AT, because the cost of each is what makes it
+     stick — [C14.1], [C14.2] and [C14.3] each restate them for the same reason
+     and this is the fourth time.
+       There is no reference-function-with-a-URI construct: no background image,
+     no data-URI icon, no stylesheet-loaded font. The dev gate refuses that
+     construct document-wide, in comments too.
+       There is no namespaced inline markup and no namespaced element
+     constructor. EVERY SHAPE ON THIS SURFACE IS A clip-path, and it is not a
+     shape this block draws: the smaller shapes are [C05]'s own .tok, built by
+     the shipped makeToken and clipped by the shipped polygons, so a triangle
+     here is the same triangle as on the board because it is the same rule. The
+     gate scans the whole document for the namespaced constructor and for the
+     opening tag of the namespaced markup and requires ZERO of each, and this
+     block is why that stays true of a region whose whole subject is shapes.
+     Both are DESCRIBED here rather than spelled, which is the rule [C11],
+     refCard, [C05] and [C14] all keep and which exists for exactly this case:
+     the check on this region is a scan of the source for the very token a
+     helpful comment would spell out.
+       And there is NO NEW HEX: every colour below is a [C00] token or a
+     color-mix() of one, which is [C07]'s banner rule.
+
+     [C14]'S FRAME IS NOT THIS BLOCK'S, exactly as [C14.1] through [C14.3] each
+     say of themselves: no width, no margin, no position and NO OVERFLOW OF ANY
+     KIND anywhere below. That last is [C03]'s sticky gotcha, which arrives with
+     no error and no warning, and this block has a specific reason to be tempted
+     by it — a cluster of shapes is exactly the sort of thing an author bounds
+     with a scroller. IT IS ALREADY BOUNDED: .fg-field is a descendant of
+     .fg-sides, which [C14.1] bounds at 26vh with the scroll ON ITSELF, so the
+     battlefield grows into an existing scroller and adds no second one. If it
+     ever needs a bound of its own, the scroll goes on the element itself —
+     [C12]'s action list, [C14]'s ledger list, [C14.1]'s sides, and this would
+     be the fourth — and it arrives with a measurement.
+
+     THE UNIT SHAPE TAKES THE NEUTRAL PLATE TREATMENT AND NOT A FACTION TINT,
+     and that is a finding rather than a preference. There is no faction colour
+     anywhere in this file to derive one from: .brd-col-head, .unit-card and
+     .fg-side-head are identical on both sides, and which side a shape is on is
+     said by the COLUMN it sits in. Inventing a cats colour and a mechs colour
+     here would be a new visual language introduced on the last surface of the
+     phase, and it would be a language a colourblind reader cannot use. So the
+     plate is .fg-act's own chrome restated under this prefix — an ink-faint
+     color-mix, the same one the action buttons beside it wear — and the two
+     read as one surface. */
+
+  /* ONE SHAPE PER UNIT, AND IT IS A BUTTON BECAUSE IT HAS A JOB. The addendum
+     makes the battlefield "read-only except as the click surface for the
+     change-target flow, whose targets light there", so every unit is pressable
+     and NONE is ever disabled — [S07.5]'s banner fixes that as a named
+     requirement on this plan, and there is no :disabled rule in this block at
+     all. That absence IS the requirement, in .dc-card--dead's register.
+
+     --tok IS OVERRIDDEN HERE, WITH THE MEASUREMENT AND THE REASON THE
+     REHEARSAL DIAL ASKS FOR. [C00] calls 22px "the projector rehearsal dial"
+     and .pk-preview records the precedent for INHERITING it, .pk-sw the
+     precedent for overriding it with a stated reason. This is the second kind.
+     The developer's sentence is "shapes for cats with SMALLER shapes for status
+     points / health ON them" — smaller is the requirement, not a liberty — and
+     the arithmetic says how much smaller it has to be: a nine-health row at
+     22px with the shipped 6px gap is 9x22 + 8x6 = 246px, and .fg-side's flex
+     basis is 340px, so a single unit's health row would fill a column on its
+     own and the cluster would be one unit per line. At 12px with a 3px gap the
+     same row is 132px and two units sit along the line at 340px. The dial
+     itself is untouched: turning [C00]'s 22px turns the board and leaves this
+     surface where it is, which is the whole point of an override having a
+     reason written beside it.
+
+     IT IS A LOCAL --tok AND NOT A SECOND SET OF SHAPE RULES, which is what
+     makes a student-authored type appear here exactly as they authored it:
+     .tok--tri, .tok--hex and the colour bindings all read var(--tok) and
+     var(--tok-fill), so one declaration resizes six shapes and seven colours
+     without this block naming any of them. */
+  .bf-unit{
+    --tok:12px;
+    --tok-gap:3px;
+    display:flex;flex-direction:column;align-items:flex-start;gap:4px;
+    min-width:150px;padding:8px 10px;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:10px;color:var(--ink);
+    font:inherit;line-height:1.2;text-align:left;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent)}
+  }
+
+  /* THE UNIT'S NAME, AT THE 18px FLOOR AND PERMANENTLY VISIBLE. UX-02, and
+     [C14]'s banner binds it here for the fifth time in this file: never an
+     icon, never a title= tooltip, and never conveyed by position alone. A
+     student reading a shape off a projector has to be able to say which unit it
+     is without counting along the row. */
+  .bf-name{font-size:18px;font-weight:700;color:var(--ink)}
+
+  /* ONE LINE PER TOKEN TYPE THE UNIT HOLDS: the type's name, then its tokens.
+     The lines WRAP as a group rather than stacking unconditionally, so a wide
+     column puts health and shield side by side and a narrow one stacks them —
+     [C12]'s and [C14.1]'s rule about their own lists, held here too: a narrow
+     window may cost height and may never cost legibility. Nothing below
+     shrinks its type. */
+  .bf-lines{display:flex;flex-wrap:wrap;gap:2px 12px}
+  .bf-line{display:flex;align-items:center;gap:6px}
+  /* [hidden] alone collapses nothing here, for .brd-line--opt's exact reason
+     one block up: [hidden]{display:none} is a USER-AGENT rule and the
+     display:flex directly above is an AUTHOR rule, so the author wins and a
+     hidden line would keep its box. Same fix, same shape. */
+  .bf-line[hidden]{display:none}
+  .bf-lbl{font-size:18px;color:var(--ink-faint)}
+
+  /* THE DEAD TREATMENT, AND IT IS [C14.3]'s .dc-card--dead RESTATED RATHER THAN
+     BORROWED — [C13]'s reason about .rs-, held again: a rule two regions depend
+     on is a rule neither can change.
+
+     THREE SAYINGS SHIP AND ONLY THE THIRD IS A COLOUR, which is [C07]'s
+     standing rule and the exact arrangement [C14.3] already ships:
+       the marker is a REAL NODE — the rectangle carrying a skull that
+         DEFAULTS.tokens.dead has held since Phase 2, drawn on this surface
+         through the same makeToken and the same [C05] rules as every other
+         token, so it survives a projector and a colourblind reader alike;
+       the sentence beside it is TEXT at the 18px floor, and it is the artifact's
+         own shipped words rather than a second vocabulary for one state;
+       and the plate is dimmed, which carries no information on its own and is
+         written last for that reason.
+     THE DIM IS ink-dim AND NOTHING NEW, and the border is derived with
+     color-mix() rather than picked — [C14.3]'s two sentences, and the same two
+     tokens, so a palette change moves the board's dead cards and this surface's
+     dead shapes together.
+
+     IT DIMS AND IT NEVER COLLAPSES, HIDES OR SHRINKS THE UNIT. FIGHT-06 —
+     "dead units stay visible rather than disappearing" — was decided long
+     before this surface and must not be re-decided here. There is no display,
+     no visibility, no height and no overflow in this rule, and that absence IS
+     the requirement. */
+  .bf-unit--dead{
+    color:var(--ink-dim);
+    border-color:color-mix(in srgb, var(--line) 70%, var(--ink-faint));
+  }
+  .bf-said{font-size:18px;color:var(--ink-dim)}
+  .bf-said[hidden]{display:none}
+
+  /* THE LIT STATE — a unit this side may be pointed at while a change of target
+     is half made. It is said in TWO CHANNELS AND COLOUR IS NOT ONE OF THEM ON
+     ITS OWN, [C07]'s rule restated for the sixth time in this file:
+       an OUTLINE, which is a change of shape rather than of hue and survives a
+         projector with the colour washed out of it — and it is .fg-act--on's
+         and .fg-at--on's own two lines, so the whole surface says "this one" in
+         one visual language;
+       and a REAL TEXT NODE carrying the artifact's own word, which a screen
+         reader and the rendered-page walk both reach. A state said only in an
+         attribute is a state the rendered-page walk cannot see, which is
+         overPill's and .dc-check's shipped argument for a real node.
+
+     LIT IS NOT ENABLED AND UNLIT IS NOT DISABLED. There is no :disabled rule in
+     this block, deliberately: an unlit unit is a press that declines quietly,
+     which is [S07.5]'s shipped precedent and what its banner requires of this
+     plan by name. The D-27 overrule is scoped to the grid's action buttons and
+     this surface is outside it. */
+  .bf-unit--lit{outline:2px solid var(--accent);outline-offset:2px}
+  .bf-pick{font-size:18px;color:var(--ink-dim)}
+  .bf-pick[hidden]{display:none}
 
   /* ===================== [C15] THE VIEW SWITCH ===================== */
   /* The switch between the board and the fight, plan 05-12. ONE NEW PREFIX,
@@ -3459,6 +3737,7 @@
  *     [S06.8] the ledger — past rounds, and what the last one changed    (plan 05-08)
  *     [S06.9] the board in fight mode — the markers and the live read   (plan 05-09)
  *     [S06.10] the view switch — which of the two regions paints    (plan 05-12)
+ *     [S06.11] the battlefield — one labelled shape per unit       (plan 05-15)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
@@ -3480,10 +3759,15 @@
  * [C12] is plan 03.1-05's, and it is named
  * here because it is the region [S06.5] and [S07.3] paint into; [C13] is plan
  * 04-05's, and it is the region [S06.6] and [S07.4] paint into. [C14] is plan
- * 05-06's frame around this phase's two page regions, and it divides into three
+ * 05-06's frame around this phase's two page regions, and it divides into FOUR
  * sub-blocks with an owner each, in the way [S04] and [S06] both divide:
  * [C14.1] is the region [S06.7] paints into (plan 05-07), [C14.2] the ledger's
- * (plan 05-08) and [C14.3] the board in fight mode (plan 05-09). [C15] is plan
+ * (plan 05-08), [C14.3] the board in fight mode (plan 05-09) and [C14.4] the
+ * battlefield [S06.11] paints inside [C14.1]'s reserved container (plan 05-15).
+ * This sentence said "three" until plan 05-15 and is amended in the same change
+ * that made it false — the third time this paragraph has had to keep [S03]'s
+ * rule about a banner that quietly lies, and it is kept rather than trimmed
+ * because a reader trusts a table of contents. [C15] is plan
  * 05-12's and it is the LAST block in the stylesheet: it lays the view switch
  * out and it is the one block in this file that decides which of two regions
  * paints at all, which is why it also carries a named [C03] EDIT placing #strip
@@ -15875,6 +16159,527 @@ App.render = (function () {
   SYNC_HOOKS.push(viewSwitch);
   // #endregion [S06.10] RENDER — THE VIEW SWITCH
 
+  /* ===================== [S06.11] RENDER — THE BATTLEFIELD ==============
+   * D-27's ADDENDUM, in the developer's own words: "a visual presentation of
+   * the battle field on the current turn (shapes for cats with smaller shapes
+   * for status points / health on them - on one side, same on the right for the
+   * other side)". Appended as its own sub-region for the mechanical reason
+   * [S06.2], [S06.3], [S06.5], [S06.6], [S06.7] and [S06.8] all state: it
+   * reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure variable of this
+   * IIFE, and it paints a different page region on a different trigger. IT
+   * CHANGES NOTHING IN [S06.1] THROUGH [S06.10].
+   *
+   * WHY IT EXISTS AT ALL. The earlier plan set recorded a consequence of the
+   * tab and accepted it — "the unit cards are on the board tab, so a student
+   * switches views to see health" — and the developer answered it with a
+   * SURFACE rather than with an acceptance. Hand rulings stay on the board tab;
+   * this is a READING, plus exactly one job: it is where targets light.
+   *
+   * WHERE IT PAINTS, AND ONLY WHERE. .fg-field, one per side, inside each
+   * #decl-{side} root. Plan 05-14 built that container empty, flagged it and
+   * named this plan as its owner at the site; this region writes inside it and
+   * touches no other node on the page. "ONE SIDE … SAME ON THE RIGHT FOR THE
+   * OTHER SIDE" NEEDS NO CODE HERE, and that is worth saying rather than
+   * leaving as a happy accident: .fg-field sits inside its own side's column,
+   * so the two clusters follow .fg-sides' two columns automatically and would
+   * follow them still if a later plan ever reordered them.
+   *
+   * ===================================================================
+   * IT CALLS THE BOARD'S TOKEN MACHINERY AND RE-DERIVES NOTHING, AND THAT
+   * IS THE REQUIREMENT RATHER THAN A CONVENIENCE.
+   * ===================================================================
+   * [S06] is ONE function scope — [S06.7]'s FIGHT_SIDES comment states that
+   * rule explicitly — so styleFor, labelFor, safeShape, safeColor, makeToken,
+   * syncRow and COMPACT_AT are directly callable from here, and calling them is
+   * what buys four separate things that would each have to be re-argued if this
+   * region built its own token nodes:
+   *
+   *   A STUDENT-AUTHORED TYPE APPEARS IN THE BATTLE EXACTLY AS THEY AUTHORED
+   *   IT. styleFor reads the live vocabulary through hasOwnProperty and
+   *   makeToken maps the shape and the colour through safeShape / safeColor —
+   *   T-02-01's own mitigation, reused rather than restated, so a caller string
+   *   from a pasted build code is never interpolated raw into className. D-07's
+   *   "they are the same kind of thing", ALLOC-10 and D-24's no-second-tier all
+   *   land here for free.
+   *
+   *   RULES 1, 2 AND 3 COME ALONG. syncRow grows and shrinks by DELTA only,
+   *   never re-appends and never reorders, because removal from the document
+   *   cancels an element's CSS animations and re-insertion replays them — and
+   *   "every token replaying its pop on a game-feel course artifact is a
+   *   correctness bug, not a polish item". A loop building token nodes here
+   *   would replay every pop on every repaint and NOTHING IN THIS REPOSITORY
+   *   WOULD SEE IT: probe BA measured exactly that and the suite stayed green,
+   *   which is recorded in plan 05-15's summary rather than left as a worry.
+   *
+   *   COMPACTION IS COMPACT_AT AND NOTHING ELSE. D-20's one threshold, D-21's
+   *   count-times-one-token form and D-22's no-animation-on-the-swap all hold
+   *   here because the same function decides them. A second threshold — read
+   *   out of the CSS, or chosen "because the cluster is small" — would mean a
+   *   student who learned the board's compaction reads this surface wrongly. If
+   *   12 is wrong for this surface that is a measurement and a written
+   *   argument, not a local constant.
+   *
+   *   AND --tok's REHEARSAL DIAL KEEPS MEANING ONE THING. [C14.4] overrides it
+   *   locally, with the arithmetic beside it, and every shape and colour rule
+   *   in [C05] reads the override without this region naming any of them.
+   *
+   * ===================================================================
+   * BUILD ONCE, WRITE EVERY FRAME — AND HERE THAT IS THE ANIMATION CONTRACT
+   * RATHER THAN A PREFERENCE.
+   * ===================================================================
+   * [S06.3]'s division, which [S06.6] and [S06.7] both keep. The shape of each
+   * unit is built the first frame a fight runs and flagged on .fg-field; every
+   * frame after that writes into nodes that already exist. A rebuild would
+   * empty and refill every token row on the page, which under syncRow's own
+   * rules animates nothing — and that is precisely the failure: the pops a
+   * student is supposed to see when a unit takes damage would be indistinguish-
+   * able from the ones a repaint invented, and the ones they should see would
+   * be lost among them.
+   *
+   * THE FLAG CARRIES A ROSTER SIGNATURE, because the roster CAN move mid-fight:
+   * addUnit and removeUnit are live during a fight and a student inventing a
+   * unit-scoped token type mid-fight adds a line to every shape. So the flag is
+   * a fingerprint rather than a bit — the same shape [S06.7]'s data-fg-sig and
+   * .tok-row's data-sig both use — and it is JSON.stringify of an ARRAY rather
+   * than a joined string, for pickerSig's stated reason: a delimiter is a
+   * character a student can type, and a joined fingerprint can be made to
+   * report "nothing changed" for a change.
+   *
+   * AND THE TEARDOWN IS [S06.7]'s. fgRest empties the whole side root, which
+   * takes .fg-field with it; the next startFight rebuilds an empty container
+   * and this region finds no flag on it and builds again. That is correct
+   * rather than an exception — a fight that has ended has no battlefield — and
+   * it is why the flag lives on .fg-field and not in a variable up here.
+   *
+   * ===================================================================
+   * WHAT EACH SHAPE DRAWS, AND THE ONE DIVISION THAT IS EASY TO GET
+   * BACKWARDS.
+   * ===================================================================
+   * THE HEALTH IS unit.hp — THE FIGHT'S LIVE HEALTH — AND NEVER maxHp.
+   * FIGHT-10's division: state.build[side].units[].maxHp is the ALLOCATION a
+   * student spent while setting the faction up, and state.fight[side].units[].hp
+   * is what the board holds now. The BOARD's own health row deliberately draws
+   * the other one, and check 102 records that on purpose so a later plan
+   * pointing either at the other slice reddens rather than shipping a second,
+   * silent answer to what a health number means. Drawn from the build here, a
+   * fight's damage would appear not to land at all — a whole workshop exercise
+   * spent wondering why the tool was broken. Probe AY drives exactly that.
+   *
+   * THE DEAD MARKER IS DRAWN FROM THE STORED `alive` FLAG AND NEVER FROM
+   * `hp === 0`. D-00d, the file's oldest ruling, and the direction a tidy
+   * implementation loses: a unit at zero health that a student ruled SURVIVED
+   * on a Shield has to stay representable, and a unit at full health that a
+   * student ruled dead has to draw as dead. [S06.9] holds the same rule on the
+   * board and check 98 takes it four ways; probe AZ drives it here.
+   *
+   * THE MARKER'S WORDING, GLYPH AND SENTENCE ARE [S06.9]'s, READ RATHER THAN
+   * REINVENTED. DC_DEAD_SAID is a closure variable of this same IIFE and the
+   * `dead` vocabulary entry is the shipped rectangle-carrying-a-skull, so this
+   * surface says one state in the artifact's one set of words. A second
+   * vocabulary for one state is two things to keep in step and one of them will
+   * drift.
+   *
+   * AND THE UNIT STAYS DRAWN. FIGHT-06 — "dead units stay visible rather than
+   * disappearing" — was decided long before this surface and is not re-decided
+   * here. The battlefield is the second place that promise has to hold and it
+   * is the place a student is actually looking during a fight.
+   *
+   * EVERY TALLY THE UNIT HOLDS IS WALKED, shipped and student-invented alike,
+   * with no second tier — D-24, and the whole purpose of Phase 2.1. Each line's
+   * label goes through labelFor and CARRIES THE TOKEN-NAME EXEMPTION CHANNEL,
+   * exactly as the board's rows and the grid's team resources do: this is a new
+   * place a student's own word reaches the page, and an unmarked one reddens CI
+   * on a word the STUDENT chose rather than on one the artifact says.
+   *
+   * THE UNIT'S NAME CARRIES NO EXEMPTION MARKER, and that is unitPick's shipped
+   * ruling rather than an oversight: no op in this file renames a unit, so it
+   * is a word the ARTIFACT says and it belongs in the harvest. The day a
+   * unit-rename op exists is the day this node and the board's both need the
+   * marker — not one of them.
+   *
+   * ===================================================================
+   * THE ONE JOB: TARGETS LIGHT HERE.
+   * ===================================================================
+   * Each shape carries the control [S07.5]'s banner specifies by name and by
+   * spelling — data-fg="bf", data-fg-side, data-fg-val and
+   * data-k="fg/bf/{side}/{unit}" — and THIS PLAN EDITS NO [S07.*] LINE. The arm
+   * was written by plan 05-14 and driven by a stub control it built and took
+   * away in the same breath; this is the control it was written for.
+   *
+   * THE LIT STATE IS READ AND NEVER WRITTEN HERE. The two half-made-change
+   * attributes live on the ACTING side's own #decl-{side} root, [S06.7] owns
+   * them, [S07.5] moves them, and this region asks fgHalfMade for them. A
+   * render tier that wrote them would be a second author of a value one region
+   * already owns.
+   *
+   * WHICH UNITS LIGHT IS THE OPPOSING SIDE'S, AND THAT RULE IS SAID IN TWO
+   * PLACES — WRITTEN DOWN BECAUSE IT IS A COUPLING RATHER THAN A DUPLICATION.
+   * [S07.5]'s fgMayPoint is the one-line predicate that decides which side a
+   * press may complete on; this region decides which side LIGHTS. They are in
+   * different IIFEs and neither can call the other. Widening one without the
+   * other lights a unit a press then declines, or leaves a legal pick dark — so
+   * the interaction gate asserts the lit set is EXACTLY the opposing side's
+   * roster while a change is half made, and empty otherwise, which is the row
+   * that catches the drift from this end.
+   *
+   * NOTHING HERE IS EVER DISABLED. Not a lit unit and not an unlit one. An
+   * unlit shape is a press that DECLINES QUIETLY — clearDeclarations returning
+   * false over an empty list is the shipped precedent, [S07.5]'s banner
+   * requires it of this plan by name, and a fourth disable condition is exactly
+   * what the D-27 overrule does not license: it is scoped to the grid's action
+   * buttons and this surface is outside it. Check 95's outside-the-grid clause
+   * covers these controls without a line of its own.
+   *
+   * ===================================================================
+   * WHAT THIS SURFACE MAY NEVER SAY.
+   * ===================================================================
+   * NOTHING ON IT COMPARES THE TWO SIDES TO EACH OTHER. D-13 and PROJ-06, and a
+   * battlefield is exactly where a reading about which side is doing better
+   * would arrive — it is the one surface in this file that shows both rosters
+   * at once, side by side, in a single glance. There
+   * is no total, no sum across a side, no figure about the two of them and no
+   * word about how the fight is GOING. Every word this region renders is a unit
+   * name, a token type's name, a count, or one of two artifact sentences named
+   * as constants below, and all of them were screened against the gate's three
+   * word lists and against the eight that CLEAR the gate and still do not ship.
+   *
+   * deps: App.model, App.data, [S06.1]'s token machinery, [S06.7]'s fgHalfMade
+   *       / fgUnitName / fgSig, [S06.9]'s DC_DEAD_SAID and dcClass
+   * owner: plan 05-15
+   * ===================================================================== */
+  // #region [S06.11] RENDER — THE BATTLEFIELD
+
+  /* The artifact's own word for a unit this flow may be pointed at, held as a
+     constant for DC_HAND_SAID's reason: it is written in a builder and in a
+     per-frame pass, and two copies of one sentence is two things to keep in
+     step. It says what the student may DO and never what they SHOULD do —
+     "Pick this one" is an affordance; a sentence about which unit is the better
+     choice would be this surface making the decision the students are for. */
+  var BF_PICK_SAID = 'Pick this one.';
+
+  /* WHICH LINES A UNIT SHAPE CARRIES, IN ORDER, AND WHY IT IS A LIST RATHER
+     THAN FOUR APPENDS. The two shipped durability types lead, because they are
+     the two every unit has; then every type the student SCOPED TO A UNIT, which
+     is D-01 and D-02's rule that the scope chosen at creation decides the site,
+     read off the record rather than decided again; and the dead marker last,
+     because it is a fact about the unit rather than a quantity on it.
+
+     THE FIVE SHIPPED IDS ARE SKIPPED IN THE WALK for [S06.1]'s tallyLines
+     reason: `hp`, `shield` and `dead` are already drawn by name above, and
+     `ap` and `dmg` are faction-level facts that a unit does not carry. A second
+     line for one of them here would be a number with no source.
+
+     IT IS ALSO THE STRUCTURAL HALF OF THE ROSTER SIGNATURE, which is why it is
+     one function: a student inventing a unit-scoped type mid-fight adds a line
+     to every shape, and the flag has to notice. */
+  function bfTokenIds(state) {
+    var ids = ['hp', 'shield'];
+    var vocab = state.build.tokens;
+    if (vocab) {
+      Object.keys(vocab).forEach(function (id) {
+        if (App.data.TOKEN_IDS.indexOf(id) !== -1) { return; }
+        if (vocab[id].scope !== 'unit') { return; }
+        ids.push(id);
+      });
+    }
+    ids.push('dead');
+    return ids;
+  }
+
+  /* THE QUANTITY ONE LINE DRAWS, AND THE FIRST TWO ARMS ARE FIGHT-10's DIVISION
+     AND D-00d, WRITTEN AT THE SITE RATHER THAN IN A BANNER ALONE.
+
+     `hp` IS THE FIGHT'S unit.hp. The build slice's maxHp is the ALLOCATION and
+     the board's own health row draws that one on purpose; drawing it here would
+     make a fight's damage appear not to land.
+
+     `dead` IS THE STORED FLAG. Never `hp === 0`, in either direction: a unit at
+     zero health nobody ruled draws as standing, and a unit at full health
+     somebody ruled draws as marked.
+
+     A TALLY IS READ THROUGH hasOwnProperty AND CHECKED FOR AN INTEGER, which is
+     amountFor's guard and fgFillTeam's, for the same reason both give: from
+     Phase 4 this object can arrive from a pasted build code, and a bare lookup
+     for a prototype name hands the page something that is not a number. */
+  function bfAmount(unit, tok) {
+    if (tok === 'hp') { return unit.hp; }
+    if (tok === 'shield') { return unit.shield; }
+    if (tok === 'dead') { return (unit.alive === false) ? 1 : 0; }
+    var bag = unit.tally;
+    if (!bag || !Object.prototype.hasOwnProperty.call(bag, tok)) { return 0; }
+    return Number.isInteger(bag[tok]) ? bag[tok] : 0;
+  }
+
+  /* ONE UNIT'S SHAPE, BUILT ONCE. Every value node below is EMPTY here and
+     written by the pass beneath it — [S06.3]'s division — and every token row is
+     built empty for tokenRow's own stated rule: structure() creates no token
+     node at any point, which is what makes "a rebuild repopulates from an empty
+     row, so nothing animates" true by construction.
+
+     THE SHAPE IS THE CONTROL, rather than a shape with a button beside it. The
+     addendum makes the battlefield the click surface for the change-target
+     flow, so the thing a student aims at IS the thing they press — a separate
+     control would be a second node to pair with a unit by reading, on a
+     projector, mid-fight, which is dcStandingLine's argument for keeping the
+     alive toggle inside its own card.
+
+     THE FOUR DATA KEYS ARE COPIED FROM [S07.5]'s BANNER RATHER THAN TYPED FROM
+     MEMORY. That banner fixes the spelling so the two plans cannot each invent
+     one, and check 94b reads every key on the page back for uniqueness the
+     moment they exist. `fg/bf/{side}/{unit}` cannot collide with the grid's
+     `fg/act/...` or `fg/at/...` by construction, and unit ids are unique across
+     both rosters — tallyLine's "no unit is on two sides" — but the row asserts
+     it rather than assuming it.
+
+     AND IT CARRIES NO data-act, which is [S06.7]'s and [S06.9]'s shared safety
+     boundary: [S07.1]'s delegated listener routes any node carrying one
+     straight into App.ops.dispatch, so a control here wearing one would fire an
+     op with a payload nothing on this surface meant to send.
+
+     THE TOKEN ROWS DELIBERATELY DO NOT CARRY data-amt AND data-unit, and that
+     is a measured decision rather than an omission. [S06.1]'s per-frame passes
+     are scoped to #board so they would never reach these rows — but a
+     document-wide `.tok-row[data-amt=…][data-unit=…]` lookup takes the FIRST
+     match in document order, #fightbar sits AHEAD of #board, and rows spelled
+     that way here would silently answer for the board's. It is the same hazard
+     [S06.3] records about a data-k in #strip stealing keyed()'s first match,
+     arriving one attribute over. The private spelling is data-bf-amt, in
+     [S06.7]'s data-fg manner. */
+  function bfBuildUnit(state, side, unit, tokens) {
+    var node = el('button', 'bf-unit');
+    node.type = 'button';
+    setData(node, {
+      fg: 'bf',
+      fgSide: side,
+      fgVal: unit.id,
+      k: 'fg/bf/' + side + '/' + unit.id
+    });
+
+    // The unit's name: permanent, visible, at the 18px floor, and no exemption
+    // marker on it — the banner says why.
+    node.appendChild(text('span', 'bf-name', fgUnitName(state, unit.id)));
+
+    var lines = el('div', 'bf-lines');
+    tokens.forEach(function (tok) {
+      var line = el('div', 'bf-line');
+      setData(line, { bfAmt: tok });
+      // THE LABEL CARRIES THE TOKEN-NAME EXEMPTION CHANNEL. This is where a
+      // renamed type enters the Layer C harvest, and an unmarked one reddens CI
+      // on the student's own word. The literal is written here as well as by
+      // the pass below, so the first painted frame is never blank — statLine's
+      // shipped arrangement.
+      var lbl = text('span', 'bf-lbl', labelFor(state, tok));
+      setData(lbl, { lbl: tok });
+      line.appendChild(lbl);
+      var row = el('div', 'tok-row');
+      setData(row, { bfAmt: tok });
+      line.appendChild(row);
+      lines.appendChild(line);
+    });
+    node.appendChild(lines);
+
+    // The two sentences, built once and written per frame, EMPTY AND HIDDEN
+    // TOGETHER at rest — dcStandingLine's rule for its own state line, and for
+    // its reason: "hidden" and "empty" say the same thing about a node, so no
+    // later check has to work out which of the two it means.
+    var said = text('span', 'bf-said', '');
+    said.hidden = true;
+    node.appendChild(said);
+    var pick = text('span', 'bf-pick', '');
+    pick.hidden = true;
+    node.appendChild(pick);
+
+    return node;
+  }
+
+  /* THE ROSTER SIGNATURE — what makes the build-once flag notice a roster that
+     moved. JSON.stringify of an ARRAY and never a joined string, for fgSig's
+     and pickerSig's stated reason. */
+  function bfRosterSig(state, side, tokens) {
+    return JSON.stringify([
+      state.fight[side].units.map(function (u) { return u.id; }),
+      tokens
+    ]);
+  }
+
+  /* WHETHER THIS SIDE'S UNITS LIGHT. Read off the OPPOSING side's root through
+     [S06.7]'s own fgHalfMade, so there is one reader of those two attributes and
+     this region is not a second. A change is half made when BOTH the action and
+     the performer are named — fgSettle clears either of them to nothing when
+     the thing it named leaves the board, so a half of a half is a flow standing
+     on nobody and lights nothing.
+
+     THE OPPOSING-SIDE RULE IS THE RENDER HALF OF [S07.5]'s fgMayPoint. The
+     banner records that coupling and the gate row that watches it. */
+  function bfLit(side) {
+    for (var i = 0; i < FIGHT_SIDES.length; i++) {
+      if (FIGHT_SIDES[i] === side) { continue; }
+      var half = fgHalfMade(FIGHT_SIDES[i]);
+      if (half.act !== '' && half.by !== '') { return true; }
+    }
+    return false;
+  }
+
+  /* ONE SIDE'S CLUSTER, WRITTEN. Nothing structural happens in here.
+
+     THE LINES ARE HIDDEN AT ZERO RATHER THAN REMOVED, and `hp` is never hidden.
+     That is [S06.1]'s hide pass restated for this surface and for its reason:
+     building only the non-zero lines would make a tally going 0 -> 1 a
+     STRUCTURAL change, and a rebuild throws away every token node in the
+     cluster. Health is exempt because a unit on zero health is a reading a
+     student needs — it is the moment they are deciding whether to rule it dead
+     — and a health line that vanished at the exact instant it mattered would be
+     the surface hiding the question. `hidden` here costs no animation either:
+     a hidden line's row is empty, so 0 -> 1 unhides a line and appends the one
+     token to an empty row, which syncRow animates exactly as a rebuild does. */
+  function bfFillSide(state, side, field, tokens) {
+    var units = state.fight[side].units;
+    var lit = bfLit(side);
+    var nodes = field.querySelectorAll('[data-fg="bf"]');
+    units.forEach(function (unit) {
+      var node = null;
+      for (var i = 0; i < nodes.length; i++) {
+        if (nodes[i].dataset.fgVal === unit.id) { node = nodes[i]; break; }
+      }
+      if (node === null) { return; }
+
+      var name = node.querySelector('.bf-name');
+      // Written every frame rather than only at build time, for fgUnitName's
+      // own reason: the name is computed from the BUILD roster at render time,
+      // so the day a unit-rename op exists it lands on the frame it happens.
+      if (name && name.textContent !== fgUnitName(state, unit.id)) {
+        name.textContent = fgUnitName(state, unit.id);
+      }
+
+      tokens.forEach(function (tok) {
+        var line = node.querySelector('.bf-line[data-bf-amt="' + tok + '"]');
+        if (!line) { return; }
+        var lbl = line.querySelector('.bf-lbl');
+        var row = line.querySelector('.tok-row');
+        var n = bfAmount(unit, tok);
+        if (lbl && lbl.textContent !== labelFor(state, tok)) {
+          lbl.textContent = labelFor(state, tok);
+        }
+        if (row) { syncRow(row, n, styleFor(state, tok)); }
+        line.hidden = (tok !== 'hp' && n === 0);
+      });
+
+      // THE STORED FLAG, AND NEVER THE HEALTH. Said three ways and by colour in
+      // only the third: the marker token appended above by the `dead` line, the
+      // artifact's own sentence, and the plate's dim.
+      var dead = (unit.alive === false);
+      dcClass(node, 'bf-unit--dead', dead);
+      var said = node.querySelector('.bf-said');
+      if (said) {
+        var wantSaid = dead ? DC_DEAD_SAID : '';
+        if (said.textContent !== wantSaid) { said.textContent = wantSaid; }
+        said.hidden = (wantSaid === '');
+      }
+
+      // LIT, AND NEVER DISABLED. Two channels, neither of them colour on its
+      // own: the outline the class draws, and a real text node a screen reader
+      // and the rendered-page walk both reach.
+      dcClass(node, 'bf-unit--lit', lit);
+      var pick = node.querySelector('.bf-pick');
+      if (pick) {
+        var wantPick = lit ? BF_PICK_SAID : '';
+        if (pick.textContent !== wantPick) { pick.textContent = wantPick; }
+        pick.hidden = (wantPick === '');
+      }
+    });
+  }
+
+  /* THE ONE ENTRY POINT, exported to the standard ledger() and boardFight() are
+     exported to and with their honest note: it has NO handler caller today and
+     is not expected to grow one, because a press on this surface dispatches a
+     real op and the commit schedules the frame. It is exported because a
+     surface reachable only by waiting for the next frame cannot be DRIVEN — a
+     row has to paint this region onto a state it just wrote and read the shapes
+     back, which is the one reading that can tell health drawn from the fight
+     apart from health drawn from the build.
+
+     THE REPAINT GATE IS [S06.7]'s OWN FINGERPRINT, CALLED RATHER THAN COPIED.
+     fgSig already takes both slices whole and both half-made-change attributes,
+     which is exactly this region's dependency set — it draws every unit's
+     health, shield, tallies and flag, reads the token vocabulary and the unit
+     names off the build, and lights from the two attributes. A narrower
+     fingerprint written here would be a second definition of "has anything
+     moved", and 03.1-05's recorded pre-02.1-04 defect is what that costs: a
+     surface whose fingerprint is narrower than what it draws is a surface that
+     is born stale. THE SECOND CALL IS PAID FOR AND THE PRICE IS WRITTEN DOWN:
+     fgSig stringifies both slices, measured at 0.030 ms for the build slice and
+     the same order for the fight one, and it is only ever paid while a fight is
+     running. A gate is worth it here because syncRow walks every token on both
+     rosters.
+
+     THE CHEAP EXIT IS FIRST AND IT IS THE WHOLE COST OF THIS REGION FOR A
+     STUDENT WHO NEVER STARTS A FIGHT — [S06.6]'s and [S06.7]'s accounting,
+     adapted: one getElementById, one null test and one null test. No
+     fingerprint is taken and no slice is stringified, because the fingerprint
+     is something the RUNNING arm pays for.
+
+     THE REBUILD IS WRAPPED IN withPreservedFocus AND THE PER-FRAME WRITE IS
+     NOT, which is [S06.1]'s division exactly. Only the rebuild destroys nodes,
+     and a student can be standing on a battlefield shape when a roster moves —
+     addUnit and removeUnit are live during a fight. keyed() takes the FIRST
+     [data-k] match inside the container it is given, and the container here is
+     one side's .fg-field, so no key this region writes can be taken for another
+     region's. */
+  function battlefield(state) {
+    if (typeof document === 'undefined') { return; }
+    var bar = document.getElementById('fightbar');
+    if (!bar) { return; }
+    if (state.fight === null) { return; }
+
+    var tokens = bfTokenIds(state);
+    var sig = fgSig(state);
+
+    FIGHT_SIDES.forEach(function (side) {
+      var root = document.getElementById(FIGHT_DECL_IDS[side]);
+      if (!root) { return; }
+      var field = root.querySelector('.fg-field');
+      if (!field) { return; }
+
+      var roster = bfRosterSig(state, side, tokens);
+      if (field.dataset.bfUp !== roster) {
+        withPreservedFocus(field, function () {
+          field.replaceChildren();
+          state.fight[side].units.forEach(function (unit) {
+            field.appendChild(bfBuildUnit(state, side, unit, tokens));
+          });
+        });
+        field.dataset.bfUp = roster;
+        field.dataset.bfSig = '';
+      }
+
+      if (field.dataset.bfSig === sig) { return; }
+      bfFillSide(state, side, field, tokens);
+      // TWO attributes, each answering exactly one question and neither
+      // answering two — [S06.6]'s rule, which [S06.7] restates:
+      //   data-bf-up  is WHETHER the shapes on this side match the roster they
+      //               were built for. It is a fingerprint rather than a bit,
+      //               because a roster can move mid-fight.
+      //   data-bf-sig is WHETHER anything drawn here has moved since the last
+      //               frame, and NOTHING EVER READS A VALUE OUT OF IT.
+      field.dataset.bfSig = sig;
+    });
+  }
+
+  /* The per-frame half, attached to [S06.1]'s seam in syncFight's exact shape
+     and REGISTERED AFTER IT, which is a dependency rather than an accident:
+     SYNC_HOOKS runs in registration order, [S06.7] builds .fg-field on the
+     first frame of a fight, and a region appending into a container its owner
+     has not created yet would paint nothing. [S06.9] records the same ordering
+     dependency on [S06.3]'s #strip and reads the flag rather than assuming it;
+     here the container's own absence is the test, which is the same reading
+     taken one node further in. */
+  function syncBattlefield(state) {
+    battlefield(state);
+  }
+
+  SYNC_HOOKS.push(syncBattlefield);
+  // #endregion [S06.11] RENDER — THE BATTLEFIELD
+
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -15927,6 +16732,16 @@ App.render = (function () {
     // and then read back off the page, which is the one reading that can tell a
     // marker drawn from the stored flag apart from one drawn from the health.
     boardFight: boardFight,
+    // Exported to the same standard ledger() and boardFight() are, and with the
+    // same honest note both of theirs carry: it has NO handler caller today and
+    // is not expected to grow one, because a press on the battlefield
+    // dispatches a real op and the commit schedules the frame. It is exported
+    // because a surface reachable only by waiting for the next frame cannot be
+    // DRIVEN — a row has to paint the shapes onto a state it just wrote and
+    // read them back, which is the one reading that can tell a health drawn
+    // from the FIGHT apart from one drawn from the BUILD, and a dead marker
+    // drawn from the stored flag apart from one drawn from the health.
+    battlefield: battlefield,
     // Exported for exactly the reason picker(), editor(), share() and
     // fightBar() are, and to exactly one caller: [S07.6]'s handler, which
     // writes data-view onto #app and then asks for the two controls to be
@@ -19272,6 +20087,31 @@ App.interactions = (function () {
       root.dataset.fgBy = by;
     }
     App.render.fightBar(App.state.get());
+    /* AND THE BATTLEFIELD, WHICH IS WHERE THE FLOW A STUDENT JUST OPENED
+       ACTUALLY SHOWS — plan 05-15, one line, and it is the SAME argument the
+       line above it makes rather than a new one.
+
+       WHY IT IS NEEDED AT ALL: this press is PAGE WORK and dispatches nothing,
+       so no commit lands, no frame is scheduled and SYNC_HOOKS never runs. The
+       line above exists for exactly that reason and paints [S06.7]; [S06.11]
+       paints a DIFFERENT region from the SAME two attributes — the addendum
+       puts the targets on the battlefield, "whose targets light there" — and
+       without this call the opposing side's shapes would stay dark until some
+       unrelated commit happened to schedule a frame. That is not a delay, it is
+       a flow with no visible half at all: the student presses Change target and
+       nothing they are meant to click lights up.
+
+       PLAN 05-14 SHIPPED THE ARM AND NOT THIS TRIGGER, and its banner said so
+       in as many words — "what a student sees change is the change-target
+       control's own pressed state and the row's reading beside it" — because
+       the region that draws the other half did not exist yet. It does now, and
+       this is the whole of the wiring.
+
+       IT IS TWO CALLS AND NOT ONE COMBINED ENTRY POINT, which is [S07.3]'s and
+       [S07.4]'s shipped idiom: a handler asks each surface it moved to be
+       painted. A render sub-region calling another render sub-region would be a
+       repaint whose trigger is invisible from the press that caused it. */
+    App.render.battlefield(App.state.get());
   }
 
   /* WHICH SIDE A CHANGE-TARGET FLOW MAY PICK FROM, AND IT IS ONE LINE ON
