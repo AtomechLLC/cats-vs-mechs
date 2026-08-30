@@ -715,8 +715,43 @@
      and is never allowed to cost legibility. The cap is 5 shipped types plus
      MAX_CUSTOM_TYPES of the student's own, so the scroll is the tail case
      rather than the usual one. */
+  /* ==================================================================
+     D-33 P2-9 - ONE LIST COMPONENT, AND IT IS A WRAPPING GRID OF CELLS
+     RATHER THAN A COLUMN OF FULL-WIDTH BARS. Plan 05-D33c.
+     ==================================================================
+     The audit measured two list designs solving one problem - "pick one
+     of N named things" - with different markup, different row content
+     and both "spending a full dialog width on a single word": this
+     list's rows ran 577px carrying a 20px swatch and one word, and
+     [C12]'s ran 971px carrying one word and nothing else. Both were so
+     tall that neither list plus its editor fitted a viewport, which is
+     the height half of P1-3.
+
+     THE CHANGE IS ONE DECLARATION PER LIST AND NO MARKUP AT ALL. A row
+     is already [tick] [swatch] [name] laid along the line; making the
+     CONTAINER a grid of ~200px tracks turns a column of N bars into a
+     couple of rows of cells, at the same type, with the same chrome,
+     the same outline-and-tick idiom and the same hit target. Measured
+     at 1920x1080: this list goes 591px wide with two 290px tracks and
+     the five shipped types come down from five rows to three.
+
+     AND IT CLOSES P2-8's OTHER HALF WITHOUT REORDERING ANYTHING. The
+     audit's second tick complaint is that on a full-width bar the tick
+     is pushed 940px from the word it modifies, "which at projector
+     distance reads as an unrelated mark". A cell is ~200px wide, so the
+     tick is at most a cell away from its own name - and the DOM order
+     is untouched, which matters: moving the tick with a CSS `order`
+     would put the sequence a screen reader walks out of step with the
+     one the room sees, which is PROBE BB's finding and the reason check
+     108 scans for that property rather than trusting a comment.
+
+     THE max-height STAYS AND IS NOW THE TAIL CASE IT WAS ALWAYS
+     DESCRIBED AS. This list's own banner says a longer list "may cost
+     height and may never cost legibility"; halving the height does not
+     change that ruling, it moves the point at which it bites. */
   .pk-list{
-    display:flex;flex-direction:column;gap:6px;
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+    gap:6px;align-content:start;
     max-height:236px;overflow-y:auto;
     padding:2px;   /* room for .pk-sw--on's outline, which draws outside the box */
   }
@@ -1052,14 +1087,52 @@
      dialog is this size because a room reads it off a projector, so a longer
      list may cost height and may never cost legibility. The cap is 3 shipped
      actions plus MAX_CUSTOM_ACTIONS of the student's own, so six rows is the
-     usual case and the scroll is the tail. */
+     usual case and the scroll is the tail.
+
+     ==================================================================
+     A STRAY COMMENT TERMINATOR ON THE LINE ABOVE MADE THIS ENTIRE RULE
+     INERT, FROM D-32 UNTIL D-33 PASS C. Fixed here, plan 05-D33c.
+     ==================================================================
+     The line above used to end with a comment terminator, and the
+     paragraph below it then ran as BARE TEXT until a second terminator
+     five lines further on. A CSS parser meeting that treats everything
+     from the stray text to the next recoverable block as one malformed
+     rule and DROPS IT - and the next block was .ae-list itself. So the
+     list of actions has never had its display, its 610px cap, its
+     236px bound, its scroll or its padding. Measured in real Chrome
+     with the editor open: display:block, max-width:none, width 986.
+
+     NOTHING IN THE REPOSITORY SAW IT, in either gate, for two plans.
+     The node gate has no layout engine, so a dropped rule is invisible
+     to it by construction. The browser cells that read this dialog read
+     the DIALOG's box and the terms region, which is what D-32 was
+     about. And the audit measured the symptom and wrote it up as a
+     design choice - P2-9's own words are that this list's rows run
+     "971px carrying one word and nothing else", which is precisely a
+     610px cap that is not being applied.
+
+     THE LESSON, WRITTEN DOWN RATHER THAN LEFT AS A FIX: a CSS rule
+     silently not applying is the one class of defect this file's two
+     harnesses cannot reach at all, and the only thing that finds it is
+     reading a COMPUTED value off a real browser. Cell 23e now does that
+     for this rule by name.
+
      THE 610px CAP IS D-32's AND IT IS THE OTHER HALF OF THE WIDER BOX. A row
      here holds one action's name; stretched to 992px it would be a name at the
      far left of a line of nothing, and a list of them would be a column of
      edges a student has to scan across. 610 is the width this list had when
      the box was 660, so nothing about reading it changed. */
+  /* D-33 P2-9 - THE SAME ONE LIST COMPONENT [C07] TAKES, and the whole
+     argument is written at .pk-list rather than twice. The 610px cap is
+     D-32's and stays: it is what keeps a row from being a name at the
+     far left of a line of nothing, and with two tracks inside it the
+     cap is now doing that job for a grid instead of for a column.
+     Measured in real Chrome once the rule above was applying at all:
+     610px of box, two 300px tracks, six actions in three rows instead
+     of six. */
   .ae-list{
-    display:flex;flex-direction:column;gap:6px;max-width:610px;
+    display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
+    gap:6px;align-content:start;max-width:610px;
     max-height:236px;overflow-y:auto;
     padding:2px;   /* room for .ae-item--on's outline, which draws outside the box */
   }
@@ -1096,6 +1169,15 @@
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
   .ae-side--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  /* D-33 P2-8 - THE TICK HAD NO SEPARATOR AND COLLIDED WITH THE LAST
+     LETTER. The audit read it off the page as "Cats" with the mark
+     against the s. This button is not a flex container, so the separator
+     is a margin on the mark rather than a gap on the box - .fg-act,
+     .dc-alive and .pk-list-item all carry a real gap already and are
+     untouched. textContent does not move: the mark is the same node in
+     the same place in the tree, which is what keeps the accessible name
+     and the Layer C harvest identical either side of this rule. */
+  .ae-side .ae-check{margin-inline-start:8px}
 
   /* The chrome is .pk-name's, which is .err-detail's, so there is ONE look for
      "type words here" across all three of the file's free-text inputs. */
@@ -1198,10 +1280,40 @@
      description of a reading that is permanently on screen, written to `title`
      and to `aria-label` from one variable by symQty, and harvested by the
      gate through data-tsay. */
+  /* D-33 P2-7 - THE ROW'S ANSWER IS NO LONGER THE SMALLEST CELL IN IT.
+     The audit: "the symbol reading - the row's actual answer - is the
+     smallest, dimmest cell in the row. Lift it to the same scale as the
+     chips." --tok is [C00]'s projector rehearsal dial and this is the
+     fourth context to override it locally (.pk-sw takes 24, [C14.4]
+     takes its own, [C14.5] set this one to 12), so the lift is one
+     custom property and every shape and colour rule in [C05] follows it
+     without being named.
+
+     THE 96px FLOOR IS RE-DERIVED RATHER THAN LEFT. D-32 measured it
+     against 12px tokens: "four tokens at [C14.5]'s 12px with its 3px
+     gap is 57px, the count form is the count plus one token, and the
+     widest of the two plus the mark's overhang lands inside 96." At
+     16px the same four tokens are 4x16 + 3x3 = 73, the count form is
+     narrower than that, and the mark's overhang is unchanged - so 96
+     still holds the widest reading and the strip a student scans down
+     still has an edge. */
   .ae-term-read{
     display:flex;align-items:center;flex-wrap:wrap;gap:6px;
     flex:0 0 auto;min-width:96px;
   }
+  /* THE OVERRIDE GOES ON .sym AND NOT ON THE BOX AROUND IT, and that is
+     measured rather than assumed: [C14.5] sets --tok on .sym itself, so
+     a value on an ancestor is shadowed by the descendant's own and the
+     tokens went on drawing at 12px with the ancestor reporting 16.
+     Driven in real Chrome before and after. */
+  .ae-term-read .sym{--tok:16px}
+  /* "Nothing separates term 1 from term 2 from term 3, so a four-term
+     list reads as an undifferentiated stack of identical chip rows" -
+     the audit. A hairline between rows, in --line, which is every other
+     division in this document; on the SECOND row onward so a single-term
+     list draws none. The 6px the list already puts between rows becomes
+     3 above the rule and 3 below it, so nothing grows. */
+  .ae-term + .ae-term{border-top:1px solid var(--line);padding-top:6px}
   .ae-term-note{margin:-6px 0 2px;color:var(--ink-dim);font-size:15px;max-width:60ch}
 
   /* The two choosers are one shape said twice, which is deliberate: a party and
@@ -1224,7 +1336,42 @@
      times over. */
   .ae-term-who,.ae-term-toks{display:flex;flex-wrap:wrap;gap:6px}
   .ae-term-who{flex:0 0 auto}
-  .ae-term-toks{flex:1 1 auto;min-width:0}
+  /* ==================================================================
+     D-33 P2-7 - THE AMOUNT SITS BESIDE THE CHIPS IT BELONGS TO. Plan
+     05-D33c, and it turns ONE WORD of D-32's rule below.
+     ==================================================================
+     The audit measured, on twelve rows: "the symbol reading sits at
+     x 466-500, the token chip group runs x=568-1110, and the amount
+     input sits at x=1382-1455. That is a ~270px gap between the chips
+     and the amount they belong to, repeated on twelve rows."
+     Re-measured here before the change, at 1920x1080: the reading
+     460-556, the token strip's BOX 564-1350 and the amount 1358-1431 -
+     so the void is inside this strip, which grows to fill the line and
+     pushes the amount to the far right of a 971px row.
+
+     WHAT D-32 SAID, KEPT IN VIEW BECAUSE THIS REVERSES ONE WORD OF IT:
+
+       "flex:1 1 auto with min-width:0 makes it the strip that gives,
+        which keeps the AMOUNT FIELD on the same line as its own row
+        instead of being pushed to a line of its own the moment a
+        seventh type is invented."
+
+     THE GROW WAS NEVER WHAT BOUGHT THAT AND THE SHRINK IS. flex-grow
+     decides what happens with SPARE space; the property that keeps the
+     amount on the line when the vocabulary is long is flex-SHRINK plus
+     min-width:0, and both stay exactly as they were. Dropping the grow
+     to 0 changes only the plentiful case, which is the one the audit
+     photographed: the chips hug their content, the amount follows them,
+     and the slack falls off the END of the row where nothing is trying
+     to be read across it. Driven with a grown vocabulary at both
+     viewports before this was committed. */
+  .ae-term-toks{flex:0 1 auto;min-width:0}
+  /* "None is the only way to clear a term and nothing marks it as such"
+     - the audit. It is a different KIND of choice from the token chips
+     beside it, so it is set apart by a gap rather than by a colour or a
+     second shape. Selected by the empty value the pill already carries,
+     so no markup and no class is added for it. */
+  .ae-term-toks .ae-pill[data-ed-tok=""]{margin-inline-end:10px}
   /* position:relative is D-32's and it is here for the tick below, which is
      the only thing in this rule that changed besides the padding. */
   .ae-pill{
@@ -1432,6 +1579,38 @@
      palette change. */
   .rs-apart{margin-left:6px;padding-left:16px;border-left:1px solid var(--line)}
   .brd-btn--danger{border-color:var(--accent-2);color:var(--accent-2)}
+  /* ==================================================================
+     D-33 P2-5 - THE ONE FILLED CONTROL ON A SURFACE. Plan 05-D33c.
+     ==================================================================
+     [C14.1]'s .fg-advance is the same treatment on the fight surface and
+     D-33 P1-6 is where it was decided: the control a surface EXISTS to
+     reach is the one filled object on it, so an instructor's cursor
+     travels to the act rather than to whatever is brightest. It is
+     restated under this prefix rather than borrowed, which is [C13]'s
+     own rule about .rs- and [C14]'s about its four: a rule two surfaces
+     depend on is a rule neither of them can change.
+
+     NO NEW HEX. --state-on-solid and --state-on-line are [C00]'s state
+     palette, which plan 05-D33a derived by color-mix() from six shipped
+     tokens; this rule names them and adds nothing.
+
+     THE DANGER TREATMENT IS UNTOUCHED AND MUST STAY THE LOUDER OF THE
+     TWO IN HUE while this is the louder in weight - they say different
+     things and neither is on the same surface as the other. */
+  .brd-btn--go{
+    border-color:var(--state-on-line);
+    background-color:var(--state-on-solid);
+    font-weight:700;
+  }
+  /* D-33 P2-5 - .sh-actions--lead IS GONE, and the rule is kept as a
+     tombstone rather than deleted with it, in .brd-brand's manner
+     ([C03]): the class name is the only trace that would otherwise be
+     left, and the next author of this surface should know the slot was
+     spent and reclaimed. It put Copy alone on a left-aligned row of its
+     own above the footer; Copy is in the footer now, first and filled.
+       .sh-actions--lead{justify-content:flex-start;margin-bottom:8px}
+     A LIVE rule for a class no markup carries is a rule for nothing, so
+     it is not left live. */
 
   .sh, .rs{
     background:var(--panel);color:var(--ink);
@@ -1479,13 +1658,13 @@
      of those is true today. */
   .sh-warn[hidden], .sh-said[hidden]{display:none}
 
-  /* Done pushes to the end because it is the only control that ends the visit;
-     Copy leads its own row because it acts on the field directly above it. Both
-     are [C07]'s arrangement, restated. No disabled styling is written here:
+  /* Done pushes to the end because it is the only control that ends the visit,
+     and under D-33 P2-5 Copy is FIRST in the same row rather than alone on one
+     of its own above it - the act, the way to the other half, the way out.
+     [C07]'s arrangement, restated. No disabled styling is written here:
      .brd-btn already carries &:disabled, and a second rule for it would be a
      second place for the two to disagree. */
   .sh-actions, .rs-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
-  .sh-actions--lead{justify-content:flex-start;margin-top:14px}
 
   /* The sentence that says what reset does and what survives it. Dimmed like
      every other line of consequence in this file, and at the 18px floor because
@@ -4349,6 +4528,35 @@
   .pk[open], .ae[open], .sh[open], .rs[open]{animation:dlg-in var(--ramp-in) ease-out}
   .pk[open]::backdrop, .ae[open]::backdrop,
   .sh[open]::backdrop, .rs[open]::backdrop{animation:dlg-in var(--ramp-in) ease-out}
+  /* ------------------------------------------------------------------
+     D-33 P2-5 - A PANE SWITCH SETTLES INSTEAD OF JUMPING. Plan 05-D33c.
+     ------------------------------------------------------------------
+     The audit measured #share resizing and re-centring the instant a
+     student presses the pane switch - "y 323->371, height 434->332,
+     which reads as a flicker" - and asks for "a transition on
+     opacity/translate (P1-8's ramp) so pane switches settle instead of
+     jumping".
+
+     IT IS THE SAME ENTRANCE THE DIALOG ITSELF TAKES, ON THE PANE, and
+     that is the whole of it: [S06.5] and [S06.6] swap the two panes by
+     writing .hidden, so the arriving pane is a box that was display:none
+     one frame ago and re-runs its animation exactly as a dialog does on
+     open. One keyframe, already defined, named a second time.
+
+     WHY NOT A HEIGHT TRANSITION, which is what would actually remove the
+     jump: a height animation on an auto-height box is not animatable
+     without pinning a number, and a pinned number here would be the
+     taller pane's height typed into the stylesheet - a figure that goes
+     wrong the first time either pane gains a line. The honest thing an
+     animation can do is make the SWAP legible, which is what this does;
+     the box still resizes, and it now takes 160ms to say so rather than
+     none.
+
+     NO transform, for plan 05-D33a's recorded reason: every browser cell
+     that reads a box would read it mid-flight. Opacity only. It rides
+     the reduced-motion guard at the foot of this block with everything
+     else. */
+  .sh-pane:not([hidden]), .ae-pane:not([hidden]){animation:dlg-in var(--ramp-in) ease-out}
 
   /* ------------------------------------------------------------------
      3. THE SCROLL AFFORDANCE — P3-3, on all seven scrolling regions
@@ -4404,27 +4612,56 @@
      battlefield cluster instead. A scroll cue on a box that no longer
      scrolls is a rule for nothing, and the box that DOES scroll would
      have had none. */
-  .fg-field, .ld-list, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
+  /* AND THE TWO DIALOG BODIES, ADDED BY D-33 PASS C AND FOUND ON A
+     PICTURE. Plan 05-D33c.
+     -------------------------------------------------------------------
+     Pass A gave every scroller in the file a cue and Pass B then MOVED
+     the dialogs' scroll: P1-3 made .pk and .ae grids with
+     overflow:hidden and put the scroll on a new .pk-body / .ae-body,
+     which is a box that did not exist when this list was written. So
+     the two authoring surfaces went back to an UNSTYLED scrollbar -
+     and because this document is dark and nothing declares a colour
+     scheme, Chrome drew it in its light default: a wide white bar down
+     the right of a dark dialog, the loudest object on the surface.
+
+     THE NODE GATE CANNOT SEE A SCROLLBAR AND NEITHER CAN A DEFAULT
+     PLAYWRIGHT RUN, which is why this survived Pass B with 1253/0,
+     196/196 and 222/0 over it: headless Chrome hides scrollbars unless
+     --hide-scrollbars is removed from the default args, which is the
+     trap plan 05-D33a recorded and this is its second victim. It was
+     found by reading a screenshot taken WITHOUT that flag.
+
+     THE RULE FOR THE NEXT AUTHOR IS THE ONE-LINE VERSION: a plan that
+     moves a scroll from one box to another moves its cue too, and the
+     only thing that can tell you it did not is a picture. */
+  .fg-field, .ld-list, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list,
+  .pk-body, .ae-body{
     scrollbar-width:thin;
     scrollbar-color:var(--state-scroll-thumb) transparent;
   }
   .fg-field::-webkit-scrollbar, .ld-list::-webkit-scrollbar,
   .ld-row::-webkit-scrollbar, .ld-now-body::-webkit-scrollbar,
   #strip::-webkit-scrollbar, .pk-list::-webkit-scrollbar,
-  .ae-list::-webkit-scrollbar{width:10px;height:10px}
+  .ae-list::-webkit-scrollbar,
+  .pk-body::-webkit-scrollbar, .ae-body::-webkit-scrollbar{width:10px;height:10px}
   .fg-field::-webkit-scrollbar-track, .ld-list::-webkit-scrollbar-track,
   .ld-row::-webkit-scrollbar-track, .ld-now-body::-webkit-scrollbar-track,
   #strip::-webkit-scrollbar-track, .pk-list::-webkit-scrollbar-track,
-  .ae-list::-webkit-scrollbar-track{background:transparent}
+  .ae-list::-webkit-scrollbar-track,
+  .pk-body::-webkit-scrollbar-track,
+  .ae-body::-webkit-scrollbar-track{background:transparent}
   .fg-field::-webkit-scrollbar-thumb, .ld-list::-webkit-scrollbar-thumb,
   .ld-row::-webkit-scrollbar-thumb, .ld-now-body::-webkit-scrollbar-thumb,
   #strip::-webkit-scrollbar-thumb, .pk-list::-webkit-scrollbar-thumb,
-  .ae-list::-webkit-scrollbar-thumb{
+  .ae-list::-webkit-scrollbar-thumb,
+  .pk-body::-webkit-scrollbar-thumb, .ae-body::-webkit-scrollbar-thumb{
     background:var(--state-scroll-thumb);border-radius:999px;
   }
 
-  /* The vertical six. */
-  .fg-field, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
+  /* The vertical six, and the two dialog bodies D-33 Pass C added to
+     them. */
+  .fg-field, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list,
+  .pk-body, .ae-body{
     background-image:
       linear-gradient(to bottom, var(--fade-cover) 60%, transparent),
       linear-gradient(to top, var(--fade-cover) 60%, transparent),
@@ -4457,7 +4694,7 @@
      reads that one, because the next selector moved into this block will
      be one that is read. */
   .fg-area .fg-field{--fade-cover:var(--panel-2)}
-  .pk-list, .ae-list{--fade-cover:var(--panel)}
+  .pk-list, .ae-list, .pk-body, .ae-body{--fade-cover:var(--panel)}
   #strip{--fade-cover:var(--panel)}
   .ld-list{--fade-cover:var(--bg)}
   .ld-row{--fade-cover:color-mix(in srgb, var(--panel) 55%, var(--bg))}
@@ -4482,6 +4719,11 @@
     .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
     .pk[open]::backdrop, .ae[open]::backdrop,
     .sh[open]::backdrop, .rs[open]::backdrop{animation:none}
+    /* D-33 P2-5's pane entrance goes with the dialog's own, and it is
+       named here rather than left to the rule above: these are two
+       different selectors and a guard that covered one of them would be
+       a guard that looked complete. */
+    .sh-pane:not([hidden]), .ae-pane:not([hidden]){animation:none}
   }
 </style>
 </head>
@@ -5715,14 +5957,24 @@
          (plan 04-06) and by nothing in [S06]; empty and hidden until then. -->
     <p class="sh-said" id="share-said" hidden></p>
 
-    <div class="sh-actions sh-actions--lead">
-      <button class="brd-btn" type="button" id="share-copy" data-sh="copy" data-k="sh/copy">Copy</button>
-    </div>
+    <!-- ============ D-33 P2-5 - COPY JOINS THE FOOTER ROW. Plan 05-D33c.
+         The audit: "The copy pane's buttons are split across two rows with two
+         different alignments - Copy alone on the left, Paste a build code +
+         Done right-aligned below - leaving the dialog's primary action as its
+         least prominent element."
 
-    <!-- The pane switch and the end of the visit, in that order: one moves to
-         the other half of this dialog, the other ends the whole thing. [C07]'s
-         arrangement, restated for the reason [C12]'s banner gives. -->
+         ONE ROW, IN THE ORDER THE PANE READS: the act this surface exists for,
+         the way to the other half of it, and the end of the visit. Copy takes
+         the one FILL on the surface, which is D-33 P1-6's treatment on the
+         Advance control arriving on a second surface and derived from the same
+         [C00] state tokens - no new hex. Done stays last because it is the one
+         control that ends the visit.
+
+         .sh-actions--lead IS GONE WITH THE ROW IT LED. [C13] keeps its rule as
+         a tombstone, in .brd-brand's manner, so the next author knows the slot
+         was spent and reclaimed rather than never used. -->
     <div class="sh-actions">
+      <button class="brd-btn brd-btn--go" type="button" id="share-copy" data-sh="copy" data-k="sh/copy">Copy</button>
       <button class="brd-btn" type="button" id="share-to-load" data-sh="to-load" data-k="sh/to-load">Paste a build code</button>
       <button class="brd-btn" type="button" id="share-done" data-sh="done" data-k="sh/done">Done</button>
     </div>
@@ -5745,7 +5997,7 @@
     <p class="sh-said" id="sh-load-said" hidden></p>
 
     <div class="sh-actions">
-      <button class="brd-btn" type="button" id="sh-load-do" data-sh="load" data-k="sh/load">Load</button>
+      <button class="brd-btn brd-btn--go" type="button" id="sh-load-do" data-sh="load" data-k="sh/load">Load</button>
       <!-- ITS LEGEND SAYS WHERE IT GOES, which it did not when plan 04-05
            shipped it: the id is sh-load-back and the act is to-copy, so this
            returns to the copy pane, and a legend reading "Done" told a student

@@ -2262,6 +2262,51 @@ for (const ch of ['chrome', 'msedge']) {
       && aeMarks.up !== null && aeMarks.up.mark === false
       && aeMarks.all === 5,
       aeMarks);
+
+    /* ── 23e. A SHIPPED RULE IS ACTUALLY APPLYING, READ OFF COMPUTED STYLE.
+       D-33 Pass C, and this cell exists because of what it found.
+
+       .ae-list carried a 610px cap, a 236px bound, a scroll and a padding from
+       D-32 onward and NONE of them had ever applied: the comment above the rule
+       ended with a stray terminator, the paragraph after it ran as bare text,
+       and the CSS parser dropped everything from there to the next recoverable
+       block — which was the rule itself. Measured before the fix, real Chrome,
+       editor open: display block, max-width none, width 986 against a 610 cap.
+
+       NOTHING IN EITHER GATE COULD SEE IT AND THAT IS THE POINT. The node gate
+       has no layout engine, so a dropped rule is invisible to it by
+       construction; the browser cells above read the DIALOG's box and the terms
+       region, which is what D-32 was about; and the audit measured the symptom
+       and wrote it up as a design choice — P2-9's own words are that these rows
+       run "971px carrying one word and nothing else", which IS a 610px cap not
+       being applied.
+
+       SO THE CELL READS THE DECLARATIONS BY NAME rather than the outcome. An
+       outcome check ("the list is 610 wide") would pass the day somebody caps
+       it somewhere else; these four are the rule's own contract, and a rule
+       that stops being parsed drops all four at once. It also reads the ONE
+       thing P2-9 changed — the grid — so a later author who reverts the list to
+       a column of full-width bars does it in the open. */
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    const aeListCss = await pg.evaluate(() => {
+      const n = document.querySelector('.ae-list');
+      if (!n) return null;
+      const cs = getComputedStyle(n);
+      return {
+        display: cs.display, maxW: cs.maxWidth, maxH: cs.maxHeight,
+        overflowY: cs.overflowY,
+        tracks: cs.gridTemplateColumns.split(' ').filter(Boolean).length,
+        w: Math.round(n.getBoundingClientRect().width)
+      };
+    });
+    note(ch, size.name, 'D-33 .ae-list, off computed style', aeListCss
+      ? `${aeListCss.display} ${aeListCss.w}/${aeListCss.maxW} ${aeListCss.tracks} tracks` : 'no node');
+    ok(`${tag}: 23e. the action list's OWN rule is applying — display, the 610px cap, the height bound and the scroll all read back off computed style, and the list is the wrapping grid D-33 P2-9 made it. From D-32 until D-33 Pass C a stray comment terminator dropped this whole rule and neither gate could see it, because a rule that never applies is invisible without a layout engine`,
+      aeListCss !== null && aeListCss.display === 'grid'
+      && aeListCss.maxW === '610px' && aeListCss.maxH === '236px'
+      && aeListCss.overflowY === 'auto' && aeListCss.tracks >= 2
+      && aeListCss.w <= 610,
+      aeListCss);
     await pg.click('#act-edit-done'); await pg.waitForTimeout(150);
 
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
