@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-33 PASS B — the P1 structural tier (05-D33b)
-last_updated: "2026-08-30T23:55:00.000Z"
+stopped_at: Completed D-33 PASS C — the P2/P3 tiers and REF-03 (05-D33c)
+last_updated: "2026-08-30T05:20:00.000Z"
 last_activity: 2026-08-30
 progress:
   total_phases: 7
@@ -151,11 +151,81 @@ scrolling to the end — the one offset where a non-sticky footer is also visibl
 picture:** the lane caption took a grid CELL and displaced the lane, and it survived the
 teardown onto the setup page's scan.
 `.planning/phases/05-fight-loop-playtest/05-D33b-SUMMARY.md`.
-Next: Pass D (one dialog frame's remaining halves — placement, the list component, the term
-grid, the ticks) and Pass E (the bar and the head). Pass C is largely spent: P1-4, P1-5 and
-P2-10 landed here because P1-4's own instruction requires one turn; **P2-11 is still
-open**. Pass F inherits one flagged reading — `[S06.9]`'s `dcFillLive` is the last place
-in the file rendering the build-against-fight pool.
+**Pass C (05-D33c) — everything left of the audit: the P2 tier, the P3 tier and REF-03.**
+Eight commits. The audit is now fully spent apart from the two findings it explicitly
+refused to decide.
+
+- **P2-11, the labelled empty box.** A shape at zero fight health read `Health` and
+  nothing. The one line that STAYS at zero now SAYS its zero, in `[S06.12]`'s own count
+  form (`0×` and one token) — the notation the lane, the picker and the editor already use.
+- **P2-2 / P2-3 / P2-4, the bar.** The round-and-pool reading moves to the END of the
+  cluster on its own line, so the **tools row is byte-identical before and during a fight
+  at both sizes** (the bar goes 64 → 101 where it went 64 → 109/161, and nothing a hand
+  travels to moves). It ships hidden, because it used to print "Round" over nothing. The
+  five captions take `.eyebrow`'s SHAPE at **15px** — not its 12px, because [C10] and [C11]
+  both say nothing at or below 14px may carry information. And `#fight-start` is a
+  **lifecycle toggle** — "Start the fight" / "End the fight", never disabled — which
+  **overturns a refusal the shell wrote down**; the refusal is quoted at the site and it was
+  written about Start-against-RESET, while `endFight` is one commit and `resetFight`'s own
+  D-17 answer covers it word for word.
+- **P2-5 / P2-7 / P2-8 / P2-9, the dialogs.** One list component: both lists become a
+  wrapping grid of ~200px cells, which also puts every tick within a cell of its own label
+  with no CSS `order`. The term row's **270px void measures 8px** — `.ae-term-toks` drops
+  flex-GROW only, and the shrink that actually keeps the amount on the line is untouched.
+  A hairline between terms, the reading's tokens lifted 12 → 16px, `None` set apart. `Copy`
+  joins the footer row, first and filled.
+- **P3-5 / P3-7.** The glyph is scaled to the SILHOUETTE (`--tok-glyph` per shape) rather
+  than to the square the shapes clip; and the symbolic readings drop it entirely — measured
+  at **8.16px of emoji inside a 12px hexagon** before. P3-7 was read off the
+  **accessibility tree** and the audit had named the wrong control: `visibility:hidden`
+  removes a node from an accessible name, so five of six ticks were already correct, and
+  the one that was not is `.dc-check`'s `opacity:0` — an unpressed dead marker was named
+  "Mark dead ✓" while its own `aria-pressed` said false.
+- **P2-12, the panel.** The offset was ARITHMETIC: `--topbar-now` is the bar's HEIGHT,
+  which is its bottom edge only once it has stuck, and a fixed box is placed against the
+  viewport whether it has or not. `[S08]` publishes `--topbar-foot` (passive scroll,
+  rAF-coalesced, written only when it moves). The panel gains a sticky header with its own
+  name and a text-labelled **Close**, and it **pushes the fight band** rather than sitting
+  on it. Measured: it covered Share, Reset, `.ld-now`, the Mechs column and — scrolled —
+  "Reset this fight"; it now **covers NOTHING**, at both viewports at two scroll offsets.
+  A scrim was refused with its reasoning: PROJ-05 asks for the page behind it to stay
+  readable.
+- **P3-8 / REF-03 — deferred item 4 is CLOSED**, by its own third candidate. The six
+  per-action cards are built into D-28's sidebar while a fight runs and removed at rest,
+  through the same `refCard()` the columns use. Twelve on the board: six in the columns for
+  the build view, six in the panel, **the same six actions compared by name**, none in the
+  band, and none on screen twice. The toggle and the header both read "Projection and
+  reference".
+- **P3-9's four bullets are ANSWERED WITH MEASUREMENTS at their sites and not
+  implemented** — the fractional middle track (320 is the projection's 24px headline on one
+  line; the first setting that buys a column anything breaks it in two), subgrid row
+  pairing (reproduced: 54px of drift; refused, because 9 and 3 independent rosters cannot
+  be paired), the two share textareas (measured IDENTICAL — the audit's "different border"
+  is a focus ring), and the reserved switch slot (the toggle is last, so nothing moves).
+
+Gate — **no floor moved**: node **1253/0 exit 0**, **196 of 196**, stub-drift **135 shell
+ids**, `DIALOG_FLOOR` **138**/172, `FIGHT_FLOOR` **132**/586, `PROPOSE_FLOOR` **23**/62,
+`#app` 131, browser checks **230/0 HEADLESS** (+cells 10f and 23e).
+**Six harness rows turned in the open:** node 106e (its zero clause ASSERTED the labelled
+empty box), node 93 (a seventh act, and the lifecycle control read both ways by name),
+node 95 and 104f (they required exactly ONE disabled control outside the grid and now
+require none — the never-disable rule arriving whole), node 57 (`.style` went 1 → 2 and
+every occurrence is now read IN CONTEXT), and **node 101, which reddened exactly as it was
+designed to** — it asserted REF-03's defect in the direction it was true so that the day
+somebody moved the cards it would go red, and D-33 P3-8 moved them.
+**Two shipped rules were found to have NEVER APPLIED**, both invisible to both gates:
+`.ae-list`'s whole rule (a stray comment terminator from D-32 dropped it — the audit
+measured the symptom and wrote it up as a design choice), and the two dialog BODIES' scroll
+cue (Pass B moved the scroll onto boxes that did not exist when Pass A wrote the list, and
+Chrome drew its light default: a white bar down a dark dialog). New browser cell 23e reads
+a rule's own DECLARATIONS off computed style, because that is the only thing that finds
+this class of defect.
+`.planning/phases/05-fight-loop-playtest/05-D33c-SUMMARY.md`.
+Next: **nothing autonomous is left in the phase.** 05-11's playtest is the gate, and its
+register is now **1–57**: section K holds P2-6 (symbols in the proposal pane, which extends
+D-29's own scope) and P3-4 (one removal mark per term group rather than per glyph, which
+touches D-30's own spec) — the two findings D-33's audit refused to implement without the
+developer.
 Last activity: 2026-08-30
 
 Progress: [██████████] 100%
@@ -232,6 +302,10 @@ Recent decisions affecting current work:
 - [D-29]: The fight surface reads in SYMBOLS with the prose on hover. The ledger lane's board states, deltas and resolution readings, and every cost and requirement on the picker, draw the token type's OWN shape, colour and glyph through the shipped `styleFor` / `labelFor` / `makeToken` / `syncRow` — called, never re-derived — so a student-authored type appears there exactly as they authored it and compaction is `COMPACT_AT` and nothing else. A cost is `−` plus the token. Sentences stay only where a symbol cannot carry the meaning.
 - [D-33 Pass B]: The two figures for one pool are ONE FUNCTION, not two arithmetics over one slice — `fgPoolWords` is the only place held-and-spoken-for becomes words and both the topbar and the state card call it. The audit's cheaper option, deleting the bar's figures, was declined because those spans are the one pool reading present in BOTH views; making them live keeps the property and fixes the defect in one move. Nothing about what Advance DOES moved.
 - [D-33 Pass B]: A STICKY FOOTER replaces four generations of viewport dial. Advance sits at the foot of the area whose rows it commits and cannot leave the window while any of them is in it — at every viewport, on every roster, at every setting of every number in the file, including the 768 case D-31 measured as unreachable and wrote down as unreachable. That is what paid for the picker's height bound coming off, and the two changes do not make sense apart.
+- [D-33 Pass C]: A CSS RULE THAT NEVER APPLIES IS INVISIBLE TO BOTH GATES. `.ae-list`'s whole rule — its display, its 610px cap, its 236px bound, its scroll — had been dropped by the CSS parser since D-32, because a stray comment terminator left five lines running as bare text. The node gate has no layout engine so it cannot see a dropped rule at all; the browser cells read OUTCOMES rather than declarations; and the D-33 audit measured the symptom (rows "971px carrying one word and nothing else") and wrote it up as a design choice. New browser cell 23e reads a rule's four declarations off computed style, which is the only shape of check that finds this.
+- [D-33 Pass C]: A POSITION:FIXED OVERLAY IS PLACED AGAINST THE VIEWPORT, so it needs its anchor's LIVE EDGE and not its height. `--topbar-now` is the bar's height, which is its bottom edge only once the bar has stuck — so D-28's sidebar sat 99px over the control bar at page scroll zero at both viewports, and every gate was green over it. `--topbar-foot` is published beside it, on a passive rAF-coalesced scroll listener that writes only when the rounded value moves. Two properties, each answering exactly one question.
+- [D-33 Pass C]: AN ACCESSIBLE NAME IS READ OFF THE TREE, NEVER REASONED ABOUT. The audit reported the hidden tick left in every action button's accessible name; driven in real Chrome, an undeclared button is named "Slash Removes: 1 Action points" — `visibility:hidden` removes a node from an accessible name and five of the file's six ticks use it. The one that really had the defect is the dead marker's, which used `opacity:0` and was named "Mark dead ✓" while its own `aria-pressed` said false. The audit named the wrong control and the measurement found the right one.
+- [D-33 Pass C]: A ROW THAT ASSERTS A DEFECT IN THE DIRECTION IT IS TRUE WORKS. Row 101 was written by plan 05-16 to redden the day somebody moved the reference cards, precisely because that plan could not move them. D-33 P3-8 moved them and it went red, and whoever read the failure read the paragraph — which is the whole design. It now asserts the arrangement that replaced the defect.
 - [D-33 Pass B]: A BOUNDED REGION'S CHECKS MUST READ WHAT IS INSIDE THE BOX. Browser cell 6b measured the picker's box at every viewport for three plans and was green while three of nine cats were invisible inside it. It now walks each row's ancestors and compares boxes. The same lesson in CSS: a new child of `#ledger` takes a GRID CELL, and the whole harness — 1253/0, 196/196, 222/0 at both viewports — was green over a lane displaced into the reading column, because nothing in it reads which cell a box lands in.
 - [D-32]: All three term lists cap at FOUR, and a multi-token cost SPENDS WHAT IT NAMES. A pool is action points or a type a student keeps at SIDE scope — D-24's rule as arithmetic. Health and shield are deliberately NOT pools: they live on units, and spending them would mean the tool choosing which unit pays, which is adjudication. A cost naming one is drawn, reported, disables nothing and spends nothing.
 - [D-32, orchestrator]: `actionApCost` keeps its meaning by being SPLIT rather than widened — `actionCostTerms` reads the whole cost, `actionApCost` projects the action-point half over it — and `costIsApOnly` in `actionModelled` is what stops a partly-priced cost from being afforded as often as a plain one-point action and overstating the projection in silence.
@@ -387,5 +461,5 @@ Items acknowledged and carried forward from previous milestone close:
 ## Session Continuity
 
 Last session: 2026-08-30T23:55:00.000Z
-Stopped at: Completed D-33 PASS B (05-D33b) — the P1 structural tier. 05-11's playtest is still the only thing left in the phase
+Stopped at: Completed D-33 PASS C (05-D33c) — the P2/P3 tiers and REF-03. The D-33 audit is fully spent apart from its two developer-decision items, which are now 05-11 sheet items 56 and 57. 05-11's playtest is the only thing left in the phase
 Resume file: None
