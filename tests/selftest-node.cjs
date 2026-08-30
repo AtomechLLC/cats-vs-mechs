@@ -744,11 +744,24 @@ function makeStubDom() {
     // too. Their COUNT is asserted against App.data.MAX_ACTION_REQ and
     // App.data.MAX_ACTION_XF further down, because a hand-written row count and
     // a constant that can move are two places for one number to live.
-    'act-edit-terms', 'act-edit-cost', 'act-edit-cost-amt',
+    // D-32 raised all three caps to four and gave the cost list slotted row
+    // ids of its own — #act-edit-cost became #act-edit-cost-0 — so all three
+    // lists spell a row the same way. The STUB DRIFT guard is what caught the
+    // shell change here: it named all sixteen new ids on the first run after
+    // the markup moved, which is exactly the failure it exists for.
+    'act-edit-terms',
+    'act-edit-cost-0', 'act-edit-cost-0-amt',
+    'act-edit-cost-1', 'act-edit-cost-1-amt',
+    'act-edit-cost-2', 'act-edit-cost-2-amt',
+    'act-edit-cost-3', 'act-edit-cost-3-amt',
     'act-edit-req-0', 'act-edit-req-0-amt',
     'act-edit-req-1', 'act-edit-req-1-amt',
+    'act-edit-req-2', 'act-edit-req-2-amt',
+    'act-edit-req-3', 'act-edit-req-3-amt',
     'act-edit-xf-0', 'act-edit-xf-0-amt',
     'act-edit-xf-1', 'act-edit-xf-1-amt',
+    'act-edit-xf-2', 'act-edit-xf-2-amt',
+    'act-edit-xf-3', 'act-edit-xf-3-amt',
     'act-edit-done',
     // plan 03.1-07 — the proposal pane, and the button on the authoring pane
     // that switches to it. Reserved empty by plan 03.1-05 and filled here.
@@ -1575,11 +1588,27 @@ function makeStubDom() {
     return row;
   }
 
-  aeTermRow('act-edit-cost', 'cost', 0, false);
+  // WRITTEN OUT RATHER THAN LOOPED OVER THE ARTIFACT'S CAPS, and the reason is
+  // mechanical: makeStubDom runs BEFORE the artifact is evaluated — it is what
+  // the artifact is evaluated against — so `A` does not exist yet here. That
+  // was measured, not assumed: the looped spelling threw "Cannot access 'A'
+  // before initialization" on its first run. So these are hand-written twice,
+  // once here and once in the shell, and check 65 is what holds both counts to
+  // App.ops.MAX_ACTION_COST / App.data.MAX_ACTION_REQ / App.data.MAX_ACTION_XF
+  // rather than to each other. D-32 moved all three from their old counts in
+  // the same change the constants moved.
+  aeTermRow('act-edit-cost-0', 'cost', 0, false);
+  aeTermRow('act-edit-cost-1', 'cost', 1, false);
+  aeTermRow('act-edit-cost-2', 'cost', 2, false);
+  aeTermRow('act-edit-cost-3', 'cost', 3, false);
   aeTermRow('act-edit-req-0', 'req', 0, false);
   aeTermRow('act-edit-req-1', 'req', 1, false);
+  aeTermRow('act-edit-req-2', 'req', 2, false);
+  aeTermRow('act-edit-req-3', 'req', 3, false);
   aeTermRow('act-edit-xf-0', 'xf', 0, true);
   aeTermRow('act-edit-xf-1', 'xf', 1, true);
+  aeTermRow('act-edit-xf-2', 'xf', 2, true);
+  aeTermRow('act-edit-xf-3', 'xf', 3, true);
 
   const aeActions = createElement('div');
   authorPane.appendChild(aeActions);
@@ -1661,8 +1690,14 @@ function makeStubDom() {
     aePropRows.appendChild(row);
     return row;
   }
+  // Four, with the cap, under D-32 — hand-written for makeStubDom's stated
+  // reason (the artifact is not evaluated yet) and held to the constant by
+  // check 65, which counts the SHELL's rows against App.data.MAX_ACTION_XF and
+  // the stub's against the same number.
   aePropRow(0);
   aePropRow(1);
+  aePropRow(2);
+  aePropRow(3);
 
   const aePropOver = createElement('div');
   aePropOver.className = 'ae-prop-over';
@@ -4690,10 +4725,11 @@ A.state.flush();
 clearPanel();
 aePress(aeOpenBtn);
 
-const aeTermRowOf = (field, slot) => dom.byId[field === 'cost'
-  ? 'act-edit-cost' : 'act-edit-' + field + '-' + slot];
-const aeAmtOf = (field, slot) => dom.byId[(field === 'cost'
-  ? 'act-edit-cost' : 'act-edit-' + field + '-' + slot) + '-amt'];
+// D-32: one spelling for all three lists. The cost arm's exception went with
+// the id, which is the point of moving the id at all.
+const aeTermRowOf = (field, slot) => dom.byId['act-edit-' + field + '-' + slot];
+const aeAmtOf = (field, slot) =>
+  dom.byId['act-edit-' + field + '-' + slot + '-amt'];
 const aePills = (field, slot) =>
   aeTermRowOf(field, slot).querySelectorAll('.ae-pill');
 const aePillFor = (field, slot, key, value) =>
@@ -6735,23 +6771,42 @@ const fullSaved = JSON.stringify(A.state.get());
 const fullTok = A.ops.createTokenType({
   name: 'Superior', shape: 'hex', color: 'coral', glyph: '', scope: 'unit'
 });
+const fullSideTok = A.ops.createTokenType({
+  name: 'Fastest', shape: 'circ', color: 'gold', glyph: '', scope: 'side'
+});
 const fullAct = A.ops.createAction('mechs', 'Unfair');
-A.ops.setActionCost('mechs', fullAct, fullTok, 2);
-A.ops.setActionReq('mechs', fullAct, 0, 'hp', 2);
-A.ops.setActionReq('mechs', fullAct, 1, fullTok, 1);
-A.ops.setActionXf('mechs', fullAct, 0, A.data.XF_WHO[1], 'hp', -3);
-A.ops.setActionXf('mechs', fullAct, 1, A.data.XF_WHO[0], fullTok, 2);
+/* D-32: THE ACTION IS DRIVEN TO THE CAP ON ALL THREE LISTS — four costs, four
+   requirements, four changes — because "the editor must accept adding up to
+   four terms per list" is the claim, and an editor drive that filled two of
+   four would be green over a shell that reserved two. Every write goes through
+   the shipped op at its own slot, which is what says the slot argument arrives
+   where it is meant to; a run that wrote slot 0 four times would leave a
+   one-term list and this row's counts would say so. */
+const fullSlots = [0, 1, 2, 3];
+fullSlots.forEach((slot) => {
+  A.ops.setActionCost('mechs', fullAct, slot,
+    slot === 0 ? 'ap' : (slot === 1 ? fullSideTok : fullTok), slot + 1);
+  A.ops.setActionReq('mechs', fullAct, slot,
+    slot === 0 ? 'hp' : (slot === 1 ? 'shield' : fullTok), slot + 1);
+  A.ops.setActionXf('mechs', fullAct, slot, A.data.XF_WHO[slot % 2],
+    slot === 0 ? 'hp' : fullTok, slot === 0 ? -3 : (slot + 1));
+});
 A.state.flush();
+const fullRecord = A.state.get().build.mechs.actions
+  .filter((a) => a.id === fullAct)[0];
+const fullLengths = [fullRecord.cost.length, fullRecord.req.length,
+  fullRecord.xf.length];
 
 const fullDlg = dom.byId['act-edit'];
 if (fullDlg.open !== true) { fullDlg.showModal(); }
 A.render.editor(A.state.get(), 'mechs', fullAct);
 A.state.flush();
-const fullRowsShown = ['act-edit-cost', 'act-edit-req-0', 'act-edit-req-1',
-  'act-edit-xf-0', 'act-edit-xf-1'].filter((id) => dom.byId[id].hidden === false);
-const fullAmountsShown = ['act-edit-cost-amt', 'act-edit-req-0-amt',
-  'act-edit-req-1-amt', 'act-edit-xf-0-amt', 'act-edit-xf-1-amt']
-  .filter((id) => dom.byId[id].hidden === false && dom.byId[id].value !== '');
+const fullRowIds = ['cost', 'req', 'xf'].reduce((all, field) =>
+  all.concat(fullSlots.map((slot) => 'act-edit-' + field + '-' + slot)), []);
+const fullRowsShown = fullRowIds.filter((id) => dom.byId[id].hidden === false);
+const fullAmountsShown = fullRowIds
+  .filter((id) => dom.byId[id + '-amt'].hidden === false
+    && dom.byId[id + '-amt'].value !== '');
 const fullText = harvestInto(fullDlg, [], '#act-edit');
 const fullHits = verdictHitsIn(fullText);
 if (fullDlg.open === true) { fullDlg.close(); }
@@ -6759,19 +6814,32 @@ A.state.restore(fullSaved);
 A.state.flush();
 clearPanel();
 
+const fullCap = A.ops.MAX_ACTION_COST + A.data.MAX_ACTION_REQ
+  + A.data.MAX_ACTION_XF;
 check(
-  '69g. every term row of the action editor is populated at once — a cost, two '
-    + 'requirements and two transformations, over an action and a token type a '
-    + 'student named after comparative words — and the rendered-page walk over '
-    + 'the whole dialog stays clean. The token name reaches the page once per '
-    + 'chooser pill per row, which is a channel that did not exist when the '
-    + 'first exemption control was written',
-  fullHits.length === 0 && fullRowsShown.length === 5
-    && fullAmountsShown.length === 5,
+  '69g. every term row of the action editor is populated at once — FOUR costs, '
+    + 'four requirements and four transformations under D-32, over an action '
+    + 'and a token type a student named after comparative words — and the '
+    + 'rendered-page walk over the whole dialog stays clean. The token name '
+    + 'reaches the page once per chooser pill per row, which is a channel that '
+    + 'did not exist when the first exemption control was written. TURNED IN '
+    + 'THE OPEN: this row read FIVE rows and five amounts until D-32, over a '
+    + 'cost that could only be one term and lists that stopped at two; the '
+    + 'recorded RED is the run on the commit that raised the caps, where it '
+    + 'threw on act-edit-cost because that id had become act-edit-cost-0. The '
+    + 'counts are read off the exported CAPS rather than typed, so the next '
+    + 'plan to move them moves this row with them, and the record is read back '
+    + 'beside the page so a shell that drew twelve rows over a four-term list '
+    + 'cannot satisfy it',
+  fullHits.length === 0 && fullRowsShown.length === fullCap
+    && fullAmountsShown.length === fullCap
+    && fullLengths.join(',') === [A.ops.MAX_ACTION_COST,
+      A.data.MAX_ACTION_REQ, A.data.MAX_ACTION_XF].join(','),
   fullHits.length === 0
     ? 'clean across ' + fullText.length + ' strings harvested from #act-edit '
-      + 'with all ' + fullRowsShown.length + ' term rows shown and all '
-      + fullAmountsShown.length + ' amounts filled'
+      + 'with all ' + fullRowsShown.length + ' term rows shown (cap ' + fullCap
+      + ') and all ' + fullAmountsShown.length + ' amounts filled, over a '
+      + 'record carrying cost/req/xf lengths ' + fullLengths.join('/')
     : fullHits.join(' | ')
 );
 
@@ -6845,7 +6913,7 @@ function apAmounts() {
    record. */
 const apSaved = JSON.stringify(A.state.get());
 const apAct = A.ops.createAction('cats', 'Pounce');
-A.ops.setActionCost('cats', apAct, 'ap', 1);
+A.ops.setActionCost('cats', apAct, 0, 'ap', 1);
 A.ops.setActionReq('cats', apAct, 0, 'hp', 2);
 A.ops.setActionXf('cats', apAct, 0, A.data.XF_WHO[1], 'hp', -3);
 A.state.flush();
@@ -7033,7 +7101,7 @@ const apCTok = A.ops.createTokenType({
   name: 'Winner', shape: 'hex', color: 'coral', glyph: '', scope: 'unit'
 });
 const apCAct = A.ops.createAction('mechs', 'Superior');
-A.ops.setActionCost('mechs', apCAct, 'ap', 2);
+A.ops.setActionCost('mechs', apCAct, 0, 'ap', 2);
 A.ops.setActionReq('mechs', apCAct, 0, apCTok, 1);
 A.ops.setActionXf('mechs', apCAct, 0, A.data.XF_WHO[1], 'hp', -4);
 A.ops.setActionXf('mechs', apCAct, 1, A.data.XF_WHO[0], apCTok, 3);
@@ -7131,7 +7199,7 @@ function fnv(s) {
 
 const nlSaved = JSON.stringify(A.state.get());
 const nlAct = A.ops.createAction('cats', 'Pounce');
-A.ops.setActionCost('cats', nlAct, 'ap', 1);
+A.ops.setActionCost('cats', nlAct, 0, 'ap', 1);
 A.ops.setActionReq('cats', nlAct, 0, 'hp', 2);
 A.ops.setActionXf('cats', nlAct, 0, A.data.XF_WHO[1], 'hp', -3);
 A.ops.setActionXf('cats', nlAct, 1, A.data.XF_WHO[0], 'shield', 2);
@@ -7632,7 +7700,7 @@ const dwBefore = JSON.stringify(A.state.get());
 // wrote damage would have had nothing to write it on.
 A.ops.resetToDefaults();
 const dwOwn = A.ops.createAction('cats', 'Pounce');
-A.ops.setActionCost('cats', dwOwn, 'ap', 1);
+A.ops.setActionCost('cats', dwOwn, 0, 'ap', 1);
 
 // Read as DRIFT FROM THE RECONSTRUCTED VALUE rather than as a before-and-after
 // string. Several of the arms driven below add and remove actions, so the list
@@ -7787,7 +7855,7 @@ const walkTok = A.ops.createTokenType({
   name: 'Venom', shape: 'dia', color: 'violet', glyph: '', scope: 'unit'
 });
 const walkAct = A.ops.createAction('cats', 'Walked');
-A.ops.setActionCost('cats', walkAct, walkTok, 3);
+A.ops.setActionCost('cats', walkAct, 0, walkTok, 3);
 A.ops.setActionReq('cats', walkAct, 0, 'hp', 2);
 A.ops.setActionReq('cats', walkAct, 1, walkTok, 0);
 A.ops.setActionXf('cats', walkAct, 0, A.data.XF_WHO[1], 'hp', -3);
@@ -8806,7 +8874,7 @@ const accTok = A.ops.createTokenType({
 });
 A.ops.setTally('cats', 'c1', accTok, 3);
 const accAct2 = A.ops.createAction('cats', 'Pounce');
-A.ops.setActionCost('cats', accAct2, 'ap', 1);
+A.ops.setActionCost('cats', accAct2, 0, 'ap', 1);
 A.ops.setActionReq('cats', accAct2, 0, 'hp', 2);
 A.ops.setActionXf('cats', accAct2, 0, A.data.XF_WHO[1], 'hp', -3);
 A.state.flush();
@@ -9834,7 +9902,7 @@ const fgFundedOffCount = fgFundedInside.split('|')
 // build is set to nothing first and the Advance carries that through. The
 // declaration is then made again, so this board has the same one standing.
 fgFundedBoard();
-A.ops.setActionCost('cats', fgCatsAct, 'ap', 9);
+A.ops.setActionCost('cats', fgCatsAct, 0, 'ap', 9);
 A.ops.setActionReq('cats', fgCatsAct, 0, 'hp', 99);
 A.ops.setFactionAp('cats', 0);
 A.ops.setFactionAp('mechs', 0);
@@ -9889,7 +9957,7 @@ fgFundedBoard();
 // declaration, and left the row with nothing to give back and nothing to tell
 // the two spellings apart. spokenFor reads the LIVE cost, so raising it moves
 // the sum without a second press.
-A.ops.setActionCost('cats', fgCatsAct, 'ap', A.state.get().fight.cats.ap);
+A.ops.setActionCost('cats', fgCatsAct, 0, 'ap', A.state.get().fight.cats.ap);
 A.state.flush();
 const fgDisabledLast = disabledIn(fgApp);
 const fgLastInside = fgInsideGrid(fgDisabledLast);
@@ -10058,7 +10126,7 @@ A.state.flush();
 const fgReDisWas = disabledIn(fgApp);
 // A cost the side can pay exactly once, so ONE declaration takes every other
 // row's button out of reach and the contract has something to say.
-A.ops.setActionCost('cats', fgCatsAct, 'ap', 3);
+A.ops.setActionCost('cats', fgCatsAct, 0, 'ap', 3);
 A.state.flush();
 fgDeclare('cats', fgCatsAct, 'c1');
 const fgReDisAfter = disabledIn(fgApp);
@@ -12808,7 +12876,7 @@ const symLaneGlyph = symLaneShield === null ? ''
 // student-made type reaches an action button by: affordability prices action
 // points and nothing else, so the report hands back null and the button draws
 // the term the student actually wrote.
-A.ops.setActionCost('cats', fgCatsAct, symOwnTok, 3);
+A.ops.setActionCost('cats', fgCatsAct, 0, symOwnTok, 3);
 A.state.invalidate();
 A.state.flush();
 const symOwnWord = A.render.labelFor(A.state.get(), symOwnTok);
@@ -12923,7 +12991,7 @@ check(
    priced something out of reach would be the surface hiding the arithmetic at
    the one moment a student needs it. */
 const symBelow = A.render.COMPACT_AT - 1;
-A.ops.setActionCost('cats', fgCatsAct, 'ap', symBelow);
+A.ops.setActionCost('cats', fgCatsAct, 0, 'ap', symBelow);
 A.state.invalidate();
 A.state.flush();
 const symCostAt = () => fgOne(fgSideRootOf('cats'), '.fg-act-cost');
@@ -12947,7 +13015,7 @@ const symLowSign = symLowSignNode === null ? ''
 const symSignParent = (n) => (n && n.parentNode && n.parentNode.classList
   && n.parentNode.classList.contains('tok'));
 const symLowOnShape = symSignParent(symLowSignNode);
-A.ops.setActionCost('cats', fgCatsAct, 'ap', A.render.COMPACT_AT);
+A.ops.setActionCost('cats', fgCatsAct, 0, 'ap', A.render.COMPACT_AT);
 A.state.invalidate();
 A.state.flush();
 const symHighBox = symCostAt();

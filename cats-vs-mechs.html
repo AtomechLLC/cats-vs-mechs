@@ -4079,11 +4079,19 @@
      THE RESERVED TERM ROWS ARE STATIC FOR THE SAME REASON, n times over. Plan
      03.1-06 puts a number in each of them, and a number a student is halfway
      through typing is exactly the text a rebuilt row throws away. There are
-     App.data.MAX_ACTION_REQ requirement rows and App.data.MAX_ACTION_XF
-     transformation rows here because those are the caps, and the surplus is
-     hidden rather than removed. The two counts are asserted against the
-     constants in tests/selftest-node.cjs, because a static row count and a
-     constant that can move are two places for one number to live.
+     App.ops.MAX_ACTION_COST cost rows, App.data.MAX_ACTION_REQ requirement rows
+     and App.data.MAX_ACTION_XF transformation rows here because those are the
+     caps, and the surplus is hidden rather than removed. The three counts are
+     asserted against the constants in tests/selftest-node.cjs, because a static
+     row count and a constant that can move are two places for one number to
+     live.
+
+     THE COST GREW FROM ONE ROW TO A LIST UNDER D-32 — "allow multiple input for
+     all cost/needs/changes" — and the row ids moved with it: #act-edit-cost
+     became #act-edit-cost-0, so all three lists spell a row the same way and
+     [S06.5] can fill them through one function instead of one function and an
+     exception. The old id is GONE rather than aliased onto slot 0, which is the
+     same answer this file gives everywhere else to two names for one node.
 
      Adding an id here without teaching tests/selftest-node.cjs about it fails
      the run in both directions — and, since plan 03.1-01, so does adding a
@@ -4163,10 +4171,25 @@
     <div class="ae-terms" id="act-edit-terms">
       <h3 class="ae-legend">Cost</h3>
       <p class="ae-note ae-term-note">Spent when the action is used.</p>
-      <div class="ae-term" id="act-edit-cost">
+      <div class="ae-term" id="act-edit-cost-0" hidden>
         <span class="ae-term-lbl">Spends</span>
         <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-cost-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="0" data-k="ae/amt/cost/0">
+        <input class="ae-amt" id="act-edit-cost-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="0" data-k="ae/amt/cost/0">
+      </div>
+      <div class="ae-term" id="act-edit-cost-1" hidden>
+        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-cost-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="1" data-k="ae/amt/cost/1">
+      </div>
+      <div class="ae-term" id="act-edit-cost-2" hidden>
+        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-cost-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="2" data-k="ae/amt/cost/2">
+      </div>
+      <div class="ae-term" id="act-edit-cost-3" hidden>
+        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-cost-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="3" data-k="ae/amt/cost/3">
       </div>
 
       <h3 class="ae-legend">Needs</h3>
@@ -4181,6 +4204,16 @@
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-req-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="1" data-k="ae/amt/req/1">
       </div>
+      <div class="ae-term" id="act-edit-req-2" hidden>
+        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-req-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="2" data-k="ae/amt/req/2">
+      </div>
+      <div class="ae-term" id="act-edit-req-3" hidden>
+        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-req-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="3" data-k="ae/amt/req/3">
+      </div>
 
       <h3 class="ae-legend">Changes</h3>
       <p class="ae-note ae-term-note">What the action changes, and by how much. Put a minus in front for a change downward.</p>
@@ -4193,6 +4226,16 @@
         <div class="ae-term-who"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-xf-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="1" data-k="ae/amt/xf/1">
+      </div>
+      <div class="ae-term" id="act-edit-xf-2" hidden>
+        <div class="ae-term-who"></div>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-xf-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="2" data-k="ae/amt/xf/2">
+      </div>
+      <div class="ae-term" id="act-edit-xf-3" hidden>
+        <div class="ae-term-who"></div>
+        <div class="ae-term-toks"></div>
+        <input class="ae-amt" id="act-edit-xf-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="3" data-k="ae/amt/xf/3">
       </div>
     </div>
 
@@ -4247,7 +4290,10 @@
        repaints on every frame while it is open, and a number a student is
        halfway through typing is exactly the text a rebuilt node throws away.
        There are App.data.MAX_ACTION_XF transformation rows plus one override
-       row, and the surplus is hidden rather than removed.
+       row, and the surplus is hidden rather than removed. That count moved from
+       two to four with the cap under D-32, in the same change, because a
+       proposal pane that could read back two of a rule's four changes would be
+       a report with a hole in it that nothing on screen admitted to.
 
        THE AMOUNT FIELDS CARRY .ae-prop-amt AND NOT .ae-amt. One class name is
        the entire distance between this pane and the authoring pane: [S07.3]
@@ -4292,6 +4338,14 @@
       <div class="ae-prop-row" hidden>
         <span class="ae-prop-lbl"></span>
         <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this change is" data-ap-slot="1" data-k="ap/amt/1">
+      </div>
+      <div class="ae-prop-row" hidden>
+        <span class="ae-prop-lbl"></span>
+        <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this change is" data-ap-slot="2" data-k="ap/amt/2">
+      </div>
+      <div class="ae-prop-row" hidden>
+        <span class="ae-prop-lbl"></span>
+        <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this change is" data-ap-slot="3" data-k="ap/amt/3">
       </div>
 
       <h3 class="ae-legend">Override</h3>
@@ -4946,18 +5000,31 @@ App.data = (function () {
   //   675    24v24 exercising everything Phases 2.1 and 3.1 shipped — all six
   //            authored token types, a tally for every type on every unit, six
   //            authored actions, ordinary short names;
-  //   2984   an adversarial board: the above, plus non-contiguous ids on both
+  //   3434   an adversarial board: the above, plus non-contiguous ids on both
   //            sides, two-digit values everywhere, and all 23 nameable things
   //            given distinct 24-character ASCII names;
-  //   3186   the same board with distinct 23-emoji names.
+  //   3636   the same board with distinct 23-emoji names.
+  //
+  // THOSE TWO FIGURES WERE 2984 AND 3186 UNTIL D-32, and they are re-measured
+  // rather than adjusted: D-32 raised MAX_ACTION_COST, MAX_ACTION_REQ and
+  // MAX_ACTION_XF from 1/2/2 to 4/4/4, and the ceiling boards in [S09.11] fill
+  // every list to its cap. The ceiling therefore moved by 450 characters — 15%
+  // — for a doubling-and-then-some of the term counts, which is the shape the
+  // paragraph below already predicted: the action records are a small share of
+  // the total and the dials are not where the characters are.
   //
   // Where the characters actually sit at that ceiling: the tally stream is
-  // 1,360 of the 3,186 and the name table 960. The twelve action records are
-  // 418 and the eleven token vocabulary records 127. So THE DIALS ARE NOT WHERE
-  // THE CHARACTERS ARE, and the conclusion is the operative sentence here:
+  // 1,360 of the total and the name table 960, and NEITHER of those moved with
+  // the caps at all. The action records grew from 418 to about 868, which is
+  // the whole of the difference. So THE DIALS ARE STILL NOT WHERE THE
+  // CHARACTERS ARE, and the conclusion is the operative sentence here:
   //
-  //   DO NOT MOVE MAX_CUSTOM_TYPES, MAX_CUSTOM_ACTIONS, MAX_ACTION_REQ OR
-  //   MAX_ACTION_XF to buy build-code characters.
+  //   DO NOT MOVE MAX_CUSTOM_TYPES, MAX_CUSTOM_ACTIONS, MAX_ACTION_COST,
+  //   MAX_ACTION_REQ OR MAX_ACTION_XF to buy build-code characters.
+  //
+  // And the same sentence read the other way is why D-32 could raise three of
+  // them without re-opening the schema: 450 characters bought a student four
+  // terms per list on every action they can write.
   //
   // Buying characters by taking expressiveness away from students cuts against
   // the whole reason Phases 2.1 and 3.1 exist, and it buys the wrong column
@@ -4984,8 +5051,8 @@ App.data = (function () {
   // what makes D-07 concrete on screen: three shipped plus three authored is
   // six cards in a column, all the same kind of thing.
   var MAX_CUSTOM_ACTIONS = 3;
-  var MAX_ACTION_REQ = 2;
-  var MAX_ACTION_XF = 2;
+  var MAX_ACTION_REQ = 4;
+  var MAX_ACTION_XF = 4;
 
   // The ceiling on every allocated quantity — health, shield, the faction
   // action-point pool and a token tally. It is DEFINED here, in the data tier,
@@ -7101,10 +7168,23 @@ App.serialize = (function () {
   // everywhere else — [S09.11] asserts each of these against the constant the
   // op actually runs, so the day one moves and the other does not is a red run
   // rather than a build code that admits a roster the board would refuse.
+  //
+  // THAT DAY CAME AND THE DRIFT ROW DID ITS JOB, recorded here because a guard
+  // that has actually caught something is worth more than one that has only
+  // ever been argued for. D-32 raised MAX_ACTION_COST from 1 to 4; the run went
+  // red on [S09.11]'s cost row — "the decoder re-runs the SAME cost cap the term
+  // writer enforces" — before any downstream row could go green over an op that
+  // admitted a four-term cost and a wire that refused it. Both numbers moved in
+  // the same change, which is the whole of what the row is for.
+  //
+  // The requirement and transformation caps are NOT re-typed here and must not
+  // be: decode reads App.data.MAX_ACTION_REQ and App.data.MAX_ACTION_XF
+  // directly, because [S01] sits ABOVE [S04] and that arrow already points
+  // down. Only [S05]'s three need the copy.
   var WIRE_BOUNDS = Object.freeze({
     minUnits: 1,        // [S05] MIN_UNITS — a side with no units is not a faction
     maxUnits: 24,       // [S05] MAX_UNITS — the roster ceiling
-    maxActionCost: 1    // [S05] MAX_ACTION_COST — one cost term per action
+    maxActionCost: 4    // [S05] MAX_ACTION_COST — cost terms per action
   });
 
   function decode(code) {
@@ -10215,14 +10295,32 @@ App.ops = (function () {
    * list, everywhere.
    */
 
-  // D-01 in one number: a cost is A token type and AN amount. It is named
-  // rather than written as a bare 1 at the places that need it, for the reason
-  // the named-bounds paragraph gives about 99 — and because [S06.5] draws
-  // exactly this many cost rows and [S09.10] asserts against the constant.
-  // Its siblings MAX_ACTION_REQ and MAX_ACTION_XF live in [S01] because the
-  // static shell counts rows against them; this one has no shell twin to keep
-  // in step, so it stays beside the op that enforces it.
-  var MAX_ACTION_COST = 1;
+  // D-32 in one number, and the sentence it replaces is worth keeping in view
+  // rather than deleting: this constant used to be 1, and its comment read
+  // "D-01 in one number: a cost is A token type and AN amount." The developer
+  // said "allow multiple input for all cost/needs/changes" on 2026-08-30, so a
+  // cost is now a LIST of token types and amounts, capped at four the same way
+  // its two siblings are. D-01 is not overruled — a cost TERM is still one type
+  // and one amount — the list around it grew.
+  //
+  // FOUR, AND THE NUMBER IS ARGUED RATHER THAN PICKED. "Multiple" needs a
+  // number; four keeps the codec's adversarial ceiling inside the message
+  // budget (the six measured boards in [S09.11] are re-measured in the same
+  // change, and the ceiling row carries the new figure), and a row of four fits
+  // a dense term list. It is three constants plus their pinned rows, so a later
+  // plan may move it — in the open, the way this one did.
+  //
+  // It is named rather than written as a bare number at the places that need
+  // it, for the reason the named-bounds paragraph gives about 99 — and because
+  // [S06.5] now draws exactly this many cost rows and [S09.10] asserts against
+  // the constant. Its siblings MAX_ACTION_REQ and MAX_ACTION_XF live in [S01]
+  // because the static shell counts rows against them; THIS ONE NOW HAS A SHELL
+  // TWIN TOO — the cost list gained static rows in the same change — and it
+  // stays here beside the op that enforces it, with [S09.10] asserting the
+  // shell's cost-row count against it exactly as check 65 does for the other
+  // two. Two places for one number, closed by a row, which is this file's
+  // standing answer.
+  var MAX_ACTION_COST = 4;
 
   // The floors, named for the same reason. A cost of nothing is not a cost, so
   // its floor is one; a requirement of zero is a requirement every unit meets,
@@ -10343,14 +10441,26 @@ App.ops = (function () {
   // ACT-02. What the action spends, consumed when it fires — in a phase where
   // nothing fires. Every guard is outside the commit, so a refusal leaves no
   // phantom undo step over a board that never changed.
-  function setActionCost(side, actionId, tokenId, n) {
+  //
+  // IT TAKES A SLOT NOW, AND THE ARGUMENT ORDER IS ITS TWO SIBLINGS' — D-32.
+  // Every one of the three term writers reads (side, actionId, index, ...), so
+  // [S07.3]'s amount path and its chooser path can hand all three the same
+  // `index` off the same static data-ae-slot rather than carrying one arm that
+  // silently means slot 0. The old four-argument spelling is GONE rather than
+  // kept as an overload: an op that accepted both would take
+  // setActionCost(side, id, 0, 'ap', 2) as a write of token "ap" into slot NaN one
+  // refactor later, and this file's standing answer to two spellings of one
+  // write is that there is one.
+  function setActionCost(side, actionId, index, tokenId, n) {
     requireSide(side);
     requireActionId(actionId);
+    requireSlot(index, MAX_ACTION_COST, 'cost');
     var live = requireLiveAction(side, actionId);
 
     var term = CLEAR_TERM;
     if (tokenId !== CLEAR_TERM) {
       requireTokenId(tokenId);
+      requireReachable(termsOf(live, 'cost'), index, 'cost');
       // FIELD BY FIELD, never a merge helper and never a spread of a caller's
       // object, for the reason createTokenType's mutator gives in full: a
       // spread copies whatever keys the caller supplied, which is how a
@@ -10360,7 +10470,7 @@ App.ops = (function () {
         n: int(n, MIN_ACTION_COST, MAX_ALLOC, 'what an action costs')
       };
     }
-    return writeTerms(side, actionId, live, 'cost', 0, MAX_ACTION_COST, term,
+    return writeTerms(side, actionId, live, 'cost', index, MAX_ACTION_COST, term,
       'action cost');
   }
 
@@ -10648,7 +10758,8 @@ App.ops = (function () {
       // forwarded whole is a caller-supplied key set arriving one nesting level
       // from a token id. Naming every key here is what keeps the page's payload
       // and the op's contract the same list.
-      case 'setActionCost': return setActionCost(p.side, p.actionId, p.tokenId, p.n);
+      case 'setActionCost': return setActionCost(p.side, p.actionId, p.index,
+        p.tokenId, p.n);
       case 'setActionReq': return setActionReq(p.side, p.actionId, p.index, p.tokenId, p.n);
       case 'setActionXf': return setActionXf(p.side, p.actionId, p.index, p.who, p.tokenId, p.d);
       case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
@@ -13084,21 +13195,28 @@ App.render = (function () {
     }
   }
 
-  function fillTerms(state, live) {
-    var costRow = document.getElementById('act-edit-cost');
-    if (costRow) {
-      var cost = termList(live, 'cost')[0];
-      // A cost chooser carries no emptying entry, and that is a decision rather
-      // than an omission: an action costing nothing is a rule a student may
-      // write, and the honest way to say it is an amount of nothing rather than
-      // a control sitting among the token types reading like one of them.
-      fillTokenChoices(costRow.querySelector('.ae-term-toks'), state,
-        'setActionCost', 0, cost ? cost.tok : '', false);
-      var costField = costRow.querySelector('.ae-amt');
-      if (costField) { costField.hidden = !cost; }
-      if (cost) { showAmount(costField, cost.n, cost.tok, ''); }
-    }
+  /* D-32: THE COST GOES THROUGH fillSlotRows LIKE ITS TWO SIBLINGS, and the
+     block that used to stand here — a hand-written single row with its own
+     chooser call — is gone. What that block said is worth answering rather
+     than deleting, because it was a real decision and D-32 reverses it:
 
+       "A cost chooser carries no emptying entry, and that is a decision rather
+        than an omission: an action costing nothing is a rule a student may
+        write, and the honest way to say it is an amount of nothing rather than
+        a control sitting among the token types reading like one of them."
+
+     That held while a cost was ONE term, because the only way to mean "this
+     costs nothing" was to say so about the single row. With four rows it stops
+     holding: a student who writes four cost terms and wants the second one gone
+     has no amount of nothing to write — MIN_ACTION_COST is one, deliberately —
+     and no control that takes a term away. So the cost list is clearable
+     exactly as `req` and `xf` are, through the SAME first chooser entry and the
+     same CLEAR_TERM signal, and there is still no Remove button beside a row.
+     Emptying the last cost term still leaves an action costing nothing, which
+     is the rule the old comment was protecting; it is now reachable. */
+  function fillTerms(state, live) {
+    fillSlotRows(state, 'cost', 'setActionCost', App.ops.MAX_ACTION_COST,
+      termList(live, 'cost'));
     fillSlotRows(state, 'req', 'setActionReq', App.data.MAX_ACTION_REQ,
       termList(live, 'req'));
     fillSlotRows(state, 'xf', 'setActionXf', App.data.MAX_ACTION_XF,
@@ -19823,8 +19941,13 @@ App.interactions = (function () {
     }
     var slot = Number(el.dataset.aeSlot);
     if (field === 'cost') {
+      // D-32: the cost arm carries the SLOT now, exactly as the two below it
+      // do. It read no slot at all while a cost was one term, and the row it
+      // wrote was the only one there was; with four rows an arm that dropped
+      // the slot would write every one of them into the first.
       return App.ops.dispatch(AMOUNT_OPS.cost, {
-        side: side, actionId: actionId, tokenId: el.dataset.aeTok, n: n
+        side: side, actionId: actionId, index: slot,
+        tokenId: el.dataset.aeTok, n: n
       });
     }
     if (field === 'req') {
@@ -19885,11 +20008,19 @@ App.interactions = (function () {
     return Array.isArray(rec[field]) ? rec[field] : [];
   }
 
+  // D-32: the slot is read off the pressed control, and the empty entry means
+  // "take this term away" — the same two sentences pressReq and pressXf below
+  // already carried. A cost chooser gained its emptying entry in the same
+  // change, because a list of four terms a student cannot shorten is a list
+  // they can only ever fill.
   function pressCost(dlg, side, btn) {
     var id = pickedAct(dlg);
-    var was = liveTerms(side, id, 'cost')[0];
+    var slot = Number(btn.dataset.edSlot);
+    var tok = btn.dataset.edTok;
+    var was = liveTerms(side, id, 'cost')[slot];
     App.ops.dispatch('setActionCost', {
-      side: side, actionId: id, tokenId: btn.dataset.edTok,
+      side: side, actionId: id, index: slot,
+      tokenId: (tok === '') ? App.ops.CLEAR_TERM : tok,
       n: (was && typeof was.n === 'number') ? was.n : NEW_COST_AMOUNT
     });
   }
@@ -22696,8 +22827,22 @@ App.selftest = (function () {
            vocabulary, applied to the record that names it. --- */
     t.eq('the cap on actions of a student\'s own is three per side (D-10)',
       App.data.MAX_CUSTOM_ACTIONS, 3);
-    t.eq('a requirement list is capped at two terms', App.data.MAX_ACTION_REQ, 2);
-    t.eq('a transformation list is capped at two terms', App.data.MAX_ACTION_XF, 2);
+    /* THE THREE TERM CAPS, TURNED IN THE OPEN UNDER D-32 — "allow multiple
+       input for all cost/needs/changes", the developer, 2026-08-30. These two
+       rows asserted TWO until that day and the third asserted ONE beside
+       [S09.10]'s op rows; all three were recorded RED on the commit that moved
+       the constants and rewritten to the new number rather than deleted. The
+       claim is unchanged: a cap with no assertion is a comment. What moved is
+       which number the comment is about, and the three are asserted TOGETHER
+       here because D-32 moved them as one decision and a plan that raised two
+       of the three would leave a list a student can hold and cannot fill. */
+    t.eq('a cost list is capped at four terms (D-32)', App.ops.MAX_ACTION_COST, 4);
+    t.eq('a requirement list is capped at four terms (D-32)', App.data.MAX_ACTION_REQ, 4);
+    t.eq('a transformation list is capped at four terms (D-32)', App.data.MAX_ACTION_XF, 4);
+    t.eq('and the three caps are the SAME number, which is what "multiple, and '
+      + 'four of them" means as arithmetic rather than as three coincidences',
+      [App.data.MAX_ACTION_REQ, App.data.MAX_ACTION_XF],
+      [App.ops.MAX_ACTION_COST, App.ops.MAX_ACTION_COST]);
 
     t.eq('the who allowlist is exactly the acting unit and then the unit acted '
       + 'on, in that order, because Phase 4 may encode the POSITION',
@@ -26702,8 +26847,12 @@ App.selftest = (function () {
     t.eq('the party allowlist gate is exported', typeof App.ops.requireXfWho, 'function');
     t.eq('the empty-slot signal is exported and is not something truthy',
       App.ops.CLEAR_TERM, null);
-    t.eq('a cost holds at most one term, against the named constant',
-      App.ops.MAX_ACTION_COST, 1);
+    // TURNED IN THE OPEN UNDER D-32. This row asserted 1 and was recorded RED
+    // on the commit that raised the constant. The number is pinned beside its
+    // two siblings in [S09.1] now, so what stays here is the thing this suite
+    // is about: the cap the OP runs is the exported one and not a second copy.
+    t.eq('a cost holds at most MAX_ACTION_COST terms, against the named constant',
+      App.ops.MAX_ACTION_COST, 4);
     t.eq('and its floor is one, because a cost of nothing is not a cost',
       App.ops.MIN_ACTION_COST, 1);
     t.eq('a requirement may be zero, which is a requirement every unit meets',
@@ -26748,12 +26897,12 @@ App.selftest = (function () {
       [{ tok: 'ap', n: 1 }]);
     t.eq('so writing that same cost again changes nothing and commits nothing — '
       + 'a keystroke surface cannot stack do-nothing undo steps',
-      App.ops.setActionCost('cats', termId, 'ap', 1), false);
+      App.ops.setActionCost('cats', termId, 0, 'ap', 1), false);
     t.eq('a cost is one token type and one amount',
-      App.ops.setActionCost('cats', termId, 'hp', 2), true);
+      App.ops.setActionCost('cats', termId, 0, 'hp', 2), true);
     t.eq('and a cost never grows past the one term D-01 describes',
       termsNow('cost'), [{ tok: 'hp', n: 2 }]);
-    App.ops.setActionCost('cats', termId, 'ap', 1);
+    App.ops.setActionCost('cats', termId, 0, 'ap', 1);
 
     t.eq('a requirement is checked and not consumed, and two health is the '
       + 'example this phase is built to reach',
@@ -26839,7 +26988,7 @@ App.selftest = (function () {
            key BY NAME before it refuses an unknown id, and the message carries
            the key, so a student reading it is told what actually happened. --- */
     App.data.RESERVED_KEYS.forEach(function (key) {
-      var costR = refuses(function () { App.ops.setActionCost('cats', termId, key, 1); });
+      var costR = refuses(function () { App.ops.setActionCost('cats', termId, 0, key, 1); });
       t.ok('a cost naming ' + key + ' is refused, the message names the key, and '
         + 'the board and the undo depth both stand still',
         costR.threw && costR.message.indexOf(key) !== -1
@@ -26860,7 +27009,7 @@ App.selftest = (function () {
       .forEach(function (bad) {
         t.ok('a cost amount of ' + JSON.stringify(bad) + ' is refused at the op '
           + 'boundary and never reaches state',
-          refusedWell(function () { App.ops.setActionCost('cats', termId, 'ap', bad); }));
+          refusedWell(function () { App.ops.setActionCost('cats', termId, 0, 'ap', bad); }));
         t.ok('so is a requirement amount of ' + JSON.stringify(bad),
           refusedWell(function () { App.ops.setActionReq('cats', termId, 0, 'hp', bad); }));
         t.ok('so is a transformation amount of ' + JSON.stringify(bad),
@@ -26872,13 +27021,13 @@ App.selftest = (function () {
     /* --- the floors and the signed bound, at the edges and one past them. int()
            CLAMPS a whole number that is merely out of range and THROWS a value
            that is not one, which is the split the file already keeps. --- */
-    App.ops.setActionCost('cats', termId, 'ap', 0);
+    App.ops.setActionCost('cats', termId, 0, 'ap', 0);
     t.eq('a cost amount of zero lands on the floor of one and never writes zero',
       termsNow('cost'), [{ tok: 'ap', n: App.ops.MIN_ACTION_COST }]);
-    App.ops.setActionCost('cats', termId, 'ap', 1000);
+    App.ops.setActionCost('cats', termId, 0, 'ap', 1000);
     t.eq('and one past the ceiling lands on the ceiling',
       termsNow('cost'), [{ tok: 'ap', n: App.ops.MAX_ALLOC }]);
-    App.ops.setActionCost('cats', termId, 'ap', 1);
+    App.ops.setActionCost('cats', termId, 0, 'ap', 1);
 
     App.ops.setActionReq('cats', termId, 0, 'hp', -5);
     t.eq('a requirement amount below zero lands on zero',
@@ -26974,7 +27123,7 @@ App.selftest = (function () {
 
     /* --- emptying a slot: ONE named path, and the list gets shorter rather
            than growing a hole. --- */
-    App.ops.setActionCost('cats', termId, 'ap', 1);
+    App.ops.setActionCost('cats', termId, 0, 'ap', 1);
     App.ops.setActionReq('cats', termId, 0, 'hp', 2);
     App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
     App.ops.setActionXf('cats', termId, 1, App.data.XF_WHO[0], 'shield', 1);
@@ -26995,15 +27144,17 @@ App.selftest = (function () {
     t.eq('and emptying a cost leaves the action costing nothing at all, which is '
       + 'a rule a student is allowed to write',
       (function () {
-        App.ops.setActionCost('cats', termId, App.ops.CLEAR_TERM, 1);
+        App.ops.setActionCost('cats', termId, 0, App.ops.CLEAR_TERM, 1);
         return termsNow('cost');
       })(), []);
 
     /* --- an action that names nothing on the side, and a side that is not one:
            both refused before anything is written, on all three ops. --- */
     ['setActionCost', 'setActionReq', 'setActionXf'].forEach(function (op) {
+      // D-32: all three take the slot in the same position now, so the cost
+      // arm is no longer the odd one out and the table reads as one shape.
       var args = (op === 'setActionCost')
-        ? ['cats', 'x99', 'ap', 1]
+        ? ['cats', 'x99', 0, 'ap', 1]
         : (op === 'setActionReq')
           ? ['cats', 'x99', 0, 'hp', 1]
           : ['cats', 'x99', 0, App.data.XF_WHO[1], 'hp', -1];
@@ -27020,7 +27171,7 @@ App.selftest = (function () {
            5 is about: a NaN that reached state would come back from the next
            unrelated commit as null, and [S09.3]'s walk accepts null. So this
            one refuses it by name. --- */
-    App.ops.setActionCost('cats', termId, 'ap', 2);
+    App.ops.setActionCost('cats', termId, 0, 'ap', 2);
     App.ops.setActionReq('cats', termId, 0, 'hp', 2);
     App.ops.setActionXf('cats', termId, 0, App.data.XF_WHO[1], 'hp', -3);
     App.state.commit('probe unrelated', function (s) { s.build.cats.ap = 5; });
@@ -27172,7 +27323,7 @@ App.selftest = (function () {
     var BOTH_SIDES = ['cats', 'mechs'];
 
     var contractId = App.ops.createAction('cats', 'Contract');
-    App.ops.setActionCost('cats', contractId, 'ap', 1);
+    App.ops.setActionCost('cats', contractId, 0, 'ap', 1);
     App.ops.setActionReq('cats', contractId, 0, 'hp', 2);
     App.ops.setActionReq('cats', contractId, 1, 'shield', 0);
     App.ops.setActionXf('cats', contractId, 0, App.data.XF_WHO[1], 'hp', -3);
@@ -28087,7 +28238,12 @@ App.selftest = (function () {
         ['cats', 'mechs'].forEach(function (side) {
           for (var a = 0; a < App.data.MAX_CUSTOM_ACTIONS; a++) {
             var mine = App.ops.createAction(side, nameFn());
-            App.ops.setActionCost(side, mine, made[0], 97);
+            // D-32: the COST list is driven to its cap here too. A ceiling
+            // board that filled two of the three lists would be a ceiling
+            // measured against a board a student can beat.
+            for (var c = 0; c < App.ops.MAX_ACTION_COST; c++) {
+              App.ops.setActionCost(side, mine, c, made[c], 97);
+            }
             for (var r = 0; r < App.data.MAX_ACTION_REQ; r++) {
               App.ops.setActionReq(side, mine, r, made[r], 97);
             }
@@ -28099,6 +28255,9 @@ App.selftest = (function () {
             .forEach(function (id) {
               if (App.data.ACTION_IDS.indexOf(id) === -1) { return; }
               App.ops.renameAction(side, id, nameFn());
+              for (var c2 = 0; c2 < App.ops.MAX_ACTION_COST; c2++) {
+                App.ops.setActionCost(side, id, c2, made[c2], 97);
+              }
               for (var r2 = 0; r2 < App.data.MAX_ACTION_REQ; r2++) {
                 App.ops.setActionReq(side, id, r2, made[r2], 97);
               }
@@ -28148,14 +28307,14 @@ App.selftest = (function () {
           App.ops.setTally('mechs', 'm1', poison, 3);
           App.ops.setTally('cats', null, pace, 4);
           var pounce = App.ops.createAction('cats', 'Pounce');
-          App.ops.setActionCost('cats', pounce, 'ap', 2);
+          App.ops.setActionCost('cats', pounce, 0, 'ap', 2);
           App.ops.setActionReq('cats', pounce, 0, 'hp', 2);
           App.ops.setActionXf('cats', pounce, 0, 'target', 'hp', -4);
           App.ops.setActionXf('cats', pounce, 1, 'caster', poison, 1);
           var lick = App.ops.createAction('cats', 'Lick wounds');
           App.ops.setActionXf('cats', lick, 0, 'caster', 'hp', 2);
           var clock = App.ops.createAction('mechs', 'Overclock');
-          App.ops.setActionCost('mechs', clock, 'ap', 1);
+          App.ops.setActionCost('mechs', clock, 0, 'ap', 1);
           App.ops.setActionReq('mechs', clock, 0, 'shield', 1);
           App.ops.setActionXf('mechs', clock, 0, 'caster', 'shield', -2);
           App.ops.setActionXf('mechs', clock, 1, 'target', 'hp', -5);
@@ -28203,7 +28362,9 @@ App.selftest = (function () {
           ['cats', 'mechs'].forEach(function (side) {
             ['Pounce', 'Overclock', 'Regroup'].forEach(function (label) {
               var mine = App.ops.createAction(side, label);
-              App.ops.setActionCost(side, mine, made[0], 9);
+              for (var c = 0; c < App.ops.MAX_ACTION_COST; c++) {
+                App.ops.setActionCost(side, mine, c, made[c], 9);
+              }
               for (var r = 0; r < App.data.MAX_ACTION_REQ; r++) {
                 App.ops.setActionReq(side, mine, r, made[r], 2);
               }
@@ -28219,15 +28380,18 @@ App.selftest = (function () {
         mark: 'H',
         what: 'the ceiling — the fully authored board plus holes in the ids on both sides, '
           + 'two-digit values everywhere, and all twenty-three nameable things given '
-          + 'distinct names at the code-point cap',
-        measured: 2984,
+          + 'distinct names at the code-point cap. RE-MEASURED UNDER D-32, which raised '
+          + 'all three term caps to four and drove the cost list to its cap here too: it '
+          + 'read 2984 before that change and reads 3434 after it',
+        measured: 3434,
         drive: ceilingBoard(longAscii)
       },
       {
         mark: 'I',
         what: 'the same ceiling with every one of those names written in astral emoji, '
-          + 'which is twice the UTF-16 units and four times the bytes',
-        measured: 3186,
+          + 'which is twice the UTF-16 units and four times the bytes. RE-MEASURED UNDER '
+          + 'D-32: 3186 before, 3636 after',
+        measured: 3636,
         drive: ceilingBoard(longAstral)
       }
     ];
@@ -28329,9 +28493,25 @@ App.selftest = (function () {
     t.ok('a board a student could actually build fits in 400 characters, and it measures '
       + '297 — a margin of 103, and comfortably inside the design target of 512',
       measured.B < 400);
-    t.ok('a fully authored 24-versus-24 board fits in 800 characters, and it measures 675 '
-      + '— a margin of 125, and about a third of the message limit',
-      measured.E < 800);
+    /* TURNED IN THE OPEN UNDER D-32, AND RE-MEASURED RATHER THAN SCALED. This
+       row read "fits in 800 characters, and it measures 675 — a margin of 125"
+       and went RED on the commit that raised the three term caps, because
+       board E's driver fills every list to the cap and four terms per list is
+       twice what two were. The new figure is the one the run printed: 879. It
+       was not derived from 675 by arithmetic, because the code is not linear
+       in the term count — the name table pays for each distinct name once and
+       the ordinals are shared — and a scaled number would have been a guess
+       wearing a measurement's clothes. The threshold moves with it, to 1000,
+       which keeps the same shape of claim: a round ceiling above the measured
+       figure with the margin written in. */
+    t.ok('a fully authored 24-versus-24 board fits in 1000 characters, and it measures 879 '
+      + '— a margin of 121, and comfortably under half the message limit and well under '
+      + 'the warning threshold the share surface draws',
+      measured.E < 1000);
+    t.ok('and it is still under CODE_WARN, so the surface says nothing about it — which '
+      + 'is the claim that actually matters to a student, and it is read off the exported '
+      + 'constant rather than against a number typed here',
+      measured.E < App.data.CODE_WARN);
 
     /* --- THE DIFFERENCES-ONLY RULE, MADE LIVE. The rule that makes the
            shipped board 45 characters is also the first thing a rewrite drops
@@ -28884,7 +29064,7 @@ App.selftest = (function () {
       // slots, and one slot cleared again.
       var kept = App.ops.createAction(side, 'Pounce');
       App.ops.renameAction(side, kept, 'Pounce twice');
-      App.ops.setActionCost(side, kept, xfType, 3);
+      App.ops.setActionCost(side, kept, 0, xfType, 3);
       App.ops.setActionReq(side, kept, 0, 'hp', 2);
       App.ops.setActionReq(side, kept, 1, xfType, 1);
       App.ops.setActionXf(side, kept, 0, 'caster', 'hp', 2);
@@ -28898,7 +29078,7 @@ App.selftest = (function () {
       // and given a rule of its own.
       var shippedId = App.state.get().build[side].actions[0].id;
       App.ops.renameAction(side, shippedId, 'Renamed');
-      App.ops.setActionCost(side, shippedId, 'ap', 2);
+      App.ops.setActionCost(side, shippedId, 0, 'ap', 2);
       App.ops.setActionXf(side, shippedId, 0, 'target', xfType, 4);
     });
     var drivenBoard = liveBuild();
@@ -30100,7 +30280,7 @@ App.selftest = (function () {
       + 'be removed at all',
       (function () {
         var made = App.ops.createAction('cats', 'Pounce');
-        App.ops.setActionCost('cats', made, 'ap', 2);
+        App.ops.setActionCost('cats', made, 0, 'ap', 2);
         App.ops.declareAction('cats', made, 'c3', 'm2');
         App.state.flush();
         var withIt = App.model.spokenFor(build().cats.actions, fight().decl, 'cats');
@@ -30559,7 +30739,7 @@ App.selftest = (function () {
     App.ops.setUnitMaxHp('mechs', 'm4', 4);
     App.ops.setUnitShield('mechs', 'm4', 2);
     var pounce = App.ops.createAction('cats', 'Pounce');
-    App.ops.setActionCost('cats', pounce, 'ap', 2);
+    App.ops.setActionCost('cats', pounce, 0, 'ap', 2);
     App.ops.setActionXf('cats', pounce, 0, App.data.XF_WHO[1], 'hp', -3);
     App.ops.setActionXf('cats', pounce, 1, App.data.XF_WHO[0], 'shield', 1);
     App.ops.startFight();
