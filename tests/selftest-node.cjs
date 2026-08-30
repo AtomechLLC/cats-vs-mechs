@@ -13596,28 +13596,68 @@ const sepInputHolds = ['cats', 'mechs'].map((side) => [
 // that reads a CONTROL rather than a reading. Both are read as counts inside
 // each area, so a figure drawn in both areas fails as loudly as one drawn in
 // neither.
-// AND EACH IS READ OFF THE AREA'S OWN HEAD LINE RATHER THAN OFF THE AREA, WHICH
-// PROBE BO FORCED. The first draft counted the two controls anywhere INSIDE
-// #fight-input, and the probe moved them to the FOOT of that area — Advance at 1408
-// of a 1080 viewport, which is the below-the-fold defect this phase has fixed four
-// times — and this row ran 192 of 192, exit 0, because both controls were still
-// inside the area it asked about. The browser caught it at 1080 and did NOT catch it
-// at 768. So what is asserted is where D-31's own arrangement puts them: on the
-// area's HEAD line, above the scroller that grows with the roster times the action
-// list. Both heads are read FIRST and floored on being found, because a null head
-// would make every count below it zero and a clause reading "0 in the wrong place"
-// is satisfied by a page with no heads at all.
+/* ==========================================================================
+   D-33 P1-6 — THE CONTROLS' CLAUSE IS TURNED, IN THE OPEN, AND WHAT IT
+   ASSERTS IS STRICTLY STRONGER THAN WHAT IT ASSERTED.
+   ==========================================================================
+   WHAT STOOD HERE, kept verbatim because it is the record of the probe that
+   made this clause and of the reason it has to be replaced rather than relaxed:
+
+     "AND EACH IS READ OFF THE AREA'S OWN HEAD LINE RATHER THAN OFF THE AREA,
+      WHICH PROBE BO FORCED. The first draft counted the two controls anywhere
+      INSIDE #fight-input, and the probe moved them to the FOOT of that area —
+      Advance at 1408 of a 1080 viewport, which is the below-the-fold defect
+      this phase has fixed four times — and this row ran 192 of 192, exit 0,
+      because both controls were still inside the area it asked about. The
+      browser caught it at 1080 and did NOT catch it at 768. So what is asserted
+      is where D-31's own arrangement puts them: on the area's HEAD line, above
+      the scroller that grows with the roster times the action list."
+
+   D-33 P1-6 MOVES THEM TO THE FOOT — the exact arrangement PROBE BO drove and
+   found broken — because the audit measured what the head line cost: the
+   destructive control was the brightest object in the region, the commit was a
+   plain outline pill, and both sat above the nine rows they act on. "The commit
+   follows what it commits."
+
+   SO THE PROPERTY PROBE BO WAS PROTECTING IS ASSERTED DIRECTLY INSTEAD OF BEING
+   STOOD IN FOR BY A POSITION. What made the foot unsafe was that nothing held
+   the control in the window; what makes it safe is `position:sticky; bottom:0`
+   on .fg-round-acts, which cannot be pushed off the fold by any roster at any
+   viewport at any setting of any dial in the file. TWO CLAUSES, and neither
+   subsumes the other:
+
+     the two controls are inside #fight-input and are its LAST CHILD, which is
+       "after the rows" said as child order rather than as a measurement, and is
+       the half a CSS reordering would leave true (103e's and PROBE BQ's shape);
+     and the STYLESHEET gives .fg-round-acts a sticky position AND a bottom
+       inset, read out of the rule body BY NAME. That second clause is 103b's
+       idiom held here for the same stated reason: the rule that makes this
+       arrangement safe "is one deleted line away at all times", and a row that
+       only read child order would be green over the exact page PROBE BO drove.
+
+   NEITHER CLAUSE IS THE MEASUREMENT AND THIS ROW DOES NOT PRETEND TO BE ONE.
+   Browser cells 18 and 18c carry the pixels, in two browsers at two sizes, and
+   18c is the one that reads Advance and the rows on screen together. */
 const sepInputHead = dom.byId['fight-input'].querySelectorAll('.fg-area-head')[0] || null;
 const sepStateHead = dom.byId['fight-state'].querySelectorAll('.fg-area-head')[0] || null;
 const sepFigInState = sepStateHead === null ? 0 : sepStateHead.querySelectorAll('.fg-round-head').length;
 const sepFigInInput = sepHas('fight-input', '.fg-round-head');
-const sepActsInInput = sepInputHead === null ? 0
-  : sepInputHead.querySelectorAll('[data-fg="advance"]').length
-    + sepInputHead.querySelectorAll('[data-fg="reset"]').length;
+const sepActsInInput = sepHas('fight-input', '[data-fg="advance"]')
+  + sepHas('fight-input', '[data-fg="reset"]');
 const sepActsInState = sepHas('fight-state', '[data-fg="advance"]')
   + sepHas('fight-state', '[data-fg="reset"]');
-const sepActsElsewhere = sepHas('fight-input', '[data-fg="advance"]')
-  + sepHas('fight-input', '[data-fg="reset"]') - sepActsInInput;
+// ON THE HEAD LINE IS NOW THE FAILURE, which is this clause inverted rather
+// than dropped: a page that put them back where D-31 had them fails here.
+const sepActsOnHead = sepInputHead === null ? 0
+  : sepInputHead.querySelectorAll('[data-fg="advance"]').length
+    + sepInputHead.querySelectorAll('[data-fg="reset"]').length;
+const sepInputKids = dom.byId['fight-input'].children;
+const sepActsLast = sepInputKids.length > 0
+  && String(sepInputKids[sepInputKids.length - 1].className || '')
+    .indexOf('fg-round-acts') !== -1;
+const sepStickyRule = sepCssRule('.fg-round-acts');
+const sepSticky = /position\s*:\s*sticky/.test(sepStickyRule)
+  && /(^|[;{\s])bottom\s*:/.test(sepStickyRule);
 const sepNames = ['fight-state', 'fight-input'].map((areaId) => {
   const sides = dom.byId[areaId].querySelectorAll('.fg-sides');
   if (sides.length !== 1) { return 'sides=' + sides.length; }
@@ -13651,17 +13691,29 @@ check(
     + 'survivor reading, the cluster and the team resources are in the state '
     + 'column and in NO input column; the picker rows and the reading box are in '
     + 'the input column and in NO state column. The two ROUND CONTROLS are '
-    + 'asserted onto the INPUT area\'s HEAD LINE and the round FIGURE onto the '
-    + 'state\'s. THE HEAD IS NAMED RATHER THAN THE AREA, AND PROBE BO IS WHY: '
-    + 'with the two controls moved to the FOOT of the input area this row ran '
-    + '192 of 192 and exit 0 while the Advance stood at 1408 of a 1080 '
-    + 'viewport, which is the defect this phase has fixed four times. The '
-    + 'browser caught that at 1080 and did NOT catch it at 768, so neither half '
-    + 'of the pair subsumes the other. It is D-31\'s "Advance lives with the '
-    + 'input, since it commits '
-    + 'what the input declared" — and where those two nodes sit is what decides '
-    + 'whether the Advance is above the fold, measured in two browsers at two '
-    + 'sizes by browser cell 18. And the COLUMN PAIRING survives inside EACH '
+    + 'asserted at the FOOT of the INPUT area and the round FIGURE onto the '
+    + 'state area\'s head. THAT CLAUSE IS TURNED IN THE OPEN UNDER D-33 P1-6 '
+    + 'AND IT USED TO ASSERT THE OPPOSITE — the controls were required to be ON '
+    + 'the input area\'s HEAD LINE, and PROBE BO is why: with them moved to the '
+    + 'FOOT this row ran 192 of 192 and exit 0 while the Advance stood at 1408 '
+    + 'of a 1080 viewport, which is the defect this phase has fixed four times, '
+    + 'and the browser caught that at 1080 and did NOT catch it at 768. D-33 '
+    + 'P1-6 makes the move the probe found broken — "the commit follows what it '
+    + 'commits", after the nine rows it acts on rather than above them — so the '
+    + 'property the head line was standing in for is asserted DIRECTLY instead. '
+    + 'TWO CLAUSES AND NEITHER SUBSUMES THE OTHER: the row is the LAST CHILD of '
+    + '#fight-input, which is "after the rows" said as child order and is the '
+    + 'half a CSS reordering leaves true; and the STYLESHEET gives '
+    + '.fg-round-acts a sticky position AND a bottom inset, read out of the '
+    + 'rule body by name, which is 103b\'s idiom for the same stated reason — '
+    + 'the one line that makes the foot safe is one deletion away at all times, '
+    + 'and a row reading only child order would be green over the exact page '
+    + 'PROBE BO drove. The controls being back on the HEAD line is now a '
+    + 'FAILURE rather than the requirement. It is still D-31\'s "Advance lives '
+    + 'with the input, since it commits what the input declared" — the pixels '
+    + 'are browser cells 18 and 18c, in two browsers at two sizes, and 18c is '
+    + 'the one that reads the control and the rows on screen together. And the '
+    + 'COLUMN PAIRING survives inside EACH '
     + 'area: exactly two .fg-side roots per area, in roster order, each named '
     + 'off the LIVE build rather than by a word typed into this row',
   sepStateAt !== -1 && sepInputAt !== -1 && sepStateAt < sepInputAt
@@ -13673,7 +13725,9 @@ check(
     && sepInputHolds.every((s) => s === '0,0,0,1,1')
     && sepFigInState === 1 && sepFigInInput === 0
     && sepInputHead !== null && sepStateHead !== null
-    && sepActsInInput === 2 && sepActsInState === 0 && sepActsElsewhere === 0
+    && sepActsInInput === 2 && sepActsInState === 0
+    && sepActsOnHead === 0 && sepActsLast === true
+    && sepStickyRule.length > 0 && sepSticky === true
     && sepNames.length === 2 && sepWantNames.indexOf('|') !== -1
     && sepNames.every((s) => s === sepWantNames),
   '#fightbar child order=' + JSON.stringify(sepKids)
@@ -13691,8 +13745,11 @@ check(
     + JSON.stringify(sepStateHolds)
     + ' | input columns hold the same five=' + JSON.stringify(sepInputHolds)
     + ' | the round figure: state=' + sepFigInState + ' input=' + sepFigInInput
-    + ' | Advance and Reset on the input head=' + sepActsInInput
-    + ', elsewhere in that area=' + sepActsElsewhere
+    + ' | Advance and Reset in the input area=' + sepActsInInput
+    + ', on that area\'s head line=' + sepActsOnHead
+    + ', the row is the area\'s last child=' + sepActsLast
+    + ' | .fg-round-acts carries a sticky bottom=' + sepSticky
+    + ' (rule body read, ' + sepStickyRule.length + ' chars)'
     + ', in the state area=' + sepActsInState
     + ' | the columns of each area read ' + JSON.stringify(sepNames)
     + ' against the live build\'s ' + JSON.stringify(sepWantNames)

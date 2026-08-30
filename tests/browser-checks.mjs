@@ -475,21 +475,53 @@ for (const ch of ['chrome', 'msedge']) {
          each for exactly this reason. `behavior: 'instant'` would also work and is
          deliberately not used: waiting is what a room does. */
       const reach = await pg.evaluate(async () => {
-        const n = document.querySelector('#fight-input .fg-sides');
-        const before = Math.round(n.getBoundingClientRect().bottom);
-        const want = Math.max(0, window.scrollY + before - window.innerHeight + 8);
+        const rows = () => Array.from(document.querySelectorAll('#decl-cats .fg-row'));
+        // D-33 P1-2's OWN PROPERTY, MEASURED THE WAY THE AUDIT MEASURED IT: is any
+        // row cut by ANY scrolling ancestor? This walks each row's ancestors and
+        // compares boxes, so a row hidden inside a bounded container is a FAILURE
+        // however far the page is scrolled. It is taken before any scrolling,
+        // because clipping by an ancestor is not a function of the page offset.
+        const cutBy = (node) => {
+          const r = node.getBoundingClientRect();
+          let p = node.parentElement;
+          while (p && p !== document.body) {
+            const cs = getComputedStyle(p);
+            if (/auto|scroll|hidden/.test(cs.overflowY) || /auto|scroll|hidden/.test(cs.overflowX)) {
+              const pr = p.getBoundingClientRect();
+              if (r.top < pr.top - 0.6 || r.bottom > pr.bottom + 0.6
+                || r.left < pr.left - 0.6 || r.right > pr.right + 0.6) { return true; }
+            }
+            p = p.parentElement;
+          }
+          return false;
+        };
+        const all = rows();
+        const clipped = all.filter(cutBy).length;
+        // AND THE LAST ROW IS DRIVEN INTO VIEW, which is what "reachable" means on a
+        // box that is no longer a window: the region may be taller than the screen,
+        // and every ROW in it must still be readable and pressable.
+        const last = all[all.length - 1];
+        const before = Math.round(last.getBoundingClientRect().bottom);
+        const want = Math.max(0, window.scrollY + before - window.innerHeight + 70);
         window.scrollTo(0, want);
-        await new Promise((r) => setTimeout(r, 400));
+        await new Promise((r) => setTimeout(r, 500));
+        const lr = last.getBoundingClientRect();
+        const n = document.querySelector('#fight-input .fg-sides');
         const r = n.getBoundingClientRect();
         const out = { asked: Math.round(want), got: Math.round(window.scrollY),
           top: Math.round(r.top), bottom: Math.round(r.bottom), vh: window.innerHeight,
+          rows: all.length, clipped,
+          lastRow: { top: Math.round(lr.top), bottom: Math.round(lr.bottom) },
+          lastRowWhole: lr.top >= 0 && lr.bottom <= window.innerHeight,
           maxScroll: Math.round(document.scrollingElement.scrollHeight - window.innerHeight) };
         window.scrollTo(0, 0);
         await new Promise((r2) => setTimeout(r2, 400));
         return out;
       });
-      note(ch, size.name, `grid ${label} #fight-input .fg-sides whole in view after a page scroll`,
-        `top ${reach.top} bottom ${reach.bottom} of ${reach.vh} at scrollY ${reach.got}`);
+      note(ch, size.name, `grid ${label} picker rows clipped by ANY scrolling ancestor`,
+        `${reach.clipped} of ${reach.rows}`);
+      note(ch, size.name, `grid ${label} the LAST picker row, driven into view`,
+        `${reach.lastRow.top}-${reach.lastRow.bottom} of ${reach.vh} at scrollY ${reach.got}`);
       /* ==================================================================
          AND 6b's FIRST CLAUSE IS TURNED A SECOND TIME, BY D-31.
          ==================================================================
@@ -506,15 +538,45 @@ for (const ch of ['chrome', 'msedge']) {
          it: the state area's window is 22vh there and the chrome above the picker is
          the region's heading plus two panels. THE SECOND CLAUSE IS UNTOUCHED AND IS
          DRIVEN AT BOTH SIZES — the page is scrolled and the box re-read, and it comes
-         wholly into view at 515/760 of 768 and 726/1072 of 1080. So what is asserted
-         at 768 is that the box has a real height and is REACHABLE, which is this
-         cell's own distinction between a region a room scrolls and a control a room
-         cannot find. Cell 18c carries the half that matters most: the control that
-         ends the round is on screen WITH these rows when a room scrolls to them. */
-      ok(`${tag}: 6b. ${label} — the grid's box ${size.height >= 1000 ? 'BEGINS on screen' : 'is REACHABLE — D-31 turned this clause at 768'} and can be brought wholly into view by scrolling the page`,
-        g.sidesBox.top >= 0 && g.sidesBox.height > 0
-        && (size.height >= 1000 ? g.sidesBox.top < g.viewportH : g.sidesBox.top < g.viewportH * 2)
-        && reach.top >= 0 && reach.bottom <= reach.vh, { g, reach });
+         wholly into view at 515/760 of 768 and 726/1072 of 1080. So what was asserted
+         at 768 is that the box has a real height and is REACHABLE.
+
+         ==================================================================
+         AND D-33 P1-2 TURNS BOTH CLAUSES, BECAUSE THIS CELL WAS GREEN OVER
+         THE DEFECT THAT CLOSED THE WHOLE FINDING. Plan 05-D33b.
+         ==================================================================
+         THE MEASUREMENT THAT SHOULD HAVE BEEN HERE ALL ALONG. Every reading in the
+         entries above is of the BOX. Not one of them is of what is INSIDE it, and the
+         audit measured what was inside it: #decl-cats held NINE .fg-row and the box
+         showed SIX. Three of nine cats were absent from the picker, five of nine from
+         the battlefield, with "9 of 9 still standing" printed above both — and with
+         one declaration standing the picker hid seven of the nine. Every clause of
+         this cell was green throughout. A box that "comes wholly into view" while a
+         third of its contents cannot is precisely the reading a bounded scroller
+         gives you for free, and it is the reading that let this ship.
+
+         SO THE CLAUSE ABOUT THE BOX IS REPLACED BY TWO CLAUSES ABOUT THE ROWS:
+           NO PICKER ROW IS CLIPPED BY ANY SCROLLING ANCESTOR, walked per row and
+             compared box against box — the audit's own measurement, and one no page
+             offset can satisfy or break, because clipping by an ancestor is not a
+             function of the page scroll;
+           and THE LAST ROW IS DRIVEN WHOLLY INTO VIEW, which is what "reachable"
+             means once the region is no longer a window. P1-2 took the bound off
+             .fg-sides, so at 24 a side the region is 1267px tall and CANNOT be
+             brought wholly into view at either size — correctly. The old clause
+             (reach.bottom <= reach.vh) asserted the opposite and reddened on the
+             24-a-side board the moment the bound came off, which is this cell asking
+             for a property the fix deliberately gave up.
+
+         THE BOX'S OWN NUMBERS ARE RECORDED RATHER THAN THRESHOLDED, which is check
+         9's rule in this same file. Cell 18c carries the other half: the control that
+         ends the round is on screen WITH these rows at every offset a room reads them
+         from. */
+      ok(`${tag}: 6b. ${label} — the grid has a real box and NOT ONE picker row is clipped by any scrolling ancestor, and the LAST row can be driven wholly into view — D-33 P1-2 turned this cell and the banner says why`,
+        g.sidesBox.height > 0
+        && reach.rows === g.cats.units
+        && reach.clipped === 0
+        && reach.lastRowWhole === true, { g, reach });
       return g;
     };
     await gridOn('9-and-3');
@@ -1146,13 +1208,40 @@ for (const ch of ['chrome', 'msedge']) {
        it, which is why this cell is TURNED rather than the number being tuned until it
        passed.
 
-       WHAT IT ASSERTS NOW, in three clauses. At 1920x1080 the old claim stands
-       unchanged and unweakened: above the fold at page scroll zero. At 1366x768 the
-       reading is asserted to be what the sweep says it is - the control has a real
-       box, it is ENABLED, and it is within ONE page scroll of the fold rather than
-       somewhere off the end of a document - so a regression that put it at 1600 goes
-       red here even though 947 does not. And at BOTH sizes cell 18c drives the
-       property the fold was standing in for and never actually measured. */
+       WHAT IT ASSERTED UNTIL D-33 P1-6, in three clauses. At 1920x1080 the old claim
+       stood unchanged and unweakened: above the fold at page scroll zero. At 1366x768
+       the reading was asserted to be what the sweep says it is - the control has a
+       real box, it is ENABLED, and it is within ONE page scroll of the fold rather
+       than somewhere off the end of a document. And at BOTH sizes cell 18c drove the
+       property the fold was standing in for.
+
+       ==================================================================
+       AND D-33 P1-6 TURNS IT AGAIN, THIS TIME BY MAKING THE FOLD CLAIM
+       IRRELEVANT RATHER THAN BY WEAKENING IT. Plan 05-D33b.
+       ==================================================================
+       The audit: "the destructive control outranks the commit control, and both sit
+       above what they act on." The two controls move to the FOOT of #fight-input and
+       become a STICKY FOOTER - `position:sticky; bottom:0` - so the control is pinned
+       to the bottom of the window for as long as any part of the area it commits is
+       on screen, and settles onto the true foot only at that area's end.
+
+       SO "ABOVE THE FOLD AT PAGE SCROLL ZERO" IS NOT THE PROPERTY ANY MORE AND IS NOT
+       ASSERTED. Measured after the change, three rounds in the lane, at page scroll
+       zero: 1158-1204 of 1080 at 1920x1080 and 1121-1167 of 768 at 1366x768 - both
+       BELOW, both correct, because at page scroll zero the picker rows are below the
+       fold too and a control pinned to a region nobody has scrolled to has nothing to
+       pin against. A cell asserting the old clause here would be asserting that the
+       commit sits above the rows, which is the arrangement D-33 removed.
+
+       WHAT IT ASSERTS NOW is the MECHANISM, because the pixels moved to 18c and a
+       mechanism this cell can read is the half a screenshot cannot: the control has a
+       real box and is ENABLED; the row that carries it computes to `position: sticky`
+       with a real `bottom` inset; and EVERY ANCESTOR of that row reports a visible
+       overflow. That last clause is [C03]'s sticky gotcha asserted rather than
+       trusted - one `overflow:hidden` on any ancestor silently turns the sticky footer
+       back into a static one, no error anywhere, and the control goes back under the
+       fold exactly as PROBE BO measured it. It is cell 10's shape, held for the second
+       sticky element on the page. */
     const under = await pg.evaluate(async () => {
       const R = (s) => { const n = document.querySelector(s); if (!n) return null; const r = n.getBoundingClientRect();
         return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom) }; };
@@ -1172,7 +1261,30 @@ for (const ch of ['chrome', 'msedge']) {
         field: R('#state-cats .fg-field'),
         team: R('#state-cats .fg-team'), rows: R('#decl-cats .fg-rows'),
         lane: R('#ledger-list'),
-        advanceEnabled: document.querySelector('#fightbar [data-fg="advance"]').disabled === false
+        advanceEnabled: document.querySelector('#fightbar [data-fg="advance"]').disabled === false,
+        // D-33 P1-6's mechanism, read off the computed style and off every
+        // ancestor - see this cell's banner for why the gotcha is asserted.
+        acts: (() => {
+          const n = document.querySelector('#fight-input .fg-round-acts');
+          if (!n) return null;
+          const cs = getComputedStyle(n);
+          const bad = [];
+          let p = n.parentElement;
+          while (p) {
+            const c = getComputedStyle(p);
+            if (c.overflowX !== 'visible' || c.overflowY !== 'visible') {
+              bad.push((p.id ? '#' + p.id : p.tagName.toLowerCase())
+                + ' ' + c.overflowX + '/' + c.overflowY);
+            }
+            p = p.parentElement;
+          }
+          const kids = n.parentElement.children;
+          return {
+            position: cs.position, bottom: cs.bottom,
+            last: kids[kids.length - 1] === n,
+            clippedAncestors: bad
+          };
+        })()
       };
     });
     const foldSize = size.height >= 1000;
@@ -1189,15 +1301,19 @@ for (const ch of ['chrome', 'msedge']) {
     // actually settled at when the reading was taken.
     note(ch, size.name, 'Advance from the top of the DOCUMENT, 3 rounds in the lane',
       `${under.advance.top + under.scrollY} of ${under.vh} (read at scrollY ${under.scrollY})`);
-    ok(`${tag}: 18. with three rounds in the lane the Advance control is ${foldSize ? 'ABOVE THE FOLD at page scroll zero' : 'within ONE page scroll of the fold - D-31 turned this clause at 768 and [C14.1] carries the sweep'}, and enabled`,
+    note(ch, size.name, 'D-33 the commit row: position / bottom / last child / clipped ancestors',
+      under.acts === null ? 'MISSING'
+        : `${under.acts.position} ${under.acts.bottom} last=${under.acts.last}`
+          + ` clipped=${under.acts.clippedAncestors.length}`);
+    ok(`${tag}: 18. with three rounds in the lane the Advance control is enabled, has a real box, and the row that carries it is a STICKY FOOTER at the foot of the area it commits with NO clipping ancestor - D-33 P1-6 turned this cell's fold clause and the banner says why`,
       under.advance.top + under.scrollY >= 0
       && under.advanceEnabled === true
       && under.advance.h > 0 && under.advance.w > 0
-      && (foldSize
-        ? (under.advance.bottom + under.scrollY <= under.vh
-          && under.advance.top >= 0 && under.advance.bottom <= under.vh)
-        : (under.advance.bottom + under.scrollY > under.vh
-          && under.advance.bottom + under.scrollY <= under.vh * 2)),
+      && under.acts !== null
+      && under.acts.position === 'sticky'
+      && /^-?\d/.test(under.acts.bottom) && under.acts.bottom !== 'auto'
+      && under.acts.last === true
+      && under.acts.clippedAncestors.length === 0,
       { foldSize, under });
     ok(`${tag}: 18b. the round, the lane, the battlefield, the team resources and the picker rows all have a real box`,
       [under.roundHead, under.lane, under.field, under.team, under.rows]
@@ -1227,30 +1343,72 @@ for (const ch of ['chrome', 'msedge']) {
        Advance read 1408 of a 1080 viewport, cell 18 caught it at 1080, this cell did
        NOT — at the offset a room declares from, the control was at 747-794 and the
        rows at 443-883, so both were on screen and every clause was satisfied by a
-       control BELOW the thing it commits. So the ORDER is asserted too: Advance sits
-       ABOVE the picker rows, which is what "the control travels with the input"
-       actually means and what makes it reachable on a board taller than one screen. */
+       control BELOW the thing it commits. So the ORDER was asserted too: Advance
+       ABOVE the picker rows.
+
+       ==================================================================
+       D-33 P1-6 MAKES THE ORDER CLAUSE FALSE ON PURPOSE, AND REPLACES IT
+       WITH A SWEEP THAT IS STRICTLY STRONGER THAN IT WAS. Plan 05-D33b.
+       ==================================================================
+       The audit's finding is that the commit sitting ABOVE the nine rows it commits
+       is the defect, not the fix — "the commit follows what it commits" — alongside
+       the destructive control being the brightest object in the region. So the pair
+       is at the FOOT now, and PROBE BO's arrangement is the shipped one.
+
+       WHAT MAKES THAT SAFE IS `position:sticky; bottom:0`, WHICH THE PROBE DID NOT
+       HAVE. Cell 18 asserts the mechanism. This cell asserts the CONSEQUENCE, and it
+       does it as a SWEEP rather than at one offset, because one offset is exactly
+       what PROBE BO slipped through: the page is scrolled to five fractions of its
+       own scrollable height, and at EVERY offset where any picker row is on screen
+       the Advance control must be WHOLLY on screen at that same instant. A static
+       footer fails that at the first offset where the rows begin; the pre-D-33 head
+       placement would have passed it, which is correct — both arrangements hold the
+       property, and this cell is about the property rather than about a position.
+
+       THE ORDER CLAUSE IS INVERTED RATHER THAN DROPPED: at the offset where the LAST
+       row is in view, the control must be at or below that row's top, which is
+       "after the rows" measured on screen. A regression that put the pair back on the
+       head line reddens here as well as in node check 108.
+
+       MEASURED WHEN IT WENT IN, three rounds in the lane, real Chrome:
+         1920x1080  four offsets with rows in view, Advance wholly on screen at all
+                    four (986-1033, 986-1033, 967-1014, 714-761 of 1080)
+         1366x768   three offsets with rows in view, all three (674-721, 674-721,
+                    403-449 of 768) — which is the fold claim D-31 wrote down as
+                    unreachable at this size, held at every one of them. */
     const together = await pg.evaluate(async () => {
-      const rows = document.querySelector('#decl-cats .fg-rows');
-      const want = Math.max(0, window.scrollY + Math.round(rows.getBoundingClientRect().top) - 40);
-      window.scrollTo(0, want);
-      await new Promise((r) => setTimeout(r, 450));
       const R = (s) => { const n = document.querySelector(s); const r = n.getBoundingClientRect();
         return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height) }; };
-      const out = { asked: want, got: Math.round(window.scrollY), vh: window.innerHeight,
-        advance: R('#fightbar [data-fg="advance"]'), rows: R('#decl-cats .fg-rows') };
+      const span = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const out = { vh: window.innerHeight, span, samples: [] };
+      for (const frac of [0, 0.25, 0.5, 0.75, 1]) {
+        window.scrollTo(0, Math.round(span * frac));
+        await new Promise((r) => setTimeout(r, 420));
+        const a = R('#fightbar [data-fg="advance"]');
+        const rows = Array.from(document.querySelectorAll('#decl-cats .fg-row'))
+          .map((n) => n.getBoundingClientRect());
+        const inView = rows.filter((r) => r.bottom > 0 && r.top < window.innerHeight);
+        const last = rows[rows.length - 1];
+        out.samples.push({
+          y: Math.round(window.scrollY),
+          advance: a,
+          rowsInView: inView.length,
+          advWhole: a.top >= 0 && a.bottom <= window.innerHeight && a.h > 0,
+          lastRowInView: last.bottom > 0 && last.top < window.innerHeight,
+          advBelowLastRow: a.top >= Math.round(last.top)
+        });
+      }
       window.scrollTo(0, 0);
-      await new Promise((r) => setTimeout(r, 450));
+      await new Promise((r) => setTimeout(r, 420));
       return out;
     });
-    note(ch, size.name, 'D-31 Advance and the picker rows, together, at the offset a room declares from',
-      `advance ${together.advance.top}-${together.advance.bottom}, rows ${together.rows.top}-${together.rows.bottom}`
-      + ` of ${together.vh} at scrollY ${together.got}`);
-    ok(`${tag}: 18c. scrolled to the picker rows, the Advance control that commits them is WHOLLY on screen at the same time AND sits ABOVE them`,
-      together.advance.top >= 0 && together.advance.bottom <= together.vh
-      && together.advance.h > 0
-      && together.rows.top < together.vh && together.rows.bottom > 0
-      && together.advance.bottom <= together.rows.top,
+    const withRows = together.samples.filter((s) => s.rowsInView > 0);
+    const atLastRow = together.samples.filter((s) => s.lastRowInView);
+    note(ch, size.name, 'D-33 Advance against the picker rows, swept over five page offsets',
+      together.samples.map((s) => `y${s.y}:${s.advance.top}-${s.advance.bottom}/${s.rowsInView}rows`).join('  '));
+    ok(`${tag}: 18c. at EVERY page offset where a picker row is on screen the Advance control that commits them is WHOLLY on screen with it, and where the LAST row is in view the control sits AFTER it - D-33 P1-6 inverted the order clause and the banner says why`,
+      withRows.length > 0 && withRows.every((s) => s.advWhole === true)
+      && atLastRow.length > 0 && atLastRow.every((s) => s.advBelowLastRow === true),
       together);
 
     /* ── 19. AND THE LANE REALLY DOES SCROLL SIDEWAYS, driven past the width it fits

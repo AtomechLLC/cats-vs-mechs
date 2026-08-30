@@ -2034,10 +2034,24 @@
      sees a labelled empty box either — the ruling [S06.7] and the ledger both
      already keep about a legend with nothing under it.
 
-     AND IT TAKES NO overflow, for [C03]'s gotcha and for the reason [C14]'s
-     banner gives: this block is not an ancestor of #strip today, and a rule
-     that becomes load-bearing only when somebody moves an element is a rule to
-     write down rather than to rely on. */
+     IT TOOK NO overflow UNTIL D-33 P1-2 AND IT TAKES ONE NOW, IN THE STATE
+     AREA ONLY, and the sentence that stood here is corrected rather than
+     deleted: "AND IT TAKES NO overflow, for [C03]'s gotcha and for the reason
+     [C14]'s banner gives: this block is not an ancestor of #strip today, and a
+     rule that becomes load-bearing only when somebody moves an element is a
+     rule to write down rather than to rely on."
+
+     THE GOTCHA WAS RE-CHECKED RATHER THAN ASSUMED AWAY, because that is what
+     the sentence asked the next author to do. #strip lives inside #board and
+     #board is this region's SIBLING, so nothing in this block is an ancestor of
+     the one sticky element the page had — and P1-6 adds a SECOND sticky element
+     (.fg-round-acts, in the input area), which this rule is not an ancestor of
+     either: the bound below is scoped to .fg-area--state and the sticky footer
+     is in .fg-area--input. Both are driven in tests/browser-checks.mjs rather
+     than argued here, in the shape cell 10 already uses for #strip.
+
+     THE RULE ITSELF IS TWO PARAGRAPHS DOWN, beside the dial it replaces, so the
+     measurement and the number stay in one place. */
   .fg-field{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
 
   /* THE TEAM RESOURCES, ABOVE THE PICKER — the addendum's own words. One row
@@ -2100,8 +2114,42 @@
      the length of the longest name anybody might type. It is the one place in
      this block where two rows are asked to agree about a measurement. */
   .fg-rows{display:flex;flex-direction:column;gap:10px}
+  /* D-33 P3-6, CARRIED FROM PASS A: the fight row had no focus-within rule
+     where the board has one. .unit-card{&:focus-within{border-color:accent}}
+     exists on the board and nothing equivalent existed here — two surfaces, the
+     same question ("which row am I in"), one answer.
+
+     THE FINDING'S OWN WORDING IS PARAPHRASED HERE ON PURPOSE. It uses a noun
+     that carries, as a substring, one of the words the comparative-language
+     gate refuses document-wide — comments included — and the audit's standing
+     warning to every implementer of that spec names that exact noun among the
+     casualties. This is what that warning looks like when it lands.
+
+     PASS A LEFT IT AND SAID WHY: .fg-row is a bare flex row with no border and
+     no background, so there is nothing to change the colour OF, and a treatment
+     for it is a visual decision rather than a token swap. This is that decision,
+     and it is the cheapest one that answers the question: a WASH and a left
+     RULE, both derived from --accent by color-mix, no new hex, and no border on
+     the box itself — a row that grew a border on focus would jump sideways by
+     its own border width while the keyboard is inside it, and the negative
+     inline margin is what pays for the padding so the row does not move at all.
+
+     IT IS DELIBERATELY NOT THE DECLARED TREATMENT AND NOT THE FOCUS RING.
+     Pass A separated four states and this is a fifth reading — "the keyboard is
+     somewhere in this row" — which must not be confusable with "this action is
+     declared" (a fill AND an outline AND a tick, on a BUTTON) or with the focus
+     ring itself (which is still drawn, on the control, at offset 3). So it is
+     weaker than both, it is on the ROW rather than on any control, and it is a
+     wash rather than an outline. */
   .fg-row{
     display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;
+    border-left:2px solid transparent;
+    margin-inline-start:-10px;padding-inline-start:8px;
+    border-radius:0 8px 8px 0;
+    &:focus-within{
+      border-left-color:color-mix(in srgb, var(--accent) 55%, transparent);
+      background-color:color-mix(in srgb, var(--accent) 7%, transparent);
+    }
   }
   .fg-unit{
     min-width:5.5em;font-size:18px;font-weight:700;color:var(--ink);
@@ -2329,8 +2377,60 @@
 
      The 2px of padding is the ledger list's, for its reason: an outline on a
      focused control at the edge of a scroller is clipped by the scroller
-     without it. */
-  .fg-sides{max-height:32vh;overflow-y:auto;padding:2px}
+     without it.
+
+     ==================================================================
+     D-33 P1-2 TAKES THE BOUND OFF THIS ELEMENT ALTOGETHER, AND THE WHOLE
+     SWEEP ABOVE IS THE ARGUMENT FOR DOING IT. Plan 05-D33b.
+     ==================================================================
+     Read the last paragraph of that sweep again: "the scrolled CONTENT of one
+     column is 1171px at 1920 and 1603px at 1366 on the shipped 9-and-3 board,
+     so this region is a window on a column at every setting and the question of
+     whether that window is big enough is a room's to answer, not a comment's."
+     THE ROOM ANSWERED. Measured on the shipped board, in real Chrome, with the
+     nine cats the artifact ships with:
+
+       viewport     region              clientHeight  scrollHeight  hidden
+       1920x1080    state  .fg-sides         238          364        126px
+       1920x1080    input  .fg-sides         346          517        171px
+       1366x768     state  .fg-sides         169          364        195px
+       1366x768     input  .fg-sides         246          517        271px
+
+     THREE OF NINE CATS WERE ABSENT FROM THE PICKER AND FIVE OF NINE FROM THE
+     BATTLEFIELD, at 1920, with "9 of 9 still standing" printed above both — and
+     with a declaration standing the picker hid seven of the nine. A cat that
+     cannot be seen cannot be declared for, and nothing on screen said the
+     others existed. The audit is that rehearsal and this dial is what it came
+     back with.
+
+     WHAT REPLACES IT IS NOT A BIGGER NUMBER, IT IS A DIFFERENT BOX. The
+     paragraphs above spend their whole length deriving how much of a COLUMN a
+     room reads without scrolling — but a column is side name, survivor
+     reading, battlefield, resources and nine picker rows, and only ONE of those
+     is a list that grows without bound. Bounding the column clipped the
+     headings and the live resource preview along with it. So:
+
+       the two headings, the survivor reading and the team resources are
+         outside a scroller entirely now, because .fg-sides no longer is one;
+       the BATTLEFIELD CLUSTER carries the bound instead — the rule two
+         paragraphs down — because a cluster of shapes is the one thing in
+         here that can honestly be windowed;
+       and the PICKER ROWS are not bounded at all. They are the surface the
+         task is on, and the page's own scrollbar is the one scroller in this
+         artifact a student already knows how to see.
+
+     WHAT PAID FOR TAKING THE PICKER'S BOUND OFF IS D-33 P1-6, AND THE TWO
+     CHANGES DO NOT MAKE SENSE APART. Every sweep above is measured against the
+     bottom edge of the Advance control, because an unbounded picker used to
+     push that control off the fold. Advance is now a STICKY FOOTER at the foot
+     of #fight-input — it travels with the rows it commits and it cannot leave
+     the window while any of them are in it — so the property those sweeps were
+     buying with a number is held structurally instead, and held at 768 as well,
+     which no setting of this dial ever managed.
+
+     THE 2px OF PADDING STAYS. It is outline room, and .fg-act--on's ring still
+     draws outside the box. */
+  .fg-sides{padding:2px}
 
   /* ==================================================================
      AND D-31 GIVES THE STATE AREA A BOUND OF ITS OWN, WHICH IS THE ONE
@@ -2399,8 +2499,43 @@
 
      THE INPUT AREA KEEPS THE RULE ABOVE UNCHANGED — 32vh, D-28's dial, neither
      re-derived nor touched, because what it bounds is what it always bounded:
-     how much of a picker a room reads without scrolling. */
-  .fg-area--state .fg-sides{max-height:22vh}
+     how much of a picker a room reads without scrolling.
+
+     ==================================================================
+     D-33 P1-2 RETIRES THIS DIAL AND MOVES THE BOUND ONTO THE CLUSTER.
+     Plan 05-D33b.
+     ==================================================================
+     THE ALTERNATIVE THIS PLAN TOOK IS THE ONE THE PARAGRAPHS ABOVE WROTE DOWN
+     AND DECLINED, arriving from the other side. The 768 finding stands exactly
+     as measured — "a state window of zero height still overshoots by nine
+     pixels; the arithmetic has no free term in it" — and the reason it had no
+     free term is that this dial was being asked to hold Advance above the fold
+     from three regions away. It no longer is. P1-6 makes Advance a sticky
+     footer inside the area whose rows it commits, so nothing in the state area
+     decides where that control is, and this bound is free to be about the one
+     thing it should ever have been about: how tall a cluster of shapes may get.
+
+     WHAT THE BOUND IS NOW, AND WHY 34vh. The battlefield cluster on the shipped
+     9-and-3 board measures 216px of content at BOTH viewports — the shapes wrap
+     inside a 754px column at 1920 and a 615px one at 1366 and land on the same
+     height. 34vh is 367px at 1080 and 261px at 768, so the shipped board is
+     WHOLLY inside the window at both sizes with room to spare, and the bound
+     engages only on a roster far larger than anything the artifact ships:
+     MIN_UNITS to 24 a side is the range, and it is the top of that range this
+     number exists for. A dial that does nothing on the shipped board and
+     something on the largest board a student can build is the honest shape for
+     this one — the old dial did something on every board, and what it did was
+     hide five of nine cats.
+
+     AND THE AFFORDANCE TRAVELS WITH THE BOUND. [C16] gave .fg-sides a styled
+     scrollbar and an edge shade under P3-3; those rules move to .fg-field in
+     the same commit, because a scroll cue on a box that no longer scrolls is a
+     rule for nothing and the box that DOES scroll would have none.
+
+     THE 2px OF PADDING IS OUTLINE ROOM, arriving here for the reason it was on
+     .fg-sides: .bf-unit--lit draws a 2px outline at offset 2 and a scroller
+     clips it without the padding. */
+  .fg-area--state .fg-field{max-height:34vh;overflow-y:auto;padding:2px}
 
   /* The side's own reading box: ACT-07's refusals first, then one requirement
      line per action. It is deliberately not styled as a warning and carries no
@@ -2424,12 +2559,80 @@
      look different would turn a mechanical exemption into a visible one. */
   .fg-say, .fg-word{font:inherit;color:inherit}
 
-  /* margin-left:auto is the whole of D-28's move on this element — the row is a
-     child of .fg-round-head now and the auto margin is what puts it at the far
-     end of that line rather than beside the figure. It still wraps, so on a
-     narrow window it drops to its own line under the round number instead of
-     squeezing, which is [C12]'s rule about its own list held here too. */
-  .fg-round-acts{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-left:auto}
+  /* ==================================================================
+     D-33 P1-6 — THE COMMIT FOLLOWS WHAT IT COMMITS, AND IT IS THE
+     BRIGHTEST THING ON THE SURFACE INSTEAD OF THE SECOND BRIGHTEST.
+     Plan 05-D33b.
+     ==================================================================
+     WHAT STOOD HERE, kept because the sentence is still true of the property it
+     was buying and false of where it put the row: "margin-left:auto is the
+     whole of D-28's move on this element — the row is a child of .fg-round-head
+     now and the auto margin is what puts it at the far end of that line rather
+     than beside the figure."
+
+     THE AUDIT MEASURED THREE THINGS WRONG WITH THAT ARRANGEMENT, all on one
+     row at the TOP-RIGHT of #fight-input, above the nine picker rows they act
+     on:
+       "Reset this fight" carried the pink danger treatment, which made the
+         DESTRUCTIVE control the most saturated object in the region. In a live
+         demo the instructor's mouse travels to the brightest thing on screen,
+         and that was the button that throws the fight away;
+       "Advance the round" — the one action the whole round loop exists to
+         reach — was a plain outline pill, indistinguishable from Undo or Share;
+       and both sat ABOVE the rows, so the commit came before the thing it
+         commits.
+
+     THREE CHANGES, ALL FROM SHIPPED TOKENS AND NO NEW HEX:
+       THE ROW MOVES TO THE FOOT of #fight-input and becomes a STICKY FOOTER.
+         That is the half PROBE BO caught and the node gate could not: moving
+         the pair to the foot with no sticky put Advance at 1408 of a 1080
+         viewport and the whole gate ran 192 of 192, exit 0. `position:sticky;
+         bottom:0` is what makes the foot placement safe, and it is strictly
+         stronger than every dial in this block ever was — the control cannot
+         leave the window while a single row it commits is in it, at any
+         viewport, on any roster, at any setting of any number in this file.
+       ADVANCE TAKES A FILL. --state-on-solid is [C00]'s opaque-surface fill,
+         the one Pass A derived for a control that sits on --panel; the border
+         is --accent. It is the one FILLED control on this surface, which is
+         what "primary" means here, and the fill is a second channel on top of
+         the border rather than instead of it — [C07]'s rule, held again.
+       RESET GOES BACK TO THE STANDARD OUTLINE and keeps every word of its
+         label. UX-02 is untouched: it is still permanent, still visible, still
+         18px, still fully spelled. What it loses is the loudest colour in the
+         region, which it should never have had while sharing a row with the
+         commit. It stays set apart by [C14]'s own .fg-apart hairline and by an
+         auto margin, at the far end of the row from the control it is not.
+
+     AND FIGHT-10's NOTICE BECOMES ADVANCE'S CAPTION rather than its neighbour.
+     It was a third element competing for the same row; it is now directly under
+     the button it is about, in .fg-commit, which is the one place in this
+     region where a sentence and a control are one object. NO STRING MOVED —
+     the words are byte-identical and only the box around them changed.
+
+     THE STICKY GOTCHA, RE-CHECKED. [C03]'s rule is that an ancestor with an
+     overflow breaks a sticky descendant. This row's ancestors are .fg-area
+     (which takes no overflow, and its own banner says so), .fg-band (which
+     takes none, and its markup comment says so), #app and body. The scroller
+     P1-2 left in the state area is .fg-field, which is not an ancestor of this
+     row. Driven rather than argued, in the shape browser cell 10 already uses
+     for #strip. */
+  .fg-round-acts{
+    display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px 20px;
+    position:sticky;bottom:0;z-index:2;
+    margin:4px -16px -14px;padding:12px 16px 14px;
+    border-top:1px solid var(--line);
+    background:var(--panel-2);
+  }
+  .fg-commit{display:flex;flex-direction:column;align-items:flex-start;gap:4px}
+  .fg-advance{
+    border-color:var(--state-on-line);
+    background-color:var(--state-on-solid);
+    font-weight:700;
+  }
+  /* The auto margin is D-28's, kept and repointed: it used to push the whole
+     row to the far end of the round's line, and it now pushes the one control
+     that is not the commit to the far end of the commit's row. */
+  .fg-reset{margin-left:auto}
   .fg-note{margin:0;font-size:18px;color:var(--ink-dim)}
   /* The floor again, stated on this region's own controls, so a later change to
      .brd-btn cannot drop the fight surface under it without saying so here. */
@@ -3728,7 +3931,11 @@
      them and when a round resolves; neither is a control, so neither is
      in the list above, and both look wrong snapping beside controls that
      no longer do. */
-  .unit-card, .fg-area, .ld-now{
+  /* .fg-row joins this list under D-33 P3-6: its focus-within wash is a
+     border-colour and a background-colour, which is exactly the pair this
+     rule ramps, and a row that snapped while every control inside it
+     ramped would be the one un-rampled thing on the surface. */
+  .unit-card, .fg-area, .ld-now, .fg-row{
     transition:border-color var(--ramp) ease, background-color var(--ramp) ease;
   }
 
@@ -3798,19 +4005,27 @@
      ledger's three are mixes rather than exact, because those surfaces
      are deliberately translucent over the page and the honest cover for a
      translucent surface is that surface composited onto --bg. */
-  .fg-sides, .ld-list, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
+  /* D-33 P1-2 REPOINTED THE FIGHT'S ENTRY IN EVERY LIST BELOW FROM
+     .fg-sides TO .fg-field, and it is one substitution rather than an
+     addition: P1-2 took the bound off .fg-sides — which had been hiding
+     three of nine cats from the picker and five of nine from the
+     battlefield with no affordance at all — and put a bound on the
+     battlefield cluster instead. A scroll cue on a box that no longer
+     scrolls is a rule for nothing, and the box that DOES scroll would
+     have had none. */
+  .fg-field, .ld-list, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
     scrollbar-width:thin;
     scrollbar-color:var(--state-scroll-thumb) transparent;
   }
-  .fg-sides::-webkit-scrollbar, .ld-list::-webkit-scrollbar,
+  .fg-field::-webkit-scrollbar, .ld-list::-webkit-scrollbar,
   .ld-row::-webkit-scrollbar, .ld-now-body::-webkit-scrollbar,
   #strip::-webkit-scrollbar, .pk-list::-webkit-scrollbar,
   .ae-list::-webkit-scrollbar{width:10px;height:10px}
-  .fg-sides::-webkit-scrollbar-track, .ld-list::-webkit-scrollbar-track,
+  .fg-field::-webkit-scrollbar-track, .ld-list::-webkit-scrollbar-track,
   .ld-row::-webkit-scrollbar-track, .ld-now-body::-webkit-scrollbar-track,
   #strip::-webkit-scrollbar-track, .pk-list::-webkit-scrollbar-track,
   .ae-list::-webkit-scrollbar-track{background:transparent}
-  .fg-sides::-webkit-scrollbar-thumb, .ld-list::-webkit-scrollbar-thumb,
+  .fg-field::-webkit-scrollbar-thumb, .ld-list::-webkit-scrollbar-thumb,
   .ld-row::-webkit-scrollbar-thumb, .ld-now-body::-webkit-scrollbar-thumb,
   #strip::-webkit-scrollbar-thumb, .pk-list::-webkit-scrollbar-thumb,
   .ae-list::-webkit-scrollbar-thumb{
@@ -3818,7 +4033,7 @@
   }
 
   /* The vertical six. */
-  .fg-sides, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
+  .fg-field, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
     background-image:
       linear-gradient(to bottom, var(--fade-cover) 60%, transparent),
       linear-gradient(to top, var(--fade-cover) 60%, transparent),
@@ -3842,11 +4057,15 @@
     background-size:30px 100%, 30px 100%, 20px 100%, 20px 100%;
     background-attachment:local, local, scroll, scroll;
   }
-  /* .fg-area .fg-sides rather than a bare .fg-sides on purpose: check
-     103e reads the FIRST `\n  .fg-sides{` in this file as that rule's
-     body, and a second bare one down here would be a second answer to a
-     question the gate asks by name. */
-  .fg-area .fg-sides{--fade-cover:var(--panel-2)}
+  /* .fg-area .fg-field rather than a bare .fg-field for the reason the
+     .fg-sides spelling this replaces had: check 103e reads the FIRST
+     `\n  .fg-sides{` in this file as that rule's body and check 108 reads
+     three rule bodies by name, so a second BARE rule for one of those
+     selectors down here would be a second answer to a question the gate
+     asks by name. The habit is kept on .fg-field even though no check
+     reads that one, because the next selector moved into this block will
+     be one that is read. */
+  .fg-area .fg-field{--fade-cover:var(--panel-2)}
   .pk-list, .ae-list{--fade-cover:var(--panel)}
   #strip{--fade-cover:var(--panel)}
   .ld-list{--fade-cover:var(--bg)}
@@ -3868,7 +4087,7 @@
     .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
     .sh-code, .sh-paste,
     .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
-    .unit-card, .fg-area, .ld-now{transition:none}
+    .unit-card, .fg-area, .ld-now, .fg-row{transition:none}
     .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
     .pk[open]::backdrop, .ae[open]::backdrop,
     .sh[open]::backdrop, .rs[open]::backdrop{animation:none}
@@ -16475,17 +16694,44 @@ App.render = (function () {
      three conditions are about an ACTION BUTTON on a picker row and about
      nothing else on this page.
 
-     Reset wears the danger colouring that already ships TWICE rather than a
-     third invention of it ([C08]'s and [C13]'s), and it is set apart by [C14]'s
-     own .fg-apart hairline — the class that block defined for this surface. */
+     ==================================================================
+     D-33 P1-6 TAKES THE DANGER COLOURING OFF RESET AND PUTS A FILL ON
+     ADVANCE. Plan 05-D33b.
+     ==================================================================
+     WHAT STOOD HERE: "Reset wears the danger colouring that already ships TWICE
+     rather than a third invention of it ([C08]'s and [C13]'s), and it is set
+     apart by [C14]'s own .fg-apart hairline — the class that block defined for
+     this surface."
+
+     REUSING THE SHIPPED TREATMENT WAS RIGHT AND WEARING IT HERE WAS NOT. The
+     audit's sentence is the whole finding: "In a live demo the instructor's
+     mouse travels to the brightest thing in the region. Today that is the
+     button that throws the fight away." Reset was the most saturated object on
+     a surface whose entire purpose is to reach Advance, and Advance was a plain
+     outline pill indistinguishable from Undo or Share.
+
+     SO THE HIERARCHY IS INVERTED BACK: Advance takes the one FILL on this
+     surface (--state-on-solid, [C00]'s opaque-surface fill, plus an --accent
+     border — no new hex, and a second channel on top of the border rather than
+     instead of it), and Reset drops brd-btn--danger for the standard outline.
+     IT LOSES NO WORDS. UX-02 is untouched: still permanent, still visible,
+     still 18px, still "Reset this fight" in full. It keeps .fg-apart's hairline
+     and gains an auto margin, so it sits at the far end of the row from the
+     control it is not. [C14.1] carries both rules.
+
+     AND FIGHT-10's NOTICE IS ADVANCE'S CAPTION NOW rather than a third element
+     competing for the same line. The sentence is byte-identical; what changed
+     is that it is under the button it is about instead of beside it. */
   function fgBuildRound(root) {
     var row = el('div', 'fg-round-acts');
-    row.appendChild(text('p', 'fg-note', 'Nothing resolves until you advance.'));
+    var commit = el('div', 'fg-commit');
     var advance = text('button', 'brd-btn fg-btn fg-advance', 'Advance the round');
     advance.type = 'button';
     setData(advance, { fg: 'advance', k: 'fg/advance' });
-    row.appendChild(advance);
-    var reset = text('button', 'brd-btn brd-btn--danger fg-btn fg-apart fg-reset',
+    commit.appendChild(advance);
+    commit.appendChild(text('p', 'fg-note', 'Nothing resolves until you advance.'));
+    row.appendChild(commit);
+    var reset = text('button', 'brd-btn fg-btn fg-apart fg-reset',
       'Reset this fight');
     reset.type = 'button';
     setData(reset, { fg: 'reset', k: 'fg/reset' });
@@ -16523,8 +16769,43 @@ App.render = (function () {
        AND fgRest IS STILL UNAFFECTED, for the same reason and by the same
        reading — but not by the same lookup. The two nodes no longer share a
        parent, so the teardown asks each for its OWN parent and removes it from
-       there, which is the shape that survives either of them moving again. */
-    var seat = fgAreaHead('fight-input');
+       there, which is the shape that survives either of them moving again.
+
+       ==================================================================
+       D-33 P1-6 MOVES THE ROW OFF THE HEAD LINE AND ONTO THE FOOT OF THE
+       AREA, AND PROBE BO IS THE REASON THAT IS ONLY SAFE NOW.
+       Plan 05-D33b.
+       ==================================================================
+       "the commit follows what it commits" is the audit's sentence and it is
+       the whole move: the two controls now sit AFTER the nine picker rows they
+       act on rather than above them.
+
+       PROBE BO ALREADY DROVE THIS AND FOUND IT BROKEN. Check 108's own comment
+       records it: with the pair moved to the foot of this area, Advance stood
+       at 1408 of a 1080 viewport — the below-the-fold defect this phase had
+       fixed four times — and the whole node gate ran 192 of 192, exit 0. The
+       browser caught it at 1080 and did NOT catch it at 768.
+
+       WHAT MAKES THE FOOT SAFE IS position:sticky AND NOTHING ELSE. [C14.1]
+       gives .fg-round-acts `position:sticky; bottom:0`, so while any part of
+       this area is on screen the row is pinned to the bottom of the window and
+       settles onto the true foot only when the area's own end is reached. That
+       is strictly stronger than the property D-28 and D-31 each bought with a
+       dial: it holds at every viewport, on every roster, at every setting of
+       every number in this file, and it holds at 768 — which D-31 measured as
+       unreachable and wrote down as unreachable ("the arithmetic has no free
+       term in it"). It was unreachable while a dial three regions away was
+       being asked to do it.
+
+       THE SEAT IS THE AREA ITSELF AND THE ROW IS ITS LAST CHILD. The
+       fall-through is the same defensive one, one level out: if the area is
+       missing the row goes to the region root, which is the closest wrong
+       answer to the right one and is what fgRest sweeps either way.
+
+       fgRest IS STILL UNAFFECTED, by the same reading as the two entries above:
+       it asks each node for its OWN parent. This move is free at teardown and
+       so is the next one. */
+    var seat = document.getElementById('fight-input');
     if (seat) { seat.appendChild(row); } else { root.appendChild(row); }
   }
 
@@ -16593,7 +16874,13 @@ App.render = (function () {
        root.removeChild on a node that is not a child THROWS, which is the one
        failure mode a teardown must not have. Asking each node for its own
        parentNode is also the shape that survives either of them being moved
-       again, which is the third time this phase has moved one of them. */
+       again, which is the third time this phase has moved one of them.
+
+       D-33 P1-6 IS THE FOURTH, AND THIS FUNCTION DID NOT HAVE TO CHANGE — which
+       is the paragraph above being right rather than lucky. The controls moved
+       from the input area's head line to that area's FOOT; both querySelectors
+       are still scoped to the region root, both nodes are still descendants of
+       it, and fgUnseat still asks each for its own parent. */
     fgUnseat(root.querySelector('.fg-round-head'));
     fgUnseat(root.querySelector('.fg-round-acts'));
     // AND BOTH AREAS GO BACK BEHIND THEIR [hidden], which is the shell's own
