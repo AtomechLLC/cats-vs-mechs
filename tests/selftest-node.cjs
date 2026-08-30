@@ -13388,12 +13388,25 @@ const sepInputHolds = ['cats', 'mechs'].map((side) => [
 // that reads a CONTROL rather than a reading. Both are read as counts inside
 // each area, so a figure drawn in both areas fails as loudly as one drawn in
 // neither.
-const sepFigInState = sepHas('fight-state', '.fg-round-head');
+const sepFigInState = sepStateHead === null ? 0 : sepStateHead.querySelectorAll('.fg-round-head').length;
 const sepFigInInput = sepHas('fight-input', '.fg-round-head');
-const sepActsInInput = sepHas('fight-input', '[data-fg="advance"]')
-  + sepHas('fight-input', '[data-fg="reset"]');
+// AND THE HEAD IS NAMED RATHER THAN THE AREA, WHICH PROBE BO FORCED. The first
+// draft counted the two controls anywhere INSIDE #fight-input, and the probe moved
+// them to the FOOT of that area - Advance at 1408 of a 1080 viewport, which is the
+// below-the-fold defect this phase has fixed four times - and this row ran 192 of
+// 192, exit 0, because both controls were still inside the area it asked about. The
+// browser caught it at 1080 and did NOT catch it at 768. So what is asserted is
+// where D-31's own arrangement puts them: on the area's HEAD line, above the
+// scroller that grows with the roster times the action list.
+const sepInputHead = dom.byId['fight-input'].querySelectorAll('.fg-area-head')[0] || null;
+const sepStateHead = dom.byId['fight-state'].querySelectorAll('.fg-area-head')[0] || null;
+const sepActsInInput = sepInputHead === null ? 0
+  : sepInputHead.querySelectorAll('[data-fg="advance"]').length
+    + sepInputHead.querySelectorAll('[data-fg="reset"]').length;
 const sepActsInState = sepHas('fight-state', '[data-fg="advance"]')
   + sepHas('fight-state', '[data-fg="reset"]');
+const sepActsElsewhere = sepHas('fight-input', '[data-fg="advance"]')
+  + sepHas('fight-input', '[data-fg="reset"]') - sepActsInInput;
 const sepNames = ['fight-state', 'fight-input'].map((areaId) => {
   const sides = dom.byId[areaId].querySelectorAll('.fg-sides');
   if (sides.length !== 1) { return 'sides=' + sides.length; }
@@ -13421,8 +13434,14 @@ check(
     + 'survivor reading, the cluster and the team resources are in the state '
     + 'column and in NO input column; the picker rows and the reading box are in '
     + 'the input column and in NO state column. The two ROUND CONTROLS are '
-    + 'asserted onto the INPUT area\'s head and the round FIGURE onto the '
-    + 'state\'s, which is D-31\'s "Advance lives with the input, since it commits '
+    + 'asserted onto the INPUT area\'s HEAD LINE and the round FIGURE onto the '
+    + 'state\'s. THE HEAD IS NAMED RATHER THAN THE AREA, AND PROBE BO IS WHY: '
+    + 'with the two controls moved to the FOOT of the input area this row ran '
+    + '192 of 192 and exit 0 while the Advance stood at 1408 of a 1080 '
+    + 'viewport, which is the defect this phase has fixed four times. The '
+    + 'browser caught that at 1080 and did NOT catch it at 768, so neither half '
+    + 'of the pair subsumes the other. It is D-31\'s "Advance lives with the '
+    + 'input, since it commits '
     + 'what the input declared" — and where those two nodes sit is what decides '
     + 'whether the Advance is above the fold, measured in two browsers at two '
     + 'sizes by browser cell 18. And the COLUMN PAIRING survives inside EACH '
@@ -13435,7 +13454,8 @@ check(
     && sepStateHolds.every((s) => s === '1,1,1,0,0')
     && sepInputHolds.every((s) => s === '0,0,0,1,1')
     && sepFigInState === 1 && sepFigInInput === 0
-    && sepActsInInput === 2 && sepActsInState === 0
+    && sepInputHead !== null && sepStateHead !== null
+    && sepActsInInput === 2 && sepActsInState === 0 && sepActsElsewhere === 0
     && sepNames.length === 2 && sepWantNames.indexOf('|') !== -1
     && sepNames.every((s) => s === sepWantNames),
   '#fightbar child order=' + JSON.stringify(sepKids)
@@ -13449,7 +13469,9 @@ check(
     + JSON.stringify(sepStateHolds)
     + ' | input columns hold the same five=' + JSON.stringify(sepInputHolds)
     + ' | the round figure: state=' + sepFigInState + ' input=' + sepFigInInput
-    + ' | Advance and Reset: input=' + sepActsInInput + ' state=' + sepActsInState
+    + ' | Advance and Reset on the input head=' + sepActsInInput
+    + ', elsewhere in that area=' + sepActsElsewhere
+    + ', in the state area=' + sepActsInState
     + ' | the columns of each area read ' + JSON.stringify(sepNames)
     + ' against the live build\'s ' + JSON.stringify(sepWantNames)
 );

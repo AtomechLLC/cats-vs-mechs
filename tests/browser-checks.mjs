@@ -1219,7 +1219,17 @@ for (const ch of ['chrome', 'msedge']) {
        screen, and the rows must be on screen with it, at the same instant. A version
        of this layout that put the controls at the FOOT of the input area would pass
        every containment row in the node gate and fail here, which is exactly the
-       defect class this cell inherits. */
+       defect class this cell inherits.
+
+       AND THE LAST CLAUSE WAS ADDED BY PROBE BO RATHER THAN WRITTEN WITH THE CELL,
+       which is recorded because the first draft was GREEN over the exact defect it
+       exists for. The probe moved the two controls to the FOOT of the input area:
+       Advance read 1408 of a 1080 viewport, cell 18 caught it at 1080, this cell did
+       NOT — at the offset a room declares from, the control was at 747-794 and the
+       rows at 443-883, so both were on screen and every clause was satisfied by a
+       control BELOW the thing it commits. So the ORDER is asserted too: Advance sits
+       ABOVE the picker rows, which is what "the control travels with the input"
+       actually means and what makes it reachable on a board taller than one screen. */
     const together = await pg.evaluate(async () => {
       const rows = document.querySelector('#decl-cats .fg-rows');
       const want = Math.max(0, window.scrollY + Math.round(rows.getBoundingClientRect().top) - 40);
@@ -1236,10 +1246,11 @@ for (const ch of ['chrome', 'msedge']) {
     note(ch, size.name, 'D-31 Advance and the picker rows, together, at the offset a room declares from',
       `advance ${together.advance.top}-${together.advance.bottom}, rows ${together.rows.top}-${together.rows.bottom}`
       + ` of ${together.vh} at scrollY ${together.got}`);
-    ok(`${tag}: 18c. scrolled to the picker rows, the Advance control that commits them is WHOLLY on screen at the same time`,
+    ok(`${tag}: 18c. scrolled to the picker rows, the Advance control that commits them is WHOLLY on screen at the same time AND sits ABOVE them`,
       together.advance.top >= 0 && together.advance.bottom <= together.vh
       && together.advance.h > 0
-      && together.rows.top < together.vh && together.rows.bottom > 0,
+      && together.rows.top < together.vh && together.rows.bottom > 0
+      && together.advance.bottom <= together.rows.top,
       together);
 
     /* ── 19. AND THE LANE REALLY DOES SCROLL SIDEWAYS, driven past the width it fits
