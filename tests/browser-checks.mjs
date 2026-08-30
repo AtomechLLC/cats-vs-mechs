@@ -2119,23 +2119,64 @@ for (const ch of ['chrome', 'msedge']) {
        was invisible on every pill and every side button before this plan and
        nothing anywhere noticed, because a tick that is `visibility:hidden`
        still contributes its text to every harvest in the node gate. Only a
-       browser can tell the difference between built and shown. */
+       browser can tell the difference between built and shown.
+
+       ==================================================================
+       D-33 P1-3 TURNS THE REACHABILITY CLAUSE, AND THE TURN IS THE WHOLE
+       FINDING. Plan 05-D33b.
+       ==================================================================
+       WHAT THIS CELL ASSERTED: the dialog's own overflowY is `auto`, and after
+       `d.scrollTop = d.scrollHeight` — a scroll to the END of the dialog — Done
+       is wholly on screen. Both were true and the audit measured what they were
+       green over: at 1366x768 this dialog hid 361px, at 1920x1080 Done itself
+       sat at 1039-1086 of a 1080 viewport, and the whole visible height went on
+       a four-line explainer, a Side toggle, a four-row list, two buttons and a
+       Name field. NONE of the twelve dense rows cell 23 measures were on screen.
+       "A student who cannot see Done does not know the dialog is finishable" —
+       and a cell that scrolls to the end before looking cannot see that.
+
+       SO THE SCROLL IS TAKEN AWAY FROM THE ASSERTION RATHER THAN ADDED TO IT.
+       P1-3 makes the pane a grid of header / scrolling body / sticky footer, so:
+         THE DIALOG DOES NOT SCROLL AT ALL — asserted as scrollHeight ===
+           clientHeight and as an overflowY that is not `auto`, which is the
+           direct inverse of the old clause and reddens the moment the grid is
+           undone;
+         THE BODY IS THE SCROLLER and really does overflow on this board, so a
+           layout that quietly stopped scrolling anywhere fails too;
+         AND DONE IS WHOLLY ON SCREEN AT BOTH ENDS OF THAT SCROLL — read at the
+           body's TOP as well as at its END. The old cell only ever looked after
+           scrolling to the end, which is the one position where a NON-sticky
+           footer is also visible. Reading both ends is what makes this a claim
+           about a sticky footer rather than about a scroll offset.
+         THE HEADER IS PINNED TOO, read as the title's box not moving across
+           that same scroll. */
     const fit = await pg.evaluate(() => {
       const d = document.querySelector('#act-edit');
+      const bd = d.querySelector('.ae-body');
       const r = d.getBoundingClientRect();
-      d.scrollTop = d.scrollHeight;
-      const done = document.querySelector('#act-edit-done').getBoundingClientRect();
+      const title = document.querySelector('#act-edit-title');
+      const doneAt = () => document.querySelector('#act-edit-done').getBoundingClientRect();
+      const titleAt = () => Math.round(title.getBoundingClientRect().top);
+      bd.scrollTop = 0;
+      const doneTop = doneAt(), headTop = titleAt();
+      bd.scrollTop = bd.scrollHeight;
+      const doneEnd = doneAt(), headEnd = titleAt();
       const on = document.querySelector('#act-edit-terms .ae-pill--on');
       const off = document.querySelector('#act-edit-terms .ae-pill:not(.ae-pill--on)');
       const tick = on ? on.querySelector('.ae-check') : null;
       const tr = tick ? tick.getBoundingClientRect() : null;
       const pr = on ? on.getBoundingClientRect() : null;
+      const whole = (b) => b.top >= 0 && b.bottom <= innerHeight + 1 && b.width > 0;
       return {
         boxIn: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1,
         w: Math.round(r.width), h: Math.round(r.height),
         overflow: getComputedStyle(d).overflowY,
-        doneIn: done.top >= 0 && done.bottom <= innerHeight + 1 && done.width > 0,
-        doneBottom: Math.round(done.bottom),
+        dialogScroll: d.scrollHeight - d.clientHeight,
+        bodyOverflow: getComputedStyle(bd).overflowY,
+        bodyScroll: bd.scrollHeight - bd.clientHeight,
+        doneInAtTop: whole(doneTop), doneInAtEnd: whole(doneEnd),
+        doneBottom: Math.round(doneEnd.bottom),
+        headPinned: headTop === headEnd,
         onTick: tick ? getComputedStyle(tick).visibility : null,
         offTick: off ? getComputedStyle(off.querySelector('.ae-check')).visibility : null,
         tickDx: (tr && pr) ? Math.round((tr.left + tr.width / 2) - pr.right) : null,
@@ -2144,10 +2185,17 @@ for (const ch of ['chrome', 'msedge']) {
     });
     await pg.click('#act-edit-done'); await pg.waitForTimeout(200);
     const closed = await pg.evaluate(() => document.querySelector('#act-edit').open);
-    note(ch, size.name, 'D-32 dialog box / Done after a scroll to the end', `${fit.w}x${fit.h} in ${fit.vp}, Done bottom ${fit.doneBottom}`);
+    note(ch, size.name, 'D-33 dialog box / dialog scroll / body scroll',
+      `${fit.w}x${fit.h} in ${fit.vp}, dialog ${fit.dialogScroll}px, body ${fit.bodyScroll}px`);
+    note(ch, size.name, 'D-33 Done wholly on screen at the body top / at its end / head pinned',
+      `${fit.doneInAtTop} / ${fit.doneInAtEnd} / ${fit.headPinned}, Done bottom ${fit.doneBottom}`);
     note(ch, size.name, 'D-32 the tick on a pill, pressed / unpressed', `${fit.onTick} / ${fit.offTick}, centre ${fit.tickDx}px from the right edge`);
-    ok(`${tag}: 23c. the editor fits the viewport, Done is reachable, and the tick is SHOWN on the pressed pill`,
-      fit.boxIn === true && fit.overflow === 'auto' && fit.doneIn === true
+    ok(`${tag}: 23c. the editor fits the viewport, the DIALOG does not scroll and its BODY does, Done is wholly on screen at BOTH ends of that scroll and the header is pinned, and the tick is SHOWN on the pressed pill - D-33 P1-3 turned the reachability clause and the banner says why`,
+      fit.boxIn === true
+      && fit.dialogScroll === 0 && fit.overflow !== 'auto'
+      && fit.bodyOverflow === 'auto' && fit.bodyScroll > 0
+      && fit.doneInAtTop === true && fit.doneInAtEnd === true
+      && fit.headPinned === true
       && fit.onTick === 'visible' && fit.offTick === 'hidden'
       && Math.abs(fit.tickDx) <= 2 && closed === false,
       { fit, closed });

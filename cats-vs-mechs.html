@@ -469,11 +469,58 @@
      The chip chrome is derived from the token's own colour with color-mix()
      instead of a hand-written rgba() literal — the same idea .ex in [C02]
      expresses in the older spelling, and the reason no new hex appears here. */
+  /* ==================================================================
+     D-33 P1-3 — A FIXED HEADER, ONE SCROLLING BODY, A STICKY FOOTER.
+     Plan 05-D33b.
+     ==================================================================
+     THE MEASUREMENT, from the audit, in this dialog's own numbers:
+
+       #tok-picker   width  scrollHeight   client @1080   @768
+                      660       1466        1038 (428     726 (740
+                                             hidden)       hidden)
+
+     It overflowed by 428px at 1920x1080 and by 740px at 1366x768, and what was
+     below the fold was Shape, Colour, Emoji and DONE. It scrolled — the user
+     agent gives a <dialog> overflow:auto and a max-height for nothing — but
+     P3-3 measured why nobody could tell: there was not one scrollbar rule in
+     the file. Pass A gave every scroller a cue. This gives this one a shape, so
+     the way OUT of the dialog is never the thing that scrolled off.
+
+     THE GRID IS ON THE DIALOG AND NOT ON A WRAPPER. A wrapper would need its
+     own height to stretch to, which means the dialog needs the max-height
+     anyway — so the max-height is written HERE, explicitly, rather than left to
+     the user agent's `calc(100% - 6px - 2em)`. Two numbers in one place instead
+     of one number in the browser and one in this file.
+
+     overflow:hidden ON THE DIALOG IS WHAT MOVES THE SCROLL ONTO THE BODY. The
+     user agent's overflow:auto would otherwise scroll the whole grid, footer
+     and all, which is the arrangement this replaces. min-height:0 on the body
+     is the flex/grid item rule that lets a 1fr track actually be shorter than
+     its content — without it the track grows and nothing scrolls anywhere.
+
+     THE PADDING STAYS ON THE DIALOG, so the scrollbar the body now carries sits
+     24px in from the edge rather than against the border radius. That is a
+     deliberate look rather than an accident of the shorthand. */
   .pk{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
     padding:22px 24px;max-width:660px;width:calc(100vw - 48px);
     font:inherit;
+    display:grid;grid-template-rows:auto minmax(0, 1fr) auto;
+    max-height:calc(100vh - 40px);overflow:hidden;
+  }
+  .pk-body{overflow-y:auto;min-height:0;padding:2px}
+  /* THE WAY OUT IS ALWAYS ON SCREEN. It is sticky rather than merely last,
+     because the body scrolling under it is the whole point, and the negative
+     margins take it out to the dialog's padding edges so the rule above it
+     reads as a division of the surface rather than as a line under a button.
+     No new hex: --line is every other border in the document and --panel is
+     this dialog's own background, read straight. */
+  .pk-foot{
+    position:sticky;bottom:0;
+    margin:0 -24px -22px;padding:12px 24px 22px;
+    border-top:1px solid var(--line);
+    background:var(--panel);
   }
   .pk::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
   .pk-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
@@ -796,11 +843,55 @@
      twelve rows stacked four lines deep. width:calc(100vw - 48px) is
      unchanged, so at any viewport narrower than 1088 the box gives the width
      back and the rows wrap — the laptop case [C12] has always designed for. */
+  /* ==================================================================
+     D-33 P1-3 — THE SAME THREE BLOCKS [C07] GAINED, AND THIS IS THE
+     SEVERE HALF OF THE FINDING. Plan 05-D33b.
+     ==================================================================
+       #act-edit   width  scrollHeight   client @1080        @768
+                    1040      1087        1038 (49 hidden)   726 (361 hidden)
+
+     At 1366x768 — "an extremely common projector resolution" — this dialog
+     spent its whole visible height on a four-line explainer, a Side toggle, a
+     four-row list, two buttons and a Name field, and showed NONE of the dense
+     terms D-32 and D-32b exist for. Done sat at 1039-1086 of a 1080 viewport at
+     the LARGER of the two sizes.
+
+     THE GRID IS ON THE PANE AND NOT ON THE DIALOG, which is the one difference
+     from [C07]'s: this dialog holds TWO panes and shows one at a time, so the
+     dialog is the box and the pane is the surface. A grid on the dialog would
+     be a three-row grid with two children, one of them display:none.
+
+     Everything else is [C07]'s, for [C07]'s reasons, and is deliberately not
+     re-argued here: max-height and overflow:hidden on the box, min-height:0 on
+     the scrolling body, the padding staying on the box so the body's scrollbar
+     is inset, and the footer sticky with a --line rule and negative margins out
+     to the padding edges. .ae-foot's own rule is [C07]'s .pk-foot with this
+     region's prefix — never borrowed, for [C13]'s reason about .rs-: a rule two
+     regions depend on is a rule neither can change. */
   .ae{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
     padding:22px 24px;max-width:1040px;width:calc(100vw - 48px);
     font:inherit;
+    max-height:calc(100vh - 40px);overflow:hidden;
+    /* THE BOX IS A GRID TOO, WITH ONE ROW, AND THAT IS NOT DECORATION. Measured
+       without it: Done was on screen (the pane's own grid put it there) and the
+       dialog still reported scrollHeight 1108 against clientHeight 726 at 768 —
+       382px of terms CLIPPED by the overflow:hidden above and reachable by
+       nothing, because `max-height:100%` on the pane resolves against an
+       auto-height block to no constraint at all. One `minmax(0, 1fr)` row makes
+       the pane stretch to the box's content height and no further, which is
+       what gives its 1fr body something to be shorter than. The hidden pane
+       costs no row: [C12] gives .ae-pane[hidden] display:none. */
+    display:grid;grid-template-rows:minmax(0, 1fr);
+  }
+  .ae-pane{display:grid;grid-template-rows:auto minmax(0, 1fr) auto;min-height:0}
+  .ae-body{overflow-y:auto;min-height:0;padding:2px}
+  .ae-foot{
+    position:sticky;bottom:0;
+    margin:0 -24px -22px;padding:12px 24px 22px;
+    border-top:1px solid var(--line);
+    background:var(--panel);
   }
   .ae::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
   .ae-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
@@ -4750,10 +4841,26 @@
      a field rebuilt or overwritten mid-typing loses the half-typed text; a node
      that is never rebuilt can simply be skipped while it holds focus (D-19). -->
 <dialog class="pk" id="tok-picker" aria-labelledby="tok-pick-title">
-  <div class="eyebrow">Token types</div>
-  <h2 class="pk-title" id="tok-pick-title"></h2>
-  <p class="pk-note">The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+  <!-- D-33 P1-3: THREE BLOCKS, NOT ONE FLAT RUN. Measured by the audit: this
+       dialog's scrollHeight is 1466 against a clientHeight of 1038 at 1080 and
+       726 at 768, so 428px and 740px of it were below the fold — including
+       Shape, Colour, Emoji and Done. It DID scroll, invisibly, which is the
+       finding P3-3 measured: zero scrollbar rules in the whole file. Pass A gave
+       the scrollers a cue; this gives this one a shape.
 
+       .pk-head / .pk-body / .pk-foot are WRAPPERS AND NOTHING ELSE. No id moved,
+       none was added, and not one rendered string changed — the stub-drift gate
+       reads the same 135 ids on both sides of this change and DIALOG_FLOOR is
+       untouched. Every id [S06.2] and [S07.2] query for is where it was; a
+       getElementById does not care how deep it is. [C07] carries the rules and
+       the reason the grid is on the dialog rather than on a wrapper. -->
+  <div class="pk-head">
+    <div class="eyebrow">Token types</div>
+    <h2 class="pk-title" id="tok-pick-title"></h2>
+    <p class="pk-note">The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+  </div>
+
+  <div class="pk-body">
   <div class="pk-group">
     <h3 class="pk-legend" id="tok-pick-list-label">Every type on this board</h3>
     <div class="pk-list" id="tok-pick-list" role="group" aria-labelledby="tok-pick-list-label"></div>
@@ -4822,7 +4929,9 @@
     <div class="pk-grid" id="tok-pick-glyphs" role="group" aria-labelledby="tok-pick-glyphs-label"></div>
   </div>
 
-  <div class="pk-actions">
+  </div><!-- .pk-body -->
+
+  <div class="pk-actions pk-foot">
     <button class="brd-btn" type="button" id="tok-pick-done" data-pk="done">Done</button>
   </div>
 </dialog>
@@ -4884,10 +4993,23 @@
 <dialog class="ae" id="act-edit" aria-labelledby="act-edit-title" data-ed-pane="author">
 
   <div class="ae-pane" id="act-edit-pane-author">
-    <div class="eyebrow">Actions</div>
-    <h2 class="ae-title" id="act-edit-title"></h2>
-    <p class="ae-note">Every action on a side lives in one list — the three the board ships with and the ones you write. There is no second tier: an action you make is the same kind of thing as one that was already here.</p>
+    <!-- D-33 P1-3, and this pane is the severe half of it. Measured at 1366x768:
+         scrollHeight 1087 against clientHeight 726, so 361px below the fold —
+         and what the visible height was spent on was a four-line explainer, a
+         Side toggle, a four-row list, two buttons and a Name field. NONE of
+         D-32b's dense terms were on screen, and Done was at 1039-1086 of a 1080
+         viewport at the LARGER size. "A student who cannot see Done does not
+         know the dialog is finishable."
 
+         Same three wrappers as the picker, same rules in [C12], same zero cost:
+         no id moved, none was added, no rendered string changed. -->
+    <div class="ae-head">
+      <div class="eyebrow">Actions</div>
+      <h2 class="ae-title" id="act-edit-title"></h2>
+      <p class="ae-note">Every action on a side lives in one list — the three the board ships with and the ones you write. There is no second tier: an action you make is the same kind of thing as one that was already here.</p>
+    </div>
+
+    <div class="ae-body">
     <div class="ae-group">
       <h3 class="ae-legend" id="act-edit-sides-label">Side</h3>
       <div class="ae-row" role="group" aria-labelledby="act-edit-sides-label">
@@ -5069,7 +5191,9 @@
          Proposal button carries data-ap rather than data-act because it is
          PAGE WORK and there is no op behind it — see [S07.3]'s proposal
          block, which owns every data-ap on this surface. -->
-    <div class="ae-actions">
+    </div><!-- .ae-body -->
+
+    <div class="ae-actions ae-foot">
       <button class="brd-btn" type="button" id="act-prop-open" data-ap="open" data-k="ap/open">Proposal</button>
       <button class="brd-btn" type="button" id="act-edit-done" data-ae="done">Done</button>
     </div>
@@ -5126,9 +5250,16 @@
        off it, so a field in here wearing that class would send the very write
        this pane exists not to make. -->
   <section class="ae-pane" id="act-edit-propose" hidden>
-    <div class="eyebrow">Proposal</div>
-    <h2 class="ae-title" id="act-prop-title"></h2>
-    <p class="ae-note">What your rule says would happen. Change any number in it, or add a line your rule did not state. Nothing here is applied.</p>
+    <!-- The same three blocks as the author pane, because the two panes are one
+         surface a student switches between and a footer that moved when they
+         did would be the flicker P2-5 measures. -->
+    <div class="ae-head">
+      <div class="eyebrow">Proposal</div>
+      <h2 class="ae-title" id="act-prop-title"></h2>
+      <p class="ae-note">What your rule says would happen. Change any number in it, or add a line your rule did not state. Nothing here is applied.</p>
+    </div>
+
+    <div class="ae-body">
 
     <!-- ACT-07's refusal. Empty and hidden while the action's terms all name
          a token type this board still holds; when one does not, this is the
@@ -5194,7 +5325,9 @@
 
     <p class="ae-prop-nothing">Nothing here has been applied. Your edits stay on this pane. A declared action lands when the round advances.</p>
 
-    <div class="ae-actions">
+    </div><!-- .ae-body -->
+
+    <div class="ae-actions ae-foot">
       <button class="brd-btn" type="button" id="act-prop-close" data-ap="close" data-k="ap/close">Done</button>
     </div>
   </section>
