@@ -961,13 +961,29 @@ for (const ch of ['chrome', 'msedge']) {
       const last = cards[cards.length - 1];
       const rr = last.getBoundingClientRect();
       const leavesOf = (n) => { const out = []; (function w(x) { if (!x) return; if (x.children.length === 0 && x.textContent) out.push(x.textContent); Array.from(x.children).forEach(w); })(n); return out; };
-      const perCard = cards.map((c) => ({
-        round: c.dataset.ldRound,
-        board: leavesOf(c.querySelector('.ld-board')).length,
-        acts: leavesOf(c.querySelector('.ld-acts')).length,
-        says: leavesOf(c.querySelector('.ld-acts')).join(' ').slice(0, 70),
-        left: Math.round(c.getBoundingClientRect().left)
-      }));
+      const hpWord = App.render.labelFor(App.state.get(), 'hp');
+      const shWord = App.render.labelFor(App.state.get(), 'shield');
+      const saidOf = (n) => { const out = []; (function w(x) { if (!x) return; ['title', 'aria-label'].forEach((a) => { const v = x.getAttribute(a); if (v) out.push(v); }); Array.from(x.children).forEach(w); })(n); return out; };
+      const perCard = cards.map((c) => {
+        const bx = c.querySelector('.ld-board');
+        const boardText = leavesOf(bx).join(' ');
+        const boardSaid = saidOf(bx).join(' ');
+        return {
+          round: c.dataset.ldRound,
+          board: leavesOf(bx).length,
+          acts: leavesOf(c.querySelector('.ld-acts')).length,
+          says: leavesOf(c.querySelector('.ld-acts')).join(' ').slice(0, 70),
+          // D-29: what the board half of a card is MADE OF now.
+          syms: bx.querySelectorAll('.sym').length,
+          toks: bx.querySelectorAll('.tok').length,
+          saidCount: saidOf(bx).length,
+          textNamesType: boardText.indexOf(hpWord) !== -1 || boardText.indexOf(shWord) !== -1,
+          saidNamesType: boardSaid.indexOf(hpWord) !== -1 && boardSaid.indexOf(shWord) !== -1,
+          boardReads: boardText.slice(0, 70),
+          saidReads: (saidOf(bx)[0] || ''),
+          left: Math.round(c.getBoundingClientRect().left)
+        };
+      });
       return {
         cards: cards.length, rounds: cards.map((c) => c.dataset.ldRound),
         overflowX: cs.overflowX, overflowY: cs.overflowY, direction: cs.flexDirection,
@@ -988,8 +1004,23 @@ for (const ch of ['chrome', 'msedge']) {
     ok(`${tag}: 17. three rounds resolved with ${JSON.stringify(declaredPerRound)} declarations a round, and the lane holds one card per resolved round`,
       declaredPerRound.every((n) => n === 12) && lane.cards === 3
       && lane.rounds.join(',') === '1,2,3', { declaredPerRound, rounds: lane.rounds });
-    ok(`${tag}: 17b. EVERY card shows the board as it stood AND the actions that were selected`,
-      lane.perCard.length === 3 && lane.perCard.every((c) => c.board > 0 && c.acts > 0),
+    /* 17b's CLAIM IS TURNED IN THE OPEN UNDER D-29. It counted LEAVES on both
+       halves of a card and required each to be non-zero, which was the right
+       instrument for D-28's question ("did the actions survive a 340px card?")
+       and is the wrong one for D-29's: a card printing "Cat 1 — Health 3,
+       Shield 0" and a card drawing three health tokens with the words on the
+       hover both have leaves, and this cell would have gone on passing over the
+       first one for ever. It now reads the board half for what it is MADE of —
+       token nodes drawn, symbolic readings present, the two durability types
+       named in the TOOLTIPS and in NEITHER leaf of the text — and the two type
+       names are taken off the LIVE vocabulary rather than typed here, so a
+       renamed board is read by its own words. The ACTION half is untouched and
+       still asserted non-empty, because D-29 keeps that a sentence by name. */
+    ok(`${tag}: 17b. EVERY card shows the board as it stood AND the actions that were selected — and under D-29 the board half is SYMBOLS with the prose on the hover`,
+      lane.perCard.length === 3
+      && lane.perCard.every((c) => c.board > 0 && c.acts > 0)
+      && lane.perCard.every((c) => c.syms > 0 && c.toks > 0 && c.saidCount > 0)
+      && lane.perCard.every((c) => c.textNamesType === false && c.saidNamesType === true),
       lane.perCard);
     /* THE NEWEST CARD IS THE RIGHTMOST AND IT IS WHOLE INSIDE THE LANE WITHOUT
        ANYBODY SCROLLING. [S06.8] scrolls the lane to its end on append and the
@@ -1093,6 +1124,248 @@ for (const ch of ['chrome', 'msedge']) {
       && laneFull.maxScrollLeft > 0
       && Math.abs(laneFull.scrollLeft - laneFull.maxScrollLeft) <= 1
       && laneFull.newestWholeInLane === true, laneFull);
+
+    /* ── 20. D-29's HOVER, DRIVEN WITH A REAL MOUSE. The developer's third
+       sentence is "mouse over tooltip for the text description", and the node
+       gate can assert an attribute exists but CANNOT assert that a mouse ever
+       reaches the node carrying it. That gap is not theoretical: a reading with
+       a perfect title and a zero-height box, or one covered by a sibling, is a
+       tooltip nobody in a workshop will ever see, and every row in
+       tests/selftest-node.cjs would be green over it.
+
+       WHAT IS AND IS NOT ASSERTED, said plainly. A native `title` tooltip is
+       painted by the OPERATING SYSTEM and is not in the DOM, so no automation
+       in any browser can read the yellow box itself. What IS driven is the half
+       that can fail: the pointer is moved to the CENTRE OF THE RENDERED BOX of
+       a real reading in the lane, and what the page reports under that point
+       must be that reading or something inside it, it must match :hover, and
+       the title the browser would show is read back off the element the hit
+       test actually returned — not off a selector this file chose. A covered
+       node fails the hit test; a collapsed one has no centre to aim at.
+
+       AND THE ACCESSIBLE NAME IS READ IN THE SAME BREATH, because the tooltip
+       is the half a keyboard cannot reach: role="img" plus an aria-label equal
+       to the title is what makes the reading available to a screen reader, and
+       a browser is where "equal" can be checked against what was actually
+       parsed rather than against what a renderer intended to write. */
+    /* THE READING IS CHOSEN BY WHERE IT ACTUALLY IS, AND THE FIRST DRAFT OF
+       THIS CELL WAS RED BECAUSE IT WAS NOT. It took `#ledger .sym` and aimed at
+       its centre, which measured x = -344: with five rounds resolved the lane is
+       scrolled to its END, so the FIRST reading in the DOM is off the left edge
+       of its own scroller. The mouse was moved to a point outside the window,
+       elementFromPoint returned null, and the cell reddened in all four
+       combinations. That is the cell working — a tooltip on a node nobody can
+       reach is exactly what this is for — but the node it should be asking about
+       is one a student can see. So the target is the first reading whose centre
+       is inside the LANE's own box and inside the window, which is the same
+       question a person in the room is answering when they point at it. */
+    // THE PAGE IS PUT BACK AT THE TOP AND THE ANIMATION AWAITED FIRST, which is
+    // D-28's own recorded harness lesson arriving through a seventh door: [C01]
+    // sets html{scroll-behavior:smooth}, cell 6b drives a real page scroll at
+    // 1366x768, and a hover aimed at a lane that is 28px off the top of the
+    // window lands on nothing. Measured before this line went in: the target
+    // search returned null in BOTH browsers at 768 and in neither at 1080.
+    await pg.evaluate(async () => {
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 500));
+    });
+    /* AND THE NEWEST CARD IS SCROLLED TO ITS FIRST READING, WHICH IS THE THIRD
+       THING THIS CELL LEARNED BY GOING RED AND THE ONLY ONE THAT IS A FINDING
+       ABOUT THE ARTIFACT RATHER THAN ABOUT THE HARNESS. Measured at 1366x768
+       with five rounds in the lane: each card is 340x115 with a scrollHeight of
+       1174 — a 115px window over 1174px of content — so NOT ONE symbolic
+       reading in ANY card is inside the lane's own box without somebody
+       scrolling the card. 234 of the 240 readings were outside the lane
+       entirely and the remaining 6 were clipped by their card.
+
+       THAT PROPERTY IS NOT D-29's. .ld-row has been bounded at 22vh (15vh below
+       820px of viewport height) since plan 05-D28 turned the lane on its side,
+       and a 9-and-3 board has always put twelve unit readings plus five action
+       lines into it. What D-29 changed is what those readings are MADE of, not
+       how many there are. So this cell scrolls the card — which is what a
+       student does, on a scroller the artifact deliberately gave them — and
+       then hovers. The measurement is recorded as a note at both sizes and
+       carried to the playtest rather than silently absorbed. */
+    const cardWindow = await pg.evaluate(async () => {
+      const cards = Array.from(document.querySelectorAll('.ld-row'));
+      const card = cards[cards.length - 1];
+      if (!card) return null;
+      const sym = card.querySelector('.sym');
+      const before = { h: Math.round(card.getBoundingClientRect().height), content: Math.round(card.scrollHeight) };
+      if (sym) {
+        const cr = card.getBoundingClientRect();
+        const sr = sym.getBoundingClientRect();
+        card.scrollTop = Math.max(0, card.scrollTop + (sr.top - cr.top) - 4);
+      }
+      await new Promise((r) => setTimeout(r, 300));
+      return { ...before, scrolled: Math.round(card.scrollTop) };
+    });
+    note(ch, size.name, 'a lane card: window / content / scrolled to the first reading',
+      cardWindow === null ? 'NOT FOUND' : `${cardWindow.h}px over ${cardWindow.content}px, scrollTop ${cardWindow.scrolled}`);
+    const hoverTarget = await pg.evaluate(() => {
+      const lane = document.querySelector('#ledger-list');
+      if (!lane) return null;
+      const lr = lane.getBoundingClientRect();
+      const cards = Array.from(document.querySelectorAll('.ld-row'));
+      const newest = cards[cards.length - 1];
+      const all = newest ? Array.from(newest.querySelectorAll('.sym')) : [];
+      for (const n of all) {
+        const r = n.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) continue;
+        const x = Math.round(r.left + r.width / 2);
+        const y = Math.round(r.top + r.height / 2);
+        if (x < lr.left || x > lr.right || y < lr.top || y > lr.bottom) continue;
+        if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) continue;
+        // AND INSIDE ITS OWN CARD, WHICH IS THE SECOND THING THIS CELL LEARNED
+        // BY GOING RED. .ld-row is bounded at 22vh (15vh below 820px of viewport
+        // height) and scrolls ON ITSELF, so at 1366x768 most readings in a card
+        // are clipped by the card while their rects still fall inside the LANE.
+        // Aiming at one of those measured a hit on `.ld-list` — the scroller,
+        // not the reading. A point a mouse can reach has to be inside the box
+        // that clips it as well as inside the one that positions it.
+        const card = n.closest('.ld-row');
+        if (card) {
+          const cr = card.getBoundingClientRect();
+          if (x < cr.left || x > cr.right || y < cr.top || y > cr.bottom) continue;
+        }
+        return { x: x, y: y, w: Math.round(r.width), h: Math.round(r.height),
+          offScreenFirst: all.indexOf(n) };
+      }
+      const why = { zero: 0, outLane: 0, outWin: 0, outCard: 0 };
+      all.forEach((n) => {
+        const r = n.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) { why.zero++; return; }
+        const x = Math.round(r.left + r.width / 2); const y = Math.round(r.top + r.height / 2);
+        if (x < lr.left || x > lr.right || y < lr.top || y > lr.bottom) { why.outLane++; return; }
+        if (x < 0 || y < 0 || x > window.innerWidth || y > window.innerHeight) { why.outWin++; return; }
+        const c = n.closest('.ld-row');
+        if (c) { const cr = c.getBoundingClientRect();
+          if (x < cr.left || x > cr.right || y < cr.top || y > cr.bottom) { why.outCard++; return; } }
+      });
+      return { x: -1, y: -1, w: 0, h: 0, why: JSON.stringify({
+        lane: { t: Math.round(lr.top), l: Math.round(lr.left), r: Math.round(lr.right), b: Math.round(lr.bottom) },
+        total: all.length, rejected: why, scrollY: Math.round(window.scrollY),
+        win: { w: window.innerWidth, h: window.innerHeight },
+        cards: Array.from(document.querySelectorAll('.ld-row')).map((c) => { const r = c.getBoundingClientRect(); return [Math.round(r.left), Math.round(r.top), Math.round(r.width), Math.round(r.height), Math.round(c.scrollTop), Math.round(c.scrollHeight)]; })
+      }) };
+    });
+    let hover = { found: false };
+    if (hoverTarget && hoverTarget.w > 0 && hoverTarget.h > 0) {
+      await pg.mouse.move(hoverTarget.x, hoverTarget.y);
+      await pg.waitForTimeout(150);
+      hover = await pg.evaluate((pt) => {
+        const hit = document.elementFromPoint(pt.x, pt.y);
+        let box = hit;
+        while (box && !box.classList.contains('sym')) { box = box.parentElement; }
+        if (!box) return { found: false, hitTag: hit ? hit.className : null };
+        return {
+          found: true,
+          hitInside: box.contains(hit) || box === hit,
+          hovered: box.matches(':hover'),
+          title: box.getAttribute('title'),
+          label: box.getAttribute('aria-label'),
+          role: box.getAttribute('role'),
+          toks: box.querySelectorAll('.tok').length,
+          tokBox: (() => { const t = box.querySelector('.tok'); if (!t) return null; const r = t.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; })(),
+          boxW: Math.round(box.getBoundingClientRect().width),
+          boxH: Math.round(box.getBoundingClientRect().height)
+        };
+      }, hoverTarget);
+    }
+    note(ch, size.name, 'a driven hover on a lane reading', hover.found
+      ? `${hover.boxW}x${hover.boxH}, ${hover.toks} tokens ${hover.tokBox ? hover.tokBox.w + 'x' + hover.tokBox.h : '-'} -> ${JSON.stringify(hover.title)}`
+      : 'NOT FOUND');
+    ok(`${tag}: 20. a REAL MOUSE lands on a symbolic reading in the lane and the node under the pointer carries the prose on BOTH channels`,
+      hover.found === true && hover.hitInside === true && hover.hovered === true
+      && typeof hover.title === 'string' && hover.title.length > 0
+      && hover.label === hover.title && hover.role === 'img'
+      && hover.toks > 0 && hover.tokBox !== null
+      && hover.tokBox.w > 0 && hover.tokBox.h > 0
+      && hover.boxW > 0 && hover.boxH > 0
+      && hoverTarget !== null, { hoverTarget, hover });
+
+    /* ── 20b. AND THE LANE IS READABLE RATHER THAN MERELY PRESENT. Every
+       symbolic reading in the lane is measured: a real box, real tokens inside
+       it, and — the clause that matters on a projector — a compacted count
+       drawn at UX-02's 18px floor or above, read off COMPUTED STYLE rather than
+       off the stylesheet. [C05] sets .tok-count at 24px because on the board
+       every value is 24px; a ledger card is an 18px surface, so [C14.5] turns
+       it down, and 18 is a FLOOR that a later tidy must not go under. Nothing
+       may spill out of its own card either: a reading wider than the 340px card
+       it sits in is a reading the room reads half of. */
+    const laneRead = await pg.evaluate(() => {
+      const out = { syms: 0, zeroBox: 0, zeroTok: 0, counts: 0, smallCount: 0, overflow: 0, minCount: 999, sample: null };
+      document.querySelectorAll('#ledger .sym').forEach((n) => {
+        out.syms++;
+        const r = n.getBoundingClientRect();
+        if (r.width <= 0 || r.height <= 0) out.zeroBox++;
+        const t = n.querySelector('.tok');
+        if (!t) { out.zeroTok++; } else {
+          const tr = t.getBoundingClientRect();
+          if (tr.width <= 0 || tr.height <= 0) out.zeroTok++;
+        }
+        n.querySelectorAll('.tok-count').forEach((c) => {
+          out.counts++;
+          const fs = parseFloat(getComputedStyle(c).fontSize);
+          if (fs < out.minCount) out.minCount = fs;
+          if (fs < 18) out.smallCount++;
+        });
+        const card = n.closest('.ld-row');
+        if (card) {
+          const cr = card.getBoundingClientRect();
+          if (r.right > cr.right + 1 || r.left < cr.left - 1) out.overflow++;
+        }
+        if (out.sample === null) out.sample = { title: n.getAttribute('title'), w: Math.round(r.width), h: Math.round(r.height) };
+      });
+      return out;
+    });
+    note(ch, size.name, 'lane readings: boxes / tokens / counts',
+      `${laneRead.syms} readings, ${laneRead.zeroBox} with no box, ${laneRead.zeroTok} with no token, ${laneRead.counts} counts at >= ${laneRead.minCount}px, ${laneRead.overflow} spilling their card`);
+    ok(`${tag}: 20b. every symbolic reading in the lane has a real box, real tokens, a compacted count at 18px or above, and none spills out of its card`,
+      laneRead.syms > 0 && laneRead.zeroBox === 0 && laneRead.zeroTok === 0
+      && laneRead.counts > 0 && laneRead.smallCount === 0 && laneRead.overflow === 0,
+      laneRead);
+
+    /* ── 21. D-29's SECOND SENTENCE, ON THE PICKER, IN A REAL BROWSER.
+       "instead of showing cost in 1 Action Points, show it as - then the symbol
+       for the action points." The node gate asserts the notation; what it
+       cannot see is whether the minus sign and the tokens beside it actually
+       have boxes on a button 44px tall, and whether the words left the button's
+       face. Both are read off computed geometry here. THE SIGN IS ASSERTED TO
+       BE U+2212 off the rendered text node, not off the source, because the two
+       characters are indistinguishable in a diff and distinguishable on a
+       projector. */
+    const cost = await pg.evaluate(() => {
+      const box = document.querySelector('#decl-cats .fg-act-cost');
+      if (!box) return null;
+      const sym = box.querySelector('.sym');
+      const sign = box.querySelector('.sym-sign');
+      const tok = box.querySelector('.tok');
+      const leaves = []; (function w(x) { if (!x) return; if (x.children.length === 0 && x.textContent) leaves.push(x.textContent); Array.from(x.children).forEach(w); })(box);
+      const r = (n) => { if (!n) return null; const b = n.getBoundingClientRect(); return { w: Math.round(b.width), h: Math.round(b.height) }; };
+      const btn = box.closest('[data-fg="act"]');
+      return {
+        signText: sign ? sign.textContent : null,
+        signIsMinus: sign ? sign.textContent === '\u2212' : false,
+        signBox: r(sign), tokBox: r(tok), symBox: r(sym),
+        title: sym ? sym.getAttribute('title') : null,
+        label: sym ? sym.getAttribute('aria-label') : null,
+        apWord: App.render.labelFor(App.state.get(), 'ap'),
+        text: leaves.join(' '),
+        btnBox: r(btn),
+        signSize: sign ? parseFloat(getComputedStyle(sign).fontSize) : 0
+      };
+    });
+    note(ch, size.name, 'a picker cost', cost === null ? 'NOT FOUND'
+      : `${JSON.stringify(cost.text)} sign ${JSON.stringify(cost.signText)} ${cost.signBox ? cost.signBox.w + 'x' + cost.signBox.h : '-'} token ${cost.tokBox ? cost.tokBox.w + 'x' + cost.tokBox.h : '-'} -> ${JSON.stringify(cost.title)}`);
+    ok(`${tag}: 21. a cost on the picker renders as U+2212 plus the type's own token, both with real boxes, with the prose on the hover and the type named nowhere in the button's own text`,
+      cost !== null && cost.signIsMinus === true
+      && cost.signBox !== null && cost.signBox.w > 0 && cost.signBox.h > 0
+      && cost.tokBox !== null && cost.tokBox.w > 0 && cost.tokBox.h > 0
+      && cost.signSize >= 18
+      && typeof cost.title === 'string' && cost.title.length > 0
+      && cost.label === cost.title
+      && cost.text.indexOf(cost.apWord) === -1, cost);
 
     // ── 14. THE SAME READINGS AT 24 A SIDE, which is MAX_UNITS and the top of the product.
     await endFight(pg);
