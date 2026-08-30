@@ -13388,18 +13388,21 @@ const sepInputHolds = ['cats', 'mechs'].map((side) => [
 // that reads a CONTROL rather than a reading. Both are read as counts inside
 // each area, so a figure drawn in both areas fails as loudly as one drawn in
 // neither.
-const sepFigInState = sepStateHead === null ? 0 : sepStateHead.querySelectorAll('.fg-round-head').length;
-const sepFigInInput = sepHas('fight-input', '.fg-round-head');
-// AND THE HEAD IS NAMED RATHER THAN THE AREA, WHICH PROBE BO FORCED. The first
-// draft counted the two controls anywhere INSIDE #fight-input, and the probe moved
-// them to the FOOT of that area - Advance at 1408 of a 1080 viewport, which is the
-// below-the-fold defect this phase has fixed four times - and this row ran 192 of
-// 192, exit 0, because both controls were still inside the area it asked about. The
-// browser caught it at 1080 and did NOT catch it at 768. So what is asserted is
-// where D-31's own arrangement puts them: on the area's HEAD line, above the
-// scroller that grows with the roster times the action list.
+// AND EACH IS READ OFF THE AREA'S OWN HEAD LINE RATHER THAN OFF THE AREA, WHICH
+// PROBE BO FORCED. The first draft counted the two controls anywhere INSIDE
+// #fight-input, and the probe moved them to the FOOT of that area — Advance at 1408
+// of a 1080 viewport, which is the below-the-fold defect this phase has fixed four
+// times — and this row ran 192 of 192, exit 0, because both controls were still
+// inside the area it asked about. The browser caught it at 1080 and did NOT catch it
+// at 768. So what is asserted is where D-31's own arrangement puts them: on the
+// area's HEAD line, above the scroller that grows with the roster times the action
+// list. Both heads are read FIRST and floored on being found, because a null head
+// would make every count below it zero and a clause reading "0 in the wrong place"
+// is satisfied by a page with no heads at all.
 const sepInputHead = dom.byId['fight-input'].querySelectorAll('.fg-area-head')[0] || null;
 const sepStateHead = dom.byId['fight-state'].querySelectorAll('.fg-area-head')[0] || null;
+const sepFigInState = sepStateHead === null ? 0 : sepStateHead.querySelectorAll('.fg-round-head').length;
+const sepFigInInput = sepHas('fight-input', '.fg-round-head');
 const sepActsInInput = sepInputHead === null ? 0
   : sepInputHead.querySelectorAll('[data-fg="advance"]').length
     + sepInputHead.querySelectorAll('[data-fg="reset"]').length;
