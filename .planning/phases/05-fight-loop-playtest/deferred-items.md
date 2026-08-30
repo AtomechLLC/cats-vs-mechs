@@ -167,6 +167,48 @@ playtest decision."*
 **Row 101 still asserts the defect in the direction it is TRUE and D-28 did not move it**, because
 the cards are still inside the hidden columns. Nothing about this entry is closed.
 
+### CLOSED BY D-33 P3-8 — plan 05-D33c, and it is CANDIDATE 3
+
+**Closed 2026-08-30.** The six per-action cards are built into D-28's toggled sidebar beside the
+projection, by `[S06.4]`, on the first frame of a fight and removed at rest. Measured in real
+Chrome and real Edge at 1920x1080 and 1366x768, with a fight running and the panel open:
+
+```
+the view while the reading is taken     "fight"
+action/reference cards on the board      12
+  of which inside #refband                0      <- unchanged, and correct: REF-01's map is not
+  of which inside a roster column         6         REF-02's cards
+  of which inside the panel               6
+the two sets name the same six ACTIONS  yes, compared by NAME rather than counted
+a card in the panel has a real box       yes, in the fight view, columns display:none
+one press of the toggle reopens it       yes; and the panel's OWN "Close" dismisses it
+cards on screen in the BUILD view        6, the columns' — the panel's copy is display:none
+cards in the panel after endFight        0
+```
+
+**Why candidate 3 and not the other two.** This entry already argued it: it "cost the band and the
+columns nothing in EITHER view — which is the height dial candidates 1 and 2 both spend", and
+D-33's audit made it cheaper still, because P2-12 gave that panel a header, a text-labelled close
+control, a deeper shadow and a scroll cue in the same pass. The cards landed in a container that
+had just been built to hold them.
+
+**What it cost, exactly as this entry predicted.** The sidebar is two things now, so the toggle's
+label and the panel's header both read **"Projection and reference"**, and the two sections inside
+carry their own headings. REF-03's "readable without leaving the fight view" is served by the same
+one press that PROJ-05 is — which is the developer's own reading of PROJ-05, taken in D-28,
+arriving at its consequence.
+
+**Row 101 went red the day the cards moved, exactly as it was written to.** It is turned in the
+open and now asserts the arrangement that replaced the defect — six in the panel read for their
+text, six in the columns, the same six actions compared BY NAME, none in the band, and the panel's
+set gone at rest and back when a fight runs. The layout half is browser cell **10f**, which is new:
+the panel covers nothing at either viewport at two scroll offsets, a projection figure and a
+reference card both have real boxes in it, its Close dismisses it, one press of the toggle brings
+it back, and the build view never shows the six cards twice.
+
+**Not one line of `buildColumn` changed.** Plan 03-05's cross-plan edit stands; the columns still
+carry their cards for the build view, which is where a student reads them while allocating.
+
 ---
 
 ## Item 3 — RE-MEASURED BY PLAN 05-16, and the answer is: still below the fold at 768
@@ -220,6 +262,13 @@ now runs over that view alone, and the reason its fight-view half was removed is
 would have passed over a projection that had left the page).
 
 **What is NOT closed** is whether a room presses it. That is `REHEARSAL.md` B3 and 05-11's item 2.
+
+### A NOTE ADDED BY PLAN 05-D33c, because this pass added a control on a rebuilding surface
+
+D-33 P2-12's "Close" button lives inside `#strip`, which `[S06.3]` builds ONCE and never rebuilds,
+so the mechanism above does not reach it: the node under the pointer survives the commit and keeps
+focus. It is recorded here rather than left to be assumed, because the next control added to a
+surface that IS rebuilt inherits this item.
 
 ## 5. `[S06.7]`'s banner names "check 105", and this repository has never had one
 
