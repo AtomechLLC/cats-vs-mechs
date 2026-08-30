@@ -313,37 +313,87 @@ for (const ch of ['chrome', 'msedge']) {
       && bLedger.bottom <= bBar.top,
       { bBand, bBar, bLedger });
 
-    // ── 5. THE GRID LAYS OUT IN THE ADDENDUM'S ORDER, verified by comparing each child's
-    // measured TOP rather than by reading the DOM order — the DOM order is [S06.7]'s five
-    // appends and a check that read it would be asserting the code against itself. What a
-    // room sees is the layout, and flex, order and grid-row can all put a correct DOM order
-    // on screen upside down.
+    /* ── 5. THE ROUND LAYS OUT IN THE ADDENDUM'S ORDER, verified by comparing each
+       child's measured TOP rather than by reading the DOM order — the DOM order is
+       [S06.7]'s appends and a check that read it would be asserting the code against
+       itself. What a room sees is the layout, and flex, order and grid-row can all put
+       a correct DOM order on screen upside down.
+
+       ==================================================================
+       THIS CELL'S CLAIM WAS TURNED BY D-31 AND THE OLD ONE IS WRITTEN OUT.
+       ==================================================================
+       WHAT IT ASSERTED (plan 05-15, D-27's addendum): inside ONE column per side,
+       top to bottom, side name -> battlefield -> team resources -> picker rows.
+       That was one root per side and one continuous run of tops.
+
+       WHAT D-31 SAYS: "separate the current round state from the action input area."
+       The run is cut in two and each half gets a panel of its own, so the old
+       assertion cannot be made at all — there is no node that is both the battlefield's
+       column and the picker's. Read as written it would have gone red on `field: null`,
+       which is exactly what the recorded RED run reported before this cell was turned:
+       {"cats":{"head":906,"field":null,"team":null,"rows":958}, ...}.
+
+       WHAT IT ASSERTS NOW is the SAME sentence across the new boundary, which is the
+       claim D-31 actually makes about it — "the order either side of the cut is
+       unchanged". Four things, each a different failure:
+         the STATE column reads name -> battlefield -> team resources;
+         the INPUT column reads name -> picker rows;
+         the whole STATE AREA sits above the whole INPUT AREA, measured as boxes and
+           not as DOM order, because that is the half a CSS `order` would invert while
+           every containment row in the node gate stayed green;
+         and the two areas do not OVERLAP, which is what says they are two panels
+           rather than one panel drawn twice.
+       The round figure and the column pairing move to 5b. */
     const order = await pg.evaluate(() => {
       const out = {};
+      const T = (sel) => {
+        const n = document.querySelector(sel);
+        return n ? Math.round(n.getBoundingClientRect().top) : null;
+      };
+      const B = (sel) => {
+        const n = document.querySelector(sel);
+        if (!n) return null;
+        const r = n.getBoundingClientRect();
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), left: Math.round(r.left) };
+      };
       ['cats', 'mechs'].forEach((side) => {
-        const root = document.querySelector('#decl-' + side);
-        const t = (sel) => {
-          const n = root.querySelector(sel);
-          return n ? Math.round(n.getBoundingClientRect().top) : null;
+        out[side] = {
+          head: T('#state-' + side + ' .fg-side-head'),
+          field: T('#state-' + side + ' .fg-field'),
+          team: T('#state-' + side + ' .fg-team'),
+          inHead: T('#decl-' + side + ' .fg-side-head'),
+          rows: T('#decl-' + side + ' .fg-rows')
         };
-        out[side] = { head: t('.fg-side-head'), field: t('.fg-field'), team: t('.fg-team'), rows: t('.fg-rows') };
       });
       const rh = document.querySelector('.fg-round-head');
       out.round = rh ? Math.round(rh.getBoundingClientRect().top) : null;
-      out.colTops = ['cats', 'mechs'].map((s) => Math.round(document.querySelector('#decl-' + s).getBoundingClientRect().top));
-      out.colLefts = ['cats', 'mechs'].map((s) => Math.round(document.querySelector('#decl-' + s).getBoundingClientRect().left));
+      out.stateArea = B('#fight-state');
+      out.inputArea = B('#fight-input');
+      out.stateCols = ['cats', 'mechs'].map((s) => B('#state-' + s));
+      out.inputCols = ['cats', 'mechs'].map((s) => B('#decl-' + s));
       return out;
     });
-    const inOrder = (o) => o.head <= o.field && o.field <= o.team && o.team <= o.rows;
-    note(ch, size.name, 'cats column tops head/field/team/rows',
-      `${order.cats.head}/${order.cats.field}/${order.cats.team}/${order.cats.rows}`);
-    note(ch, size.name, 'mechs column tops head/field/team/rows',
-      `${order.mechs.head}/${order.mechs.field}/${order.mechs.team}/${order.mechs.rows}`);
-    ok(`${tag}: 5. each column reads SIDE -> battlefield -> team resources -> picker rows, measured`,
-      inOrder(order.cats) && inOrder(order.mechs), order);
-    ok(`${tag}: 5b. [ROUND] spans ABOVE both columns and the two columns are SIDE BY SIDE`,
-      order.round !== null && order.round < order.colTops[0] && order.round < order.colTops[1]
-      && order.colTops[0] === order.colTops[1] && order.colLefts[0] < order.colLefts[1],
+    const stateInOrder = (o) => o.head <= o.field && o.field <= o.team;
+    const inputInOrder = (o) => o.inHead <= o.rows;
+    note(ch, size.name, 'cats STATE column tops name/field/team',
+      `${order.cats.head}/${order.cats.field}/${order.cats.team}`);
+    note(ch, size.name, 'cats INPUT column tops name/rows',
+      `${order.cats.inHead}/${order.cats.rows}`);
+    note(ch, size.name, 'D-31 areas, state box vs input box',
+      `${order.stateArea.top}-${order.stateArea.bottom} then ${order.inputArea.top}-${order.inputArea.bottom}`);
+    ok(`${tag}: 5. D-31 — the STATE column reads name -> battlefield -> team resources, the INPUT column reads name -> picker rows, and the state AREA sits wholly above the input AREA`,
+      stateInOrder(order.cats) && stateInOrder(order.mechs)
+      && inputInOrder(order.cats) && inputInOrder(order.mechs)
+      && order.stateArea !== null && order.inputArea !== null
+      && order.stateArea.bottom <= order.inputArea.top, order);
+    ok(`${tag}: 5b. [ROUND] is in the STATE area above both of its columns, and the Cats-left / Mechs-right pairing survives INSIDE EACH of the two areas`,
+      order.round !== null
+      && order.round >= order.stateArea.top && order.round <= order.stateArea.bottom
+      && order.round < order.stateCols[0].top && order.round < order.stateCols[1].top
+      && order.stateCols[0].top === order.stateCols[1].top
+      && order.stateCols[0].left < order.stateCols[1].left
+      && order.inputCols[0].top === order.inputCols[1].top
+      && order.inputCols[0].left < order.inputCols[1].left,
       order);
 
     // ── 6. ONE PICKER ROW PER UNIT, units x actions BUTTONS, AND THE GRID'S BOX. Counted on
@@ -361,7 +411,11 @@ for (const ch of ['chrome', 'msedge']) {
             buttons: root.querySelectorAll('[data-fg="act"]').length
           };
         };
-        const sides = document.querySelector('.fg-sides').getBoundingClientRect();
+        // D-31: THE GRID'S BOX IS THE INPUT AREA'S SCROLLER NOW, and the selector is
+        // qualified rather than left bare — a bare .fg-sides took the FIRST match, which
+        // after D-31 is the STATE area's, and this cell would have gone on measuring a
+        // box that holds no picker row at all while every clause in it stayed green.
+        const sides = document.querySelector('#fight-input .fg-sides').getBoundingClientRect();
         return {
           cats: per('cats'), mechs: per('mechs'),
           sidesBox: { top: Math.round(sides.top), bottom: Math.round(sides.bottom), height: Math.round(sides.height) },
@@ -370,7 +424,7 @@ for (const ch of ['chrome', 'msedge']) {
       });
       note(ch, size.name, `grid ${label} rows cats/mechs`, `${g.cats.rows}/${g.mechs.rows}`);
       note(ch, size.name, `grid ${label} buttons cats/mechs`, `${g.cats.buttons}/${g.mechs.buttons}`);
-      note(ch, size.name, `grid ${label} .fg-sides top/height/bottom vs viewport`,
+      note(ch, size.name, `grid ${label} #fight-input .fg-sides top/height/bottom vs viewport`,
         `${g.sidesBox.top}/${g.sidesBox.height}/${g.sidesBox.bottom} of ${g.viewportH}`);
       ok(`${tag}: 6. ${label} — one picker row per unit and units x actions buttons`,
         g.cats.rows === g.cats.units && g.mechs.rows === g.mechs.units
@@ -421,7 +475,7 @@ for (const ch of ['chrome', 'msedge']) {
          each for exactly this reason. `behavior: 'instant'` would also work and is
          deliberately not used: waiting is what a room does. */
       const reach = await pg.evaluate(async () => {
-        const n = document.querySelector('.fg-sides');
+        const n = document.querySelector('#fight-input .fg-sides');
         const before = Math.round(n.getBoundingClientRect().bottom);
         const want = Math.max(0, window.scrollY + before - window.innerHeight + 8);
         window.scrollTo(0, want);
@@ -434,10 +488,32 @@ for (const ch of ['chrome', 'msedge']) {
         await new Promise((r2) => setTimeout(r2, 400));
         return out;
       });
-      note(ch, size.name, `grid ${label} .fg-sides whole in view after a page scroll`,
+      note(ch, size.name, `grid ${label} #fight-input .fg-sides whole in view after a page scroll`,
         `top ${reach.top} bottom ${reach.bottom} of ${reach.vh} at scrollY ${reach.got}`);
-      ok(`${tag}: 6b. ${label} — the grid's box BEGINS on screen and can be brought wholly into view by scrolling the page`,
-        g.sidesBox.top >= 0 && g.sidesBox.top < g.viewportH && g.sidesBox.height > 0
+      /* ==================================================================
+         AND 6b's FIRST CLAUSE IS TURNED A SECOND TIME, BY D-31.
+         ==================================================================
+         D-28 turned "the box is INSIDE the viewport" into "the box BEGINS on screen".
+         D-31 puts a whole second panel above the picker's scroller, and the first
+         clause goes the same way the fold clause in cell 18 does — measured, in both
+         browsers, with no lane on the page at all:
+
+           #fight-input .fg-sides   @1920x1080        @1366x768
+             9-and-3                  904/346/1250      889/246/1134 of 768
+             24-a-side                904/346/1250      889/246/1134 of 768
+
+         At 1080 it still begins on screen. At 768 it does not, and no dial reaches
+         it: the state area's window is 22vh there and the chrome above the picker is
+         the region's heading plus two panels. THE SECOND CLAUSE IS UNTOUCHED AND IS
+         DRIVEN AT BOTH SIZES — the page is scrolled and the box re-read, and it comes
+         wholly into view at 515/760 of 768 and 726/1072 of 1080. So what is asserted
+         at 768 is that the box has a real height and is REACHABLE, which is this
+         cell's own distinction between a region a room scrolls and a control a room
+         cannot find. Cell 18c carries the half that matters most: the control that
+         ends the round is on screen WITH these rows when a room scrolls to them. */
+      ok(`${tag}: 6b. ${label} — the grid's box ${size.height >= 1000 ? 'BEGINS on screen' : 'is REACHABLE — D-31 turned this clause at 768'} and can be brought wholly into view by scrolling the page`,
+        g.sidesBox.top >= 0 && g.sidesBox.height > 0
+        && (size.height >= 1000 ? g.sidesBox.top < g.viewportH : g.sidesBox.top < g.viewportH * 2)
         && reach.top >= 0 && reach.bottom <= reach.vh, { g, reach });
       return g;
     };
@@ -451,7 +527,7 @@ for (const ch of ['chrome', 'msedge']) {
       const f = await pg.evaluate(() => {
         const st = App.state.get();
         const per = (side) => {
-          const field = document.querySelector('#decl-' + side + ' .fg-field');
+          const field = document.querySelector('#state-' + side + ' .fg-field');
           const fr = field.getBoundingClientRect();
           const shapes = Array.from(field.querySelectorAll('.bf-unit'));
           const named = shapes.filter((s) => {
@@ -470,7 +546,7 @@ for (const ch of ['chrome', 'msedge']) {
         // The token mini-shapes: a real box, and a real clip-path for a shape that is not a
         // plain square. That last is what says they are CSS SHAPES rather than divs with a
         // colour on them, which is the claim the addendum actually makes.
-        const toks = Array.from(document.querySelectorAll('#decl-cats .fg-field .tok'));
+        const toks = Array.from(document.querySelectorAll('#state-cats .fg-field .tok'));
         const withS = toks.map((t) => {
           const s = t.querySelector('.tok-s');
           if (!s) return null;
@@ -519,7 +595,7 @@ for (const ch of ['chrome', 'msedge']) {
     // openDialogs' recorded lesson arriving through a fifth door: drive the real op, then
     // ASK for the frame, then wait for it, then read.
     const readTok = () => pg.evaluate(() => {
-      const t = document.querySelector('#decl-cats .fg-field .tok');
+      const t = document.querySelector('#state-cats .fg-field .tok');
       const s = t ? t.querySelector('.tok-s') : null;
       return {
         cls: t ? t.className : null,
@@ -556,7 +632,7 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.waitForTimeout(200);
     await pg.click('#view-fight'); await pg.waitForTimeout(250);
     const dead = await pg.evaluate(() => {
-      const s = document.querySelector('#decl-cats [data-fg="bf"][data-fg-val="c1"]');
+      const s = document.querySelector('#state-cats [data-fg="bf"][data-fg-val="c1"]');
       if (!s) return { drawn: false };
       const r = s.getBoundingClientRect();
       const said = s.querySelector('.bf-said');
@@ -776,7 +852,7 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.evaluate(() => window.scrollTo(0, 0));
     await pg.waitForTimeout(700);
     const teamOf = (side) => pg.evaluate((s) => {
-      const t = document.querySelector('#decl-' + s + ' .fg-team');
+      const t = document.querySelector('#state-' + s + ' .fg-team');
       return t ? t.textContent.replace(/\s+/g, ' ').trim() : null;
     }, side);
     const pickIds = await pg.evaluate(() => {
@@ -831,7 +907,7 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.click('#decl-mechs [data-fg="at"][data-fg-by="m1"]');
     await pg.waitForTimeout(250);
     const lit = await pg.evaluate(() => {
-      const shapes = Array.from(document.querySelectorAll('#decl-cats [data-fg="bf"]'));
+      const shapes = Array.from(document.querySelectorAll('#state-cats [data-fg="bf"]'));
       const on = shapes.filter((s) => /bf-unit--lit/.test(s.className));
       const styled = on.filter((s) => {
         const cs = getComputedStyle(s);
@@ -844,7 +920,7 @@ for (const ch of ['chrome', 'msedge']) {
       return {
         roster: App.state.get().fight.cats.units.length,
         shapes: shapes.length, lit: on.length, styled: styled.length, spoken: spoken.length,
-        otherSideLit: document.querySelectorAll('#decl-mechs .bf-unit--lit').length
+        otherSideLit: document.querySelectorAll('#state-mechs .bf-unit--lit').length
       };
     });
     note(ch, size.name, 'lit shapes / roster', `${lit.lit}/${lit.roster}`);
@@ -852,14 +928,14 @@ for (const ch of ['chrome', 'msedge']) {
       lit.lit === lit.roster && lit.lit === lit.shapes && lit.otherSideLit === 0
       && lit.styled === lit.lit && lit.spoken === lit.lit, lit);
     const pickId = await pg.evaluate(() => App.state.get().fight.cats.units[App.state.get().fight.cats.units.length - 1].id);
-    await pg.click(`#decl-cats [data-fg="bf"][data-fg-val="${pickId}"]`);
+    await pg.click(`#state-cats [data-fg="bf"][data-fg-val="${pickId}"]`);
     await pg.waitForTimeout(250);
     const ctMoved = await pg.evaluate(() => {
       const row = document.querySelector('#decl-mechs .fg-row .fg-lands');
       const rec2 = App.state.get().fight.decl.filter((d) => d.side === 'mechs' && d.by === 'm1')[0];
       return {
         says: row ? row.textContent.trim() : null, at: rec2 ? rec2.at : null,
-        stillLit: document.querySelectorAll('#decl-cats .bf-unit--lit').length
+        stillLit: document.querySelectorAll('#state-cats .bf-unit--lit').length
       };
     });
     note(ch, size.name, 'change-target reading', `${ctDefault.says} -> ${ctMoved.says}`);
@@ -873,7 +949,7 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.click('#decl-mechs [data-fg="at"][data-fg-by="m1"]'); await pg.waitForTimeout(200);
     const ctCancelled = await pg.evaluate(() => {
       const rec2 = App.state.get().fight.decl.filter((d) => d.side === 'mechs' && d.by === 'm1')[0];
-      return { at: rec2 ? rec2.at : null, lit: document.querySelectorAll('#decl-cats .bf-unit--lit').length };
+      return { at: rec2 ? rec2.at : null, lit: document.querySelectorAll('#state-cats .bf-unit--lit').length };
     });
     ok(`${tag}: 12c. pressing Change target twice cancels the change and leaves the declaration standing`,
       ctCancelled.at === ctMoved.at && ctCancelled.lit === 0, ctCancelled);
@@ -1041,21 +1117,46 @@ for (const ch of ['chrome', 'msedge']) {
       && lane.newestIsRightmost === true && lane.newestWholeInLane === true
       && lane.scrollH === lane.clientH, lane);
 
-    /* ── 18. AND THE ROUND BEING PLAYED IS STILL REACHABLE UNDER THAT LANE, which is
-       the arithmetic D-28 changed and the defect this plan measured and fixed. With
-       the round controls appended below .fg-sides the Advance control read 1094 of a
-       1080 viewport and 951 of a 768 one; it is on the round's own line now.
+    /* -- 18. AND THE ROUND BEING PLAYED IS STILL REACHABLE UNDER THAT LANE, which is
+       the arithmetic D-28 changed and the defect this phase has now measured and fixed
+       four times.
 
-       ADVANCE IS ASSERTED ABOVE THE FOLD AND THE FOUR REGIONS ARE ASSERTED REACHABLE,
-       and the difference between the two words is deliberate. Above the fold means at
-       page scroll ZERO, with no scrolling of any kind, which is what a control that
-       ends a round has to be. Reachable means it has a real box on the page — the
-       grid and the battlefield live inside a scroller bounded on itself, so a room
-       scrolls to the bottom of a column exactly as it scrolls [C12]'s action list. */
+       ==================================================================
+       THIS CELL'S CLAIM WAS TURNED BY D-31 AND THE OLD ONE IS WRITTEN OUT.
+       ==================================================================
+       WHAT IT ASSERTED (plan 05-D28): the Advance control is ABOVE THE FOLD at page
+       scroll zero, at BOTH sizes, with three rounds in the lane. True while the two
+       round controls sat on the round's own line at the top of the region.
+
+       WHAT D-31 SAYS: the two controls belong with the ACTION INPUT, because Advance
+       is what commits what the input declared. That puts them below a whole second
+       panel, and the sweep in [C14.1] is what settles whether they can still clear a
+       fold - measured in real Chrome, three rounds resolved, twelve declarations
+       standing, the state area's window swept from 12vh to 32vh:
+
+         state window   @1920x1080 Advance      @1366x768 Advance
+           12vh            949 of 1080            869 of 768   BELOW
+           22vh           1057 of 1080  shipped   947 of 768   BELOW
+           26vh           1100 of 1080  BELOW     973 of 768   BELOW
+
+       AT 1366x768 NO SETTING CLEARS IT, INCLUDING ZERO. Read the 869 against its 92px
+       window: the chrome alone - the fight region's heading, two panels' borders,
+       padding, gaps and head lines, and the 47px of button itself - is 777px on a
+       768px screen. There is no free term in that arithmetic and no dial that reaches
+       it, which is why this cell is TURNED rather than the number being tuned until it
+       passed.
+
+       WHAT IT ASSERTS NOW, in three clauses. At 1920x1080 the old claim stands
+       unchanged and unweakened: above the fold at page scroll zero. At 1366x768 the
+       reading is asserted to be what the sweep says it is - the control has a real
+       box, it is ENABLED, and it is within ONE page scroll of the fold rather than
+       somewhere off the end of a document - so a regression that put it at 1600 goes
+       red here even though 947 does not. And at BOTH sizes cell 18c drives the
+       property the fold was standing in for and never actually measured. */
     const under = await pg.evaluate(async () => {
       const R = (s) => { const n = document.querySelector(s); if (!n) return null; const r = n.getBoundingClientRect();
         return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom) }; };
-      // AWAITED, for [C01]'s smooth scrolling — and READ BACK, because the two
+      // AWAITED, for [C01]'s smooth scrolling - and READ BACK, because the two
       // browsers do not agree about how far a scroll to the top gets before the
       // next frame. Plan 05-16 recorded the same disagreement from the other
       // direction (scrollTo(0,0) reaching scrollY 179 in Edge and 0 in Chrome),
@@ -1067,16 +1168,19 @@ for (const ch of ['chrome', 'msedge']) {
         scrollY: Math.round(window.scrollY), vh: window.innerHeight,
         advance: R('#fightbar [data-fg="advance"]'),
         roundHead: R('.fg-round-head'), roundN: document.querySelector('.fg-round-n').textContent,
-        sides: R('.fg-sides'), field: R('#decl-cats .fg-field'),
-        team: R('#decl-cats .fg-team'), rows: R('#decl-cats .fg-rows'),
+        stateSides: R('#fight-state .fg-sides'), inputSides: R('#fight-input .fg-sides'),
+        field: R('#state-cats .fg-field'),
+        team: R('#state-cats .fg-team'), rows: R('#decl-cats .fg-rows'),
         lane: R('#ledger-list'),
         advanceEnabled: document.querySelector('#fightbar [data-fg="advance"]').disabled === false
       };
     });
+    const foldSize = size.height >= 1000;
     note(ch, size.name, 'Advance top/bottom vs viewport, 3 rounds in the lane',
       `${under.advance.top}/${under.advance.bottom} of ${under.vh}`);
-    note(ch, size.name, '.fg-sides top/height/bottom, 3 rounds in the lane',
-      `${under.sides.top}/${under.sides.h}/${under.sides.bottom} of ${under.vh}`);
+    note(ch, size.name, 'D-31 state / input scroller top/height/bottom, 3 rounds in the lane',
+      `${under.stateSides.top}/${under.stateSides.h}/${under.stateSides.bottom}`
+      + ` then ${under.inputSides.top}/${under.inputSides.h}/${under.inputSides.bottom} of ${under.vh}`);
     note(ch, size.name, 'battlefield / team / rows tops, 3 rounds in the lane',
       `${under.field.top} / ${under.team.top} / ${under.rows.top}`);
     // THE CLAIM IS MADE ABSOLUTE BY ADDING THE OFFSET BACK. `advance.top + scrollY`
@@ -1085,15 +1189,58 @@ for (const ch of ['chrome', 'msedge']) {
     // actually settled at when the reading was taken.
     note(ch, size.name, 'Advance from the top of the DOCUMENT, 3 rounds in the lane',
       `${under.advance.top + under.scrollY} of ${under.vh} (read at scrollY ${under.scrollY})`);
-    ok(`${tag}: 18. with three rounds in the lane the Advance control is ABOVE THE FOLD at page scroll zero, and enabled`,
+    ok(`${tag}: 18. with three rounds in the lane the Advance control is ${foldSize ? 'ABOVE THE FOLD at page scroll zero' : 'within ONE page scroll of the fold - D-31 turned this clause at 768 and [C14.1] carries the sweep'}, and enabled`,
       under.advance.top + under.scrollY >= 0
-      && under.advance.bottom + under.scrollY <= under.vh
-      && under.advance.top >= 0 && under.advance.bottom <= under.vh
-      && under.advanceEnabled === true, under);
+      && under.advanceEnabled === true
+      && under.advance.h > 0 && under.advance.w > 0
+      && (foldSize
+        ? (under.advance.bottom + under.scrollY <= under.vh
+          && under.advance.top >= 0 && under.advance.bottom <= under.vh)
+        : (under.advance.bottom + under.scrollY > under.vh
+          && under.advance.bottom + under.scrollY <= under.vh * 2)),
+      { foldSize, under });
     ok(`${tag}: 18b. the round, the lane, the battlefield, the team resources and the picker rows all have a real box`,
       [under.roundHead, under.lane, under.field, under.team, under.rows]
         .every((b) => b !== null && b.w > 0 && b.h > 0)
       && under.roundN !== '', under);
+
+    /* -- 18c. THE PROPERTY THE FOLD WAS STANDING IN FOR, DRIVEN - new with D-31 and the
+       cell that replaces what 18 gave up at 768.
+
+       "A student who has to scroll to advance is the same failure as a board below the
+       fold, arriving one region along" - [C14.1]'s own sentence, and what it is really
+       about is that the control must be THERE when a student reaches for it. Under
+       D-31 Advance sits at the TOP of the area whose rows a student declares in, so
+       the page scroll that brings the picker into view brings the control with it.
+
+       THIS IS DRIVEN AND NOT REASONED ABOUT. The page is scrolled until the picker
+       rows are in view - awaited, for [C01]'s smooth scrolling, in cell 6b's recorded
+       manner - and then BOTH boxes are read at that offset. Advance must be WHOLLY on
+       screen, and the rows must be on screen with it, at the same instant. A version
+       of this layout that put the controls at the FOOT of the input area would pass
+       every containment row in the node gate and fail here, which is exactly the
+       defect class this cell inherits. */
+    const together = await pg.evaluate(async () => {
+      const rows = document.querySelector('#decl-cats .fg-rows');
+      const want = Math.max(0, window.scrollY + Math.round(rows.getBoundingClientRect().top) - 40);
+      window.scrollTo(0, want);
+      await new Promise((r) => setTimeout(r, 450));
+      const R = (s) => { const n = document.querySelector(s); const r = n.getBoundingClientRect();
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), h: Math.round(r.height) }; };
+      const out = { asked: want, got: Math.round(window.scrollY), vh: window.innerHeight,
+        advance: R('#fightbar [data-fg="advance"]'), rows: R('#decl-cats .fg-rows') };
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 450));
+      return out;
+    });
+    note(ch, size.name, 'D-31 Advance and the picker rows, together, at the offset a room declares from',
+      `advance ${together.advance.top}-${together.advance.bottom}, rows ${together.rows.top}-${together.rows.bottom}`
+      + ` of ${together.vh} at scrollY ${together.got}`);
+    ok(`${tag}: 18c. scrolled to the picker rows, the Advance control that commits them is WHOLLY on screen at the same time`,
+      together.advance.top >= 0 && together.advance.bottom <= together.vh
+      && together.advance.h > 0
+      && together.rows.top < together.vh && together.rows.bottom > 0,
+      together);
 
     /* ── 19. AND THE LANE REALLY DOES SCROLL SIDEWAYS, driven past the width it fits
        in rather than asserted about. Three cards fit inside a 1920 lane, so a check
@@ -1501,6 +1648,123 @@ for (const ch of ['chrome', 'msedge']) {
       && derived.rgb[0] > derived.rgb[1] + 40
       && derived.rgb[0] > derived.rgb[2] + 40, derived);
 
+    /* ── 22. D-31's SEPARATION IS A BOX AND NOT A GAP, and this is the claim NO node
+       gate in this repository can make. The node gate reads containment and DOM order;
+       the developer asked for the two areas to be SEPARATE, and the orchestrator's own
+       reading of that is "a clear visual boundary (distinct panels/cards with their own
+       headings), not merely spacing". Both of those are computed style and geometry.
+
+       FIVE THINGS, EACH A DIFFERENT WAY OF SHIPPING THE SPACING AND CALLING IT A
+       SEPARATION: each area has a REAL border, more than zero pixels wide and not
+       `none`; each has a background that DIFFERS from the region it sits in, because
+       two boxes the same colour as their parent are one box with a hairline; there is
+       a real gap between the two boxes and they do not overlap; each carries a visible
+       heading with a non-empty accessible name; and every one of those headings is at
+       or above UX-02's 18px floor, which [C14]'s banner states four times and which
+       binds hardest on this surface because it is on the page the whole time.
+
+       THE COLOURS ARE COMPARED AND NEVER TYPED. A cell that read `rgb(31, 37, 48)` off
+       the page and compared it to `rgb(31, 37, 48)` written here would assert that
+       this file agrees with itself — 21d's recorded lesson, arriving on a background.
+       What is asserted is a DIFFERENCE between two computed values, so a palette
+       change moves both and this cell stays true. */
+    const sep = await pg.evaluate(() => {
+      const S = (sel) => {
+        const n = document.querySelector(sel);
+        if (!n) return null;
+        const cs = getComputedStyle(n);
+        const r = n.getBoundingClientRect();
+        return {
+          borderStyle: cs.borderTopStyle, borderWidth: Math.round(parseFloat(cs.borderTopWidth) * 100) / 100,
+          bg: cs.backgroundColor, radius: cs.borderTopLeftRadius,
+          top: Math.round(r.top), bottom: Math.round(r.bottom),
+          left: Math.round(r.left), width: Math.round(r.width)
+        };
+      };
+      const H = (sel) => {
+        const n = document.querySelector(sel);
+        if (!n) return null;
+        const cs = getComputedStyle(n);
+        const r = n.getBoundingClientRect();
+        return {
+          text: n.textContent.trim(), size: Math.round(parseFloat(cs.fontSize) * 100) / 100,
+          display: cs.display, visibility: cs.visibility,
+          w: Math.round(r.width), h: Math.round(r.height)
+        };
+      };
+      return {
+        bar: S('#fightbar'), state: S('#fight-state'), input: S('#fight-input'),
+        stateHead: H('#fight-state-head'), inputHead: H('#fight-input-head')
+      };
+    });
+    note(ch, size.name, 'D-31 panels: border / background against the region they sit in',
+      `state ${sep.state.borderWidth}px ${sep.state.bg} | input ${sep.input.borderWidth}px ${sep.input.bg}`
+      + ` | #fightbar ${sep.bar.bg}`);
+    note(ch, size.name, 'D-31 panel headings, text and computed size',
+      `${JSON.stringify(sep.stateHead.text)} ${sep.stateHead.size}px`
+      + ` | ${JSON.stringify(sep.inputHead.text)} ${sep.inputHead.size}px`);
+    note(ch, size.name, 'D-31 the boundary between the two panels',
+      `state ends ${sep.state.bottom}, input starts ${sep.input.top}, gap ${sep.input.top - sep.state.bottom}px`);
+    ok(`${tag}: 22. the two areas are two PANELS and not two paragraphs — real borders, a background distinct from the region they sit in, a real gap between them, and a visible heading each at the 18px floor`,
+      sep.state.borderWidth > 0 && sep.input.borderWidth > 0
+      && sep.state.borderStyle !== 'none' && sep.input.borderStyle !== 'none'
+      && sep.state.bg !== sep.bar.bg && sep.input.bg !== sep.bar.bg
+      && sep.state.bg === sep.input.bg
+      && sep.input.top > sep.state.bottom
+      && sep.state.left === sep.input.left && sep.state.width === sep.input.width
+      && sep.stateHead.text !== '' && sep.inputHead.text !== ''
+      && sep.stateHead.size >= 18 && sep.inputHead.size >= 18
+      && sep.stateHead.display !== 'none' && sep.inputHead.display !== 'none'
+      && sep.stateHead.visibility === 'visible' && sep.inputHead.visibility === 'visible'
+      && sep.stateHead.h > 0 && sep.inputHead.h > 0, sep);
+
+    /* ── 22b. AND THE SPOKEN-FOR PREVIEW STILL CROSSES THE BOUNDARY, DRIVEN BY A REAL
+       CLICK. D-31 names this one behaviour by name: "The spoken-for resource preview
+       stays with the resources in the state area ... but continues to react live as
+       declarations are made in the input area."
+
+       THIS IS THE ONE THING A LAYOUT CHANGE COULD BREAK SILENTLY. Before D-31 the
+       reading and the button that moves it were siblings inside one root; they are now
+       in two panels, and a version of this change that repainted only the panel the
+       press landed in would leave the resources one press stale — on a projector, with
+       every geometry cell above green.
+
+       IT IS A REAL pg.click AND NOT A DISPATCHED PointerEvent, which is this file's own
+       split stated at check 17's drive: drive the boring bulk through the artifact's
+       ops, CLICK the thing being asserted. Three readings, taken verbatim off the STATE
+       panel: idle, declared, and undone by a second click on the same button — the
+       reading must MOVE and COME BACK, because a cell asserting only that it moved is
+       green over one that never returns. The declaration count is read beside it off
+       the live state, so a reading that moved for some other reason cannot satisfy
+       this. */
+    await endFight(pg);
+    await toRoster(pg, 3);
+    await startFight(pg);
+    await pg.waitForTimeout(300);
+    const crossRead = () => pg.evaluate(() =>
+      document.querySelector('#state-cats .fg-team').textContent.replace(/\s+/g, ' ').trim());
+    const crossCount = () => pg.evaluate(() => App.state.get().fight.decl.length);
+    const crossBtn = await pg.evaluate(() => {
+      const b = document.querySelector('#decl-cats [data-fg="act"][data-fg-by="c1"]:not([disabled])');
+      return b ? b.dataset.fgVal : null;
+    });
+    const crossIdle = await crossRead();
+    await pg.click(`#decl-cats [data-fg="act"][data-fg-by="c1"][data-fg-val="${crossBtn}"]`);
+    await pg.waitForTimeout(250);
+    const crossDeclared = await crossRead();
+    const crossStanding = await crossCount();
+    await pg.click(`#decl-cats [data-fg="act"][data-fg-by="c1"][data-fg-val="${crossBtn}"]`);
+    await pg.waitForTimeout(250);
+    const crossUndone = await crossRead();
+    const crossBack = await crossCount();
+    note(ch, size.name, 'D-31 the state panel’s team reading across a click in the input panel',
+      `${JSON.stringify(crossIdle)} -> ${JSON.stringify(crossDeclared)} -> ${JSON.stringify(crossUndone)}`);
+    ok(`${tag}: 22b. a REAL click on an action button in the INPUT panel moves the spoken-for reading in the STATE panel, and a second click puts it back`,
+      crossBtn !== null && crossIdle !== '' && crossDeclared !== '' && crossUndone !== ''
+      && crossIdle !== crossDeclared && crossUndone === crossIdle
+      && crossStanding === 1 && crossBack === 0,
+      { crossBtn, crossIdle, crossDeclared, crossUndone, crossStanding, crossBack });
+
     // ── 14. THE SAME READINGS AT 24 A SIDE, which is MAX_UNITS and the top of the product.
     await endFight(pg);
     await toRoster(pg, 24);
@@ -1531,7 +1795,7 @@ for (const ch of ['chrome', 'msedge']) {
     await startFight(pg);
     await pg.waitForTimeout(300);
     const authored = await pg.evaluate((m) => {
-      const line = document.querySelector(`#decl-cats [data-fg="bf"][data-fg-val="c1"] .bf-line[data-bf-amt="${m.id}"]`);
+      const line = document.querySelector(`#state-cats [data-fg="bf"][data-fg-val="c1"] .bf-line[data-bf-amt="${m.id}"]`);
       if (!line) return { found: false };
       const tok = line.querySelector('.tok');
       const shp = tok ? tok.querySelector('.tok-s') : null;
