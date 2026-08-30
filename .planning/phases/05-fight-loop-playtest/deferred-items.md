@@ -312,3 +312,41 @@ remove the thing the answer depends on.
 
 **Owner:** the 05-11 playtest, item 50. If the room reads the symbols fine, the battlefield's labels
 are a candidate for the same treatment; if it does not, the labels are what saved it.
+
+---
+
+## 8. THE NO-NEW-HEX RULE IS NOW CHECKED OVER THE FIGHT STYLESHEET AND NOWHERE ELSE
+
+**Found:** plan 05-D30, by PROBE BM, and half-closed in the same plan.
+
+`[C07]`'s banner states the rule — *"colours come out of the existing tokens through
+`color-mix()`"* — and `[C13]` and `[C14]` each restate it about themselves, with `[C13]` adding
+*"the danger colouring ... is not to be invented a third time"*. **Nothing in this repository had
+ever checked it.** PROBE BM replaced D-30's `color-mix(in hsl, var(--accent-2), var(--coral))` with
+the byte-identical literal `#ff6d78`:
+
+```
+node tests/selftest-node.cjs   1216 passed, 0 failed | 189 of 189 | EXIT=0
+browser checks                 190 passed, 4 failed  <- cell 21d only
+```
+
+The whole node gate was green, and so were the two browser cells that read the mark's POSITION —
+because a typed colour is pixel-identical to a derived one. **One cell caught it**, by moving
+`--accent-2` at runtime and watching the mark fail to follow. A claim only a browser can make is
+unchecked in every fresh checkout, which is precisely where `tests/browser-checks.mjs` is absent by
+design.
+
+**What was closed:** row `107f`, which scans `[C14]` to the close of the `<style>` block as
+DECLARATIONS rather than as text — comments stripped, values cut at the colon and the semicolon,
+because every id selector in this file begins with the same character a hex literal does. 517
+declarations, 110 reading a `[C00]` token, 19 deriving one through `color-mix()`, **0 bearing a
+literal**.
+
+**What is still open:** `[C00]` through `[C13]` — roughly three quarters of the stylesheet, and
+every block written before this phase — is unscanned. The reason the row was not widened in this
+plan is scope: a row that reddened on a colour shipped in Phase 2 would be this plan asking for a
+change D-30 did not ask for, and the honest place to make that call is a plan that can look at
+whatever it finds.
+
+**Owner:** whichever plan next edits an early `[C]` block. Widening the slice is a one-line change
+to `hexAt`; what it costs is whatever the first run turns up.

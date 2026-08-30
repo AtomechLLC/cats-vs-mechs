@@ -230,7 +230,9 @@ changed is the notation inside the boxes:
   type read as theirs?** This is the trade the change makes and it is 05-11 item 50.
 - **`Slash − ▲` against `Slash 1 Action Points`.** **Is the symbol faster, or a puzzle the first
   time?** And: **on a row of three buttons, can you tell at a glance which action is dear?**
-  05-11 item 51.
+  05-11 item 51. *(Amended by D-30: the `−` is drawn ON the triangle now rather than in front of
+  it, and the tooltip reads "Removes: 1 Action Points". The question is unchanged; the reading it
+  is about is one line down.)*
 - **A card at 1366x768 is a 115px window over 1174px of content**, so not one symbolic reading in
   it is reachable without scrolling the card. That is D-28's bound rather than D-29's notation —
   the card has been a scroller since the lane turned sideways — but it is measured here for the
@@ -239,6 +241,46 @@ changed is the notation inside the boxes:
   driven is that a real mouse, at the centre of a real reading's box, lands on that reading and
   that the browser has the sentence to show. **Whether a tooltip appears fast enough to be useful
   mid-demo is a room question**, and so is whether an instructor at a projector can hover at all.
+
+#### D-30 MOVED THE MINUS ONTO THE SHAPE AND MADE IT RED
+
+The developer, fourth round, verbatim: *"make the - for removing a resource red and make it appear
+in the top-left corner (25% from the top, center aligned to the left edge) of the symbol/shape -
+rather than a normal dash"*. **The geometry is followed to the letter and measured, so nothing
+below is a question about whether it is where it was asked to be.**
+
+| reading | @1920x1080 | @1366x768 |
+|---|---|---|
+| the mark's centre, x, from the shape's left edge | **0.00px** | 0.00px |
+| the mark's centre, y, as a fraction of the shape's height | **0.2500** | 0.2500 |
+| the mark's own box, on a 12x12 shape | 13x18 | 13x18 |
+| marks drawn on a 3-round, 3-a-side fight (lane / picker) | **126 (90 / 36)** | 126 (90 / 36) |
+| of those: off a shape / off the geometry / clipped by a scroller | **0 / 0 / 0** | 0 / 0 / 0 |
+| closest any mark comes to the edge of the box that clips it | 27.6px | 27.6px |
+| the mark's colour, on every one of the 126 | **rgb(255,109,120)** | rgb(255,109,120) |
+| a lane card, window over content *(D-29's 1174 → 1172)* | 238px over 1172px | 115px over 1172px |
+
+Real Chrome and real Edge agree to the digit on every figure above. The red is
+`color-mix(in hsl, var(--accent-2), var(--coral))` — the two warm colours already in the palette,
+mixed in a polar space so the hue walks the short arc through red rather than averaging into the
+salmon between them. **No new hex was written**, and moving `--accent-2` at runtime moves the mark
+with it, which is how that is checked rather than asserted.
+
+**WHAT ONLY THE ROOM CAN ANSWER ABOUT IT:**
+
+- **One mark on the first token, not one per token.** A cost of three action points is one red mark
+  and three triangles. **Does that read as "three, being taken away", or as "one taken away, and
+  three of them"?** This is the single arrangement decision inside the developer's sentence and it
+  is 05-11 item 53.
+- **The mark against a coral shape.** A student may style their own type any palette colour,
+  including the coral the mark is mixed from. Half the mark hangs on the dark background by
+  construction and that is what should carry it. **From a seat, is it still obviously a mark?**
+- **The compact form.** A quantity of zero draws `0×` and one token, with the mark on the token —
+  so at a glance the mark sits between the `×` and the square. **Does it read as belonging to the
+  square, or as punctuation?** Recorded here because a screenshot at 4x looked fine and a room at
+  eight metres is a different instrument.
+- **A requirement line carries NO mark**, deliberately — nothing is subtracted by a requirement.
+  **Is the absence legible as a distinction, or does it read as an inconsistency?**
 
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
