@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-32 part 2 of 2 — the dense terms region (05-D32b)
-last_updated: "2026-08-30T15:20:00.000Z"
+stopped_at: Completed D-33 PASS A — the state palette, the ramp and the scroll affordance (05-D33a)
+last_updated: "2026-08-30T18:40:00.000Z"
 last_activity: 2026-08-30
 progress:
   total_phases: 7
@@ -64,6 +64,37 @@ still scrolls, and what is left of its height is the list, the notes and the nam
 rather than the terms.
 `.planning/phases/05-fight-loop-playtest/05-D32a-SUMMARY.md` and
 `.planning/phases/05-fight-loop-playtest/05-D32b-SUMMARY.md`.
+
+**D-33 IS AN AUDIT AND EIGHT PASSES, AND PASS A IS DONE.** `05-D33-AUDIT.md` looked at the
+real artifact in two browsers at two viewports and found, among much else, that the file
+had **one colour doing four jobs** — 17 `:hover` rules all writing
+`border-color:var(--accent)`, `:focus-visible` and `.fg-act--on` byte-identical — **zero
+`transition` declarations anywhere**, and **five internal scrollers clipping load-bearing
+content with no affordance of any kind**. Eight passes are proposed; A is the one with
+zero gate cost and it establishes the palette B, C, D and F all consume.
+
+**Pass A (05-D33a).** Four states, four treatments, every colour derived by `color-mix()`
+from the six shipped tokens — hover a muted accent border plus a gradient wash, declared
+an accent border and a **fill** with the outline kept as [C07]'s non-hue channel, focus
+the same ring at **offset 3** with a 1px `--bg` ring inside it, lit as a target in
+`--accent-2`. A **120ms ramp** on 24 control classes plus three panels, a 160ms
+opacity-only dialog entrance, and a **scroll affordance on all seven** scrolling regions:
+`scrollbar-width`/`scrollbar-color` with matching `::-webkit-` rules, and the four-layer
+scroll shadow that self-gates on overflow with no JS. `prefers-reduced-motion` takes the
+ramp, the entrance and `scroll-behavior:smooth` to nothing and leaves the affordance
+standing. New block `[C16] MOTION AND SCROLL`; palette tokens in `[C00]`.
+Gate — and the gate NOT moving IS this pass: node **1253/0 exit 0**, **196 of 196**,
+stub-drift **135 shell ids**, `DIALOG_FLOOR` 138/172, `FIGHT_FLOOR` **132**/592,
+`PROPOSE_FLOOR` 23/62, browser checks **222/0 HEADLESS**. Both harness outputs were
+`diff`ed against a pre-change run: two timing lines in the node output, one smooth-scroll
+landing note in the browser output, and **D-30's badge geometry and every D-32b density
+note byte-identical**.
+Read back off pixels at 3x with `--hide-scrollbars` removed from Playwright's headless
+defaults — which is why the audit never saw a scrollbar in a screenshot.
+`.planning/phases/05-fight-loop-playtest/05-D33a-SUMMARY.md`.
+Next: Pass B — the round loop can be seen (`.fg-team` out of the scroller, one pool
+reading, Advance to the bottom with primary weight, retarget feedback at the press). It
+moves `FIGHT_FLOOR` and geometry cells, once.
 Last activity: 2026-08-30
 
 Progress: [██████████] 100%
