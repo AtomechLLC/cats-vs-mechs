@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-33 PASS A — the state palette, the ramp and the scroll affordance (05-D33a)
-last_updated: "2026-08-30T18:40:00.000Z"
+stopped_at: Completed D-33 PASS B — the P1 structural tier (05-D33b)
+last_updated: "2026-08-30T23:55:00.000Z"
 last_activity: 2026-08-30
 progress:
   total_phases: 7
@@ -92,9 +92,70 @@ note byte-identical**.
 Read back off pixels at 3x with `--hide-scrollbars` removed from Playwright's headless
 defaults — which is why the audit never saw a scrollbar in a screenshot.
 `.planning/phases/05-fight-loop-playtest/05-D33a-SUMMARY.md`.
-Next: Pass B — the round loop can be seen (`.fg-team` out of the scroller, one pool
-reading, Advance to the bottom with primary weight, retarget feedback at the press). It
-moves `FIGHT_FLOOR` and geometry cells, once.
+**Pass B (05-D33b) — the P1 structural tier, ten findings, seven commits.** The dramatic
+half of the audit: content that was hidden, figures that contradicted each other,
+hierarchy that was inverted.
+
+- **P1-1, one pool reading.** The topbar read `0 of 3 spent / 3 left to spend` while the
+  state card 770px below read `3 of 3 spoken for / 0 left to spend` about the same pool in
+  the same frame. `fgFillPool`'s own banner said they "cannot disagree" — true of the
+  inputs, false of the sentences, because two arithmetics ran over one slice. `fgPoolWords`
+  is now the ONE place that turns held-and-spoken-for into words and both surfaces call it.
+  The audit's cheaper option (delete the bar's figures) was **declined**: they are the one
+  pool reading present in both views. **Zero diff over the ops.**
+- **P1-2, nine units, nine shown.** Three of nine cats were absent from the picker (seven
+  with a declaration standing) and five of nine from the battlefield, under "9 of 9 still
+  standing". `.fg-sides` loses its bound at both areas; the bound moves **onto
+  `.fg-field`** at 34vh. Headings, survivor reading and live resources are outside a
+  scroller by construction. **0 of 9 clipped, both regions, both viewports, every state.**
+- **P1-6, the commit follows what it commits.** Both round controls move to the FOOT of
+  `#fight-input` as a `position:sticky; bottom:0` footer; Advance takes the one fill on the
+  surface, Reset drops the danger colouring and keeps every word. This is the arrangement
+  PROBE BO drove and found broken — the sticky is what makes it safe, and it holds the
+  property four dials were bought for **including at 768, which D-31 recorded as
+  unreachable**.
+- **P1-7, feedback at the press.** The armed ROW is tinted in `--accent-2` (the channel the
+  lit shapes use), the button relabels to "Choose a target", ONE instruction replaces the
+  per-shape repetition and says the second press cancels, and `scrollIntoView` brings the
+  lit set in — with `scroll-margin-top` from `--topbar-now`, because 'nearest' had been
+  parking shapes at 0–91 behind a 161px sticky bar. **0 of 3 lit shapes clipped.**
+- **P1-3, one dialog frame.** Both authoring dialogs become
+  `grid-template-rows: auto minmax(0,1fr) auto` — fixed header, scrolling body, sticky
+  footer. `#tok-picker` hid 428px/740px and `#act-edit` 49px/361px with Done off screen at
+  both sizes; **both now hide 0 and Done is on screen at both.**
+- **P1-4 / P2-10 / P1-5, the lane earns its height.** A card was 115px holding 667px with
+  **zero** of twelve unit lines visible at 768. The note is printed once for the lane, a
+  zero tally is no longer drawn (which is `[S06.11]`'s battlefield rule, so the two
+  surfaces stop disagreeing), and the `@media(max-height:820px)` query is **deleted** — at
+  22vh a card now shows **9 of 12**. One dashed placeholder card at round one.
+- **P2-1, one left edge.** The h1 sat 182px out of alignment with everything under it and
+  the product name was rendered twice. `.shell-head` takes the breakout; `.brd-brand` goes.
+  Side effect: the bar stops wrapping at 1366, 161px → 109px.
+- **P3-1 / P3-2, labels that tell the truth.** `×` → "Remove" (UX-02 held on the one
+  control that deletes a student's work); `aria-pressed="false">Marked dead` → "Mark dead"
+  when unpressed, written from the same reading as the class and the attribute.
+- **P3-6** carried from Pass A: `.fg-row` gains a focus-within wash, weaker than declared
+  and than the focus ring.
+
+Gate — **no floor moved**: node **1253/0 exit 0**, **196 of 196**, stub-drift **135 shell
+ids**, `DIALOG_FLOOR` **138**/172, `FIGHT_FLOOR` **132**/569 (was 592 — three per-card
+notes and the zero-shield readings left, one armed-row line arrived), `PROPOSE_FLOOR`
+**23**/62, browser checks **222/0 HEADLESS**.
+**Seven harness rows turned in the open, every one asserting MORE than it did:** node 102
+(the topbar clause was green over the contradiction for two plans), node 108 (PROBE BO's
+head-line clause), node 96 and 102 (the placeholder card), browser 6b (it only ever
+measured the BOX, and was green while a third of the rows were invisible), browser 18 and
+18c (the fold clause and PROBE BO's order clause), browser 23c (it read Done only after
+scrolling to the end — the one offset where a non-sticky footer is also visible).
+**Two rendered defects the whole harness was green over, both found by looking at the
+picture:** the lane caption took a grid CELL and displaced the lane, and it survived the
+teardown onto the setup page's scan.
+`.planning/phases/05-fight-loop-playtest/05-D33b-SUMMARY.md`.
+Next: Pass D (one dialog frame's remaining halves — placement, the list component, the term
+grid, the ticks) and Pass E (the bar and the head). Pass C is largely spent: P1-4, P1-5 and
+P2-10 landed here because P1-4's own instruction requires one turn; **P2-11 is still
+open**. Pass F inherits one flagged reading — `[S06.9]`'s `dcFillLive` is the last place
+in the file rendering the build-against-fight pool.
 Last activity: 2026-08-30
 
 Progress: [██████████] 100%
@@ -169,6 +230,9 @@ Recent decisions affecting current work:
 - [D-28]: The fight tab takes the whole width; earlier rounds are a full-width HORIZONTAL lane above the round being played, scrolled to its end so the newest is what you see; the projection is off by default in the fight view and comes back as a fixed sidebar on one press of `#proj-toggle`. The sidebar IS `#strip` — the same node moved out of flow, never a second panel carrying a copy — which is what keeps PROJ-05 about THE reading rather than about a surface that agrees with it.
 - [D-28, orchestrator]: the lane is horizontal because a full-width vertical stack pushes the round being played off the bottom, the defect class this phase has fixed three times; and the ledger moved in the MARKUP rather than with a CSS `order`, because an order property puts the sequence a screen reader walks out of step with the sequence the room sees while every DOM-order check stays green.
 - [D-29]: The fight surface reads in SYMBOLS with the prose on hover. The ledger lane's board states, deltas and resolution readings, and every cost and requirement on the picker, draw the token type's OWN shape, colour and glyph through the shipped `styleFor` / `labelFor` / `makeToken` / `syncRow` — called, never re-derived — so a student-authored type appears there exactly as they authored it and compaction is `COMPACT_AT` and nothing else. A cost is `−` plus the token. Sentences stay only where a symbol cannot carry the meaning.
+- [D-33 Pass B]: The two figures for one pool are ONE FUNCTION, not two arithmetics over one slice — `fgPoolWords` is the only place held-and-spoken-for becomes words and both the topbar and the state card call it. The audit's cheaper option, deleting the bar's figures, was declined because those spans are the one pool reading present in BOTH views; making them live keeps the property and fixes the defect in one move. Nothing about what Advance DOES moved.
+- [D-33 Pass B]: A STICKY FOOTER replaces four generations of viewport dial. Advance sits at the foot of the area whose rows it commits and cannot leave the window while any of them is in it — at every viewport, on every roster, at every setting of every number in the file, including the 768 case D-31 measured as unreachable and wrote down as unreachable. That is what paid for the picker's height bound coming off, and the two changes do not make sense apart.
+- [D-33 Pass B]: A BOUNDED REGION'S CHECKS MUST READ WHAT IS INSIDE THE BOX. Browser cell 6b measured the picker's box at every viewport for three plans and was green while three of nine cats were invisible inside it. It now walks each row's ancestors and compares boxes. The same lesson in CSS: a new child of `#ledger` takes a GRID CELL, and the whole harness — 1253/0, 196/196, 222/0 at both viewports — was green over a lane displaced into the reading column, because nothing in it reads which cell a box lands in.
 - [D-32]: All three term lists cap at FOUR, and a multi-token cost SPENDS WHAT IT NAMES. A pool is action points or a type a student keeps at SIDE scope — D-24's rule as arithmetic. Health and shield are deliberately NOT pools: they live on units, and spending them would mean the tool choosing which unit pays, which is adjudication. A cost naming one is drawn, reported, disables nothing and spends nothing.
 - [D-32, orchestrator]: `actionApCost` keeps its meaning by being SPLIT rather than widened — `actionCostTerms` reads the whole cost, `actionApCost` projects the action-point half over it — and `costIsApOnly` in `actionModelled` is what stops a partly-priced cost from being afforded as often as a plain one-point action and overstating the projection in silence.
 - [D-32, verified]: the build code stayed at **v1** because the grammar was already count-driven at every level. A code carrying four terms pasted into a copy of the file from before D-32 parses and is then refused AT THE CAP, by name — the codec working across a version skew, noted rather than fixed.
@@ -322,6 +386,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-30T15:20:00.000Z
-Stopped at: Completed D-32 part 2 of 2 (05-D32b) — the dense terms region. 05-11's playtest is the only thing left in the phase
+Last session: 2026-08-30T23:55:00.000Z
+Stopped at: Completed D-33 PASS B (05-D33b) — the P1 structural tier. 05-11's playtest is still the only thing left in the phase
 Resume file: None
