@@ -5487,13 +5487,81 @@ App.model = (function () {
   // Every term is read through its own `tok` FIELD, never a key position, so a
   // record that arrived from a pasted build code in Phase 4 cannot name a
   // property of the prototype by sitting in the right slot.
+  //
+  // D-32 SPLIT THIS IN TWO, AND THE SPLIT IS WHAT LETS THE MEANING SURVIVE THE
+  // LIST GETTING LONGER. A cost used to be at most one term, so "the cost" and
+  // "the action-point cost" were the same reading and one function answered
+  // both. They are not the same reading any more. actionCostTerms below is the
+  // FILE'S ONE READER OF A COST LIST — every term, in order, priced or refused
+  // as a whole — and actionApCost is the ACTION-POINT projection over it. What
+  // that keeps: an action with no cost still costs the shipped one point, a
+  // cost this derivation cannot price still answers null ABOVE the arithmetic
+  // rather than being repaired below it, and every existing caller reads the
+  // same number it always read on every board that could exist before D-32.
+  //
+  // WHAT IT ADDS, AND THE ONE JUDGEMENT IN IT: an action costing 1 action point
+  // AND 2 of a student's own type now answers 1 here rather than null. That is
+  // D-32's own sentence — "the projection's apCost reading keeps its meaning by
+  // reading the ap term(s) from the list" — and it is a reading of the AP price
+  // and not of the whole price. A cost naming NO action points at all still
+  // answers null, because there is no denominator in it; and actionModelled
+  // below is what stops the projection from quietly treating a partly-priced
+  // action as fully priced, by refusing any cost that is not action points
+  // ALONE. The two together are why bestPair's throughput cannot overstate
+  // itself: it either has the whole price or it names the action as uncovered.
+  //
+  // TWO AP TERMS SUM. The editor gives every slot its own chooser, so a student
+  // can write "1 action point" twice, and summing is the only reading of that
+  // which is not the tool deciding one of the two lines did not count.
+
+  // The cost list as this file reads it, or null for a list it cannot price at
+  // all. The refusal is taken over the WHOLE list rather than per term for
+  // actionApCost's own stated reason — a malformed term repaired after the fact
+  // is a second, competing definition — and because a half-read cost is exactly
+  // the shape that lets a surface charge for two terms of a three-term rule.
+  //
+  // A record with no cost field is the shipped default of one action point,
+  // made EXPLICIT here rather than left as a special case at each caller. An
+  // EMPTY list is not that: it is a cost a student emptied, and it answers null
+  // exactly as it did before D-32, so nothing downstream starts pricing it at
+  // the default the day a slot is cleared.
+  function actionCostTerms(a) {
+    if (!a || typeof a !== 'object') { return null; }
+    if (!a.cost) { return [{ tok: 'ap', n: 1 }]; }
+    if (!Array.isArray(a.cost) || a.cost.length === 0) { return null; }
+    var out = [];
+    for (var i = 0; i < a.cost.length; i++) {
+      var c = a.cost[i];
+      if (!c || typeof c !== 'object') { return null; }
+      if (typeof c.tok !== 'string') { return null; }
+      if (!Number.isInteger(c.n) || c.n < 1) { return null; }
+      out.push({ tok: c.tok, n: c.n });
+    }
+    return out;
+  }
+
+  // Whether the whole cost is in action points and nothing else. The projection
+  // has a denominator for that and for nothing else, so this is the predicate
+  // actionModelled asks — and it is written HERE rather than inline there for
+  // termDamage's stated reason: two spellings of one question are two things to
+  // keep in step, and the one that drifts is the one nobody is reading.
+  function costIsApOnly(a) {
+    var list = actionCostTerms(a);
+    if (list === null) { return false; }
+    return list.every(function (c) { return c.tok === 'ap'; });
+  }
+
   function actionApCost(a) {
-    if (!a.cost) { return 1; }
-    if (!Array.isArray(a.cost) || a.cost.length !== 1) { return null; }
-    var c = a.cost[0];
-    if (!c || c.tok !== 'ap') { return null; }
-    if (!Number.isInteger(c.n) || c.n < 1) { return null; }
-    return c.n;
+    var list = actionCostTerms(a);
+    if (list === null) { return null; }
+    var total = 0;
+    var named = false;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].tok !== 'ap') { continue; }
+      total += list[i].n;
+      named = true;
+    }
+    return named ? total : null;
   }
 
   // THE ONE READING OF A SINGLE TRANSFORMATION TERM AS DAMAGE, and it is the
@@ -5589,9 +5657,22 @@ App.model = (function () {
   // on a token in DAMAGE_KEYS is not covered either: a heal, a delta on the
   // caster, a shield strip, a dead marker and a token a student made all land
   // here. Not covered means NAMED, never dropped in silence.
+  //
+  // D-32 ADDED ONE LINE HERE AND IT IS THE LINE THAT KEEPS THE PROJECTION
+  // HONEST ABOUT A MULTI-TOKEN COST. actionApCost now reads the ap TERMS out of
+  // a longer list, so an action costing 1 action point and 2 of a student's own
+  // type prices at 1 — which is the right reading of the AP price and the wrong
+  // reading of the whole price. bestPair divides the pool by that number, so
+  // without this line it would afford that action exactly as often as a plain
+  // one-point action and overstate the side's throughput, in silence, on a
+  // projector. costIsApOnly is asked instead: a cost is covered when it is
+  // action points ALONE, and anything else is NOT COVERED, which in this file
+  // means NAMED by unmodelled() below rather than dropped. That is D-16's
+  // stance arriving at the case D-32 created.
   function actionModelled(a) {
     if (!a.cost && !a.req && !a.xf) { return true; }
     if (actionApCost(a) === null) { return false; }
+    if (!costIsApOnly(a)) { return false; }
     // A record that carries one of the three fields but no readable
     // transformation list is NOT covered, and this line is deliberately not
     // written as `(a.xf || [])`. Written that way it hands back true for a
@@ -5643,18 +5724,95 @@ App.model = (function () {
   // resolves on the prototype.
   //
   // Numbers, booleans and token ids only. No prose leaves [S02].
-  function affordability(faction, action) {
+  //
+  // D-32 GREW THE SHAPE, AND GREW IT RATHER THAN LEAVING THE CALLERS TO
+  // RE-DERIVE. `apCost` and `apHave` are untouched and still mean exactly what
+  // they meant — the action-point price and the action-point pool — because
+  // three surfaces print them and D-32 asked for the ap reading to KEEP its
+  // meaning. What is new is `pays`: ONE ROW PER COST TERM, in the order the
+  // student wrote them, each naming the token, what it asks, what the side has
+  // of it, and whether that "has" is a POOL a cost can actually be paid out of.
+  //
+  // THE PER-TERM ROW IS THE HONEST SHAPE AND A SINGLE TOTAL IS NOT. Two cost
+  // terms in two different token types cannot be added up — there is no number
+  // that is "3 action points and 2 Momentum" — so a reading that returned one
+  // figure would have to pick one term and drop the rest, which is the tool
+  // deciding which half of a student's rule counts. The disable arithmetic in
+  // [S06.7] walks these rows; the picker draws one symbol per row; and neither
+  // of them re-derives what a cost term names.
+  //
+  // `pays` IS EMPTY FOR A COST THIS FILE CANNOT READ AT ALL, which is
+  // actionCostTerms answering null, which is the same register apCost: null
+  // already had: numbers where there are numbers, and an admitted blank where
+  // there are not. Nothing downstream may read an empty `pays` as "costs
+  // nothing" — it means "this report has no figures for that cost" — and the
+  // rule that follows from it is written where it bites, at the disable.
+  function affordability(faction, action, vocab) {
     var cost = actionApCost(action);
     var terms = Array.isArray(action.req) ? action.req : [];
+    var costList = actionCostTerms(action);
     return {
       apCost: cost,
       apHave: faction.ap,
+      pays: (costList === null) ? [] : costList.map(function (c) {
+        return {
+          tok: c.tok,
+          need: c.n,
+          have: presentOnCaster(faction, c.tok),
+          pool: isPoolToken(c.tok, vocab)
+        };
+      }),
       met: terms.map(function (r) {
         var tok = (r && typeof r.tok === 'string') ? r.tok : null;
         var need = (r && Number.isInteger(r.n)) ? r.n : 0;
         return { tok: tok, need: need, have: presentOnCaster(faction, tok) };
       })
     };
+  }
+
+  /* WHICH TOKEN TYPES NAME A POOL A COST CAN BE SPENT OUT OF, and this is the
+     one genuinely new ruling D-32 needed rather than inherited.
+
+     THE ANSWER IS: action points, and a type a student keeps at SIDE scope.
+     Nothing else, and the exclusions are the argument.
+
+       - `ap` is a pool by construction: the fight slice holds one number per
+         side and advanceRound already moves it.
+       - A SIDE-SCOPE type a student invented is a pool for exactly the same
+         reason — the fight slice holds one bag per side, [S05]'s applier
+         already writes it, and D-24's rule is that a student's type works on
+         the same terms as a shipped one. This is what "a student-authored tally
+         in a cost works identically to ap" means as arithmetic.
+       - `hp` and `shield` are NOT pools, and this is the exclusion that matters.
+         They live ON UNITS. A side of nine cats at 3 health has 27 health and
+         no number called "the side's health", so spending 2 of it means
+         choosing WHICH cat pays — and choosing that is adjudication, which is
+         the line this whole artifact is built on. presentOnCaster still SUMS
+         them for a requirement, because reading is not spending: a requirement
+         asks what is present and nothing moves.
+       - A UNIT-SCOPE type a student invented is excluded for the identical
+         reason, by the identical test, which is why the scope flag is read
+         rather than a list of ids being kept anywhere.
+       - A type this vocabulary does not hold is not a pool. A cost naming one
+         is a cost this file cannot price, and the register for that is already
+         written: it is reported and it does not disable.
+
+     A COST NAMING A NON-POOL IS NOT REFUSED AND NOT REPAIRED. It is drawn, it
+     is reported, it disables nothing and Advance spends nothing for it. The
+     student wrote a rule the tool has no economy for, and the table has one.
+
+     THE VOCABULARY IS AN ARGUMENT AND NOT A REACH UPWARD. [S02] sits above the
+     tier that holds the live board, so the caller passes the type table in —
+     the same shape defaultAt takes the fight slice in. WITH NO VOCABULARY ONLY
+     `ap` IS A POOL, which is deliberate and is what keeps every reading taken
+     before D-32 answering exactly what it answered then. */
+  function isPoolToken(tok, vocab) {
+    if (tok === 'ap') { return true; }
+    if (typeof tok !== 'string') { return false; }
+    if (!vocab || typeof vocab !== 'object') { return false; }
+    if (!Object.prototype.hasOwnProperty.call(vocab, tok)) { return false; }
+    var rec = vocab[tok];
+    return !!rec && typeof rec === 'object' && rec.scope === 'side';
   }
 
   // How much of one token the CASTER side has to show for a requirement. The
@@ -5747,17 +5905,64 @@ App.model = (function () {
 
      Numbers only. No prose leaves [S02] — the banner's rule, and
      affordability's closing line says it again. */
-  function spokenFor(actions, decl, side) {
+  /* D-32 ADDED THE POOL MAP AND KEPT THE NUMBER, and the order matters: the
+     MAP is the derivation and the number is a reading of it. spokenFor used to
+     walk the declarations itself; it now asks spokenForPools and takes the
+     action-point entry out. That is one walker rather than two, which is the
+     only arrangement in which the ap figure a student watches move and the
+     per-pool figures the disable checks CANNOT disagree about the same
+     declaration — and they are read on the same frame, side by side, so a
+     disagreement would be visible and unexplainable.
+
+     WHAT A POOL MAP IS: token id to the total this round's declarations have
+     spoken for out of that pool. Only POOLS are in it — isPoolToken's ruling
+     above and its exclusions — because a cost naming health has no pool to
+     deplete and a preview that drew one would be inventing an economy. With no
+     vocabulary passed, `ap` is the only pool, which is exactly what makes
+     spokenFor's own answer identical to the one it gave before D-32 on every
+     board that could exist then.
+
+     THE OBJECT HAS A NULL PROTOTYPE, for the reason every keyed read in this
+     file states: a token id can arrive from a pasted build code, and a bag
+     keyed by one is a bag a lookup for `constructor` resolves on. Nothing here
+     is stored — it is built per read and handed to a render — so [S05]'s note
+     about a null prototype not surviving the state clone does not reach it.
+
+     The four rules in the banner above hold term by term rather than action by
+     action: a declaration naming a departed action contributes nothing, a cost
+     this file cannot read contributes nothing, and each figure is floored at 0
+     HERE and never repaired at a call site. */
+  function spokenForPools(actions, decl, side, vocab) {
     var pool = Array.isArray(actions) ? actions : [];
     var list = Array.isArray(decl) ? decl : [];
-    var total = list.reduce(function (n, d) {
-      if (!d || typeof d !== 'object' || d.side !== side) { return n; }
+    var out = Object.create(null);
+    list.forEach(function (d) {
+      if (!d || typeof d !== 'object' || d.side !== side) { return; }
       var act = pool.find(function (a) { return a && a.id === d.act; });
-      if (!act) { return n; }
-      var cost = actionApCost(act);
-      return Number.isInteger(cost) ? n + cost : n;
-    }, 0);
-    return Math.max(0, total);
+      if (!act) { return; }
+      var terms = actionCostTerms(act);
+      if (terms === null) { return; }
+      terms.forEach(function (c) {
+        if (!isPoolToken(c.tok, vocab)) { return; }
+        var had = Object.prototype.hasOwnProperty.call(out, c.tok) ? out[c.tok] : 0;
+        out[c.tok] = Math.max(0, had + c.n);
+      });
+    });
+    return out;
+  }
+
+  // How much of ONE pool a map like that holds, with an absence reading zero.
+  // Written once and exported, because [S06.7] asks it of four different maps
+  // on every frame and a bare `map[tok] || 0` at each of them is four places for
+  // a prototype lookup to be reintroduced.
+  function pooledAt(map, tok) {
+    if (!map || typeof tok !== 'string') { return 0; }
+    if (!Object.prototype.hasOwnProperty.call(map, tok)) { return 0; }
+    return Number.isInteger(map[tok]) ? map[tok] : 0;
+  }
+
+  function spokenFor(actions, decl, side) {
+    return pooledAt(spokenForPools(actions, decl, side, null), 'ap');
   }
 
   // WHETHER AN ACTION NEEDS SOMEBODY TO POINT AT, answered once so no surface
@@ -6034,6 +6239,18 @@ App.model = (function () {
     // vocabulary on purpose — the same choice the declaration record made when
     // { side, act, by, at } was picked over the natural spelling.
     spokenFor: spokenFor,
+    // D-32's three. spokenForPools is the derivation spokenFor is a reading of;
+    // actionCostTerms is the file's one reader of a cost list; costIsApOnly is
+    // the predicate actionModelled asks and the only thing standing between a
+    // partly-priced cost and a projection that overstates throughput. All three
+    // are exported because [S06.7], [S06.9] and [S05]'s applier each need one
+    // of them and a second spelling in any of those tiers is drift with a
+    // projector in front of it.
+    spokenForPools: spokenForPools,
+    pooledAt: pooledAt,
+    actionCostTerms: actionCostTerms,
+    costIsApOnly: costIsApOnly,
+    isPoolToken: isPoolToken,
     needsAt: needsAt,
     defaultAt: defaultAt,
     // FIGHT-16. Exported for the fight loop to spend and for [S09.12] to drive
@@ -23010,18 +23227,73 @@ App.selftest = (function () {
       App.model.actionApCost({ dmg: 1 }), 1);
     t.eq('and a cost naming action points costs exactly what it says',
       App.model.actionApCost({ cost: [{ tok: 'ap', n: 2 }] }), 2);
+    /* TURNED IN THE OPEN UNDER D-32, AND ONE ENTRY IN IT CHANGED ANSWER. This
+       row listed "two terms at once" among the costs with no denominator, and
+       it went RED on the commit that made actionApCost read the ap TERMS out of
+       a list. That entry was true only because a cost could not hold two terms;
+       D-32 made it able to, and the developer's own call is that the ap reading
+       keeps its meaning by reading the ap terms out of the list. So a cost of
+       one action point AND one health now prices its AP half at 1 — and the row
+       below this one is what stops that from becoming a projection that thinks
+       it has the whole price.
+
+       EVERY OTHER ENTRY IS UNCHANGED and the claim they carry is unchanged: the
+       refusal is taken ABOVE the arithmetic rather than repaired below it. Two
+       entries are ADDED where the longer list created new ways to be wrong — a
+       four-term cost naming no action points anywhere, and a list with one good
+       term and one broken one, which must refuse WHOLE rather than quietly
+       pricing the half it could read. */
     t.eq('every cost this derivation has no denominator for is refused ABOVE '
       + 'the arithmetic rather than repaired below it: a cost in another '
-      + 'token, an empty list, two terms at once, a fraction, a zero, a '
-      + 'negative, and a term that is not a record at all',
+      + 'token, an empty list, a fraction, a zero, a '
+      + 'negative, a term that is not a record at all, a four-term cost naming '
+      + 'no action points, and a list whose second term is broken',
       [{ cost: [{ tok: 'hp', n: 2 }] },
         { cost: [] },
-        { cost: [{ tok: 'ap', n: 1 }, { tok: 'hp', n: 1 }] },
         { cost: [{ tok: 'ap', n: 1.5 }] },
         { cost: [{ tok: 'ap', n: 0 }] },
         { cost: [{ tok: 'ap', n: -1 }] },
-        { cost: [null] }].map(function (a) { return App.model.actionApCost(a); }),
-      [null, null, null, null, null, null, null]);
+        { cost: [null] },
+        { cost: [{ tok: 'hp', n: 1 }, { tok: 'shield', n: 1 },
+          { tok: 't1', n: 1 }, { tok: 't2', n: 1 }] },
+        { cost: [{ tok: 'ap', n: 1 }, { tok: 'ap', n: 0 }] }]
+        .map(function (a) { return App.model.actionApCost(a); }),
+      [null, null, null, null, null, null, null, null]);
+    t.eq('a cost naming action points BESIDE another token prices its action-point half, '
+      + 'which is D-32 own call: the projection apCost reading keeps its meaning by '
+      + 'reading the ap term or terms from the list',
+      App.model.actionApCost({ cost: [{ tok: 'ap', n: 1 }, { tok: 'hp', n: 1 }] }), 1);
+    t.eq('and two action-point terms SUM, because the editor gives every slot its own '
+      + 'chooser and dropping one of two identical lines would be the tool deciding '
+      + 'which of them the student meant',
+      App.model.actionApCost({ cost: [{ tok: 'ap', n: 2 }, { tok: 'ap', n: 3 }] }), 5);
+    t.ok('BUT A PARTLY-PRICED COST IS NOT COVERED BY THE PROJECTION, which is the line '
+      + 'that stops the throughput reading from overstating itself: bestPair divides the '
+      + 'pool by the AP price, so an action costing 1 action point AND 2 of something '
+      + 'else would otherwise be afforded exactly as often as a plain one-point action. '
+      + 'It is NAMED instead — D-16, and not covered means named',
+      App.model.costIsApOnly({ cost: [{ tok: 'ap', n: 1 }] }) === true
+        && App.model.costIsApOnly({ cost: [{ tok: 'ap', n: 1 }, { tok: 'ap', n: 1 }] }) === true
+        && App.model.costIsApOnly({ dmg: 1 }) === true
+        && App.model.costIsApOnly({ cost: [{ tok: 'ap', n: 1 }, { tok: 'hp', n: 1 }] }) === false
+        && App.model.costIsApOnly({ cost: [] }) === false);
+    t.eq('so a record carrying a mixed cost is in the NOT-COVERED list by name rather '
+      + 'than silently modelled at its action-point price',
+      App.model.unmodelled({ actions: [
+        { name: 'Mixed', cost: [{ tok: 'ap', n: 1 }, { tok: 'hp', n: 1 }],
+          req: [], xf: [{ who: 'target', tok: 'hp', d: -1 }] },
+        { name: 'Plain', cost: [{ tok: 'ap', n: 1 }], req: [],
+          xf: [{ who: 'target', tok: 'hp', d: -1 }] }
+      ] }), ['Mixed']);
+    t.eq('the cost list this file reads makes the shipped default EXPLICIT — a record '
+      + 'with no cost field costs the one action point the board always implied — while '
+      + 'an EMPTIED list stays a refusal, so clearing the last slot does not quietly '
+      + 'start charging the default',
+      [App.model.actionCostTerms({ dmg: 1 }),
+        App.model.actionCostTerms({ cost: [] }),
+        App.model.actionCostTerms({ cost: [{ tok: 'ap', n: 2 }, { tok: 't1', n: 3 }] })],
+      [[{ tok: 'ap', n: 1 }], null,
+        [{ tok: 'ap', n: 2 }, { tok: 't1', n: 3 }]]);
 
     t.eq('a record with no transformation list falls back to the scalar the '
       + 'board shipped with', App.model.actionDamage({ dmg: 3 }), 3);
@@ -25543,12 +25815,73 @@ App.selftest = (function () {
     t.ok('the affordability report holds numbers and token ids and no prose '
       + 'at all - walked rather than eyeballed, because [S02] produces no '
       + 'sentence and the page owns how one is written', noProse(report));
-    t.eq('and it states an unmet requirement as two numbers to compare, with '
-      + 'no flag saying whether the action may happen: the tool never decides '
-      + 'that, and a consumer disabling a control on this report would be '
-      + 'ruling on a board the student rules',
-      [report.apCost, report.apHave, report.met, Object.keys(report)],
-      [1, 3, [{ tok: 'hp', need: 2, have: 27 }], ['apCost', 'apHave', 'met']]);
+    /* TURNED IN THE OPEN UNDER D-32. This row read the key list as
+       ['apCost', 'apHave', 'met'] and went RED on the commit that added `pays`.
+       The claim is UNCHANGED and is the reason the row is rewritten rather than
+       loosened: still no flag, still numbers and token ids to compare, still no
+       decision anywhere in the record. What grew is the number of readings —
+       one per cost term instead of one price — because a cost naming two token
+       types cannot be reported as one figure without the tool picking which of
+       the student's two lines counted. `pool` is a fact about the TOKEN and not
+       about the action: it says whether this file holds a pool that thing could
+       be paid out of, which is the same admitted blind spot apCost: null
+       already carried, moved down to the term where it now belongs. */
+    t.eq('and it states an unmet requirement as two numbers to compare, and a cost as '
+      + 'one row per term with what it asks beside what the side holds, with no flag '
+      + 'anywhere saying whether the action may happen: the tool never decides that, and '
+      + 'a consumer disabling a control on this report would be ruling on a board the '
+      + 'student rules',
+      [report.apCost, report.apHave, report.met, report.pays, Object.keys(report)],
+      [1, 3, [{ tok: 'hp', need: 2, have: 27 }],
+        [{ tok: 'ap', need: 1, have: 3, pool: true }],
+        ['apCost', 'apHave', 'pays', 'met']]);
+
+    /* --- D-32's OWN ROWS ON THIS REPORT. A multi-token cost, read against a
+           side that holds a pool for one of its terms, a per-unit quantity for
+           another and nothing at all for a third. --- */
+    var mixedTokens = { ap: { name: 'Action Points' }, hp: { name: 'Health' } };
+    mixedTokens.t1 = { name: 'Momentum', scope: 'side' };
+    mixedTokens.t2 = { name: 'Poison', scope: 'unit' };
+    var mixedSide = (function () {
+      var made = App.data.defaults().cats;
+      made.tally = { t1: 5 };
+      return made;
+    })();
+    var mixed = App.model.affordability(mixedSide, {
+      cost: [{ tok: 'ap', n: 2 }, { tok: 't1', n: 3 }, { tok: 'hp', n: 4 },
+        { tok: 't2', n: 1 }],
+      req: []
+    }, mixedTokens);
+    t.eq('a four-term cost reports FOUR rows, in the order the student wrote them, each '
+      + 'naming what it asks and what the side has of it — and the action-point reading '
+      + 'above them still means the action-point price and nothing else',
+      [mixed.apCost, mixed.pays],
+      [2, [{ tok: 'ap', need: 2, have: 3, pool: true },
+        { tok: 't1', need: 3, have: 5, pool: true },
+        { tok: 'hp', need: 4, have: 27, pool: false },
+        { tok: 't2', need: 1, have: 0, pool: false }]]);
+    t.ok('and a type a student keeps at SIDE scope is a pool on exactly the terms action '
+      + 'points are — D-24 as arithmetic — while a type kept per unit is not, because '
+      + 'spending it would mean the tool choosing WHICH unit pays',
+      App.model.isPoolToken('t1', mixedTokens) === true
+        && App.model.isPoolToken('t2', mixedTokens) === false
+        && App.model.isPoolToken('ap', mixedTokens) === true
+        && App.model.isPoolToken('hp', mixedTokens) === false
+        && App.model.isPoolToken('shield', mixedTokens) === false
+        && App.model.isPoolToken('t9', mixedTokens) === false
+        && App.model.isPoolToken('constructor', mixedTokens) === false
+        && App.model.isPoolToken('ap', null) === true
+        && App.model.isPoolToken('t1', null) === false);
+    t.eq('a cost this file cannot read at all reports NO rows rather than a row saying '
+      + 'zero, which is the same admitted blank apCost: null already was — and nothing '
+      + 'downstream may read it as costing nothing',
+      App.model.affordability(mixedSide, { cost: [{ tok: 'ap', n: 0 }], req: [] },
+        mixedTokens).pays, []);
+    t.eq('and with no vocabulary handed in, action points are the only pool — which is '
+      + 'what makes every reading taken before D-32 answer what it answered then',
+      App.model.affordability(mixedSide, { cost: [{ tok: 'ap', n: 1 },
+        { tok: 't1', n: 1 }], req: [] }).pays.map(function (r) { return r.pool; }),
+      [true, false]);
     var broke = App.model.affordability(
       (function () { var poor = App.data.defaults(); poor.cats.ap = 0; return poor.cats; })(),
       { cost: [{ tok: 'ap', n: 2 }], req: [] });
@@ -30291,18 +30624,90 @@ App.selftest = (function () {
           fight().decl.length];
       })(), [4, 2, 4]);
 
-    t.eq('a cost this file cannot price contributes 0 too, and the answer is '
-      + 'never below zero. The action list is a literal here BECAUSE THE OPS '
-      + 'REFUSE TO BUILD ONE — setActionCost takes action points and nothing '
-      + 'else — so the only way this shape reaches the page is a pasted build '
-      + 'code, which is exactly the arrival affordability hands back a null '
-      + 'price for rather than throwing over',
+    t.eq('a cost this file has no action-point denominator for contributes 0 too, and '
+      + 'the answer is never below zero. That is the SAME register affordability hands '
+      + 'back a null price in rather than throwing over, and it is what a cost written '
+      + 'wholly in another token reads as here',
       (function () {
         var unpriceable = [{ id: 'slash', name: 'Slash',
           cost: [{ tok: 'hp', n: 2 }], req: [], xf: [] }];
         var answer = App.model.spokenFor(unpriceable, fight().decl, 'cats');
         return [answer, answer >= 0];
       })(), [0, true]);
+
+    /* --- D-32: THE POOL MAP, WHICH IS THE DERIVATION spokenFor IS NOW A
+           READING OF. "A multi-token cost spends what it names", so the preview
+           has to deplete every pool a declaration named and not only the one
+           the file happened to have first. These rows are written against
+           driven declarations wherever the ops can produce them, and the
+           vocabulary is handed in the way [S06.7] hands it in. --- */
+    t.eq('spokenFor is the ACTION-POINT entry of the pool map and not a second walk over '
+      + 'the same declarations — which is what makes it impossible for the figure a '
+      + 'student watches move and the figures the disable checks to disagree about one '
+      + 'declaration, on a frame that renders both',
+      [App.model.spokenFor(build().cats.actions, fight().decl, 'cats'),
+        App.model.pooledAt(App.model.spokenForPools(build().cats.actions,
+          fight().decl, 'cats', build().tokens), 'ap')], [2, 2]);
+
+    t.eq('a declaration whose cost names TWO pools depletes BOTH of them, by what each '
+      + 'term says, and leaves every other pool alone. Driven: a side-scope type of the '
+      + 'student\'s own, a tally on the side, an action costing action points AND that '
+      + 'type, declared through the shipped op',
+      (function () {
+        App.ops.resetToDefaults();
+        var pace = App.ops.createTokenType({ name: 'Momentum', shape: 'hex',
+          color: 'gold', glyph: App.data.GLYPHS[7], scope: 'side' });
+        var mine = App.ops.createAction('cats', 'Surge');
+        App.ops.setActionCost('cats', mine, 0, 'ap', 2);
+        App.ops.setActionCost('cats', mine, 1, pace, 3);
+        App.ops.setTally('cats', null, pace, 9);
+        App.ops.startFight();
+        App.ops.declareAction('cats', mine, 'c1', 'm1');
+        App.state.flush();
+        var map = App.model.spokenForPools(build().cats.actions, fight().decl,
+          'cats', build().tokens);
+        return [App.model.pooledAt(map, 'ap'), App.model.pooledAt(map, pace),
+          Object.keys(map).length];
+      })(), [2, 3, 2]);
+
+    t.eq('and a cost term naming something that is NOT a pool is absent from the map '
+      + 'rather than present at zero — health and shield live on units, so depleting '
+      + 'a pool called the side health would mean the tool choosing which unit paid',
+      (function () {
+        App.ops.resetToDefaults();
+        var poison = App.ops.createTokenType({ name: 'Poison', shape: 'circ',
+          color: 'violet', glyph: App.data.GLYPHS[15], scope: 'unit' });
+        var mine = App.ops.createAction('cats', 'Bite');
+        App.ops.setActionCost('cats', mine, 0, 'ap', 1);
+        App.ops.setActionCost('cats', mine, 1, 'hp', 2);
+        App.ops.setActionCost('cats', mine, 2, 'shield', 1);
+        App.ops.setActionCost('cats', mine, 3, poison, 1);
+        App.ops.startFight();
+        App.ops.declareAction('cats', mine, 'c1', 'm1');
+        App.state.flush();
+        var map = App.model.spokenForPools(build().cats.actions, fight().decl,
+          'cats', build().tokens);
+        return [Object.keys(map).sort(), App.model.pooledAt(map, 'ap'),
+          App.model.pooledAt(map, 'hp'), App.model.pooledAt(map, poison)];
+      })(), [['ap'], 1, 0, 0]);
+
+    t.ok('the map has a NULL PROTOTYPE, so a cost term naming a prototype key reads zero '
+      + 'through the shipped accessor instead of handing back a function — the rule every '
+      + 'keyed read in this file states, on a bag whose keys can arrive from a paste',
+      (function () {
+        var map = App.model.spokenForPools([], [], 'cats', null);
+        return Object.getPrototypeOf(map) === null
+          && App.model.pooledAt(map, 'constructor') === 0
+          && App.model.pooledAt(map, '__proto__') === 0
+          && App.model.pooledAt(null, 'ap') === 0;
+      })());
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+    App.ops.declareAction('cats', 'screech', 'c2', null);
+    App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+    App.state.flush();
 
     t.eq('and the reading STORED NOTHING getting there: the fight slice still '
       + 'opens on its five keys and no side grew one. A preview that cached '
