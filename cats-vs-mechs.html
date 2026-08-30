@@ -3389,6 +3389,24 @@
     margin:0;font-size:18px;line-height:1.45;color:var(--ink-dim);max-width:56ch;
   }
   .dc-said[hidden]{display:none}
+  /* ==================================================================
+     D-33 P2-13 — THE ONE NOTE ABOVE BOTH COLUMNS, AND THE COLUMN LINE
+     IS THE WHOLE RULE. Plan 05-D33c.
+     ==================================================================
+     [S06.9] used to append this sentence into EACH .brd-col-head, so a
+     board in a fight printed it twice, three lines each, in its own top
+     third. It is a fact about the page and not about a side, so there is
+     one now, at the head of #board.
+
+     #board IS A THREE-TRACK GRID AND A CHILD WITHOUT A COLUMN LINE
+     TAKES ONE TRACK — it would land beside the Cats column rather than
+     above both, which is exactly the defect plan 05-D33b hit with the
+     lane's caption and which the whole harness was green over, because
+     nothing in this repository reads which cell a box lands in. This is
+     #board-empty's and #refband's own declaration, said a third time
+     rather than a third way, and any child added to #board from here on
+     needs a line like it. */
+  .dc-said--board{grid-column:1 / -1;margin:0 0 4px}
 
   /* THE LIVE FIGHT READING, AND THE ONE RULE THAT MATTERS MOST IS A SIZE RULE.
      It sits beside the projection, inside #strip, and IT MUST NEVER BE THE
@@ -19071,9 +19089,51 @@ App.render = (function () {
       }
       // The fragment AFTER the type's name, so the type's name is the only part
       // of this line that is not the artifact's own words.
+      /* ==============================================================
+         D-33 — THE LAST apSpent READING ON THE PAGE, RE-WORDED SO IT
+         STOPS COLLIDING WITH THE ONE THE TOPBAR NOW CARRIES. Plan
+         05-D33c, answering the flag plan 05-D33b left here by name.
+         ==============================================================
+         D-33 P1-1 made #pool-cats and #pool-mechs live: they print
+         fgPoolWords' sentence — "3 of 3 spoken for · 0 left to spend" —
+         and the state card prints the same one. This block is the third
+         place in the file that renders the action-point pool, and plan
+         05-D33b flagged it forward rather than touching it, on the
+         ground that it answers a different question in different words
+         and that the panel it lives in is off by default in the fight
+         view. Both halves of that were true. The second half stops
+         being true in this same pass: P2-12 gives the sidebar a header
+         and a way out and P3-8 puts the reference in it, so a student
+         opens it DURING a round — and the build view has had both
+         readings on one screen all along, which is where this was
+         measured:
+
+           #topbar        Cats · Action points · 3 of 3 spoken for ·
+                                                0 left to spend
+           .dc-live       Action points: 0 spent, 3 left.
+
+         Both sentences were TRUE and both ended in the word "left"
+         about the same pool with different numbers, which is P1-1's
+         defect arriving in a third place — one pool, two sentences, one
+         glance.
+
+         THE FIGURE IS KEPT AND THE COLLISION IS REMOVED, rather than
+         the reading being deleted. What apSpent answers — how much of
+         the ALLOCATION this fight has taken so far — is the question
+         this block exists to ask, it is the one D-22's reconciliation
+         is written around, and it is the contradiction the whole
+         pedagogy wants visible. What it must not do is say "left" about
+         a pool the bar is saying "left" about at the same instant. So
+         the second number goes (the bar carries it live, in BOTH views,
+         which is exactly the property P1-1 declined to give up) and the
+         first gains the total it was always measured against: "0 spent"
+         never said 0 of WHAT.
+
+         apSpent ITSELF IS UNTOUCHED and still floored in the model.
+         This is a change to what is displayed and to nothing else. */
       if (lines[1]) {
         var tail = lines[1].querySelector('.dc-tail');
-        if (tail) { tail.textContent = ': ' + spent + ' spent, ' + state.fight[side].ap + ' left.'; }
+        if (tail) { tail.textContent = ': ' + spent + ' of ' + state.build[side].ap + ' spent so far.'; }
       }
       if (lines[2]) {
         // THE THIRD ARGUMENT, PASSED. This is the whole of D-22's mechanical
@@ -19162,17 +19222,51 @@ App.render = (function () {
     var live = strip ? strip.querySelector('.dc-live') : null;
     if (live) { dcFillLive(live, state); }
 
-    // FIGHT-10 at both its sites. The reserved node on the bar is filled; the
-    // second instance is appended beside the roster steppers if it is not
-    // already there, which is what a region structure() rebuilds needs instead
-    // of a flag.
+    /* ==================================================================
+       FIGHT-10, PRINTED ONCE PER SURFACE — D-33 P2-13. Plan 05-D33c.
+       ==================================================================
+       The audit: the sentence was rendered IN FULL in the Cats card AND
+       in the Mechs card, three lines each, ~180px of duplicated prose in
+       the top third of the board view during a fight. "The same sentence
+       twice reads as a bug and costs the board its first screen."
+
+       IT IS A FACT ABOUT THE PAGE AND NOT ABOUT A SIDE, which is the
+       whole of the argument and is also why the per-column loop was the
+       wrong seam: the steppers it describes are on both columns, so a
+       note beside each of them says the same thing about the same act
+       twice. One note above both columns says it once about the board.
+
+       WHERE IT GOES, AND THE CELL TRAP THAT DECIDES IT. #board is a
+       three-track grid, so a child appended without a column line takes
+       ONE TRACK and lands beside a roster column instead of above both —
+       which is the exact defect plan 05-D33b hit with the lane's caption
+       and recorded at [C14.2], green through the whole harness because
+       nothing in this repository reads which cell a box lands in. So the
+       node carries its own class and [C14.3] gives that class
+       `grid-column: 1 / -1`, in #board-empty's and #refband's shipped
+       idiom rather than a fourth way of saying it.
+
+       IT IS BUILT ONCE AND REMOVED AT REST, which is .dc-live's rule and
+       is REQUIRED rather than tidy: structure() replaces only the two
+       column INTERIORS, so a node appended to #board itself outlives
+       endFight — and a note left standing under a hidden root is
+       harvested onto the SETUP page's Layer C scan, which is the
+       failure plan 05-D33b's second deviation records. The per-column
+       instances never needed a teardown because the columns rebuild;
+       this one does, and dcRest takes it.
+
+       #fight-said IS THE FIGHT VIEW'S INSTANCE AND IS UNCHANGED. It is
+       on #fightbar, which the build view undisplays, so the two are
+       never on one screen — one note per surface, and neither surface
+       says it twice. */
     dcSaidFill(document.getElementById('fight-said'), true);
-    var heads = board.querySelectorAll('.brd-col-head');
-    for (var h = 0; h < heads.length; h++) {
-      var line = heads[h].querySelector('.dc-said');
-      if (!line) { line = dcSaidNode(); heads[h].appendChild(line); }
-      dcSaidFill(line, true);
+    var note = board.querySelector('.dc-said--board');
+    if (!note) {
+      note = dcSaidNode();
+      note.classList.add('dc-said--board');
+      board.insertBefore(note, board.firstChild);
     }
+    dcSaidFill(note, true);
 
     var lines = board.querySelectorAll('.dc-line');
     for (var i = 0; i < lines.length; i++) { dcFillStanding(state, lines[i]); }
@@ -19208,6 +19302,16 @@ App.render = (function () {
   function dcRest(strip) {
     var live = strip.querySelector('.dc-live');
     if (live) { live.remove(); }
+    /* D-33 P2-13's one note, taken with it and for the identical reason
+       the paragraph above gives about .dc-live: it hangs off #board
+       itself, structure() replaces only the two column interiors, and a
+       node left standing under a hidden root after endFight IS harvested
+       onto the setup page's Layer C scan. */
+    if (typeof document !== 'undefined') {
+      var board = document.getElementById('board');
+      var note = board ? board.querySelector('.dc-said--board') : null;
+      if (note) { note.remove(); }
+    }
   }
 
   /* The per-frame half, attached to [S06.1]'s seam in syncLedger's exact shape.
