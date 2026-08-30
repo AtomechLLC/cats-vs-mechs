@@ -298,3 +298,32 @@ The no-verdict gate scans everything rendered including tooltips; UX-02's contro
 the design tokens (no new hex); no innerHTML/SVG/url(; the single-file offline contract; every
 floor and row moved openly. Polish may not soften a refusal, add a judgement, or hide a reading
 behind hover that a control depends on.
+
+---
+
+## D-34 — Eighth round, 2026-08-30: a cancel step on modifying actions
+
+Verbatim:
+
+> there should be a cancel step on modifying actions
+
+### What this settles
+
+Editing an action gains an explicit way out. A student who has changed an action's name, cost,
+requirements or transformations can discard those modifications instead of hand-reverting them
+field by field.
+
+### Orchestrator interpretation (recorded, overridable)
+
+- **Cancel is a REVERT, not a draft mode.** The file's architecture commits every edit live
+  through the op funnel — that is what keeps the board updating as you author and keeps Ctrl+Z
+  uniform. So: when an action is selected in the editor, its record is snapshotted; **Cancel
+  restores that snapshot as ONE commit** (itself undoable — a mis-pressed Cancel is recoverable by
+  Ctrl+Z, in keeping with the file's no-confirmation rule D-17).
+- Scope of "modifications": everything since the action was selected in this editor session —
+  name, cost, req, xf. Creating or removing an action is not "modifying" one; those already have
+  their own paths and D-17 rulings.
+- The control reads as a plain secondary action beside Done, with wording that states what it does
+  (restores the action to how it was when selected). If nothing changed, it is inert but never
+  disabled-without-reason — follow the shipped never-disable conventions outside the fight grid.
+- Escape's shipped semantics (field revert, then close) are untouched.
