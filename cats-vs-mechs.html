@@ -19827,8 +19827,52 @@ App.render = (function () {
         if (lbl && lbl.textContent !== labelFor(state, tok)) {
           lbl.textContent = labelFor(state, tok);
         }
-        if (row) { syncRow(row, n, styleFor(state, tok)); }
-        line.hidden = (tok !== 'hp' && n === 0);
+        /* ==============================================================
+           D-33 P2-11 — A LINE THAT STAYS AT ZERO DRAWS ITS ZERO. Plan
+           05-D33c.
+           ==============================================================
+           The audit photographed the Mech 1 card reading "Mech 1 /
+           Health" with NOTHING after the word, and named the rule it
+           breaks: [S06.7]'s own banner argues at length against showing
+           a student a labelled empty box, and the rule was simply not
+           applied one region over.
+
+           IT WAS HALF APPLIED HERE ALREADY AND THE OTHER HALF IS ONE
+           EXPRESSION. The hide below takes the LABEL away with the
+           tally for every type but health — so a zero shield is not a
+           labelled empty box, it is nothing at all, which is correct.
+           Health is exempt, deliberately and for the reason written
+           above this function: a unit on zero health is the exact
+           moment a student is deciding whether to rule it dead, and a
+           health line that vanished then would be the surface hiding
+           the question. So the one line that STAYS at zero is the one
+           line that has to SAY zero, and the two rules are written as
+           one expression rather than as two conditions that can drift.
+
+           IT IS symQtyRow AND NOT A LOCAL SPELLING OF "0×". [S06.12]
+           already decided what a zero reading looks like in this file —
+           the count form, a multiplication sign and exactly one token,
+           which is D-21's shape and COMPACT_AT's own machinery — and
+           the lane, the picker and the editor all draw it that way. A
+           second spelling here would be this surface answering "how
+           many of these are there" in a notation no other surface uses,
+           read in one glance beside them. It is a function declaration
+           in this same IIFE, so it is callable from here exactly as
+           fgHalfMade and DC_DEAD_SAID are.
+
+           NOTHING ANIMATES EITHER WAY, which is the one thing this
+           could have cost. syncRow empties a row on a mode change, so
+           1 -> 0 repopulates the compact form from nothing and 0 -> 1
+           repopulates the tally form from nothing; its `animate` flag
+           reads the row as it arrived and both arrive empty. The pop a
+           student is supposed to see when a unit takes damage is a
+           token LEAVING a tally row, which is unchanged. */
+        var hide = (tok !== 'hp' && n === 0);
+        if (row) {
+          if (!hide && n === 0) { symQtyRow(row, 0, styleFor(state, tok)); }
+          else { syncRow(row, n, styleFor(state, tok)); }
+        }
+        line.hidden = hide;
       });
 
       // THE STORED FLAG, AND NEVER THE HEALTH. Said three ways and by colour in

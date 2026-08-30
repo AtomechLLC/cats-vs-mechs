@@ -12444,7 +12444,33 @@ check(
    THE SECOND DIRECTION IS THE ONE A TIDY IMPLEMENTATION LOSES. A unit driven to
    zero health that nobody ruled has to draw as standing, because that is what
    keeps a student's "it survived on its Shield" ruling representable at all.
-   Probe AZ drives the violation from both ends. */
+   Probe AZ drives the violation from both ends.
+
+   ==========================================================================
+   THE ZERO-HEALTH CLAUSE IS TURNED IN THE OPEN UNDER D-33 P2-11, AND IT USED
+   TO ASSERT THE DEFECT. Plan 05-D33c.
+   ==========================================================================
+   It read `bfZeroRead.hp === 0` — the health row draws NO tokens — and that
+   was green over the thing the audit photographed: a shape reading "Mech 1 /
+   Health" with nothing whatever after the word. The row was asserting that the
+   line stayed and never that the line SAID anything, so a labelled empty box
+   satisfied it exactly.
+
+   IT NOW ASSERTS THE READING RATHER THAN THE ABSENCE, and the clause is
+   STRONGER in both directions. At zero health the line draws the count form —
+   the "0×" node and EXACTLY ONE token standing for the type, which is
+   [S06.12]'s symQtyRow and D-21's shape, the same notation the lane, the
+   picker and the editor all use for a zero. So a page that went back to the
+   empty row reddens here, and so does a page that drew a token per point of a
+   health a unit does not have. The count node is read BY NAME rather than the
+   token counted alone, because one token in a tally row and one token in a
+   count form are the same DOM in the first reading and opposite readings in
+   the second.
+
+   THE MARKER HALF IS UNTOUCHED AND IS WHY THE TWO LIVE IN ONE ROW: zero health
+   still draws NO dead marker and NO sentence, because D-00d is upstream of all
+   of this and the whole point of drawing the zero is that the student is the
+   one who decides what it means. */
 A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
@@ -12458,6 +12484,14 @@ const bfZeroRead = {
   says: (bfZeroShape === null
     ? null : fgLeaves(bfZeroShape).filter((s) => s.indexOf('ruled dead') !== -1)),
   hp: bfToksOf('cats', 'c2', 'hp'),
+  // D-33 P2-11: the reading the line now carries, read BY NAME off the count
+  // node symQtyRow writes rather than inferred from a token total.
+  zeroSaid: (() => {
+    const line = bfLineOf('cats', 'c2', 'hp');
+    const c = line === null ? null : (line.querySelectorAll('.tok-count')[0] || null);
+    return c === null ? null : c.textContent;
+  })(),
+  zeroText: bfLineTextOf('cats', 'c2', 'hp'),
   flag: A.state.get().fight.cats.units[1].alive
 };
 fgPress(fgAliveBtn('cats', 'c1'));
@@ -12491,10 +12525,17 @@ check(
     + 'which is the direction a tidy implementation loses and the one that '
     + 'keeps a Shield ruling representable. And a unit ruled and then ruled '
     + 'back returns to the first, so nothing here is sticky. NEITHER IS EVER '
-    + 'DISABLED',
+    + 'DISABLED. THE ZERO-HEALTH CLAUSE IS TURNED IN THE OPEN UNDER D-33 P2-11 '
+    + 'AND IT USED TO ASSERT THE DEFECT: it required the health row to draw NO '
+    + 'tokens, which is a labelled empty box — "Health" and then nothing — and '
+    + 'is exactly what the audit photographed. It now requires the line to SAY '
+    + 'its zero in [S06.12]\'s own count form, the "0×" node read by name plus '
+    + 'exactly one token standing for the type, so both the old empty row and a '
+    + 'row drawing a health the unit does not have redden here',
   bfZeroRead.drawn === true && bfZeroRead.marked === false
     && bfZeroRead.markerTokens === 0 && bfZeroRead.says.length === 0
-    && bfZeroRead.hp === 0 && bfZeroRead.flag === true
+    && bfZeroRead.hp === 1 && bfZeroRead.zeroSaid === '0×'
+    && bfZeroRead.flag === true
     && bfDeadRead.drawn === true && bfDeadRead.marked === true
     && bfDeadRead.markerTokens === 1 && bfDeadRead.says.length === 1
     && bfDeadRead.hp > 0 && bfDeadRead.flag === false
