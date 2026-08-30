@@ -36,6 +36,7 @@
 
 import { pathToFileURL } from 'url';
 import { existsSync } from 'fs';
+import { tmpdir } from 'os';
 import path from 'path';
 
 const ARTIFACT = path.resolve(import.meta.dirname, '..', 'cats-vs-mechs.html');
@@ -2422,6 +2423,186 @@ for (const ch of ['chrome', 'msedge']) {
       && aeListCss.overflowY === 'auto' && aeListCss.tracks >= 2
       && aeListCss.w <= 610,
       aeListCss);
+
+    /* ══ 24-24c. D-34 — THE CANCEL STEP, IN A REAL BROWSER ═══════════════════
+       "there should be a cancel step on modifying actions" — the developer,
+       2026-08-30. Node rows 113 to 113d drive the loop against a stub with no
+       layout engine and an emulated focus model. Three things they structurally
+       cannot reach are here.
+
+       24 IS GEOMETRY AND IT IS WHY THIS CELL EXISTS AT ALL. The footer is
+       STICKY since D-33 P1-3 and it is a `justify-content:flex-end` flex row
+       with NO wrap — so a third control in it either fits on the line or pushes
+       Done sideways out of the box, and neither gate can see that. Seventeen
+       consecutive rendered changes in this phase had a defect only pictures
+       showed, so the footer is also SCREENSHOTTED at both sizes.
+
+       24b IS THE LOOP THROUGH REAL PRESSES with a real event order — the node
+       harness dispatches pointerdown by hand, and what it cannot prove is that
+       a browser's own press ordering, focus moves and click defaults leave the
+       same board.
+
+       24c IS THE FOCUSED FIELD, which is the case the ordering makes a trap:
+       here the focus really is in the field when the press lands, and the
+       browser really does move it afterwards. */
+    const cancelBox = await pg.evaluate(() => {
+      const foot = document.querySelector('#act-edit-pane-author .ae-foot');
+      const btns = [...foot.querySelectorAll('button')];
+      const r = (n) => n.getBoundingClientRect();
+      const fr = r(foot);
+      const tops = btns.map((b) => Math.round(r(b).top));
+      const done = document.querySelector('#act-edit-done');
+      const back = document.querySelector('#act-edit-cancel');
+      const dr = r(done), br = r(back);
+      return {
+        count: btns.length,
+        order: btns.map((b) => b.id).join(','),
+        // ONE LINE is read as one distinct top, not as a height: a wrapped row
+        // whose second line happens to be the same height as the first passes
+        // any height budget and fails this.
+        lines: [...new Set(tops)].length,
+        footH: Math.round(fr.height),
+        wholeFoot: fr.left >= 0 && fr.right <= innerWidth + 1
+          && fr.top >= 0 && fr.bottom <= innerHeight + 1,
+        doneIn: dr.left >= 0 && dr.right <= innerWidth + 1
+          && dr.top >= 0 && dr.bottom <= innerHeight + 1 && dr.width > 0,
+        backIn: br.left >= 0 && br.right <= innerWidth + 1
+          && br.top >= 0 && br.bottom <= innerHeight + 1 && br.width > 0,
+        // Done is LAST on the line as well as last in the markup — it ends the
+        // visit, so nothing may sit to the right of it.
+        doneLast: Math.round(dr.right) >= Math.round(br.right),
+        backW: Math.round(br.width), doneW: Math.round(dr.width),
+        said: back.textContent.trim(),
+        disabled: back.disabled,
+        sticky: getComputedStyle(document.querySelector('#act-edit-pane-author .ae-foot')).position,
+        vp: `${innerWidth}x${innerHeight}`
+      };
+    });
+    // The picture, because seventeen consecutive rendered changes in this phase
+    // had a defect only a picture showed. It goes to a directory OUTSIDE the
+    // repository by default — this file is dev-only and must not start
+    // producing committed binaries — and SHOT_DIR points it somewhere readable
+    // when somebody wants to look.
+    await pg.locator('#act-edit-pane-author .ae-foot').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d34-foot-${ch}-${size.name}.png`)
+    });
+    note(ch, size.name, 'D-34 footer — controls / lines / height',
+      `${cancelBox.count} on ${cancelBox.lines} line(s), ${cancelBox.footH}px, ${cancelBox.order}`);
+    note(ch, size.name, 'D-34 the control — width / label',
+      `${cancelBox.backW}px, ${JSON.stringify(cancelBox.said)}`);
+    ok(`${tag}: 24. D-34's control sits on ONE line with Proposal and Done, wholly inside the viewport, with Done still last and still reachable — the footer is a no-wrap flex row and it is STICKY since D-33 P1-3, so a third control in it either fits or pushes Done sideways out of the box, and neither gate has a layout engine to see that. Read as distinct TOPS rather than as a height, because a wrapped row whose second line matches the first passes any height budget. The label is permanent, visible and says what the press does (UX-02), and the control is NOT disabled`,
+      cancelBox.count === 3 && cancelBox.lines === 1
+      && cancelBox.order === 'act-prop-open,act-edit-cancel,act-edit-done'
+      && cancelBox.wholeFoot === true && cancelBox.doneIn === true
+      && cancelBox.backIn === true && cancelBox.doneLast === true
+      && cancelBox.said.length > 0 && cancelBox.disabled === false
+      && cancelBox.sticky === 'sticky',
+      cancelBox);
+
+    /* ── 24b. THE LOOP. The action on screen is the 4/4/4 one cell 23b just
+       authored by hand, so what is put back is a rule with every slot full. */
+    const backLoop = await (async () => {
+      const id = await pg.evaluate(() => document.querySelector('#act-edit').dataset.edPick);
+      const recOf = () => pg.evaluate((a) => JSON.stringify(
+        App.state.get().build.mechs.actions.filter((x) => x.id === a)[0]), id);
+      // Re-selected by a real press on its own row, which is what takes the
+      // snapshot — showAction is the one place that says which action is open.
+      await pg.click(`[data-k="ae/list/mechs/${id}"]`); await pg.waitForTimeout(250);
+      const was = await recOf();
+      // Three edits across three of the four facets: the name, an amount, and a
+      // chooser press that retargets a cost term onto another type.
+      await pg.fill('#act-edit-name', 'Prowl');
+      await pg.press('#act-edit-name', 'Enter'); await pg.waitForTimeout(150);
+      await pg.fill('#act-edit-cost-0-amt', '4');
+      await pg.press('#act-edit-cost-0-amt', 'Enter'); await pg.waitForTimeout(150);
+      await pg.click('[data-k="ae/setActionCost/3/tok/hp"]'); await pg.waitForTimeout(150);
+      const moved = await recOf();
+      // THE STACK IS EMPTIED FIRST, and this cell measured why rather than
+      // inheriting the warning: by here the run has made well over thirty
+      // commits, so the stack is at UNDO_LIMIT and commit() shifts the oldest
+      // entry away for every new one — a delta of one reads as ZERO and this
+      // cell passed over a cancel that committed nothing. Measured: fromCancel
+      // 0 in all four columns with every other clause green. App.state.restore
+      // is the only thing that clears the stack; it is [S09]'s by name and this
+      // file is dev-only, which is the same standing the node gate uses it on.
+      await pg.evaluate(() => {
+        App.state.restore(JSON.stringify(App.state.get()));
+        App.state.flush();
+      });
+      await pg.waitForTimeout(200);
+      // The depth is read HERE, immediately before the press, so the reading is
+      // a delta over one press rather than arithmetic over the edits above it.
+      const depth0 = await pg.evaluate(() => App.state.undoDepth());
+      await pg.click('#act-edit-cancel'); await pg.waitForTimeout(250);
+      const back = await recOf();
+      const shown = await pg.evaluate(() => document.querySelector('#act-edit-name').value);
+      const depth1 = await pg.evaluate(() => App.state.undoDepth());
+      // Inert: a second press with nothing in between.
+      await pg.click('#act-edit-cancel'); await pg.waitForTimeout(250);
+      const inert = await recOf();
+      const depth2 = await pg.evaluate(() => App.state.undoDepth());
+      // And the mis-press is recoverable.
+      await pg.evaluate(() => { App.ops.undo(); App.state.invalidate(); if (App.render.flush) App.render.flush(); });
+      await pg.waitForTimeout(250);
+      const undone = await recOf();
+      return { was, moved, back, inert, undone, shown,
+        fromCancel: depth1 - depth0, fromInert: depth2 - depth1 };
+    })();
+    note(ch, size.name, 'D-34 the loop — restored / inert / undone',
+      `${backLoop.back === backLoop.was} / ${backLoop.fromInert} entries / ${backLoop.undone === backLoop.moved}`);
+    ok(`${tag}: 24b. D-34's loop through real presses on a 4/4/4 rule: three edits land, ONE press puts every one of them back byte-identically in ONE undo entry, a second press with nothing in between does nothing at all, and one Ctrl+Z brings the three edits back. The name field on screen agrees with the restored record, which is the half a state check cannot make`,
+      backLoop.moved !== backLoop.was && backLoop.back === backLoop.was
+      && backLoop.fromCancel === 1 && backLoop.fromInert === 0
+      && backLoop.inert === backLoop.was
+      && backLoop.undone === backLoop.moved
+      && backLoop.shown === JSON.parse(backLoop.was).name,
+      backLoop);
+
+    /* ── 24c. THE FOCUSED FIELD, with the browser's own ordering. The press
+       lands on pointerdown, ahead of the focus change, so the field is still
+       focused and still holding uncommitted text — and the blur the browser
+       raises afterwards would dispatch that text as a fresh edit if the press
+       had not thrown it away first. BOTH halves are read: the record, and the
+       FIELD, which the repaint may not write while it holds focus (D-19). */
+    const backFocus = await (async () => {
+      const id = await pg.evaluate(() => document.querySelector('#act-edit').dataset.edPick);
+      await pg.click(`[data-k="ae/list/mechs/${id}"]`); await pg.waitForTimeout(250);
+      const was = await pg.evaluate((a) => JSON.stringify(
+        App.state.get().build.mechs.actions.filter((x) => x.id === a)[0]), id);
+      await pg.fill('#act-edit-cost-0-amt', '9');
+      await pg.press('#act-edit-cost-0-amt', 'Enter'); await pg.waitForTimeout(200);
+      const committed = await pg.evaluate((a) => App.state.get().build.mechs.actions
+        .filter((x) => x.id === a)[0].cost[0].n, id);
+      // Typed and NOT committed, with the field still holding focus.
+      await pg.focus('#act-edit-cost-0-amt');
+      await pg.fill('#act-edit-cost-0-amt', '7');
+      const focusedBefore = await pg.evaluate(() =>
+        document.activeElement && document.activeElement.id);
+      await pg.click('#act-edit-cancel'); await pg.waitForTimeout(300);
+      // The blur has happened by now in a real browser; nothing else is needed
+      // to raise it, which is the point of taking this reading here.
+      const after = await pg.evaluate((a) => ({
+        rec: JSON.stringify(App.state.get().build.mechs.actions.filter((x) => x.id === a)[0]),
+        field: document.querySelector('#act-edit-cost-0-amt').value,
+        active: document.activeElement && document.activeElement.id,
+        inDialog: document.querySelector('#act-edit').contains(document.activeElement)
+      }), id);
+      await pg.waitForTimeout(250);
+      const settled = await pg.evaluate((a) => JSON.stringify(
+        App.state.get().build.mechs.actions.filter((x) => x.id === a)[0]), id);
+      return { was, committed, focusedBefore, ...after, settled };
+    })();
+    note(ch, size.name, 'D-34 cancel with a field focused — field / active',
+      `${JSON.stringify(backFocus.field)} / ${backFocus.active}`);
+    ok(`${tag}: 24c. a cancel taken with an amount field FOCUSED and holding uncommitted text puts the record back, REPAINTS that field to the restored value, and the blur the browser raises afterwards adds nothing — without the pending text being thrown away first that blur would dispatch it as a fresh edit and silently undo the cancel one event later. Focus stays inside the dialog, never on the body: a modal whose active element is the body has lost the keyboard`,
+      backFocus.committed === 9
+      && backFocus.focusedBefore === 'act-edit-cost-0-amt'
+      && backFocus.rec === backFocus.was
+      && backFocus.settled === backFocus.was
+      && backFocus.field === String(JSON.parse(backFocus.was).cost[0].n)
+      && backFocus.inDialog === true,
+      backFocus);
+
     await pg.click('#act-edit-done'); await pg.waitForTimeout(150);
 
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.

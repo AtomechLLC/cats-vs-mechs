@@ -6061,15 +6061,48 @@
       </div>
     </div>
 
-    <!-- The pane switch and the end of the visit, in that order: one moves to
-         the other half of this dialog, the other ends the whole thing. The
-         Proposal button carries data-ap rather than data-act because it is
-         PAGE WORK and there is no op behind it — see [S07.3]'s proposal
-         block, which owns every data-ap on this surface. -->
+    <!-- The pane switch, the way out of a set of edits, and the end of the
+         visit, in that order: one moves to the other half of this dialog, one
+         puts this rule back the way the student found it, and the last ends
+         the whole thing. The Proposal button carries data-ap rather than
+         data-act because it is PAGE WORK and there is no op behind it — see
+         [S07.3]'s proposal block, which owns every data-ap on this surface.
+
+         THE MIDDLE ONE IS D-34 — "there should be a cancel step on modifying
+         actions" — AND IT CARRIES data-act BECAUSE THERE IS A REAL OP BEHIND
+         IT. That is the partition this dialog is read by: data-ap is page work
+         on the proposal pane, data-ae is page work on this one, and data-act
+         names an op in App.ops that the press dispatches, exactly as the New,
+         Remove and chooser controls already do. A cancel wearing data-ae would
+         have been a control that writes hiding in the channel for controls
+         that do not.
+
+         IT SAYS WHAT IT DOES AND IT DOES NOT SAY "CANCEL". UX-02's rule is a
+         permanent visible label at the 18px floor, never an icon and never a
+         tooltip, and the wording rule this file keeps everywhere else is that a
+         control is labelled with its effect: "New action", "Remove this
+         action", "Start over". "Cancel" names a MODE — it is the word for
+         throwing away a draft and leaving without saving, and there is no draft
+         here and nothing to leave; every edit already landed. What this press
+         does is put the rule back to the state it was in when the student
+         selected it, so that is what it is called.
+
+         IT IS NEVER DISABLED. There is no enable pass for it in [S06.5] and
+         there must not be one. When there is nothing to put back the press is
+         INERT — the op's no-op contract returns before it commits, so no board
+         moves and no undo step appears — and that is the never-disable
+         convention this file keeps everywhere outside the fight declaration
+         grid: a control greyed out for a state a student cannot see the shape
+         of teaches them nothing about the state.
+
+         ESCAPE IS UNTOUCHED. It still reverts the FIELD a student is standing
+         in and then closes the dialog, which is a different job at a different
+         scale, and [S07.3]'s cancel listener still owns it. -->
     </div><!-- .ae-body -->
 
     <div class="ae-actions ae-foot">
       <button class="brd-btn" type="button" id="act-prop-open" data-ap="open" data-k="ap/open">Proposal</button>
+      <button class="brd-btn" type="button" id="act-edit-cancel" data-act="restoreAction" data-k="ae/restore">Put this action back how it was</button>
       <button class="brd-btn" type="button" id="act-edit-done" data-ae="done">Done</button>
     </div>
   </div>
@@ -12642,6 +12675,153 @@ App.ops = (function () {
       App.data.MAX_ACTION_XF, term, 'action changes');
   }
 
+  /* ---- D-34: PUTTING A RULE BACK THE WAY IT WAS -------------------------
+   *
+   * "there should be a cancel step on modifying actions" — the developer,
+   * 2026-08-30. CANCEL IS A REVERT AND NOT A DRAFT MODE, which is the whole
+   * reason there is an op here at all rather than a flag on the editor. This
+   * file commits every edit LIVE through this funnel — that is what keeps the
+   * board and the reference band updating as a rule is written, and what keeps
+   * Ctrl+Z uniform over every surface — so a draft mode would have had to hold
+   * a second, uncommitted copy of a rule that the board was not drawing, and
+   * the artifact would have grown its first state in which an action exists in
+   * two versions. The proposal pane's shell comment argues that case at length
+   * about a proposal and the argument lands here the same way.
+   *
+   * SO: the SURFACE snapshots a record when the student selects it, and this op
+   * puts that snapshot back AS ONE COMMIT. One commit is one Ctrl+Z, so a
+   * mis-pressed Cancel is recoverable — which is D-17's own test for whether a
+   * press needs a confirmation, answered the same way removeAction and dropType
+   * answer it, and it is why there is no modal in front of this.
+   *
+   * IT IS NOT A FIFTH WRITE PATH AND IT MAY NOT BECOME ONE. It writes exactly
+   * what the four surfaces above it write — name, cost, req, xf — through
+   * exactly their guards, and the reason it is not four dispatches in a row is
+   * measured rather than stylistic: resetFight's own paragraph one region up
+   * says it in full, the naive spelling costs one undo entry per write and a
+   * student who mis-pressed would have to press Ctrl+Z as many times as they
+   * had made edits, landing on a half-restored rule in between.
+   *
+   * EVERY GUARD IS THE ONE THE WRITE PATH ALREADY RUNS, called rather than
+   * re-typed: requireActionName, requireTokenId, requireXfWho, int() at the
+   * same named bounds, and the same caps. A snapshot is a value that came off
+   * the page — a frozen record the surface was holding — so it is admitted the
+   * way [S04]'s decoder admits a pasted build, FIELD BY FIELD, never merged,
+   * never spread, and refused outright rather than repaired.
+   *
+   * WHAT IT DOES NOT WRITE: `dmg` and `keywords`. The DELIBERATELY ABSENT block
+   * below is amended in this same change rather than left standing, because
+   * this is the first op in the file that writes a whole action record and it
+   * is exactly the op a later reader would widen. Both fields are absent from
+   * the build code, so writing them here would be silent loss in every shared
+   * build — and check 74 in tests/selftest-node.cjs drives this op blind and
+   * reads both fields after it, which is where that would surface.
+   *
+   * NOT AN APPLIER, and this is stated rather than left to the regex: it edits
+   * a rule's DEFINITION, exactly as the four ops above it do. It spends
+   * nothing, tests nothing against a unit and moves no token. [S09.10]'s two
+   * applier rows were re-read against the live export list after this op
+   * joined it and both still answer the single name advanceRound. */
+
+  // A record that came off the page, admitted as a value. Refused rather than
+  // repaired, and refused OUTSIDE the commit like every other guard here, so a
+  // press that arrives with nothing behind it leaves no phantom undo step.
+  function requireRecord(was, phrase) {
+    if (was === null || typeof was !== 'object' || Array.isArray(was)) {
+      throw new TypeError('Putting an action back needs the ' + phrase
+        + ' it was carrying when it was selected, and got ' + JSON.stringify(was));
+    }
+    return was;
+  }
+
+  // The three lists, rebuilt term by term through the write paths' own guards
+  // and their own named bounds. PURE — it reads the snapshot and hands back new
+  // plain objects, and it is called TWICE below on purpose: once outside the
+  // commit so a refusal happens before anything is recorded, and once inside
+  // the mutator so nothing frozen and nothing already handed out is aliased
+  // into the next state. That is writeTerms' own rule about rebuilding inside
+  // the mutator, kept by a function that can be called rather than by a
+  // comment asking the next reader to be careful.
+  function restoredTerms(was) {
+    var cost = termsOf(was, 'cost').slice(0, MAX_ACTION_COST).map(function (t) {
+      var term = requireRecord(t, 'cost term');
+      requireTokenId(term.tok);
+      return {
+        tok: term.tok,
+        n: int(term.n, MIN_ACTION_COST, MAX_ALLOC, 'what an action costs')
+      };
+    });
+    var req = termsOf(was, 'req').slice(0, App.data.MAX_ACTION_REQ).map(function (t) {
+      var term = requireRecord(t, 'requirement term');
+      requireTokenId(term.tok);
+      return {
+        tok: term.tok,
+        n: int(term.n, MIN_ACTION_REQ, MAX_ALLOC, 'what an action needs')
+      };
+    });
+    var xf = termsOf(was, 'xf').slice(0, App.data.MAX_ACTION_XF).map(function (t) {
+      var term = requireRecord(t, 'change term');
+      requireXfWho(term.who);
+      requireTokenId(term.tok);
+      var amount = int(term.d, App.data.MIN_XF_DELTA, App.data.MAX_XF_DELTA,
+        'a change an action makes');
+      // The same refusal setActionXf makes, for its stated reason: zero sits in
+      // the middle of the bound rather than at either end of it, so the bound
+      // cannot catch it, and a term that changes nothing is a rule a student
+      // reads back and watches do nothing.
+      if (amount === 0) {
+        throw new Error('A change of nothing is not a change — give it an '
+          + 'amount, with a minus in front for a change downward.');
+      }
+      return { who: term.who, tok: term.tok, d: amount };
+    });
+    return { cost: cost, req: req, xf: xf };
+  }
+
+  // The no-op contract is renameAction's and writeTerms', for their reason and
+  // for one of this op's own: a student who pressed Cancel having changed
+  // nothing must not be handed an undo step that takes back a press they made
+  // by accident. Inert is not the same as disabled — the control is never
+  // disabled, because a control greyed out for a state the student cannot see
+  // the shape of teaches nothing, which is the never-disable convention every
+  // surface outside the fight grid keeps.
+  function restoreAction(side, actionId, was) {
+    requireSide(side);
+    requireActionId(actionId);
+    requireRecord(was, 'record');
+    var name = requireActionName(was.name);
+    var fresh = restoredTerms(was);
+    var live = requireLiveAction(side, actionId);
+
+    var now = JSON.stringify([live.name, termsOf(live, 'cost'),
+      termsOf(live, 'req'), termsOf(live, 'xf')]);
+    var back = JSON.stringify([name, fresh.cost, fresh.req, fresh.xf]);
+    if (now === back) { return false; }
+
+    // THE LABEL IS THIS OP'S OWN AND CARRIES THE ACTION, and both halves matter
+    // for commit()'s coalescing window: nothing else in this file writes a
+    // label beginning "action restore", so a Cancel can never fold into the
+    // edit before it, and the action is on the end so restoring two different
+    // rules inside half a second is two steps. A second Cancel with nothing in
+    // between never reaches here at all — the no-op contract above returns
+    // first — so the folding case that would be wrong is unreachable.
+    //
+    // A PLAIN COMMIT AND NOT A STRUCTURAL ONE, on renameAction's stated rule:
+    // commitStructural's trigger is a mutator that changes what structure()
+    // would BUILD, and this one cannot add or remove an action, a unit or a
+    // fight. It rewrites the fields of a record that already exists, and every
+    // surface that draws them fills them on the sync pass.
+    App.state.commit('action restore ' + side + '/' + actionId, function (s) {
+      var rec = actionIn(s, side, actionId);
+      var built = restoredTerms(was);
+      rec.name = name;
+      rec.cost = built.cost;
+      rec.req = built.req;
+      rec.xf = built.xf;
+    });
+    return true;
+  }
+
   /* ---- the tally: the number a student writes down beside their own
    * invention (D-00e). The tool stores it and never infers what it means, and
    * nothing anywhere in this file acts on it — a type a student made counts
@@ -12877,6 +13057,17 @@ App.ops = (function () {
         p.tokenId, p.n);
       case 'setActionReq': return setActionReq(p.side, p.actionId, p.index, p.tokenId, p.n);
       case 'setActionXf': return setActionXf(p.side, p.actionId, p.index, p.who, p.tokenId, p.d);
+      // D-34. THE ONE ARM IN THIS ROUTER THAT TAKES A RECORD, and the exception
+      // is stated here rather than left for a reader to notice it breaking the
+      // key-by-key rule three lines up. Every arm above names its keys because
+      // an op's guards refuse a stray key's VALUE and never see a key nobody
+      // meant to send; this one CANNOT, because what it is handed is a whole
+      // action record and the keys inside it are the thing being restored. The
+      // rule is kept one layer down instead of given up: restoreAction rebuilds
+      // that record FIELD BY FIELD through the same guards the four write paths
+      // run, so nothing a caller supplied is ever copied across — which is the
+      // property naming the keys here was buying in the first place.
+      case 'restoreAction': return restoreAction(p.side, p.actionId, p.was);
       case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
       case 'nudgeTally': return nudgeTally(p.side, p.unitId, p.tokenId, p.delta);
       case 'undo': return undo();
@@ -12989,6 +13180,21 @@ App.ops = (function () {
   // reconstructible, THE BUILD CODE DOES NOT CARRY THEM — [S04]'s banner
   // states that decision at length and [S04.3] is where it is acted on.
   //
+  // THAT ABSENCE WAS TESTED BY D-34 AND IT HELD, AND THE TEST IS RECORDED HERE
+  // BECAUSE THE NEXT ONE WILL LOOK THE SAME. restoreAction is the first op in
+  // this file that writes a WHOLE ACTION RECORD — name, cost, req and xf in one
+  // commit — so it is the first op for which "just put the record back" would
+  // have meant assigning `dmg` and `keywords` too, and it would have read as
+  // the obviously correct thing to do. It does not, and the reason is the
+  // paragraph above rather than an oversight: a snapshot the surface holds is a
+  // record that came off the page, both fields are RECONSTRUCTIBLE and neither
+  // is on the wire, so an op that wrote them would put a page-supplied value
+  // into two fields no build code carries. What restoreAction restores is what
+  // the student can WRITE. What it leaves alone is what nothing writes. The
+  // four facets it does write are the four the codec carries, which is the same
+  // test read from the other end, and check 74 drives this op blind among the
+  // rest and reads both fields after it.
+  //
   // SO ADDING A WRITER HERE WITHOUT ADDING THE FIELD TO THE CODEC IS SILENT
   // DATA LOSS IN EVERY SHARED BUILD. A student sets a damage figure, shares
   // the link, and the classmate who opens it reads a different action with no
@@ -13073,6 +13279,14 @@ App.ops = (function () {
     setActionCost: setActionCost,
     setActionReq: setActionReq,
     setActionXf: setActionXf,
+    // D-34. The fifth action write path, and the one that writes the other four
+    // at once — exported beside them because that is what it is, and because
+    // [S09.10] asserts the op the surface actually dispatches rather than a
+    // re-typed copy. It is NOT an applier and it is NOT a fifth SPELLING of a
+    // write: it takes a record the surface snapshotted, rebuilds it through the
+    // four paths' own guards, and lands it in ONE commit so one Ctrl+Z takes it
+    // back. Its banner above says what it may never grow into.
+    restoreAction: restoreAction,
     setTally: setTally,
     nudgeTally: nudgeTally,
     setUi: setUi,
@@ -15473,12 +15687,19 @@ App.render = (function () {
   // number state no longer holds. The token and the party ride along on the
   // same write, because the commit path reads them off the field and they must
   // describe the same term the value does.
+  // IT REPORTS WHETHER IT WROTE, and the return value is D-34's finding rather
+  // than tidiness — see editor()'s own paragraph on the incomplete paint. A
+  // skipped field leaves this surface holding text state does not, and the only
+  // thing that can ever put that right is a LATER repaint, so the paint that
+  // skipped it must not be allowed to record a fingerprint saying it is done.
   function showAmount(field, amount, tok, who) {
-    if (!field || field === document.activeElement) { return; }
+    if (!field) { return true; }
+    if (field === document.activeElement) { return false; }
     field.value = String(amount);
     field.dataset.was = field.value;
     field.dataset.aeTok = tok;
     field.dataset.aeWho = who;
+    return true;
   }
 
   /* D-32 PART 2, AND IT IS THE WHOLE OF "the editor and the fight read as one
@@ -15537,6 +15758,7 @@ App.render = (function () {
   function fillSlotRows(state, field, act, cap, list) {
     // The rows in use plus one empty slot, never past the cap.
     var shown = Math.min(list.length + 1, cap);
+    var whole = true;
     for (var i = 0; i < cap; i++) {
       var row = document.getElementById('act-edit-' + field + '-' + i);
       if (!row) { continue; }
@@ -15561,10 +15783,11 @@ App.render = (function () {
         term ? term.tok : '', true);
       if (amt) { amt.hidden = !term; }
       if (term) {
-        showAmount(amt, (field === 'xf') ? term.d : term.n, term.tok,
-          (field === 'xf') ? term.who : '');
+        if (!showAmount(amt, (field === 'xf') ? term.d : term.n, term.tok,
+          (field === 'xf') ? term.who : '')) { whole = false; }
       }
     }
+    return whole;
   }
 
   /* D-32: THE COST GOES THROUGH fillSlotRows LIKE ITS TWO SIBLINGS, and the
@@ -15586,13 +15809,17 @@ App.render = (function () {
      same CLEAR_TERM signal, and there is still no Remove button beside a row.
      Emptying the last cost term still leaves an action costing nothing, which
      is the rule the old comment was protecting; it is now reachable. */
+  // ALL THREE ARE FILLED AND THEN THE ANSWERS ARE COMBINED, never short-cut
+  // with an early return on the first skipped field: two of the three lists
+  // would then go unpainted because a student was standing in the first.
   function fillTerms(state, live) {
-    fillSlotRows(state, 'cost', 'setActionCost', App.ops.MAX_ACTION_COST,
+    var cost = fillSlotRows(state, 'cost', 'setActionCost', App.ops.MAX_ACTION_COST,
       termList(live, 'cost'));
-    fillSlotRows(state, 'req', 'setActionReq', App.data.MAX_ACTION_REQ,
+    var req = fillSlotRows(state, 'req', 'setActionReq', App.data.MAX_ACTION_REQ,
       termList(live, 'req'));
-    fillSlotRows(state, 'xf', 'setActionXf', App.data.MAX_ACTION_XF,
+    var xf = fillSlotRows(state, 'xf', 'setActionXf', App.data.MAX_ACTION_XF,
       termList(live, 'xf'));
+    return cost && req && xf;
   }
 
   /* ---- ACT-05's first half, ACT-06 and ACT-07: the proposal pane —
@@ -16222,6 +16449,38 @@ App.render = (function () {
     var sig = editorSig(state, side, actionId, dlg);
     if (dlg.dataset.edSig === sig) { return; }
 
+    /* WHETHER THIS PAINT FINISHED, and the fingerprint below is only recorded
+       if it did. THIS IS D-34's FINDING AND IT IS A DEFECT THIS SURFACE HAS
+       CARRIED SINCE PLAN 03.1-05, not a requirement of the cancel step — it is
+       written up here rather than beside the press because here is where it is
+       wrong.
+
+       D-19 says the repaint may never write a field that holds focus, and the
+       two arms below obey it. What nothing did was notice that such a paint is
+       INCOMPLETE: it drew every other node from state and left one field
+       holding whatever the student typed, and then recorded a fingerprint
+       saying "this surface now matches this state". The only thing that can
+       ever put that field right is a LATER repaint — and the gate above returns
+       early whenever the fingerprint has not moved, so if state ever comes back
+       to the value the incomplete paint recorded, the field stays wrong with
+       nothing left to fix it.
+
+       REACHABLE WITHOUT A CANCEL AT ALL, which is why the fix is here: stand in
+       the name field, rename the action from anywhere else, and blur. The blur
+       commits nothing (the value-versus-`was` test, check 67e's subject), so no
+       frame is raised, and the field goes on showing the old word for as long
+       as nothing else moves the board. D-34 is only how it was FOUND — a
+       cancel is a change that puts a record back, so it is the one press that
+       can land on exactly the fingerprint an incomplete paint recorded, every
+       time rather than by luck. Check 113c drives both shapes.
+
+       THE COST IS ONE FULL REPAINT PER COMMIT WHILE A FIELD HOLDS FOCUS, and
+       that is all of it: frames are raised by invalidate() and nothing here
+       ticks, so a student typing with nothing else happening raises no frames
+       to pay for. It is the same rebuild this region already does on any commit
+       that moves the fingerprint. */
+    var whole = true;
+
     // A repaint rebuilds every row, which destroys the node the keyboard was
     // on, so it goes through the board's own focus contract — the row data-k is
     // what it lands back on.
@@ -16267,7 +16526,9 @@ App.render = (function () {
       // gives: it is what a revert puts back, so left stale it would restore a
       // name state no longer holds.
       var nameField = document.getElementById('act-edit-name');
-      if (nameField && nameField !== document.activeElement) {
+      if (nameField && nameField === document.activeElement) {
+        whole = false;
+      } else if (nameField) {
         nameField.value = live.name;
         nameField.dataset.was = nameField.value;
       }
@@ -16284,7 +16545,7 @@ App.render = (function () {
       // term written from the keyboard, an undo — reaches them on the frame it
       // happens. Any amount field holding focus is skipped inside, which is
       // why this is a call rather than a rebuild.
-      fillTerms(state, live);
+      if (!fillTerms(state, live)) { whole = false; }
 
       // ACT-05's first half, ACT-06 and ACT-07. It draws the OTHER pane, so
       // it sits inside the same focus contract and behind the same
@@ -16307,7 +16568,13 @@ App.render = (function () {
     //   data-ed-pick  is WHICH action on that side. Both are needed because an
     //                 authored id is unique only WITHIN its side.
     //   data-ed-sig   is WHETHER anything drawn here has moved since the last
-    //                 frame, and nothing ever reads a value out of it.
+    //                 COMPLETE frame, and nothing ever reads a value out of it.
+    //                 It is emptied rather than written when this paint skipped
+    //                 a focused field — the incomplete-paint paragraph above
+    //                 says what that is for. An empty string can never equal a
+    //                 fingerprint, which is a JSON array, so the next frame
+    //                 repaints unconditionally and the field is put right the
+    //                 moment the student steps out of it.
     // data-ed-pane, written in the shell and owned by this region, is a fourth
     // and answers a fourth: WHICH PANE is showing. [S07.3]'s proposal block
     // moves it, this region reads it into the fingerprint and paints from it,
@@ -16315,7 +16582,7 @@ App.render = (function () {
     // the same reason these three sit here rather than in a slice.
     dlg.dataset.edSide = side;
     dlg.dataset.edPick = actionId;
-    dlg.dataset.edSig = sig;
+    dlg.dataset.edSig = whole ? sig : '';
   }
 
   // The per-frame half, attached to [S06.1]'s seam in syncPicker's exact shape
@@ -16372,6 +16639,38 @@ App.render = (function () {
     }
 
     editor(state, side, id);
+  }
+
+  /* D-34. THE OTHER HALF OF THE INCOMPLETE-PAINT RULE, and it is exported
+     because the half that knows is not the half that can see.
+
+     editor() knows when IT skipped a focused field and empties the fingerprint
+     itself. What it cannot know is that something OUTSIDE has thrown a field's
+     pending text away — the cancel step does exactly that, putting the field
+     back and blurring it before the restore lands — and after that the surface
+     is in the same condition an incomplete paint leaves it in: a field holding
+     a value that the next paint has to write, and a memo that may be about to
+     say the surface is already up to date.
+
+     THAT CASE IS REACHABLE AND IT IS THE CANCEL'S OWN. A restore puts a record
+     BACK, so the fingerprint after it can equal the fingerprint of a paint
+     taken before the edits began — which is the one arrangement in which the
+     gate at the top of editor() returns early over a surface that really has
+     changed. It is not a timing hazard to be argued about: it is what a cancel
+     does every time the last edit happened to leave no completed paint behind
+     it.
+
+     A NAMED FUNCTION AND NOT AN ATTRIBUTE WRITE FROM [S07.3]. data-ed-side,
+     data-ed-pick and data-ed-sig are this region's bookkeeping and its own
+     banner says so; a handler reaching in to blank one of them would be the
+     tier ownership inverted for the sake of one line. This says what the caller
+     means — the fields may no longer agree with state — and leaves how that is
+     recorded here. */
+  function editorStale() {
+    if (typeof document === 'undefined') { return; }
+    var dlg = document.getElementById('act-edit');
+    if (!dlg) { return; }
+    dlg.dataset.edSig = '';
   }
 
   SYNC_HOOKS.push(syncEditor);
@@ -21513,6 +21812,11 @@ App.render = (function () {
     // for the next frame would leave the tick and the heading a frame behind
     // the student's own click.
     editor: editor,
+    // D-34, and to exactly one caller: [S07.3]'s cancel press, which throws a
+    // field's pending text away and then has to be sure the paint that follows
+    // is not memoised away. Its own paragraph above says why an attribute write
+    // from the handler was the wrong spelling of the same line.
+    editorStale: editorStale,
     // Exported for exactly the reason picker() and editor() are, and to exactly
     // one caller: [S07.4]'s handlers, which move the pane attribute and then ask
     // for the surface to be painted onto it. A press that changed the attribute
@@ -22808,7 +23112,80 @@ App.interactions = (function () {
   function showAction(dlg, side, actionId) {
     dlg.dataset.edSide = side;
     dlg.dataset.edPick = actionId;
+    takeSnapshot(side, actionId);
     App.render.editor(App.state.get(), side, actionId);
+  }
+
+  /* ---- D-34: THE RECORD AS IT WAS WHEN THE STUDENT ARRIVED AT IT ---------
+   *
+   * WHERE THIS LIVES IS THE DECISION, and all four homes were measured the way
+   * the proposal pane's shell comment measured its own four. It is HERE, in
+   * this region's own scope, and the three it is not are worth naming because
+   * each fails for a different reason:
+   *
+   *   THE `ui` SLICE. [S09.3] pins that slice's exact key set and check 73c
+   *   reads it back after every drive in the gate, so a key here would redden
+   *   both — and setUi refuses an object value by contract, so it could not
+   *   hold a record at all without that writer being widened. Turning those
+   *   rows is cheap; what is not cheap is what they are FOR. A snapshot in a
+   *   slice is a snapshot the state carries, and every question this file
+   *   answers about state — what undo restores, what the build code encodes,
+   *   what the projection reads — would grow a second answer for it.
+   *
+   *   A FOURTH TOP-LEVEL SLICE reddens the row asserting there are three, for
+   *   the same reason and with less to show for it.
+   *
+   *   THE DIALOG'S OWN dataset, which is where data-ed-side and data-ed-pick
+   *   live and is therefore the near miss. Those two are STRINGS and this is a
+   *   RECORD, so it would have to be stringified in and parsed back out — and
+   *   the parse would be a page-supplied JSON string flowing into an op, which
+   *   is a boundary this feature has no reason to open. It would also put a
+   *   student's typed action name into an attribute, one more channel for
+   *   PROJ-06's harvest to have an opinion about.
+   *
+   * WHAT MAKES A PLAIN VARIABLE ENOUGH IS [S03]'s FREEZE, and that is the
+   * mechanism rather than a convenience. The live state is deep-frozen between
+   * commits and commit() mutates a DETACHED COPY, so the record object read out
+   * of state here can never change afterwards — the next commit builds new
+   * objects and leaves this one exactly as it was. Holding the reference IS the
+   * snapshot; there is nothing to copy and nothing to keep in step.
+   *
+   * IT IS NOT "A SECOND PLACE FOR THE SAME ANSWER TO LIVE", which is the
+   * objection the two attributes above answer for themselves. Those two say
+   * WHICH action the editor is showing, and the dialog is the one place that
+   * says it. This says what that action LOOKED LIKE when it was selected, and
+   * nothing else in this file answers that. The two are bound together anyway —
+   * the side and the id are recorded beside the record, and a restore is INERT
+   * unless all three still agree with the dialog — so a snapshot that fell out
+   * of step with the selection cannot be spent on the wrong rule. That case is
+   * reachable: syncEditor moves data-ed-pick itself when the selection names an
+   * action that has gone, without coming through here.
+   *
+   * IT IS TAKEN IN showAction, WHICH IS THE ONE PLACE THAT SAYS "the editor is
+   * now showing this action", so opening the editor, pressing a list row,
+   * switching side, creating an action and removing one all re-snapshot without
+   * any of them having to remember to. That is showAction's own stated reason
+   * for existing, arriving at a third caller. */
+  var snapSide = '';
+  var snapAct = '';
+  var snapRec = null;
+
+  function takeSnapshot(side, actionId) {
+    snapSide = side;
+    snapAct = actionId;
+    snapRec = null;
+    var list = App.state.get().build[side].actions;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id === actionId) { snapRec = list[i]; return; }
+    }
+  }
+
+  // Read-only, for the gate. It hands back the two ids and a STRING of the
+  // record rather than the record, so a suite can assert what was snapshotted
+  // without being handed a reference it could compare by identity and be right
+  // about for the wrong reason.
+  function snapshotSaid() {
+    return [snapSide, snapAct, snapRec === null ? '' : JSON.stringify(snapRec)];
   }
 
   // The first action on a side, or the empty string for a side holding none.
@@ -23171,6 +23548,69 @@ App.interactions = (function () {
     el.dataset.forAct = (dlg === null) ? '' : pickedAct(dlg);
   }
 
+  /* ---- D-34's press. It sits HERE, below the two field contracts rather than
+   *      beside makeAction and dropAction where it otherwise belongs, because
+   *      the first thing it has to do is end a half-made edit and both reverts
+   *      are written above this line. -------------------------------------
+   *
+   * THE HALF-MADE EDIT IS THE WHOLE OF THE HARD PART, and it is the one thing
+   * about this press that is not obvious. Every control in this dialog acts on
+   * POINTERDOWN, which the spec puts AHEAD of the focus change — so a student
+   * who types "4" into a cost field and then presses this button reaches here
+   * with the field still focused and still holding text nothing has committed.
+   * The restore lands, and THEN the focus moves, and THEN focusout runs
+   * commitAmount, which compares the field's value against its baseline, sees
+   * "4" against the old text, and dispatches the very edit this press exists to
+   * throw away. The cancel would appear to work and then silently undo itself
+   * one event later, with a second undo step behind it.
+   *
+   * So the pending text goes back FIRST, through the same revert Escape uses,
+   * which makes the focusout that follows a no-op by the value-versus-`was`
+   * test those two functions already carry. Nothing new guards it.
+   *
+   * AND THE FIELD IS BLURRED, which is the second half and is about D-19 rather
+   * than about commits. The repaint deliberately never writes a focused field —
+   * showAmount and the name field's arm both return on document.activeElement —
+   * so a restore taken with a field focused would land in state and leave that
+   * one field showing the value the student is trying to discard, for as long
+   * as they stood in it. This is the ONE press in the file for which
+   * overwriting a focused field is not a violation of D-19 but the literal
+   * content of the request, and the honest way to spell it is to take the focus
+   * off the field so the ordinary repaint may do its ordinary job.
+   *
+   * FOCUS IS THEN PLACED, not left on <body>. A modal dialog whose active
+   * element is the body has lost the keyboard, and dropAction one region up
+   * places focus for the same reason. It lands on the button that was pressed,
+   * which is where a mouse press would have left it anyway.
+   *
+   * THE SNAPSHOT MUST STILL AGREE WITH THE SELECTION or nothing happens. The
+   * snapshot block above says why that case is reachable. */
+  function endPendingEdit() {
+    var el = (typeof document === 'undefined') ? null : document.activeElement;
+    if (isAmountField(el)) { revertAmount(el); el.blur(); return true; }
+    if (isActionNameField(el)) { revertActionName(el); el.blur(); return true; }
+    return false;
+  }
+
+  function restoreSelected(dlg) {
+    var side = pickedSide(dlg);
+    var id = pickedAct(dlg);
+    if (side !== snapSide || id !== snapAct || snapRec === null) { return; }
+    // Only when there WAS one. A press with no field focused leaves this
+    // surface knowing exactly what it is showing, and blanking the memo then
+    // would buy a full repaint for nothing.
+    if (endPendingEdit()) { App.render.editorStale(); }
+    // Dispatch, and page work only after dispatch has returned — the ordering
+    // makeAction and dropAction both keep, for their stated reason: an op that
+    // refuses throws out of here into [S08]'s boundary and the page work never
+    // runs, which is what keeps this surface from acting on a change state
+    // declined to make.
+    App.ops.dispatch('restoreAction', { side: side, actionId: id, was: snapRec });
+    var btn = (typeof document === 'undefined')
+      ? null : document.getElementById('act-edit-cancel');
+    if (btn && typeof btn.focus === 'function') { btn.focus(); }
+  }
+
   /* ---- the choosers. Each press reads its slot off the pressed control and
          the REST of the term off the live record, so pressing Target on a
          transformation keeps the token and the amount the student already
@@ -23348,6 +23788,14 @@ App.interactions = (function () {
 
     var rm = node.closest('[data-act="removeAction"]');
     if (rm !== null) { dropAction(dlg, side); return; }
+
+    // D-34. It reads the side off the DIALOG like the two above it, because
+    // this button is static markup and cannot carry one — and it reads it
+    // again inside restoreSelected rather than taking it as an argument,
+    // because what that function has to compare the snapshot against is the
+    // selection AS THE DIALOG NOW HOLDS IT, not a value read a few lines ago.
+    var back = node.closest('[data-act="restoreAction"]');
+    if (back !== null) { restoreSelected(dlg); return; }
 
     // The three term choosers, in the same order the rows appear. Each carries
     // a real op's name in its data-act rather than a UI act of its own, which
@@ -25458,6 +25906,14 @@ App.interactions = (function () {
     // asserting its own copy, and the one press this feature exists for is the
     // press that would open the styled error panel instead.
     NEW_ACTION_NAME: NEW_ACTION_NAME,
+    // D-34. What the editor snapshotted and which selection it was taken for,
+    // read-only and stringified, exported for the same reason the two above are
+    // exported: the snapshot deliberately lives in this region's own scope
+    // rather than in a slice, and a suite that could not read it would have to
+    // assert the FEATURE and never the placement. It hands back a string rather
+    // than the record so nothing can hold the reference, and nothing anywhere
+    // writes through it.
+    editorSnapshot: snapshotSaid,
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
@@ -30957,6 +31413,194 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
 
+    /* ============ D-34: THE FIFTH WRITE PATH, AND WHAT IT REFUSES ==========
+
+       "there should be a cancel step on modifying actions" — the developer,
+       2026-08-30. restoreAction is the op behind it: it takes a record the
+       editor snapshotted when the student selected an action and puts it back
+       as ONE commit.
+
+       THE ROWS HERE ARE THE OP'S, NOT THE PRESS'S. Every one of them is
+       DOM-free, which is this suite's own rule; the button, the snapshot and
+       the focused-field case are driven through the shipped controls by checks
+       113 to 113d in tests/selftest-node.cjs, where a page exists.
+
+       WHAT MAKES THIS OP DIFFERENT FROM THE FOUR ABOVE IT is that it is handed
+       a RECORD rather than a value, which is the one shape the router cannot
+       protect by naming keys. So the guard is one layer down and these rows are
+       where it is held to account: every field is rebuilt through the write
+       paths' own gates, and a snapshot that is not a record, or carries a term
+       that is not one, or names a type that has gone, or carries an amount
+       outside the bounds, is REFUSED OUTSIDE THE COMMIT — board byte-identical,
+       no undo entry, prototype intact. That is the property every guard in
+       [S05] is placed for, read back rather than promised. */
+
+    App.ops.resetToDefaults();
+    App.state.flush();
+
+    t.eq('the restore op is exported', typeof App.ops.restoreAction, 'function');
+
+    var backId = App.ops.createAction('cats', 'Pounce');
+    App.ops.setActionCost('cats', backId, 0, 'ap', 2);
+    App.ops.setActionReq('cats', backId, 0, 'hp', 2);
+    App.ops.setActionXf('cats', backId, 0, App.data.XF_WHO[1], 'hp', -3);
+    App.state.flush();
+
+    function backRec() {
+      return App.state.get().build.cats.actions
+        .find(function (a) { return a.id === backId; });
+    }
+    var backWas = backRec();
+    var backWasJson = JSON.stringify(backWas);
+
+    App.ops.renameAction('cats', backId, 'Prowl');
+    App.ops.setActionCost('cats', backId, 1, 'hp', 1);
+    App.ops.setActionReq('cats', backId, 1, 'ap', 1);
+    App.ops.setActionXf('cats', backId, 1, App.data.XF_WHO[0], 'hp', 2);
+    App.state.flush();
+
+    var backDepth = App.state.undoDepth();
+    var backMoved = JSON.stringify(backRec());
+    var backReturned = App.ops.restoreAction('cats', backId, backWas);
+    App.state.flush();
+
+    t.eq('a snapshot taken before four edits puts all four back in ONE commit, '
+      + 'byte-identically, and reports that it wrote — the record is compared '
+      + 'WHOLE rather than field by field, because a comparison of parts is '
+      + 'green over a stray key and a stray key one nesting level from a token '
+      + 'id is what this whole region is placed against',
+      [backReturned, JSON.stringify(backRec()) === backWasJson,
+        backMoved !== backWasJson, App.state.undoDepth() - backDepth],
+      [true, true, true, 1]);
+
+    t.eq('and pressing it again with nothing in between writes nothing at all: '
+      + 'the no-op contract renameAction and writeTerms keep, for the reason '
+      + 'those two give — a do-nothing Ctrl+Z step would sit between a student '
+      + 'and the edit they actually want back',
+      (function () {
+        var depth = App.state.undoDepth();
+        var again = App.ops.restoreAction('cats', backId, backRec());
+        App.state.flush();
+        return [again, App.state.undoDepth() - depth,
+          JSON.stringify(backRec()) === backWasJson];
+      })(), [false, 0, true]);
+
+    t.ok('one Ctrl+Z brings the four edits back, which is what makes the '
+      + 'no-confirmation ruling (D-17) apply to this press rather than merely '
+      + 'be convenient', (function () {
+        App.ops.undo();
+        App.state.flush();
+        var back = JSON.stringify(backRec()) === backMoved;
+        App.ops.restoreAction('cats', backId, backWas);
+        App.state.flush();
+        return back;
+      })());
+
+    t.ok('it leaves `dmg` and `keywords` exactly where it found them, which is '
+      + 'the DELIBERATELY ABSENT block\'s fourth kind meeting the first op in '
+      + 'this file that writes a whole action record. Neither field is on the '
+      + 'wire, so an op that helpfully restored them would put a page-supplied '
+      + 'value into two fields no build code carries',
+      backRec().dmg === 0 && backRec().keywords.length === 0);
+
+    /* --- the refusals, each one taken OUTSIDE the commit. The idiom is the
+           advance path's advRefuses one region down, restated here because
+           this suite is DOM-free and cannot call it: what is asserted is not
+           only that the op said no, but that saying no cost the board
+           nothing. --- */
+    var backWrong = [];
+    var backSaid = [];
+    function backRefuses(what, spoiled) {
+      var before = JSON.stringify(App.state.get());
+      var depth = App.state.undoDepth();
+      try {
+        App.ops.restoreAction('cats', backId, spoiled);
+        backWrong.push(what + ' DID NOT REFUSE');
+        backSaid.push('');
+      } catch (stopped) {
+        backSaid.push(String(stopped.message));
+      }
+      App.state.flush();
+      if (JSON.stringify(App.state.get()) !== before) {
+        backWrong.push(what + ' MOVED THE BOARD');
+      }
+      if (App.state.undoDepth() !== depth) {
+        backWrong.push(what + ' LEFT AN UNDO ENTRY');
+      }
+      if (!protoIntact()) { backWrong.push(what + ' TOUCHED THE PROTOTYPE'); }
+    }
+
+    // A snapshot that is not a record at all. A press can only ever hand over
+    // what the surface was holding, and the surface holds null before anything
+    // is selected — so this is the reachable one rather than the hostile one.
+    [null, undefined, 'Slash', 7, [], true].forEach(function (bad) {
+      backRefuses('a snapshot of ' + JSON.stringify(bad), bad);
+    });
+    // A record whose FIELDS are spoiled, which is the shape a hand-edited page
+    // or a later plan's bug would produce.
+    backRefuses('a name the gate refuses', { name: '   ', cost: [], req: [], xf: [] });
+    backRefuses('a cost term that is not a record',
+      { name: 'Pounce', cost: ['ap'], req: [], xf: [] });
+    backRefuses('a cost naming a type that is not there',
+      { name: 'Pounce', cost: [{ tok: 'sparkle', n: 1 }], req: [], xf: [] });
+    backRefuses('a cost naming a name JavaScript keeps for itself',
+      { name: 'Pounce', cost: [{ tok: '__proto__', n: 1 }], req: [], xf: [] });
+    backRefuses('an amount that is not a whole number',
+      { name: 'Pounce', cost: [{ tok: 'ap', n: 1.5 }], req: [], xf: [] });
+    backRefuses('a change naming a party the allowlist does not hold',
+      { name: 'Pounce', cost: [], req: [],
+        xf: [{ who: 'bystander', tok: 'hp', d: -1 }] });
+    backRefuses('a change of nothing, which is not a change',
+      { name: 'Pounce', cost: [], req: [], xf: [{ who: App.data.XF_WHO[1], tok: 'hp', d: 0 }] });
+    t.eq('every spoiled snapshot is refused, and every refusal leaves the board '
+      + 'byte-identical with no undo entry and the prototype intact — the '
+      + 'property every guard in [S05] is placed OUTSIDE the commit for, read '
+      + 'back here rather than promised. A record is the one payload shape the '
+      + 'router cannot protect by naming keys, so this is where that protection '
+      + 'actually lives',
+      backWrong, []);
+    t.ok('and every refusal said something, rather than one of them being a '
+      + 'silent return that this table would have counted as a refusal',
+      backSaid.length === 13 && backSaid.every(function (s) { return s !== ''; }));
+
+    /* --- AND WHAT IS CLAMPED IS CLAMPED, AND THAT IS THE OTHER HALF OF THE
+           SAME STANDARD RATHER THAN A HOLE IN IT. Two of the values above
+           started life in the refusal table and came out of it MEASURED: a
+           cost of zero and a change past the bound do not throw, because
+           int() COMPARES and clamps to the named bound and refuses only what
+           is not a whole number at all. That is what setActionCost and
+           setActionXf do with the same values from the keyboard, which is the
+           point — a restore that was STRICTER than the write path would refuse
+           records the write path had itself produced, and a student who had
+           written one would find they could no longer put it back. So the
+           standard is EQUALITY WITH THE WRITE PATH, driven here as such
+           rather than asserted as a sentence. --- */
+    t.eq('an amount outside its bound is clamped to that bound, by the same '
+      + 'int() the four write paths run and to the same named constants — the '
+      + 'restore admits exactly what a keystroke admits, no more and no less',
+      (function () {
+        App.ops.restoreAction('cats', backId, {
+          name: 'Pounce',
+          cost: [{ tok: 'ap', n: 0 }],
+          req: [],
+          xf: [{ who: App.data.XF_WHO[1], tok: 'hp', d: App.data.MIN_XF_DELTA - 1 }]
+        });
+        App.state.flush();
+        var byRestore = [backRec().cost[0].n, backRec().xf[0].d];
+        App.ops.setActionCost('cats', backId, 0, 'ap', 0);
+        App.ops.setActionXf('cats', backId, 0, App.data.XF_WHO[1], 'hp',
+          App.data.MIN_XF_DELTA - 1);
+        App.state.flush();
+        return [byRestore, [backRec().cost[0].n, backRec().xf[0].d],
+          [App.ops.MIN_ACTION_COST, App.data.MIN_XF_DELTA]];
+      })(),
+      [[App.ops.MIN_ACTION_COST, App.data.MIN_XF_DELTA],
+        [App.ops.MIN_ACTION_COST, App.data.MIN_XF_DELTA],
+        [App.ops.MIN_ACTION_COST, App.data.MIN_XF_DELTA]]);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+
     /* --- and nothing in THIS plan applies anything: the ops shipped here edit
            a rule's definition, and the whole of ACT-05 landed on Advance in
            Phase 5. This row is the export block read back.
@@ -30969,7 +31613,18 @@ App.selftest = (function () {
            is the thing a redundant pair can actually earn its place doing: a
            later plan that widens one list and leaves the other stale reddens
            here, and neither list can quietly stop covering what the other
-           still does. --- */
+           still does.
+
+           RE-READ BY D-34 AND NOT WIDENED, AND THE DISTINCTION IS THE WHOLE OF
+           WHY THIS IS RECORDED RATHER THAN LEFT SILENT. That change put a new
+           op on the export list this row filters — restoreAction — which is
+           exactly the event a stale allowlist survives by being lucky. It is
+           not an applier: it edits a rule's DEFINITION the way the four write
+           paths beside it do, it spends nothing, tests nothing against a unit
+           and moves no token, and its name matches neither family. Both lists
+           were read back after it joined and both still answer the single name
+           advanceRound, which is what these two rows say. Nothing was added to
+           either family to make that true. --- */
     t.eq('the narrow applier family this suite was written against and the '
       + 'wider one the boundary row below uses answer the SAME single name, '
       + 'and it is advanceRound — so a later plan cannot satisfy one list and '
@@ -31045,6 +31700,21 @@ App.selftest = (function () {
     //    and the projection can never read one. Walked at every depth, because
     //    a key set can be right at the top while a proposal hides inside a
     //    unit or an action, which is where one would end up under pressure.
+    //
+    //    D-34 PUT A SECOND THING THROUGH THIS DOOR AND IT WENT THE SAME WAY.
+    //    The cancel step needs the record an action was carrying when it was
+    //    selected, and all four homes were weighed against exactly the four
+    //    sentences above: a `ui` key reddens the key-set row and the ui writer
+    //    refuses an object value anyway; a fourth slice reddens the row saying
+    //    there are three; the build slice reddens nothing and is still wrong,
+    //    because a snapshot is not the student's allocation and has not
+    //    happened to the board. It is held in [S07.3]'s own scope, and what
+    //    makes that enough rather than merely convenient is [S03]'s freeze —
+    //    the state between commits is deep-frozen and commit() mutates a
+    //    detached copy, so the reference IS the snapshot. Check 113d in
+    //    tests/selftest-node.cjs drives the consequence this row is about: the
+    //    build is encoded WHILE a snapshot is held and the code carries the
+    //    live name, not the snapshotted one.
     t.eq('NO PROPOSAL LIVES IN ANY SLICE, at any depth: nothing reachable from '
       + 'the state is named after a proposal, an override, a caster, a target '
       + 'or a pending anything. That is what stops undo, a pasted build code '

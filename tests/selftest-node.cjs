@@ -762,6 +762,13 @@ function makeStubDom() {
     'act-edit-xf-1', 'act-edit-xf-1-amt',
     'act-edit-xf-2', 'act-edit-xf-2-amt',
     'act-edit-xf-3', 'act-edit-xf-3-amt',
+    // D-34 — the way out of a set of edits, beside Done in the same footer.
+    // Same rule as every entry above: the id, this entry and the stub node
+    // arrive together, or the run fails at section 5b in one direction or the
+    // other. It carries data-act and a real op name rather than data-ae,
+    // because there IS an op behind it — the shell comment beside the button
+    // gives the partition in full.
+    'act-edit-cancel',
     'act-edit-done',
     // plan 03.1-07 — the proposal pane, and the button on the authoring pane
     // that switches to it. Reserved empty by plan 03.1-05 and filled here.
@@ -1643,6 +1650,14 @@ function makeStubDom() {
   aePropOpen.dataset.ap = 'open';
   aePropOpen.dataset.k = 'ap/open';
   aeActions.appendChild(aePropOpen);
+  // D-34's cancel step, in the footer beside Done exactly as the shell has it.
+  // data-act and a real App.ops name, NOT data-ae: a press on it dispatches,
+  // which is the partition this dialog is read by and which check 68e reads
+  // back off the live registration.
+  const aeCancel = idNode('act-edit-cancel', 'button');
+  aeCancel.dataset.act = 'restoreAction';
+  aeCancel.dataset.k = 'ae/restore';
+  aeActions.appendChild(aeCancel);
   const aeDone = idNode('act-edit-done', 'button');
   aeDone.dataset.ae = 'done';
   aeActions.appendChild(aeDone);
@@ -14718,6 +14733,430 @@ check(
     + ' .ae-side--on .ae-check=' + (dnSideTick !== -1)
 );
 
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+/* --- 113-113d. D-34: THE CANCEL STEP ON MODIFYING ACTIONS -------------------
+
+   "there should be a cancel step on modifying actions" — the developer,
+   2026-08-30. The orchestrator's binding reading is that CANCEL IS A REVERT
+   AND NOT A DRAFT MODE: every edit in this file lands live through the commit
+   funnel, so what a cancel can be is a restore of the record as it was when
+   the action was selected, landed as ONE commit that is itself one Ctrl+Z.
+
+   FOUR ROWS, AND EACH ONE FAILS DIFFERENTLY. 113 is the loop end to end. 113b
+   is the inert case, which is the one a feature written to "just work" gets
+   wrong by committing a no-op. 113c is the focused field, which is the case the
+   pointerdown ordering makes a trap. 113d is the placement — where the snapshot
+   lives, that the selection carries it, and that the codec cannot see it.
+
+   EVERYTHING GOES THROUGH THE SHIPPED CONTROLS, never through A.ops directly,
+   because the whole of this feature is a press: an op driven straight would
+   prove the op and say nothing about the button, the snapshot or the focus. */
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+aePress(aeOpenBtn);
+const cxCancel = dom.byId['act-edit-cancel'];
+const cxRowOf = (id) => aeList.children.filter((c) => c.dataset.edPick === id)[0];
+const cxDisabled = [];
+const cxWatch = () => { cxDisabled.push(cxCancel.disabled === true); };
+
+// THE UNDO STACK IS EMPTIED FIRST, and that is a property of the rows rather
+// than tidiness around them. UNDO_LIMIT is thirty; this drive pushes thirteen
+// entries before the cancel, and on a stack already at its cap commit() shifts
+// the oldest away, so a DELTA of one reads as zero and 113 would pass over a
+// cancel that committed nothing at all. [S09.10]'s own t.info records the same
+// hazard from the other side. restore() is the only thing that clears the
+// stack, it is [S09]'s by name, and it is handed the board it was just given.
+const cxClean = JSON.stringify(A.state.get());
+A.state.restore(cxClean);
+A.state.flush();
+
+// The token vocabulary, read live rather than typed: four terms need four ids
+// and a row that named 'ap' and 'hp' by hand would break the day the shipped
+// vocabulary moved.
+const cxToks = Object.keys(A.state.get().build.tokens);
+const cxAt = (i) => cxToks[i % cxToks.length];
+
+/* 113. THE LOOP, END TO END, AT THE CAPS. Slash is chosen rather than an
+   authored rule because a shipped action's record is reconstructible from
+   DEFAULTS, so "restored byte-identically" can be read against something this
+   file did not write down for itself — and because the four facets are driven
+   to 4/4/4, which is every slot D-32 opened. */
+const cxRow = cxRowOf('slash');
+aePress(cxRow);                       // selection, and therefore the snapshot
+cxWatch();
+const cxSnapAtSelect = A.interactions.editorSnapshot();
+const cxWas = JSON.stringify(aeRecordOf('slash'));
+
+aeName.focus();
+aeName.value = 'Rake';
+aeName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+aeName.blur();
+A.state.flush();
+for (let i = 0; i < 4; i++) {
+  aePress(aePillFor('cost', i, 'edTok', cxAt(i)));
+  aeTypeAmount(aeAmtOf('cost', i), String(i + 1));
+  aeAmtOf('cost', i).blur();
+  A.state.flush();
+}
+for (let i = 0; i < 4; i++) {
+  aePress(aePillFor('req', i, 'edTok', cxAt(i)));
+  aeTypeAmount(aeAmtOf('req', i), String(i + 1));
+  aeAmtOf('req', i).blur();
+  A.state.flush();
+}
+for (let i = 0; i < 4; i++) {
+  aePress(aePillFor('xf', i, 'edTok', cxAt(i)));
+  aePress(aePillFor('xf', i, 'edWho', A.data.XF_WHO[i % 2]));
+  aeTypeAmount(aeAmtOf('xf', i), String(-(i + 1)));
+  aeAmtOf('xf', i).blur();
+  A.state.flush();
+}
+cxWatch();
+const cxMade = JSON.stringify(aeRecordOf('slash'));
+const cxFilled = [aeRecordOf('slash').cost.length, aeRecordOf('slash').req.length,
+  aeRecordOf('slash').xf.length].join('/');
+
+const cxDepthBefore = A.state.undoDepth();
+const cxCommitsBefore = commits();
+aePress(cxCancel);
+cxWatch();
+const cxBack = JSON.stringify(aeRecordOf('slash'));
+const cxEntries = A.state.undoDepth() - cxDepthBefore;
+const cxCommitted = commits() - cxCommitsBefore;
+
+// 113b's half, taken HERE because the board is in the one state that makes it
+// meaningful — the record already equals the snapshot, so a second press has
+// nothing to do and must therefore do nothing at all.
+const cxInertDepth = A.state.undoDepth();
+const cxInertCommits = commits();
+aePress(cxCancel);
+cxWatch();
+const cxInertEntries = A.state.undoDepth() - cxInertDepth;
+const cxInertCommitted = commits() - cxInertCommits;
+const cxInertBoard = JSON.stringify(aeRecordOf('slash'));
+
+// And the mis-press is recoverable, which is the clause that makes the whole
+// no-confirmation ruling (D-17) legitimate rather than merely convenient.
+A.ops.undo();
+A.state.flush();
+cxWatch();
+const cxUndone = JSON.stringify(aeRecordOf('slash'));
+
+const cxShipped = JSON.stringify(A.data.DEFAULTS.cats.actions
+  .filter((a) => a.id === 'slash')[0]);
+
+check(
+  '113. D-34: A RULE MODIFIED IN EVERY ONE OF ITS FOUR FACETS GOES BACK THE WAY '
+    + 'IT WAS IN ONE COMMIT, AND THAT COMMIT IS ONE Ctrl+Z. Driven through the '
+    + 'shipped controls end to end — the list row that selects, the name field, '
+    + 'four cost pills, four requirement pills, four change pills with their '
+    + 'party choosers and twelve amount fields — to the 4/4/4 caps D-32 opened, '
+    + 'and then the one press. RESTORED BYTE-IDENTICALLY, and the record it is '
+    + 'compared against is the SHIPPED one out of DEFAULTS rather than a string '
+    + 'this row wrote down for itself, so a restore that put back something '
+    + 'plausible instead of something exact reddens. ONE UNDO ENTRY AND ONE '
+    + 'COMMIT, which is the whole reason there is an op for this rather than '
+    + 'four dispatches in a row: resetFight\'s own paragraph measures the naive '
+    + 'spelling at one entry per write, and a student who mis-pressed would '
+    + 'have to press Ctrl+Z once per edit and land on a half-restored rule in '
+    + 'between. THE STACK IS EMPTIED FIRST because at UNDO_LIMIT a delta of one '
+    + 'reads as zero. AND THE MIS-PRESS IS RECOVERABLE: one Ctrl+Z brings every '
+    + 'modification back, which is what makes D-17\'s no-confirmation ruling '
+    + 'apply to this press rather than merely be convenient',
+  cxRow !== undefined
+    && cxWas === cxShipped
+    && cxFilled === '4/4/4'
+    && cxMade !== cxWas
+    && cxBack === cxWas
+    && cxEntries === 1 && cxCommitted === 1
+    && cxUndone === cxMade
+    && cxSnapAtSelect[0] === 'cats' && cxSnapAtSelect[1] === 'slash'
+    && cxSnapAtSelect[2] === cxWas
+    && errPanel.hidden === true,
+  'record at selection=' + cxWas
+    + ' | shipped=' + cxShipped
+    + ' | lists after the edits=' + cxFilled
+    + ' | after the cancel=' + cxBack
+    + ' | undo entries from the cancel=' + cxEntries
+    + ' commits=' + cxCommitted
+    + ' | after one Ctrl+Z=' + cxUndone
+    + ' | the modified record was=' + cxMade
+    + ' | snapshot at selection=' + JSON.stringify(cxSnapAtSelect.slice(0, 2))
+);
+
+check(
+  '113b. WITH NOTHING CHANGED THE PRESS IS INERT, AND IT IS NEVER DISABLED. '
+    + 'Those two clauses are the same ruling read from both ends and neither '
+    + 'implies the other. INERT: a second press with nothing in between moves '
+    + 'no board, makes no commit and leaves no undo entry — the op\'s no-op '
+    + 'contract, which renameAction and writeTerms already keep for the reason '
+    + 'a name field commits on every keystroke, and which matters more here '
+    + 'because a do-nothing entry would sit between the student and the edit '
+    + 'they actually want back. NEVER DISABLED: read at five moments across '
+    + 'this whole drive — at selection, with the rule modified to the caps, '
+    + 'after the restore, after the inert press and after the undo — because a '
+    + 'control greyed out for a state a student cannot see the shape of teaches '
+    + 'them nothing, which is the convention every surface outside the fight '
+    + 'declaration grid keeps. A cancel step that disabled itself when clean '
+    + 'would pass the inert clause spotlessly',
+  cxInertEntries === 0 && cxInertCommitted === 0
+    && cxInertBoard === cxWas
+    && cxDisabled.length === 5
+    && cxDisabled.every((d) => d === false)
+    && errPanel.hidden === true,
+  'undo entries from the inert press=' + cxInertEntries
+    + ' commits=' + cxInertCommitted
+    + ' | board after it=' + cxInertBoard
+    + ' | disabled at the five moments=' + JSON.stringify(cxDisabled)
+);
+
+/* 113c. THE FOCUSED FIELD, WHICH IS THE CASE THE EVENT ORDER MAKES A TRAP.
+   Every control in this dialog acts on POINTERDOWN, which the spec puts ahead
+   of the focus change, so a student typing into a field and pressing this
+   button reaches the handler with the field still focused and still holding
+   uncommitted text. Two things then go wrong if nothing is done about it, and
+   they are different failures: the focusout that follows dispatches that stale
+   text as a fresh edit and silently undoes the cancel one event later with a
+   second undo entry behind it (67e's mechanism, arriving from the other
+   direction); and the repaint deliberately never writes a focused field (D-19,
+   showAmount's first line), so the field goes on showing the value the student
+   asked to discard. BOTH ARE ASSERTED. Driven for the amount field AND for the
+   name field, because the two carry their own commit paths and a fix applied to
+   one is invisible in the other. */
+A.state.restore(cxClean);
+A.state.flush();
+clearPanel();
+aePress(cxRowOf('slash'));
+
+const cxAmt = aeAmtOf('cost', 0);
+const cxAmtWas = cxAmt.value;
+aePress(aePillFor('cost', 1, 'edTok', cxAt(1)));   // something to put back
+aeTypeAmount(aeAmtOf('cost', 1), '3');
+aeAmtOf('cost', 1).blur();
+A.state.flush();
+cxAmt.focus();
+cxAmt.value = '9';
+cxAmt.dispatchEvent(dom.event('input'));
+const cxAmtCommits = commits();
+aePress(cxCancel);
+const cxAmtEntries = commits() - cxAmtCommits;
+const cxAmtField = cxAmt.value;
+const cxAmtRecord = JSON.stringify(aeRecordOf('slash'));
+const cxAmtFocus = stub.activeElement === cxCancel;
+// The blur the browser would raise after the press, driven by hand: if the
+// pending text were still standing it would land HERE.
+cxAmt.dispatchEvent(dom.event('focusout'));
+A.state.flush();
+const cxAmtAfterBlur = JSON.stringify(aeRecordOf('slash'));
+
+/* The name field, driven in the arrangement that makes the FINGERPRINT the
+   problem rather than the commit. A restore puts a record BACK, so the
+   fingerprint after it can equal the fingerprint of a paint taken before the
+   edits began — here, deliberately, no frame is flushed between the rename and
+   the press, so the last recorded paint is the one from before the field was
+   ever focused and the sig after the restore matches it exactly. Without
+   App.render.editorStale the gate at the top of editor() returns early, and the
+   field goes on showing the word the student asked to throw away over a record
+   that no longer holds it. MEASURED: this row read "Rake" against a record of
+   "Slash" before that call existed, with every other clause green. */
+A.state.restore(cxClean);
+A.state.flush();
+aePress(cxRowOf('slash'));
+aeName.focus();
+aeName.value = 'Rake';
+aeName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+aeName.value = 'Prowl';                    // typed and NOT committed
+aeName.dispatchEvent(dom.event('input'));
+const cxNameSig = aeDialog.dataset.edSig;
+aePress(cxCancel);
+const cxNameField = aeName.value;
+const cxNameRecord = aeRecordOf('slash').name;
+const cxNameSigBlanked = cxNameSig !== '';
+aeName.dispatchEvent(dom.event('focusout'));
+A.state.flush();
+const cxNameAfterBlur = aeRecordOf('slash').name;
+
+/* And the same surface with a frame in between, which is what a browser
+   actually raises: the paint runs WITH the field focused, skips it by D-19, and
+   must therefore not record a fingerprint saying the surface is up to date.
+   That is the other half of the same rule and it lives in editor() itself. */
+A.state.restore(cxClean);
+A.state.flush();
+aePress(cxRowOf('slash'));
+aeName.focus();
+A.ops.renameAction('cats', 'slash', 'Rake');
+A.state.flush();
+const cxSkippedField = aeName.value;              // stale on purpose (D-19)
+const cxSkippedSig = aeDialog.dataset.edSig;      // and the paint says so
+aeName.blur();
+A.ops.renameAction('cats', 'slash', 'Prowl');
+A.state.flush();
+const cxCaughtUp = aeName.value;
+
+check(
+  '113c. A CANCEL TAKEN WITH A FIELD FOCUSED DISCARDS THE HALF-MADE EDIT TOO, '
+    + 'AND THE FIELD IS REPAINTED. This is the case the pointerdown ordering '
+    + 'makes a trap: the press acts BEFORE the focus moves, so the field still '
+    + 'holds text nothing has committed, and the focusout that follows would '
+    + 'dispatch it as a fresh edit — the cancel would appear to work and undo '
+    + 'itself one event later, with a second entry behind it. The pending text '
+    + 'goes back through the SAME revert Escape uses, which makes that focusout '
+    + 'a no-op by the value-versus-`was` test those functions already carry, so '
+    + 'no new guard was added. AND THE FIELD IS BLURRED, because the repaint '
+    + 'never writes a focused one (D-19) and a restore taken while a student '
+    + 'stood in a field would otherwise leave that one field showing the value '
+    + 'they asked to discard. THIS IS THE ONE PRESS IN THIS FILE FOR WHICH '
+    + 'OVERWRITING A FOCUSED FIELD IS THE CONTENT OF THE REQUEST rather than a '
+    + 'violation of it. Focus is then PLACED, never left on the body — a modal '
+    + 'whose active element is the body has lost the keyboard. Driven for the '
+    + 'amount field and for the name field, because each carries its own commit '
+    + 'path and a fix in one is invisible in the other. AND THE REPAINT ITSELF '
+    + 'IS THE THIRD CLAUSE, which is a defect D-34 FOUND rather than one it '
+    + 'introduced: a paint that skips a focused field is INCOMPLETE and used to '
+    + 'record a fingerprint saying the surface matched state anyway, so the '
+    + 'signature gate at the top of editor() would return early over a field '
+    + 'that really was wrong. A restore is the press that lands on exactly that '
+    + 'fingerprint — it puts a record BACK — so both halves are driven: the '
+    + 'incomplete paint must record NO fingerprint, and a press that throws a '
+    + 'field\'s pending text away must say so through App.render.editorStale',
+  cxAmtField === cxAmtWas
+    && cxAmtRecord === cxWas
+    && cxAmtEntries === 1
+    && cxAmtAfterBlur === cxWas
+    && cxAmtFocus === true
+    && cxNameField === 'Slash' && cxNameRecord === 'Slash'
+    && cxNameAfterBlur === 'Slash'
+    && cxNameSigBlanked === true
+    && cxSkippedField === 'Slash' && cxSkippedSig === ''
+    && cxCaughtUp === 'Prowl'
+    && errPanel.hidden === true,
+  'amount field after the cancel=' + JSON.stringify(cxAmtField)
+    + ' (was ' + JSON.stringify(cxAmtWas) + ' before the typing)'
+    + ' | record after it=' + cxAmtRecord
+    + ' | commits from the press=' + cxAmtEntries
+    + ' | record after the blur that follows=' + cxAmtAfterBlur
+    + ' | focus landed on the button=' + cxAmtFocus
+    + ' | name field=' + JSON.stringify(cxNameField)
+    + ' record=' + JSON.stringify(cxNameRecord)
+    + ' after the blur=' + JSON.stringify(cxNameAfterBlur)
+    + ' | a memoised sig was standing before the press=' + cxNameSigBlanked
+    + ' | field skipped while focused=' + JSON.stringify(cxSkippedField)
+    + ' and the paint recorded sig=' + JSON.stringify(cxSkippedSig)
+    + ' | field after the next commit=' + JSON.stringify(cxCaughtUp)
+);
+
+/* 113d. WHERE THE SNAPSHOT LIVES, AND WHAT THAT BUYS. Three claims that a row
+   about the FEATURE would leave untouched.
+
+   IT FOLLOWS THE SELECTION, because it is taken in showAction — the one place
+   that says "the editor is now showing this action" — so a student who edits
+   one rule, moves to another and presses this puts the SECOND one back and
+   leaves the first alone. A snapshot taken once when the dialog opened passes
+   every clause of 113 and fails here.
+
+   THE CODEC CANNOT SEE IT, and this is driven rather than argued: an action is
+   renamed to a word, selected so the snapshot holds that word, renamed again,
+   and the build is then encoded and decoded. The code must carry the LIVE name
+   and the snapshot must still hold the old one — which proves both halves at
+   once, that the snapshot really exists and really is different from what the
+   codec read. A snapshot in the build slice would put a name the student has
+   moved on from into every shared link.
+
+   AND NO SLICE HOLDS IT AT ANY DEPTH, walked for the words this feature would
+   name a key after. Check 73c walks for the proposal's five stems and runs
+   before this surface is ever pressed; this is that walk taken over this
+   feature's own vocabulary, at the moment a snapshot is actually being held. */
+A.state.restore(cxClean);
+A.state.flush();
+clearPanel();
+const cxOther = A.ops.createAction('cats', 'Pounce');
+A.state.flush();
+aePress(cxRowOf('slash'));
+aeName.focus();
+aeName.value = 'Rake';
+aeName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+aeName.blur();
+A.state.flush();
+aePress(cxRowOf(cxOther));
+const cxSnapMoved = A.interactions.editorSnapshot();
+aeName.focus();
+aeName.value = 'Stalk';
+aeName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+aeName.blur();
+A.state.flush();
+aePress(cxCancel);
+const cxOtherBack = aeRecordOf(cxOther).name;
+const cxFirstHeld = aeRecordOf('slash').name;
+
+// The codec, driven over a board that IS mid-edit.
+aePress(cxRowOf(cxOther));                  // snapshot holds 'Pounce'
+const cxSnapWord = A.interactions.editorSnapshot()[2];
+aeName.focus();
+aeName.value = 'Creep';
+aeName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+aeName.blur();
+A.state.flush();
+const cxCode = A.serialize.encode(A.state.get().build);
+const cxDecoded = A.serialize.decode(cxCode);
+const cxCodeName = (cxDecoded.ok !== true) ? '(refused: ' + cxDecoded.why + ')'
+  : cxDecoded.build.cats.actions.filter((a) => a.id === cxOther)[0].name;
+const cxSnapStillOld = cxSnapWord.indexOf('"Pounce"') !== -1
+  && cxSnapWord.indexOf('Creep') === -1;
+const cxCodeCarriesNeither = cxCode.indexOf('Pounce') === -1;
+
+const cxKeys = [];
+(function walkCx(node, where) {
+  if (!node || typeof node !== 'object') { return; }
+  Object.keys(node).forEach((k) => {
+    if (/snap|restor|cancel|revert|undoable|befor/i.test(k)) {
+      cxKeys.push(where + '.' + k);
+    }
+    walkCx(node[k], where + '.' + k);
+  });
+})(A.state.get(), 'state');
+
+check(
+  '113d. THE SNAPSHOT FOLLOWS THE SELECTION, LIVES IN NO SLICE, AND THE CODEC '
+    + 'CANNOT SEE IT. It is held in [S07.3]\'s own scope and not in the `ui` '
+    + 'slice — whose exact key set [S09.3] pins and check 73c reads back, and '
+    + 'whose writer refuses an object value by contract — and not on the '
+    + 'dialog\'s dataset either, which would have meant a page-supplied JSON '
+    + 'string flowing back into an op. What makes a plain variable enough is '
+    + '[S03]\'s freeze: the live state is deep-frozen between commits and '
+    + 'commit() mutates a detached copy, so holding the record reference IS the '
+    + 'snapshot and there is nothing to copy. THREE CLAIMS. It is taken in '
+    + 'showAction, the one place that says which action the editor is showing, '
+    + 'so editing one rule and moving to another puts the SECOND one back and '
+    + 'leaves the first standing — a snapshot taken once on open passes every '
+    + 'clause of 113 and fails this one. The build is ENCODED AND DECODED while '
+    + 'a snapshot is being held and the code carries the LIVE name while the '
+    + 'snapshot still holds the old one, which proves both halves at once. And '
+    + 'nothing reachable from the state at any depth is named after a snapshot, '
+    + 'a restore, a cancel, a revert or a before-value, which is 73c\'s walk '
+    + 'taken over this feature\'s own vocabulary at the moment one is held',
+  cxSnapMoved[1] === cxOther
+    && cxOtherBack === 'Pounce'
+    && cxFirstHeld === 'Rake'
+    && cxCodeName === 'Creep'
+    && cxSnapStillOld === true
+    && cxCodeCarriesNeither === true
+    && cxKeys.length === 0
+    && errPanel.hidden === true,
+  'snapshot after the selection moved=' + JSON.stringify(cxSnapMoved.slice(0, 2))
+    + ' | the second rule after the cancel=' + JSON.stringify(cxOtherBack)
+    + ' | the first rule, untouched=' + JSON.stringify(cxFirstHeld)
+    + ' | name out of the decoded code=' + JSON.stringify(cxCodeName)
+    + ' | snapshot still holds the old word=' + cxSnapStillOld
+    + ' | the code carries it nowhere=' + cxCodeCarriesNeither
+    + ' | snapshot-shaped keys in the state: ' + (cxKeys.join(', ') || 'none')
+);
+
+if (aeDialog.open === true) { aeDialog.close(); }
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
