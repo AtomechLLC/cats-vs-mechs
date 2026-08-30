@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-33 PASS C — the P2/P3 tiers and REF-03 (05-D33c)
-last_updated: "2026-08-30T05:20:00.000Z"
+stopped_at: Completed D-34 — a cancel step on modifying actions (05-D34)
+last_updated: "2026-08-30T11:00:00.000Z"
 last_activity: 2026-08-30
 progress:
   total_phases: 7
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 complete, plus the D-27, D-28, D-29, D-30, D-31 and D-32 redirect work;
+Plan: 16 of 16 complete, plus the D-27 through D-34 redirect work;
 every autonomous plan in the phase is done
 Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate and it is
 still plan 11.
@@ -221,6 +221,40 @@ Chrome drew its light default: a white bar down a dark dialog). New browser cell
 a rule's own DECLARATIONS off computed style, because that is the only thing that finds
 this class of defect.
 `.planning/phases/05-fight-loop-playtest/05-D33c-SUMMARY.md`.
+**D-34 — "there should be a cancel step on modifying actions".** CANCEL IS A REVERT AND
+NOT A DRAFT MODE, which is what makes it an op rather than a flag: this file commits every
+edit live through one funnel, so a draft would have needed a second uncommitted copy of a
+rule the board was not drawing. The editor snapshots the record when an action is
+SELECTED and `restoreAction` puts it back as **ONE commit**, itself one Ctrl+Z — so a
+mis-pressed cancel is recoverable, which is what lets it ship with no confirmation
+(D-17). Inert when nothing changed, **never disabled**. The control is
+`#act-edit-cancel`, beside Done, reading **"Put this action back how it was"** — not
+"Cancel", which names a MODE, while this file names a control by its effect.
+- **The op** takes the one payload shape the router cannot protect by naming keys, so the
+  protection moved one layer down: the record is rebuilt FIELD BY FIELD through
+  `requireActionName` / `requireTokenId` / `requireXfWho` / `int()` at the same named
+  bounds, every guard outside the commit. The standard is **equality with the write
+  path** — two values came out of the refusal table MEASURED as clamps, because a restore
+  stricter than a keystroke would refuse records the keystroke had produced.
+- **The snapshot is a held reference to a deep-frozen record**, in `[S07.3]`'s own scope.
+  All four homes weighed against the proposal pane's own four sentences; **no key set
+  moved in either direction**, and PROBE C proved it from the failing side (the build
+  slice reddened 73c, 113d and three codec-and-mirror rows). Taken in `showAction`, so it
+  follows the selection.
+- **A defect FOUND, not introduced:** a paint that skipped a focused field recorded a
+  fingerprint saying the surface matched state. `[S06.5]` now records none, and
+  `App.render.editorStale` is the same statement from a press that discards a field's
+  text. A restore is the one press that lands on that fingerprint every time.
+Gate: node **1253 → 1261 / 0, exit 0**, **196 → 200** interaction rows (+113, +113b,
++113c, +113d), stub-drift **135 → 136 shell ids** (`act-edit-cancel`, with its KNOWN_IDS
+entry and stub node in the same change), **no floor moved** — `DIALOG_FLOOR` **138**/172
+either way, because a static label is Layer A's and never Layer C's — browser checks
+**230 → 242 / 0 HEADLESS** (+cells 24, 24b, 24c). Eight probes against copied snapshots;
+footer screenshotted in both browsers at both viewports (three controls, one line, 82px,
+Done last). `deferred-items.md` item 12 is new — the browser cells throw on a timeout
+rather than failing a row, which PROBE G found by making the footer too wide and watching
+the run die in cell 23b over a node gate that was 1261/0 and 200 of 200.
+`.planning/phases/05-fight-loop-playtest/05-D34-SUMMARY.md`.
 Next: **nothing autonomous is left in the phase.** 05-11's playtest is the gate, and its
 register is now **1–57**: section K holds P2-6 (symbols in the proposal pane, which extends
 D-29's own scope) and P3-4 (one removal mark per term group rather than per glyph, which

@@ -493,3 +493,31 @@ was given.
 needs the list and the terms on screen at the same time; if they do, the obvious move is a
 scrolling terms region inside a fixed-height dialog rather than a scrolling dialog, and that is a
 change to `.ae` and `.ae-terms` and to nothing else.
+
+---
+
+## 12. THE BROWSER CELLS DIE ON A TIMEOUT RATHER THAN FAILING A ROW
+
+**Found:** plan 05-D34, by PROBE G and PROBE G2b, which were about something else.
+
+Both probes widened the action editor's footer past the dialog's content width — one by giving
+D-34's control a 120-character label, one by putting a `min-width:900px` on it. Neither is a
+footer defect a reader would predict from either gate: `tests/selftest-node.cjs` ran **1261
+passed, 0 failed, 200 of 200, exit 0** over both of them, because it has no layout engine.
+
+What the browser run did was not fail cell 24. It **threw**, thirty seconds into
+`page.click('[data-k="ae/setActionXf/1/who/caster"]')` inside cell **23b**, and took the rest of
+the run — including cell 24, the cell that would have named the actual problem — with it. The
+mechanism is real and is worth writing down: an over-wide footer overflows the author pane, `.ae`
+carries `overflow:hidden`, and a chooser pill in the terms region stops being pressable. **A
+broken footer breaks the whole dialog, not just the footer.**
+
+**Why this is an item rather than a fix here.** Every `pg.click` in `tests/browser-checks.mjs` has
+this property — it is Playwright's default, and it has been correct for every previous pass
+because a press that cannot land IS a failure. What it costs is diagnosis: the run names the first
+control that became unpressable, never the change that made it so, and every cell after it is
+unreported. The shape of the fix is a helper that wraps `pg.click` with a short timeout and turns
+a timeout into `ok(..., false, ...)` so the run continues and the LATER cells get to speak.
+
+**Owner:** whichever pass next adds browser cells. Nothing here blocks the 05-11 playtest, and the
+shipped run is green in all four columns; this is about what a red run tells you.
