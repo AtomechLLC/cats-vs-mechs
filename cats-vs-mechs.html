@@ -9626,14 +9626,61 @@ App.ops = (function () {
 
       plans.forEach(function (p) {
         var pool = g[p.d.side];
-        // actionApCost is the file's ONE reader of a cost and it answers null
-        // for a cost it has no denominator for — a cost a student wrote in
-        // health, say. Advance pays what that reader prices and pays nothing
-        // when it prices nothing, because inventing a price is deciding.
-        var cost = App.model.actionApCost(p.act);
-        var priced = Number.isInteger(cost) ? cost : 0;
-        var paid = Math.min(priced, pool.ap);
-        pool.ap = int(pool.ap - paid, 0, MAX_ALLOC, 'action points');
+        /* D-32: ADVANCE SPENDS EVERY TERM THE COST NAMES, AND THE RULING ABOVE
+           TRANSFERS TO EACH OF THEM WORD FOR WORD. What stood here read one
+           number out of App.model.actionApCost and took it off the action-point
+           pool, because a cost was one term. It now walks the list that reader
+           was built on — App.model.actionCostTerms, the file's one reader of a
+           cost — and spends each term out of the pool it NAMES.
+
+           THE THREE RULES ARE UNCHANGED AND ARE NOW PER TERM. The pool floors
+           at 0. The shortfall is recorded. The terms still land. A pool cannot
+           go negative because a quantity of tokens on a board cannot be less
+           than none of them, and refusing the whole action because one of its
+           four costs came up short would be Advance deciding whether an action
+           happens — D-23's other half, and the paragraph above declines it.
+
+           A TERM NAMING SOMETHING THAT IS NOT A POOL SPENDS NOTHING AND IS
+           RECORDED SPENDING NOTHING. Health lives on units; picking a unit to
+           pay would be adjudication. isPoolToken carries the ruling and its
+           reasons in full, and Advance neither repeats nor re-derives it —
+           "inventing a price is deciding" was already this line's own sentence
+           and it holds one token type over.
+
+           `apPaid` AND `apShort` KEEP THEIR NAMES AND THEIR MEANINGS, because
+           [S06.9]'s lane prints them and a field that quietly started meaning
+           "the first cost term" would move a reading a student has learned.
+           They are the ACTION-POINT halves of the walk, summed across every ap
+           term. `spent` is the new record and it carries EVERY term — including
+           the action points, so the lane has one list to walk rather than one
+           list plus a special case, and including the terms that spent nothing,
+           because a student's own declared cost quietly doing nothing with no
+           record of it is the tool dropping their rule. That is `unlanded`'s
+           argument, applied to the other end of the same declaration. */
+        var costTerms = App.model.actionCostTerms(p.act);
+        var terms = (costTerms === null) ? [] : costTerms;
+        var spent = [];
+        var priced = 0;
+        var paid = 0;
+        terms.forEach(function (c) {
+          var isPool = App.model.isPoolToken(c.tok, s.build.tokens);
+          var took = 0;
+          if (isPool && c.tok === 'ap') {
+            took = Math.min(c.n, pool.ap);
+            pool.ap = int(pool.ap - took, 0, MAX_ALLOC, 'action points');
+          } else if (isPool) {
+            // A side-scope bag, read and written through the same two helpers
+            // the applier uses, so the sparse-storage rules (a tally of zero
+            // deletes its key, an empty bag deletes itself) hold here too
+            // rather than being spelled a second time.
+            var held = readTally(pool, c.tok);
+            took = Math.min(c.n, held);
+            writeTally(pool, c.tok, int(held - took, 0, MAX_ALLOC,
+              'a tally a cost spends'));
+          }
+          spent.push({ tok: c.tok, want: c.n, paid: took });
+          if (c.tok === 'ap') { priced += c.n; paid += took; }
+        });
 
         /* WHAT THE RECORD CARRIES, AND WHAT IT DELIBERATELY DOES NOT.
            `was` above plus the live board IS the complete record of every
@@ -9665,6 +9712,7 @@ App.ops = (function () {
           at: p.d.at,
           apPaid: paid,
           apShort: priced - paid,
+          spent: spent,
           hit: { shield: 0, health: 0, spare: 0 },
           unlanded: []
         };
@@ -16415,9 +16463,35 @@ App.render = (function () {
      term quietly moving nothing with no record of it is the tool dropping
      their rule. */
   function ldOddsInto(box, state, entry) {
+    /* D-32: THE SHORTFALL LINE IS DRAWN PER COST TERM, THROUGH THE RECORD
+       Advance actually wrote. What stood here read `apShort` and drew one line
+       about action points, because a cost was one term; the entry now carries
+       `spent` — one row per term, what it asked and what it got — and this
+       walks that.
+
+       THE RULE THAT DECIDES WHICH ROWS GET A LINE IS UNCHANGED: only the ones
+       that came up SHORT. A pool that met the cost is already said by the
+       board, and a line saying so for every term of every action would be four
+       more strings a round for a fact nobody is looking for. That was this
+       block's own sentence and it survives the list getting longer.
+
+       `apShort` IS STILL WHAT DECIDES THE ACTION-POINT LINE — read off the
+       entry rather than re-derived from `spent` — so a record written before
+       D-32, or one that carries no `spent` at all, prints exactly what it
+       always printed rather than nothing. The two cannot disagree, because
+       Advance sums the ap rows of `spent` into apPaid/apShort in the same walk
+       that builds them. */
     if (entry.apShort > 0) {
       box.appendChild(ldLine('ld-fact', [{ node: symMark(state, 'ap', '', '') },
         { said: ': ' + entry.apPaid + ' paid, ' + entry.apShort + ' short.' }]));
+    }
+    if (Array.isArray(entry.spent)) {
+      entry.spent.forEach(function (c) {
+        if (c.tok === 'ap') { return; }
+        if (!(c.want - c.paid > 0)) { return; }
+        box.appendChild(ldLine('ld-fact', [{ node: symMark(state, c.tok, '', '') },
+          { said: ': ' + c.paid + ' paid, ' + (c.want - c.paid) + ' short.' }]));
+      });
     }
     if (!Array.isArray(entry.unlanded)) { return; }
     entry.unlanded.forEach(function (u) {
@@ -30103,12 +30177,18 @@ App.selftest = (function () {
       + 'off the record advanceRound actually pushed rather than off one this '
       + 'suite wrote: the round it resolved, the board as it stood, and what '
       + 'each declaration did — with the two unit positions still spelled `by` '
-      + 'and `at` one level further down',
+      + 'and `at` one level further down. TURNED IN THE OPEN UNDER D-32: the '
+      + 'entry gained `spent`, one row per cost term, and the recorded RED is '
+      + 'the run on the commit that made Advance spend every term a cost names. '
+      + '`apPaid` and `apShort` stayed and kept their meanings, which is why '
+      + 'they are still in this list beside the new key rather than replaced by '
+      + 'it — [S06.9] prints them and a field that quietly started meaning "the '
+      + 'first cost term" would move a reading a student has learned',
       [Object.keys(fight().past[0]).sort().join(','),
         Object.keys(fight().past[0].was).sort().join(','),
         Object.keys(fight().past[0].did[0]).sort().join(',')],
       ['did,round,was', 'cats,mechs',
-        'act,apPaid,apShort,at,by,hit,side,unlanded']);
+        'act,apPaid,apShort,at,by,hit,side,spent,unlanded']);
 
     t.ok('the prototype is intact after the key-name walk', protoIntact());
 
@@ -30157,6 +30237,136 @@ App.selftest = (function () {
       [9, 4, 1, 7]);
 
     t.ok('the prototype is intact after the tally rows', protoIntact());
+
+    /* ===== D-32: WHAT ADVANCE SPENDS WHEN A COST NAMES MORE THAN ONE THING ==
+
+       "A multi-token cost spends what it names", and the three rules Advance
+       already had — the pool floors, the shortfall is recorded, the terms still
+       land — are asked once per term. Every board here is DRIVEN through the
+       shipped ops, and the readings are taken off the fight slice and off the
+       round record advanceRound actually pushed. --- */
+
+    /* THE UNDO STACK IS PUT BACK AT THE END OF THIS BLOCK, FOR A MEASURED
+       REASON recorded here rather than tidied away. These rows drive about
+       twenty commits; App.state's stack is hard-capped at UNDO_LIMIT; and the
+       lifecycle row further down measures a depth DELTA of one across
+       resetFight. Left to run on, this block saturates the cap and that row
+       reads 0 where it expects 1 — a red row about a defect this block
+       invented rather than about the op it is watching. Measured on the first
+       run of these rows, which is why the sentence is here. */
+    var spendSavedStack = JSON.stringify(App.state.get());
+    App.ops.resetToDefaults();
+    var spendFuel = App.ops.createTokenType({
+      name: 'Fuel', shape: 'tri', color: 'gold', glyph: '', scope: 'side'
+    });
+    var spendRage = App.ops.createTokenType({
+      name: 'Rage', shape: 'sq', color: 'coral', glyph: '', scope: 'unit'
+    });
+    var spendAct = App.ops.createAction('cats', 'Surge');
+    App.ops.setActionCost('cats', spendAct, 0, 'ap', 2);
+    App.ops.setActionCost('cats', spendAct, 1, spendFuel, 3);
+    App.ops.setActionCost('cats', spendAct, 2, 'hp', 5);
+    App.ops.setActionCost('cats', spendAct, 3, spendRage, 1);
+    App.ops.setActionXf('cats', spendAct, 0, App.data.XF_WHO[1], 'hp', -1);
+    App.ops.setTally('cats', null, spendFuel, 8);
+    App.ops.setFactionAp('cats', 6);
+    App.ops.startFight();
+    var spendHpBefore = fight().cats.units.reduce(function (n, u) {
+      return n + u.hp;
+    }, 0);
+    App.ops.declareAction('cats', spendAct, 'c1', 'm1');
+    App.ops.advanceRound();
+    App.state.flush();
+    var spendEntry = fight().past[0].did[0];
+
+    t.eq('ADVANCE SPENDS EVERY POOL THE COST NAMES. Six action points less two '
+      + 'is four; eight Fuel less three is five; and the refill at the end of '
+      + 'the round puts the action points back from the build, which is the '
+      + 'rule that was already here and is untouched — so the pool read after '
+      + 'the round is the build pool and the FUEL is what carries the spend '
+      + 'forward, because a tally does not refill',
+      [fight().cats.ap, tallyOf(fight().cats, spendFuel)], [6, 5]);
+
+    t.eq('AND IT SPENDS NOTHING FOR A TERM NAMING SOMETHING THAT IS NOT A POOL. '
+      + 'Health is on units and there is no side number for it to come out of, '
+      + 'so a cost of five health takes nothing off any unit — picking which '
+      + 'cat pays would be the tool adjudicating, which is the line this whole '
+      + 'artifact is built on. The only health that moved is the one point the '
+      + 'action\'s own transformation took off what it pointed at',
+      fight().cats.units.reduce(function (n, u) { return n + u.hp; }, 0),
+      spendHpBefore);
+
+    t.eq('and a type kept PER UNIT is not a pool either, by the same test and '
+      + 'for the same reason — so a cost naming one spends nothing and no '
+      + 'unit\'s bag moves',
+      Object.prototype.hasOwnProperty.call(fight().cats.units[0], 'tally'),
+      false);
+
+    t.eq('THE RECORD CARRIES EVERY TERM, INCLUDING THE ONES THAT SPENT NOTHING, '
+      + 'which is `unlanded`\'s own argument applied to the other end of a '
+      + 'declaration: a student\'s declared cost quietly doing nothing with no '
+      + 'record of it is the tool dropping their rule',
+      spendEntry.spent,
+      [{ tok: 'ap', want: 2, paid: 2 },
+        { tok: spendFuel, want: 3, paid: 3 },
+        { tok: 'hp', want: 5, paid: 0 },
+        { tok: spendRage, want: 1, paid: 0 }]);
+
+    t.eq('and apPaid / apShort keep their names and their meanings — the '
+      + 'ACTION-POINT halves of that same walk, summed, so [S06.9]\'s lane '
+      + 'prints what it always printed',
+      [spendEntry.apPaid, spendEntry.apShort], [2, 0]);
+
+    /* --- the pool that cannot pay, per term. The three declined alternatives
+           in advanceRound's own banner transfer word for word: the pool floors
+           at 0 rather than going negative, the shortfall is recorded, and the
+           terms STILL LAND, because refusing the action would be Advance
+           deciding whether it happens. --- */
+    App.ops.resetToDefaults();
+    var shortFuel = App.ops.createTokenType({
+      name: 'Fuel', shape: 'tri', color: 'gold', glyph: '', scope: 'side'
+    });
+    var shortAct = App.ops.createAction('cats', 'Overspend');
+    App.ops.setActionCost('cats', shortAct, 0, 'ap', 99);
+    App.ops.setActionCost('cats', shortAct, 1, shortFuel, 9);
+    App.ops.setActionXf('cats', shortAct, 0, App.data.XF_WHO[1], 'hp', -2);
+    App.ops.setTally('cats', null, shortFuel, 2);
+    App.ops.startFight();
+    var shortTargetHp = fight().mechs.units[0].hp;
+    App.ops.declareAction('cats', shortAct, 'c1', 'm1');
+    App.ops.advanceRound();
+    App.state.flush();
+    var shortEntry = fight().past[0].did[0];
+
+    t.eq('A COST THE SIDE CANNOT MEET FLOORS EVERY POOL AT NOTHING RATHER THAN '
+      + 'TAKING ONE OF THEM NEGATIVE — a quantity of tokens on a board cannot '
+      + 'be less than none of them, and the bag with nothing left in it deletes '
+      + 'itself, which is the sparse-storage rule this write goes through the '
+      + 'shipped helpers to keep',
+      [tallyOf(fight().cats, shortFuel),
+        Object.prototype.hasOwnProperty.call(fight().cats, 'tally')],
+      [0, false]);
+
+    t.eq('the shortfall is RECORDED per term, what was asked beside what was '
+      + 'actually paid',
+      shortEntry.spent,
+      [{ tok: 'ap', want: 99, paid: 3 }, { tok: shortFuel, want: 9, paid: 2 }]);
+
+    t.eq('AND THE TERMS STILL LAND. Refusing the action because a pool came up '
+      + 'short would be Advance deciding whether an action happens, which is '
+      + 'D-23\'s other half — the declaration was allowed to stand precisely so '
+      + 'the table could argue about it. Two points off what it pointed at, on '
+      + 'a round nothing could pay for — read as the SPLIT rather than as '
+      + 'health, because FIGHT-16 spends shield first and a row that watched '
+      + 'the health alone would read zero on a Mech and call the landing a '
+      + 'failure',
+      [shortTargetHp - fight().mechs.units[0].hp,
+        fight().past[0].did[0].hit.shield + fight().past[0].did[0].hit.health],
+      [0, 2]);
+
+    t.ok('the prototype is intact after the multi-term spend rows', protoIntact());
+    App.state.restore(spendSavedStack);
+    App.state.flush();
 
     /* ===== THE CODEC CANNOT SEE A FIGHT (SHARE-07, T-05-06) ===== */
 
