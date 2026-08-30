@@ -5045,6 +5045,58 @@ const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
 // therefore every floor over it, is untouched by which label a record carries.
 const SCOPE_IDS = ['refband', 'strip'];
 
+/* --- data-tsay: THE FOURTH EXEMPTION CHANNEL, ADDED BY D-29 -------------------
+
+   D-29 moves the fight surface's prose off the page and into tooltips: "mouse
+   over tooltip for the text description". THE SINGLE MOST DANGEROUS THING ABOUT
+   THAT CHANGE IS THIS FUNCTION, and the danger is the wave-1 lesson in its
+   attribute edition — a word that leaves textContent leaves a scanner that only
+   reads textContent, and a scanner that cannot see a surface reports it CLEAN
+   FOREVER.
+
+   HALF OF THE ANSWER WAS ALREADY HERE AND SAYING SO IS THE HONEST PART.
+   LABEL_ATTRS has carried `title` since the walk was lifted out over the dialog
+   roots, so a tooltip is read by this harvest today with no change at all, and
+   the brief's instruction to "extend the harvest to read tooltip text" was
+   already satisfied when this plan opened it. Probe BG measures that end
+   directly rather than trusting the reading.
+
+   THE HALF THAT WAS MISSING IS THE ONE ALLOC-10 CREATES. The three shipped
+   channels each mark a node whose WHOLE text is a student's own word — data-lbl
+   and data-anm for text, data-albl for an accessible name — because every line
+   this artifact assembles is built one node per fragment and only the student's
+   fragment is marked. A TOOLTIP CANNOT BE SPLIT ACROSS NODES: it is one string
+   on one attribute, and a reading like "Cat 1 — Ward 2." holds the artifact's
+   words and the student's together. Read whole, it reddens CI the day a student
+   names a type after a word on one of the three lists. Skipped whole — which is
+   what data-albl does, and correctly, because a stepper's accessible name is a
+   prefix that is ALSO rendered visibly beside it — it would take "took 1 of the
+   1" out of the only layer that can ever see it, since not one sentence [S06.8]
+   or [S06.12] produces exists as a literal anywhere in the file.
+
+   SO THE MARKER CARRIES THE FRAGMENT AND THE HARVEST REMOVES IT. What is left
+   is the artifact's half of the sentence, and it is scanned like any other copy.
+
+   IT CARRIES THE WORD AND NOT THE TOKEN ID, AND THAT IS A DECISION ABOUT WHICH
+   SIDE RE-DERIVES. An id would make this gate call labelFor to work out what the
+   artifact rendered — a second derivation of a string that already exists, and
+   one that answers WRONGLY for a type the vocabulary has since lost, because
+   labelFor falls through to the shipped health label. The region says what it
+   wrote; this reads it back.
+
+   AND THE ONE HOLE IN IT IS NAMED RATHER THAN LEFT TO BE FOUND: a student who
+   names a type after a word that also appears in the artifact's half of a
+   tooltip has that word removed from BOTH halves. It is admissible because the
+   only way to reach it is to name a type after the very word in question, and a
+   type named after a word on the lists is exempt by ALLOC-10 anyway — the
+   removal takes out a word the scan was going to be told to ignore. Layer A
+   still reads every literal in the document and Layer B every quoted string, so
+   an artifact word can only go missing from ONE of the three layers. */
+function tsayStripped(value, word) {
+  if (typeof word !== 'string' || word === '') { return value; }
+  return value.split(word).join(' ');
+}
+
 function harvestInto(root, into, where) {
   (function harvest(node, where) {
     if (!node) { return; }
@@ -5060,10 +5112,15 @@ function harvestInto(root, into, where) {
     }
     LABEL_ATTRS.forEach((attr) => {
       if (attr === 'aria-label' && ('albl' in node.dataset)) { return; }
-      const value = node.getAttribute ? node.getAttribute(attr) : null;
-      if (typeof value === 'string' && value !== '') {
-        into.push({ s: value, where: where });
-      }
+      const raw = node.getAttribute ? node.getAttribute(attr) : null;
+      if (typeof raw !== 'string' || raw === '') { return; }
+      // The removal is applied to the two channels [S06.12] writes and to
+      // neither of the others: a `placeholder` is a field's own prompt and no
+      // region composes one out of a student's word, so widening it there would
+      // be an exemption nothing asks for.
+      const value = (attr === 'title' || attr === 'aria-label')
+        ? tsayStripped(raw, node.dataset.tsay) : raw;
+      if (value !== '') { into.push({ s: value, where: where }); }
     });
     node.children.forEach((child) => harvest(child, where));
   })(root, where);
@@ -5718,8 +5775,22 @@ function fightLabelsSaying(word) {
 }
 const fightAuthoredOnPage = fightLabelsSaying('Zeal');
 const fightRenamedOnPage = fightLabelsSaying('Ward');
-const fightAuthoredSeen = fightText.filter((e) => e.s === 'Zeal').length;
-const fightRenamedSeen = fightText.filter((e) => e.s === 'Ward').length;
+/* THE HARVEST HALF IS A SUBSTRING TEST NOW AND NOT AN EQUALITY, AND THE TURN IS
+   D-29's. It was `e.s === 'Zeal'` because until today a student's word only ever
+   reached the page as the WHOLE text of one marked node — data-lbl, data-albl
+   and data-anm each mark exactly that shape, and the lines this artifact
+   assembles are built one node per fragment precisely so the marker can be that
+   narrow. D-29 puts a student's word INSIDE an assembled sentence on a `title`
+   and an `aria-label`, so an equality test would have gone on reading zero over
+   a harvest full of "Cat 1 — Ward 2." and reported the exemption load-bearing
+   while it was doing nothing at all. That is the fourth-green-row failure this
+   phase keeps finding, and the widening is what stops this row joining it.
+
+   IT IS ALSO WHAT MAKES data-tsay AN ASSERTION RATHER THAN A COMMENT: the
+   channel removes the student's fragment from the two attributes it marks, and
+   this reading is the only thing in the file that would notice if it stopped. */
+const fightAuthoredSeen = fightText.filter((e) => e.s.indexOf('Zeal') !== -1).length;
+const fightRenamedSeen = fightText.filter((e) => e.s.indexOf('Ward') !== -1).length;
 
 /* --- THE SAME PAGE WITH D-28's PROJECTION SIDEBAR OPEN, harvested a second
    time and scanned again (plan 05-D28). Row 92b below is what this is for.
@@ -6163,8 +6234,128 @@ A.state.flush();
    removeUnit moves the build and leaves the fight slice, the ledger's record and
    the grid holding every unit, and a per-card figure taken that way measures the
    setup chrome alone — AND vary each roster SEPARATELY, because as of this entry
-   the two sides no longer cost the same. */
-const FIGHT_FLOOR = 116;
+   the two sides no longer cost the same.
+
+   HISTORY — 116 -> 130, D-29, AND THIS ONE MOVES THE NUMBER UP FOR THE FIRST
+   TIME SINCE 108 -> 120. D-29 takes the fight surface's prose off the page and
+   puts it on `title` and `aria-label`: past board states, the what-changed
+   panel, the split's three facts, the shortfall line, hand rulings, the picker's
+   costs and the requirement lines all now draw a SYMBOL and describe themselves
+   on hover. Every one of those sentences is still harvested — LABEL_ATTRS has
+   carried `title` since the walk was lifted over the dialog roots — so the
+   strings did not leave; they moved channel, and TWO channels are written where
+   one was, because a tooltip without an accessible name is a reading assistive
+   technology cannot see. Re-measured by the method above, rosters trimmed BEFORE
+   startFight, each side varied separately, with the harvest broken down by
+   region because the totals alone would have hidden what follows:
+
+       cats varied, mechs held at 3    total   #ledger  #fightbar  #board  delta
+         2 cats                          320      71        97       144
+         3 cats                          358      77       111       162    +38
+         4 cats                          396      83       125       180    +38
+         5 cats                          434      89       139       198    +38
+         6 cats                          472      95       153       216    +38
+         9 cats                          586     113       195       270    +38 x3
+
+       mechs varied, cats held at 9
+         2 mechs                         548     108       180       252
+         3 mechs                         586     113       195       270    +38
+         4 mechs                         624     118       210       288    +38
+         5 mechs                         662     123       225       306    +38
+         6 mechs                         700     128       240       324    +38
+
+   A CAT AND A MECH BOTH COST 38 NOW, AND THAT SYMMETRY IS A COINCIDENCE OF TWO
+   OPPOSITE ASYMMETRIES RATHER THAN A SIMPLIFICATION — which is why the regional
+   breakdown is in the table above and why the method's closing instruction to
+   vary each side SEPARATELY stands unchanged. Read across:
+
+         a cat    #ledger 6 + #fightbar 14 + #board 18 = 38
+         a mech   #ledger 5 + #fightbar 15 + #board 18 = 38
+
+   THE LANE COSTS A CAT ONE STRING MORE THAN A MECH, AND THE CAUSE IS D-29's OWN
+   ZERO FORM. A shipped cat has shield 0 and a shipped mech has shield 3
+   (DEFAULTS: `makeUnits('c', 'Cat', 9, { maxHp: 3, shield: 0 })` against
+   `makeUnits('m', 'Mech', 3, { maxHp: 6, shield: 3 })`). A quantity of zero
+   cannot be drawn by repetition, so [S06.12] draws D-21's compact form — the
+   count, the sign and one token — and that count node is a leaf. A cat's lane
+   reading is therefore a name leaf, two tooltips, two accessible names and a
+   `0×`; a mech's is the same without the last. THE GRID COSTS A MECH ONE MORE
+   THAN A CAT and that asymmetry is the one plan 05-16 already recorded from the
+   other side: the drive leaves a change of target half made on the CATS side, so
+   every shape on the MECHS battlefield is lit and each lit shape says so in a
+   real text node. The two differences are one string each, in opposite
+   directions, and they cancel. A plan reading only the totals would conclude the
+   two sides cost the same and be right by accident.
+
+   THE ROSTER-INDEPENDENT PART IS 130 AND IT REPRODUCES EVERY BOARD MEASURED:
+
+       cats x mechs     38c + 38m + 130     measured
+         2 x 2                282              282
+         2 x 3                320              320
+         3 x 3                358              358
+         4 x 4                434              434
+         6 x 6                586              586
+         9 x 3                586              586
+         9 x 6                700              700
+
+   ONE BOARD IS OFF THE TABLE AND SAYS SO RATHER THAN BEING QUIETLY DROPPED.
+   1 x 1 measures 196 against a model of 206, and the ten strings are the TWO
+   RULINGS this drive cannot make on it: it rules the second cat dead and drives
+   the second mech to zero health, and a one-unit roster has no second unit on
+   either side. Plan 05-D28 recorded the cats half of that; the mechs half is the
+   same fact one roster over. It clears the floor by 66 all the same.
+
+   THE SIX AXES, RE-READ, AND ONE OF THEM HAS A NEW DIRECTION:
+
+     1-4. THE ACTION COUNT, THE NUMBER OF RESOLVED ROUNDS, THE NUMBER OF SIDES
+        and THE PICKER BEING A PRODUCT are unchanged in kind. The drive still
+        resolves exactly one round, the six shipped actions still cannot be
+        removed, and there are still two sides, so 130 is measured at the floor
+        of each.
+     5. THE COMPACTION TRAP NOW POINTS BOTH WAYS, AND THAT IS THIS ENTRY'S ONE
+        NEW FINDING ABOUT AN OLD AXIS. Plan 05-16 recorded that a BIGGER number
+        is MORE strings, because a row at or above App.render.COMPACT_AT draws a
+        count where a loose row draws none. D-29 adds the other end: a quantity
+        of ZERO also draws a count, for the reason above. Measured on a 4-cat,
+        3-mech board with the cats' health varied:
+            0                             397
+            1                             398
+            3   (shipped)                 396
+            11  (one below COMPACT_AT)    396
+            12                            408
+            17                            411
+            30                            410
+        THE SHIPPED READING IS THE MINIMUM OF THAT SWEEP, which is the only
+        thing the floor turns on: no health value takes the page below the board
+        it is measured on. The 397 and 398 at zero and one are the resolution
+        readings changing shape on a board where a unit is dying rather than the
+        compaction axis, and they are recorded rather than explained for the
+        reason 05-16 gives about its own one-string dip — both are above the
+        floor and the floor does not turn on which is larger.
+     6. THE TOKEN VOCABULARY, AND THE DRESSING COSTS EXACTLY WHAT IT COST
+        BEFORE, which is the check on this whole re-measurement. Undressed
+        boards, same drive, no invented type, no rename, no shield allocated:
+            2 x 2  264      4 x 3  372      5 x 3  408      4 x 4  408
+        That is 36 a unit on either side over a constant of 120 — so the
+        dressing is worth +2 A CARD AND +10 TO THE CONSTANT, byte-identical to
+        the figure plan 05-16 measured. The dressing's shape did not change at
+        all; only the base under it moved.
+
+   130 IS THEREFORE THE FLOOR, and it is the dressed constant for plan 05-16's
+   stated reason: the drive dresses the board on every run and row 92 ASSERTS
+   that it did, so the dressing is not a free axis here. A floor set at the
+   undressed 120 would clear a dressed page that had lost every unit on it,
+   which is precisely the failure this floor exists for. The comparison is
+   strictly greater than, so a fight page whose two grids and two battlefields
+   went dark entirely reads exactly 130 and trips it.
+
+   AND ONE OBLIGATION IS ADDED TO THE METHOD RATHER THAN REPLACING IT. A plan
+   that moves prose ONTO OR OFF an attribute re-measures this constant too, not
+   only one that adds a surface — because D-29 moved no surface at all and moved
+   this number by 14. The three channels that carry copy are `title`,
+   `aria-label` and the text of a leaf, LABEL_ATTRS names the first two, and a
+   sentence that changes channel changes this count. */
+const FIGHT_FLOOR = 130;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
@@ -8889,6 +9080,28 @@ function fgLeaves(root) {
   })(root);
   return out;
 }
+/* THE OTHER CHANNEL, ADDED BY D-29: what a region says on HOVER and to a screen
+   reader. fgLeaves reads the text a room sees; this reads the `title` and the
+   `aria-label` of every node under the same root, in document order, unstripped
+   -- the exemption is Layer C's business and these rows are asserting that a
+   word ARRIVED, not that it is admissible.
+
+   THE TWO ARE COLLECTED SEPARATELY AND NEVER CONCATENATED, because the whole
+   point of every row below that uses both is which of the two a word is IN. A
+   walk that merged them would be green over prose that never moved out of the
+   text and green over prose that never arrived in the tooltip. */
+function fgSaid(root) {
+  const out = [];
+  (function walk(n) {
+    if (!n) { return; }
+    ['title', 'aria-label'].forEach((attr) => {
+      const v = n.getAttribute ? n.getAttribute(attr) : null;
+      if (typeof v === 'string' && v !== '') { out.push(v); }
+    });
+    n.children.forEach(walk);
+  })(root);
+  return out;
+}
 function fgActNamed(side, name) {
   return A.state.get().build[side].actions.filter((a) => a.name === name)[0];
 }
@@ -10104,15 +10317,29 @@ fgDeclare('cats', fgCatsAct, 'c2');
 const fgBarTextWas = fgLeaves(fgBar).join('|');
 const fgLdTextWas = fgLeaves(fgLedgerRoot).join('|');
 const fgLdRowWas = fgLedgerRoot.querySelectorAll('.ld-row')[0];
+const fgLdSaidWas = fgSaid(fgLedgerRoot).join('|');
+const fgLdSaidCount = fgSaid(fgLedgerRoot).length;
 A.ops.renameAction('cats', fgCatsAct, 'Pounce');
 A.state.flush();
 const fgBarTextNamed = fgLeaves(fgBar).join('|');
+// THE TWO RENAMES ARE READ APART NOW, AND THE REASON IS A DEFECT IN THE ROW AS
+// IT STOOD RATHER THAN A REFINEMENT OF IT. "the ledger moved" was captured after
+// BOTH renames, so the clause was satisfied by the ACTION rename -- whose new
+// word lands in the lane's own action lines -- and the token half of the row was
+// carried by fgLdSaysNew alone. D-29 made that visible by taking the token name
+// out of the lane's text, and this reading is taken between the two renames so
+// the token half now has to move something on its own.
+const fgLdTextMid = fgLeaves(fgLedgerRoot).join('|');
+const fgLdSaidMid = fgSaid(fgLedgerRoot).join('|');
 A.ops.renameTokenType('hp', 'Vigor');
 A.state.flush();
 const fgLdTextNamed = fgLeaves(fgLedgerRoot).join('|');
+const fgLdSaidNamed = fgSaid(fgLedgerRoot).join('|');
 const fgLdRowSame = fgLedgerRoot.querySelectorAll('.ld-row')[0] === fgLdRowWas;
 const fgBarSaysNew = fgBarTextNamed.indexOf('Pounce') !== -1;
-const fgLdSaysNew = fgLdTextNamed.indexOf('Vigor') !== -1;
+const fgLdSaysNew = fgLdSaidNamed.indexOf('Vigor') !== -1;
+const fgLdTextSaysNew = fgLdTextNamed.indexOf('Vigor') !== -1;
+const fgLdSaidMoved = fgLdSaidNamed !== fgLdSaidMid;
 // AND IT IS ON EVERY BUTTON OF THAT SIDE, counted rather than found once. A
 // rename that reached one node and missed the rest would satisfy an indexOf and
 // leave a grid disagreeing with itself in front of a room.
@@ -10125,22 +10352,41 @@ A.state.flush();
 check(
   '100. AN OP THAT CHANGES WHAT IS DRAWN WITHOUT MOVING A STEPPER REPAINTS '
     + 'BOTH FIGHT SURFACES — plan 04-05\'s probe S carried onto this phase, and '
-    + 'the row plan 05-07 was told to record and plan 05-10 owes. Renaming an '
-    + 'action moves the fight bar and puts the new word on EVERY ONE of that '
-    + 'side\'s buttons for it, counted rather than found once; renaming a token '
-    + 'type moves an ALREADY-DRAWN ledger row, which is the narrower half, '
+    + 'the row plan 05-07 was told to record and plan 05-10 owes. CLAIM TURNED '
+    + 'IN THE OPEN UNDER D-29: renaming a token type used to have to move the '
+    + 'lane\'s TEXT, and under "show this using the symbols, rather than text" '
+    + 'the lane no longer prints a type\'s name anywhere — it draws that '
+    + 'type\'s own mark and says the name on hover. So this row reads the '
+    + 'TOOLTIP channel, and reads it BETWEEN the two renames, which is strictly '
+    + 'MORE than it asserted before: the old reading was captured after BOTH '
+    + 'renames and its "the ledger moved" clause was satisfied by the ACTION '
+    + 'rename\'s word landing in the lane\'s action lines, leaving the token '
+    + 'half carried by an indexOf alone. Now the token rename must move the '
+    + 'tooltips of an ALREADY-DRAWN row ON ITS OWN — the narrower half, '
     + 'because that row was painted for a round that has already resolved and a '
-    + 'fingerprint watching only the row COUNT would never repaint it. The row '
-    + 'NODE is the same object afterwards, so the region rewrote what it had '
-    + 'rather than throwing the history away and rebuilding it',
-  fgBarTextNamed !== fgBarTextWas && fgLdTextNamed !== fgLdTextWas
-    && fgBarSaysNew === true && fgLdSaysNew === true && fgLdRowSame === true
+    + 'fingerprint watching only the row COUNT would never repaint it. Renaming '
+    + 'an ACTION still moves the bar and still puts the new word on EVERY ONE of '
+    + 'that side\'s buttons for it, counted rather than found once, because an '
+    + 'action\'s name is text and D-29 did not touch it. The row NODE is the '
+    + 'same object afterwards, so the region rewrote what it had rather than '
+    + 'throwing the history away. AND THE NEW WORD IS ASSERTED ABSENT FROM THE '
+    + 'TEXT, which is the clause that says the change actually happened rather '
+    + 'than that a tooltip was added beside prose nobody removed. Floored on '
+    + 'tooltips being FOUND in the lane at all, because a lane with none would '
+    + 'have an empty channel that moved to another empty one',
+  fgBarTextNamed !== fgBarTextWas && fgLdSaidMoved === true
+    && fgBarSaysNew === true && fgLdSaysNew === true
+    && fgLdTextSaysNew === false && fgLdRowSame === true
+    && fgLdSaidWas !== '' && fgLdSaidCount > 0
     && fgBtnsForAct > 1 && fgBtnsSayNew === fgBtnsForAct,
   'the bar moved=' + (fgBarTextNamed !== fgBarTextWas)
     + ' and says the new action name=' + fgBarSaysNew
     + ' on ' + fgBtnsSayNew + ' of ' + fgBtnsForAct + ' buttons for that action'
-    + ' | the ledger moved=' + (fgLdTextNamed !== fgLdTextWas)
-    + ' and says the new token name=' + fgLdSaysNew
+    + ' | the lane carries ' + fgLdSaidCount + ' tooltips before any rename'
+    + ' | they MOVED on the token rename alone=' + fgLdSaidMoved
+    + ' and say the new token name=' + fgLdSaysNew
+    + ' | the lane\'s TEXT says it=' + fgLdTextSaysNew
+    + ' (its text moved on the ACTION rename=' + (fgLdTextMid !== fgLdTextWas) + ')'
     + ' | the already-drawn row is the same node=' + fgLdRowSame
 );
 
@@ -11020,11 +11266,38 @@ check(
    that acted, the action it used, and what it landed on. The words are compared
    against the BUILD's own names rather than against strings typed here, which
    is check 102's rule — a row carrying its own copy of a unit name is a row
-   asserting that this file agrees with itself. */
+   asserting that this file agrees with itself.
+
+   THE BOARD HALF'S CLAIM IS TURNED IN THE OPEN UNDER D-29, and the turn is the
+   difference between "the card says something" and "the card says it the way
+   the developer asked for". As written, the board half required the card's TEXT
+   to name the faction, and it would have gone on passing over a lane that
+   printed "Cat 1 — Health 3, Shield 0" for ever — which is the exact reading
+   D-29's screenshot was of. It now asserts BOTH: the faction is still named in
+   text, because a faction name is a word and no symbol carries it; and the
+   unit states are SYMBOLIC — the card draws token nodes, its text names no
+   token type at all, and the type's name is in the tooltip instead. The action
+   half is untouched, because D-29 keeps "Cat 2 uses Slash on Mech 1" as a
+   sentence by name. */
 const ldNewest = ldList.children[ldList.children.length - 1] || null;
-const ldCardBoard = ldNewest === null ? [] : fgLeaves(ldNewest.querySelector('.ld-board'));
+const ldCardBoardBox = ldNewest === null ? null : ldNewest.querySelector('.ld-board');
+const ldCardBoard = ldCardBoardBox === null ? [] : fgLeaves(ldCardBoardBox);
 const ldCardActs = ldNewest === null ? [] : fgLeaves(ldNewest.querySelector('.ld-acts'));
 const ldCardAll = ldCardActs.join(' ');
+const ldBoardToks = ldCardBoardBox === null ? 0
+  : ldCardBoardBox.querySelectorAll('.tok').length;
+const ldBoardSyms = ldCardBoardBox === null ? 0
+  : ldCardBoardBox.querySelectorAll('.sym').length;
+const ldBoardSaid = ldCardBoardBox === null ? [] : fgSaid(ldCardBoardBox);
+// The two shipped durability types, by the name the LIVE vocabulary holds for
+// them, so a renamed board is read by its own words and never by strings typed
+// into this row — check 102's rule again, arriving on the other channel.
+const ldHpWord = A.render.labelFor(A.state.get(), 'hp');
+const ldShieldWord = A.render.labelFor(A.state.get(), 'shield');
+const ldBoardTextNamesType = ldCardBoard.join(' ').indexOf(ldHpWord) !== -1
+  || ldCardBoard.join(' ').indexOf(ldShieldWord) !== -1;
+const ldBoardSaidNamesType = ldBoardSaid.join(' ').indexOf(ldHpWord) !== -1
+  && ldBoardSaid.join(' ').indexOf(ldShieldWord) !== -1;
 const ldBuildNow = A.state.get().build;
 const ldUnitWord = ldBuildNow.cats.units[0].name;
 const ldActWord = (ldBuildNow.cats.actions.filter((a) => a.id === fgCatsAct)[0] || {}).name;
@@ -11035,24 +11308,42 @@ const ldBoardSaysSide = ldCardBoard.join(' ').indexOf(ldSideWord) !== -1;
 check(
   '103f. EVERY CARD IN THE LANE SHOWS THE BOARD AS IT STOOD AND THE ACTIONS '
     + 'THAT WERE SELECTED — D-28 asks for both and only one of the two had a '
-    + 'row watching it. The board half is read off the card\'s own board box '
-    + 'and must name the faction; the action half is read off the card\'s '
-    + 'action box and must name the UNIT that acted and the ACTION it used, '
-    + 'both compared against the live build\'s own words rather than against '
-    + 'strings typed into this row, which is check 102\'s rule: a row carrying '
-    + 'its own copy of a name asserts that this file agrees with itself. This '
-    + 'is the clause a 340px card is most likely to lose, and losing it would '
-    + 'have moved no number and reddened nothing',
+    + 'row watching it. CLAIM TURNED IN THE OPEN UNDER D-29, on the board half '
+    + 'only: as written it required the card\'s TEXT to name the faction and '
+    + 'would have gone on passing over "Cat 1 — Health 3, Shield 0" for ever, '
+    + 'which is the exact reading the developer sent the screenshot of. It now '
+    + 'reads THREE things off the board box — the faction still named in text, '
+    + 'because a faction name is a word and no symbol carries it; TOKEN NODES '
+    + 'actually drawn, because a symbolic reading that drew nothing would be a '
+    + 'card that lost the state entirely; and the two shipped durability types '
+    + 'named in the TOOLTIPS and in NEITHER leaf of the text, which is the '
+    + 'clause that says the prose moved rather than that a tooltip was added '
+    + 'beside prose nobody removed. Both type names are taken from the LIVE '
+    + 'vocabulary and never typed here. The action half is UNTOUCHED and still '
+    + 'reads off the card\'s action box for the UNIT that acted and the ACTION '
+    + 'it used, because D-29 keeps that a sentence by name; both are compared '
+    + 'against the live build\'s own words, which is check 102\'s rule: a row '
+    + 'carrying its own copy of a name asserts that this file agrees with '
+    + 'itself. This is the clause a 340px card is most likely to lose, and '
+    + 'losing it would have moved no number and reddened nothing',
   ldNewest !== null && ldCardBoard.length > 0 && ldCardActs.length > 0
-    && ldBoardSaysSide && ldSaysUnit && ldSaysAct,
+    && ldBoardSaysSide && ldSaysUnit && ldSaysAct
+    && ldBoardToks > 0 && ldBoardSyms > 0
+    && ldBoardTextNamesType === false && ldBoardSaidNamesType === true,
   'the newest card carries ' + ldCardBoard.length + ' board leaves and '
     + ldCardActs.length + ' action leaves'
     + ' | the board half names the faction ' + JSON.stringify(ldSideWord)
     + '=' + ldBoardSaysSide
+    + ' | it draws ' + ldBoardToks + ' token nodes across ' + ldBoardSyms
+    + ' symbolic readings carrying ' + ldBoardSaid.length + ' tooltips'
+    + ' | its TEXT names ' + JSON.stringify(ldHpWord) + ' or '
+    + JSON.stringify(ldShieldWord) + '=' + ldBoardTextNamesType
+    + ' and its TOOLTIPS name both=' + ldBoardSaidNamesType
     + ' | the action half names the unit ' + JSON.stringify(ldUnitWord)
     + '=' + ldSaysUnit + ' and the action ' + JSON.stringify(ldActWord)
     + '=' + ldSaysAct
     + ' | the action half reads: ' + JSON.stringify(ldCardAll.slice(0, 120))
+    + ' | one board tooltip reads: ' + JSON.stringify(ldBoardSaid[0] || '')
 );
 
 A.ops.resetToDefaults();
@@ -12183,6 +12474,383 @@ check(
     + ' | after +1 it holds ' + bfIdUp.length + ' of which ' + bfIdUpSurv
     + ' are the same objects and ' + bfIdUpNew + ' are new'
     + ' | tokens playing the entry pop=' + bfIdAnimating
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+/* --- 107-107d. D-29, DRIVEN. The developer, at the real artifact, with the
+   D-28 lane on screen and a screenshot of it attached:
+
+     "show this using the symbols, rather than text"
+     "instead of showing cost in 1 Action Points, show it as - then the symbol
+      for the action points. Same with the cost of other skills."
+     "mouse over tooltip for the text description"
+
+   FOUR ROWS, AND THE SPLIT BETWEEN THEM IS THE SPLIT BETWEEN FOUR DIFFERENT
+   WAYS THIS CHANGE CAN BE HALF-DONE AND LOOK FINISHED:
+
+     107  the lane READS in symbols and every reading carries the prose on BOTH
+          channels a person can reach - the tooltip and the accessible name.
+     107b a type the student INVENTED, STYLED and RENAMED arrives in the lane
+          and on an action button as THEY authored it, symbol and word.
+     107c a cost is a minus sign and the type's own tokens, compacted at
+          App.render.COMPACT_AT and at no second threshold of this change's own.
+     107d THE GATE STILL READS THE WORDS. This is the one that matters most and
+          it is the wave-1 lesson in its attribute edition: prose that moves
+          from textContent into an attribute leaves a scanner that reads only
+          textContent, and a scanner that cannot see a surface reports it CLEAN
+          FOREVER. Probe BG drives the failure directly.
+
+   THE BOARD IS DRESSED FIRST AND EVERY WORD IS READ OFF THE LIVE VOCABULARY
+   rather than typed here, which is check 102's rule and 106c's: a row carrying
+   its own copy of a name asserts that this file agrees with itself, and a
+   PLANTED string proves nothing about the path a word travels. */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+// A type the student INVENTED, one they RENAMED, and a restyle on the renamed
+// one - three different paths a student's own authoring reaches this surface by.
+const symOwnTok = A.ops.createTokenType({
+  name: 'Zeal', shape: 'hex', color: 'violet', glyph: '\u{1F49C}', scope: 'unit'
+});
+A.ops.renameTokenType('shield', 'Ward');
+A.ops.setTokenStyle('shield', { shape: 'tri', color: 'coral', glyph: '\u{1F525}' });
+A.ops.renameTokenType('hp', 'Grit');
+A.state.flush();
+fgPress(fgStart);
+fgDeclare('cats', fgCatsAct, 'c1');
+fgAdvancePress();
+fgDeclare('cats', fgCatsAct, 'c2');
+fgAdvancePress();
+A.state.invalidate();
+A.state.flush();
+
+const symState = A.state.get();
+const symHpWord = A.render.labelFor(symState, 'hp');
+const symShWord = A.render.labelFor(symState, 'shield');
+const symLane = fgLedgerRoot.querySelectorAll('.sym');
+const symCards = fgLedgerRoot.querySelectorAll('.ld-row');
+const symNewest = symCards[symCards.length - 1] || null;
+
+/* 107. EVERY READING IN THE LANE IS A SYMBOL WITH THE PROSE ON BOTH CHANNELS.
+
+   THE FOUR CLAUSES PER READING ARE FOUR SEPARATE WAYS TO SHIP THIS HALF-DONE,
+   and they are checked as a COUNT OF FAILURES rather than on one sampled node,
+   which is 71c's shape: a row that read the first .sym would be green over a
+   lane where every other one had lost its tooltip.
+     role="img"            - without it a screen reader reads the count nodes
+                             and the label BOTH, which is the sentence twice.
+     a non-empty title     - D-29's own sentence.
+     aria-label === title  - the two are written from ONE variable in [S06.12]
+                             and this is what says they still are. A tooltip
+                             without an accessible name is a reading a keyboard
+                             cannot reach and assistive technology cannot see.
+     a .tok inside         - a reading that drew no symbol is prose with a
+                             tooltip, which is the change not having happened.
+
+   AND THE SPLIT'S OWN SENTENCE IS READ BACK VERBATIM, because "Shield took 1 of
+   the 1" is the exact reading the developer screenshotted and the exact one
+   D-29 asks to see as symbols. It is matched against a pattern built from the
+   LIVE label, so a rename moves the row's expectation with the board. */
+const symBad = symLane.filter((n) =>
+  n.getAttribute('role') !== 'img'
+  || typeof n.getAttribute('title') !== 'string'
+  || n.getAttribute('title') === ''
+  || n.getAttribute('aria-label') !== n.getAttribute('title')
+  || n.querySelectorAll('.tok').length === 0).length;
+const symActBox = symNewest === null ? null : symNewest.querySelector('.ld-acts');
+const symActSyms = symActBox === null ? [] : symActBox.querySelectorAll('.sym');
+const symActSaid = symActSyms.map((n) => n.getAttribute('title'));
+const symTookRe = new RegExp('^' + symShWord + ' took \\d+ of the \\d+\\.$');
+const symTookSaid = symActSaid.filter((t) => symTookRe.test(t))[0] || '';
+const symActText = (symActBox === null ? [] : fgLeaves(symActBox)).join(' ');
+const symActNamesType = symActText.indexOf(symHpWord) !== -1
+  || symActText.indexOf(symShWord) !== -1;
+const symSigns = fgLedgerRoot.querySelectorAll('.sym-sign')
+  .filter((n) => n.textContent === '−').length;
+check(
+  '107. THE LANE OF EARLIER ROUNDS READS IN SYMBOLS AND THE PROSE IS ON THE '
+    + 'HOVER — D-29\'s first and third sentences, driven over three resolved '
+    + 'rounds. EVERY symbolic reading in the lane is read, not one sampled one, '
+    + 'because a row that checked the first would be green over a lane where '
+    + 'every other reading had lost its tooltip. Four clauses each, and each is '
+    + 'a different way to ship this half-done: role="img", so a screen reader '
+    + 'reads the sentence once rather than the counts and then the sentence; a '
+    + 'NON-EMPTY title, which is the developer\'s own ask; an aria-label EQUAL '
+    + 'to that title, because the two are written from one variable in [S06.12] '
+    + 'and a tooltip without an accessible name is a reading a keyboard cannot '
+    + 'reach and assistive technology cannot see; and a token node actually '
+    + 'DRAWN inside, because a reading that drew no symbol is prose with a '
+    + 'tooltip on it. THE SPLIT\'S OWN SENTENCE IS READ BACK VERBATIM off the '
+    + 'tooltip — "Shield took 1 of the 1" is the exact reading the screenshot '
+    + 'was of — matched against a pattern built from the LIVE label so a rename '
+    + 'moves the expectation with the board, and the action box\'s TEXT is '
+    + 'asserted to name NEITHER durability type, which is the clause that says '
+    + 'the prose moved rather than that a tooltip was added beside it. The '
+    + 'minus signs are counted too: a hit taken is a subtraction and it says so',
+  symLane.length > 0 && symBad === 0 && symCards.length === 2
+    && symActSyms.length > 0 && symTookSaid !== ''
+    && symActNamesType === false && symSigns > 0,
+  'the lane carries ' + symLane.length + ' symbolic readings across '
+    + symCards.length + ' cards, of which ' + symBad + ' fail one of the four '
+    + 'clauses'
+    + ' | the newest card\'s action box carries ' + symActSyms.length
+    + ' readings and ' + symSigns + ' minus signs are drawn in the lane'
+    + ' | the split reads: ' + JSON.stringify(symTookSaid)
+    + ' | its neighbours read: ' + JSON.stringify(symActSaid.slice(0, 4))
+    + ' | the action box\'s TEXT names ' + JSON.stringify(symHpWord) + ' or '
+    + JSON.stringify(symShWord) + '=' + symActNamesType
+    + ' | that text reads: ' + JSON.stringify(symActText.slice(0, 110))
+);
+
+/* 107b. A TYPE THE STUDENT AUTHORED ARRIVES AS THEY AUTHORED IT — 106c's claim,
+   taken on the two surfaces D-29 changed rather than on the battlefield.
+
+   THE POINT OF THIS ROW IS THAT [S06.12] CALLS styleFor AND makeToken AND
+   BUILDS NO TOKEN NODE OF ITS OWN. A region that drew its own mark would be
+   free to draw a generic one, and a generic mark for a type a student invented
+   is the artifact quietly saying their type is a second-class one — D-24 and
+   the whole purpose of Phase 2.1. So both halves are read: THE SYMBOL, by its
+   shape suffix, its colour suffix and its glyph, and THE WORD, off the tooltip.
+
+   IT IS DRIVEN THROUGH createTokenType, renameTokenType AND setTokenStyle
+   rather than by planting a string, which is 47d's shape: a planted string
+   proves nothing about the path a word travels. The RENAMED type is read in the
+   LANE and the INVENTED one on an ACTION BUTTON, because those are the two
+   places D-29 moved and they reach the vocabulary by different calls. */
+const symLaneShield = symLane
+  .filter((n) => String(n.getAttribute('title') || '').indexOf(symShWord) !== -1)[0]
+  || null;
+const symLaneTokCls = symLaneShield === null ? ''
+  : String((symLaneShield.querySelectorAll('.tok')[0] || {}).className || '');
+const symLaneGlyph = symLaneShield === null ? ''
+  : String(((symLaneShield.querySelectorAll('.tok-g')[0] || {}).textContent) || '');
+// The INVENTED type as the cost of an action, which is the one path a
+// student-made type reaches an action button by: affordability prices action
+// points and nothing else, so the report hands back null and the button draws
+// the term the student actually wrote.
+A.ops.setActionCost('cats', fgCatsAct, symOwnTok, 3);
+A.state.invalidate();
+A.state.flush();
+const symOwnWord = A.render.labelFor(A.state.get(), symOwnTok);
+const symCostBox = fgOne(fgSideRootOf('cats'), '.fg-act-cost');
+const symCostSym = symCostBox === null ? null : symCostBox.querySelector('.sym');
+const symCostSaid = symCostSym === null ? '' : symCostSym.getAttribute('title');
+const symCostCls = symCostSym === null ? ''
+  : String((symCostSym.querySelectorAll('.tok')[0] || {}).className || '');
+const symCostGlyph = symCostSym === null ? ''
+  : String(((symCostSym.querySelectorAll('.tok-g')[0] || {}).textContent) || '');
+const symCostText = symCostBox === null ? '' : fgLeaves(symCostBox).join(' ');
+check(
+  '107b. A TOKEN TYPE A STUDENT INVENTED, RENAMED AND RESTYLED APPEARS IN THE '
+    + 'LANE AND ON AN ACTION BUTTON EXACTLY AS THEY AUTHORED IT — 106c\'s claim '
+    + 'taken on the two surfaces D-29 changed. BOTH HALVES: the SYMBOL, by its '
+    + 'shape suffix, its colour suffix and its glyph on the token node, and the '
+    + 'WORD, off the tooltip — because a symbol that is right with a tooltip '
+    + 'that names the shipped type would be a reading that is half theirs. '
+    + 'Driven through createTokenType, renameTokenType and setTokenStyle rather '
+    + 'than by planting a string, which is 47d\'s shape: a planted string '
+    + 'proves nothing about the path the word travels. THIS IS WHAT CALLING '
+    + 'styleFor AND makeToken BUYS, and it is why [S06.12] may not build a '
+    + 'token node of its own — a region free to draw its own mark is free to '
+    + 'draw a generic one, and a generic mark for a type a student invented is '
+    + 'the artifact saying their type is a second-class one. The cost box\'s '
+    + 'TEXT is asserted to name the type NOWHERE, so the word arrived on the '
+    + 'hover rather than beside it',
+  symLaneShield !== null && symLaneTokCls.indexOf('tok--tri') !== -1
+    && symLaneTokCls.indexOf('tok--coral') !== -1 && symLaneGlyph !== ''
+    && symCostSym !== null && symCostCls.indexOf('tok--hex') !== -1
+    && symCostCls.indexOf('tok--violet') !== -1
+    && symCostGlyph === '\u{1F49C}'
+    && symCostSaid === '3 ' + symOwnWord
+    && symCostText.indexOf(symOwnWord) === -1,
+  'the RENAMED type in the lane: tooltip=' + JSON.stringify(
+    symLaneShield === null ? null : symLaneShield.getAttribute('title'))
+    + ' token class=' + JSON.stringify(symLaneTokCls)
+    + ' glyph=' + JSON.stringify(symLaneGlyph)
+    + ' | the INVENTED type on an action button: tooltip='
+    + JSON.stringify(symCostSaid) + ' token class=' + JSON.stringify(symCostCls)
+    + ' glyph=' + JSON.stringify(symCostGlyph)
+    + ' | the cost box\'s TEXT reads ' + JSON.stringify(symCostText)
+    + ' and names ' + JSON.stringify(symOwnWord) + '='
+    + (symCostText.indexOf(symOwnWord) !== -1)
+);
+
+/* 107c. A COST IS A MINUS SIGN AND THE TYPE'S OWN TOKENS, AND IT COMPACTS AT
+   App.render.COMPACT_AT AND AT NO SECOND THRESHOLD OF ITS OWN.
+
+   106d's row, taken on the picker rather than on the battlefield, and it is a
+   SEPARATE row for the reason 106d gives about its own surface: the threshold
+   is read off the LIVE export and never typed here, and BOTH the node count and
+   the rendered words are taken, because a compacted row is fewer nodes and more
+   strings than an uncompacted one and a count alone cannot tell the two forms
+   apart. D-29's brief says the counts follow the file's existing convention
+   rather than inventing a second one; this is what says they did.
+
+   THE SIGN IS ASSERTED TO BE U+2212 AND NOT U+002D, which looks like a
+   typographic nicety and is a legibility one: at projector distance a
+   hyphen-minus is drawn as a word-joiner and reads as part of the number.
+
+   THE COST IS DRIVEN PAST WHAT THE SIDE CAN PAY AND THE BUTTON GOES DISABLED,
+   which is D-27's contract and is left alone here on purpose — this row is
+   about the NOTATION, and a reading that stopped being drawn the moment it
+   priced something out of reach would be the surface hiding the arithmetic at
+   the one moment a student needs it. */
+const symBelow = A.render.COMPACT_AT - 1;
+A.ops.setActionCost('cats', fgCatsAct, 'ap', symBelow);
+A.state.invalidate();
+A.state.flush();
+const symCostAt = () => fgOne(fgSideRootOf('cats'), '.fg-act-cost');
+const symLowBox = symCostAt();
+const symLowToks = symLowBox === null ? -1 : symLowBox.querySelectorAll('.tok').length;
+const symLowCount = symLowBox === null ? -1
+  : symLowBox.querySelectorAll('.tok-count').length;
+const symLowSaid = symLowBox === null ? '' : String(
+  (symLowBox.querySelector('.sym') || { getAttribute: () => '' }).getAttribute('title'));
+const symLowSign = symLowBox === null ? ''
+  : String(((symLowBox.querySelectorAll('.sym-sign')[0] || {}).textContent) || '');
+A.ops.setActionCost('cats', fgCatsAct, 'ap', A.render.COMPACT_AT);
+A.state.invalidate();
+A.state.flush();
+const symHighBox = symCostAt();
+const symHighToks = symHighBox === null ? -1 : symHighBox.querySelectorAll('.tok').length;
+const symHighCountNode = symHighBox === null ? null
+  : symHighBox.querySelectorAll('.tok-count')[0] || null;
+const symHighCount = symHighCountNode === null ? ''
+  : String(symHighCountNode.textContent);
+const symApWord = A.render.labelFor(A.state.get(), 'ap');
+const symHighSaid = symHighBox === null ? '' : String(
+  (symHighBox.querySelector('.sym') || { getAttribute: () => '' }).getAttribute('title'));
+const symHighText = symHighBox === null ? '' : fgLeaves(symHighBox).join(' ');
+check(
+  '107c. A COST ON THE PICKER IS A MINUS SIGN AND THE TYPE\'S OWN TOKENS, AND '
+    + 'IT COMPACTS AT App.render.COMPACT_AT AND AT NO SECOND THRESHOLD OF ITS '
+    + 'OWN — D-29\'s second sentence, verbatim: "instead of showing cost in 1 '
+    + 'Action Points, show it as - then the symbol for the action points". One '
+    + 'below the threshold the box draws one token per point and NO count node; '
+    + 'at it, exactly ONE token and a count reading "12x", which is D-20 and '
+    + 'D-21 held here because the same syncRow decides them rather than because '
+    + 'this region agreed to. The threshold is read off the LIVE export and '
+    + 'never typed into this row, and BOTH the node count and the rendered '
+    + 'words are taken, because a compacted row is fewer nodes and more strings '
+    + 'than an uncompacted one and a count alone cannot tell the two apart. THE '
+    + 'SIGN IS U+2212 AND NOT U+002D, which is a legibility claim and not a '
+    + 'typographic one: at projector distance a hyphen-minus is drawn as a '
+    + 'word-joiner and reads as part of the number. And the tooltip is the '
+    + 'EXACT string this button printed before D-29 — the figure, a space, the '
+    + 'label — so a student who read it last week and hovers it today is told '
+    + 'the same thing rather than a paraphrase of it, while the box\'s own text '
+    + 'names the type nowhere',
+  symLowToks === symBelow && symLowCount === 0
+    && symLowSign === '−'
+    && symLowSaid === String(symBelow) + ' ' + symApWord
+    && symHighToks === 1 && symHighCount === String(A.render.COMPACT_AT) + '×'
+    && symHighSaid === String(A.render.COMPACT_AT) + ' ' + symApWord
+    && symHighText.indexOf(symApWord) === -1,
+  'COMPACT_AT read off the export=' + A.render.COMPACT_AT
+    + ' | at ' + symBelow + ': ' + symLowToks + ' tokens, ' + symLowCount
+    + ' count nodes, sign=' + JSON.stringify(symLowSign)
+    + ', tooltip=' + JSON.stringify(symLowSaid)
+    + ' | at ' + A.render.COMPACT_AT + ': ' + symHighToks + ' tokens, count node '
+    + JSON.stringify(symHighCount) + ', tooltip=' + JSON.stringify(symHighSaid)
+    + ' | the box\'s TEXT reads ' + JSON.stringify(symHighText)
+    + ' and names ' + JSON.stringify(symApWord) + '='
+    + (symHighText.indexOf(symApWord) !== -1)
+);
+
+/* 107d. AND THE GATE STILL READS THE WORDS. THIS IS THE ROW THE WHOLE CHANGE
+   TURNS ON.
+
+   The wave-1 lesson is that a surface the walk never reaches reports CLEAN
+   FOREVER, and D-29 is that lesson arriving through an attribute: every
+   sentence this phase spent five plans writing moves out of textContent and
+   into a `title`, and a scanner that reads only textContent would go on
+   printing "0 hits" over a fight surface it had stopped reading. Nothing would
+   move. No number would change. Probe BG drives exactly that.
+
+   THREE CLAUSES, AND THEY ARE THREE DIFFERENT FAILURES:
+
+     1. A SENTENCE THAT EXISTS NOWHERE IN THE PAGE'S TEXT IS IN THE HARVEST.
+        The split's own reading is chosen because it is the strongest available
+        example: it is assembled at render time out of a live label and two
+        numbers, so it is not a literal anywhere in the file, Layers A and B
+        cannot see it, and it appears in NO leaf of #app. If it is in the scan,
+        the scan is reading tooltips.
+     2. THE ARTIFACT'S HALF OF A MARKED TOOLTIP IS IN THE HARVEST. data-tsay
+        removes the student's fragment and MUST NOT remove anything else — an
+        exemption that skipped the whole attribute would take "took 1 of the 1"
+        out of the only layer that can ever see it, since not one sentence this
+        region produces exists as a literal.
+     3. THE STUDENT'S HALF IS NOT. ALLOC-10: a student who names a type after a
+        word on one of the three lists must not redden CI. The word is one this
+        drive RENAMED a type to, so it is a word that reaches the page by the
+        real path and appears in no static markup.
+
+   THE HARVEST IS TAKEN HERE AND NOT REUSED FROM ROW 92, because row 92's board
+   is not this one and a floor is not an instrument for this question. */
+const symScan = harvestInto(dom.byId['app'], [], '#app');
+const symScanText = symScan.map((e) => e.s);
+const symLeafText = fgLeaves(dom.byId['app']);
+const symMarked = symLane.filter((n) => 'tsay' in n.dataset)[0] || null;
+const symMarkedRaw = symMarked === null ? '' : String(symMarked.getAttribute('title'));
+const symMarkedWord = symMarked === null ? '' : String(symMarked.dataset.tsay);
+const symMarkedStripped = symMarkedRaw.split(symMarkedWord).join(' ');
+const symStrippedSeen = symScanText.indexOf(symMarkedStripped) !== -1;
+const symWordSeen = symScanText.filter((t) => t.indexOf(symMarkedWord) !== -1).length;
+/* THE SPLIT'S SENTENCE IS COMPARED IN ITS STRIPPED FORM, AND THE FIRST DRAFT OF
+   THIS ROW COMPARED THE RAW ONE AND WENT RED. That is worth keeping rather than
+   quietly correcting, because the red was the row telling the truth: the split's
+   tooltip is a MARKED one, so what reaches the harvest is the artifact's half
+   with the type's name taken out of it. Asserting the raw string would have been
+   asserting that data-tsay does nothing. Both directions are taken now — the
+   stripped form present, the raw form absent — which is a strictly sharper pair
+   than the one clause the draft had. */
+const symTookStripped = symTookSaid.split(symShWord).join(' ');
+const symTookInScan = symScanText.indexOf(symTookStripped) !== -1;
+const symTookRawInScan = symScanText.indexOf(symTookSaid) !== -1;
+const symTookInText = symLeafText.filter((t) => t.indexOf(' took ') !== -1).length;
+check(
+  '107d. THE PROSE MOVED INTO TOOLTIPS AND THE NO-VERDICT GATE STILL READS IT '
+    + '— the row this whole change turns on, and the wave-1 lesson in its '
+    + 'attribute edition: a surface the walk never reaches reports clean '
+    + 'FOREVER, so words leaving textContent for an attribute is the one way '
+    + 'D-29 could have made every scan in this file green by making it blind. '
+    + 'THREE CLAUSES, THREE DIFFERENT FAILURES. First, a sentence that exists '
+    + 'in NO leaf of #app is present in the harvest: the split\'s reading is '
+    + 'assembled at render time from a live label and two numbers, so it is not '
+    + 'a literal anywhere and neither source layer can see it — if the scan has '
+    + 'it, the scan is reading tooltips. It is compared in its STRIPPED form and '
+    + 'the RAW form is asserted ABSENT, which is the pair the first draft of '
+    + 'this row did not have: it compared the raw string, went red, and the red '
+    + 'was the row telling the truth — this tooltip is a MARKED one, so '
+    + 'asserting the raw string would have been asserting that data-tsay does '
+    + 'nothing. Second, the ARTIFACT\'S half of a '
+    + 'marked tooltip is in the harvest: data-tsay removes the student\'s '
+    + 'fragment and must remove nothing else, because an exemption that skipped '
+    + 'the whole attribute would take these sentences out of the only layer '
+    + 'that can ever see them. Third, the STUDENT\'S half is not, which is '
+    + 'ALLOC-10 — and the word is one this drive RENAMED a type to, so it '
+    + 'reaches the page by the real path and appears in no static markup. '
+    + 'Floored on a marked reading being FOUND, because a lane with none would '
+    + 'satisfy every clause by having nothing to strip',
+  symMarked !== null && symMarkedWord !== '' && symMarkedRaw !== ''
+    && symMarkedStripped !== symMarkedRaw
+    && symStrippedSeen === true && symWordSeen === 0
+    && symTookSaid !== '' && symTookInScan === true
+    && symTookRawInScan === false && symTookInText === 0,
+  'the harvest holds ' + symScan.length + ' strings and the page\'s TEXT '
+    + symLeafText.length + ' leaves'
+    + ' | a sentence that is in no leaf at all — ' + JSON.stringify(symTookSaid)
+    + ' — reaches the scan STRIPPED as ' + JSON.stringify(symTookStripped)
+    + '=' + symTookInScan + ' and RAW=' + symTookRawInScan
+    + ' (leaves containing " took "=' + symTookInText + ')'
+    + ' | one marked tooltip reads ' + JSON.stringify(symMarkedRaw)
+    + ', its student fragment is ' + JSON.stringify(symMarkedWord)
+    + ', the harvest holds the stripped form=' + symStrippedSeen
+    + ' as ' + JSON.stringify(symMarkedStripped)
+    + ' | harvested strings containing the student\'s word=' + symWordSeen
 );
 
 A.ops.resetToDefaults();
