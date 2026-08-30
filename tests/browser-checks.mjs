@@ -1339,7 +1339,19 @@ for (const ch of ['chrome', 'msedge']) {
        face. Both are read off computed geometry here. THE SIGN IS ASSERTED TO
        BE U+2212 off the rendered text node, not off the source, because the two
        characters are indistinguishable in a diff and distinguishable on a
-       projector. */
+       projector.
+
+       AND D-30's GEOMETRY IS MEASURED HERE, WHICH IS THE ONLY PLACE IT CAN BE.
+       "make the - for removing a resource red and make it appear in the
+       top-left corner (25% from the top, center aligned to the left edge) of
+       the symbol/shape". The node gate can read the sign's PARENT and nothing
+       else — it has no layout engine, so `left:0` and `top:25%` are strings to
+       it. Here they are numbers: the mark's CENTRE against the shape's own
+       rect, as an absolute offset in x and as a FRACTION of the shape's height
+       in y. The fraction rather than a pixel count is deliberate — 3px is the
+       right answer only while --tok is 12px, and [C00]'s rehearsal dial exists
+       to be turned. Measured chrome and msedge, 1920x1080 and 1366x768: dx 0.00
+       and dy 0.2500 in all four. */
     const cost = await pg.evaluate(() => {
       const box = document.querySelector('#decl-cats .fg-act-cost');
       if (!box) return null;
@@ -1358,11 +1370,33 @@ for (const ch of ['chrome', 'msedge']) {
         apWord: App.render.labelFor(App.state.get(), 'ap'),
         text: leaves.join(' '),
         btnBox: r(btn),
-        signSize: sign ? parseFloat(getComputedStyle(sign).fontSize) : 0
+        signSize: sign ? parseFloat(getComputedStyle(sign).fontSize) : 0,
+        // D-30. The mark's CENTRE against the shape it is parented to.
+        signOnShape: !!(sign && sign.parentElement
+          && sign.parentElement.classList.contains('tok')),
+        geom: (() => {
+          if (!sign || !sign.parentElement) return null;
+          const sr = sign.getBoundingClientRect();
+          const pr = sign.parentElement.getBoundingClientRect();
+          if (!(pr.height > 0)) return null;
+          return {
+            dx: +((sr.left + sr.width / 2) - pr.left).toFixed(2),
+            dy: +(((sr.top + sr.height / 2) - pr.top) / pr.height).toFixed(4),
+            shape: [Math.round(pr.width), Math.round(pr.height)]
+          };
+        })(),
+        signColor: sign ? getComputedStyle(sign).color : null,
+        // The colour the reading around it inherits, so "the mark is red" is a
+        // claim about a DIFFERENCE rather than about a string.
+        boxColor: sym ? getComputedStyle(sym).color : null,
+        taken: App.render.SYM_TAKEN
       };
     });
     note(ch, size.name, 'a picker cost', cost === null ? 'NOT FOUND'
       : `${JSON.stringify(cost.text)} sign ${JSON.stringify(cost.signText)} ${cost.signBox ? cost.signBox.w + 'x' + cost.signBox.h : '-'} token ${cost.tokBox ? cost.tokBox.w + 'x' + cost.tokBox.h : '-'} -> ${JSON.stringify(cost.title)}`);
+    note(ch, size.name, 'D-30: the mark on a picker cost — dx / dy-fraction / colour',
+      cost === null || cost.geom === null ? 'NOT FOUND'
+        : `centre ${cost.geom.dx}px from the shape's left edge, ${cost.geom.dy} down a ${cost.geom.shape.join('x')} shape, ${cost.signColor}`);
     ok(`${tag}: 21. a cost on the picker renders as U+2212 plus the type's own token, both with real boxes, with the prose on the hover and the type named nowhere in the button's own text`,
       cost !== null && cost.signIsMinus === true
       && cost.signBox !== null && cost.signBox.w > 0 && cost.signBox.h > 0
@@ -1370,7 +1404,102 @@ for (const ch of ['chrome', 'msedge']) {
       && cost.signSize >= 18
       && typeof cost.title === 'string' && cost.title.length > 0
       && cost.label === cost.title
+      && cost.title.indexOf(cost.taken) === 0
       && cost.text.indexOf(cost.apWord) === -1, cost);
+    ok(`${tag}: 21b. D-30's GEOMETRY, IN PIXELS: the mark's centre sits ON the shape's left edge, a quarter of the way down the shape's own height, in a colour that is not the one the reading inherits`,
+      cost !== null && cost.signOnShape === true && cost.geom !== null
+      && Math.abs(cost.geom.dx) <= 0.5
+      && Math.abs(cost.geom.dy - 0.25) <= 0.01
+      && typeof cost.signColor === 'string'
+      && cost.signColor !== cost.boxColor, cost);
+
+    /* ── 21c. EVERY MARK ON THE PAGE, NOT THE ONE THE SELECTOR HAPPENED TO
+       RETURN. 21b reads the first cost on the cats picker; this walks the whole
+       document and counts FAILURES, which is 71c's shape and 107's — a cell
+       that measured one mark would be green over a lane where every other one
+       had slipped. The lane's marks are the interesting half here because the
+       lane is where the two forms differ: a split fact of zero draws D-21's
+       compact form, so its shape is the SECOND child of the row with the count
+       first, and a mark anchored to the reading rather than to the shape lands
+       on the left edge of "0x" there and nowhere near a symbol.
+
+       AND THE CLIPPING IS MEASURED RATHER THAN ASSUMED, because half the mark
+       hangs outside the shape by construction and .ld-row carries
+       overflow-y:auto — which computes overflow-x to auto as well, so the lane
+       card is a real clipping box on the one surface where a reading sits hard
+       against its left edge. [C14.5] pads .sym for exactly this and the number
+       that says the padding is enough is here rather than in the comment. */
+    const marks = await pg.evaluate(() => {
+      const out = { total: 0, offShape: 0, badGeom: 0, colours: {}, clipped: 0, lane: 0, picker: 0, worstLeft: 999 };
+      document.querySelectorAll('.sym-sign').forEach((s) => {
+        out.total++;
+        if (s.closest('#ledger')) out.lane++;
+        if (s.closest('#fightbar')) out.picker++;
+        const p = s.parentElement;
+        if (!p || !p.classList.contains('tok')) { out.offShape++; return; }
+        const sr = s.getBoundingClientRect();
+        const pr = p.getBoundingClientRect();
+        const dx = (sr.left + sr.width / 2) - pr.left;
+        const dy = pr.height > 0 ? ((sr.top + sr.height / 2) - pr.top) / pr.height : -1;
+        if (Math.abs(dx) > 0.5 || Math.abs(dy - 0.25) > 0.01) out.badGeom++;
+        const c = getComputedStyle(s).color;
+        out.colours[c] = (out.colours[c] || 0) + 1;
+        // the nearest ancestor that clips, and how far inside it the mark sits
+        let a = p, box = null;
+        while (a && a !== document.body) {
+          const o = getComputedStyle(a);
+          if (o.overflowX !== 'visible' || o.overflowY !== 'visible') { box = a.getBoundingClientRect(); break; }
+          a = a.parentElement;
+        }
+        if (box) {
+          const left = sr.left - box.left;
+          if (left < out.worstLeft) out.worstLeft = Math.round(left * 10) / 10;
+          if (left < 0) out.clipped++;
+        }
+      });
+      return out;
+    });
+    note(ch, size.name, 'D-30: every mark on the page',
+      `${marks.total} marks (${marks.lane} lane, ${marks.picker} picker), ${marks.offShape} off a shape, ${marks.badGeom} off the geometry, ${marks.clipped} clipped, closest to a clipping edge ${marks.worstLeft}px, colours ${JSON.stringify(marks.colours)}`);
+    ok(`${tag}: 21c. every removal mark on the page — lane and picker alike — sits on a shape at D-30's exact anchor, in ONE colour, and none of them is clipped by the box that scrolls it`,
+      marks.total > 0 && marks.lane > 0 && marks.picker > 0
+      && marks.offShape === 0 && marks.badGeom === 0 && marks.clipped === 0
+      && Object.keys(marks.colours).length === 1, marks);
+
+    /* ── 21d. THE RED COMES OUT OF [C00] AND IS NOT A HEX SOMEBODY TYPED, and
+       this is the only way to prove it from outside the file. Reading the
+       computed colour and comparing it against a number would assert that this
+       cell agrees with itself; grepping the source for a hex would pass over
+       any of the six palette tokens spelled out by hand. So the TOKEN IS MOVED
+       and the mark is watched: --accent-2 is overridden on :root, the mark's
+       computed colour must CHANGE, and it must change BACK when the override is
+       removed. A hard-coded colour does not move. This is 47d's rule — drive
+       the path rather than plant a string — arriving on a stylesheet. */
+    const derived = await pg.evaluate(async () => {
+      const s = document.querySelector('.sym-sign');
+      if (!s) return null;
+      const before = getComputedStyle(s).color;
+      document.documentElement.style.setProperty('--accent-2', '#00ff00');
+      await new Promise((r) => requestAnimationFrame(r));
+      const moved = getComputedStyle(s).color;
+      document.documentElement.style.removeProperty('--accent-2');
+      await new Promise((r) => requestAnimationFrame(r));
+      const back = getComputedStyle(s).color;
+      // and the mark is a RED: the red channel leads the other two by a real gap
+      const ch = before.match(/[\d.]+/g) || [];
+      const toByte = (v, i) => (before.indexOf('color(') === 0 && i < 3 ? Math.round(parseFloat(v) * 255) : Math.round(parseFloat(v)));
+      const rgb = ch.slice(0, 3).map(toByte);
+      return { before, moved, back, rgb };
+    });
+    note(ch, size.name, 'D-30: the mark\'s colour, and what happens when --accent-2 moves',
+      derived === null ? 'NOT FOUND'
+        : `${derived.before} = rgb(${derived.rgb.join(',')}); with --accent-2 forced to green it becomes ${derived.moved}; removed, ${derived.back}`);
+    ok(`${tag}: 21d. the mark's red is DERIVED from [C00]'s tokens rather than typed: moving --accent-2 moves it and putting the token back puts it back, and the colour it lands on leads on the red channel`,
+      derived !== null && derived.before !== derived.moved
+      && derived.back === derived.before
+      && derived.rgb.length === 3
+      && derived.rgb[0] > derived.rgb[1] + 40
+      && derived.rgb[0] > derived.rgb[2] + 40, derived);
 
     // ── 14. THE SAME READINGS AT 24 A SIDE, which is MAX_UNITS and the top of the product.
     await endFight(pg);
