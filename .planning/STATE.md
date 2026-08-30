@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed 05-15-PLAN.md
-last_updated: "2026-08-29T19:21:07.957Z"
+stopped_at: Completed the D-28 redirect (05-D28)
+last_updated: "2026-08-29T21:40:00.000Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
@@ -26,9 +26,14 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 — 05-16 complete; every autonomous plan in the phase is done
+Plan: 16 of 16 complete, plus the D-27 and D-28 redirect work; every autonomous plan
+in the phase is done
 Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate, it is
-still plan 11, and it now runs on the surface D-27 shipped with a 46-item script.
+still plan 11, and it now runs on the surface D-28 shipped with a 49-item script.
+The D-28 redirect (full-width fight, the ledger as a horizontal lane above it, the
+projection behind a toggled sidebar) is built and verified: node gate 1216/0 with 184
+of 184 interaction rows, browser checks 170/0 in Chrome and Edge at 1920x1080 and
+1366x768. `.planning/phases/05-fight-loop-playtest/05-D28-SUMMARY.md`.
 Last activity: 2026-08-29
 
 Progress: [██████████] 100%
@@ -97,6 +102,8 @@ Recent decisions affecting current work:
 - [Roadmap]: Two ordering rules honored — steppers ship in the same phase as roster add/remove (Phase 2); serialization comes after roster editing settles the build shape (Phase 4).
 - [Roadmap]: PROJ-05, REF-03 and SHARE-07 pulled into Phase 5 because their observable behaviour requires the fight view to exist.
 - [Roadmap]: FIGHT-11 is a scheduled playtest activity (plan 05-03), gating Phase 5 — not a code-review item.
+- [D-28]: The fight tab takes the whole width; earlier rounds are a full-width HORIZONTAL lane above the round being played, scrolled to its end so the newest is what you see; the projection is off by default in the fight view and comes back as a fixed sidebar on one press of `#proj-toggle`. The sidebar IS `#strip` — the same node moved out of flow, never a second panel carrying a copy — which is what keeps PROJ-05 about THE reading rather than about a surface that agrees with it.
+- [D-28, orchestrator]: the lane is horizontal because a full-width vertical stack pushes the round being played off the bottom, the defect class this phase has fixed three times; and the ledger moved in the MARKUP rather than with a CSS `order`, because an order property puts the sequence a screen reader walks out of step with the sequence the room sees while every DOM-order check stays green.
 - [Research]: Sharing is a compact build code, not a `file://` URL (leaks the student's home directory path, useless to recipients, not linkified by Discord).
 - [Phase 03.1]: Dialog strings feed the same PROJ-06 word list and the same check 48 as #app; DIALOG_ROOTS is gated in both directions against the stub page — A second word list is a second thing to keep in step; a dialog that escapes the harvest must fail the run rather than pass silently
 - [Phase 03.1]: MAX_ALLOC's literal moved from [S05] to [S01] so MIN_XF_DELTA and MAX_XF_DELTA derive from it once; [S05] still exports it — [S01] runs before [S05], so deriving the signed bound in App.data required the magnitude to live there; re-typing 99 was the one thing the plan forbade
@@ -214,7 +221,9 @@ None yet.
 - 04-08: the clipboard matrix carries NO transcribed per-cell tier reading. Tiers 1 and 2 of the copy press have never executed anywhere in this repo (limitations entry 16), so the one-word approval is the only evidence they work. Re-ask for the DevTools-focused and window-backgrounded cells first — that is where Chrome's user-gesture rule is most likely to reject writeText and where the untested fall-through actually runs.
 - 05-07 finding for 05-11: the spent reading measures zero at every observable moment because advanceRound refills both pools in the same commit that spends them. Two admissible fixes are written into the file; the choice is the developer's
 - 05-08: with a fight running and one round resolved, #board's top sits at 1183px of a 1080px screen. Three dials are one budget (.fg-sides 34vh, .ld-list 34vh, .ld-now-body 20vh). REHEARSAL.md B3, plan 05-11
-- REF-03 is only HALF served on the fight tab: the six per-action reference cards are inside the roster columns, which the fight view hides. Measured by row 101, the first row in the repo to read them WITH A VIEW. deferred-items item 4 carries the mechanism and two candidate fixes; the developer settles it at 05-11 item 29.
+- REF-03 is only HALF served on the fight tab: the six per-action reference cards are inside the roster columns, which the fight view hides. Measured by row 101, the first row in the repo to read them WITH A VIEW. deferred-items item 4 carries the mechanism and THREE candidate fixes now — D-28's toggled sidebar is the third and the only one that costs no height dial in either view; the developer settles it at 05-11 item 29.
+- 05-D28: at 1366x768 the picker grid's box ends 92px below the fold with three rounds in the lane. It BEGINS on screen and one page scroll brings the whole of it in, and every setting of `.fg-sides` overshoots at that height including the 26vh that shipped before. Browser check 6b's claim was turned to match; REHEARSAL.md B3 and 05-11 item 47 carry the room question.
+- 05-D28: FIGHT-10's notice (`#fight-said`) now sits BELOW the two round controls rather than above them, because the controls moved onto the round's own line to keep Advance above the fold. Plan 05-14's stated reason for the old order was that the moment a student most needs to have read it is the moment before they press Advance. 05-11 item 49.
 
 ## Deferred Items
 
@@ -226,6 +235,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T19:20:19.430Z
-Stopped at: Completed 05-15-PLAN.md
+Last session: 2026-08-29T21:40:00.000Z
+Stopped at: Completed the D-28 redirect (05-D28) — 05-11's playtest is the only thing left in the phase
 Resume file: None
