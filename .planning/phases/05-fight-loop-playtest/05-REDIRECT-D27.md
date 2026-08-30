@@ -267,3 +267,34 @@ Verbatim, two messages:
   refuses by content rather than loading garbage; that is the codec doing its job, noted not fixed.
 - The fight picker's −badge cost reading (D-29/D-30) renders every cost term, compacted per
   COMPACT_AT.
+
+---
+
+## D-33 — Seventh round, 2026-08-30: the polish pass
+
+Verbatim:
+
+> Better. Dramatically improve the usability, presentation and polish
+
+### What this settles
+
+A whole-surface design-quality pass — usability, presentation, polish — with emphasis on the
+surfaces the developer has been iterating on (the fight tab and the action editor), but covering
+the artifact as one coherent thing: a student and an instructor should experience one designed
+tool, not eleven plans' worth of accreted regions.
+
+### How it runs (orchestrator)
+
+1. **Audit first, with eyes.** An agent drives the real artifact headless, screenshots every
+   surface and state at both viewports, and writes a PRIORITIZED, CONCRETE spec — specific
+   changes with reasons, not adjectives. Usability (affordance, feedback, flow), presentation
+   (hierarchy, alignment, rhythm, consistency between surfaces), polish (focus/hover states,
+   transitions, empty states, edge legibility).
+2. **Then implementation** in gate-disciplined passes.
+
+### Constraints that do not bend for beauty
+
+The no-verdict gate scans everything rendered including tooltips; UX-02's control-labelling rules;
+the design tokens (no new hex); no innerHTML/SVG/url(; the single-file offline contract; every
+floor and row moved openly. Polish may not soften a refusal, add a judgement, or hide a reading
+behind hover that a control depends on.
