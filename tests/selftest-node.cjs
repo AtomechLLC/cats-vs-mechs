@@ -13880,6 +13880,206 @@ A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
 
+/* --- 110. THE MAXED ACTION, END TO END, THROUGH THE REAL CONTROLS -----------
+
+   D-32's hard requirement stated as one drive: an action carrying FOUR cost
+   terms, FOUR requirements and FOUR changes is authored in the EDITOR through
+   its chooser pills and its amount fields, then declared on the fight picker,
+   then resolved by the Advance button, and every reading is taken off the page
+   at each step.
+
+   IT IS A SEPARATE ROW FROM 69g AND 109 BECAUSE EACH OF THOSE READS ONE
+   SURFACE. 69g reads the editor with the record planted by ops; 109 reads the
+   picker and the disable on a two-term cost. Neither of them carries a term
+   from a KEYSTROKE all the way to a resolved round, and the seams between them
+   are exactly where a slot argument gets dropped: a chooser that wrote every
+   pill into slot 0, an amount field that sent no index, a picker that priced
+   only the first term, an Advance that spent only the action points. Every one
+   of those leaves both of those rows green.
+
+   THE AUTHORING GOES THROUGH THE PILLS AND THE FIELDS AND NEVER THROUGH
+   App.ops, which is 69-69f's own rule and its reason: a row that drove the ops
+   would assert what the region paints and say nothing about whether a student
+   pressing something reaches it. The two ops that have no control on this
+   surface — createAction and createTokenType — are driven directly, and the
+   editor is opened on the action they made.
+
+   FLOORED IN FOUR PLACES, because this drive is long enough that a step
+   quietly doing nothing would leave the rest of it reading a shorter rule than
+   it thinks: the record's three list lengths after authoring, the button being
+   found on the picker, the declaration standing, and the round actually
+   resolving. --- */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+const e2eSide = A.ops.createTokenType({
+  name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+});
+const e2eUnit = A.ops.createTokenType({
+  name: 'Poison', shape: 'circ', color: 'violet', glyph: '', scope: 'unit'
+});
+const e2eAct = A.ops.createAction('cats', 'Everything');
+A.state.flush();
+
+// The editor, opened on the action that was just made, and driven by pressing.
+const e2eDlg = dom.byId['act-edit'];
+if (e2eDlg.open !== true) { e2eDlg.showModal(); }
+A.render.editor(A.state.get(), 'cats', e2eAct);
+A.state.flush();
+
+/* ONE TERM WRITTEN THE WAY A STUDENT WRITES ONE: press the token pill in the
+   row, then type the amount into that row's field and press Enter. The row is
+   re-rendered by the press, so the pill is looked up again for each write
+   rather than held across a repaint — which is the same reason [S07.3] records
+   the side and the action at focus time. */
+function e2eWriteTerm(field, slot, tok, amount, who) {
+  if (field === 'xf') {
+    const whoPill = aePillFor('xf', slot, 'edWho', who);
+    if (whoPill !== undefined) { aePress(whoPill); A.state.flush(); }
+  }
+  const pill = aePillFor(field, slot, 'edTok', tok);
+  if (pill === undefined) { return false; }
+  aePress(pill);
+  A.state.flush();
+  if (field === 'xf') {
+    const whoAgain = aePillFor('xf', slot, 'edWho', who);
+    if (whoAgain !== undefined) { aePress(whoAgain); A.state.flush(); }
+  }
+  aeTypeAmount(aeAmtOf(field, slot), String(amount));
+  A.state.flush();
+  return true;
+}
+
+const e2eCostToks = ['ap', e2eSide, 'hp', e2eUnit];
+/* THE FOUR REQUIREMENTS ARE ALL READ AT SIDE SCOPE, and that is a finding
+   rather than a convenience. The first draft of this drive asked for one of
+   the student's PER-UNIT type and the button came back DISABLED, correctly:
+   requirements are read on the CASTER SIDE — affordability's own comment says
+   so in as many words — and a unit-scope tally is not at side scope, so it
+   reads zero and the requirement is unmet. The drive wants the declaration to
+   go through, so it asks for four things the side actually holds. The
+   unit-scope type is still in the COST list, where it is the term that must
+   spend nothing. */
+const e2eReqToks = ['hp', 'shield', e2eSide, 'ap'];
+const e2eXfToks = ['hp', e2eUnit, 'shield', e2eSide];
+const e2eWrites = [];
+e2eCostToks.forEach((tok, i) => {
+  e2eWrites.push(e2eWriteTerm('cost', i, tok, i + 1));
+});
+e2eReqToks.forEach((tok, i) => {
+  e2eWrites.push(e2eWriteTerm('req', i, tok, 1));
+});
+e2eXfToks.forEach((tok, i) => {
+  e2eWrites.push(e2eWriteTerm('xf', i, tok, i === 0 ? -2 : 1,
+    A.data.XF_WHO[i === 0 ? 1 : 0]));
+});
+if (e2eDlg.open === true) { e2eDlg.close(); }
+A.state.flush();
+
+const e2eRec = A.state.get().build.cats.actions.filter((a) => a.id === e2eAct)[0];
+const e2eLens = [e2eRec.cost.length, e2eRec.req.length, e2eRec.xf.length];
+const e2eCostSaid = e2eRec.cost.map((c) => c.tok + ':' + c.n).join(',');
+const e2eCostWant = e2eCostToks.map((tok, i) => tok + ':' + (i + 1)).join(',');
+
+// The board is funded so the requirements are met and both pools can pay.
+A.ops.setFactionAp('cats', 9);
+A.ops.setTally('cats', null, e2eSide, 9);
+A.ops.setUnitShield('cats', 'c1', 2);
+A.ops.setTally('cats', 'c1', e2eUnit, 4);
+A.state.flush();
+
+fgPress(fgStart);
+A.state.flush();
+const e2eApBefore = A.state.get().fight.cats.ap;
+const e2ePaceBefore = A.state.get().fight.cats.tally
+  ? A.state.get().fight.cats.tally[e2eSide] : 0;
+
+// The picker: the button is found by side, performer and action, and its cost
+// box must carry one reading per cost term.
+const e2eBtn = fgActBtnOf('cats', 'c1', e2eAct);
+const e2eBox = e2eBtn === null ? null : fgOne(e2eBtn, '.fg-act-cost');
+const e2eReadings = e2eBox === null ? -1 : e2eBox.querySelectorAll('.sym').length;
+const e2eOff = e2eBtn === null ? null : e2eBtn.disabled;
+
+fgDeclare('cats', e2eAct, 'c1');
+A.state.flush();
+const e2eStanding = A.state.get().fight.decl
+  .filter((d) => d.side === 'cats' && d.by === 'c1').length;
+const e2eTeamSpoken = fgLeaves(fgOne(fgStateRootOf('cats'), '.fg-team')).join(' ');
+
+fgAdvancePress();
+A.state.flush();
+const e2eRound = A.state.get().fight.round;
+const e2eEntry = (A.state.get().fight.past[0]
+  && A.state.get().fight.past[0].did[0]) || null;
+const e2eSpent = e2eEntry === null ? '' : e2eEntry.spent
+  .map((c) => c.tok + ':' + c.want + '/' + c.paid).join(',');
+const e2eSpentWant = ['ap:1/1', e2eSide + ':2/2', 'hp:3/0', e2eUnit + ':4/0'].join(',');
+const e2ePaceAfter = A.state.get().fight.cats.tally
+  ? A.state.get().fight.cats.tally[e2eSide] : 0;
+// The lane drew the round, and it drew it in symbols.
+const e2eLane = dom.byId['ledger'];
+const e2eCards = e2eLane ? e2eLane.querySelectorAll('.ld-row').length : -1;
+const e2eLaneSyms = e2eLane ? e2eLane.querySelectorAll('.sym').length : -1;
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+check(
+  '110. ONE MAXED ACTION, EDITOR TO LEDGER, THROUGH THE SHIPPED CONTROLS — '
+    + 'four cost terms, four requirements and four changes authored by pressing '
+    + 'chooser pills and typing into amount fields, then declared on the picker '
+    + 'and resolved by Advance, with every reading taken off the page. THIS IS '
+    + 'THE ROW THAT WATCHES THE SEAMS. 69g reads the editor over a record ops '
+    + 'planted and 109 reads the picker over a two-term cost; neither carries a '
+    + 'term from a KEYSTROKE to a resolved round, and the seams between them are '
+    + 'exactly where a slot argument gets dropped — a chooser writing every pill '
+    + 'into slot 0, a field sending no index, a picker pricing the first term '
+    + 'only, an Advance spending only the action points. Every one of those '
+    + 'leaves both of those rows green. THE COST IS READ BACK AS AN ORDERED '
+    + 'LIST, token and amount, because a drive that wrote four terms in the '
+    + 'wrong order would satisfy a length check. THE SPEND IS READ OFF THE '
+    + 'ROUND RECORD, term by term, want beside paid: the action points and the '
+    + 'side-scope type pay, the health term and the per-unit type pay NOTHING '
+    + 'because neither names a pool — and the tool choosing which unit pays '
+    + 'would be it adjudicating. THE SIDE POOL LANDS AT 8 AND NOT AT 7, and '
+    + 'that arithmetic is the whole loop in one number: the cost took 2 and '
+    + 'the rule\'s OWN caster-side change gave 1 back on the same Advance, in '
+    + 'the same commit, out of the same bag. A row expecting 7 would be asking '
+    + 'the tool to run the cost and drop the student\'s change. Floored in four places because a drive this '
+    + 'long has four ways to quietly do less than it says: the three list '
+    + 'lengths after authoring, the button being found, the declaration '
+    + 'standing, and the round actually resolving',
+  e2eWrites.every((ok) => ok === true)
+    && e2eLens.join(',') === [A.ops.MAX_ACTION_COST, A.data.MAX_ACTION_REQ,
+      A.data.MAX_ACTION_XF].join(',')
+    && e2eCostSaid === e2eCostWant
+    && e2eBtn !== null && e2eOff === false && e2eReadings === 4
+    && e2eStanding === 1 && e2eTeamSpoken.indexOf('spoken for') !== -1
+    && e2eRound === 2 && e2eEntry !== null
+    && e2eSpent === e2eSpentWant
+    && e2eApBefore === 9 && e2ePaceBefore === 9 && e2ePaceAfter === 8
+    && e2eCards === 1 && e2eLaneSyms > 0,
+  'every write landed=' + e2eWrites.every((ok) => ok === true)
+    + ' | list lengths after authoring=' + e2eLens.join('/')
+    + ' | cost read back=' + JSON.stringify(e2eCostSaid)
+    + ' wanted ' + JSON.stringify(e2eCostWant)
+    + ' | picker readings=' + e2eReadings + ' button disabled=' + e2eOff
+    + ' | declarations standing=' + e2eStanding
+    + ' | team reading after declaring ' + JSON.stringify(e2eTeamSpoken)
+    + ' | round after Advance=' + e2eRound
+    + ' | spent=' + JSON.stringify(e2eSpent) + ' wanted ' + JSON.stringify(e2eSpentWant)
+    + ' | the side pool went ' + e2ePaceBefore + ' -> ' + e2ePaceAfter
+    + ' (2 spent by the cost, 1 given back by the rule\'s own caster change)'
+    + ' | lane cards=' + e2eCards + ' symbols in the lane=' + e2eLaneSyms
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore
