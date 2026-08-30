@@ -826,7 +826,22 @@ function makeStubDom() {
     // copied from the markup rather than typed from memory - the warning above
     // this builder is the whole of that boundary, and check 103 reads the
     // attribute back off the page it drives.
-    'views', 'view-build', 'view-fight'
+    'views', 'view-build', 'view-fight',
+    // plan 05-D28 - D-28's projection toggle. ONE id and no more, and the
+    // reason there is not a second is the decision the shell comment carries in
+    // full: the sidebar this control opens IS #strip, the node that already
+    // ships, rather than a second panel carrying a copy of the same figures.
+    // So there is a control id here and no root id, which is the one shape this
+    // group has that the group above it does not.
+    //
+    // Same three-part rule as every entry above - the id, this entry and the
+    // stub node arrive together, and section 5b fails the run in BOTH
+    // directions if one of the three is missing. It carries data-pv and NOT
+    // data-vw and NOT data-act, and that spelling is copied from the markup
+    // rather than typed from memory: check 103 counts the data-vw controls and
+    // check 103d counts the data-pv ones, and the two counts are what assert
+    // the partition off the page.
+    'proj-toggle'
   ];
 
   const byId = Object.create(null);
@@ -1105,7 +1120,12 @@ function makeStubDom() {
   const views = idNode('views');
   views.className = 'vw-switch';
   views.setAttribute('role', 'group');
-  views.setAttribute('aria-label', 'Which screen');
+  // AMENDED BY PLAN 05-D28 IN THE SAME CHANGE THAT AMENDED THE MARKUP. The
+  // group holds D-28's projection toggle as well as the two view controls now,
+  // and an accessible name present in one page and different in the other is
+  // exactly the drift section 5b exists to make impossible, arriving through an
+  // attribute rather than through a typo.
+  views.setAttribute('aria-label', 'Which screen, and the projection');
   app.appendChild(views);
   [['view-build', 'build', 'vw-btn vw-on', 'true'],
     ['view-fight', 'fight', 'vw-btn', 'false']].forEach(([id, vw, cls, pressed]) => {
@@ -1123,6 +1143,49 @@ function makeStubDom() {
     tick.className = 'vw-check';
     b.appendChild(tick);
   });
+  // plan 05-D28's toggle, a SIBLING of the two above and inside the same root,
+  // which is what lets [S07.6]'s one delegated pair reach all three. Built to
+  // the same convention as they are: no text on the label and no tick
+  // character, because text written directly into the shell is empty here and
+  // Layer A reads it in the document. Every class and every dataset spelling is
+  // copied from the markup, including aria-expanded, which this control carries
+  // and the two above do not.
+  const projToggle = idNode('proj-toggle', 'button');
+  projToggle.className = 'pv-btn';
+  projToggle.type = 'button';
+  projToggle.dataset.k = 'pv/proj';
+  projToggle.dataset.pv = 'strip';
+  projToggle.setAttribute('aria-pressed', 'false');
+  projToggle.setAttribute('aria-expanded', 'false');
+  projToggle.setAttribute('aria-controls', 'strip');
+  views.appendChild(projToggle);
+  const projName = createElement('span');
+  projName.className = 'pv-name';
+  projToggle.appendChild(projName);
+  const projTick = createElement('span');
+  projTick.className = 'pv-check';
+  projToggle.appendChild(projTick);
+
+  // THE LEDGER IS BUILT AND APPENDED BEFORE #fightbar, AND THE ORDER IS THE
+  // CLAIM RATHER THAN HOUSEKEEPING (plan 05-D28). D-28 made the ledger a
+  // full-width LANE ABOVE the round being played, and the shell carries that in
+  // the markup rather than with a CSS `order` — so #app's child order here has
+  // to match, because this page's child order IS its appendChild order and
+  // check 103e reads the pairing off both pages. The other property this page
+  // can hold is the one plan 05-06 built it for: the ledger is a SIBLING of
+  // #board and not a child, which is what keeps the first [data-k] match scoped
+  // to #board a live node after a structural rebuild. Its rows carry no data-k
+  // and no data-act at all, so there is nothing to stub inside the list —
+  // [S06.8] appends into it.
+  const ledger = idNode('ledger', 'section');
+  ledger.hidden = true;
+  app.appendChild(ledger);
+  const ledgerHead = idNode('ledger-head', 'h2');
+  ledgerHead.className = 'ld-head';
+  ledger.appendChild(ledgerHead);
+  const ledgerList = idNode('ledger-list');
+  ledgerList.className = 'ld-list';
+  ledger.appendChild(ledgerList);
 
   const fightbar = idNode('fightbar', 'section');
   app.appendChild(fightbar);
@@ -1148,21 +1211,6 @@ function makeStubDom() {
   fightSaid.className = 'fg-said';
   fightSaid.hidden = true;
   fightbar.appendChild(fightSaid);
-
-  // The ledger, and the one property of it this page can actually hold: it is
-  // a SIBLING of #board and not a child, which is what keeps the first
-  // [data-k] match scoped to #board a live node after a structural rebuild.
-  // Its rows carry no data-k and no data-act at all, so there is nothing to
-  // stub inside the list — plan 05-08 appends into it.
-  const ledger = idNode('ledger', 'section');
-  ledger.hidden = true;
-  app.appendChild(ledger);
-  const ledgerHead = idNode('ledger-head', 'h2');
-  ledgerHead.className = 'ld-head';
-  ledger.appendChild(ledgerHead);
-  const ledgerList = idNode('ledger-list');
-  ledgerList.className = 'ld-list';
-  ledger.appendChild(ledgerList);
 
   const board = idNode('board');
   app.appendChild(board);

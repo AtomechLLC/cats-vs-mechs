@@ -1126,7 +1126,52 @@
     margin:0 0 18px calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
 
-  /* THE BAR TAKES THE WIDTH ITS TWO DECLARATION COLUMNS NEED AND NO MORE;
+  /* ==================================================================
+     D-28 RETIRED THIS SPLIT, AND THE WHOLE DERIVATION BELOW IS KEPT
+     RATHER THAN DELETED. Plan 05-D28.
+     ==================================================================
+     The developer, at the real artifact, with a screenshot of the fight
+     tab attached: "this is way too compressed - let the fight take the whole
+     width. earlier rounds should be a full lane above showing the past state and
+     acctions selected."
+
+     SO THE BAR TAKES THE WHOLE WIDTH AND THE LEDGER TAKES THE WHOLE WIDTH ABOVE
+     IT. #fightbar and #ledger both keep flex:1 1 100%, the @media(min-width:1180px)
+     block that used to override both is gone, and the band is a stack of two
+     full-width rows in the markup order the shell now ships: ledger, then bar.
+
+     WHAT THAT MAKES FALSE, said out loud rather than left for a reader to trip
+     over, because everything under this line was true and is not any more:
+       - the 736px basis below is NOT a live dial. It bounded a bar sharing its
+         row; nothing shares this row. It is kept because it is the derivation
+         [C14.1]'s .fg-side sweep is written against and because the arithmetic
+         is the record of a defect that took two plans to find, not because a
+         rule reads it. NOTHING IN THIS FILE SETS 736 ANY MORE.
+       - the 1180px breakpoint is gone with it. It existed to decide whether two
+         regions fitted on one line; there is one region per line by construction
+         now, so there is nothing left for it to decide.
+       - the :has() rule is gone with it. It answered "what should the bar do
+         when there is no ledger beside it", and there is never a ledger beside
+         it. That rule was this file's ONLY use of :has(); the feature is still
+         inside the stated browser floor and the next region that wants it may
+         take it, which is why the paragraph below is kept as the record of what
+         it cost and what it bought.
+       - "the surplus goes to the ledger" is answered differently now: BOTH get
+         all of it, and what the ledger gained is 1600px of lane instead of an
+         846px column.
+
+     AND WHAT THE STACK COSTS, WHICH IS THE HONEST HALF. Side by side, the page
+     paid the TALLER of the two regions; stacked it pays their SUM again — which
+     is the arithmetic the viewport fix removed. It is affordable now and it was
+     not then, and the difference is plan 05-12's tab: #board is not on the
+     screen at all during a fight, so the sum being paid is the sum of two fight
+     regions inside one viewport rather than two fight regions PLUS the board.
+     The lane is bounded on the one axis that costs the page anything ([C14.2]
+     bounds .ld-row, not the number of rounds), so the sum has a ceiling.
+
+     ---- THE DERIVATION AS IT STOOD, KEPT VERBATIM BELOW THIS LINE ----
+
+     THE BAR TAKES THE WIDTH ITS TWO DECLARATION COLUMNS NEED AND NO MORE;
      THE LEDGER TAKES EVERYTHING LEFT OVER. Both halves of that are measured
      rather than preferred.
 
@@ -1208,12 +1253,14 @@
      flex-wrap on the band is still set and is still doing its job — it is what
      makes the fall-back a fall-back rather than a cliff — but nothing depends
      on it alone for a WIDTH. */
+  /* D-28: ONE LINE EACH, AT EVERY WIDTH, AND NOTHING OVERRIDES IT. The basis is
+     a whole flex line's worth for both regions, so the band is a stack whether
+     or not flex-wrap has anything to do — which is the same "the narrow
+     arrangement is the one nothing has to be true for" rule the retired media
+     query's own comment stated, now applied at every width rather than below
+     one. flex-wrap on the band is still set and is still what makes this a
+     stack rather than a squeeze. */
   #fightbar, #ledger{flex:1 1 100%;min-width:0}
-  @media(min-width:1180px){
-    #fightbar{flex:0 1 736px}
-    #ledger{flex:1 1 380px}
-    .fg-band:has(#ledger[hidden]) #fightbar{flex-grow:1}
-  }
 
   /* The fight region: the panel treatment #strip already wears, because it is
      the same kind of thing — a surface on the board's page rather than a card
@@ -1472,10 +1519,45 @@
      child is the one nearest the live board directly below. No `order` and no
      reversed direction: either would put this region's reading order out of
      step with its document order, and the sequence a screen reader walks would
-     be the reverse of the one the room sees. */
+     be the reverse of the one the room sees.
+
+     ==================================================================
+     D-28 TURNED THIS LIST ON ITS SIDE, AND THE 46vh DIAL IS RETIRED
+     WITH THE DIRECTION IT BOUNDED. Plan 05-D28.
+     ==================================================================
+     "earlier rounds should be a full lane above showing the past state and
+     acctions selected" — the developer, on the real artifact. A LANE IS A ROW.
+     The direction is now `row`, the newest card is the last child and therefore
+     the one at the END of the lane, and `order` and `row-reverse` are still both
+     refused for the reason the paragraph above gives — which binds HARDER here,
+     because a reversed row looks correct to anybody reading only a screenshot.
+
+     THE HEIGHT DIAL MOVED OFF THIS ELEMENT AND ONTO .ld-row, and that is the
+     change rather than a new number for the same thing. A column of rounds is
+     bounded by bounding the COLUMN: one dial, and every row inside it is
+     whatever height it wants. A ROW of rounds is bounded by bounding each CARD,
+     because the lane's height IS its tallest card — a max-height on the lane
+     with unbounded cards clips them, and a clipped card is a reading a student
+     cannot finish. So .ld-list carries NO max-height at all now, [C14.2] bounds
+     .ld-row instead, and the whole of what this element does is scroll
+     SIDEWAYS.
+
+     overflow-x:auto AND overflow-y:hidden, spelled as two longhands rather than
+     as `overflow:auto`, and the second one is the load-bearing half: with the
+     cards bounded there is never anything to scroll vertically here, and a
+     vertical scrollbar appearing on a lane whose content fits is 15px of gutter
+     spent on nothing. [C03]'S STICKY GOTCHA IS NOT VIOLATED BY EITHER — this
+     element is an ancestor of no sticky element, exactly as it was when it
+     carried overflow-y:auto, and the band above it still takes no overflow of
+     any kind. The rule is restated rather than assumed because the value
+     changed and a reader will check.
+
+     AND THE 46vh HISTORY ABOVE IS KEPT WHOLE. It is the record of four plans
+     turning one dial against four different pages, and it is the reason this
+     block does not reach for a fifth number on the same axis. */
   .ld-list{
-    display:flex;flex-direction:column;gap:12px;
-    max-height:46vh;overflow-y:auto;
+    display:flex;flex-direction:row;align-items:flex-start;gap:12px;
+    overflow-x:auto;overflow-y:hidden;
     padding:2px;
   }
 
@@ -1912,7 +1994,14 @@
      readable measure. The one arrangement property this block writes on
      #ledger is grid-template-columns, and it deliberately writes NO width, NO
      margin, NO overflow and NO position on it — [C14]'s frame, the shorthand
-     trap and the sticky gotcha all stay exactly where they were closed. */
+     trap and the sticky gotcha all stay exactly where they were closed.
+
+     D-28 KEPT THIS RULE AND IT EARNS ITS PLACE HARDER THAN IT DID. The region
+     is a full-width lane above the round being played now, so every pixel of
+     height it spends is a pixel the round being played does not have. The
+     reading beside the lane instead of under it is what keeps the lane's cost
+     to the height of one card rather than one card plus seventy-two lines of
+     reading. Same rule, same breakpoint, a stronger reason. */
   @media (min-width:1100px){
     #ledger{grid-template-columns:minmax(0, 1fr) minmax(300px, 26%)}
     .ld-head{grid-column:1 / -1}
@@ -1932,8 +2021,45 @@
      the board's 24px value size, nothing carries the board's --ink at full
      weight except a unit's own name, and the region's own bound stops it
      growing into the board's space at all. */
+  /* ==================================================================
+     D-28: A ROW BECAME A CARD IN A LANE, AND THIS IS WHERE THE HEIGHT
+     DIAL LIVES NOW. Plan 05-D28.
+     ==================================================================
+     [C14] carries the reason the bound moved off .ld-list and onto this
+     element: a lane's height IS its tallest card, so bounding the lane clips
+     cards and bounding the card bounds the lane.
+
+     THE BASIS IS 340px AND IT IS DERIVED RATHER THAN CHOSEN, in .fg-side's
+     manner. A card holds .ld-side at flex:1 1 260px, so 340 minus this rule's
+     24px of padding and 2px of border leaves 314 of content — one side per
+     line, which is what a 260px basis asks for, with 54px of slack for the
+     scrollbar gutter a card may spend on itself. Below about 290 the two sides
+     would still be one per line but .ld-unit's nowrap readings would start
+     overflowing; above about 560 two sides would sit along the line and a card
+     would be a small board rather than a reading, which is the design [S06.8]
+     measured and refused. flex-shrink is 0 so a card in a lane of ten is the
+     same width as a card in a lane of one — a lane whose cards got narrower as
+     the fight went on would be a page that re-laid itself out on every Advance.
+
+     22vh IS THE HEIGHT BOUND AND IT IS THE ONE DIAL THIS CHANGE ADDS. It is a
+     REHEARSAL DIAL in .fg-sides' and .ld-list's old manner and it ships with
+     the measurement that makes it one rather than with a guess — the figures
+     are in .planning/phases/05-fight-loop-playtest/05-D28-SUMMARY.md and in
+     REHEARSAL.md B3. THE SCROLL IS ON THIS ELEMENT and never on an ancestor:
+     .ld-row is an ancestor of nothing that sticks, and [C03]'s gotcha is why
+     that sentence is written rather than assumed.
+
+     A CARD SCROLLING ON ITSELF IS THE RIGHT TRADE HERE AND IT WAS NOT IN THE
+     COLUMN. In a column the newest round is the one a student reads and it sat
+     directly above the live board, so a card that had to be scrolled was the
+     one thing this region existed to show. In a lane the newest round is beside
+     nine others and the thing directly below it is the round being PLAYED — the
+     lane is history, and history that has to be scrolled into is history read on
+     purpose rather than history missed. */
   .ld-row{
     display:flex;flex-direction:column;gap:6px;
+    flex:0 0 340px;min-width:0;
+    max-height:22vh;overflow-y:auto;
     padding:10px 12px;
     border:1px solid color-mix(in srgb, var(--line) 70%, transparent);
     border-radius:var(--radius);
@@ -2030,11 +2156,19 @@
      exactly that reason: a declaration is what would make them differ. */
 
   /* FIGHT-15's READING, AND WHERE IT SITS IS HALF OF WHAT IT IS.
-     It is the LAST child of #ledger, which is #board's immediate previous
-     sibling, so it lands directly above the live board's top edge and travels
-     with it. It could not go inside #board: structure() rebuilds both column
-     interiors and owns every node in them, and keyed() takes the first
-     [data-k] match scoped to #board.
+     It is the LAST child of #ledger. It could not go inside #board:
+     structure() rebuilds both column interiors and owns every node in them,
+     and keyed() takes the first [data-k] match scoped to #board.
+
+     WHAT IT IS DIRECTLY ABOVE CHANGED WITH D-28 AND THE REQUIREMENT DID NOT.
+     This paragraph used to say "#ledger is #board's immediate previous sibling,
+     so this lands directly above the live board's top edge and travels with
+     it", and both halves were true until the ledger became the band's FIRST
+     child. It is now directly above #fightbar — and on the fight tab #fightbar
+     is where the live board is: the battlefield, the two pools and the picker
+     rows. FIGHT-15 asks for this reading beside the numbers it is about, and
+     the numbers it is about moved with it. On the board tab nothing changed at
+     all, because the band does not paint there. */
 
      LEGIBLE BESIDE THE LIVE NUMBERS WITHOUT BECOMING LOUDER THAN THEM. It is
      given a tint so a reader can see where the past stops and the present
@@ -2479,11 +2613,30 @@
   .bf-pick[hidden]{display:none}
 
   /* ===================== [C15] THE VIEW SWITCH ===================== */
-  /* The switch between the board and the fight, plan 05-12. ONE NEW PREFIX,
-     .vw-, and it is its own prefix for the reason [C13] gives about .sh- and
-     [C14] restates about .fg-, .ld- and .dc-: a single stylesheet has no real
-     scope, so a rule for a bare .btn or .on would reach every region in this
-     file from four thousand lines away. One prefix per surface.
+  /* The switch between the board and the fight, plan 05-12, plus D-28's
+     projection toggle, plan 05-D28. TWO PREFIXES, .vw- and .pv-, and they are
+     two rather than one for the reason [C13] gives about .sh- and .rs- and
+     [C14] restates about its four: a single stylesheet has no real scope, so a
+     rule for a bare .btn or .on would reach every region in this file from four
+     thousand lines away, and a rule two surfaces share is a rule neither of
+     them can change. One prefix per surface — the switch decides WHICH SCREEN,
+     the toggle decides whether one panel on that screen is drawn, and they
+     share a row and nothing else.
+
+     THIS SENTENCE SAID "ONE NEW PREFIX" UNTIL D-28 and is amended in the same
+     change that made it false, which is [S03]'s rule about a banner that
+     quietly lies and the move [C14]'s own table of contents has already had to
+     make once this phase.
+
+     WHAT D-28 CHANGED IN THIS BLOCK, in one place so a reader does not have to
+     assemble it: the projection is UNDISPLAYED in the fight view by default and
+     comes back as a FIXED SIDEBAR while #app carries data-proj="1"; the column
+     pin plan 05-12 wrote is retired with its measurement kept; the fight band
+     is a full-width stack rather than two side-by-side regions ([C14] carries
+     that half); and the toggle itself is undisplayed in the build view so the
+     board tab is byte-identical to what it was. Every sticky reading in the
+     table below was taken on the OLD arrangement and is kept as the record of
+     it — the D-28 readings are in 05-D28-SUMMARY.md and the browser checks.
 
      THIS BLOCK ALSO DECIDES WHICH OF TWO REGIONS PAINTS, which no other [C]
      block in this file does, and it does it with an ATTRIBUTE SELECTOR on #app
@@ -2583,10 +2736,10 @@
      refuses document-wide, so it may not be written here. It is DESCRIBED
      rather than spelled, which is [C11]'s rule and refCard's.
 
-     UX-02's 18px FLOOR BINDS A FIFTH TIME. Both labels are permanent, visible
-     and at 18px, and the tick beside each is a REAL NODE whose visibility the
-     on-class moves - never colour alone, which is [C07]'s rule and the shape
-     .fg-check already ships. */
+     UX-02's 18px FLOOR BINDS A FIFTH TIME, and as of D-28 across THREE controls
+     rather than two. Every label is permanent, visible and at 18px, and the tick
+     beside each is a REAL NODE whose visibility the on-class moves - never
+     colour alone, which is [C07]'s rule and the shape .fg-check already ships. */
   #views{
     display:flex;align-items:center;gap:12px;flex-wrap:wrap;
     width:min(var(--boardw), calc(100vw - 44px));
@@ -2624,47 +2777,152 @@
   #app[data-view="fight"] #board-empty{display:none}
   #app[data-view="build"] .fg-band{display:none}
 
-  /* A [C03] EDIT BY PLAN 05-12, named as one in [C03]'s own register for a rule
-     another plan wrote - the same register the 03-05 and 03-03 edits inside
-     [C03] itself use.
+  /* ==================================================================
+     [C15] D-28 — THE PROJECTION IS OFF BY DEFAULT IN THE FIGHT VIEW AND
+     COMES BACK AS A SIDEBAR. Plan 05-D28.
+     ==================================================================
+     The developer, at the real artifact: "The predictor turn off, and
+     make it toggled sidebar / pop over". PROJ-05's "readable without navigating
+     away" is read as satisfied by ONE toggle press — the developer's call,
+     flagged once in D-28 and taken. The gate rows that asserted the projection's
+     fight-view PLACEMENT are turned in the open under this decision rather than
+     deleted: 103b keeps its structural claim (the projection is in neither side
+     of the switch and is still inside #board, in BOTH views) and gains 103d,
+     which drives the toggle and reads the figures back through both states.
 
-     #board's three tracks are EXPLICIT (1fr minmax(220px,320px) 1fr), so they
-     all still exist when both .brd-col items are undisplayed. What changes is
-     auto-placement: with nothing occupying the first track, #strip flows into
-     COLUMN 1. MEASURED IN REAL CHROME AT 1920x1080 WITH A FIGHT RUNNING, both
-     arrangements, before this rule was chosen:
+     THE SIDEBAR IS #strip ITSELF AND THERE IS NO SECOND PROJECTION. That is the
+     one decision in this block. The rule this replaces ended with "the same
+     projection, not a second one that happens to carry the same words", and a
+     sidebar carrying a copy would have been exactly the second one. So the
+     same node, painted by the same [S06.3] on the same hooks, is taken OUT OF
+     FLOW while the toggle is on and put back when it is off. Nothing is
+     duplicated, so nothing can go stale, and every row in the suite that reads
+     #strip still reads the projection a student is looking at.
+
+     display:none WHEN CLOSED, NOT visibility AND NOT A ZERO HEIGHT, which is
+     the ruling three rules up applied a second time and for the second half of
+     its reason: #strip is a grid ITEM of #board, and a grid item with
+     visibility:hidden still holds its track open. A 320px column of nothing in
+     the middle of a fight tab is not a projection that is off.
+
+     position:fixed WHEN OPEN, WHICH REPLACES THE STICKY IN THIS ONE STATE AND
+     ONLY THIS ONE. #strip's base rule in [C03] is position:sticky and it stays
+     exactly as it is — the build view is untouched, the strip pins there as it
+     has since Phase 3, and this rule does not reach it. In the fight view, open,
+     the element is out of flow entirely: it takes no grid track, it pushes
+     nothing, and it cannot be scrolled away from because a fixed box does not
+     scroll. That is what "sidebar" means and it is why a sticky-with-a-bigger-
+     offset was not attempted.
+
+     WHERE THE TOP OFFSET COMES FROM. --topbar-now is the measured chrome height
+     [S08] publishes on <html> so this file stops guessing at --topbar-h, and it
+     is the same expression #strip's own sticky offset already uses. Spelled the
+     same way, from the same custom property, so a bar that wraps to two rows
+     moves the pinned strip and this sidebar by the same amount.
+
+     THE STACKING ORDER IS DELIBERATE. #topbar carries z-index 20 and is sticky
+     at the top of the page; this is 30, so it draws ABOVE the fight surface it
+     covers and BELOW nothing that matters. It is placed under the bar rather
+     than over it by the top offset rather than by the z-index, which is the
+     honest way round: a panel that overlapped the control bar would cover the
+     Start and Undo controls.
+
+     NO NEW HEX AND NO REFERENCE FUNCTION THAT TAKES A URI. The lift is a
+     box-shadow derived from [C00]'s --bg with color-mix(), which is [C07]'s
+     banner rule, and there is no image of any kind. */
+  #app[data-view="fight"] #strip{display:none}
+  #app[data-view="fight"][data-proj="1"] #strip{
+    display:grid;
+    position:fixed;
+    top:calc(var(--topbar-now, var(--topbar-h)) + 14px);
+    right:14px;
+    width:min(360px, calc(100vw - 44px));
+    max-height:calc(100vh - var(--topbar-now, var(--topbar-h)) - 28px);
+    overflow-y:auto;
+    z-index:30;
+    box-shadow:0 10px 30px color-mix(in srgb, var(--bg) 82%, transparent);
+  }
+
+  /* THE CONTROL IS NOT IN THE BUILD VIEW AT ALL, which is D-28's own closing
+     line — "Build view is untouched. The strip behaves as before outside a
+     fight." A toggle standing in the board tab would be a control that does
+     nothing there, and a control that does nothing is the thing UX-02 spends
+     its whole budget refusing.
+
+     .pv- IS ITS OWN PREFIX AND NOT .vw-, for the reason [C13] gives about .rs-
+     and [C14] repeats about its four: a rule two surfaces depend on is a rule
+     neither of them can change. This control shares the switch's ROW and none
+     of its meaning — the switch decides which screen, this decides whether one
+     panel on that screen is drawn — so it restates the pill treatment rather
+     than borrowing .vw-btn's.
+
+     UX-02's 18px FLOOR AND THE THREE-CHANNEL RULE, held exactly as [C15]'s
+     banner holds them for the two controls beside it: the label is permanent,
+     visible and 18px, and the state is said in the class, in aria-pressed /
+     aria-expanded, and by a tick that is a REAL NODE whose visibility the
+     on-class moves. Never colour alone. */
+  #app[data-view="build"] #proj-toggle{display:none}
+  .pv-btn{
+    display:flex;align-items:center;gap:8px;
+    min-height:44px;padding:8px 18px;
+    background:var(--panel);
+    border:1px dashed color-mix(in srgb, var(--ink-faint) 45%, transparent);
+    border-radius:999px;color:var(--ink-dim);
+    font:inherit;font-size:18px;font-weight:600;line-height:1.2;
+    cursor:pointer;user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--accent);color:var(--accent)}
+  }
+  /* The border goes dashed to solid as well as the outline arriving, so the two
+     states differ in a SECOND non-hue channel — [C07]'s rule, and the one the
+     browser checks read back off computed style rather than off a class. */
+  .pv-on{
+    outline:2px solid var(--accent);outline-offset:2px;color:var(--ink);
+    border-style:solid;
+  }
+  .pv-name{white-space:nowrap}
+  .pv-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
+  .pv-on .pv-check{visibility:visible}
+
+  /* ==================================================================
+     THE COLUMN PIN PLAN 05-12 WROTE IS RETIRED BY D-28, AND ITS WHOLE
+     MEASUREMENT IS KEPT BELOW RATHER THAN DELETED.
+     ==================================================================
+     It was a [C03] EDIT BY PLAN 05-12, named as one in [C03]'s own register.
+     It pinned #strip to #board's middle track in the fight view so the
+     projection kept the exact box a student had been reading since Phase 3.
+     THERE IS NOTHING LEFT FOR IT TO DECIDE: in the fight view the strip is
+     either undisplayed, in which case it occupies no track, or fixed, in which
+     case it is out of flow and a grid-column has no meaning for it. A rule that
+     cannot change the page is a rule a reader has to work out is dead, so it is
+     removed and its reason is kept here in its place.
+
+     THE MEASUREMENT IT WAS CHOSEN OFF, kept verbatim because it is the record
+     of what auto-placement does to this element and the next author to make the
+     strip a flow item in this view will need it:
 
        #strip, fight view, one fight running    @1920x1080     @1366x768
          auto-placed, no rule (the alternative)   left 152 w622  left 14 w483
-         pinned to column 2 (this rule)           left 792 w320  left 515 w320
+         pinned to column 2 (plan 05-12's rule)   left 792 w320  left 515 w320
          and the BUILD view, for comparison       left 792 w320  left 515 w320
 
-     Identical in Chrome and in Edge. Auto-placed, the projection is 622px wide
-     and starts at the board's left edge - a 1fr track, because the two 1fr
-     tracks and the 18px gaps are all still there when the items in them are
-     undisplayed. Pinned, it is byte-identical to the box a student has been
-     reading since Phase 3 in every one of the four combinations.
+     Identical in Chrome and in Edge. #board's three tracks are EXPLICIT
+     (1fr minmax(220px,320px) 1fr), so they all still exist when both .brd-col
+     items are undisplayed, and with nothing occupying the first track the strip
+     flowed into COLUMN 1 at 622px wide.
 
-     The pin keeps the width, the position AND the sticky behaviour unchanged
-     across the switch, which is what PROJ-05 is actually asking for: the same
-     projection, not a second one that happens to carry the same words. */
-  #app[data-view="fight"] #strip{grid-column:2}
+     AND THE NARROW-WIDTH RELEASE THAT WENT WITH IT, kept for the same reason:
+     [C03]'s query collapses #board to a SINGLE column below 760px, and a pin to
+     a column that no longer exists creates an IMPLICIT second track and puts the
+     projection off to the side of a one-column board — with no error and no
+     warning. Neither the pin nor the release exists now; the sidebar is fixed
+     and its width is min(360px, 100vw - 44px), which is the same "never wider
+     than the viewport allows" arithmetic the frame above uses.
 
-  /* Same breakpoint [C03] already uses for #board and #topbar, rather than a
-     second one.
-
-     THE PIN IS RELEASED HERE AND THAT IS NOT HOUSEKEEPING. [C03]'s query
-     collapses #board to a SINGLE column below 760px, and a pin to a column that
-     no longer exists creates an IMPLICIT second track and puts the projection
-     off to the side of a one-column board. There is no error and no warning for
-     that either.
-
-     And the margin written here is the LONGHAND over the shorthand above, which
+     The margin written below is the LONGHAND over the shorthand above, which
      is the safe direction - [C14.1]'s ruling, said again at the one site in
      this block that writes a margin twice. */
   @media(max-width:760px){
     #views{width:auto;margin-left:0}
-    #app[data-view="fight"] #strip{grid-column:auto}
   }
 </style>
 </head>
@@ -2931,9 +3189,48 @@
        would be counted onto the SETUP page's floor, and a floor for the setup
        page is the thing that measurement is for. Nothing here is emptied, so
        nothing here is miscounted. -->
-  <div class="vw-switch" id="views" role="group" aria-label="Which screen">
+  <!-- ============ D-28 — THE PROJECTION TOGGLE ==========================
+       The developer, at the real artifact: "The predictor turn off, and
+       make it toggled sidebar / pop over". #proj-toggle is that toggle, and it
+       sits INSIDE this row rather than in a row of its own for a reason that is
+       vertical arithmetic rather than taste: a second full-width row above the
+       fight costs about 62px of a budget the lane below is about to spend, and
+       this row already exists and is already only two controls wide. The group's
+       accessible name is amended in the same change, because a group labelled
+       "Which screen" holding a control that is not a screen is a banner that
+       quietly lies — [S03]'s rule, applied to an attribute.
+
+       ONE NEW ID AND NO SECOND PROJECTION, WHICH IS THE DECISION THIS COMMENT
+       EXISTS FOR. The obvious build is a sidebar element that carries a copy of
+       the projection's figures. It is refused: [C15]'s own sentence about the
+       column pin is "the same projection, not a second one that happens to carry
+       the same words", and PROJ-05 is about the student seeing THE reading at
+       the moment the fight contradicts it. So the sidebar IS #strip — the same
+       node, painted by the same [S06.3], carrying the same figures — moved out
+       of flow by [C15]'s D-28 rules when this control is on. Nothing is
+       duplicated, so nothing can go out of step, and check 103b still reads
+       #strip inside #board in both views.
+
+       IT CARRIES data-pv, NOT data-act AND NOT data-vw. data-act would be routed
+       into App.ops.dispatch by [S07.1] whatever this region intended; data-vw
+       would make it a third view and [S06.10] would paint it as one. data-pv is
+       this control's private routing word, in data-fg's, data-dc's and data-vw's
+       register and for their reason.
+
+       IT IS NOT IN THE BUILD VIEW AT ALL. [C15] undisplays it while
+       #app[data-view="build"], so the board tab a student has been using since
+       Phase 2 is byte-identical to what it was: same two pills, same projection
+       in the same column, same sticky. D-28's own closing line — "Build view is
+       untouched. The strip behaves as before outside a fight."
+
+       Same three-part rule as every id in this shell: the id, the KNOWN_IDS
+       entry and the stub node arrive together, and tests/selftest-node.cjs fails
+       the run in BOTH directions if one of the three is missing. No <dialog> is
+       added, so the dialog harvest stays at four roots. -->
+  <div class="vw-switch" id="views" role="group" aria-label="Which screen, and the projection">
     <button class="vw-btn vw-on" type="button" id="view-build" data-k="vw/build" data-vw="build" aria-pressed="true"><span class="vw-name">The board</span><span class="vw-check">✓</span></button>
     <button class="vw-btn" type="button" id="view-fight" data-k="vw/fight" data-vw="fight" aria-pressed="false"><span class="vw-name">The fight</span><span class="vw-check">✓</span></button>
+    <button class="pv-btn" type="button" id="proj-toggle" data-k="pv/proj" data-pv="strip" aria-pressed="false" aria-expanded="false" aria-controls="strip"><span class="pv-name">The projection</span><span class="pv-check">✓</span></button>
   </div>
 
   <!-- ============ THE FIGHT REGION, plan 05-06 =========================
@@ -2995,7 +3292,12 @@
        directions if one of the three is missing. The fourth part those two
        comments carry does NOT apply here: no <dialog> is added by this plan,
        so there is no DIALOG_ROOTS entry to make, and the dialog harvest stays
-       at the four roots it already walks. -->
+       at the four roots it already walks.
+
+       WHERE #fightbar ACTUALLY IS, as of D-28: it is the SECOND child of the
+       band below, after #ledger. This comment introduces the region and stays
+       where it is, but a reader following it downward would otherwise meet the
+       ledger first and think they had lost their place. -->
   <!-- ============ THE FIGHT BAND, the frame the two regions share ==========
        ONE WRAPPER, NO ID, AND THE REASON FOR EACH IS ITS OWN SENTENCE.
        #fightbar and #ledger were two full-width regions STACKED above #board,
@@ -3013,11 +3315,19 @@
        queries it, nothing dispatches off it, nothing paints into it and no
        reading is ever taken from it. A class is the whole of what it needs.
 
-       DOCUMENT ORDER IS UNTOUCHED. A screen reader still walks the fight bar
-       and then the ledger, because a flex row is a two-dimensional placement
-       of that same order and never a reordering of it. No order property and
-       no reversed direction here, for the reason the ledger comment below
-       gives about its own rows.
+       DOCUMENT ORDER IS THE READING ORDER, AND D-28 MOVED BOTH TOGETHER. This
+       comment said "document order is untouched — a screen reader still walks
+       the fight bar and then the ledger" for as long as the two were laid side
+       by side. They are not any more. The developer, at the artifact:
+       "earlier rounds should be a full lane above showing the past state and
+       acctions selected". So THE LEDGER IS NOW THE FIRST CHILD OF THIS BAND and
+       the fight bar the second, and the change is made HERE, in the markup,
+       rather than with an `order` property or a reversed direction. That is the
+       ledger comment's own rule kept rather than broken: the sequence a screen
+       reader walks is earlier rounds, then this round, which is the sequence the
+       room sees. An `order:-1` would have put the two out of step silently, and
+       every check in this repository that reads the DOM would have stayed green
+       over it.
 
        AND IT IS NOT AN OVERFLOW. This wrapper is an ancestor of nothing that
        sticks — #strip is inside #board, which is the band's SIBLING — but the
@@ -3025,16 +3335,6 @@
        is the one failure in this file that arrives with no error and no
        warning. [C14] lays this element out and nothing else does. -->
   <div class="fg-band">
-
-  <section id="fightbar" aria-labelledby="fight-head">
-    <h2 class="fg-head" id="fight-head">This round</h2>
-    <p class="fg-prompt" id="fight-prompt">No fight is running. Start one from the bar above.</p>
-    <div class="fg-sides">
-      <div class="fg-side" id="decl-cats" hidden></div>
-      <div class="fg-side" id="decl-mechs" hidden></div>
-    </div>
-    <p class="fg-said" id="fight-said" hidden></p>
-  </section>
 
   <!-- ============ THE LEDGER OF PAST ROUNDS, plan 05-06 =================
        IT IS A SIBLING OF #board AND NEVER A CHILD OF IT, and the reason is
@@ -3056,23 +3356,31 @@
        attribute the interaction layer dispatches on or the sync pass writes —
        and plan 05-10 adds the parallel check for these rows.
 
-       THE NEWEST ROUND SITS NEAREST THE LIVE BOARD, and the mechanism is the
-       plainest one available rather than a clever one: this region sits ABOVE
-       #board in the document, [S06.8] APPENDS one row per resolved round in
-       the order the rounds happened, and a column lays the last child out at
-       the bottom — so the newest row is the one touching the live board and
-       each new round pushes the earlier ones up and away from it. That is the
-       roadmap's "stacks upward", got by document order alone. No `order` and
-       no reversed flex direction is used, deliberately: either would put this
-       region's DOM order and its reading order out of step, and the sequence a
-       screen reader walks would then be the reverse of the one the room sees.
+       THE NEWEST ROUND SITS NEAREST THE ROUND BEING PLAYED, and after D-28 the
+       axis is HORIZONTAL rather than vertical while the mechanism is exactly the
+       one it always was. This region is the first child of the band and the
+       fight bar is the second, [S06.8] APPENDS one card per resolved round in
+       the order the rounds happened, and a flex ROW lays the last child out at
+       the END — so the last thing read before the round being played is the
+       round that just resolved. That is still the roadmap's "the previous state
+       of the board moves up into a history", got by document order alone. NO
+       `order` AND NO REVERSED DIRECTION, which mattered when this was a column
+       and matters more now: either would put this region's DOM order and its
+       reading order out of step, and the sequence a screen reader walks would be
+       the reverse of the one the room sees.
 
-       The live board does not move down the page as rounds pile up, and what
-       buys that is the bounded height [C14] gives .ld-list — the region above
-       the board stops growing and scrolls ON ITSELF instead. A region above
-       the board that grew without a bound would push the live board off the
-       bottom of a projector within a few rounds, which is the one failure this
-       arrangement exists to avoid.
+       WHY THE LANE IS HORIZONTAL AND NOT A FULL-WIDTH STACK, recorded because a
+       stack is what "a full lane above" reads like at first. A full-width column
+       of past rounds above the round being played grows downward without bound
+       and pushes the live surface off the bottom of the screen — which is the
+       exact defect class this phase has now fixed three times (plan 05-07's bar,
+       plan 05-08's ledger, and the viewport fix's band). A row grows SIDEWAYS,
+       where there is 1600px of space and nothing below it to push.
+
+       The round being played does not move down the page as rounds pile up, and
+       what buys that is the bounded card height [C14] gives .ld-row plus the
+       horizontal scroll [C14.2] gives .ld-list — the lane stops growing in the
+       one direction that costs the page anything.
 
        The root ships HIDDEN and its list ships EMPTY: there are no past rounds
        on a board nobody has fought on, and a labelled empty box above the board
@@ -3087,6 +3395,16 @@
   <section id="ledger" aria-labelledby="ledger-head" hidden>
     <h2 class="ld-head" id="ledger-head">Earlier rounds</h2>
     <div class="ld-list" id="ledger-list"></div>
+  </section>
+
+  <section id="fightbar" aria-labelledby="fight-head">
+    <h2 class="fg-head" id="fight-head">This round</h2>
+    <p class="fg-prompt" id="fight-prompt">No fight is running. Start one from the bar above.</p>
+    <div class="fg-sides">
+      <div class="fg-side" id="decl-cats" hidden></div>
+      <div class="fg-side" id="decl-mechs" hidden></div>
+    </div>
+    <p class="fg-said" id="fight-said" hidden></p>
   </section>
 
   </div><!-- .fg-band -->
@@ -3770,8 +4088,11 @@
  * because a reader trusts a table of contents. [C15] is plan
  * 05-12's and it is the LAST block in the stylesheet: it lays the view switch
  * out and it is the one block in this file that decides which of two regions
- * paints at all, which is why it also carries a named [C03] EDIT placing #strip
- * in the fight view. [S06.10] paints the switch and [S07.6] presses it.
+ * paints at all. Plan 05-D28 gave it a second prefix, .pv-, for D-28's
+ * projection toggle — which is why that block also decides whether #strip is
+ * drawn at all in the fight view, and carries the retired [C03] EDIT plan
+ * 05-12 wrote to place it there. [S06.10] paints both surfaces and [S07.6]
+ * presses both.
  *
  * Region order is fixed. Dependency arrows point DOWN only; reference another
  * section as App.x.y() at the call site, never by capturing it at section-body
@@ -15238,13 +15559,26 @@ App.render = (function () {
       if (from < 0) { from = 0; }
       for (var i = from; i < n; i++) { ldFill(rows[i], state, past[i]); }
       // SCROLLED TO ITS END ON APPEND, AND IT DOES NOT HAPPEN BY ITSELF.
-      // Measured in a real browser by plan 05-06: once the list is taller than
-      // [C14]'s bound the newest row is BELOW THE FOLD OF ITS OWN SCROLLER, and
-      // scrolled to the end its bottom sits 20px above the live board's top —
-      // which is the whole of what "nearest the board" means. The stub DOM
-      // models no layout and reports no scrollHeight, so this line is a
-      // browser-verified claim and the guard is what keeps it from writing
-      // undefined into a scroll offset in the harness.
+      // Measured in a real browser by plan 05-06: once the list is longer than
+      // its own box the newest round is BEYOND THE END OF ITS OWN SCROLLER, and
+      // a history whose newest entry is the one you cannot see is a history
+      // nobody reads. The stub DOM models no layout and reports no scrollWidth,
+      // so this is a browser-verified claim and the guards are what keep it
+      // from writing undefined into a scroll offset in the harness.
+      //
+      // D-28 TURNED THE LANE ON ITS SIDE AND THIS LINE FOLLOWED IT. [C14.2]'s
+      // .ld-list is a flex ROW now, so "the end" is the RIGHT-HAND end and the
+      // offset that reaches it is scrollLeft. BOTH ARE WRITTEN, and the second
+      // is not left over from the old arrangement: below [C03]'s 760px
+      // breakpoint the page is narrow enough that a lane may wrap or be read as
+      // a stack, and a scrollTop of zero on a list that is not scrolling
+      // vertically costs nothing while a missing one would leave a wrapped lane
+      // showing round one. Assigning past the maximum is CLAMPED by the engine,
+      // which is what makes "scrollWidth" the correct thing to assign rather
+      // than an arithmetic on it.
+      if (added > 0 && typeof list.scrollWidth === 'number') {
+        list.scrollLeft = list.scrollWidth;
+      }
       if (added > 0 && typeof list.scrollHeight === 'number') {
         list.scrollTop = list.scrollHeight;
       }
@@ -16088,13 +16422,26 @@ App.render = (function () {
    *    the flag is up", which is the closing edge, and the view comes back with
    *    it. Nothing had to be written into any slice for that to be true.
    *
-   * 3. TWO ATTRIBUTES ON #app, EACH ANSWERING EXACTLY ONE QUESTION AND NEITHER
+   * 3. THREE ATTRIBUTES ON #app, EACH ANSWERING EXACTLY ONE QUESTION AND NONE
    *    ANSWERING TWO, in [S06.2]'s words and [S06.6]'s and [S06.7]'s:
    *      data-view     is WHICH view. [C15] reads it and so does check 103.
    *      data-view-fg  is WHETHER a fight is running as far as this region has
    *                    noticed, and NOTHING EVER READS A VALUE OUT OF IT. It is
    *                    compared against '1' and written as '1' or as empty, and
    *                    that is the whole of its vocabulary.
+   *      data-proj     is WHETHER D-28's projection sidebar is open (plan
+   *                    05-D28). Same vocabulary as data-view-fg — compared
+   *                    against '1', written as '1' or as empty — and [C15]
+   *                    reads it exactly as it reads data-view.
+   *
+   *    AND THE FOURTH THING THIS REGION DOES NOT DO IS AS DELIBERATE AS THE
+   *    THREE IT DOES. It does NOT close the sidebar when a fight ends. The
+   *    between-the-edges clause above is the whole argument, arriving on a
+   *    second attribute: what a student did to their own page is theirs, the
+   *    [C15] rules that draw the sidebar are scoped to the fight view so a
+   *    lingering '1' draws nothing on the board tab, and a student who opened
+   *    the projection for one fight has said something about how they want to
+   *    read the next one. The attribute is NORMALISED here and never cleared.
    *
    * A VIEW IS NOT STATE, AND THAT IS THE RULING THIS REGION IS BUILT ON. No
    * slice is written here, so no view rides in a build code, no undo steps
@@ -16109,13 +16456,21 @@ App.render = (function () {
    * signature would cost more than the work it guarded. Said out loud rather
    * than left as an absence, because every region above this one has one.
    *
-   * NOTHING HERE RENDERS A WORD. The two labels are static markup, Layer A
-   * reads them in the document, and this region only decides which of two
-   * controls wears the on-class. So no string in this region can trip the
-   * gate that refuses comparative language, because there is no string in
-   * this region at all.
-   * deps: [C15] for the rules that read data-view; [S07.6] for the presses
-   * owner: plan 05-12
+   * NOTHING HERE RENDERS A WORD, AND D-28 KEPT IT THAT WAY ON PURPOSE. All
+   * three labels are static markup, Layer A reads them in the document, and
+   * this region only decides which controls wear their on-class. The obvious
+   * build for the toggle was a label that says "Show the projection" and then
+   * "Hide the projection", and it is REFUSED: it would have made this the one
+   * region in [S06] that renders a string, put two more sentences in front of
+   * the gate that refuses comparative language, and said the state in WORDS
+   * where every other control on this row says it in a class, an aria attribute
+   * and a real tick node. One permanent label plus a tick is the shipped idiom
+   * ([C07]'s rule, which .fg-pill, .ae-pill and .vw-btn all keep) and it is what
+   * ships here. So no string in this region can trip that gate, because there
+   * is no string in this region at all.
+   * deps: [C15] for the rules that read data-view and data-proj; [S07.6] for
+   *       the presses
+   * owner: plan 05-12, extended by plan 05-D28
    * ===================================================================== */
   // #region [S06.10] RENDER — THE VIEW SWITCH
 
@@ -16129,6 +16484,22 @@ App.render = (function () {
     if (!b) { return; }
     if (on) { b.classList.add('vw-on'); } else { b.classList.remove('vw-on'); }
     b.setAttribute('aria-pressed', on ? 'true' : 'false');
+  }
+
+  /* D-28's toggle, painted by its own function rather than by vwPaint with a
+     class name passed in. The two look alike and are not the same control: this
+     one carries aria-EXPANDED as well as aria-pressed, because it is a disclosure
+     for #strip and a screen reader that is told only "pressed" has been told
+     what happened to the button rather than what happened to the panel. A shared
+     helper taking a class and a flag would have hidden that second attribute
+     behind an argument, which is the shape [C13]'s "a rule two regions depend
+     on" warning describes arriving in JavaScript. */
+  function pvPaint(id, on) {
+    var b = document.getElementById(id);
+    if (!b) { return; }
+    if (on) { b.classList.add('pv-on'); } else { b.classList.remove('pv-on'); }
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+    b.setAttribute('aria-expanded', on ? 'true' : 'false');
   }
 
   function viewSwitch(state) {
@@ -16154,6 +16525,15 @@ App.render = (function () {
     app.dataset.view = now;
     vwPaint('view-build', now === VIEW_BUILD);
     vwPaint('view-fight', now === VIEW_FIGHT);
+
+    // D-28's toggle, normalised and repainted on exactly the same terms as the
+    // two above: RE-DECIDED from the attribute every frame rather than toggled
+    // by whoever last pressed something. A page that arrived carrying anything
+    // other than '1' reads as closed, because closed is the state that is true
+    // before anybody has done anything.
+    var open = app.dataset.proj === '1';
+    app.dataset.proj = open ? '1' : '';
+    pvPaint('proj-toggle', open);
   }
 
   SYNC_HOOKS.push(viewSwitch);
@@ -20410,11 +20790,49 @@ App.interactions = (function () {
      carries its name and its tick as REAL CHILD NODES ([C07]'s rule, which is
      what makes the tick reachable by a screen reader and by the rendered-page
      walk alike), so the press arrives on a span. */
+  /* D-28's toggle rides this same delegated pair rather than binding a listener
+     of its own, and that is the cheaper answer BY MEASUREMENT of the rule this
+     file already keeps rather than by convenience: #views is a static root that
+     outlives every rebuild, the two listeners on it already go through
+     App.boot.wrap, and a second root would have been a second entry in
+     LATE_BINDERS, a fourth root for check 93b to floor and one more place a
+     listener can be bound raw. The control is a SIBLING of the two view
+     controls in the markup, so a walk up from the press reaches this root
+     whichever of the three was pressed.
+
+     THE TWO LOOKUPS ARE ORDERED AND THE ORDER IS ARBITRARY BECAUSE THEY CANNOT
+     BOTH MATCH. No node in this file carries both data-vw and data-pv, and
+     check 103's data-vw count plus check 103d's data-pv count assert the
+     partition off the page rather than off this sentence.
+
+     A HELD PRESS ON THE TOGGLE NEEDS NO SUPPRESSING EITHER, and the arithmetic
+     is the same one the banner above works through for the view controls: a
+     repeated Enter flips one attribute on #app and repaints one button. No op
+     is dispatched, no round moves, no undo entry is made and no node is rebuilt
+     — the sidebar simply blinks, which is what a student holding Enter on a
+     disclosure has asked for. onFightKeyDown's scope is not widened. THE ANSWER
+     IS WRITTEN, NOT THE SILENCE, because an unwidened scope and an overlooked
+     one look identical in a diff. */
+  function onProjPress(node) {
+    var btn = node.closest('[data-pv]');
+    if (btn === null) { return false; }
+    // Exactly one word is accepted, in the manner the view lookup below refuses
+    // an unrecognised view: an unknown target declines quietly rather than
+    // toggling something nothing has been told about.
+    if (String(btn.dataset.pv || '') !== 'strip') { return true; }
+    var app = document.getElementById('app');
+    if (!app) { return true; }
+    app.dataset.proj = (app.dataset.proj === '1') ? '' : '1';
+    App.render.viewSwitch(App.state.get());
+    return true;
+  }
+
   function onViewPress(e) {
     if (!isPrimaryPress(e)) { return; }
 
     var node = e.target;
     if (!node || typeof node.closest !== 'function') { return; }
+    if (onProjPress(node)) { return; }
     var btn = node.closest('[data-vw]');
     if (btn === null) { return; }
     var want = String(btn.dataset.vw || '');
