@@ -157,6 +157,54 @@ views, and it never leaves the top of the window at any scroll offset the page c
   newest round scrolling at 768 — **still stand**, because the band's internal arrangement did not
   change. A past round is still taller and still scrolls at 768.
 
+---
+
+#### D-28 REPLACED THE BAND'S INTERNAL ARRANGEMENT, AND THESE FIGURES SUPERSEDE THE TABLE ABOVE
+
+The developer, at the real artifact: *"this is way too compressed - let the fight take the whole
+width. earlier rounds should be a full lane above showing the past state and acctions selected. The
+predictor turn off, and make it toggled sidebar / pop over"*. Re-measured with **three rounds
+resolved and twelve declarations a round**, real Chrome and real Edge, and **every number below is
+byte-identical in the two browsers**:
+
+| reading | @1920x1080 | @1366x768 |
+|---|---|---|
+| `#fightbar` width against the band's | 1600 / 1600 | 1322 / 1322 |
+| `#ledger` width, and its bottom against the bar's top | 1600, 417 → 435 | 1322, 409 → 427 |
+| the lane's box, and one card | 1174x242, card 340x238 | 968x149, card 340x115 |
+| the lane with five rounds, scrollWidth/clientWidth, scrollLeft/max | 1752/1174, 578/578 | 1752/968, 784/784 |
+| **Advance, from the top of the document** | **656 of 1080** | **556 of 768** |
+| the grid's own box (`.fg-sides`), three rounds in the lane | 714→1060 of 1080 | 614→860 of 768 |
+| battlefield / team resources / picker rows, tops | 326 / 555 / 603 | 225 / 455 / 503 |
+| the projection sidebar when opened | 1531,121 360x779 `fixed` | 977,113 360x641 `fixed` |
+| the Cats and Mechs battlefield clusters, lefts | 173 / 953 | 35 / 676 |
+
+**WHAT ONLY THE ROOM CAN ANSWER, re-written for the tab as it now is:**
+
+- **The lane is 22vh of card at 1080 and 15vh at 768, and it sits between the switch and the round
+  being played.** Three rounds fit without scrolling at 1920; at 1366 the lane scrolls sideways and
+  is left at its end, so the round that just resolved is the one on screen. **Does a horizontal
+  history read as history, or does a room look for it underneath?** And **does a card that has to
+  be scrolled to read the whole of a round get read at all?**
+- **The grid's window is 346px at 1080 and 246px at 768, over a column whose content is 1171px and
+  1603px.** That is the developer's own "way too compressed" complaint, and the dial moved once for
+  it (26vh → 32vh) with the whole sweep at the rule. **Is a third of a column at a time enough, or
+  does the picker want the lane's space?**
+- **At 1366x768 the grid's box ends 92px below the fold.** It begins on screen and one page scroll
+  brings the whole of it in. **Does a laptop user find the bottom of the column?**
+- **The projection is now OFF until pressed for.** It opens as a 360px fixed sidebar against the
+  right edge, under the control bar, and it carries the live figures. PROJ-05's "readable without
+  navigating away" is being served by one press, on the developer's own call. **Does a room
+  remember the projection is there? Does anybody press it during a fight?** — and the mirror
+  question: **is a fight tab without the projection on it calmer, which is what the request was
+  actually about?**
+- **The reference cards are still not on the fight tab** (`deferred-items.md` item 4). The new
+  toggled sidebar is now an obvious home for them and that option is recorded there.
+- **FIGHT-10's notice (`#fight-said`) is now BELOW the two round controls rather than above them**,
+  because the controls moved onto the round's own line. **Is it still read before an Advance?**
+- The two questions the side-by-side arrangement raised are **retired**: there is no narrow ledger
+  column any more, and a past round no longer scrolls the page — it scrolls its own card.
+
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
 ### C1. Clipboard tiers 1 and 2 actually fire *(Phase 4)*

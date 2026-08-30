@@ -148,6 +148,25 @@ band`), so the day somebody moves them the gate reddens and this entry gets read
 **Owner:** the developer, at the 05-11 playtest — it is a question about what a room needs in
 front of it, and item 2 of that plan (PROJ-05, the two readings side by side) is where it lands.
 
+**A THIRD CANDIDATE ARRIVED WITH D-28, and it is the cheapest of the three — plan 05-D28.**
+D-28 put the projection behind a toggle that opens `#strip` as a fixed 360px sidebar in the fight
+view. The redirect record's own orchestrator note flags it: *"the new toggled sidebar is an obvious
+candidate home for [the reference cards], and that option is noted on the deferred item for the
+playtest decision."*
+
+3. **Put the cards in the toggled sidebar beside the projection.** They would be off the fight tab
+   by default exactly as the projection now is, one press away exactly as the projection now is,
+   and cost the band and the columns nothing in EITHER view — which is the height dial candidates 1
+   and 2 both spend. Cost: the sidebar becomes two things (a projection and a reference), the
+   toggle's label stops being true, and REF-03's "readable without leaving the fight view" is then
+   being served by the same one press that PROJ-05 is — which is a reasonable reading and is
+   nobody's to make but the developer's, since it is their own call on PROJ-05 that made it
+   available. Measured for scale: the sidebar is 360x779 at 1920x1080 and 360x641 at 1366x768 and
+   already scrolls on itself, and the six cards are seventeen leaf strings.
+
+**Row 101 still asserts the defect in the direction it is TRUE and D-28 did not move it**, because
+the cards are still inside the hidden columns. Nothing about this entry is closed.
+
 ---
 
 ## Item 3 — RE-MEASURED BY PLAN 05-16, and the answer is: still below the fold at 768
@@ -182,6 +201,25 @@ the same top) and print the four numbers.
 consecutive plans in this phase each made against a page the next plan then moved. It is
 `REHEARSAL.md` B3's first open bullet and it is a question for a room: **on a 768-tall screen, is one
 scroll to reach the projection acceptable, or does the projection need to sit above the fight?**
+
+### CLOSED BY D-28 — plan 05-D28, and closed by REMOVAL rather than by a dial
+
+The question this entry asks is *"where does the projection start on the fight tab"*, and after D-28
+it does not start anywhere: *"The predictor turn off, and make it toggled sidebar / pop over"*, the
+developer, at the real artifact. In the fight view `#strip` is `display: none` until a student
+presses `#proj-toggle`, at which point it is a `position: fixed` panel measured at **1531,121
+360x779** at 1920x1080 and **977,113 360x641** at 1366x768, in both browsers — under the control
+bar, against the right edge, wholly inside the window at both sizes, and carrying the live figures
+(browser checks 10c and 10d drive the press and then move the pool to prove the reading is current).
+
+**A fixed box cannot start below the fold**, so the four consecutive plans' worth of height-dial
+arithmetic this entry records is retired rather than answered. The BUILD view is untouched: `#strip`
+is still sticky there, still in `#board`'s middle track, still pinning at 301/293 — browser check 10
+now runs over that view alone, and the reason its fight-view half was removed is written at its site
+(a `display:none` element still reports `position: sticky` and a rect of zeros, so the old cell
+would have passed over a projection that had left the page).
+
+**What is NOT closed** is whether a room presses it. That is `REHEARSAL.md` B3 and 05-11's item 2.
 
 ## 5. `[S06.7]`'s banner names "check 105", and this repository has never had one
 
