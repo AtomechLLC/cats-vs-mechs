@@ -1565,14 +1565,25 @@ function makeStubDom() {
     const row = idNode(id);
     row.className = 'ae-term';
     if (field !== 'cost') { row.hidden = true; }
+    /* D-32 PART 2: EVERY ROW CARRIES A READING AND NO ROW CARRIES A LABEL.
+       The span this replaces was `.ae-term-lbl` and it held the word "Spends"
+       or "Needs" in the shell and nothing at all here — which is exactly why
+       the swap is worth a note rather than a silent edit: a stub node with no
+       text is invisible to the Layer C harvest, so the eight printings of two
+       words that left the shell cost this gate nothing, while the twelve
+       READINGS that arrived cost it two harvested attributes each. The row
+       count moved by zero and the dialog harvest moved a long way up, and
+       both of those are measured in the plan summary rather than assumed.
+
+       It is built for the xf rows TOO, which the label never was: a change is
+       a term like the other two and reads like one. */
+    const read = createElement('div');
+    read.className = 'ae-term-read';
+    row.appendChild(read);
     if (withWho) {
       const who = createElement('div');
       who.className = 'ae-term-who';
       row.appendChild(who);
-    } else {
-      const lbl = createElement('span');
-      lbl.className = 'ae-term-lbl';
-      row.appendChild(lbl);
     }
     const toks = createElement('div');
     toks.className = 'ae-term-toks';

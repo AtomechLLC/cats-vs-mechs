@@ -756,7 +756,43 @@
   .ae-terms[hidden]{display:none}
   .ae-term{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:44px}
   .ae-term[hidden]{display:none}
-  .ae-term-lbl{color:var(--ink-dim);font-size:16px;min-width:66px}
+  /* D-32 PART 2 — WHERE THE WORD "Spends" USED TO SIT, THE TERM NOW READS
+     ITSELF. The rule this replaces is kept in view rather than deleted,
+     because it was a real decision and this change reverses it:
+
+       ".ae-term-lbl{color:var(--ink-dim);font-size:16px;min-width:66px}"
+
+     That span said "Spends" on four rows and "Needs" on four more — eight
+     printings of two words that the legend three lines above already says
+     once. The developer's instruction is "make the action configuration more
+     dense", and a word repeated four times under its own heading is the
+     definition of chrome per row. What stands in its place is the TERM ITSELF,
+     drawn in [S06.12]'s notation: the type's own shape at the board's own
+     scale, the amount by repetition, and D-30's red mark when the term takes
+     something away. It is the same node the fight picker draws for the same
+     cost, so a student who authors a rule here and declares it there is
+     reading one language twice rather than two languages once.
+
+     THE MIN-WIDTH SURVIVES THE SWAP AND IS THE SAME 66px ARGUMENT ONE STEP
+     UP. An empty slot has no term and therefore no reading, so without a
+     floor the four rows of a list would each start their chooser at a
+     different x and the strip a student scans down would have no edge. 96px
+     is measured rather than chosen: four tokens at [C14.5]'s 12px with its
+     3px gap is 57px, the count form is "12x" plus one token, and the widest
+     of the two plus the mark's overhang lands inside 96.
+
+     IT IS NOT A CONTROL AND THAT IS WHY IT MAY CARRY A TOOLTIP. UX-02's
+     "nothing conveyed by hover alone" is restated at nine sites in this file
+     and every one of them is about a CONTROL'S LABEL. The chooser pills below
+     keep their words for exactly that reason and none of them grew a tooltip.
+     What this node holds is D-29's own case, one surface further on: a
+     description of a reading that is permanently on screen, written to `title`
+     and to `aria-label` from one variable by symQty, and harvested by the
+     gate through data-tsay. */
+  .ae-term-read{
+    display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+    flex:0 0 auto;min-width:96px;
+  }
   .ae-term-note{margin:-6px 0 2px;color:var(--ink-dim);font-size:15px;max-width:60ch}
 
   /* The two choosers are one shape said twice, which is deliberate: a party and
@@ -4181,22 +4217,22 @@
       <h3 class="ae-legend">Cost</h3>
       <p class="ae-note ae-term-note">Spent when the action is used.</p>
       <div class="ae-term" id="act-edit-cost-0" hidden>
-        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-cost-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="0" data-k="ae/amt/cost/0">
       </div>
       <div class="ae-term" id="act-edit-cost-1" hidden>
-        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-cost-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="1" data-k="ae/amt/cost/1">
       </div>
       <div class="ae-term" id="act-edit-cost-2" hidden>
-        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-cost-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="2" data-k="ae/amt/cost/2">
       </div>
       <div class="ae-term" id="act-edit-cost-3" hidden>
-        <span class="ae-term-lbl">Spends</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-cost-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="3" data-k="ae/amt/cost/3">
       </div>
@@ -4204,22 +4240,22 @@
       <h3 class="ae-legend">Needs</h3>
       <p class="ae-note ae-term-note">Must be there for the action to be used. It is not spent.</p>
       <div class="ae-term" id="act-edit-req-0" hidden>
-        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-req-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="0" data-k="ae/amt/req/0">
       </div>
       <div class="ae-term" id="act-edit-req-1" hidden>
-        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-req-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="1" data-k="ae/amt/req/1">
       </div>
       <div class="ae-term" id="act-edit-req-2" hidden>
-        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-req-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="2" data-k="ae/amt/req/2">
       </div>
       <div class="ae-term" id="act-edit-req-3" hidden>
-        <span class="ae-term-lbl">Needs</span>
+        <div class="ae-term-read"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-req-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="3" data-k="ae/amt/req/3">
       </div>
@@ -4227,21 +4263,25 @@
       <h3 class="ae-legend">Changes</h3>
       <p class="ae-note ae-term-note">What the action changes, and by how much. Put a minus in front for a change downward.</p>
       <div class="ae-term" id="act-edit-xf-0" hidden>
+        <div class="ae-term-read"></div>
         <div class="ae-term-who"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-xf-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="0" data-k="ae/amt/xf/0">
       </div>
       <div class="ae-term" id="act-edit-xf-1" hidden>
+        <div class="ae-term-read"></div>
         <div class="ae-term-who"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-xf-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="1" data-k="ae/amt/xf/1">
       </div>
       <div class="ae-term" id="act-edit-xf-2" hidden>
+        <div class="ae-term-read"></div>
         <div class="ae-term-who"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-xf-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="2" data-k="ae/amt/xf/2">
       </div>
       <div class="ae-term" id="act-edit-xf-3" hidden>
+        <div class="ae-term-read"></div>
         <div class="ae-term-who"></div>
         <div class="ae-term-toks"></div>
         <input class="ae-amt" id="act-edit-xf-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="3" data-k="ae/amt/xf/3">
@@ -13453,6 +13493,59 @@ App.render = (function () {
     field.dataset.aeWho = who;
   }
 
+  /* D-32 PART 2, AND IT IS THE WHOLE OF "the editor and the fight read as one
+     language" IN ONE FUNCTION. The developer's instruction was "make the action
+     configuration more dense"; the density tool the redirect names is D-29's
+     notation, and this is where the editor starts speaking it.
+
+     IT CALLS symQty AND DOES NOT REIMPLEMENT IT, which is [S06.12]'s own
+     banner arriving at a fourth caller: a notation implemented twice is two
+     things to keep in step, and the two surfaces this one has to agree with —
+     [S06.7]'s picker cost and [S06.8]'s lane — are the surfaces a student
+     reads the SAME rule on ten seconds later. The cost arm is byte-for-byte
+     the call fgCostParts makes: the amount and a space as the prefix, nothing
+     as the suffix, and the removal flag set. So the tooltip a student hovers
+     in the editor is the tooltip they hover on the action button.
+
+     A NOTE FOR WHOEVER EDITS THIS COMMENT, PAID FOR ONCE HERE RATHER THAN
+     REDISCOVERED: an apostrophe and a backtick on ONE LINE of a comment in
+     this block break Layer B's extractor. Its single-quote arm runs first and
+     swallows the opening backtick, which leaves the closing one to open a
+     span that crosses lines until the next backtick in the file — measured at
+     46,510 characters, taking the literal count from 8,586 to 1,878 and
+     tripping the extractor floor by name. That floor is why the failure was
+     LOUD rather than a silently unscanned file, which is the whole reason it
+     is there. Spell such a phrase out in words instead.
+
+     THE MARK GOES ON A COST AND ON A CHANGE DOWNWARD, AND ON NOTHING ELSE.
+     [S06.12]'s symQty paragraph enumerates the removals this file draws and
+     the sentence is worth quoting because this change adds to it:
+
+       "a cost, a hit taken and a pool drawn down are the three things on this
+        surface that are SUBTRACTED from something, and they are the three that
+        carry the sign. A board state is not one of them and does not."
+
+     Every clause of that stays true — it was written about the FIGHT surface
+     and the fight surface is untouched. What is new is that the editor now
+     draws a rule's DECLARED terms, and a declared change of minus three health
+     is a subtraction the student wrote down. So it carries the mark, for the
+     same reason a cost does. A REQUIREMENT STILL CARRIES NONE: nothing is
+     subtracted by a requirement, which is [S06.7]'s ruling and row 107b's
+     claim on the other surface, and a change UPWARD carries none either
+     because it takes nothing away. That is three answers from one question
+     asked per field, rather than a flag threaded through the callers.
+
+     AN EMPTY SLOT READS AS NOTHING, deliberately. There is no term yet, and a
+     placeholder reading would be the surface stating a rule the student has
+     not written. The empty box still holds its width, which is what keeps the
+     four choosers of a list starting at one x — [C12]'s rule at the class. */
+  function termReading(state, field, term) {
+    if (!term) { return null; }
+    var n = (field === 'xf') ? Math.abs(term.d) : term.n;
+    var minus = (field === 'cost') || (field === 'xf' && term.d < 0);
+    return symQty(state, term.tok, n, String(n) + ' ', '', minus);
+  }
+
   function fillSlotRows(state, field, act, cap, list) {
     // The rows in use plus one empty slot, never past the cap.
     var shown = Math.min(list.length + 1, cap);
@@ -13464,6 +13557,16 @@ App.render = (function () {
 
       var term = list[i];
       var amt = row.querySelector('.ae-amt');
+      // Rebuilt whole on every repaint, which it may be because nothing in it
+      // is focusable: it is a reading and not a control. The chooser boxes
+      // below are rebuilt for the same reason and the amount field beside it
+      // is NOT, which is the line D-19 draws through this whole surface.
+      var read = row.querySelector('.ae-term-read');
+      if (read) {
+        read.replaceChildren();
+        var reading = termReading(state, field, term);
+        if (reading) { read.appendChild(reading); }
+      }
       fillWhoChoices(row.querySelector('.ae-term-who'), i,
         term ? term.who : '', !!term);
       fillTokenChoices(row.querySelector('.ae-term-toks'), state, act, i,
