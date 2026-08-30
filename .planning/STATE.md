@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed the D-29 redirect (05-D29)
-last_updated: "2026-08-29T23:55:00.000Z"
+stopped_at: Completed the D-30 redirect (05-D30)
+last_updated: "2026-08-30T02:40:00.000Z"
 last_activity: 2026-08-29
 progress:
   total_phases: 7
@@ -26,17 +26,18 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 complete, plus the D-27, D-28 and D-29 redirect work; every autonomous
-plan in the phase is done
+Plan: 16 of 16 complete, plus the D-27, D-28, D-29 and D-30 redirect work; every
+autonomous plan in the phase is done
 Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate, it is
-still plan 11, and it now runs on the surface D-29 shipped with a 52-item script.
-The D-29 redirect (the ledger lane and the resolution readings in the board's own
-token SYMBOLS, costs as `−` plus the type's token, and the prose moved to a tooltip
-that is also an accessible name AND is still read by the no-ruling scan) is built and
-verified: node gate 1216/0 with 188 of 188 interaction rows and `FIGHT_FLOOR`
-re-derived 116 → 130, browser checks 182/0 in Chrome and Edge at 1920x1080 and
-1366x768 including a driven hover. Nothing D-28 measured moved.
-`.planning/phases/05-fight-loop-playtest/05-D29-SUMMARY.md`.
+still plan 11, and it now runs on the surface D-30 shipped with a 53-item script.
+The D-30 redirect (the removal minus is no longer a dash beside the symbol — it is a
+RED MARK on the shape's own top-left corner, centred on the left edge a quarter of the
+way down, with the removal ALSO said in words on the accessible name because colour and
+position are both pruned by `role="img"`) is built and verified: node gate 1216/0 with
+190 of 190 interaction rows, `FIGHT_FLOOR` **unchanged at 130**, browser checks 194/0
+in real Chrome and real Edge at 1920x1080 and 1366x768, HEADLESS, measuring the anchor
+at 0.00px and 0.2500 on all 126 marks. Nothing D-28 or D-29 measured moved.
+`.planning/phases/05-fight-loop-playtest/05-D30-SUMMARY.md`.
 Last activity: 2026-08-29
 
 Progress: [██████████] 100%
@@ -111,6 +112,8 @@ Recent decisions affecting current work:
 - [D-28, orchestrator]: the lane is horizontal because a full-width vertical stack pushes the round being played off the bottom, the defect class this phase has fixed three times; and the ledger moved in the MARKUP rather than with a CSS `order`, because an order property puts the sequence a screen reader walks out of step with the sequence the room sees while every DOM-order check stays green.
 - [D-29]: The fight surface reads in SYMBOLS with the prose on hover. The ledger lane's board states, deltas and resolution readings, and every cost and requirement on the picker, draw the token type's OWN shape, colour and glyph through the shipped `styleFor` / `labelFor` / `makeToken` / `syncRow` — called, never re-derived — so a student-authored type appears there exactly as they authored it and compaction is `COMPACT_AT` and nothing else. A cost is `−` plus the token. Sentences stay only where a symbol cannot carry the meaning.
 - [D-29, orchestrator]: The tooltip is written to `title` AND `aria-label` from one variable on a `role="img"` node, so nothing is conveyed by hover alone and UX-02 is answered rather than waived — its nine "never a title= tooltip" paragraphs were about a CONTROL'S LABEL and not one control grew one. And the words are still SCANNED: `data-tsay` is a fourth exemption channel that SUBTRACTS the student's fragment from those two attributes instead of skipping them, because a tooltip cannot be split across nodes and skipping it would take the artifact's own sentences out of the only layer that can see them.
+- [D-30]: The `−` that marks a resource being removed is a RED MARK ON THE SHAPE — its centre on the symbol's left edge, a quarter of the way down its height — and not a dash beside it. It appears wherever a REMOVAL is rendered, which is the picker's costs and the lane's split facts; a requirement line and a hand-ruling delta carry none, because a requirement subtracts nothing and a delta draws both ends.
+- [D-30, orchestrator]: The mark is parented to `.tok` and not to the reading, because a CSS percentage means nothing until you say what it is a percentage of — anchored to the reading it lands on the left edge of `12×` in the compact form. The red is `color-mix(in hsl, var(--accent-2), var(--coral))`: the two shipped warm tokens sit either side of red at ~334° and ~17°, so an sRGB average lands on a salmon between them and a POLAR mix walks the short arc through 360° onto red — no new hex, which is now checked by row 107f rather than merely stated. And the removal is said in WORDS on the accessible name (`SYM_TAKEN`), because colour plus position is two visual channels and `role="img"` prunes both.
 - [Research]: Sharing is a compact build code, not a `file://` URL (leaks the student's home directory path, useless to recipients, not linkified by Discord).
 - [Phase 03.1]: Dialog strings feed the same PROJ-06 word list and the same check 48 as #app; DIALOG_ROOTS is gated in both directions against the stub page — A second word list is a second thing to keep in step; a dialog that escapes the harvest must fail the run rather than pass silently
 - [Phase 03.1]: MAX_ALLOC's literal moved from [S05] to [S01] so MIN_XF_DELTA and MAX_XF_DELTA derive from it once; [S05] still exports it — [S01] runs before [S05], so deriving the signed bound in App.data required the magnitude to live there; re-typing 99 was the one thing the plan forbade
@@ -235,6 +238,9 @@ None yet.
 - 05-D29: at 1366x768 a lane card is a **115px window over 1174px of content**, so not one symbolic reading in it is reachable by a mouse without scrolling the card — which puts the tooltip D-29 asked for two interactions away rather than one. It is D-28's 22vh bound rather than D-29's notation, measured here for the first time because until D-29 nothing had reason to ask whether a specific reading could be POINTED AT. `deferred-items.md` item 6; 05-11 items 17 and 50.
 - 05-D29: the BATTLEFIELD still names its token types in text (`Health ●●●`) while the lane beside it does not (`●●●`, with the word on the hover). Left standing deliberately: it is the last place on the fight tab where a type is named in text at all, and 05-11 item 50 asks whether a room can read a square as health without ever being told. `deferred-items.md` item 7.
 
+- 05-D30: NOTHING IN THIS REPOSITORY HAD EVER CHECKED THE NO-NEW-HEX RULE. PROBE BM replaced D-30's `color-mix` with the byte-identical literal `#ff6d78` and the whole node gate ran 1216/0, 189 of 189, exit 0 — as did both browser cells that read the mark's POSITION, because a typed colour is pixel-identical to a derived one. One cell caught it, and only where Playwright is installed. Row 107f now scans `[C14]` to the close of the `<style>` block as DECLARATIONS; `[C00]` through `[C13]` — three quarters of the stylesheet — is still unscanned. `deferred-items.md` item 8.
+- 05-D30: the node gate cannot see this change beyond the sign's PARENT, demonstrated rather than assumed — PROBE BL moved the anchor from 25% to 50% and the gate ran 189 of 189, exit 0. Three browser cells (21b, 21c, 21d) carry the half that only exists in pixels, and they run only where Playwright does.
+
 ## Deferred Items
 
 Items acknowledged and carried forward from previous milestone close:
@@ -245,6 +251,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-29T23:55:00.000Z
-Stopped at: Completed the D-29 redirect (05-D29) — 05-11's playtest is the only thing left in the phase
+Last session: 2026-08-30T02:40:00.000Z
+Stopped at: Completed the D-30 redirect (05-D30) — 05-11's playtest is the only thing left in the phase
 Resume file: None
