@@ -186,3 +186,22 @@ Words moving from textContent into `title` attributes LEAVE the Layer C harvest 
 the scanner would stop seeing them and report clean forever (the wave-1 lesson, attribute
 edition). The harvest must be extended to read tooltip text wherever the fight surface uses it,
 and the floor re-derived.
+
+---
+
+## D-30 — Fourth live-feedback round, 2026-08-29: the removal minus becomes a badge
+
+Verbatim:
+
+> make the - for removing a resource red and make it appear in the top-left corner (25% from the
+> top, center aligned to the left edge) of the symbol/shape - rather than a normal dash
+
+### What this settles
+
+The `−` that marks a resource being removed (D-29's cost/removal notation) is no longer an inline
+dash beside the symbol. It is a RED mark anchored on the symbol itself: top-left corner, 25% down
+from the top, center-aligned to the left edge of the shape. Applies wherever the removal notation
+appears — picker costs, requirement shortfalls, transformation readings, lane deltas.
+
+Also this round, tooling: browser checks now run headless so testing stops popping windows over
+the developer's work (committed separately).
