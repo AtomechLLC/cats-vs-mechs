@@ -281,6 +281,33 @@ for (const ch of ['chrome', 'msedge']) {
       && bViews.width === bBand.width && bBand.width === bBoard.width,
       { bViews, bBand, bBoard });
 
+    /* ── 4c. D-28's FIRST SENTENCE, MEASURED: "let the fight take the whole width".
+       ==================================================================
+       THIS CELL'S CLAIM WAS TURNED BY D-28 AND THE OLD ONE IS WRITTEN OUT.
+       ==================================================================
+       Plan 05-16's check 4b asserted that the switch, the band and the board share
+       one column, and it still does and still passes — the band is the frame and the
+       frame did not move. What NOBODY was asserting was the split INSIDE the band,
+       and that is the thing D-28 changed: #fightbar was 736px of a 1600px band with
+       #ledger beside it, so the fight was 46% of the width it had.
+
+       So this cell asserts the new claim rather than the old one: #fightbar and
+       #ledger are each the FULL width of the band, and the ledger's box is ABOVE the
+       bar's. Both are read as measured geometry, not as DOM order — the whole reason
+       a check like this exists is that `order:-1` and `flex-direction:column-reverse`
+       both satisfy every DOM-order assertion in this repository while putting the
+       page on screen the other way up. */
+    const bBar = await box(pg, '#fightbar');
+    const bLedger = await box(pg, '#ledger');
+    note(ch, size.name, '#fightbar left/width', `${bBar.left}/${bBar.width}`);
+    note(ch, size.name, '#ledger left/width', `${bLedger.left}/${bLedger.width}`);
+    note(ch, size.name, '#ledger bottom vs #fightbar top', `${bLedger.bottom} / ${bBar.top}`);
+    ok(`${tag}: 4c. the fight takes the WHOLE width of the band and the ledger is a full-width lane ABOVE it`,
+      bBar.width === bBand.width && bLedger.width === bBand.width
+      && bBar.left === bBand.left && bLedger.left === bBand.left
+      && bLedger.bottom <= bBar.top,
+      { bBand, bBar, bLedger });
+
     // ── 5. THE GRID LAYS OUT IN THE ADDENDUM'S ORDER, verified by comparing each child's
     // measured TOP rather than by reading the DOM order — the DOM order is [S06.7]'s five
     // appends and a check that read it would be asserting the code against itself. What a
@@ -344,8 +371,69 @@ for (const ch of ['chrome', 'msedge']) {
         g.cats.rows === g.cats.units && g.mechs.rows === g.mechs.units
         && g.cats.buttons === g.cats.units * g.cats.actions
         && g.mechs.buttons === g.mechs.units * g.mechs.actions, g);
-      ok(`${tag}: 6b. ${label} — the grid's own box is inside the viewport`,
-        g.sidesBox.top >= 0 && g.sidesBox.bottom <= g.viewportH, g);
+      /* ==================================================================
+         6b's CLAIM WAS TURNED BY D-28 AND THE OLD ONE IS WRITTEN OUT.
+         ==================================================================
+         WHAT IT ASSERTED (plan 05-16): the grid's own box is INSIDE the viewport,
+         top >= 0 and bottom <= viewport height. True at both sizes when the ledger
+         sat beside the fight bar and cost the page no height at all.
+
+         WHAT D-28 SAYS: "earlier rounds should be a full lane above". A lane above
+         costs height where a column beside cost none, and the measurement is the
+         claim rather than an argument about it — three rounds resolved, twelve
+         declarations a round, identical in Chrome and Edge:
+
+           .fg-sides box        @1920x1080      @1366x768
+             before D-28          415/281/696     407/200/607
+             after  D-28          714/346/1060    614/246/860
+
+         So at 1080 the box still ends inside the fold, and at 768 it does not: it
+         BEGINS at 614 of 768 and its last 92px are one page scroll away. Shrinking
+         the bound until 768 fitted would need 20vh — LESS than the 26vh plan 05-16
+         measured as the minimum useful window — on the tab whose developer's own
+         complaint is that it is too compressed.
+
+         WHAT IT ASSERTS NOW, in three clauses that hold at every size and are each
+         a different failure: the box BEGINS on screen (a grid whose top is below
+         the fold is a grid a room does not know is there); it has a real box; and
+         it can be brought WHOLLY into view by scrolling the page, which is driven
+         rather than reasoned about — the page is scrolled and the box re-read. The
+         numbers themselves are RECORDED rather than thresholded, which is check 9's
+         rule in this same file and the viewport fix's before it.
+
+         AND THE CONTROL THAT ENDS THE ROUND IS NOT PART OF THIS TRADE. It is above
+         the fold at both sizes with three rounds in the lane, it is check 18's
+         claim, and it is asserted rather than recorded — which is the whole
+         difference between a region a room scrolls and a button a room cannot find. */
+      /* THE SCROLL IS AWAITED AND NOT ASSUMED, and it took a red run to write that
+         down. [C01] sets html{scroll-behavior:smooth}, so window.scrollTo STARTS an
+         animation and returns; a synchronous getBoundingClientRect immediately after
+         it reads the box where it was BEFORE the scroll. Measured: asked for 28,
+         window.scrollY read back 0 and the box had not moved a pixel, on a document
+         1058px tall with 290px of scroll available. It is openDialogs' recorded
+         lesson — do the thing, then ASK for the frame, then wait, then read —
+         arriving through a sixth door, and check 10's own stops already wait 80ms
+         each for exactly this reason. `behavior: 'instant'` would also work and is
+         deliberately not used: waiting is what a room does. */
+      const reach = await pg.evaluate(async () => {
+        const n = document.querySelector('.fg-sides');
+        const before = Math.round(n.getBoundingClientRect().bottom);
+        const want = Math.max(0, window.scrollY + before - window.innerHeight + 8);
+        window.scrollTo(0, want);
+        await new Promise((r) => setTimeout(r, 400));
+        const r = n.getBoundingClientRect();
+        const out = { asked: Math.round(want), got: Math.round(window.scrollY),
+          top: Math.round(r.top), bottom: Math.round(r.bottom), vh: window.innerHeight,
+          maxScroll: Math.round(document.scrollingElement.scrollHeight - window.innerHeight) };
+        window.scrollTo(0, 0);
+        await new Promise((r2) => setTimeout(r2, 400));
+        return out;
+      });
+      note(ch, size.name, `grid ${label} .fg-sides whole in view after a page scroll`,
+        `top ${reach.top} bottom ${reach.bottom} of ${reach.vh} at scrollY ${reach.got}`);
+      ok(`${tag}: 6b. ${label} — the grid's box BEGINS on screen and can be brought wholly into view by scrolling the page`,
+        g.sidesBox.top >= 0 && g.sidesBox.top < g.viewportH && g.sidesBox.height > 0
+        && reach.top >= 0 && reach.bottom <= reach.vh, { g, reach });
       return g;
     };
     await gridOn('9-and-3');
@@ -511,7 +599,28 @@ for (const ch of ['chrome', 'msedge']) {
        the window at any offset the page can actually reach. The four numbers themselves are
        RECORDED rather than compared against a threshold nobody chose — which is the viewport
        fix's own rule, and the reason limitations entry 21 was rewritten instead of ticked. */
-    for (const view of ['build', 'fight']) {
+    /* ==================================================================
+       10's SCOPE WAS TURNED BY D-28 AND THE OLD CLAIM IS WRITTEN OUT.
+       ==================================================================
+       WHAT IT ASSERTED: #strip is sticky with every ancestor's overflow visible
+       and never leaves the top of the window, IN BOTH VIEWS.
+
+       WHAT D-28 SAYS: "The predictor turn off, and make it toggled sidebar /
+       pop over". In the fight view the projection is NOT DISPLAYED at all until
+       a student presses for it, so "it is sticky in the fight view" is a claim
+       about a box that has no layout — and it is exactly the shape of claim
+       that stays GREEN over the change, which is why it is turned rather than
+       left running. getComputedStyle on a display:none element still reports
+       position `sticky` and getBoundingClientRect still reports zeros, and
+       zeros satisfy `top >= 0`. This cell would have passed, in both browsers,
+       at both sizes, over a projection that had left the page.
+
+       SO THE LOOP RUNS OVER THE BUILD VIEW ONLY, where the claim is unchanged
+       and still exactly what PROJ-05 and [C03]'s sticky gotcha need. The fight
+       view's projection is check 10c's, below, which asserts the state D-28
+       actually shipped: undisplayed by default, a real fixed box after ONE
+       real click, and undisplayed again after a second. */
+    for (const view of ['build']) {
       await pg.click('#view-' + view); await pg.waitForTimeout(200);
       const pin = await pg.evaluate(async () => {
         const strip = document.querySelector('#strip');
@@ -554,10 +663,113 @@ for (const ch of ['chrome', 'msedge']) {
         pin.refband.w > 0 && pin.refband.h > 0, pin.refband);
     }
 
+    /* ── 10c. D-28's PROJECTION SIDEBAR, OPENED AND CLOSED BY REAL CLICKS. This is
+       PROJ-05's new reading and the cell that replaces 10's fight-view half.
+
+       FOUR THINGS ARE READ AND NOT ONE OF THEM IS A CLASS NAME. Whether the panel
+       is DISPLAYED, whether its box is real and inside the window, what it SAYS,
+       and whether what it says is CURRENT — the last is driven by moving the pool
+       the projection is derived from through a real op and reading the panel again.
+       A sidebar built as a second panel carrying a copy of the figures would pass
+       every other clause here and stand still on that one, and [C15]'s own rule is
+       that this must be "the same projection, not a second one that happens to
+       carry the same words".
+
+       AND #refband IS READ IN THE FIGHT VIEW BESIDE IT, because REF-03 is NOT part
+       of D-28 and a change that quietly took the reference band with the projection
+       would be a requirement lost to a rearrangement. */
+    await pg.click('#view-fight'); await pg.waitForTimeout(200);
+    const projClosed = await pg.evaluate(() => {
+      const s = document.querySelector('#strip');
+      const rb = document.querySelector('#refband').getBoundingClientRect();
+      return {
+        proj: document.querySelector('#app').dataset.proj || '',
+        display: getComputedStyle(s).display,
+        expanded: document.querySelector('#proj-toggle').getAttribute('aria-expanded'),
+        toggleBox: (() => { const r = document.querySelector('#proj-toggle').getBoundingClientRect();
+          return { top: Math.round(r.top), h: Math.round(r.height), w: Math.round(r.width) }; })(),
+        refband: { w: Math.round(rb.width), h: Math.round(rb.height) }
+      };
+    });
+    await pg.click('#proj-toggle'); await pg.waitForTimeout(250);
+    const projOpen = await pg.evaluate(() => {
+      const s = document.querySelector('#strip');
+      const cs = getComputedStyle(s);
+      const r = s.getBoundingClientRect();
+      const leaves = [];
+      (function w(n) { if (!n) return; if (n.children.length === 0 && n.textContent) leaves.push(n.textContent); Array.from(n.children).forEach(w); })(s);
+      return {
+        proj: document.querySelector('#app').dataset.proj || '',
+        display: cs.display, position: cs.position, z: cs.zIndex,
+        box: { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom) },
+        inWindow: r.top >= 0 && r.left >= 0 && r.right <= window.innerWidth + 1 && r.bottom <= window.innerHeight + 1,
+        leaves: leaves.length, says: leaves.join(' | '),
+        expanded: document.querySelector('#proj-toggle').getAttribute('aria-expanded'),
+        pressed: document.querySelector('#proj-toggle').getAttribute('aria-pressed'),
+        tick: getComputedStyle(document.querySelector('#proj-toggle .pv-check')).visibility
+      };
+    });
+    // The figures moved through a real op, then the panel read again.
+    await pg.evaluate(() => {
+      App.ops.setFactionAp('cats', 9);
+      App.state.invalidate();
+      if (App.render.flush) App.render.flush();
+    });
+    await pg.waitForTimeout(250);
+    const projMoved = await pg.evaluate(() => {
+      const leaves = [];
+      (function w(n) { if (!n) return; if (n.children.length === 0 && n.textContent) leaves.push(n.textContent); Array.from(n.children).forEach(w); })(document.querySelector('#strip'));
+      return leaves.join(' | ');
+    });
+    await pg.evaluate(() => { App.ops.setFactionAp('cats', 3); App.state.invalidate(); if (App.render.flush) App.render.flush(); });
+    await pg.waitForTimeout(200);
+    await pg.click('#proj-toggle'); await pg.waitForTimeout(250);
+    const projShut = await pg.evaluate(() => ({
+      proj: document.querySelector('#app').dataset.proj || '',
+      display: getComputedStyle(document.querySelector('#strip')).display,
+      expanded: document.querySelector('#proj-toggle').getAttribute('aria-expanded'),
+      tick: getComputedStyle(document.querySelector('#proj-toggle .pv-check')).visibility
+    }));
+    note(ch, size.name, '#strip display, fight view closed -> open -> closed',
+      `${projClosed.display} -> ${projOpen.display} -> ${projShut.display}`);
+    note(ch, size.name, 'the sidebar box when open',
+      `${projOpen.box.left},${projOpen.box.top} ${projOpen.box.w}x${projOpen.box.h} ${projOpen.position} z${projOpen.z}`);
+    note(ch, size.name, 'the sidebar reads', String(projOpen.says).slice(0, 46));
+    ok(`${tag}: 10c. the projection is OFF in the fight view and comes back as a real fixed sidebar on ONE click, and goes away on a second`,
+      projClosed.display === 'none' && projClosed.proj === '' && projClosed.expanded === 'false'
+      && projClosed.toggleBox.h > 0 && projClosed.toggleBox.w > 0
+      && projOpen.display !== 'none' && projOpen.proj === '1'
+      && projOpen.position === 'fixed' && projOpen.box.w > 0 && projOpen.box.h > 0
+      && projOpen.inWindow === true && projOpen.leaves > 0
+      && projOpen.expanded === 'true' && projOpen.pressed === 'true'
+      && projOpen.tick === 'visible'
+      && projShut.display === 'none' && projShut.proj === '' && projShut.expanded === 'false'
+      && projShut.tick === 'hidden',
+      { projClosed, projOpen, projShut });
+    ok(`${tag}: 10d. what the sidebar says is CURRENT — it moves when a real op moves the pool it is derived from`,
+      projOpen.says.length > 0 && projMoved.length > 0 && projMoved !== projOpen.says,
+      { was: projOpen.says.slice(0, 80), now: projMoved.slice(0, 80) });
+    ok(`${tag}: 10e. #refband still has a real box in the fight view — REF-03 did not go with the projection`,
+      projClosed.refband.w > 0 && projClosed.refband.h > 0, projClosed.refband);
+
     // ── 11. A FULL ROUND BY REAL CLICKS. One untargeted declaration, one target-directed
     // one, each in a SINGLE press; the team resources read before and after each; Advance;
     // the round and the ledger read back.
     await pg.click('#view-fight'); await pg.waitForTimeout(200);
+    /* THE PAGE IS SETTLED BEFORE THE FIRST REAL CLICK ON A CONTROL INSIDE A
+       SCROLLER, and this line is here because of a MEASURED red run rather than
+       out of caution. [C01] sets html{scroll-behavior:smooth}; Playwright's click
+       scrolls its target into view first, that scroll ANIMATES, and Playwright
+       then waits for the element to be "stable" — the same box across two
+       animation frames — which a smoothly moving element never is. Measured:
+       Edge at 1366x768, after the checks above had scrolled the page, timed out
+       after 58 stability retries on a button that was on the screen the whole
+       time. Chrome at either size and Edge at 1920x1080 never reproduced it, so
+       this is one browser at one size and it is exactly the kind of flake that
+       gets "fixed" by deleting a check. Put the page back at the top, wait for
+       the animation to finish, then click. */
+    await pg.evaluate(() => window.scrollTo(0, 0));
+    await pg.waitForTimeout(700);
     const teamOf = (side) => pg.evaluate((s) => {
       const t = document.querySelector('#decl-' + s + ' .fg-team');
       return t ? t.textContent.replace(/\s+/g, ' ').trim() : null;
@@ -703,8 +915,186 @@ for (const ch of ['chrome', 'msedge']) {
       && chans.off.disabled === true && chans.on.disabled === false
       && diffs.length >= 2, { chans, diffs });
 
-    // ── 14. THE SAME READINGS AT 24 A SIDE, which is MAX_UNITS and the top of the product.
+    /* ── 17. D-28's LANE, WITH THREE ROUNDS RESOLVED AND TWELVE DECLARATIONS A ROUND.
+       Everything below this line is plan 05-D28's and it is the block the node gate
+       structurally cannot reach: a lane is a layout, and tests/selftest-node.cjs has
+       no layout engine at all — a card off the end of the lane and a card on screen
+       read the same to it.
+
+       WHY THE TWELVE DECLARATIONS ARE DISPATCHED RATHER THAN CLICKED, said out loud
+       because the two cells below this one DO click: thirty-six OS clicks on buttons
+       inside a scroller, four combinations over, is four minutes of auto-scrolling
+       for a board this file already drives through the artifact's own path. The
+       pointerdown goes to the SAME delegated listener on the same node — [S07.5]'s
+       press idiom is what receives it either way — and the controls actually under
+       test here, Advance and the projection toggle, are real pg.click()s. That is
+       the same split the header of this block makes about App.ops: drive the boring
+       bulk, click the thing being asserted. */
     await pg.evaluate(() => { App.ops.dispatch('setAlive', { side: 'cats', unitId: 'c2', alive: true }); });
+    await endFight(pg);
+    await startFight(pg);
+    await pg.waitForTimeout(250);
+    const declareAll = () => pg.evaluate(() => {
+      let n = 0;
+      ['cats', 'mechs'].forEach((side) => {
+        document.querySelectorAll('#decl-' + side + ' .fg-row').forEach((row) => {
+          const btn = row.querySelector('[data-fg="act"]:not([disabled])');
+          if (btn) { btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, isPrimary: true, button: 0 })); n++; }
+        });
+      });
+      App.state.invalidate();
+      if (App.render.flush) App.render.flush();
+      return n;
+    });
+    const declaredPerRound = [];
+    for (let r = 0; r < 3; r++) {
+      declaredPerRound.push(await declareAll());
+      await pg.waitForTimeout(120);
+      await pg.click('#fightbar [data-fg="advance"]');
+      await pg.waitForTimeout(200);
+    }
+    const lane = await pg.evaluate(() => {
+      const list = document.querySelector('#ledger-list');
+      const cs = getComputedStyle(list);
+      const lr = list.getBoundingClientRect();
+      const cards = Array.from(list.querySelectorAll('.ld-row'));
+      const last = cards[cards.length - 1];
+      const rr = last.getBoundingClientRect();
+      const leavesOf = (n) => { const out = []; (function w(x) { if (!x) return; if (x.children.length === 0 && x.textContent) out.push(x.textContent); Array.from(x.children).forEach(w); })(n); return out; };
+      const perCard = cards.map((c) => ({
+        round: c.dataset.ldRound,
+        board: leavesOf(c.querySelector('.ld-board')).length,
+        acts: leavesOf(c.querySelector('.ld-acts')).length,
+        says: leavesOf(c.querySelector('.ld-acts')).join(' ').slice(0, 70),
+        left: Math.round(c.getBoundingClientRect().left)
+      }));
+      return {
+        cards: cards.length, rounds: cards.map((c) => c.dataset.ldRound),
+        overflowX: cs.overflowX, overflowY: cs.overflowY, direction: cs.flexDirection,
+        order: cards.map((c) => getComputedStyle(c).order).join(','),
+        laneBox: { top: Math.round(lr.top), left: Math.round(lr.left), w: Math.round(lr.width), h: Math.round(lr.height) },
+        scrollW: Math.round(list.scrollWidth), clientW: Math.round(list.clientWidth),
+        scrollH: Math.round(list.scrollHeight), clientH: Math.round(list.clientHeight),
+        scrollLeft: Math.round(list.scrollLeft),
+        newestBox: { left: Math.round(rr.left), right: Math.round(rr.right), w: Math.round(rr.width), h: Math.round(rr.height) },
+        newestWholeInLane: rr.left >= lr.left - 1 && rr.right <= lr.right + 1,
+        newestIsRightmost: perCard.every((c) => c.left <= perCard[perCard.length - 1].left),
+        perCard, viewportH: window.innerHeight
+      };
+    });
+    note(ch, size.name, 'lane cards / rounds', `${lane.cards} / ${lane.rounds.join(',')}`);
+    note(ch, size.name, 'lane box and card', `${lane.laneBox.w}x${lane.laneBox.h}, card ${lane.newestBox.w}x${lane.newestBox.h}`);
+    note(ch, size.name, 'lane scrollW/clientW, scrollLeft', `${lane.scrollW}/${lane.clientW}, ${lane.scrollLeft}`);
+    ok(`${tag}: 17. three rounds resolved with ${JSON.stringify(declaredPerRound)} declarations a round, and the lane holds one card per resolved round`,
+      declaredPerRound.every((n) => n === 12) && lane.cards === 3
+      && lane.rounds.join(',') === '1,2,3', { declaredPerRound, rounds: lane.rounds });
+    ok(`${tag}: 17b. EVERY card shows the board as it stood AND the actions that were selected`,
+      lane.perCard.length === 3 && lane.perCard.every((c) => c.board > 0 && c.acts > 0),
+      lane.perCard);
+    /* THE NEWEST CARD IS THE RIGHTMOST AND IT IS WHOLE INSIDE THE LANE WITHOUT
+       ANYBODY SCROLLING. [S06.8] scrolls the lane to its end on append and the
+       measurement is what says the assignment reached the right axis — the line it
+       replaced wrote scrollTop, which on a flex ROW moves nothing at all and would
+       have left round one on screen and the round that just resolved off the end.
+       `order` is read off computed style on every card as well: a reversed lane
+       would put the newest at the LEFT and satisfy a "newest is visible" clause by
+       accident. */
+    ok(`${tag}: 17c. the lane is a horizontal row, the newest card is the RIGHTMOST, and it is whole inside the lane without scrolling`,
+      lane.direction === 'row' && lane.overflowX === 'auto' && lane.overflowY === 'hidden'
+      && /^(0,)*0$/.test(lane.order)
+      && lane.newestIsRightmost === true && lane.newestWholeInLane === true
+      && lane.scrollH === lane.clientH, lane);
+
+    /* ── 18. AND THE ROUND BEING PLAYED IS STILL REACHABLE UNDER THAT LANE, which is
+       the arithmetic D-28 changed and the defect this plan measured and fixed. With
+       the round controls appended below .fg-sides the Advance control read 1094 of a
+       1080 viewport and 951 of a 768 one; it is on the round's own line now.
+
+       ADVANCE IS ASSERTED ABOVE THE FOLD AND THE FOUR REGIONS ARE ASSERTED REACHABLE,
+       and the difference between the two words is deliberate. Above the fold means at
+       page scroll ZERO, with no scrolling of any kind, which is what a control that
+       ends a round has to be. Reachable means it has a real box on the page — the
+       grid and the battlefield live inside a scroller bounded on itself, so a room
+       scrolls to the bottom of a column exactly as it scrolls [C12]'s action list. */
+    const under = await pg.evaluate(async () => {
+      const R = (s) => { const n = document.querySelector(s); if (!n) return null; const r = n.getBoundingClientRect();
+        return { top: Math.round(r.top), left: Math.round(r.left), w: Math.round(r.width), h: Math.round(r.height), bottom: Math.round(r.bottom) }; };
+      // AWAITED, for [C01]'s smooth scrolling — and READ BACK, because the two
+      // browsers do not agree about how far a scroll to the top gets before the
+      // next frame. Plan 05-16 recorded the same disagreement from the other
+      // direction (scrollTo(0,0) reaching scrollY 179 in Edge and 0 in Chrome),
+      // and the answer there is the answer here: assert what holds at any offset
+      // the page can reach, and add the offset back to make the claim absolute.
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 500));
+      return {
+        scrollY: Math.round(window.scrollY), vh: window.innerHeight,
+        advance: R('#fightbar [data-fg="advance"]'),
+        roundHead: R('.fg-round-head'), roundN: document.querySelector('.fg-round-n').textContent,
+        sides: R('.fg-sides'), field: R('#decl-cats .fg-field'),
+        team: R('#decl-cats .fg-team'), rows: R('#decl-cats .fg-rows'),
+        lane: R('#ledger-list'),
+        advanceEnabled: document.querySelector('#fightbar [data-fg="advance"]').disabled === false
+      };
+    });
+    note(ch, size.name, 'Advance top/bottom vs viewport, 3 rounds in the lane',
+      `${under.advance.top}/${under.advance.bottom} of ${under.vh}`);
+    note(ch, size.name, '.fg-sides top/height/bottom, 3 rounds in the lane',
+      `${under.sides.top}/${under.sides.h}/${under.sides.bottom} of ${under.vh}`);
+    note(ch, size.name, 'battlefield / team / rows tops, 3 rounds in the lane',
+      `${under.field.top} / ${under.team.top} / ${under.rows.top}`);
+    // THE CLAIM IS MADE ABSOLUTE BY ADDING THE OFFSET BACK. `advance.top + scrollY`
+    // is the control's distance from the top of the DOCUMENT, so the assertion is
+    // "above the fold at a page scroll of zero" whatever offset the browser had
+    // actually settled at when the reading was taken.
+    note(ch, size.name, 'Advance from the top of the DOCUMENT, 3 rounds in the lane',
+      `${under.advance.top + under.scrollY} of ${under.vh} (read at scrollY ${under.scrollY})`);
+    ok(`${tag}: 18. with three rounds in the lane the Advance control is ABOVE THE FOLD at page scroll zero, and enabled`,
+      under.advance.top + under.scrollY >= 0
+      && under.advance.bottom + under.scrollY <= under.vh
+      && under.advance.top >= 0 && under.advance.bottom <= under.vh
+      && under.advanceEnabled === true, under);
+    ok(`${tag}: 18b. the round, the lane, the battlefield, the team resources and the picker rows all have a real box`,
+      [under.roundHead, under.lane, under.field, under.team, under.rows]
+        .every((b) => b !== null && b.w > 0 && b.h > 0)
+      && under.roundN !== '', under);
+
+    /* ── 19. AND THE LANE REALLY DOES SCROLL SIDEWAYS, driven past the width it fits
+       in rather than asserted about. Three cards fit inside a 1920 lane, so a check
+       that stopped at three would be asserting an overflow that never happened —
+       which is this file's own "a scan of a page that was never painted" failure
+       arriving on a scrollbar. Two more rounds are resolved to force it at BOTH
+       sizes, and what is read back is that the content is wider than the box, that
+       the offset is at its MAXIMUM, and that the newest card is whole in view there. */
+    for (let r = 0; r < 2; r++) {
+      await declareAll();
+      await pg.waitForTimeout(100);
+      await pg.click('#fightbar [data-fg="advance"]');
+      await pg.waitForTimeout(200);
+    }
+    const laneFull = await pg.evaluate(() => {
+      const list = document.querySelector('#ledger-list');
+      const lr = list.getBoundingClientRect();
+      const cards = Array.from(list.querySelectorAll('.ld-row'));
+      const rr = cards[cards.length - 1].getBoundingClientRect();
+      return {
+        cards: cards.length,
+        scrollW: Math.round(list.scrollWidth), clientW: Math.round(list.clientWidth),
+        scrollLeft: Math.round(list.scrollLeft),
+        maxScrollLeft: Math.round(list.scrollWidth - list.clientWidth),
+        newestWholeInLane: rr.left >= lr.left - 1 && rr.right <= lr.right + 1,
+        laneH: Math.round(lr.height)
+      };
+    });
+    note(ch, size.name, 'lane with five rounds: scrollW/clientW, scrollLeft/max',
+      `${laneFull.scrollW}/${laneFull.clientW}, ${laneFull.scrollLeft}/${laneFull.maxScrollLeft}`);
+    ok(`${tag}: 19. with five rounds the lane OVERFLOWS SIDEWAYS, is scrolled to its end, and the newest card is whole in view there`,
+      laneFull.cards === 5 && laneFull.scrollW > laneFull.clientW
+      && laneFull.maxScrollLeft > 0
+      && Math.abs(laneFull.scrollLeft - laneFull.maxScrollLeft) <= 1
+      && laneFull.newestWholeInLane === true, laneFull);
+
+    // ── 14. THE SAME READINGS AT 24 A SIDE, which is MAX_UNITS and the top of the product.
     await endFight(pg);
     await toRoster(pg, 24);
     await pg.waitForTimeout(200);
