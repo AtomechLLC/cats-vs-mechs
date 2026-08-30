@@ -72,7 +72,12 @@ const ok = (name, cond, detail) => {
 };
 
 async function open(channel, size) {
-  const b = await chromium.launch({ channel, headless: false });
+  // Headless by default (2026-08-29, developer request): headed runs pop real windows and
+  // steal focus from whoever is working. Real Chrome/Edge support new headless, and the
+  // clipboard cells still pass because the context grants clipboard-read/write explicitly —
+  // CLAUDE.md's warning about headless clipboard denial applies only when permissions are NOT
+  // granted. Set HEADED=1 to watch a run.
+  const b = await chromium.launch({ channel, headless: process.env.HEADED !== '1' });
   const ctx = await b.newContext({
     viewport: size || { width: 1440, height: 900 },
     permissions: ['clipboard-read', 'clipboard-write']
