@@ -12563,13 +12563,36 @@ const symBad = symLane.filter((n) =>
 const symActBox = symNewest === null ? null : symNewest.querySelector('.ld-acts');
 const symActSyms = symActBox === null ? [] : symActBox.querySelectorAll('.sym');
 const symActSaid = symActSyms.map((n) => n.getAttribute('title'));
-const symTookRe = new RegExp('^' + symShWord + ' took \\d+ of the \\d+\\.$');
+/* CLAIM TURNED IN THE OPEN UNDER D-30, and the turn is on the PREFIX. The
+   split's tooltip read "Shield took 1 of the 1." until D-30 took the minus sign
+   out of the text run and made it a red mark on the shape; a state said in
+   colour and position alone is the pair [C07] refuses, and inside a role="img"
+   the accessible name is the only channel left. So the reading now names the
+   removal in words and this pattern says so. THE PREFIX IS READ OFF THE LIVE
+   EXPORT and never typed here, which is 107c's rule about COMPACT_AT arriving
+   on a string: a row carrying its own copy would assert that the gate agrees
+   with itself. */
+const symTaken = A.render.SYM_TAKEN;
+const symTookRe = new RegExp('^' + symTaken + symShWord
+  + ' took \\d+ of the \\d+\\.$');
 const symTookSaid = symActSaid.filter((t) => symTookRe.test(t))[0] || '';
 const symActText = (symActBox === null ? [] : fgLeaves(symActBox)).join(' ');
 const symActNamesType = symActText.indexOf(symHpWord) !== -1
   || symActText.indexOf(symShWord) !== -1;
 const symSigns = fgLedgerRoot.querySelectorAll('.sym-sign')
   .filter((n) => n.textContent === '−').length;
+/* D-30's OWN CLAUSE, ON THE LANE, AND IT IS WHAT STOPS THE THREE CLAUSES ABOVE
+   FROM BEING GREEN BY ACCIDENT. Counting minus signs was the whole of this
+   row's reading of the sign and it passed identically before and after D-30 —
+   the character did not move out of the DOM, it moved out of the text RUN. So
+   the parent is read: every sign in the lane must be a child of a .tok, which
+   is the node [C14.5]'s `left:0; top:25%` resolves against and therefore the
+   only parent that makes the developer's geometry mean what it says. A sign
+   appended to the reading instead would still be one node with one character
+   and would still be counted by the line above. */
+const symLaneSigns = fgLedgerRoot.querySelectorAll('.sym-sign');
+const symSignsOffShape = symLaneSigns.filter((n) => !(n.parentNode
+  && n.parentNode.classList && n.parentNode.classList.contains('tok'))).length;
 check(
   '107. THE LANE OF EARLIER ROUNDS READS IN SYMBOLS AND THE PROSE IS ON THE '
     + 'HOVER — D-29\'s first and third sentences, driven over three resolved '
@@ -12589,15 +12612,28 @@ check(
     + 'moves the expectation with the board, and the action box\'s TEXT is '
     + 'asserted to name NEITHER durability type, which is the clause that says '
     + 'the prose moved rather than that a tooltip was added beside it. The '
-    + 'minus signs are counted too: a hit taken is a subtraction and it says so',
+    + 'minus signs are counted too: a hit taken is a subtraction and it says '
+    + 'so. TWO CLAUSES TURNED IN THE OPEN UNDER D-30, which made the minus a '
+    + 'RED MARK ON THE SHAPE rather than a dash beside it. First, the split\'s '
+    + 'sentence is matched with the removal PREFIX on it — read off the live '
+    + 'export, never typed here — because inside a role="img" the accessible '
+    + 'name is the only channel a red mark cannot reach and colour plus '
+    + 'position is the pair [C07] refuses to let a state be said in. Second, '
+    + 'EVERY minus sign in the lane must be a CHILD OF A .tok: counting the '
+    + 'signs passed identically before and after D-30, because the character '
+    + 'never left the DOM, only the text run — so the count alone was green by '
+    + 'accident and the parent is what says the mark is on the shape',
   symLane.length > 0 && symBad === 0 && symCards.length === 2
     && symActSyms.length > 0 && symTookSaid !== ''
-    && symActNamesType === false && symSigns > 0,
+    && symActNamesType === false && symSigns > 0
+    && symLaneSigns.length > 0 && symSignsOffShape === 0,
   'the lane carries ' + symLane.length + ' symbolic readings across '
     + symCards.length + ' cards, of which ' + symBad + ' fail one of the four '
     + 'clauses'
     + ' | the newest card\'s action box carries ' + symActSyms.length
-    + ' readings and ' + symSigns + ' minus signs are drawn in the lane'
+    + ' readings and ' + symSigns + ' minus signs are drawn in the lane, of '
+    + 'which ' + symSignsOffShape + ' are not parented to a shape'
+    + ' | the removal prefix read off the export: ' + JSON.stringify(symTaken)
     + ' | the split reads: ' + JSON.stringify(symTookSaid)
     + ' | its neighbours read: ' + JSON.stringify(symActSaid.slice(0, 4))
     + ' | the action box\'s TEXT names ' + JSON.stringify(symHpWord) + ' or '
@@ -12689,13 +12725,19 @@ check(
     + 'unlanded-term line draw the shipped mark for whatever type they named, '
     + 'and the whole suite ran 188 of 188 over it. The same invented type is '
     + 'now put on an action as a REQUIREMENT and read back off the picker\'s '
-    + 'own reading line, symbol and word, with the sentence around it intact',
+    + 'own reading line, symbol and word, with the sentence around it intact. '
+    + 'THE TWO EXPECTED TOOLTIPS DIFFER BY THE REMOVAL PREFIX UNDER D-30 AND '
+    + 'THAT DIFFERENCE IS THE POINT: a COST removes something and says so, a '
+    + 'REQUIREMENT removes nothing and must NOT say so — [S06.7]\'s own comment '
+    + 'rules on it and [S06.12]\'s banner names the two surfaces the mark may '
+    + 'appear on. A prefix applied to every reading rather than to every '
+    + 'removal would pass the cost clause and fail this one',
   symLaneShield !== null && symLaneTokCls.indexOf('tok--tri') !== -1
     && symLaneTokCls.indexOf('tok--coral') !== -1 && symLaneGlyph !== ''
     && symCostSym !== null && symCostCls.indexOf('tok--hex') !== -1
     && symCostCls.indexOf('tok--violet') !== -1
     && symCostGlyph === '\u{1F49C}'
-    && symCostSaid === '3 ' + symOwnWord
+    && symCostSaid === A.render.SYM_TAKEN + '3 ' + symOwnWord
     && symCostText.indexOf(symOwnWord) === -1
     && symReqSym !== null && symReqCls.indexOf('tok--hex') !== -1
     && symReqCls.indexOf('tok--violet') !== -1
@@ -12750,8 +12792,20 @@ const symLowCount = symLowBox === null ? -1
   : symLowBox.querySelectorAll('.tok-count').length;
 const symLowSaid = symLowBox === null ? '' : String(
   (symLowBox.querySelector('.sym') || { getAttribute: () => '' }).getAttribute('title'));
-const symLowSign = symLowBox === null ? ''
-  : String(((symLowBox.querySelectorAll('.sym-sign')[0] || {}).textContent) || '');
+const symLowSignNode = symLowBox === null ? null
+  : (symLowBox.querySelectorAll('.sym-sign')[0] || null);
+const symLowSign = symLowSignNode === null ? ''
+  : String(symLowSignNode.textContent || '');
+/* D-30, ON THE PICKER: THE SIGN'S PARENT IS THE SHAPE. Read in BOTH of
+   syncRow's forms, because they put the first .tok in different places — below
+   COMPACT_AT the row is tokens and the shape is the first child, at or above it
+   the row is a count and then exactly one token. A mark anchored to the READING
+   rather than to the shape looks right in the first form and lands on the left
+   edge of "12×" in the second, which is the one arrangement D-30's sentence
+   rules out by name. */
+const symSignParent = (n) => (n && n.parentNode && n.parentNode.classList
+  && n.parentNode.classList.contains('tok'));
+const symLowOnShape = symSignParent(symLowSignNode);
 A.ops.setActionCost('cats', fgCatsAct, 'ap', A.render.COMPACT_AT);
 A.state.invalidate();
 A.state.flush();
@@ -12765,6 +12819,9 @@ const symApWord = A.render.labelFor(A.state.get(), 'ap');
 const symHighSaid = symHighBox === null ? '' : String(
   (symHighBox.querySelector('.sym') || { getAttribute: () => '' }).getAttribute('title'));
 const symHighText = symHighBox === null ? '' : fgLeaves(symHighBox).join(' ');
+const symHighOnShape = symHighBox === null ? false
+  : symSignParent(symHighBox.querySelectorAll('.sym-sign')[0] || null);
+const symCostTaken = A.render.SYM_TAKEN;
 check(
   '107c. A COST ON THE PICKER IS A MINUS SIGN AND THE TYPE\'S OWN TOKENS, AND '
     + 'IT COMPACTS AT App.render.COMPACT_AT AND AT NO SECOND THRESHOLD OF ITS '
@@ -12779,18 +12836,31 @@ check(
     + 'than an uncompacted one and a count alone cannot tell the two apart. THE '
     + 'SIGN IS U+2212 AND NOT U+002D, which is a legibility claim and not a '
     + 'typographic one: at projector distance a hyphen-minus is drawn as a '
-    + 'word-joiner and reads as part of the number. And the tooltip is the '
-    + 'EXACT string this button printed before D-29 — the figure, a space, the '
-    + 'label — so a student who read it last week and hovers it today is told '
-    + 'the same thing rather than a paraphrase of it, while the box\'s own text '
-    + 'names the type nowhere',
+    + 'word-joiner and reads as part of the number. TWO CLAUSES TURNED IN THE '
+    + 'OPEN UNDER D-30. The tooltip was the EXACT string this button printed '
+    + 'before D-29 — the figure, a space, the label — and it now carries the '
+    + 'REMOVAL PREFIX in front of those same three pieces in the same order, '
+    + 'because D-30 took the minus out of the text run and made it a red mark '
+    + 'on the shape: colour and position are two channels and inside a '
+    + 'role="img" neither reaches a screen reader, so the name is the third and '
+    + 'the only one left. The prefix is read off the LIVE export exactly as the '
+    + 'threshold is, never typed here. AND THE SIGN\'S PARENT IS ASSERTED TO BE '
+    + 'THE SHAPE IN BOTH FORMS, which is the clause that makes the geometry '
+    + 'mean anything: [C14.5]\'s `left:0; top:25%` resolves against .tok, and a '
+    + 'sign parented to the reading instead would look right below the '
+    + 'threshold and sit on the left edge of "12x" above it. The box\'s own '
+    + 'text still names the type nowhere',
   symLowToks === symBelow && symLowCount === 0
-    && symLowSign === '−'
-    && symLowSaid === String(symBelow) + ' ' + symApWord
+    && symLowSign === '−' && symLowOnShape === true && symHighOnShape === true
+    && symLowSaid === symCostTaken + String(symBelow) + ' ' + symApWord
     && symHighToks === 1 && symHighCount === String(A.render.COMPACT_AT) + '×'
-    && symHighSaid === String(A.render.COMPACT_AT) + ' ' + symApWord
+    && symHighSaid === symCostTaken + String(A.render.COMPACT_AT) + ' '
+      + symApWord
     && symHighText.indexOf(symApWord) === -1,
   'COMPACT_AT read off the export=' + A.render.COMPACT_AT
+    + ', the removal prefix=' + JSON.stringify(symCostTaken)
+    + ' | the sign is parented to the shape below the threshold='
+    + symLowOnShape + ' and at it=' + symHighOnShape
     + ' | at ' + symBelow + ': ' + symLowToks + ' tokens, ' + symLowCount
     + ' count nodes, sign=' + JSON.stringify(symLowSign)
     + ', tooltip=' + JSON.stringify(symLowSaid)
@@ -12913,6 +12983,115 @@ check(
     + ', the harvest holds the stripped form=' + symStrippedSeen
     + ' as ' + JSON.stringify(symMarkedStripped)
     + ' | harvested strings containing the student\'s word=' + symWordSeen
+);
+
+/* 107e. THE REMOVAL MARK, ON EVERY SURFACE THAT DRAWS ONE, AND IN ALL THREE
+   CHANNELS — D-30, verbatim: "make the - for removing a resource red and make
+   it appear in the top-left corner (25% from the top, center aligned to the
+   left edge) of the symbol/shape - rather than a normal dash".
+
+   THIS IS A SEPARATE ROW FROM 107 AND 107c RATHER THAN A THIRD CLAUSE ON
+   EITHER, and the reason is the same one 107b was corrected for: those two
+   rows each read ONE surface, and the notation is one thing rendered by two.
+   107 reads the lane's split facts, 107c reads the picker's costs, and a
+   change that fixed one and dropped the other would leave one of them green.
+   This row walks #app and finds every mark there is.
+
+   WHAT A RED MARK CANNOT SAY, AND WHY THE ROW COUNTS THREE CHANNELS.
+   [C07]'s rule is that a state is never said in colour alone; D-30 moves the
+   minus OUT OF THE TEXT RUN and onto the shape, which is colour AND position
+   — two channels, both visual, and both invisible to a screen reader, because
+   every reading [S06.12] builds carries role="img" and that prunes the sign
+   out of the accessibility tree along with the tokens. So three things are
+   read for every mark on the page:
+     the CHARACTER  - still U+2212, still a real text node, therefore still in
+                      every leaf walk and in the Layer C harvest. The mark did
+                      not leave the DOM; it left the RUN.
+     the PARENT     - a .tok, which is what makes [C14.5]'s `left:0; top:25%`
+                      resolve against the shape's own box. This is the whole of
+                      the developer's geometry and the node gate's only reach
+                      on it; the pixels are browser-checks cells 21 and 21b.
+     the NAME       - the reading's title and aria-label, both starting with
+                      the removal prefix, from one variable in [S06.12].
+
+   AND THE CONVERSE IS READ TOO, because the two halves can drift apart in
+   either direction: a reading whose NAME says a removal must DRAW one, and a
+   reading that draws one must SAY so. A prefix applied to every reading would
+   pass the first and fail the second; a mark drawn with no prefix fails the
+   first. Both are counted as failures across all readings rather than sampled,
+   which is 71c's shape and 107's.
+
+   FLOORED ON FINDING A MARK ON BOTH SURFACES BY NAME. A walk that found none
+   satisfies every clause spotlessly, and a walk that found four in the lane
+   and none on the picker would satisfy them just as well — which is exactly
+   the half-done change this row exists to catch. */
+const remScan = harvestInto(dom.byId['app'], [], '#app').map((e) => e.s);
+const remTaken = A.render.SYM_TAKEN;
+const remBoxOf = (n) => {
+  let p = n.parentNode;
+  while (p && p.classList && !p.classList.contains('sym')) { p = p.parentNode; }
+  return (p && p.classList && p.classList.contains('sym')) ? p : null;
+};
+const remSigns = dom.byId['app'].querySelectorAll('.sym-sign');
+const remBad = remSigns.filter((n) => {
+  const onShape = n.parentNode && n.parentNode.classList
+    && n.parentNode.classList.contains('tok');
+  const box = remBoxOf(n);
+  const said = box === null ? '' : String(box.getAttribute('title') || '');
+  return !(onShape && n.textContent === '−' && box !== null
+    && said.indexOf(remTaken) === 0
+    && box.getAttribute('aria-label') === said);
+}).length;
+/* THE OTHER DIRECTION: a reading that SAYS it removes something and draws no
+   mark. This is the failure a prefix written at the callers rather than in
+   symQty would produce, and it is invisible to the clause above because that
+   one starts from the marks. */
+const remSaidNoMark = dom.byId['app'].querySelectorAll('.sym')
+  .filter((n) => String(n.getAttribute('title') || '').indexOf(remTaken) === 0
+    && n.querySelectorAll('.sym-sign').length === 0).length;
+const remInLane = fgLedgerRoot === null ? 0
+  : fgLedgerRoot.querySelectorAll('.sym-sign').length;
+const remOnPicker = ['cats', 'mechs'].reduce((sum, side) => {
+  const root = fgSideRootOf(side);
+  return sum + (root === null ? 0 : root.querySelectorAll('.sym-sign').length);
+}, 0);
+const remCharInScan = remScan.filter((s) => s === '−').length;
+check(
+  '107e. THE REMOVAL MARK IS ON THE SHAPE, ON EVERY SURFACE THAT DRAWS ONE, '
+    + 'AND THE REMOVAL IS SAID IN THREE CHANNELS — D-30, verbatim: "make the - '
+    + 'for removing a resource red and make it appear in the top-left corner '
+    + '(25% from the top, center aligned to the left edge) of the symbol/shape '
+    + '- rather than a normal dash". A SEPARATE ROW FROM 107 AND 107c FOR '
+    + '107b\'s recorded reason: those two each read ONE surface and the '
+    + 'notation is one thing rendered by two, so a change that fixed the lane '
+    + 'and dropped the picker would leave one of them spotless. This one walks '
+    + '#app. THREE CHANNELS PER MARK, because D-30 moved the sign out of the '
+    + 'text RUN and onto the shape — which is colour AND position, both '
+    + 'visual, and both pruned out of the accessibility tree by the role="img" '
+    + 'every reading carries. So: the CHARACTER is still U+2212 and still a '
+    + 'real text node, therefore still in the Layer C harvest, counted there by '
+    + 'name; the PARENT is a .tok, which is what makes [C14.5]\'s `left:0; '
+    + 'top:25%` resolve against the shape\'s own box rather than the reading\'s '
+    + '— the whole of the developer\'s geometry, and this gate\'s only reach on '
+    + 'it, the pixels being browser cells 21 and 21b; and the NAME carries the '
+    + 'removal prefix on BOTH channels, read off the live export. AND THE '
+    + 'CONVERSE: a reading whose name says a removal must DRAW one. The two '
+    + 'halves drift in either direction — a prefix written at the callers '
+    + 'instead of in symQty passes the first clause and fails this one — and '
+    + 'both are counted as FAILURES across every reading rather than sampled. '
+    + 'FLOORED ON A MARK BEING FOUND ON BOTH SURFACES BY NAME, because a walk '
+    + 'that found four in the lane and none on the picker would satisfy every '
+    + 'clause above it',
+  remSigns.length > 0 && remBad === 0 && remSaidNoMark === 0
+    && remInLane > 0 && remOnPicker > 0
+    && remCharInScan >= remSigns.length,
+  'the page draws ' + remSigns.length + ' removal marks — ' + remInLane
+    + ' in the lane and ' + remOnPicker + ' on the two pickers — of which '
+    + remBad + ' fail one of the three channels'
+    + ' | readings that SAY a removal and draw no mark=' + remSaidNoMark
+    + ' | the prefix read off the export=' + JSON.stringify(remTaken)
+    + ' | the character reaches the Layer C harvest ' + remCharInScan
+    + ' times against ' + remSigns.length + ' marks drawn'
 );
 
 A.ops.resetToDefaults();

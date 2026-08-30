@@ -2802,6 +2802,51 @@
      hyphen and reads as part of the number at projector distance. Neither is
      an icon and neither is hover-only.
 
+     THE SIGN IS NO LONGER BESIDE THE SYMBOL. IT IS A RED MARK ON IT — D-30,
+     the developer at the real artifact, verbatim: "make the - for removing a
+     resource red and make it appear in the top-left corner (25% from the top,
+     center aligned to the left edge) of the symbol/shape - rather than a
+     normal dash". The paragraph above is kept because every word of it is
+     still true about the CHARACTER; what stopped being true is the sentence
+     "then the symbol", which described a sign in the text run. It is out of
+     the run now.
+
+     THE GEOMETRY IS THE DEVELOPER'S, TO THE LETTER, AND THE CONTAINING BLOCK
+     IS WHAT MAKES IT LITERAL. `left:0` and `top:25%` resolve against .tok —
+     which [C05] has given `position:relative` since Phase 2 for its own
+     reasons — so the percentage is 25% OF THE SHAPE'S OWN HEIGHT and the zero
+     is THE SHAPE'S OWN LEFT EDGE, on every shape and in both of syncRow's
+     forms. translate(-50%,-50%) then puts the mark's CENTRE on that point,
+     which is what "center aligned to the left edge" asks for: half the mark
+     hangs outside the shape. Anchoring to .sym instead would have been one
+     line shorter and wrong in the compact form, where the leftmost thing in
+     the reading is the count and not the shape.
+
+     IT IS A CHILD OF .tok AND NOT OF .tok-s, AND THAT IS THE WHOLE REASON A
+     TRIANGLE WORKS. [C05] puts the clip-path on .tok-s — the painted layer —
+     and never on .tok, so a mark parented to .tok is positioned by the
+     shape's box and clipped by nothing. A mark inside .tok-s would be cut in
+     half by the triangle's own polygon on the exact edge it is meant to sit
+     on, which is the failure this parenting avoids rather than works around.
+
+     THE RED COMES OUT OF [C00] AND NO NEW HEX IS WRITTEN, which is [C07]'s
+     banner rule and [C13]'s "not to be invented a third time". The two shipped
+     warm tokens are --accent-2 (the danger colouring .err-btn--danger and
+     .brd-btn--danger already wear) and --coral. THE MIX IS TAKEN IN A POLAR
+     SPACE ON PURPOSE: the two hues sit either side of red at about 334deg and
+     17deg, so a straight sRGB average lands between them at a salmon that is
+     neither, while a hue interpolation walks the SHORT arc through 360 and
+     lands ON red. That is a derivation from existing tokens rather than a new
+     colour, and it is the only way to reach the developer's word without one.
+
+     COLOUR IS NOT THE ONLY CHANNEL SAYING "REMOVED", which is [C07]'s
+     three-times rule and the half of it a red mark could quietly break. The
+     mark is a CHARACTER — U+2212, in the text, in every scan and in every
+     leaf — its POSITION is a second channel, and [S06.12] puts the removal
+     into the reading's accessible name as a third. A room that cannot tell
+     red from pink still reads a minus sign, and a screen reader is told in
+     words.
+
      WHAT THIS BLOCK MAY NOT GROW: a :hover rule that REVEALS anything. UX-02's
      "nothing conveyed by hover alone" is the requirement D-29 comes closest to,
      and the answer is in the markup rather than in the stylesheet — the symbol
@@ -2813,7 +2858,26 @@
     --tok-gap:3px;
     display:inline-flex;align-items:center;gap:4px;
     vertical-align:-2px;
+    /* D-30. THE SAFETY NET AND NOT THE ANCHOR: the mark's containing block is
+       the .tok it is parented to, which is positioned already. This is here so
+       that [S06.12]'s fallback arm — the one that has no shape to mark — puts
+       its sign at the READING's own corner rather than letting it escape to
+       whatever ancestor happens to be positioned. An absolutely positioned
+       node with no positioned ancestor lands relative to the page, and that is
+       a defect that appears as a stray red dash in a corner of the screen with
+       nothing pointing at where it came from. */
+    position:relative;
   }
+  /* THE ROOM FOR THE HALF THAT HANGS OUTSIDE, measured rather than reasoned
+     about: the mark's centre sits ON the shape's left edge, so about half its
+     width is left of the reading's own box. .ld-row carries overflow-y:auto,
+     and a box with one non-visible overflow axis computes the other to auto
+     too — so an unpadded overhang is clipped by the lane card, on the one
+     surface where the reading sits hard against the card's left edge. The
+     padding is on the READING and not on the card, because it has to travel to
+     every surface the notation reaches; and it is on the :has() so a reading
+     with no sign keeps sitting exactly where D-29 measured it. */
+  .sym:has(.sym-sign){padding-left:7px}
   /* The row inside a reading wraps like every other token row and is bounded by
      nothing here — a reading that needed a scroller of its own would be a
      reading too long to be one. */
@@ -2830,7 +2894,18 @@
      sentence — a requirement line, a cost on a button — keeps sitting tight
      against the words on either side of it. */
   .sym + .sym{margin-left:10px}
-  .sym-sign{font-size:18px;font-weight:700;line-height:1;color:inherit}
+  /* D-30's mark. The size and the weight are D-29's and are not re-argued:
+     18px is UX-02's floor and the mark is a value like any other. What is new
+     is the four lines under them, and the banner above carries every one of
+     their reasons. pointer-events:none so the mark never becomes the hit test
+     for a hover whose tooltip lives on the reading two nodes up. */
+  .sym-sign{
+    position:absolute;left:0;top:25%;
+    transform:translate(-50%,-50%);
+    font-size:18px;font-weight:700;line-height:1;
+    color:color-mix(in hsl, var(--accent-2), var(--coral));
+    pointer-events:none;
+  }
   /* The arrow between the two halves of a change. It is dimmer than either
      half because it is the punctuation of the reading rather than a value in
      it — .ld-fact's own relationship to .ld-act-line, one node smaller. */
@@ -14502,6 +14577,14 @@ App.render = (function () {
      it is what lets a student who read "1 Action Points" here last week and
      hovers it today be told the same thing rather than a paraphrase of it.
 
+     THAT SENTENCE GAINED A PREFIX UNDER D-30 AND IS AMENDED RATHER THAN LEFT
+     TO ROT. The tooltip now reads "Removes: 1 Action Points". D-30 took the
+     minus sign out of the text run and made it a red mark on the shape, and
+     [S06.12]'s own banner argues the rest: a state said in colour and position
+     alone is the pair [C07] refuses, and the accessible name is the only
+     channel left inside a role="img". The figure, the space and the label are
+     still the same three pieces in the same order behind it.
+
      "NO COST" STAYS A SENTENCE, and it is the clearest case of the line D-29
      draws: there is no symbol for the absence of a cost. Drawing zero tokens
      would be a blank on a button, which this comment already refused once as "a
@@ -17404,6 +17487,13 @@ App.render = (function () {
    * for the action points. Same with the cost of other skills."; "mouse over
    * tooltip for the text description".
    *
+   * D-30, the next round of the same conversation, changed WHERE the minus
+   * sign of the second sentence is drawn and nothing else about this region:
+   * "make the - for removing a resource red and make it appear in the top-left
+   * corner (25% from the top, center aligned to the left edge) of the
+   * symbol/shape - rather than a normal dash". symMinusOnto and symQty's
+   * `minus` arm carry it; [C14.5] carries the geometry and the colour.
+   *
    * ===================================================================
    * THIS IS NOT A SURFACE. IT IS THE READING THREE SURFACES RENDER, AND
    * THAT IS WHY IT IS ONE REGION RATHER THAN THREE EDITS.
@@ -17422,9 +17512,10 @@ App.render = (function () {
    * REASON AND IT IS WRITTEN DOWN RATHER THAN RELIED ON QUIETLY: [S06] is ONE
    * function scope and every name below is a FUNCTION DECLARATION, so all of
    * them are hoisted to the top of that scope and are callable from [S06.7] and
-   * [S06.8] before the reader reaches them. The two `var` constants are
-   * assigned while the IIFE body runs, which is before any render call can
-   * happen. A `const` or a function EXPRESSION here would break both halves of
+   * [S06.8] before the reader reaches them. The THREE `var` constants — two of
+   * D-29's and D-30's SYM_TAKEN — are assigned while the IIFE body runs, which
+   * is before any render call can happen AND before the export literal below
+   * this region is built, which is what makes SYM_TAKEN exportable from here. A `const` or a function EXPRESSION here would break both halves of
    * that and would break them at render time, on a projector, so neither is
    * used and this paragraph is why.
    *
@@ -17639,21 +17730,85 @@ App.render = (function () {
     return box;
   }
 
-  /* A QUANTITY OF ONE TYPE, optionally spent. `minus` draws U+2212 ahead of the
-     tokens and is the whole of D-29's second sentence — a cost, a hit taken and
-     a pool drawn down are the three things on this surface that are SUBTRACTED
-     from something, and they are the three that carry the sign. A board state
-     is not one of them and does not. */
+  /* THE REMOVAL, IN WORDS, ON THE CHANNEL A RED MARK CANNOT REACH — D-30, and
+     it is the one thing that change adds rather than moves. Before D-30 the
+     minus was a character sitting in the text run beside the tokens; it is a
+     red mark on the shape now, and colour plus position is exactly the pair
+     [C07]'s three-times rule refuses to let a state be said in. The character
+     itself is still there and still scanned, which is the second channel. This
+     is the third, and it is the only one a screen reader gets: every reading
+     [S06.12] builds carries role="img", so the sign INSIDE that box is pruned
+     out of the accessibility tree along with the tokens, and the name is all
+     that is left to say what the picture means.
+
+     IT IS PREFIXED HERE AND NOT AT THE CALLERS, and the difference is whether
+     a future caller can forget. The callers own their sentences — [S06.7]'s
+     "1 Action Points" and [S06.8]'s "Shield took 1 of the 1." are theirs — but
+     WHETHER SOMETHING IS BEING TAKEN AWAY is the argument this function
+     already takes, so the one place that knows it is the one place that says
+     it. Row 107e reads it back off every marked reading on the page. */
+  var SYM_TAKEN = 'Removes: ';
+
+  /* THE MARK GOES ON THE SHAPE AND NOT BESIDE IT — the whole of D-30, in four
+     lines, and the parent is the load-bearing one. It is appended to the first
+     .tok in the row, which [C05] gave `position:relative` for its own reasons
+     long before this, so [C14.5]'s `left:0; top:25%` resolves against the
+     shape's own box and the geometry is the developer's sentence literally.
+
+     THE FIRST .tok AND NOT THE FIRST CHILD, because syncRow's two forms put it
+     in different places: below COMPACT_AT the row is tokens and the first
+     child is one, at or above it the row is a count and then exactly one
+     token. querySelector reads past that difference rather than restating it,
+     which is the same reason this region calls syncRow instead of deciding
+     compaction itself.
+
+     IT RUNS AFTER symQtyRow AND NEVER BEFORE. syncRow reasons about
+     `row.children` — it empties on a mode change and rebuilds when the compact
+     form does not have exactly two children — and this puts nothing in the row
+     at all, only inside a node already in it. The order is what keeps that
+     true, and a marked row is never handed back to syncRow anyway because
+     every caller builds it fresh.
+
+     THE ARM WITH NO SHAPE KEEPS THE OLD FORM AND IS NOT DEAD CODE BY
+     ACCIDENT: symQtyRow always leaves at least one token, so nothing reaches
+     it today. It is here because "a row with no shape in it" is a thing a
+     future compaction form could produce, and the failure it would otherwise
+     have is an absolutely positioned node with no anchor. [C14.5] gives .sym
+     position:relative for this arm alone. */
+  function symMinusOnto(row, box) {
+    var sign = text('span', 'sym-sign', SYM_MINUS);
+    var shape = row.querySelector('.tok');
+    if (shape) { shape.appendChild(sign); return; }
+    box.insertBefore(sign, box.firstChild);
+  }
+
+  /* A QUANTITY OF ONE TYPE, optionally spent. `minus` marks the type's own
+     shape with U+2212 and is the whole of D-29's second sentence as D-30
+     re-drew it — a cost, a hit taken and a pool drawn down are the three
+     things on this surface that are SUBTRACTED from something, and they are
+     the three that carry the sign. A board state is not one of them and does
+     not.
+
+     WHICH OF THE THREE ACTUALLY SHIP, said plainly because D-30's brief names
+     four surfaces and this file renders the notation on two: the picker's
+     costs ([S06.7]'s fgCostParts, both arms) and the lane's split facts
+     ([S06.8]'s ldSplitInto, shield and health). A REQUIREMENT LINE CARRIES NO
+     MINUS AND MUST NOT GROW ONE — nothing is subtracted by a requirement, and
+     [S06.7]'s own comment rules on it. A HAND RULING AND A ROUND'S DIFF CARRY
+     NO MINUS EITHER: symDelta draws both ends and never a difference, which is
+     [S06.8]'s "two numbers and no adjective". So the mark appears wherever a
+     removal is rendered, and a removal is rendered in two places. */
   function symQty(state, tok, n, pre, post, minus) {
     if (!symHas(state, tok)) {
       return text('span', 'sym-say', (minus ? SYM_MINUS : '') + String(n) + ' '
         + ((typeof tok === 'string') ? tok : ''));
     }
-    var box = symBox(symSaid(state, tok, pre, post), labelFor(state, tok));
-    if (minus) { box.appendChild(text('span', 'sym-sign', SYM_MINUS)); }
+    var said = symSaid(state, tok, pre, post);
+    var box = symBox(minus ? (SYM_TAKEN + said) : said, labelFor(state, tok));
     var row = el('div', 'tok-row');
     box.appendChild(row);
     symQtyRow(row, n, styleFor(state, tok));
+    if (minus) { symMinusOnto(row, box); }
     return box;
   }
 
@@ -17768,6 +17923,14 @@ App.render = (function () {
     // through this one read.
     labelFor: labelFor,
     COMPACT_AT: COMPACT_AT,
+    // D-30. Exported to the same standard as COMPACT_AT and for the same
+    // reason: four gate rows and two browser cells assert that a removal says
+    // so in words on the channel a red mark cannot reach, and a row carrying
+    // its own copy of that prefix would be asserting that the gate agrees with
+    // itself rather than that the artifact does. Rename it here and every row
+    // moves with it; type it into a row and the day it changes the gate is
+    // green over a reading that stopped saying anything.
+    SYM_TAKEN: SYM_TAKEN,
     MAX_UNITS: MAX_UNITS
   });
 })();
