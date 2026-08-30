@@ -13094,6 +13094,84 @@ check(
     + ' times against ' + remSigns.length + ' marks drawn'
 );
 
+/* 107f. NO COLOUR LITERAL ANYWHERE IN THE FIGHT STYLESHEET — the rule [C07]
+   states, [C13] and [C14] each restate about themselves, and NOTHING IN THIS
+   REPOSITORY HAS EVER CHECKED. That absence is a probe finding rather than a
+   guess: PROBE BM replaced D-30's color-mix with the byte-identical literal
+   `#ff6d78` and this gate ran 1216 passed, 189 of 189 and exit 0, with the two
+   browser cells that read the mark's POSITION green as well, because a
+   hard-coded colour is pixel-identical to a derived one. One browser cell
+   caught it, by MOVING --accent-2 and watching the mark fail to follow — and a
+   claim that can only be made by a browser is a claim that is unchecked
+   wherever Playwright is absent, which is every fresh checkout.
+
+   SO THE SOURCE-SIDE HALF IS ADDED HERE, and the two halves catch different
+   things, which is why both are worth having. This row catches the literal
+   BEING WRITTEN; cell 21d catches a colour that stopped deriving for any
+   reason at all, including one this scan cannot see. Neither subsumes the
+   other.
+
+   IT IS SCANNED AS DECLARATIONS AND NOT AS TEXT, and the difference is the
+   whole reason a naive version of this row would be unusable. Every id
+   selector in this stylesheet begins with the same character a hex literal
+   does — `#fightbar`, `#ledger`, `#app` — and a plain `#[0-9a-f]{3,6}` over
+   the slice would have to be tuned against them for ever. Comments are
+   stripped first (they QUOTE the palette by hex on purpose, and they should
+   keep being allowed to), and what is left is cut at `:` and `;` so only
+   VALUES are read. 517 declarations, 0 bearing a literal, at the time this row
+   was written.
+
+   THE SLICE IS [C14] TO THE CLOSE OF THE STYLE BLOCK, which is every rule this
+   phase has added — the fight band, its five sub-blocks including [C14.5]'s
+   marks, and [C15]'s view switch. Earlier blocks are NOT scanned, because a
+   row that reddened on a colour shipped three phases ago would be a row asking
+   this plan to change something D-30 did not touch. Floored on the slice being
+   found, on it carrying the rule this plan wrote BY NAME, and on the
+   declaration list being non-empty — an empty slice bears no literal
+   spotlessly, which is 103b's own recorded reason for flooring its four. */
+const hexAt = html.indexOf('[C14] ');
+const hexEnd = html.indexOf('</style>');
+const hexSlice = (hexAt === -1 || hexEnd === -1 || hexEnd < hexAt) ? ''
+  : html.slice(hexAt, hexEnd).replace(/\/\*[\s\S]*?\*\//g, ' ');
+const hexDecls = hexSlice.match(/:[^;{}]*[;}]/g) || [];
+const hexLiterals = hexDecls.filter((d) => /#[0-9a-fA-F]{3,8}\b/.test(d));
+const hexDerived = hexDecls.filter((d) => d.indexOf('var(--') !== -1).length;
+const hexHasMark = hexSlice.indexOf('.sym-sign{') !== -1;
+const hexMixes = hexDecls.filter((d) => d.indexOf('color-mix(') !== -1).length;
+check(
+  '107f. NOT ONE COLOUR LITERAL IN THE WHOLE FIGHT STYLESHEET — [C07]\'s rule, '
+    + 'which [C13] and [C14] each restate about themselves and which NOTHING '
+    + 'IN THIS REPOSITORY HAS EVER CHECKED. That is a probe finding and not a '
+    + 'guess: PROBE BM replaced D-30\'s color-mix with the byte-identical '
+    + 'literal and this gate ran 1216 passed, 189 of 189 and exit 0, with both '
+    + 'browser cells that read the mark\'s POSITION green too, because a typed '
+    + 'colour is pixel-identical to a derived one. ONE browser cell caught it, '
+    + 'by moving --accent-2 and watching the mark fail to follow — and a claim '
+    + 'only a browser can make is unchecked in every fresh checkout, which is '
+    + 'where Playwright is absent by design. The two halves catch different '
+    + 'things and neither subsumes the other: this one catches the literal '
+    + 'being WRITTEN, cell 21d catches a colour that stopped deriving for any '
+    + 'reason at all. IT IS SCANNED AS DECLARATIONS AND NOT AS TEXT, because '
+    + 'every id selector in this file starts with the character a hex literal '
+    + 'does — #fightbar, #ledger, #app — so comments are stripped (they quote '
+    + 'the palette by hex on purpose and may keep doing so) and what is left is '
+    + 'cut at the colon and the semicolon so only VALUES are read. The slice is '
+    + '[C14] to the close of the style block: every rule this phase added, and '
+    + 'no earlier one, because a row reddening on a colour shipped three phases '
+    + 'ago would be asking this plan to change what it did not touch. Floored '
+    + 'on the slice being found, on it carrying [C14.5]\'s own rule BY NAME, '
+    + 'and on the declaration list being non-empty — an empty slice bears no '
+    + 'literal spotlessly',
+  hexSlice.length > 0 && hexHasMark === true && hexDecls.length > 0
+    && hexDerived > 0 && hexMixes > 0 && hexLiterals.length === 0,
+  'the fight stylesheet slice is ' + hexSlice.length + ' characters and holds '
+    + hexDecls.length + ' declarations, of which ' + hexDerived
+    + ' read a [C00] token and ' + hexMixes + ' derive one through color-mix()'
+    + ' | declarations bearing a colour literal=' + hexLiterals.length
+    + ' | the first few: ' + JSON.stringify(hexLiterals.slice(0, 4))
+    + ' | the slice carries .sym-sign by name=' + hexHasMark
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
