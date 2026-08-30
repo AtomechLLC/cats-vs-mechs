@@ -152,3 +152,37 @@ Verbatim, with a screenshot of the fight tab attached:
   new toggled sidebar is an obvious candidate home for them, and that option is noted on the
   deferred item for the playtest decision.
 - Build view is untouched. The strip behaves as before outside a fight.
+
+---
+
+## D-29 — Third live-feedback round, 2026-08-29: symbols first, prose on hover
+
+Verbatim, with a screenshot of the D-28 ledger lane attached (its prose lists of
+"Cat 1 — Health 3, Shield 0" and "Shield took 1 of the 1"):
+
+> show this using the symbols, rather than text
+
+> instead of showing cost in 1 Action Points, show it as - then the symbol for the action points.
+> Same with the cost of other skills.
+
+> mouse over tooltip for the text description
+
+### What this settles
+
+1. **The ledger lane renders token SYMBOLS, not prose.** Past board states and the what-changed
+   panel use the same mini-token machinery the battlefield uses (styleFor/labelFor/makeToken —
+   called, never re-derived), so a student-authored type appears as authored there too. The action
+   lines keep their sentence shape only where a symbol cannot carry it; states and deltas are
+   symbolic.
+2. **Costs are `−` plus the token's symbol** — everywhere the fight surface prices something:
+   the picker's action buttons, requirements, and transformation readings. Counts follow the
+   file's existing COMPACT_AT convention rather than inventing a second one.
+3. **The prose moves to mouse-over tooltips** — the text that renders today becomes the hover
+   description of the symbolic reading, not deleted.
+
+### Orchestrator note on the gate
+
+Words moving from textContent into `title` attributes LEAVE the Layer C harvest as it stands —
+the scanner would stop seeing them and report clean forever (the wave-1 lesson, attribute
+edition). The harvest must be extended to read tooltip text wherever the fight surface uses it,
+and the floor re-derived.
