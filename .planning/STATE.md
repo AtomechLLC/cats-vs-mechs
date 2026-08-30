@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-32 part 1 of 2 — the multi-term data model (05-D32a)
-last_updated: "2026-08-30T10:40:00.000Z"
+stopped_at: Completed D-32 part 2 of 2 — the dense terms region (05-D32b)
+last_updated: "2026-08-30T15:20:00.000Z"
 last_activity: 2026-08-30
 progress:
   total_phases: 7
@@ -30,33 +30,40 @@ Plan: 16 of 16 complete, plus the D-27, D-28, D-29, D-30, D-31 and D-32 redirect
 every autonomous plan in the phase is done
 Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate and it is
 still plan 11.
-**D-32 is TWO dispatches and part 1 of 2 is done.** The developer asked for two things:
-"make the action configuration more dense" and "allow multiple input for all
-cost/needs/changes". The SECOND is built, end to end below the surface: all three term
-lists cap at **4** (`MAX_ACTION_COST` 1→4, `MAX_ACTION_REQ` and `MAX_ACTION_XF` 2→4) with
-`WIRE_BOUNDS.maxActionCost` moved in the same change, `setActionCost` taking a slot like
-its two siblings, and a cost that **spends what it names** — the preview depletes every
-pool, the disable checks every pool against the previewed remainder, Advance spends every
-term and records what each paid. A pool is action points or a type a student keeps at
-SIDE scope (D-24); health and shield are deliberately not pools, because spending them
-means choosing which unit pays and that is adjudication. The projection's `apCost` keeps
-its meaning by reading the ap terms out of the list, and `costIsApOnly` is what stops a
-partly-priced cost from overstating throughput. The codec stayed at **v1** — verified,
-not assumed: the grammar is count-driven, so a maxed action (4 cost, 4 req, 4 xf, shipped
-and student-authored tokens) round-trips byte-identically, and the adversarial ceiling was
-**re-measured, not scaled**: 2984 → **3434**, its emoji twin 3186 → **3636**, board E 675
-→ **879** with its gate moved 800 → 1000. Refusal matrix **17 → 20 shapes**, one per term
-list, each reaching its own guard past a recomputed checksum.
-Gate: node **1253/0** with **194 of 194** interaction rows, stub-drift **135 shell ids**
-(was 121), `FIGHT_FLOOR` **132 — unmoved**, browser checks **206/0 HEADLESS**.
-Fifteen pinned rows turned in the open, each recorded RED first; nine probes run against
-committed snapshots, and PROBE CA is why the matrix needed three shapes and not one.
-**What is deliberately NOT done:** the density pass. The authoring pane can now show
-twelve full-height term rows at once and it works — gate 69g drives all twelve populated,
-row 110 authors a maxed action by pressing pills and typing amounts, end to end into a
-resolved round — but it is not dense. `deferred-items.md` item 10 carries what part 2
-owns and why the split was made this way.
-`.planning/phases/05-fight-loop-playtest/05-D32a-SUMMARY.md`.
+**D-32 IS TWO DISPATCHES AND BOTH ARE DONE.** The developer asked for two things:
+"allow multiple input for all cost/needs/changes" and "make the action configuration more
+dense".
+
+**Part 1 (05-D32a) — multiple.** All three term lists cap at **4** (`MAX_ACTION_COST`
+1→4, `MAX_ACTION_REQ` and `MAX_ACTION_XF` 2→4) with `WIRE_BOUNDS.maxActionCost` moved in
+the same change, `setActionCost` taking a slot like its two siblings, and a cost that
+**spends what it names** — the preview depletes every pool, the disable checks every pool
+against the previewed remainder, Advance spends every term and records what each paid. A
+pool is action points or a type a student keeps at SIDE scope (D-24); health and shield
+are deliberately not pools, because spending them means choosing which unit pays and that
+is adjudication. The codec stayed at **v1** — verified, not assumed. Refusal matrix
+**17 → 20 shapes**.
+
+**Part 2 (05-D32b) — dense.** The terms region measures **707px where it measured 2507**,
+and every one of its twelve rows is **one line of 41px** where they were three lines of
+169 and 181 — measured in real Chrome and real Edge at 1920x1080 and 1366x768, headless,
+on the drive that took the before numbers. The word "Spends", printed four times under a
+legend that already said Cost, is replaced by the TERM drawn in the fight's own notation:
+`[S06.5]`'s `termReading` calls `[S06.12]`'s `symQty` with the arguments `fgCostParts`
+calls it with, so the editor's tooltip and the picker's tooltip are asserted **equal to
+each other** rather than each to a typed string. The chooser pills KEEP THEIR WORDS —
+they are controls, and UX-02's "nothing conveyed by hover alone" is answered rather than
+waived — so the width came from `.ae` going 660 → 1040 with `.ae-list` and `.ae-name`
+capped at 610 so the width buys height and nothing else.
+Gate: node **1253/0** with **196 of 196** interaction rows (+111, +112), stub-drift
+**135 shell ids — unmoved, and that is the point**, `FIGHT_FLOOR` **132 — unmoved**,
+dialogs 172 (floor 138, not moved), browser checks **222/0 HEADLESS** (+cells 23–23d).
+Seven probes against committed snapshots.
+`deferred-items.md` item 10 is CLOSED with its measurements; item 11 is new — the dialog
+still scrolls, and what is left of its height is the list, the notes and the name field
+rather than the terms.
+`.planning/phases/05-fight-loop-playtest/05-D32a-SUMMARY.md` and
+`.planning/phases/05-fight-loop-playtest/05-D32b-SUMMARY.md`.
 Last activity: 2026-08-30
 
 Progress: [██████████] 100%
@@ -267,6 +274,11 @@ None yet.
 - 05-D31: at 1366x768 the ADVANCE CONTROL OPENS BELOW THE FOLD and no setting of the state panel's window reaches it — swept 12vh to 32vh, and with a 92px window the control reads 869, so the chrome alone is 777px on a 768px screen. Browser cell 18 keeps the old claim unweakened at 1920x1080 (1057 of 1080) and asserts at 768 that the control is real, enabled and within one page scroll; cell 18c is new and asserts at both sizes that Advance is on screen with the picker rows AND above them. `deferred-items.md` item 9; 05-11 items 54 and 55.
 - 05-D31: THE FIRST DRAFT OF ROW 108 WAS GREEN OVER TWO DEFECTS AND BOTH PROBES ARE RECORDED. PROBE BO moved the two round controls to the FOOT of the input area — Advance at 1408 of a 1080 viewport — and the gate ran 192 of 192, exit 0, because the row counted them anywhere inside the area; cell 18c was green too, because both were on screen in the wrong order. PROBE BQ added `.fg-area--input{order:-1}` and the gate ran 192 of 192 again, because the row read three rules BY NAME and a modifier class is not one of three names. Both are closed; both took a browser to find.
 - 05-D31: A TEMPORAL-DEAD-ZONE THROW HID BEHIND "1216 passed, 0 failed" FOR TWO COMMITS. Row 108 read two head lookups one statement above the `const` that binds them, so the gate threw at load with every in-file row already printed green above it and the interaction-gate summary line never printed at all. Found by reading the EXIT CODE of a probe run, not by a failing row. The lesson is the grep: `passed,` is not a pass.
+- 05-D32b: **THE DENSITY IS A CLAIM ONLY A BROWSER CAN MAKE, AND PROBE CF PROVED IT.** Reverting `.ae` to its old 660px width puts the terms region back to 2131px and every row back to 177px — and the node gate runs **1253 passed, 0 failed, 196 of 196, exit 0**. Four browser cells caught it, one per browser and viewport. Same shape as D-30's PROBE BM, arriving on a layout claim. Cell 23 therefore asserts a REGIME (one line per row, 48px) rather than a pixel.
+- 05-D32b: **THE TICK WAS BUILT, PAID FOR IN WIDTH, AND NEVER SHOWN** on any chooser pill or either side button, since plan 03.1-05. `[C12]`, `[S06.5]` and `[C07]` all state the outline-AND-tick idiom; only `.ae-item--on .ae-check` was ever written. Nothing caught it because a `visibility:hidden` node still contributes its text to every harvest in the repo — the proposal scan counts "24 chooser ticks" by name. Built and shown are the same thing to a DOM with no layout engine. Fixed in `cc4e1a6`; browser cell 23c is what holds it now.
+- 05-D32b: **THE STUB-DRIFT GATE CANNOT SEE A CLASS.** PROBE CD put `.ae-term-lbl` back in the stub and removed `.ae-term-read`: 135 shell ids, all built, that gate green — and every editor drive in the file quietly drawing nothing. Rows 111 and 112 caught it, and 112 is the class-level drift row this change needed because it moved no id.
+- 05-D32b: an apostrophe and a backtick on ONE line of a comment in the script block take **Layer B from 8,586 literals to 1,878** — the single-quote arm swallows the opening backtick and the closing one opens a 46,510-character span. The extractor's own floor named it in one line, which is what that floor is for. Recorded at the site that tripped it.
+
 - 05-D30: the node gate cannot see this change beyond the sign's PARENT, demonstrated rather than assumed — PROBE BL moved the anchor from 25% to 50% and the gate ran 189 of 189, exit 0. Three browser cells (21b, 21c, 21d) carry the half that only exists in pixels, and they run only where Playwright does.
 
 ## Deferred Items
@@ -279,6 +291,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-30T06:15:00.000Z
-Stopped at: Completed the D-31 redirect (05-D31) — 05-11's playtest is the only thing left in the phase
+Last session: 2026-08-30T15:20:00.000Z
+Stopped at: Completed D-32 part 2 of 2 (05-D32b) — the dense terms region. 05-11's playtest is the only thing left in the phase
 Resume file: None

@@ -385,7 +385,17 @@ line at the dial in `[C14.1]` — `max-height:min(22vh, calc(100vh - 710px))` pu
 
 ---
 
-## 10. THE ACTION EDITOR IS TWELVE ROWS TALL AND HAS NOT BEEN MADE DENSE YET
+## 10. THE ACTION EDITOR IS TWELVE ROWS TALL AND HAS NOT BEEN MADE DENSE YET — **CLOSED by plan 05-D32b**
+
+**Closed 2026-08-30.** The terms region measures **707px where it measured 2507**, every one of
+the twelve rows is ONE line at 41px where they were 169 and 181, and the whole authoring pane
+came down from 3243px to 1421px. Measured in real Chrome and real Edge at 1920x1080 and
+1366x768, headless, on the same drive that took the before numbers — browser cell 23. The other
+half of this item, "the picker's display of a four-term cost", was re-read and NOT changed:
+`.fg-act-cost` wraps its readings and cell 21c measures all thirty-six marks on the picker at
+D-30's geometry, so the minimum plan 05-D32a shipped turned out to be the design. What follows
+is the entry as it was written, kept because the before numbers in it are what the after
+numbers mean anything against.
 
 **Found:** plan 05-D32a, by construction, and it is the OTHER half of D-32 rather than a defect.
 
@@ -411,3 +421,26 @@ design for four terms.
 **Owner:** the second D-32 dispatch. Nothing here blocks the 05-11 playtest; if that runs first,
 the terms region is worth watching over a student's shoulder, because how a room actually fills
 four cost slots is the thing the density pass should be designed against.
+
+---
+
+## 11. THE ACTION EDITOR STILL SCROLLS, AND WHAT IS LEFT IS NOT THE TERMS
+
+**Found:** plan 05-D32b, by measurement, immediately after closing item 10.
+
+The density pass took the authoring pane from 3243px to **1421px**. The dialog's own box is
+1040x1040 at 1920x1080 and 1040x728 at 1366x768 — inside the viewport on all four edges at both,
+which browser cell 23c asserts — so the pane is still about 400px taller than the tallest screen
+this artifact targets and the surface scrolls. Cell 23c drives that: it scrolls the dialog to its
+end and requires Done to be wholly on screen and enabled, so nothing is unreachable.
+
+**What is left is no longer the terms region.** Of the 1421px, the terms are 707. The other 714
+are the title, the two teaching notes, the side chooser, the 236px action list, the name field
+and the two button rows — every one of them a surface plan 03.1-05 sized and none of them
+something D-32 asked about. Halving any of them is a different instruction from the one this plan
+was given.
+
+**Owner:** the 05-11 playtest. The question for a room is whether a student authoring a rule ever
+needs the list and the terms on screen at the same time; if they do, the obvious move is a
+scrolling terms region inside a fixed-height dialog rather than a scrolling dialog, and that is a
+change to `.ae` and `.ae-terms` and to nothing else.
