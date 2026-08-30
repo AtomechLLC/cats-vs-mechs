@@ -1038,6 +1038,21 @@
      here than on the three dialogs, because this surface is on the page the
      whole time rather than in front of one person who opened it.
 
+     D-29 NARROWED THE SENTENCE ABOVE AND THE PARAGRAPH IS KEPT AS IT STOOD.
+     What it says is still true OF A LABEL: not one control anywhere under this
+     banner has its NAME in a tooltip, and none has grown one. What it can no
+     longer be read as is a ban on the `title` attribute across this surface,
+     because "mouse over tooltip for the text description" is the developer's
+     own third sentence and [S06.12] answers it. THE DISTINCTION IS THE WHOLE OF
+     UX-02 AND IT IS NOT A LOOPHOLE: the requirement is that nothing is conveyed
+     by HOVER ALONE, and what hovers describes here is a reading that is already
+     permanently on screen in the notation the board itself uses — the type's
+     own shape, colour and glyph, with its quantity said by repetition or by a
+     count. The tooltip adds the type's NAME and the sentence around it, it is
+     written to `aria-label` from the same variable so a keyboard and a screen
+     reader get it too, and the gate that refuses a ruling reads it. A tooltip that carried
+     the only copy of something would still be forbidden by this paragraph.
+
      NO IMAGE AND NO SHAPE IS DRAWN HERE, for the reasons [C12] and [C13] each
      already give about themselves: the CSS reference function that takes a URI
      is refused document-wide by the dev gate, so there is no background image,
@@ -1599,6 +1614,15 @@
      rather than in front of one person who opened it. Nothing below is an icon
      and nothing below is a title= tooltip.
 
+     THE SECOND HALF OF THAT LAST SENTENCE STOPPED BEING TRUE OF ONE NODE UNDER
+     D-29 and the sentence is kept rather than edited, because what it was about
+     is untouched: every LABEL and every CONTROL LEGEND in this block is still
+     permanent, visible and 18px, and .fg-act-name — the action's own name on
+     the button — is one of them. What grew a tooltip is .fg-act-cost, which is
+     a FIGURE and not a label, and it grew one because the developer asked for
+     the figure to be a symbol. [C14]'s banner carries the argument in full and
+     [C14.5] carries the rules.
+
      AND THE [hidden] RULE FOR .fg-side IS NOT REPEATED HERE, DELIBERATELY.
      [C14] already carries `.fg-side[hidden]{display:none}`, and the rule this
      block gives .fg-side a display cannot beat it whatever the source order,
@@ -2058,7 +2082,17 @@
      UX-02'S 18px FLOOR BINDS ON EVERY LABEL IN THIS REGION and the round label
      is the one that matters most: it is PERMANENT, VISIBLE and 18px, never an
      icon and never a title= tooltip. A row whose round number was a tooltip
-     would be a row nobody in the room can place. */
+     would be a row nobody in the room can place.
+
+     AND THAT LAST SENTENCE IS EXACTLY THE LINE D-29 DID NOT CROSS, which is why
+     it is kept verbatim and pointed at rather than softened. The round number,
+     the round's note, the faction names, the unit names and every action line
+     in a card are still TEXT. What became symbolic is the STATE and the DELTAS
+     — the quantities — and a quantity drawn as this board's own tokens is not
+     an icon standing in for a word: it is the notation the board has used since
+     Phase 2, arriving on the surface that reads the board back. The words that
+     described those quantities are on the hover and in the accessible name, and
+     the gate that refuses a ruling reads both. */
 
   /* THE ROUNDS AND THE READING SIT SIDE BY SIDE, AND THE REASON IS A MEASURED
      DEFECT RATHER THAN A PREFERENCE. Stacked, this region was 723px tall at
