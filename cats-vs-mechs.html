@@ -2439,11 +2439,19 @@
      present in BOTH views — [S06.7]'s own paragraph gives the reason at length.
      Same four-way distinction as the grid's pair and the same tint, because
      they are two readings of one economy and a room should not have to learn
-     two visual languages for it. */
+     two visual languages for it.
+
+     D-33 P1-1: AND THEY ARE NOT TWO READINGS ANY MORE, THEY ARE ONE READING IN
+     TWO PLACES. The audit measured this pair printing "0 of 3 spent" while the
+     state card printed "3 of 3 spoken for" about the same pool in the same
+     frame; both surfaces now go through [S06.7]'s fgPoolWords, so the rules
+     below dress the same sentence the card's do. .fg-pool-spent was renamed to
+     .fg-pool-spoke with the sentence it carries — a class named for what a node
+     used to say is the next author's first wrong assumption. */
   .fg-pool{display:inline-flex;align-items:baseline;flex-wrap:wrap;gap:8px}
   .fg-pool-who{font-weight:700;color:var(--ink)}
   .fg-pool-lbl{color:var(--ink-faint)}
-  .fg-pool-spent{color:var(--ink-dim)}
+  .fg-pool-spoke{color:var(--ink-dim)}
   .fg-pool-left{
     color:var(--ink);font-weight:700;
     padding:1px 10px;border-radius:999px;
@@ -15539,34 +15547,68 @@ App.render = (function () {
      resources above the action picker"; these are the pair that follow the
      student across the switch.
 
-     WHETHER TWO READINGS OF THE SAME NUMBER IN TWO PLACES IS ONE TOO MANY IS A
-     QUESTION FOR THE PLAYTEST, and it is recorded as one rather than settled
-     here. The bar's figures and the grid's figures are computed from the same
-     slices in the same frame, so they cannot disagree; whether a room finds two
-     of them helpful or noisy is not a thing this file can measure.
+     ==================================================================
+     D-33 P1-1 — THE QUESTION THIS PARAGRAPH ASKED HAS BEEN ANSWERED AND
+     THE ANSWER WAS "YES". Plan 05-D33b.
+     ==================================================================
+     WHAT STOOD HERE, kept verbatim because it is the record of a decision this
+     plan is turning rather than a comment it is tidying:
 
-     apSpent IS FLOORED IN THE DERIVATION AND IS NOT REPAIRED HERE. Its own
-     comment says why: nothing stops a student lowering the build pool while a
-     fight is running, and the raw subtraction then reads a negative on a
-     projector. A caller repairing it would be a second definition of the same
-     fact, in the tier that is least able to hold one.
+       "WHETHER TWO READINGS OF THE SAME NUMBER IN TWO PLACES IS ONE TOO MANY
+        IS A QUESTION FOR THE PLAYTEST, and it is recorded as one rather than
+        settled here. The bar's figures and the grid's figures are computed from
+        the same slices in the same frame, so they cannot disagree; whether a
+        room finds two of them helpful or noisy is not a thing this file can
+        measure.
+        apSpent IS FLOORED IN THE DERIVATION AND IS NOT REPAIRED HERE. Its own
+        comment says why ...
+        AND THE SECOND READING CARRIES NO DENOMINATOR, which is that same hazard
+        answered rather than ignored ...
+        THE MEASURED READS-ZERO FINDING BELONGS TO THIS PAIR AND NOT TO THE
+        GRID. advanceRound spends each declared cost out of the pool and then,
+        in THE SAME COMMIT, refills both pools from the build, so no frame is
+        rendered between those two writes and apSpent's subtraction is 0 on an
+        unedited build."
 
-     AND THE SECOND READING CARRIES NO DENOMINATOR, which is that same hazard
-     answered rather than ignored. `build.ap` and `fight.ap` are independent
-     slices by design; after a mid-fight build edit the pool can sit BELOW what
-     the fight still holds, and "3 of 1 left to spend" is an arithmetically
-     impossible sentence that would read as a defect in the tool.
+     EVERY SENTENCE OF THAT WAS TRUE AND THE PAIR STILL CONTRADICTED ITSELF ON
+     SCREEN, which is the finding: "computed from the same slices, so they
+     cannot disagree" was a claim about the INPUTS. The two readings ran two
+     different arithmetics over those inputs — apSpent(build, live) here,
+     spokenForPools() on the card — and the audit photographed the result. Three
+     Cats declared at 1 AP each: the card said "3 of 3 spoken for, 0 left to
+     spend" and this bar said "0 of 3 spent, 3 left to spend", 770px apart, in
+     the same frame, both about the Cats' action points. The reading that was
+     right was 92px below the fold of an unmarked scroller and the reading a
+     room was looking at was the one that never moves.
 
-     THE MEASURED READS-ZERO FINDING BELONGS TO THIS PAIR AND NOT TO THE GRID.
-     advanceRound spends each declared cost out of the pool and then, in THE
-     SAME COMMIT, refills both pools from the build, so no frame is rendered
-     between those two writes and apSpent's subtraction is 0 on an unedited
-     build. That is still true and is still what these two spans say. The
-     GRID's pair says something else entirely — what this round's declarations
-     have SPOKEN FOR against what is left to spend — which is D-27's resolution
-     of that finding and is the reading a student watches move as they declare.
-     Both are on the page; neither is the other; and the comment beside each
-     says which question it answers.
+     SO THIS PAIR NOW SAYS WHAT THE CARD SAYS, THROUGH THE CARD'S OWN FUNCTION.
+     fgPoolWords is the single place in this file that turns held-and-spoken-for
+     into words, fgResRow calls it and so does this, and the numbers reach both
+     from the one spokenForPools walk fightBar already took. There is no second
+     arithmetic left for the two surfaces to disagree through.
+
+     WHAT WAS GIVEN UP, SAID OUT LOUD. The build-pool-against-fight-pool reading
+     — apSpent's "0 of 3 spent" — is no longer on the topbar. It is not lost:
+     [S06.9]'s "The fight as it stands" block in the projection still prints it,
+     in its own words and with its own comment, and that is the surface where
+     "what has this fight actually taken out of the build" is the question being
+     asked. What this bar asks now is the question a student is in the middle of
+     answering. The audit flags the projection's copy of that reading to the
+     pass that owns [C15]; it is a different sentence about a different fact and
+     it is deliberately not touched here.
+
+     apSpent IS UNTOUCHED AND STILL FLOORED IN THE DERIVATION. Nothing about
+     what Advance does moved in this plan — this is a change to what is
+     DISPLAYED and to nothing else, which the audit states as a constraint and
+     which the ops diff for this commit shows as zero.
+
+     THE TOPBAR KEEPS THE PAIR FOR THE REASON IT ALWAYS HAD, which is why the
+     audit's cheaper option — delete the figures, leave the round number — was
+     declined: #round-count, #pool-cats and #pool-mechs are the ONE reading
+     present in BOTH views, and a student who has stepped back to the board tab
+     to make a ruling can still see the round and both pools without navigating
+     away. That property is now worth more than it was, because the figure it
+     carries across the switch is live.
 
      The pool's label is read live through labelFor, so a student who renamed
      Action points reads their own word here on the next frame — and it carries
@@ -15574,21 +15616,22 @@ App.render = (function () {
      name does. This node is on #topbar, which sync()'s [data-lbl] pass does NOT
      walk (that pass is scoped to #board), so this region writes the word
      itself and the marker is only ever a marker. */
-  function fgFillPool(state, side) {
+  function fgFillPool(state, side, spoke) {
     var node = document.getElementById(FIGHT_POOL_IDS[side]);
     if (!node) { return; }
     var build = state.build[side];
     var live = state.fight[side];
     var who = node.querySelector('.fg-pool-who');
     var lbl = node.querySelector('.fg-pool-lbl');
-    var spent = node.querySelector('.fg-pool-spent');
+    var spokeNode = node.querySelector('.fg-pool-spoke');
     var left = node.querySelector('.fg-pool-left');
+    // ONE FUNCTION, TWO SURFACES. The card's own words, from the card's own
+    // helper, over the same walk fightBar already took for the card.
+    var words = fgPoolWords(live.ap, App.model.pooledAt(spoke, 'ap'));
     if (who) { who.textContent = build.name; }
     if (lbl) { lbl.textContent = labelFor(state, 'ap'); }
-    if (spent) {
-      spent.textContent = App.model.apSpent(build, live) + ' of ' + build.ap + ' spent';
-    }
-    if (left) { left.textContent = live.ap + ' left to spend'; }
+    if (spokeNode) { spokeNode.textContent = words.spoke; }
+    if (left) { left.textContent = words.left; }
   }
 
   // ALIVE IS READ, NEVER INFERRED. aliveCount reads the stored flag, which is
@@ -16064,15 +16107,65 @@ App.render = (function () {
   // drawn by one function rather than by two that could drift into saying the
   // same fact two ways. The words and their order are the ones the ap row has
   // carried since D-27, unchanged.
+  /* ==================================================================
+     D-33 P1-1: THE TWO WORDINGS OF THE POOL ARE ONE FUNCTION NOW.
+     Plan 05-D33b.
+     ==================================================================
+     The audit measured the defect this closes, with both readings on one
+     screen: with three Cats declared at 1 AP each the state card read
+     "Action points 3 of 3 spoken for 0 left to spend" while #pool-cats,
+     770px higher up the same screen, read "0 of 3 spent 3 left to spend" —
+     the same pool, the same "...left to spend" sentence ending, a different
+     number, and the wrong one for what the student had just done.
+
+     THE PARAGRAPH THIS REPLACES IS QUOTED RATHER THAN DELETED, because it
+     asked exactly the right question and the audit is the answer coming back:
+
+       "WHETHER TWO READINGS OF THE SAME NUMBER IN TWO PLACES IS ONE TOO MANY
+        IS A QUESTION FOR THE PLAYTEST, and it is recorded as one rather than
+        settled here. The bar's figures and the grid's figures are computed
+        from the same slices in the same frame, so they cannot disagree;
+        whether a room finds two of them helpful or noisy is not a thing this
+        file can measure."
+
+     They were computed from the same slices and they DID disagree, because
+     they were computed from the same slices by two different arithmetics —
+     apSpent(build, live) against spokenForPools(...). "Cannot disagree" was
+     true of the inputs and false of the sentences.
+
+     SO THE SENTENCE IS THE THING THAT IS SHARED, not the slice. This function
+     is the only place in the file that turns a held figure and a spoken-for
+     figure into words, and both surfaces call it. Two renderings, one
+     derivation, one wording: the state card and the topbar cannot print
+     different numbers for one pool without this function printing two
+     different numbers for one call.
+
+     WHY THIS DIRECTION AND NOT THE AUDIT'S CHEAPER ONE, recorded because the
+     audit named both and recommended the other. Its second option was to strip
+     the topbar's pool figures down to the round number alone. That is fewer
+     bytes and it is the one this plan declined: [S06.7]'s own paragraph below
+     gives #pool-cats and #pool-mechs a real job — they are the ONE pool reading
+     present in BOTH views, because plan 05-12 put the board and the fight
+     behind a switch and #topbar sits outside it — and deleting them would take
+     the pool away from a student who has stepped back to the board tab to make
+     a ruling. Making them LIVE keeps that property and fixes the defect in the
+     same move: the figure a room is told to watch is now the figure that
+     moves. */
+  function fgPoolWords(held, spoke) {
+    return {
+      spoke: spoke + ' of ' + held + ' spoken for',
+      left: Math.max(0, held - spoke) + ' left to spend'
+    };
+  }
+
   function fgResRow(state, box, tok, held, spoke, extra) {
     var row = el('div', 'fg-res' + (extra === '' ? '' : ' ' + extra));
     var lbl = text('span', 'fg-res-lbl', labelFor(state, tok));
     setData(lbl, { lbl: tok });
     row.appendChild(lbl);
-    row.appendChild(text('span', 'fg-res-spoke',
-      spoke + ' of ' + held + ' spoken for'));
-    row.appendChild(text('span', 'fg-res-left',
-      Math.max(0, held - spoke) + ' left to spend'));
+    var words = fgPoolWords(held, spoke);
+    row.appendChild(text('span', 'fg-res-spoke', words.spoke));
+    row.appendChild(text('span', 'fg-res-left', words.left));
     box.appendChild(row);
   }
 
@@ -16450,7 +16543,10 @@ App.render = (function () {
         var lbl = text('span', 'fg-pool-lbl', '');
         setData(lbl, { lbl: 'ap' });
         pool.appendChild(lbl);
-        pool.appendChild(text('span', 'fg-pool-spent', ''));
+        // D-33 P1-1: .fg-pool-spoke and not .fg-pool-spent. The class is
+        // renamed with the sentence it carries, because a node named for what
+        // it used to say is the next author's first wrong assumption.
+        pool.appendChild(text('span', 'fg-pool-spoke', ''));
         pool.appendChild(text('span', 'fg-pool-left', ''));
       }
       // D-31: TWO COLUMN ROOTS PER SIDE, one in each area, each built by the
@@ -16643,13 +16739,6 @@ App.render = (function () {
       });
 
       FIGHT_SIDES.forEach(function (side) {
-        fgFillPool(state, side);
-        var seat = document.getElementById(FIGHT_STATE_IDS[side]);
-        var node = document.getElementById(FIGHT_DECL_IDS[side]);
-        if (!node || !seat) { return; }
-        node.hidden = false;
-        seat.hidden = false;
-
         // THE PER-SIDE ARITHMETIC, TAKEN ONCE AND HANDED DOWN. affordability is
         // read on the CASTER SIDE, so its answer is the same for every row of
         // this side and computing it per row would be the same number derived
@@ -16671,6 +16760,23 @@ App.render = (function () {
         // a student watches and the arithmetic that disables a button are the
         // same walk over the same declarations.
         var spoke = App.model.spokenForPools(actions, state.fight.decl, side, vocab);
+
+        /* D-33 P1-1: THE POOL IS FILLED HERE NOW AND NOT AT THE TOP OF THIS
+           LOOP, because it needs `spoke` — which is the whole of the change.
+           The guard that used to sit between them is BELOW this call and not
+           above it, deliberately: this region's standing shape is that a page
+           missing one node still paints the others (fgFillPool, fgSettle,
+           fgHalfMade and fightBar each take that guard), and a topbar reading
+           that stopped being written because a column root was absent would be
+           a second failure caused by the first. */
+        fgFillPool(state, side, spoke);
+
+        var seat = document.getElementById(FIGHT_STATE_IDS[side]);
+        var node = document.getElementById(FIGHT_DECL_IDS[side]);
+        if (!node || !seat) { return; }
+        node.hidden = false;
+        seat.hidden = false;
+
         var half = fgHalfMade(side);
 
         // D-31: THE FIRST TWO WRITE INTO THE STATE ROOT AND THE LAST TWO INTO

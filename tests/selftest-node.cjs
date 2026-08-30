@@ -10811,7 +10811,44 @@ const accStarted = A.state.get().fight !== null;
 function accTeam(side) {
   return fgLeaves(fgOne(fgStateRootOf(side), '.fg-team')).join(' ');
 }
+/* ==========================================================================
+   D-33 P1-1 — THE TOPBAR CLAUSE OF THIS ROW IS TURNED, IN THE OPEN.
+   ==========================================================================
+   WHAT THIS ROW ASSERTED AND PRINTED, in its own words: "the TOPBAR pair is
+   printed beside it still reading zero, which is the shipped fact this gate
+   stays on the record about." It printed `0 of 3 spent  3 left to spend` at
+   every moment while the card beside it printed `3 of 3 spoken for  0 left to
+   spend`, and this row was GREEN over the pair, because the only clause it made
+   about the topbar was `accPoolCats !== ''`.
+
+   THE AUDIT PHOTOGRAPHED WHAT THAT COST: two figures for one pool, 770px apart
+   on one screen, disagreeing — and the one a room was looking at was the one
+   that never moved. D-33 P1-1 makes both surfaces print [S06.7]'s fgPoolWords
+   over the one spokenForPools walk fightBar already takes.
+
+   SO THE CLAUSE BECOMES ITS OPPOSITE AND STOPS BEING A FLOOR. The topbar pair
+   is read at the SAME FIVE MOMENTS as the card and must carry the CARD'S OWN
+   ap-row reading at every one of them. That is strictly more than "not empty":
+   a bar that went blank fails, a bar that froze on one figure while the card
+   moved fails, and a bar that printed a different arithmetic for the same pool
+   — which is exactly what shipped for two plans — fails. Read as raw text off
+   both nodes, never compared against a string typed here, for PROBE AU's
+   recorded reason one paragraph down. */
+function accPool(side) { return fgLeaves(dom.byId['pool-' + side]).join(' '); }
+function accTeamApRow(side) {
+  return fgLeaves(fgOne(fgStateRootOf(side), '.fg-res')).join(' ');
+}
+// A pair of readings AGREE when the bar's line carries the card's line whole.
+// The bar leads with the faction's name and the card does not — that is the one
+// difference between them and it is the reason this is a containment and not an
+// equality.
+function accAgree(side) {
+  const card = accTeamApRow(side);
+  return card !== '' && accPool(side).indexOf(card) !== -1;
+}
 const accTeamIdle = accTeam('cats');
+const accPoolIdle = accPool('cats');
+const accAgreeIdle = accAgree('cats');
 
 // DECLARATION ONE: a SINGLE press, and the tool points it at the lowest-health
 // living enemy. Read the target off the RECORD and against the derivation that
@@ -10819,6 +10856,8 @@ const accTeamIdle = accTeam('cats');
 // than carrying a second answer to "lowest health" of its own.
 fgDeclare('cats', fgCatsAct, 'c1');
 const accTeamSpoken = accTeam('cats');
+const accPoolSpoken = accPool('cats');
+const accAgreeSpoken = accAgree('cats');
 const accRec1 = A.state.get().fight.decl
   .filter((d) => d.side === 'cats' && d.by === 'c1')[0] || null;
 // THE DERIVATION TAKES THE FIGHT SLICE AND NOT THE WHOLE STATE, which this row
@@ -10834,8 +10873,11 @@ const accLandsSaid = fgLandsOn('cats', 'c1');
 // is the half a row reading it only after a declaration would be green without.
 fgPress(fgUndoBtn);
 const accTeamUndone = accTeam('cats');
+const accPoolUndone = accPool('cats');
+const accAgreeUndone = accAgree('cats');
 fgDeclare('cats', fgCatsAct, 'c1');
 const accTeamAgain = accTeam('cats');
+const accAgreeAgain = accAgree('cats');
 
 // DECLARATION TWO: the other kind. Declared on the mechs' side and then
 // RETARGETED — press the change-target control, then click a shape on the
@@ -10866,11 +10908,16 @@ const accDeclLines = fgSideRootOf('cats').querySelectorAll('[data-fg="act"]')
     .filter((b) => b.getAttribute('aria-pressed') === 'true').length;
 fgAdvancePress();
 const accTeamResolved = accTeam('cats');
+const accPoolResolved = accPool('cats');
+const accAgreeResolved = accAgree('cats');
 
 // THE SIX, off the page.
 const accRound = dom.byId['round-count'].textContent;
 const accPoolCats = fgLeaves(dom.byId['pool-cats']).join('');
 const accPoolMechs = fgLeaves(dom.byId['pool-mechs']).join('');
+// AND THE OTHER SIDE'S PAIR, because a bar wired for one side and left alone
+// for the other is a defect a run reading only the cats' bar is green over.
+const accAgreeMechs = accAgree('mechs');
 const accHpRow = fgBoard.querySelectorAll('.tok-row')
   .filter((r) => r.dataset.amt === 'hp' && r.dataset.unit === 'm1')[0];
 const accHealth = accHpRow ? accHpRow.children.length : -1;
@@ -10934,9 +10981,24 @@ check(
     + 'on a real control. THE GRID\'S SPOKEN-FOR READING IS PRINTED VERBATIM '
     + 'THROUGH FIVE MOMENTS — idle, declared, undone, declared again, resolved '
     + '— so FIGHT-09 is closed by a reading that MOVES rather than by an '
-    + 'assertion about one, and the TOPBAR pair is printed beside it still '
-    + 'reading zero, which is the shipped fact this gate stays on the record '
-    + 'about. Then SIX '
+    + 'assertion about one, and THE TOPBAR PAIR IS READ AT THE SAME FIVE '
+    + 'MOMENTS AND MUST CARRY THE CARD\'S OWN LINE AT EVERY ONE OF THEM. '
+    + 'THAT CLAUSE IS TURNED IN THE OPEN UNDER D-33 P1-1 AND IT USED TO SAY '
+    + 'THE OPPOSITE: what stood here was "the TOPBAR pair is printed beside it '
+    + 'still reading zero, which is the shipped fact this gate stays on the '
+    + 'record about", and the only assertion under it was that the bar was not '
+    + 'EMPTY. So the bar printed "0 of 3 spent, 3 left to spend" while the card '
+    + '770px below it printed "3 of 3 spoken for, 0 left to spend" about the '
+    + 'same pool in the same frame, and this row was green over the pair for '
+    + 'two plans — until the audit photographed it. Both surfaces go through '
+    + '[S06.7]\'s fgPoolWords now, over the one spokenForPools walk fightBar '
+    + 'already takes, so there is no second arithmetic left for them to '
+    + 'disagree through — and the agreement is asserted rather than assumed, on '
+    + 'BOTH sides, because a bar wired for the cats and left alone for the '
+    + 'mechs passes a run that reads one of them. It is strictly more than the '
+    + 'floor it replaces: a blank bar fails, a bar frozen on one figure while '
+    + 'the card moves fails, and a bar running a different arithmetic for one '
+    + 'pool fails. Then SIX '
     + 'values are read back OFF THE PAGE and not out of state: the round on the '
     + 'bar, both pools, one unit\'s health row, the ledger\'s row count and the '
     + 'what-changed reading. A hand ruling puts a marker on the card of the '
@@ -10957,6 +11019,11 @@ check(
     && accLitCount > 0 && accRec2Now.at === accPickTarget
     && accRec2Now.at !== accRec2Was.at
     && accRound === '2' && accPoolCats !== '' && accPoolMechs !== ''
+    && accAgreeIdle === true && accAgreeSpoken === true
+    && accAgreeUndone === true && accAgreeAgain === true
+    && accAgreeResolved === true && accAgreeMechs === true
+    && accPoolSpoken !== accPoolIdle && accPoolUndone === accPoolIdle
+    && accPoolResolved === accPoolIdle
     && accHealth >= 0 && accLedgerRows === 1 && accWhatChanged !== ''
     && accMarkShown === true && accHealthRuled === accHealth
     && accWhatChangedNow !== accWhatChangedWas
@@ -10980,6 +11047,14 @@ check(
     + ' -> undone ' + JSON.stringify(accTeamUndone)
     + ' -> declared again ' + JSON.stringify(accTeamAgain)
     + ' -> resolved ' + JSON.stringify(accTeamResolved)
+    + ' | THE TOPBAR PAIR AT FOUR OF THE SAME MOMENTS, VERBATIM: idle '
+    + JSON.stringify(accPoolIdle) + ' -> declared ' + JSON.stringify(accPoolSpoken)
+    + ' -> undone ' + JSON.stringify(accPoolUndone)
+    + ' -> resolved ' + JSON.stringify(accPoolResolved)
+    + ' | the bar carries the card\'s line: idle=' + accAgreeIdle
+    + ' declared=' + accAgreeSpoken + ' undone=' + accAgreeUndone
+    + ' again=' + accAgreeAgain + ' resolved=' + accAgreeResolved
+    + ' mechs=' + accAgreeMechs
     + ' | THE SIX: round=' + JSON.stringify(accRound)
     + ' cats pool=' + JSON.stringify(accPoolCats)
     + ' mechs pool=' + JSON.stringify(accPoolMechs)
