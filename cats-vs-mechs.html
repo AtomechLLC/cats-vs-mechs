@@ -170,7 +170,36 @@
 
   /* ===================== [C02] SHELL ===================== */
   .shell{max-width:var(--maxw);margin:0 auto;padding:28px 22px}
-  .shell-head{margin:0 0 18px}
+  /* ==================================================================
+     D-33 P2-1 — THE PAGE STOPS HAVING TWO LEFT EDGES. Plan 05-D33b.
+     ==================================================================
+     MEASURED BY THE AUDIT, on the top 200px of a fresh board: the h1 sat at
+     x=342 at 1920x1080 and x=65 at 1366x768 while #topbar, #views and #board
+     all sat at x=160 and x=22. A 182px difference at the size this artifact is
+     projected at, on the first thing an eye lands on.
+
+     THE CAUSE WAS DOCUMENTED AND THE FIX WAS NEVER APPLIED: .shell is capped at
+     --maxw (1280px) and #topbar, #views, .fg-band and #board each break out to
+     --boardw (1600px) with a computed negative margin. This head never received
+     the breakout, so it alone was laid out on the document measure while
+     everything under it was laid out on the board measure.
+
+     THE FORMULA IS COPIED CHARACTER FOR CHARACTER from #topbar's, which copied
+     it from #board's, which is the fourth region to carry it and now the fifth.
+     [C15]'s banner states the trap that makes the spelling matter: a `margin`
+     SHORTHAND landing after a computed `margin-left` LONGHAND silently zeroes
+     it and puts a 1600px region 182px out of alignment with no error and no
+     warning — which is, exactly, the number this entry is fixing. So the
+     shorthand goes FIRST and the longhand after it, which is the safe order and
+     the one every other region here uses.
+
+     NOTHING ELSE ABOUT THIS BLOCK MOVES. No overflow, no position — [C03]'s
+     sticky gotcha, kept for the sixth time. */
+  .shell-head{
+    margin:0 0 18px;
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
   .shell-head h1{margin:0 0 2px;font-size:32px;line-height:1.2;letter-spacing:-.4px}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
@@ -219,7 +248,30 @@
     width:min(var(--boardw), calc(100vw - 44px));
     margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
-  .brd-brand{font-size:20px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+  /* ==================================================================
+     D-33 P2-1 — .brd-brand IS GONE, AND THE RULE IS KEPT AS A TOMBSTONE
+     RATHER THAN DELETED WITH IT. Plan 05-D33b.
+     ==================================================================
+     The audit: "Cats vs Mechs" is rendered TWICE within 130px vertically — once
+     as .shell-head h1 at 32px and once here at 20px, inside a bar that is
+     sticky and therefore on screen the whole time. Two renderings of a product
+     name is the sort of thing an audience registers as unfinished, and it was
+     costing the bar the width P2-2 measures it running out of.
+
+     THE h1 IS THE ONE THAT STAYS, which is the audit's own recommendation and
+     the reason is a document rather than a preference: it is the page's only
+     level-one heading and the lede under it is the artifact's own description
+     of itself. The audit's alternative — deleting the h1 block outright to
+     recover ~90px of above-the-fold height — would leave this document with no
+     h1 at all, which is a heading outline a screen reader walks differently for
+     a saving the sticky bar does not need.
+
+     THE RULE IS LEFT HERE, COMMENTED, because the class name is the only trace
+     that would otherwise be gone and the next author of this bar should know
+     the slot was spent and reclaimed rather than never used:
+       .brd-brand{font-size:20px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
+     A LIVE rule for a class no markup carries is a rule for nothing, so it is
+     not left live. */
   .brd-cluster{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
   .brd-tokedit{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   /* UX-02: a real, permanently visible text label at the 18px minimum.
@@ -4335,7 +4387,13 @@
        reset and share to it, Phase 5 adds turn state and start-fight, and
        neither of them has to re-lay-out the page to do it. -->
   <div class="brd-topbar" id="topbar">
-    <div class="brd-brand">Cats vs Mechs</div>
+    <!-- D-33 P2-1 DELETED THE SECOND "Cats vs Mechs" FROM THIS BAR. It was
+         rendered here at 20px and again 130px above as the page's h1 at 32px.
+         The h1 stays because it is the document's only level-one heading;
+         [C03] keeps the departed rule as a comment so the next author of this
+         bar knows the slot was spent and reclaimed. #topbar's own
+         justify-content:space-between now puts the cluster where the brand was,
+         which is what closes the gap rather than a rule about it. -->
     <div class="brd-cluster">
       <!-- THE FIFTH AND SIXTH PERMANENT ADDITIONS TO THIS BAR, AND THE ONES
            THAT SPEND THE LAST OF D-04'S RESERVATION. Both were reserved BY NAME
