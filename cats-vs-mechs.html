@@ -1883,7 +1883,16 @@
      reach is a sentence about what the student should have done. */
   .fg-act:disabled{border-style:dashed;cursor:not-allowed}
   .fg-act-name{white-space:nowrap}
-  .fg-act-cost{color:var(--ink-faint);white-space:nowrap}
+  /* D-32: THE BOX HOLDS ONE READING PER COST TERM NOW, so it is a flex row with
+     a gap rather than a plain inline run — four readings butted together read
+     as one long number at projector distance. `nowrap` stays: a single reading
+     must never break between its figure and its shape. It wraps as a BOX when
+     four of them do not fit, which is the honest failure for a rule a student
+     wrote that long, and part 2 owns whether four terms should look like this.
+     No colour is introduced; --ink-faint is the one this box already used. */
+  .fg-act-cost{color:var(--ink-faint);display:flex;flex-wrap:wrap;
+    align-items:center;justify-content:center;gap:2px 6px}
+  .fg-act-cost .sym{white-space:nowrap}
   .fg-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .fg-act--on .fg-check{visibility:visible}
 
