@@ -39,7 +39,7 @@ Decimal phases appear between their surrounding integers in numeric order.
 - [ ] **Phase 3: Advisory Projection & Reference Material** - What the allocation implies, and what the tool refuses to decide for the student (plans complete 2026-08-28, human verification outstanding)
 - [x] **Phase 3.1: Action Authoring (INSERTED)** - Students program their own actions — a cost, a requirement, and what changes — and the tool proposes rather than decides (completed 2026-08-29)
 - [x] **Phase 4: Share & Reset** - A build code a classmate can actually use, and three unmistakably distinct ways back (completed 2026-08-29)
-- [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it (plans complete 2026-08-29, 16 plans — 05-12..05-16 are D-27's gap closure and run BEFORE the 05-11 playtest)
+- [ ] **Phase 5: Fight Loop & Playtest** - Hot-seat bookkeeping for a played fight, verified by playing it (plans complete 2026-08-29, 16 plans plus three developer redirects — 05-12..05-16 are D-27's gap closure, then 05-D28 and 05-D29, and all of them run BEFORE the 05-11 playtest)
 
 ## Phase Details
 
