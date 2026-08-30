@@ -1702,6 +1702,65 @@
     font-variant-numeric:tabular-nums;
   }
 
+  /* ==================================================================
+     D-31'S TWO AREAS. "separate the current round state from the action
+     input area." Plan 05-D31.
+     ==================================================================
+     THE SEPARATION IS A BOX AND NOT A GAP, which is the whole of the
+     instruction: two panels, each with its own heading, each holding its own
+     pair of columns. A larger margin between two groups of children says
+     "these are further apart"; a border around each says "these are two
+     things", and two things is what the developer asked for.
+
+     THE PANEL TREATMENT IS #fightbar's OWN, ONE LEVEL IN, and it is derived
+     rather than invented for the reason [C07]'s banner gives and [C14] restates
+     three times: no new hex. The surround is --panel-2, which is the token this
+     file already uses for a surface sitting ON a panel, and the hairline is
+     --line, which is every other border in the document. Nothing here is a
+     colour; both are [C00] tokens read straight.
+
+     THE HEADING IS A REAL HEADING AT THE 18px FLOOR — UX-02, which [C14]'s
+     banner states and [C14.1]'s restates, and which binds harder on this
+     surface than on any dialog because this surface is on the page the whole
+     time. It is not an icon, it is not a tooltip and it is not a caption size.
+     It is dimmer and lighter than .fg-side-head one level below it, so the
+     reading order down a column is area, then side, then contents — three
+     levels said in weight rather than in three type sizes, because a projector
+     loses the third size before it loses the third weight.
+
+     THE HEAD IS A ROW BECAUSE EACH AREA PUTS SOMETHING ELSE ON IT. The state
+     area's head carries the round figure — .fg-round-head, which D-28 built and
+     this plan re-parents without changing one of its rules. The input area's
+     head carries FIGHT-10's note and the two round controls, which is the whole
+     of D-28's measured fix arriving in its new home: they are ABOVE the
+     scroller that grows with the roster, so no amount of board can push them
+     down. align-items is CENTER for D-28's reason, unchanged: an 18px heading
+     and a 44px button share this line.
+
+     AND THE AREAS TAKE NO overflow AND NO position, which is [C03]'s sticky
+     gotcha kept for the fourth time in this file. #strip lives inside #board and
+     #board is this region's SIBLING, so nothing here is an ancestor of the one
+     sticky element on the page — but a rule that becomes load-bearing only when
+     somebody moves an element is a rule to write down rather than to rely on,
+     and that is [C14]'s own sentence about the same trap. */
+  .fg-area{
+    display:flex;flex-direction:column;gap:12px;
+    padding:14px 16px;
+    border:1px solid var(--line);border-radius:var(--radius);
+    background:var(--panel-2);
+  }
+  .fg-area-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px}
+  .fg-area-name{
+    margin:0;font-size:18px;font-weight:600;color:var(--ink-faint);
+  }
+  /* THE [hidden] RULE IS NOT OPTIONAL HERE AND THE LEDGER'S OWN COMMENT SAYS
+     WHY IN THE SAME WORDS: the rule above gives these roots a display, and ANY
+     author display beats the user agent's [hidden]{display:none} outright.
+     Without this line two bordered, headed, empty panels ship above the board
+     of every student who never starts a fight, with nothing on screen to say
+     why — which is exactly the failure #ledger's hidden rule exists for. */
+  .fg-area[hidden]{display:none}
+
   /* THE BATTLEFIELD CLUSTER, RESERVED AND EMPTY. Plan 05-15 paints inside it
      and owns every rule that describes its contents; this block gives it a box
      and nothing else, in [C14]'s own manner of laying out a region before the
@@ -1998,6 +2057,76 @@
      focused control at the edge of a scroller is clipped by the scroller
      without it. */
   .fg-sides{max-height:32vh;overflow-y:auto;padding:2px}
+
+  /* ==================================================================
+     AND D-31 GIVES THE STATE AREA A BOUND OF ITS OWN, WHICH IS THE ONE
+     NUMBER IN THIS PLAN AND THE ONLY THING BETWEEN IT AND THE DEFECT
+     THIS PHASE HAS NOW FIXED FOUR TIMES. Plan 05-D31.
+     ==================================================================
+     D-31 puts a whole second region between the round's head and the picker
+     rows, and the two round controls travel with the picker — Advance is what
+     COMMITS what the input declared and Reset is what throws it away, so the
+     input area is where they belong. That is D-31's own reading, and taken as
+     written it moves the Advance control DOWN the page by everything the state
+     area occupies. So this dial decides where that control is, which is the
+     same sentence [C14.1]'s 26vh sweep made about the OTHER scroller before
+     D-28 moved the controls above it.
+
+     THE SWEEP. Real Chrome, three rounds resolved, twelve declarations
+     standing, at page scroll zero, reading the state window's height and the
+     BOTTOM EDGE of the Advance control against the viewport:
+
+       state window   @1920x1080 window / Advance     @1366x768 window / Advance
+         12vh            130px /  949 of 1080          92px /  869 of 768  BELOW
+         16vh            173px /  992 of 1080         123px /  902 of 768  BELOW
+         18vh            194px / 1013 of 1080         138px /  917 of 768  BELOW
+         20vh            216px / 1035 of 1080         154px /  932 of 768  BELOW
+         22vh            238px / 1057 of 1080  <-     169px /  947 of 768  BELOW
+         24vh            259px / 1078 of 1080         184px /  958 of 768  BELOW
+         26vh            281px / 1100 of 1080 BELOW   200px /  973 of 768  BELOW
+         32vh            346px / 1157 of 1080 BELOW   246px / 1016 of 768  BELOW
+
+     22vh IS SHIPPED: it is the largest setting with real headroom at 1080 —
+     1057 of 1080, 23px spare — where 24vh clears by two pixels, which is not a
+     margin, and 26vh is the first to cross.
+
+     AND AT 1366x768 NO SETTING CLEARS THE FOLD, INCLUDING ZERO, WHICH IS THE
+     FINDING THIS PLAN OWES OUT LOUD RATHER THAN A NUMBER IT FAILED TO REACH.
+     Read the 768 column upward: 12vh puts the control at 869 with a 92px
+     window, so the chrome ALONE — everything between the top of the state
+     window and the bottom of Advance — is 777px on a 768px screen. Measured
+     piece by piece at that size: the fight region starts at 561, its own
+     heading and the two panels' padding, borders, gaps and two head lines cost
+     129px before any content, and the input area's head is 47px of button. A
+     state window of zero height still overshoots by nine pixels. The arithmetic
+     has no free term in it.
+
+     SO THE FOLD CLAIM AT 768 IS TURNED IN THE OPEN AND REPLACED WITH A
+     STRONGER ONE, rather than dialled at until a number appeared. Browser cell
+     18 asserted "above the fold at page scroll zero" at BOTH sizes; it now
+     asserts that at 1920x1080, and at BOTH sizes it asserts the property the
+     fold was standing in for and never actually measured: THE CONTROL IS ON
+     SCREEN AT THE SAME TIME AS THE PICKER ROWS IT COMMITS. Advance sits at the
+     TOP of the area whose rows a student is declaring in, so scrolling to the
+     picker brings the control with it — which is what "a student who has to
+     scroll to advance" was ever about. That is driven by scrolling to the rows
+     and reading both boxes, at both sizes, in both browsers.
+
+     THE ALTERNATIVE WAS MEASURED AND DECLINED, and it is written down so the
+     rehearsal can overrule this: the fold at 768 IS reachable by clamping this
+     bound with a pixel term — min(22vh, calc(100vh - 710px)) puts Advance at
+     757 of 768 — at the cost of a 58px state window there, which shows a
+     faction name and the top of one reading. The developer's complaint that
+     opened this whole redirect was that the fight tab is "way too compressed",
+     and a 58px panel is the most compressed thing on the page. Taken with the
+     paragraph above: a control that travels with the thing it commits beats a
+     control that is above the fold of a panel nobody can read. It is on
+     05-11's list as a room question.
+
+     THE INPUT AREA KEEPS THE RULE ABOVE UNCHANGED — 32vh, D-28's dial, neither
+     re-derived nor touched, because what it bounds is what it always bounded:
+     how much of a picker a room reads without scrolling. */
+  .fg-area--state .fg-sides{max-height:22vh}
 
   /* The side's own reading box: ACT-07's refusals first, then one requirement
      line per action. It is deliberately not styled as a warning and carries no
@@ -2599,7 +2728,10 @@
      half of the sentence needs no rule at all, and that is worth saying rather
      than leaving as a happy accident: .fg-field sits inside each side's own
      column, so the clusters follow .fg-sides' two columns automatically and
-     would follow them still if a later plan ever reordered them.
+     would follow them still if a later plan ever reordered them. D-31 is the
+     later plan and it did exactly that — the clusters went with the STATE area
+     when the round split in two, and the sentence above cost this block no
+     rule to keep.
 
      THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT HERE AND ARE
      RESTATED RATHER THAN POINTED AT, because the cost of each is what makes it
@@ -2629,11 +2761,17 @@
      no error and no warning, and this block has a specific reason to be tempted
      by it — a cluster of shapes is exactly the sort of thing an author bounds
      with a scroller. IT IS ALREADY BOUNDED: .fg-field is a descendant of
-     .fg-sides, which [C14.1] bounds at 32vh with the scroll ON ITSELF, so the
+     .fg-sides, which [C14.1] bounds with the scroll ON ITSELF, so the
      battlefield grows into an existing scroller and adds no second one. If it
      ever needs a bound of its own, the scroll goes on the element itself —
      [C12]'s action list, [C14]'s ledger list, [C14.1]'s sides, and this would
      be the fourth — and it arrives with a measurement.
+     AS OF D-31 THE .fg-sides IT IS INSIDE IS THE STATE AREA'S, and the bound
+     that reaches it is [C14.1]'s min(26vh, 100vh - 710px) rather than the flat
+     32vh the sentence above used to name. The MECHANISM is unchanged and that
+     is the whole point of writing it as an ancestry rather than as a number:
+     this region still adds no scroller of its own, and the one it grows into
+     moved without this block learning anything.
 
      THE UNIT SHAPE TAKES THE NEUTRAL PLATE TREATMENT AND NOT A FACTION TINT,
      and that is a finding rather than a preference. There is no faction colour
@@ -3702,13 +3840,64 @@
     <div class="ld-list" id="ledger-list"></div>
   </section>
 
+  <!-- D-31, the developer at the real artifact for the fifth time: "separate the
+       current round state from the action input area."
+
+       TWO SECTIONS RATHER THAN TWO CLASSES ON ONE, and the split is in the
+       MARKUP for the reason the ledger's own comment gives four paragraphs up:
+       a separation made with CSS puts the sequence a screen reader walks out of
+       step with the sequence the room sees, and every DOM-order check in this
+       repository would stay green over it. Each is a real <section> with a real
+       heading, so the two areas are two landmarks and a student who navigates by
+       heading lands on "what IS" and then on "what I am about to do".
+
+       WHAT IS IN WHICH, AND THE LINE BETWEEN THEM IS THE WHOLE OF D-31. The
+       state area holds the round figure, both survivor readings, both
+       battlefield clusters and both teams' resources — the reading of the board
+       as it stands. The input area holds the picker rows, each side's reading
+       box, and the two round controls. The spoken-for preview stays with the
+       RESOURCES, in the state area, because it is a reading of state; it moves
+       live as declarations land in the input area, and that live crossing is
+       driven in tests/browser-checks.mjs rather than assumed.
+
+       THE COLUMN PAIR SURVIVES INSIDE EACH AREA. Cats left, Mechs right, in
+       both — which is why there are FOUR side roots now and not two, and why
+       each area carries its own .fg-sides.
+
+       BOTH AREAS SHIP HIDDEN, which is the ledger's ruling one region up held
+       here rather than restated: "a labelled empty box above the board is a
+       thing a student has to interpret for nothing". Before D-31 the two
+       declaration roots shipped hidden and .fg-sides had no box of its own, so a
+       student who never started a fight saw nothing. These panels have a border,
+       a heading and a tint, so hiding the ROOTS alone would leave two empty
+       bordered boxes on the setup page. [S06.7] shows them on the first frame of
+       a fight and fgRest hides them again — the same bookkeeping #ledger keeps.
+
+       Same three-part rule as the region above, six times over: the id, the
+       KNOWN_IDS entry and the stub node arrive together, and the run fails in
+       both directions if one of the three is missing. No <dialog>, so no
+       DIALOG_ROOTS entry. -->
   <section id="fightbar" aria-labelledby="fight-head">
     <h2 class="fg-head" id="fight-head">This round</h2>
     <p class="fg-prompt" id="fight-prompt">No fight is running. Start one from the bar above.</p>
-    <div class="fg-sides">
-      <div class="fg-side" id="decl-cats" hidden></div>
-      <div class="fg-side" id="decl-mechs" hidden></div>
-    </div>
+    <section class="fg-area fg-area--state" id="fight-state" aria-labelledby="fight-state-head" hidden>
+      <div class="fg-area-head">
+        <h3 class="fg-area-name" id="fight-state-head">Where the round stands</h3>
+      </div>
+      <div class="fg-sides">
+        <div class="fg-side" id="state-cats" hidden></div>
+        <div class="fg-side" id="state-mechs" hidden></div>
+      </div>
+    </section>
+    <section class="fg-area fg-area--input" id="fight-input" aria-labelledby="fight-input-head" hidden>
+      <div class="fg-area-head">
+        <h3 class="fg-area-name" id="fight-input-head">What you are about to do</h3>
+      </div>
+      <div class="fg-sides">
+        <div class="fg-side" id="decl-cats" hidden></div>
+        <div class="fg-side" id="decl-mechs" hidden></div>
+      </div>
+    </section>
     <p class="fg-said" id="fight-said" hidden></p>
   </section>
 
@@ -14104,6 +14293,21 @@ App.render = (function () {
   // than silently painting nothing into a node that is no longer there.
   var FIGHT_POOL_IDS = { cats: 'pool-cats', mechs: 'pool-mechs' };
   var FIGHT_DECL_IDS = { cats: 'decl-cats', mechs: 'decl-mechs' };
+  /* D-31's SECOND PAIR OF COLUMN ROOTS. The state area gets its own two, so
+     that Cats-left / Mechs-right survives inside BOTH areas rather than only
+     inside the one that still has the pickers in it.
+
+     THE HALF-MADE-CHANGE ATTRIBUTES STAY ON THE DECL PAIR AND DO NOT MOVE.
+     They are a property of the flow a student opened on a PICKER ROW — fgSettle
+     reads them, fgSig fingerprints them, [S07.5] writes them through its own
+     restated FG_DECL_IDS table, and [S06.11] lights the battlefield off them.
+     Splitting them across two roots, or moving them to the new pair, would have
+     been this plan changing a dispatch contract while it was moving boxes
+     around, which is the one thing a layout plan must not do. So the two names
+     say exactly what each pair is for: the state roots are READ INTO and the
+     decl roots are what a student PRESSES. */
+  var FIGHT_STATE_IDS = { cats: 'state-cats', mechs: 'state-mechs' };
+  var FIGHT_AREA_IDS = ['fight-state', 'fight-input'];
 
   // The word for the position nothing is in. It was the first entry of both
   // retired unit choosers, in NO_TERM_WORD's manner; it survives them as the
@@ -14915,6 +15119,34 @@ App.render = (function () {
      actions that a student consults after reaching for one — putting it above
      the rows would put prose between the resources and the thing they are about.
 
+     ==================================================================
+     D-31 CUTS THAT ONE ORDER IN TWO AND KEEPS BOTH HALVES IN IT.
+     ==================================================================
+     "separate the current round state from the action input area." The five
+     appends are now two functions, and the sentence above survives whole
+     because the CUT is where D-31 puts it and the ORDER either side of the cut
+     is unchanged: the side, the battlefield and the team resources are what IS,
+     and the picker rows and the reading box are what a student is ABOUT TO DO.
+     Read down the page, top to bottom, the sequence is byte-for-byte the one
+     D-27's addendum set — a border and a heading now fall between the resources
+     and the rows, and nothing was reordered to put them there.
+
+     THE SIDE'S NAME IS DRAWN IN BOTH, AND THAT IS THE COLUMN PAIRING SURVIVING
+     THE SPLIT RATHER THAN A DUPLICATE TO BE TIDIED AWAY. D-31's own sentence is
+     that Cats-left / Mechs-right holds inside each area, and a column with no
+     name is a column a room cannot read — on a projector, where the two areas
+     may not both be on screen at once, the input area's second heading is the
+     only thing that says which side of the picker is whose. It costs two
+     strings in the Layer C harvest and the fight floor is re-derived for them.
+
+     THE READING BOX STAYS WITH THE PICKER RATHER THAN GOING TO THE STATE AREA,
+     which is a call this plan makes rather than one D-31 makes for it: ACT-07's
+     refusals and the requirement lines are facts about an ACTION a student is
+     reaching for, not about the board, and the paragraph above already ruled
+     that they belong under the rows they qualify. A requirement line in the
+     state area would be the tool describing what a student may do inside the
+     panel that describes what IS.
+
      THE BATTLEFIELD CLUSTER IS BUILT EMPTY AND FLAGGED, AND THIS PLAN PAINTS
      NOTHING INSIDE IT. Plan 05-15 owns everything in there: one shape per unit
      with smaller shapes on it for health, shield and tallies, drawn from each
@@ -14938,7 +15170,7 @@ App.render = (function () {
      so for the fourth time in this file, and [C14.1] carries the rule. Every
      legend below is permanent, visible and a real heading — never an icon and
      never a title= tooltip, which is what the floor is actually about. */
-  function fgBuildSide(root, state, side) {
+  function fgBuildStateSide(root, state, side) {
     root.replaceChildren();
     root.appendChild(text('h3', 'fg-side-head', state.build[side].name));
     root.appendChild(text('p', 'fg-standing', ''));
@@ -14946,6 +15178,11 @@ App.render = (function () {
     root.appendChild(el('div', 'fg-field'));
 
     root.appendChild(el('div', 'fg-team'));
+  }
+
+  function fgBuildInputSide(root, state, side) {
+    root.replaceChildren();
+    root.appendChild(text('h3', 'fg-side-head', state.build[side].name));
     root.appendChild(el('div', 'fg-rows'));
 
     var reportBox = el('div', 'fg-reportbox');
@@ -14963,7 +15200,24 @@ App.render = (function () {
      must stay where the shell put it, and because a round drawn below the two
      sides is not the sketch. The shell markup is untouched: this plan owns no
      shell id and adds none, and .fg-sides is the anchor the shell already
-     provides. */
+     provides.
+
+     ==================================================================
+     D-31 GIVES IT A SEAT INSTEAD OF AN ANCHOR, AND THE INSERT BECOMES AN
+     APPEND. Plan 05-D31.
+     ==================================================================
+     The round number is a reading of what IS, so it goes in the state area — on
+     that area's own head line, beside the heading that names the area. That
+     head is a real shell node now, so this function no longer has to reason
+     about what it must sit ABOVE: it appends into a box that exists for it.
+
+     THE FALL-THROUGH IS KEPT AND IS NOT THE SAME ONE. It used to fall back to
+     appending at the root when .fg-sides was missing, which put the figure
+     BELOW both columns — the paragraph above says why that is not the sketch.
+     It now falls back to the root only when the state area's head is missing
+     altogether, which on a page built from the shipped shell cannot happen, and
+     a figure at the top of the region is the closest wrong answer to the right
+     one. The two-argument shape survives so fgRest still has a root to sweep. */
   function fgBuildRoundHead(root) {
     var head = el('div', 'fg-round-head');
     // THE FIGURE GETS A BOX OF ITS OWN AS OF D-28, and it is an alignment
@@ -14975,8 +15229,38 @@ App.render = (function () {
     fig.appendChild(text('span', 'fg-round-lbl', 'Round'));
     fig.appendChild(text('span', 'fg-round-n', ''));
     head.appendChild(fig);
-    var sides = root.querySelector('.fg-sides');
-    if (sides) { root.insertBefore(head, sides); } else { root.appendChild(head); }
+    var seat = fgAreaHead('fight-state');
+    if (seat) { seat.appendChild(head); } else { root.appendChild(head); }
+  }
+
+  /* The head row of one of D-31's two areas, by the area's shell id. One helper
+     for both, because the two callers below want the same node for opposite
+     halves of the round: the figure goes on the state area's line and the two
+     controls go on the input area's.
+
+     NULL RATHER THAN A THROW, which is this region's standing shape at every
+     boundary — fgFillPool, fgSettle, fgHalfMade and fightBar itself each take
+     the same guard, for the reason the last of them states: an error panel
+     raised on a control that ships in every build is the one outcome worse than
+     nothing happening. */
+  function fgAreaHead(areaId) {
+    var area = document.getElementById(areaId);
+    if (!area) { return null; }
+    return area.querySelector('.fg-area-head');
+  }
+
+  /* Take a node out of whatever is holding it. Null-safe at both ends, because
+     the teardown reaches for two nodes that are only ever there while a fight is
+     running and a page at rest hands back nothing twice.
+
+     THE PARENT IS ASKED FOR RATHER THAN ASSUMED, and that is the whole reason
+     this is a function. The pre-D-31 teardown removed both nodes from the region
+     ROOT because that is where they were; D-31 moved them onto two different
+     area head lines, and a removeChild whose argument is not a child throws
+     rather than declining. Every future move of either node is now free. */
+  function fgUnseat(node) {
+    if (!node || !node.parentNode) { return; }
+    node.parentNode.removeChild(node);
   }
 
   /* THE TWO ROUND CONTROLS, and they are in the SURFACE rather than on the bar
@@ -15019,9 +15303,31 @@ App.render = (function () {
        removes .fg-round-head FIRST and only then looks for .fg-round-acts, so
        the row leaves with its new parent and the second lookup correctly finds
        nothing. A teardown that had removed them in the other order would have
-       called removeChild with a node that is no longer a child. */
-    var head = root.querySelector('.fg-round-head');
-    if (head) { head.appendChild(row); } else { root.appendChild(row); }
+       called removeChild with a node that is no longer a child.
+
+       ==================================================================
+       D-31 MOVES THE ROW OFF THE ROUND'S LINE AND ONTO THE INPUT AREA'S,
+       WHICH IS THE SAME FIX ARRIVING ONE REGION ALONG. Plan 05-D31.
+       ==================================================================
+       D-31 puts the two controls with the input — Advance is what COMMITS what
+       the input declared, and Reset is what throws it away — so the row leaves
+       the round figure and joins the picker's own heading. The property D-28
+       bought is kept EXACTLY, and it is a property of the row's parent rather
+       than of a number: this row is above .fg-area--input's scroller, which is
+       the region that grows with the roster times the action list, so no amount
+       of board can push these two controls down.
+
+       WHAT DECIDES WHERE THEY ARE NOW IS THE STATE AREA'S OWN WINDOW, and
+       [C14.1]'s new sweep is where that number is derived. This comment names
+       it rather than repeating it, because a measurement written in two places
+       is a measurement that will disagree with itself.
+
+       AND fgRest IS STILL UNAFFECTED, for the same reason and by the same
+       reading — but not by the same lookup. The two nodes no longer share a
+       parent, so the teardown asks each for its OWN parent and removes it from
+       there, which is the shape that survives either of them moving again. */
+    var seat = fgAreaHead('fight-input');
+    if (seat) { seat.appendChild(row); } else { root.appendChild(row); }
   }
 
   /* The three value nodes plan 05-06 reserved on the bar, given the four spans
@@ -15042,8 +15348,15 @@ App.render = (function () {
         pool.appendChild(text('span', 'fg-pool-spent', ''));
         pool.appendChild(text('span', 'fg-pool-left', ''));
       }
+      // D-31: TWO COLUMN ROOTS PER SIDE, one in each area, each built by the
+      // half of D-27's five appends that belongs to it. Both are guarded
+      // separately rather than together, because a page missing one of the two
+      // is a page this region should still paint half of — which is fgFillPool's
+      // own guard shape one level out.
+      var seat = document.getElementById(FIGHT_STATE_IDS[side]);
+      if (seat) { fgBuildStateSide(seat, state, side); }
       var node = document.getElementById(FIGHT_DECL_IDS[side]);
-      if (node) { fgBuildSide(node, state, side); }
+      if (node) { fgBuildInputSide(node, state, side); }
     });
     // BUILT LAST AND NO LONGER APPENDED LAST, and the difference is D-28's.
     // This call still runs after the two sides so it can find the round head
@@ -15073,13 +15386,28 @@ App.render = (function () {
     if (round) { round.textContent = ''; }
     var start = document.getElementById('fight-start');
     if (start) { start.disabled = false; }
-    var head = root.querySelector('.fg-round-head');
-    if (head) { root.removeChild(head); }
-    var acts = root.querySelector('.fg-round-acts');
-    if (acts) { root.removeChild(acts); }
+    /* D-31: EACH IS REMOVED FROM ITS OWN PARENT AND NOT FROM THE REGION ROOT.
+       The figure sits on the state area's head line and the two controls sit on
+       the input area's, so neither is a child of #fightbar any more — and
+       root.removeChild on a node that is not a child THROWS, which is the one
+       failure mode a teardown must not have. Asking each node for its own
+       parentNode is also the shape that survives either of them being moved
+       again, which is the third time this phase has moved one of them. */
+    fgUnseat(root.querySelector('.fg-round-head'));
+    fgUnseat(root.querySelector('.fg-round-acts'));
+    // AND BOTH AREAS GO BACK BEHIND THEIR [hidden], which is the shell's own
+    // ruling arriving in the teardown: a bordered, headed, empty panel is a
+    // thing a student has to interpret for nothing, and a fight that has ended
+    // has no round state and no input to take.
+    FIGHT_AREA_IDS.forEach(function (id) {
+      var area = document.getElementById(id);
+      if (area) { area.hidden = true; }
+    });
     FIGHT_SIDES.forEach(function (side) {
       var pool = document.getElementById(FIGHT_POOL_IDS[side]);
       if (pool) { pool.replaceChildren(); }
+      var seat = document.getElementById(FIGHT_STATE_IDS[side]);
+      if (seat) { seat.replaceChildren(); seat.hidden = true; }
       var node = document.getElementById(FIGHT_DECL_IDS[side]);
       if (!node) { return; }
       node.replaceChildren();
@@ -15200,11 +15528,22 @@ App.render = (function () {
         start.disabled = true;
       }
 
+      // D-31's TWO AREAS COME OUT FROM BEHIND THEIR [hidden] HERE, on the same
+      // frame the prompt above goes behind its own. They are shown ONCE per
+      // repaint rather than once per side, because an area is a property of the
+      // round rather than of a faction.
+      FIGHT_AREA_IDS.forEach(function (id) {
+        var area = document.getElementById(id);
+        if (area) { area.hidden = false; }
+      });
+
       FIGHT_SIDES.forEach(function (side) {
         fgFillPool(state, side);
+        var seat = document.getElementById(FIGHT_STATE_IDS[side]);
         var node = document.getElementById(FIGHT_DECL_IDS[side]);
-        if (!node) { return; }
+        if (!node || !seat) { return; }
         node.hidden = false;
+        seat.hidden = false;
 
         // THE PER-SIDE ARITHMETIC, TAKEN ONCE AND HANDED DOWN. affordability is
         // read on the CASTER SIDE, so its answer is the same for every row of
@@ -15219,8 +15558,16 @@ App.render = (function () {
         var spoke = App.model.spokenFor(actions, state.fight.decl, side);
         var half = fgHalfMade(side);
 
-        fgFillStanding(node, state, side);
-        fgFillTeam(node, state, side, spoke);
+        // D-31: THE FIRST TWO WRITE INTO THE STATE ROOT AND THE LAST TWO INTO
+        // THE INPUT ROOT, which is the split read off D-31's own two lists. The
+        // ARITHMETIC above is taken once and handed to both, unchanged — `spoke`
+        // is the spoken-for preview and it goes to the RESOURCES in the state
+        // area while the presses that move it land in the input area. That live
+        // crossing of the boundary is the one behaviour this layout change could
+        // have broken silently, and it is driven in tests/browser-checks.mjs
+        // rather than argued here.
+        fgFillStanding(seat, state, side);
+        fgFillTeam(seat, state, side, spoke);
         fgFillRows(node, state, side, actions, reports, spoke, half);
         fgFillReport(node, state, side, actions, reports);
       });
@@ -16976,13 +17323,22 @@ App.render = (function () {
    * this is a READING, plus exactly one job: it is where targets light.
    *
    * WHERE IT PAINTS, AND ONLY WHERE. .fg-field, one per side, inside each
-   * #decl-{side} root. Plan 05-14 built that container empty, flagged it and
+   * #state-{side} root. Plan 05-14 built that container empty, flagged it and
    * named this plan as its owner at the site; this region writes inside it and
    * touches no other node on the page. "ONE SIDE … SAME ON THE RIGHT FOR THE
    * OTHER SIDE" NEEDS NO CODE HERE, and that is worth saying rather than
    * leaving as a happy accident: .fg-field sits inside its own side's column,
    * so the two clusters follow .fg-sides' two columns automatically and would
    * follow them still if a later plan ever reordered them.
+   *
+   * A LATER PLAN DID EXACTLY THAT AND THE SENTENCE ABOVE HELD, WHICH IS WHY IT
+   * IS KEPT RATHER THAN REWRITTEN. D-31 splits the round into a STATE area and
+   * an INPUT area, and the clusters went with the state — one root name changed
+   * in the lookup below and not one line of this region's drawing moved. The
+   * two columns the clusters follow are now .fg-area--state's pair, and the
+   * change-target flow still lights them from the picker on the other side of
+   * the boundary, because the delegated listener is bound at #fightbar and both
+   * areas are inside it.
    *
    * ===================================================================
    * IT CALLS THE BOARD'S TOKEN MACHINERY AND RE-DERIVES NOTHING, AND THAT
@@ -17435,7 +17791,14 @@ App.render = (function () {
     var sig = fgSig(state);
 
     FIGHT_SIDES.forEach(function (side) {
-      var root = document.getElementById(FIGHT_DECL_IDS[side]);
+      // D-31 MOVED THE CLUSTER'S COLUMN AND NOT THE CLUSTER. .fg-field is a
+      // reading of what IS, so it lives in the state area now and this lookup
+      // reads FIGHT_STATE_IDS. Everything below is untouched, including the two
+      // flags on the container and the keyed rebuild — the change-target flow
+      // still lights shapes on the opposing side, still writes nothing here, and
+      // still reaches this region through App.render.battlefield, because the
+      // delegated listener is bound at #fightbar and BOTH areas are inside it.
+      var root = document.getElementById(FIGHT_STATE_IDS[side]);
       if (!root) { return; }
       var field = root.querySelector('.fg-field');
       if (!field) { return; }

@@ -814,6 +814,21 @@ function makeStubDom() {
     'fight-label', 'fight-start',
     'fightbar', 'fight-head', 'fight-prompt',
     'decl-cats', 'decl-mechs', 'fight-said',
+    // plan 05-D31 - the developer's fifth live-feedback round: "separate the
+    // current round state from the action input area." SIX ids, and they are
+    // the whole of what D-31 costs this list: two area roots, their two
+    // headings, and the state area's own pair of column roots. The decl pair
+    // above is the INPUT area's pair and did not move or change name, which is
+    // what keeps [S07.5]'s FG_DECL_IDS table and every dispatch off it untouched
+    // by a layout change.
+    //
+    // Same three-part rule as every group above and no exception for arriving
+    // late in a phase: the id, this entry and the stub node arrive together, and
+    // section 5b fails the run in BOTH directions if one of the three is
+    // missing. Neither area is a <dialog>, so the harvest still walks four
+    // roots.
+    'fight-state', 'fight-state-head', 'state-cats', 'state-mechs',
+    'fight-input', 'fight-input-head',
     'ledger', 'ledger-head', 'ledger-list',
     // plan 05-12 - the view switch (D-27). THREE ids and no more: the switch
     // root and its two controls. Same three-part rule as every entry above and
@@ -1195,15 +1210,41 @@ function makeStubDom() {
   const fightPrompt = idNode('fight-prompt', 'p');
   fightPrompt.className = 'fg-prompt';
   fightbar.appendChild(fightPrompt);
-  const fightSides = createElement('div');
-  fightSides.className = 'fg-sides';
-  fightbar.appendChild(fightSides);
-  ['decl-cats', 'decl-mechs'].forEach((id) => {
-    const side = idNode(id);
-    side.className = 'fg-side';
-    side.hidden = true;
-    fightSides.appendChild(side);
-  });
+  /* D-31's TWO AREAS, IN THE SHELL'S OWN ORDER: state first, input second. The
+     order is the CLAIM here and not housekeeping, exactly as it is for #ledger
+     twenty lines up — this page's child order IS its appendChild order, and row
+     108 reads the separation off both this page and the artifact's markup. A
+     stub that built them the other way round would make a passing row out of a
+     surface where the student is asked to act before being shown what they are
+     acting on.
+
+     BOTH SHIP HIDDEN AND SO DO ALL FOUR COLUMN ROOTS, which is the shell
+     verbatim and matters to more than tidiness: fgRest puts every one of them
+     back behind [hidden], and a stub that started them visible would let a
+     teardown check pass without the teardown having done anything. */
+  const fightArea = (areaId, headId, sideIds) => {
+    const area = idNode(areaId, 'section');
+    area.className = 'fg-area';
+    area.hidden = true;
+    fightbar.appendChild(area);
+    const areaHead = createElement('div');
+    areaHead.className = 'fg-area-head';
+    area.appendChild(areaHead);
+    const areaName = idNode(headId, 'h3');
+    areaName.className = 'fg-area-name';
+    areaHead.appendChild(areaName);
+    const sides = createElement('div');
+    sides.className = 'fg-sides';
+    area.appendChild(sides);
+    sideIds.forEach((id) => {
+      const side = idNode(id);
+      side.className = 'fg-side';
+      side.hidden = true;
+      sides.appendChild(side);
+    });
+  };
+  fightArea('fight-state', 'fight-state-head', ['state-cats', 'state-mechs']);
+  fightArea('fight-input', 'fight-input-head', ['decl-cats', 'decl-mechs']);
   // FIGHT-10's line, reserved by plan 05-06 and filled by plan 05-09. Hidden
   // AND empty together, which is the admission line's own rule and the reason
   // there is no text on it here.
@@ -5747,9 +5788,24 @@ function fightPressedIn(rootId) {
 const fightDeclStanding = fightPressedIn('decl-cats') + fightPressedIn('decl-mechs');
 const fightDisabledActs = dom.byId['decl-cats'].querySelectorAll('[data-fg="act"]')
   .filter((b) => b.disabled === true).length;
-const fightShapes = dom.byId['decl-cats'].querySelectorAll('.bf-unit').length
-  + dom.byId['decl-mechs'].querySelectorAll('.bf-unit').length;
-const fightLit = dom.byId['decl-mechs'].querySelectorAll('.bf-unit')
+/* THE TWO BATTLEFIELD READINGS ARE TAKEN FROM THE STATE ROOTS AS OF D-31, AND
+   THE TURN IS RECORDED RATHER THAN QUIETLY REPOINTED. Until D-31 the clusters
+   were inside the same two roots the pickers are in, and this row read them
+   there. "separate the current round state from the action input area" moves the
+   battlefield to the STATE area, because a cluster of shapes is a reading of
+   what IS. The recorded RED is the run on the commit before this line changed:
+   106 reported "shapes cats=0 mechs=0 against the fight roster [9,3]", 106b
+   reported "the shape's health row -1 -> -1", and this row's own dressing
+   clauses went with them — 92 failed on fightShapes, fightLit and both label
+   counts at once.
+
+   THE CLUSTER IS STILL READ FROM A ROOT AND NEVER FROM THE DOCUMENT, which is
+   the property that matters and the reason this is not simply a wider
+   querySelector: a lookup from #app takes the FIRST match and would stop telling
+   the two sides apart the day anything else on the page grows a .bf-unit. */
+const fightShapes = dom.byId['state-cats'].querySelectorAll('.bf-unit').length
+  + dom.byId['state-mechs'].querySelectorAll('.bf-unit').length;
+const fightLit = dom.byId['state-mechs'].querySelectorAll('.bf-unit')
   .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length;
 const fightText = harvestInto(dom.byId['app'], [], '#app');
 const fightHits = verdictHitsIn(fightText).concat(relationshipHitsIn(fightText));
@@ -5769,7 +5825,7 @@ const fightHits = verdictHitsIn(fightText).concat(relationshipHitsIn(fightText))
    A row that read only the second would be green over a battlefield that was
    never painted. */
 function fightLabelsSaying(word) {
-  return ['decl-cats', 'decl-mechs'].reduce((n, id) =>
+  return ['state-cats', 'state-mechs'].reduce((n, id) =>
     n + dom.byId[id].querySelectorAll('.bf-lbl')
       .filter((l) => l.textContent === word).length, 0);
 }
@@ -6354,8 +6410,63 @@ A.state.flush();
    only one that adds a surface — because D-29 moved no surface at all and moved
    this number by 14. The three channels that carry copy are `title`,
    `aria-label` and the text of a leaf, LABEL_ATTRS names the first two, and a
-   sentence that changes channel changes this count. */
-const FIGHT_FLOOR = 130;
+   sentence that changes channel changes this count.
+
+   HISTORY — 130 -> 132, D-31, AND IT IS THE SMALLEST MOVE THIS CONSTANT HAS
+   EVER MADE. "separate the current round state from the action input area."
+   The round splits into two areas, each holding its own pair of columns, so
+   each side's NAME is now drawn twice — once at the head of its state column
+   and once at the head of its input column. That is two strings, they are
+   roster-independent, and they are the whole of the move. Re-measured by the
+   method above, rosters trimmed BEFORE startFight, each side varied separately,
+   with the regional breakdown kept because the totals alone hide where a change
+   landed:
+
+       cats varied, mechs held at 3    total   #ledger  #fightbar  #board  delta
+         2 cats                          322      71        99       144
+         3 cats                          360      77       113       162    +38
+         4 cats                          398      83       127       180    +38
+         5 cats                          436      89       141       198    +38
+         6 cats                          474      95       155       216    +38
+         9 cats                          588     113       197       270    +38 x3
+
+       mechs varied, cats held at 9
+         2 mechs                         550     108       182       252
+         3 mechs                         588     113       197       270    +38
+         4 mechs                         626     118       212       288    +38
+         5 mechs                         664     123       227       306    +38
+         6 mechs                         702     128       242       324    +38
+
+   A CAT AND A MECH STILL COST 38 EACH AND THE +2 IS ENTIRELY IN #fightbar,
+   which is what says the change landed where D-31 put it and nowhere else. Read
+   against the D-29 table above, every board is exactly two strings larger, the
+   ledger column is byte-identical at every row, and the board column is
+   byte-identical at every row. The whole of the difference is the fight
+   region's own: 195 -> 197 at 9x3, 180 -> 182 at 9x2, 240 -> 242 at 9x6 — two
+   per board, never two per unit.
+
+       cats x mechs     38c + 38m + 132     measured
+         2 x 2                284               284
+         2 x 3                322               322
+         3 x 3                360               360
+         4 x 4                436               436
+         6 x 6                588               588
+         9 x 3                588               588
+         9 x 6                702               702
+
+   AND THE TWO AREA HEADINGS COST THIS NUMBER NOTHING, WHICH IS A GAP IN THIS
+   LAYER RATHER THAN A SAVING. "Where the round stands" and "What you are about
+   to do" are written into the SHELL MARKUP, and this page is a hand-made stand-
+   in rather than a parser — the paragraph beside VERDICT_WORDS says so in as
+   many words: "text written directly into the markup is empty there". So the
+   two new headings are invisible to Layer C exactly as #fight-head's "This
+   round" and #ledger-head's "Earlier rounds" already are, and exactly as
+   load-bearing: they are covered by LAYER A, which reads the whole document
+   including its markup, and that is where a heading naming a resolution would
+   be caught. This is written down rather than left implicit because a future
+   reader comparing +2 against four new strings will otherwise conclude the
+   measurement is wrong. */
+const FIGHT_FLOOR = 132;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
@@ -9020,6 +9131,17 @@ function fgPress(node) {
   A.state.flush();
 }
 function fgSideRootOf(side) { return dom.byId['decl-' + side]; }
+/* D-31's SECOND COLUMN ROOT PER SIDE. The two names below are the whole of what
+   the split costs the readers in this file, and they are deliberately two
+   functions rather than one taking an area: every call site then says WHICH
+   HALF of the round it is reading, and a row that quietly starts reading the
+   wrong one is visible at the call rather than in an argument.
+
+     fgSideRootOf   the INPUT column — picker rows, the reading box, and the two
+                    half-made-change attributes [S07.5] writes.
+     fgStateRootOf  the STATE column — the side's name, its survivor reading, its
+                    battlefield cluster and its team resources. */
+function fgStateRootOf(side) { return dom.byId['state-' + side]; }
 function fgOne(root, sel) { return root.querySelectorAll(sel)[0] || null; }
 
 /* THE DECLARATION PRESS, REWIRED BY PLAN 05-14 ONTO D-27's GRID. The three
@@ -10017,7 +10139,7 @@ A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
 function fgTeamRead(side) {
-  return fgLeaves(fgOne(fgSideRootOf(side), '.fg-team')).join(' ');
+  return fgLeaves(fgOne(fgStateRootOf(side), '.fg-team')).join(' ');
 }
 const fgTeamIdle = fgTeamRead('cats');
 fgDeclare('cats', fgCatsAct, 'c1');
@@ -10105,9 +10227,18 @@ const fgLiveBoxes = fgStrip.querySelectorAll('.dc-live');
 const fgLiveLeaves = [];
 fgLiveBoxes.forEach((box) => { fgLeaves(box).forEach((t) => fgLiveLeaves.push(t)); });
 const fgBothNamed = fgNamesBoth(fgLiveLeaves);
+/* BOTH OF D-31's COLUMN ROOTS PER SIDE, WHICH WIDENS THIS ROW RATHER THAN
+   MOVING IT. Until D-31 one root per side held every leaf the round surface
+   drew. The round is two areas now, and reading only the picker's half would
+   have left the state area — the side's name, its survivor reading, its
+   battlefield labels and its team resources — permanently unscanned by the one
+   row in this file that reads a LEAF for both faction names at once. That is
+   the wave-1 lesson arriving on a layout change: a surface the walk never
+   reaches reports clean for ever. Four roots in, one claim, unchanged. */
 const fgGridLeaves = [];
 ['cats', 'mechs'].forEach((side) => {
   fgLeaves(fgSideRootOf(side)).forEach((t) => fgGridLeaves.push(t));
+  fgLeaves(fgStateRootOf(side)).forEach((t) => fgGridLeaves.push(t));
 });
 const fgGridBothNamed = fgNamesBoth(fgGridLeaves);
 check(
@@ -10577,7 +10708,7 @@ const accStarted = A.state.get().fight !== null;
 // says what this round's declarations have spoken for. Read as raw text, so
 // what the evidence prints is what a room sees.
 function accTeam(side) {
-  return fgLeaves(fgOne(fgSideRootOf(side), '.fg-team')).join(' ');
+  return fgLeaves(fgOne(fgStateRootOf(side), '.fg-team')).join(' ');
 }
 const accTeamIdle = accTeam('cats');
 
@@ -10613,11 +10744,11 @@ const accRec2Was = A.state.get().fight.decl
   .filter((d) => d.side === 'mechs' && d.by === 'm1')[0] || null;
 const accAtBtn = fgAtBtnOf('mechs', 'm1');
 if (accAtBtn !== null) { fgPress(accAtBtn); }
-const accLitCount = fgSideRootOf('cats').querySelectorAll('[data-fg="bf"]')
+const accLitCount = fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
   .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length;
 const accPickTarget = A.state.get().fight.cats.units[
   A.state.get().fight.cats.units.length - 1].id;
-const accBfNode = fgSideRootOf('cats').querySelectorAll('[data-fg="bf"]')
+const accBfNode = fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
   .filter((n) => n.dataset.fgVal === accPickTarget)[0] || null;
 if (accBfNode !== null) { fgPress(accBfNode); }
 const accRec2Now = A.state.get().fight.decl
@@ -11760,11 +11891,12 @@ A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
 
-// The battlefield's own readers. Scoped to a side's declaration root for the
-// reason fgActBtnOf is: a lookup from the document would take the FIRST match
-// and #fightbar sits ahead of #board.
+// The battlefield's own readers. Scoped to a side's STATE root — D-31's, since
+// the cluster is a reading of what IS — for the reason fgActBtnOf is scoped to
+// the input root: a lookup from the document would take the FIRST match and
+// #fightbar sits ahead of #board.
 function bfShapesOf(side) {
-  return fgSideRootOf(side).querySelectorAll('[data-fg="bf"]');
+  return fgStateRootOf(side).querySelectorAll('[data-fg="bf"]');
 }
 function bfShapeOf(side, unitId) {
   return bfShapesOf(side).filter((n) => n.dataset.fgVal === unitId)[0] || null;
@@ -11867,8 +11999,17 @@ A.state.flush();
 const bfLinesBack = bfLineNames('cats', 'c1').length;
 check(
   '106. THE BATTLEFIELD IS ON THE FIGHT TAB, ONE CLUSTER PER SIDE INSIDE THAT '
-    + 'SIDE\'S OWN COLUMN, WITH ONE LABELLED SHAPE PER UNIT — D-27\'s addendum '
-    + 'read off the page. Counted per side against the FIGHT roster and not the '
+    + 'SIDE\'S OWN STATE COLUMN, WITH ONE LABELLED SHAPE PER UNIT — D-27\'s '
+    + 'addendum read off the page. THE WORD "STATE" IS D-31\'s AND THE CLAUSE IS '
+    + 'TURNED IN THE OPEN: until D-31 the cluster sat in the same root as the '
+    + 'picker rows and this row read it there. "separate the current round state '
+    + 'from the action input area" puts a cluster of shapes on the side of the '
+    + 'boundary that reports what IS, so bfShapesOf reads #state-{side} now. The '
+    + 'recorded RED is the run on the commit that moved the markup and had not '
+    + 'yet moved this reader: "shapes cats=0 mechs=0 against the fight roster '
+    + '[9,3]", with 106b, 92 and 102 red beside it. The claim is otherwise '
+    + 'unchanged, and WHICH ROOT is now asserted by row 108 rather than left to '
+    + 'this one. Counted per side against the FIGHT roster and not the '
     + 'build one, which is FIGHT-10\'s division arriving on a roster: a '
     + 'mid-fight addUnit moves the build and leaves the fight slice alone, so '
     + 'the cluster must NOT grow a shape for a unit that is not in the fight '
@@ -12331,7 +12472,7 @@ function bfDisabledField() {
   // The side list is read off the LIVE export rather than typed here, which is
   // the rule every list in this file keeps: a re-typed copy checks itself.
   A.ops.SIDES.forEach((side) => {
-    fgSideRootOf(side).querySelectorAll('[data-fg="bf"]').forEach((n) => {
+    fgStateRootOf(side).querySelectorAll('[data-fg="bf"]').forEach((n) => {
       out.push(String(n.dataset.k) + '=' + (n.disabled === true));
     });
   });
@@ -13170,6 +13311,232 @@ check(
     + ' | declarations bearing a colour literal=' + hexLiterals.length
     + ' | the first few: ' + JSON.stringify(hexLiterals.slice(0, 4))
     + ' | the slice carries .sym-sign by name=' + hexHasMark
+);
+
+/* --- 108-108b. D-31's SEPARATION, READ OFF THE PAGE (plan 05-D31). The
+   developer at the real artifact for the fifth time: "separate the current
+   round state from the action input area."
+
+   WHY THIS NEEDS ROWS OF ITS OWN AT ALL, when 106 and 107 already read the
+   surface: because every one of them reads a root BY NAME and would go on
+   passing over a page that had put the two areas back together. Row 106 asks
+   what is inside #state-cats; nothing in this file asked whether #state-cats is
+   a different REGION from #decl-cats, whether the state one comes FIRST, or
+   whether the picker rows stayed out of it. A repointed reader is not a
+   contract — it is a reader agreeing with whatever the page happens to be.
+
+   AND THE ORDER CLAUSE IS 103e's SHAPE FOR 103e's REASON, restated rather than
+   pointed at because the cost of getting it wrong is what makes it stick: a
+   separation made with a CSS `order` puts the sequence a screen reader walks
+   out of step with the sequence the room sees, and every DOM-order check in
+   this repository stays green over it. PROBE BB measured exactly that on the
+   lane. So three things are read here too — this page's own child order inside
+   #fightbar, the artifact's markup slice spelling the same order, and the rule
+   bodies that could move either area read BY NAME for `order:` and for a
+   reversed direction. The third clause is the one that catches the tidy fix.
+
+   THE PAIRING CLAUSE IS THE HALF A LAYOUT CHANGE LOSES QUIETLY. D-31's own
+   sentence is that Cats-left / Mechs-right survives inside each area, and an
+   area that had ended up with one column, or with the two in the other order,
+   would satisfy every containment clause above. So each area's own .fg-sides is
+   read for exactly two .fg-side roots, in roster order, each carrying its
+   side's name off the LIVE build rather than a word typed here. */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+fgPress(fgStart);
+const sepKids = dom.byId['fightbar'].children
+  .map((n) => String(n.getAttribute('id') || n.className || '?'));
+const sepStateAt = sepKids.indexOf('fight-state');
+const sepInputAt = sepKids.indexOf('fight-input');
+const sepMarkAt = html.indexOf('id="fight-state"');
+const sepMarkInputAt = html.indexOf('id="fight-input"');
+function sepCssRule(sel) {
+  const at = html.indexOf('\n  ' + sel + '{');
+  if (at === -1) { return ''; }
+  const end = html.indexOf('}', at);
+  return end === -1 ? '' : html.slice(at, end + 1);
+}
+const sepRuleArea = sepCssRule('.fg-area');
+const sepRuleSides = sepCssRule('.fg-sides');
+const sepRuleSide = sepCssRule('.fg-side');
+const sepCssText = sepRuleArea + sepRuleSides + sepRuleSide;
+const sepCssOrder = /(^|[;{\s])order\s*:/.test(sepCssText);
+const sepCssReverse = /(row|column)-reverse/.test(sepCssText);
+// WHAT IS IN WHICH, COUNTED IN BOTH DIRECTIONS. A clause that only asked
+// whether the battlefield is in the state area would pass over a page that drew
+// it in BOTH — which is what a build function copied instead of split produces.
+function sepHas(rootId, sel) {
+  return dom.byId[rootId].querySelectorAll(sel).length;
+}
+const sepStateHolds = ['cats', 'mechs'].map((side) => [
+  sepHas('state-' + side, '.fg-standing'),
+  sepHas('state-' + side, '.fg-field'),
+  sepHas('state-' + side, '.fg-team'),
+  sepHas('state-' + side, '.fg-rows'),
+  sepHas('state-' + side, '.fg-reportbox')
+].join(','));
+const sepInputHolds = ['cats', 'mechs'].map((side) => [
+  sepHas('decl-' + side, '.fg-standing'),
+  sepHas('decl-' + side, '.fg-field'),
+  sepHas('decl-' + side, '.fg-team'),
+  sepHas('decl-' + side, '.fg-rows'),
+  sepHas('decl-' + side, '.fg-reportbox')
+].join(','));
+// THE ROUND FIGURE IS ON THE STATE AREA'S HEAD AND THE TWO CONTROLS ARE ON THE
+// INPUT AREA'S, which is where D-31 puts each of them and is the one clause
+// that reads a CONTROL rather than a reading. Both are read as counts inside
+// each area, so a figure drawn in both areas fails as loudly as one drawn in
+// neither.
+const sepFigInState = sepHas('fight-state', '.fg-round-head');
+const sepFigInInput = sepHas('fight-input', '.fg-round-head');
+const sepActsInInput = sepHas('fight-input', '[data-fg="advance"]')
+  + sepHas('fight-input', '[data-fg="reset"]');
+const sepActsInState = sepHas('fight-state', '[data-fg="advance"]')
+  + sepHas('fight-state', '[data-fg="reset"]');
+const sepNames = ['fight-state', 'fight-input'].map((areaId) => {
+  const sides = dom.byId[areaId].querySelectorAll('.fg-sides');
+  if (sides.length !== 1) { return 'sides=' + sides.length; }
+  return sides[0].children
+    .map((c) => fgLeaves(c)[0] || '?').join('|');
+});
+const sepWantNames = A.ops.SIDES
+  .map((side) => A.state.get().build[side].name).join('|');
+check(
+  '108. THE ROUND STATE AND THE ACTION INPUT ARE TWO REGIONS, IN THAT ORDER, '
+    + 'AND NEITHER HOLDS THE OTHER\'S CONTENTS — D-31, verbatim: "separate the '
+    + 'current round state from the action input area". Rows 106 and 107 each '
+    + 'read a root BY NAME and would go on passing over a page that had put the '
+    + 'two back together, which is why the separation gets a row rather than a '
+    + 'repointed reader: a reader that follows the page is a reader that agrees '
+    + 'with whatever the page is. FOUR CLAIMS. The ORDER is read three ways — '
+    + 'this page\'s own child order inside #fightbar, the artifact\'s markup '
+    + 'spelling the same order, and the three rule bodies that could move either '
+    + 'area read BY NAME for `order:` and for a reversed direction, which is '
+    + '103e\'s shape and PROBE BB\'s reason: a separation made in CSS puts the '
+    + 'sequence a screen reader walks out of step with the one the room sees and '
+    + 'every DOM-order check here stays green over it. The CONTENTS are counted '
+    + 'in BOTH directions, because a clause asking only whether the battlefield '
+    + 'is in the state area passes over a page that draws it in both — the '
+    + 'survivor reading, the cluster and the team resources are in the state '
+    + 'column and in NO input column; the picker rows and the reading box are in '
+    + 'the input column and in NO state column. The two ROUND CONTROLS are '
+    + 'asserted onto the INPUT area\'s head and the round FIGURE onto the '
+    + 'state\'s, which is D-31\'s "Advance lives with the input, since it commits '
+    + 'what the input declared" — and where those two nodes sit is what decides '
+    + 'whether the Advance is above the fold, measured in two browsers at two '
+    + 'sizes by browser cell 18. And the COLUMN PAIRING survives inside EACH '
+    + 'area: exactly two .fg-side roots per area, in roster order, each named '
+    + 'off the LIVE build rather than by a word typed into this row',
+  sepStateAt !== -1 && sepInputAt !== -1 && sepStateAt < sepInputAt
+    && sepMarkAt !== -1 && sepMarkInputAt !== -1 && sepMarkAt < sepMarkInputAt
+    && sepRuleArea.length > 0 && sepRuleSides.length > 0 && sepRuleSide.length > 0
+    && sepCssOrder === false && sepCssReverse === false
+    && sepStateHolds.every((s) => s === '1,1,1,0,0')
+    && sepInputHolds.every((s) => s === '0,0,0,1,1')
+    && sepFigInState === 1 && sepFigInInput === 0
+    && sepActsInInput === 2 && sepActsInState === 0
+    && sepNames.length === 2 && sepWantNames.indexOf('|') !== -1
+    && sepNames.every((s) => s === sepWantNames),
+  '#fightbar child order=' + JSON.stringify(sepKids)
+    + ' | #fight-state at ' + sepStateAt + ', #fight-input at ' + sepInputAt
+    + ' | in the markup, at ' + sepMarkAt + ' and ' + sepMarkInputAt
+    + ' | rule bodies read, chars: .fg-area=' + sepRuleArea.length
+    + ' .fg-sides=' + sepRuleSides.length + ' .fg-side=' + sepRuleSide.length
+    + ', carries order:=' + sepCssOrder
+    + ' carries a reversed direction=' + sepCssReverse
+    + ' | state columns hold standing,field,team,rows,reportbox='
+    + JSON.stringify(sepStateHolds)
+    + ' | input columns hold the same five=' + JSON.stringify(sepInputHolds)
+    + ' | the round figure: state=' + sepFigInState + ' input=' + sepFigInInput
+    + ' | Advance and Reset: input=' + sepActsInInput + ' state=' + sepActsInState
+    + ' | the columns of each area read ' + JSON.stringify(sepNames)
+    + ' against the live build\'s ' + JSON.stringify(sepWantNames)
+);
+
+/* 108b. AND THE PREVIEW STILL CROSSES THE BOUNDARY, DRIVEN RATHER THAN
+   ASSUMED. This is the one BEHAVIOUR a purely structural change could have
+   broken silently, and D-31 names it by name: "The spoken-for resource preview
+   stays with the resources in the state area ... but continues to react live as
+   declarations are made in the input area."
+
+   Before D-31 the reading and the button that moves it were siblings inside one
+   root and one repaint. They are now in two different regions of the page, and
+   fightBar's per-side pass hands the same `spoke` figure to both — so a version
+   of this change that rebuilt only the region the press landed in would leave
+   the resources reading a round that is one press stale, on a projector, with
+   every structural row above spotlessly green. That is this phase's recurring
+   failure and this row is the answer to it.
+
+   THREE MOMENTS AND THE MIDDLE ONE IS THE CLAIM: idle, declared, and undone by
+   a second press on the same button — the radio semantics D-27 asked for. The
+   reading is taken VERBATIM off the state column each time and must MOVE and
+   COME BACK, because a row asserting only that it moved would be green over a
+   reading that never returned.
+
+   AND THE TEARDOWN IS HERE TOO, because it is the other half of what the shell
+   ruling costs: both areas are bordered, headed panels now, so a fight that has
+   ended must put them back behind [hidden] AND empty their columns — otherwise
+   a student who never starts a fight, or who ends one, is left reading two
+   labelled empty boxes, which is the exact failure #ledger's own hidden rule
+   exists for. Read as attributes AND as child counts, because a region hidden
+   and full is one CSS change away from being visible and full. */
+function sepTeamOf(side) {
+  return fgLeaves(fgOne(fgStateRootOf(side), '.fg-team')).join(' ');
+}
+const sepIdle = sepTeamOf('cats');
+const sepActBtn = fgActBtnOf('cats', 'c1', fgCatsAct);
+fgPress(sepActBtn);
+const sepDeclared = sepTeamOf('cats');
+const sepDeclStanding = A.state.get().fight.decl.length;
+fgPress(fgActBtnOf('cats', 'c1', fgCatsAct));
+const sepUndone = sepTeamOf('cats');
+const sepUndoneStanding = A.state.get().fight.decl.length;
+A.ops.endFight();
+A.state.invalidate();
+A.state.flush();
+const sepAreasHidden = ['fight-state', 'fight-input']
+  .every((id) => dom.byId[id].hidden === true);
+const sepRootsHidden = ['state-cats', 'state-mechs', 'decl-cats', 'decl-mechs']
+  .every((id) => dom.byId[id].hidden === true);
+const sepRootsEmpty = ['state-cats', 'state-mechs', 'decl-cats', 'decl-mechs']
+  .reduce((n, id) => n + dom.byId[id].children.length, 0);
+const sepFigGone = dom.byId['fightbar'].querySelectorAll('.fg-round-head').length
+  + dom.byId['fightbar'].querySelectorAll('.fg-round-acts').length;
+check(
+  '108b. THE SPOKEN-FOR PREVIEW LIVES IN THE STATE AREA AND STILL MOVES WHEN A '
+    + 'BUTTON IN THE INPUT AREA IS PRESSED — D-31\'s own sentence, driven. This '
+    + 'is the ONE behaviour a purely structural change could break silently: '
+    + 'before D-31 the reading and the control that moves it were siblings in '
+    + 'one root, and they are now in two regions of the page. A version of this '
+    + 'change that repainted only the region the press landed in would leave the '
+    + 'resources one press stale with every structural row above green, which is '
+    + 'this phase\'s recurring failure. THREE MOMENTS, TAKEN VERBATIM: idle, '
+    + 'declared, and UNDONE by a second press on the same button, which is the '
+    + 'radio semantics D-27 asked for — the reading must move AND come back, '
+    + 'because a row asserting only that it moved is green over one that never '
+    + 'returns. The declaration list is read beside it so a reading that moved '
+    + 'for some other reason cannot satisfy this row. AND THE TEARDOWN RIDES '
+    + 'HERE, because D-31 gives both areas a border, a heading and a tint: a '
+    + 'fight that has ended must put them back behind [hidden] AND empty all '
+    + 'four columns AND take the round figure and the two controls off their '
+    + 'head lines, or a student who ends a fight is left reading two labelled '
+    + 'empty boxes — the exact failure #ledger\'s own hidden rule exists for. '
+    + 'Hidden AND empty are read separately, because a region hidden and full is '
+    + 'one CSS change away from being visible and full',
+  sepIdle !== '' && sepDeclared !== '' && sepUndone !== ''
+    && sepIdle !== sepDeclared && sepUndone === sepIdle
+    && sepDeclStanding === 1 && sepUndoneStanding === 0
+    && sepAreasHidden === true && sepRootsHidden === true
+    && sepRootsEmpty === 0 && sepFigGone === 0,
+  'the cats team reading in the STATE area, verbatim: idle ' + JSON.stringify(sepIdle)
+    + ' -> declared ' + JSON.stringify(sepDeclared)
+    + ' -> undone ' + JSON.stringify(sepUndone)
+    + ' | declarations standing ' + sepDeclStanding + ' -> ' + sepUndoneStanding
+    + ' | after endFight: both areas hidden=' + sepAreasHidden
+    + ', all four columns hidden=' + sepRootsHidden
+    + ', children left in them=' + sepRootsEmpty
+    + ', round figure and controls left on a head line=' + sepFigGone
 );
 
 A.ops.resetToDefaults();
