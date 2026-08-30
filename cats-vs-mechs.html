@@ -2726,6 +2726,77 @@
   .bf-pick{font-size:18px;color:var(--ink-dim)}
   .bf-pick[hidden]{display:none}
 
+  /* ===================== [C14.5] THE SYMBOLIC READING ===================== */
+  /* The `.sym-` rules [S06.12] paints with — D-29, the developer at the real
+     artifact with the D-28 ledger lane on screen, verbatim:
+       "show this using the symbols, rather than text"
+       "instead of showing cost in 1 Action Points, show it as - then the symbol
+        for the action points. Same with the cost of other skills."
+       "mouse over tooltip for the text description"
+
+     ONE PREFIX FOR A THING THAT IS NOT A SURFACE, WHICH IS THE ONE PLACE
+     [C14]'s "one prefix per surface" RULE DOES NOT DECIDE IT. Every other
+     prefix in this file names a REGION — .fg- the grid, .ld- the lane, .bf- the
+     battlefield, .dc- the board in fight mode — and this one names a READING
+     that three of those four now render. Giving it .fg- and .ld- spellings
+     would be two rules for one thing, which is exactly what [C13] refuses about
+     .sh- and .rs-; giving it no prefix at all would put it in the same
+     namespace as [C05]'s .tok rules, which every surface here already inherits
+     and none of them may change.
+
+     --tok IS OVERRIDDEN AND [C14.4] IS THE PRECEDENT RATHER THAN THE REASON.
+     12px/3px is the size the battlefield MEASURED for a 340px column, and a
+     ledger card is 340px wide, so the arithmetic that decided it there decides
+     it here: a nine-health row at [C00]'s 22px with the shipped 6px gap is
+     9x22 + 8x6 = 246px and a card would hold one unit's health and nothing
+     else; at 12px/3px it is 132px and a unit's two pools sit along one line.
+     [C00]'s rehearsal dial is untouched — turning it turns the board and leaves
+     this reading where it is, which is what .pk-sw's precedent is for.
+
+     .tok-count DROPS FROM 24px TO 18px HERE, AND 18 IS A FLOOR RATHER THAN A
+     CHOICE. [C05] sets the count at 24px because on the board it is "the same
+     treatment as every other value", and every other value on the board is
+     24px. Every value in a ledger card and on an action button is 18px —
+     UX-02's floor, which [C07], [C12], [C13] and [C14] each hold — so 24px
+     here would be the compacted form shouting over the reading it sits in. It
+     does not go below 18.
+
+     THE SIGN IS A MINUS SIGN AND NOT A HYPHEN, and that is a legibility
+     decision with the developer's own sentence behind it: "show it as - then
+     the symbol". U+2212 is drawn at the width and height of the digits beside
+     it in every font this file asks for; U+002D is drawn as a word-joining
+     hyphen and reads as part of the number at projector distance. Neither is
+     an icon and neither is hover-only.
+
+     WHAT THIS BLOCK MAY NOT GROW: a :hover rule that REVEALS anything. UX-02's
+     "nothing conveyed by hover alone" is the requirement D-29 comes closest to,
+     and the answer is in the markup rather than in the stylesheet — the symbol
+     and its count are permanently visible and the tooltip is the DESCRIPTION of
+     a reading that is already on screen. A rule here that made anything appear
+     on pointer-over would turn the description into the reading. */
+  .sym{
+    --tok:12px;
+    --tok-gap:3px;
+    display:inline-flex;align-items:center;gap:4px;
+    vertical-align:-2px;
+  }
+  /* The row inside a reading wraps like every other token row and is bounded by
+     nothing here — a reading that needed a scroller of its own would be a
+     reading too long to be one. */
+  .sym .tok-row{min-height:var(--tok)}
+  .sym .tok-count{font-size:18px}
+  .sym-sign{font-size:18px;font-weight:700;line-height:1;color:inherit}
+  /* The arrow between the two halves of a change. It is dimmer than either
+     half because it is the punctuation of the reading rather than a value in
+     it — .ld-fact's own relationship to .ld-act-line, one node smaller. */
+  .sym-to{font-size:18px;line-height:1;color:var(--ink-faint)}
+  /* THE FALL-THROUGH, and it takes .ld-say's and .fg-say's ruling rather than
+     either of their classes: a type the vocabulary no longer holds cannot be
+     drawn as a symbol, so the reading prints the artifact's own words and must
+     be COMPUTED-IDENTICAL to the words around it wherever it lands. It inherits
+     everything, on every surface, for exactly that reason. */
+  .sym-say{font:inherit;color:inherit}
+
   /* ===================== [C15] THE VIEW SWITCH ===================== */
   /* The switch between the board and the fight, plan 05-12, plus D-28's
      projection toggle, plan 05-D28. TWO PREFIXES, .vw- and .pv-, and they are
@@ -13952,8 +14023,15 @@ App.render = (function () {
 
      The two node classes look identical on screen on purpose. A student reading
      one of these lines must not be able to tell which words came from where. */
+  /* A THIRD KIND OF FRAGMENT, ADDED BY D-29 and matching the arm ldSay gains
+     one region down, node for node and reason for reason: [S06.12] returns a
+     reading that is a symbol, a count and a tooltip rather than a run of text,
+     and it sits INSIDE a line beside the words that are still words. It carries
+     its own exemption marker on the attribute channel [S06.12] owns, so nothing
+     is written on it here. */
   function fgSay(box, parts) {
     parts.forEach(function (part) {
+      if (part.node !== undefined) { box.appendChild(part.node); return; }
       if (part.said !== undefined) {
         box.appendChild(text('span', 'fg-say', part.said));
         return;
@@ -14362,21 +14440,37 @@ App.render = (function () {
      actually wrote; an action with no cost term at all says so in the
      artifact's own words rather than showing a blank, because a blank on a
      button is a thing a room has to guess about. */
+  /* D-29's SECOND SENTENCE, ON THE SURFACE IT WAS WRITTEN ABOUT: "instead of
+     showing cost in 1 Action Points, show it as - then the symbol for the
+     action points. Same with the cost of other skills." A cost is a minus sign
+     and the type's own tokens, at the count the file already compacts at, and
+     the sentence that used to be printed here is the tooltip.
+
+     THE TOOLTIP IS THE EXACT STRING THIS BUTTON RENDERED BEFORE — the figure, a
+     space, the label — assembled from the same two pieces in the same order.
+     That is what "the prose moves to mouse-over tooltips" means literally, and
+     it is what lets a student who read "1 Action Points" here last week and
+     hovers it today be told the same thing rather than a paraphrase of it.
+
+     "NO COST" STAYS A SENTENCE, and it is the clearest case of the line D-29
+     draws: there is no symbol for the absence of a cost. Drawing zero tokens
+     would be a blank on a button, which this comment already refused once as "a
+     thing a room has to guess about", and drawing a zero count of a type the
+     action never named would invent a currency for it.
+
+     AN ACTION THE REPORT CANNOT PRICE STILL SHOWS THE TERM THE STUDENT ACTUALLY
+     WROTE, in that type's own symbol — which is the same promise as before, and
+     one the symbol keeps better than the word did: a cost in a type this file
+     has no pool for now looks like the thing it is a cost in. */
   function fgCostParts(state, action, apCost) {
     var term = fgTerms(action, 'cost')[0];
     if (apCost !== null) {
-      return [
-        { said: String(apCost) + ' ' },
-        { word: labelFor(state, 'ap'), tok: 'ap' }
-      ];
+      return [{ node: symQty(state, 'ap', apCost, String(apCost) + ' ', '', true) }];
     }
     if (!term || typeof term.tok !== 'string') {
       return [{ said: 'no cost' }];
     }
-    return [
-      { said: String(term.n) + ' ' },
-      { word: labelFor(state, term.tok), tok: term.tok }
-    ];
+    return [{ node: symQty(state, term.tok, term.n, String(term.n) + ' ', '', true) }];
   }
 
   function fgActBtn(state, side, unit, action, report, on, off) {
@@ -14604,10 +14698,20 @@ App.render = (function () {
       }
       reports[i].met.forEach(function (m) {
         var req = el('p', 'fg-req');
+        /* D-29 ON A REQUIREMENT, AND IT IS THE TYPE'S NAME THAT BECOMES A
+           SYMBOL AND NOT THE SENTENCE. A requirement is not a cost — nothing is
+           subtracted by it — so it carries no minus sign, and its two numbers
+           stay digits because they are a NEED and a HAVE and a pile of tokens
+           does not say which is which. What was text is the word between them.
+           The shipped sentence is otherwise unchanged, word for word, which is
+           this line's own recorded reason for existing: a student who read the
+           cost of an action in the authoring dialog and reads it again here
+           must not have to work out whether the two sentences mean the same
+           thing. The tooltip names the type. */
         fgSay(req, [
           { word: action.name, act: action.id },
           { said: ' needs ' + m.need + ' ' },
-          { word: labelFor(state, m.tok), tok: m.tok },
+          { node: symMark(state, m.tok, '', '') },
           { said: ' of ' + m.have + '. '
             + ((m.have >= m.need) ? 'Requirement met.' : 'Requirement not met.') }
         ]);
@@ -15185,8 +15289,22 @@ App.render = (function () {
 
      The two node classes look identical on screen on purpose. A student
      reading a row must not be able to tell which words came from where. */
+  /* A THIRD KIND OF FRAGMENT, ADDED BY D-29: a NODE this line did not build.
+     [S06.12] returns a reading that is a symbol, a count and a tooltip rather
+     than a run of text, and it has to sit INSIDE the line beside the words that
+     are still words — "Cat 2" before it, "took 1 of the 1" inside its tooltip.
+     Appending it here rather than letting each caller assemble its own line
+     keeps ONE builder for a ledger line, which is the whole reason ldSay
+     exists.
+
+     THE NODE ARM IS FIRST IN THE TEST FOR THE SAME REASON `said` IS FIRST: a
+     part carries exactly one of the three and the cheapest discrimination is
+     the one that cannot be confused with the other two. A symbolic reading
+     carries no `said` and no `word`, so no marker is written on it here — it
+     carries its OWN, on the attribute channel [S06.12] owns. */
   function ldSay(box, parts) {
     parts.forEach(function (part) {
+      if (part.node !== undefined) { box.appendChild(part.node); return; }
       if (part.said !== undefined) {
         box.appendChild(text('span', 'ld-say', part.said));
         return;
@@ -15203,26 +15321,24 @@ App.render = (function () {
     return line;
   }
 
-  /* A token type's NAME as a fragment, and the fall-through is the whole
-     reason this is a function. fillProposal's recorded trap and [S06.7]'s
-     departed-term refusal are the same one: labelFor falls back to the shipped
-     health label for an id it cannot find, so asking it about a type that has
-     since been removed prints a name that is ACTIVELY WRONG and sends the
-     student looking for the wrong type. A past round can name a type that is
-     no longer on the board — the record is older than the vocabulary — so this
-     is the ordinary case here rather than an edge one.
+  /* DELIBERATELY ABSENT SINCE D-29: ldTokenWord, which returned a token type's
+     NAME as a text fragment. Every one of its four call sites now draws that
+     type's own SYMBOL through [S06.12] instead, so the function had no caller
+     and a function with no caller is a second answer waiting for one.
 
-     When the type has gone the ID is printed as one of the ARTIFACT'S OWN
-     fragments and carries no exemption marker, which is [S06.7]'s ruling and
-     is safe because requireTokenId has already bounded what an id may be. */
-  function ldTokenWord(state, tok) {
-    var vocab = state.build.tokens;
-    if (typeof tok === 'string' && vocab
-      && Object.prototype.hasOwnProperty.call(vocab, tok)) {
-      return { word: labelFor(state, tok), tok: tok };
-    }
-    return { said: (typeof tok === 'string') ? tok : 'a type this board no longer holds' };
-  }
+     ITS RULING SURVIVES IT AND IS WHERE THE RULING BELONGS. The paragraph that
+     stood here said the fall-through was the whole reason it was a function:
+     labelFor falls back to the shipped health label for an id it cannot find,
+     so asking it about a type that has since been removed prints a name that is
+     ACTIVELY WRONG and sends the student looking for the wrong type — and a
+     past round can name a type the board no longer holds, because the record is
+     older than the vocabulary, which makes that the ORDINARY case here rather
+     than an edge one. [S06.12]'s symHas is that guard, and on the symbol side
+     it bites harder: a wrong fall-through there draws the HEALTH TOKEN'S SHAPE
+     AND COLOUR for something that is not health. When the type has gone the id
+     is printed as one of the ARTIFACT'S OWN fragments and carries no exemption
+     marker, which is [S06.7]'s ruling and is safe because requireTokenId has
+     already bounded what an id may be. */
 
   /* The unit a record names, looked up across BOTH rosters, and off the BUILD
      roster rather than the fight one — [S06.7]'s fgUnitName restated for its
@@ -15268,14 +15384,38 @@ App.render = (function () {
    * structure would be two things both claiming to be what happened, and they
    * would disagree.
    */
+  /* ONE PAST UNIT'S STATE, IN SYMBOLS — D-29's first sentence, on the exact
+     reading the screenshot was of: "Cat 1 — Health 3, Shield 0".
+
+     THE UNIT'S NAME STAYS A WORD, and that is the line D-29 draws rather than
+     an exception to it: the brief keeps "sentences only where a symbol cannot
+     carry the meaning", and no symbol in this file names a unit. The two POOLS
+     are what become symbolic, each with its own tooltip, because each is its
+     own fact and a student hovering the shields wants to be told about shields.
+
+     BOTH POOLS ARE DRAWN WHETHER OR NOT THEY ARE ZERO, which is what this
+     reading already did and is therefore not a decision this change gets to
+     make quietly. A past board where one unit shows no shield row and another
+     shows two would be a board a student has to work out the shape of; the
+     fixed pair is what makes a card scannable. Zero draws D-21's compact form
+     — [S06.12]'s symQtyRow paragraph is the argument.
+
+     THE DEAD MARKER REPLACES THE CLAUSE THAT SAID IT IN WORDS, and it is the
+     `dead` vocabulary entry — the shipped rectangle carrying a skull, the same
+     mark [S06.9] draws on the board and [S06.11] draws on the battlefield. One
+     state, one mark, one set of words, in the third place this artifact says
+     it. */
   function ldUnitParts(state, u) {
-    return [
-      { said: ldUnitName(state, u.id) + ' — ' },
-      ldTokenWord(state, 'hp'),
-      { said: ' ' + u.hp + ', ' },
-      ldTokenWord(state, 'shield'),
-      { said: ' ' + u.shield + (u.alive ? '.' : ', no longer standing.') }
+    var name = ldUnitName(state, u.id);
+    var parts = [
+      { said: name + ' ' },
+      { node: symQty(state, 'hp', u.hp, name + ' — ', ' ' + u.hp + '.', false) },
+      { node: symQty(state, 'shield', u.shield, name + ' — ', ' ' + u.shield + '.', false) }
     ];
+    if (!u.alive) {
+      parts.push({ node: symMark(state, 'dead', name + ' — ', ', no longer standing.') });
+    }
+    return parts;
   }
 
   function ldBoardSide(state, side, was) {
@@ -15310,10 +15450,10 @@ App.render = (function () {
     if (!hit) { return; }
     var total = hit.shield + hit.health + hit.spare;
     if (!(total > 0)) { return; }
-    box.appendChild(ldLine('ld-fact', [ldTokenWord(state, 'shield'),
-      { said: ' took ' + hit.shield + ' of the ' + total + '.' }]));
-    box.appendChild(ldLine('ld-fact', [ldTokenWord(state, 'hp'),
-      { said: ' took ' + hit.health + '.' }]));
+    box.appendChild(ldLine('ld-fact', [{ node: symQty(state, 'shield', hit.shield,
+      '', ' took ' + hit.shield + ' of the ' + total + '.', true) }]));
+    box.appendChild(ldLine('ld-fact', [{ node: symQty(state, 'hp', hit.health,
+      '', ' took ' + hit.health + '.', true) }]));
     box.appendChild(ldLine('ld-fact', [{ said: (hit.spare === 0)
       ? 'Nothing was spare.' : 'Spare: ' + hit.spare + '.' }]));
   }
@@ -15331,13 +15471,13 @@ App.render = (function () {
      their rule. */
   function ldOddsInto(box, state, entry) {
     if (entry.apShort > 0) {
-      box.appendChild(ldLine('ld-fact', [ldTokenWord(state, 'ap'),
+      box.appendChild(ldLine('ld-fact', [{ node: symMark(state, 'ap', '', '') },
         { said: ': ' + entry.apPaid + ' paid, ' + entry.apShort + ' short.' }]));
     }
     if (!Array.isArray(entry.unlanded)) { return; }
     entry.unlanded.forEach(function (u) {
       box.appendChild(ldLine('ld-fact', [{ said: 'A term aimed at ' + ldWho(u.who) + ' named ' },
-        ldTokenWord(state, u.tok), { said: ' and moved nothing.' }]));
+        { node: symMark(state, u.tok, '', '') }, { said: ' and moved nothing.' }]));
     });
   }
 
@@ -15372,10 +15512,11 @@ App.render = (function () {
     if (!Array.isArray(record.hand) || record.hand.length === 0) { return; }
     acts.appendChild(text('p', 'ld-sub', 'Set by hand this round'));
     record.hand.forEach(function (r) {
+      var handName = ldUnitName(state, r.unit);
       acts.appendChild(ldLine('ld-fact', [
-        { said: ldUnitName(state, r.unit) + ' — ' },
-        ldTokenWord(state, r.tok),
-        { said: ' set by hand, ' + r.from + ' to ' + r.to + '.' }
+        { said: handName + ' ' },
+        { node: symDelta(state, r.tok, r.from, r.to, handName + ' — ',
+          ' set by hand, ' + r.from + ' to ' + r.to + '.') }
       ]));
     });
   }
@@ -15517,21 +15658,24 @@ App.render = (function () {
     }
     var said = 0;
     if (live.ap !== was.ap) {
-      body.appendChild(ldLine('ld-now-line', [ldTokenWord(state, 'ap'),
-        { said: ' ' + was.ap + ' to ' + live.ap + '.' }]));
+      body.appendChild(ldLine('ld-now-line', [{ node: symDelta(state, 'ap',
+        was.ap, live.ap, '', ' ' + was.ap + ' to ' + live.ap + '.') }]));
       said++;
     }
     live.units.forEach(function (u) {
       var before = ldUnitIn(was.units, u.id);
       if (before === null) { return; }
+      var uName = ldUnitName(state, u.id);
       if (before.hp !== u.hp) {
-        body.appendChild(ldLine('ld-now-line', [{ said: ldUnitName(state, u.id) + ' — ' },
-          ldTokenWord(state, 'hp'), { said: ' ' + before.hp + ' to ' + u.hp + '.' }]));
+        body.appendChild(ldLine('ld-now-line', [{ said: uName + ' ' },
+          { node: symDelta(state, 'hp', before.hp, u.hp, uName + ' — ',
+            ' ' + before.hp + ' to ' + u.hp + '.') }]));
         said++;
       }
       if (before.shield !== u.shield) {
-        body.appendChild(ldLine('ld-now-line', [{ said: ldUnitName(state, u.id) + ' — ' },
-          ldTokenWord(state, 'shield'), { said: ' ' + before.shield + ' to ' + u.shield + '.' }]));
+        body.appendChild(ldLine('ld-now-line', [{ said: uName + ' ' },
+          { node: symDelta(state, 'shield', before.shield, u.shield, uName + ' — ',
+            ' ' + before.shield + ' to ' + u.shield + '.') }]));
         said++;
       }
       if (before.alive !== u.alive) {
@@ -17202,6 +17346,294 @@ App.render = (function () {
 
   SYNC_HOOKS.push(syncBattlefield);
   // #endregion [S06.11] RENDER — THE BATTLEFIELD
+
+  /* ===================== [S06.12] RENDER — THE SYMBOLIC READING ========
+   * D-29, the developer at the real artifact with the D-28 lane on screen, in
+   * their own words: "show this using the symbols, rather than text";
+   * "instead of showing cost in 1 Action Points, show it as - then the symbol
+   * for the action points. Same with the cost of other skills."; "mouse over
+   * tooltip for the text description".
+   *
+   * ===================================================================
+   * THIS IS NOT A SURFACE. IT IS THE READING THREE SURFACES RENDER, AND
+   * THAT IS WHY IT IS ONE REGION RATHER THAN THREE EDITS.
+   * ===================================================================
+   * [S06.7]'s grid, [S06.8]'s lane and this region's own callers all priced
+   * the same thing in the same words before today — a figure, a space, and a
+   * token type's name — in three separate builders. D-29 changes the NOTATION
+   * of that reading, and a notation implemented three times is three things to
+   * keep in step: the day one of them compacts at a different count, or draws a
+   * hyphen where the others draw a minus sign, a student reads two surfaces of
+   * one artifact as two artifacts. So the notation is defined once, here, and
+   * called. It is the same argument [S06.11] makes about calling the board's
+   * token machinery instead of building token nodes, arriving one tier up.
+   *
+   * IT IS DECLARED LAST AND CALLED FROM EARLIER REGIONS, WHICH IS SAFE FOR ONE
+   * REASON AND IT IS WRITTEN DOWN RATHER THAN RELIED ON QUIETLY: [S06] is ONE
+   * function scope and every name below is a FUNCTION DECLARATION, so all of
+   * them are hoisted to the top of that scope and are callable from [S06.7] and
+   * [S06.8] before the reader reaches them. The two `var` constants are
+   * assigned while the IIFE body runs, which is before any render call can
+   * happen. A `const` or a function EXPRESSION here would break both halves of
+   * that and would break them at render time, on a projector, so neither is
+   * used and this paragraph is why.
+   *
+   * ===================================================================
+   * EVERY SYMBOL COMES THROUGH THE BOARD'S OWN MACHINERY. NOTHING IS
+   * RE-DERIVED HERE AND THAT IS THE REQUIREMENT.
+   * ===================================================================
+   * styleFor, labelFor, makeToken and syncRow are closure variables of this
+   * same IIFE and they are CALLED. What that buys is [S06.11]'s list, held for
+   * a second surface set and worth restating because D-29 is the change that
+   * makes it visible to a student:
+   *
+   *   A STUDENT-AUTHORED TYPE APPEARS IN THE LEDGER AND ON AN ACTION BUTTON
+   *   EXACTLY AS THEY AUTHORED IT. Their shape, their colour, their glyph,
+   *   their name in the tooltip. styleFor reads the live vocabulary through
+   *   hasOwnProperty and makeToken maps shape and colour through safeShape /
+   *   safeColor, so a caller string from a pasted build code is never
+   *   interpolated raw into className — T-02-01's mitigation, reused.
+   *
+   *   COMPACTION IS COMPACT_AT AND NOTHING ELSE. D-20's one threshold and
+   *   D-21's count-times-one-token form hold here because the same syncRow
+   *   decides them. D-29's brief says the counts follow the file's existing
+   *   convention rather than inventing a second one, and calling syncRow is how
+   *   that is true by construction rather than by agreement.
+   *
+   * THE ONE COUNT syncRow DOES NOT DRAW IS ZERO, AND symQtyRow IS THAT ONE
+   * CASE RATHER THAN A SECOND RULE. A row of zero tokens is an empty node, and
+   * an empty node is not a reading: "Health took 0" is a FACT this file
+   * deliberately states even when it is nothing, because three facts of a fixed
+   * shape are a reading a room learns once and a fact that appears only
+   * sometimes is one a student has to notice the absence of. So a zero is drawn
+   * in D-21's OWN compact form — the count, the multiplication sign, and
+   * exactly one token — which is obtained by calling syncRow at COMPACT_AT and
+   * then writing the count. THE THRESHOLD THAT DECIDES REPETITION VERSUS A
+   * COUNT IS STILL COMPACT_AT AND ONLY COMPACT_AT; what is added is a form for
+   * a quantity that has no repetition to draw.
+   *
+   * ===================================================================
+   * THE TOOLTIP, AND THE THREE THINGS THAT MAKE IT ADMISSIBLE.
+   * ===================================================================
+   * UX-02 is the requirement this change comes closest to and it is answered
+   * rather than waived. Its two halves are "every piece of information is
+   * legible on a projector" and "nothing conveyed by hover alone", and this
+   * file has restated the second one at nine sites as "never an icon, never
+   * revealed on hover, never a title= tooltip". Those sentences were written
+   * about a CONTROL'S LABEL and they still bind: not one control on this page
+   * has its name in a tooltip, and D-29 does not put one there.
+   *
+   *   1. THE READING IS ON SCREEN. What moves into the tooltip is the
+   *      DESCRIPTION of a reading that is permanently visible — the type's own
+   *      shape, colour and glyph, drawn at the size the battlefield measured,
+   *      with its quantity said by repetition or by a count. A student who can
+   *      read the board can read this, because it IS the board's notation. What
+   *      the tooltip adds is the type's NAME and the sentence around it.
+   *   2. IT IS AN ACCESSIBLE NAME AND NOT ONLY A TOOLTIP. The same string is
+   *      written to `title` and to `aria-label` on a node carrying role="img",
+   *      FROM ONE VARIABLE, so the two cannot drift and a screen reader gets
+   *      the sentence a mouse gets. A tooltip alone would be a reading a
+   *      keyboard cannot reach and assistive technology cannot see, which is
+   *      the half of UX-02 that has no workaround.
+   *   3. THE GATE STILL READS IT. This is the wave-1 lesson in its attribute
+   *      edition and it is the single most dangerous thing about this change:
+   *      words moving out of textContent leave a scanner that only reads
+   *      textContent, and a scanner that cannot see a surface reports it clean
+   *      forever. tests/selftest-node.cjs already harvests `title` and
+   *      `aria-label` — LABEL_ATTRS has carried both since plan 03.1-05 — and
+   *      D-29 extends the STUDENT-WORD channel to them rather than the
+   *      attribute list. Probe BG drives it.
+   *
+   * ===================================================================
+   * data-tsay — THE FOURTH EXEMPTION CHANNEL, AND WHY IT CARRIES A WORD
+   * RATHER THAN AN ID.
+   * ===================================================================
+   * ALLOC-10 lets a student name a token type anything, and a student who names
+   * one after a word this gate refuses must not redden CI. The three shipped channels each mark a
+   * node whose WHOLE text is the student's word — data-lbl and data-anm for
+   * text, data-albl for an accessible name — and every line this file assembles
+   * is built one node per fragment so that only the student's fragment is
+   * marked. A TOOLTIP CANNOT BE SPLIT ACROSS NODES: it is one string on one
+   * attribute, and it holds the artifact's words and the student's together.
+   *
+   * So the marker carries the FRAGMENT. data-tsay is the exact substring this
+   * region inserted, handed to the gate by the region that inserted it, and the
+   * harvest reads the tooltip with that substring removed rather than skipping
+   * the tooltip. THE ARTIFACT'S OWN WORDS STAY IN THE SCAN; only the student's
+   * leave it. Skipping the attribute — which is what data-albl does, and
+   * correctly, because a stepper's accessible name is a prefix that is ALSO
+   * rendered visibly beside it — would here take "took 1 of the 1" out of the
+   * only layer that can ever see it, since not one sentence this region
+   * produces exists as a literal anywhere.
+   *
+   * IT CARRIES THE WORD AND NOT THE TOKEN ID, and the difference is which side
+   * re-derives. An id would make the gate call labelFor to find out what this
+   * region rendered — a second derivation of a string that already exists, and
+   * one that answers WRONGLY for a type the vocabulary has since lost, which is
+   * ldTokenWord's recorded trap arriving in the scanner. The region says what
+   * it wrote.
+   *
+   * ===================================================================
+   * WHAT THIS REGION MAY NEVER SAY.
+   * ===================================================================
+   * Not one word below rules on a build, and the notation itself is held to the
+   * same rule: a minus sign is arithmetic and never an opinion. There is no
+   * total across a side, no figure set against another side's and no glyph
+   * invented here — every symbol drawn is one the STUDENT'S OWN VOCABULARY
+   * supplies, which is the whole reason this region calls styleFor instead of
+   * choosing a mark. The eight words that CLEAR the gate and still do not ship
+   * are out of the tooltips as well as out of the text, and the tooltips are
+   * scanned, so that is a checked claim rather than an intention.
+   *
+   * deps: [S06.1]'s styleFor / labelFor / makeToken / syncRow / COMPACT_AT
+   * owner: D-29
+   * ===================================================================== */
+  // #region [S06.12] RENDER — THE SYMBOLIC READING
+
+  /* U+2212 MINUS SIGN, not U+002D. The developer's word is "show it as - then
+     the symbol"; the character that draws that at the width and height of the
+     digits beside it is the minus sign, and the hyphen-minus is drawn as a
+     word-joiner. [C14.5] carries the same paragraph from the stylesheet side. */
+  var SYM_MINUS = '−';
+
+  /* U+2192 RIGHTWARDS ARROW, for a value that MOVED. It replaces the word "to"
+     in the readings that had one — "Health 3 to 1" — and the word survives in
+     the tooltip, which is the whole shape of this change. */
+  var SYM_TO = '→';
+
+  /* WHETHER THE LIVE VOCABULARY CAN DRAW THIS TYPE AT ALL, and it is
+     ldTokenWord's guard restated for a symbol rather than for a name, for a
+     reason that is sharper on this side. labelFor falls back to the shipped
+     health entry for an id it cannot find, and so does styleFor — so asking
+     either about a type a student has since removed does not merely print the
+     wrong word, it draws THE HEALTH TOKEN'S SHAPE AND COLOUR for something
+     that is not health. A past round can name a type that is no longer on the
+     board, because the record is older than the vocabulary, so this is the
+     ordinary case here and not an edge one. */
+  function symHas(state, tok) {
+    var vocab = state.build.tokens;
+    return (typeof tok === 'string' && !!vocab
+      && Object.prototype.hasOwnProperty.call(vocab, tok));
+  }
+
+  /* THE BOX EVERY READING IS BUILT IN, and every one of its four attributes is
+     load-bearing:
+       role="img"   — the contents are a picture of a quantity, so the name
+                      below replaces them rather than being read after them.
+       title        — D-29's tooltip.
+       aria-label   — the SAME string, written from the same variable, because
+                      two writes of one sentence are two things to keep in step
+                      and one of them will drift. This is the half a keyboard
+                      and a screen reader reach.
+       data-tsay    — the student's own fragment inside those two, handed to the
+                      gate so the artifact's half of the sentence stays in the
+                      scan and the student's half does not redden CI. The banner
+                      argues it in full. It is written ONLY when there is a
+                      student word to declare — an artifact-only tooltip is
+                      harvested whole, which is the behaviour a missing marker
+                      should have. */
+  function symBox(said, word) {
+    var box = el('span', 'sym');
+    box.setAttribute('role', 'img');
+    box.setAttribute('title', said);
+    box.setAttribute('aria-label', said);
+    if (typeof word === 'string' && word !== '') { setData(box, { tsay: word }); }
+    return box;
+  }
+
+  /* The sentence a reading describes itself with: the artifact's words, the
+     student's word, the artifact's words. It is fgSay's and ldSay's fragment
+     idiom collapsed into ONE string because an attribute cannot hold three
+     nodes — and data-tsay is what keeps the collapse honest. The prefix/suffix
+     shape is the stepper's own data-abl-pre + labelFor arrangement, reused
+     rather than reinvented. */
+  function symSaid(state, tok, pre, post) {
+    return String(pre || '') + labelFor(state, tok) + String(post || '');
+  }
+
+  /* A QUANTITY, DRAWN BY syncRow, WITH ONE ADDITION THAT IS NOT A SECOND RULE.
+     n >= 1 goes straight through: below COMPACT_AT the row draws one token per
+     point and at or above it draws a count, a multiplication sign and exactly
+     one token. n === 0 is the count syncRow has nothing to repeat for, so the
+     compact form is asked for at COMPACT_AT and the count is then written to
+     zero. THE ROW IS ALWAYS FRESHLY BUILT AND EMPTY when this is called — every
+     caller creates it in the same expression — so syncRow's `animate` flag
+     reads false and NOTHING IN A READING EVER ANIMATES. That is [C14.2]'s rule
+     that the lane's entry animation is on the card and on nothing inside it,
+     held by construction rather than by a class that is never added. */
+  function symQtyRow(row, n, style) {
+    if (n > 0) { syncRow(row, n, style); return; }
+    syncRow(row, COMPACT_AT, style);
+    if (row.firstElementChild) { row.firstElementChild.textContent = '0×'; }
+  }
+
+  /* ONE TOKEN STANDING FOR THE TYPE — not a quantity of it. This is the
+     substitution D-29's first sentence asks for: everywhere a sentence NAMED a
+     token type, it now draws that type's own mark and says the name on hover.
+     The count is deliberately absent because there is no count in the reading
+     it replaces: "Slash needs 2 Health of 27" has its numbers already and what
+     was text is the word between them.
+
+     A TYPE THE VOCABULARY NO LONGER HOLDS FALLS BACK TO THE ARTIFACT'S OWN
+     WORDS, unmarked and visible, which is ldTokenWord's shipped ruling: a
+     printed id is safe because requireTokenId bounds what an id may be, and a
+     WRONG SYMBOL would send a student looking for a type that is not there. */
+  function symMark(state, tok, pre, post) {
+    if (!symHas(state, tok)) {
+      return text('span', 'sym-say', (typeof tok === 'string')
+        ? tok : 'a type this board no longer holds');
+    }
+    var word = labelFor(state, tok);
+    var box = symBox(symSaid(state, tok, pre, post), word);
+    box.appendChild(makeToken(styleFor(state, tok), false));
+    return box;
+  }
+
+  /* A QUANTITY OF ONE TYPE, optionally spent. `minus` draws U+2212 ahead of the
+     tokens and is the whole of D-29's second sentence — a cost, a hit taken and
+     a pool drawn down are the three things on this surface that are SUBTRACTED
+     from something, and they are the three that carry the sign. A board state
+     is not one of them and does not. */
+  function symQty(state, tok, n, pre, post, minus) {
+    if (!symHas(state, tok)) {
+      return text('span', 'sym-say', (minus ? SYM_MINUS : '') + String(n) + ' '
+        + ((typeof tok === 'string') ? tok : ''));
+    }
+    var box = symBox(symSaid(state, tok, pre, post), labelFor(state, tok));
+    if (minus) { box.appendChild(text('span', 'sym-sign', SYM_MINUS)); }
+    var row = el('div', 'tok-row');
+    box.appendChild(row);
+    symQtyRow(row, n, styleFor(state, tok));
+    return box;
+  }
+
+  /* A QUANTITY THAT MOVED — the form every "3 to 1" reading takes now. Two
+     quantities and an arrow, in ONE box with ONE tooltip, because "Health 3 to
+     1" is one fact and two boxes would be two hovers for it.
+
+     IT DRAWS BOTH ENDS AND NEVER A DIFFERENCE. `3 to 1` is what the board held
+     and what it holds; `-2` is a number this file does not store, does not
+     render anywhere today, and would be a THIRD figure for a student to
+     reconcile against the two the lane already shows. [S06.8]'s own paragraph
+     rules on this from the prose side — "two numbers and no adjective" — and
+     the notation does not get to change what the reading says. */
+  function symDelta(state, tok, from, to, pre, post) {
+    if (!symHas(state, tok)) {
+      return text('span', 'sym-say', String(from) + ' ' + SYM_TO + ' ' + String(to));
+    }
+    var box = symBox(symSaid(state, tok, pre, post), labelFor(state, tok));
+    var style = styleFor(state, tok);
+    var was = el('div', 'tok-row');
+    box.appendChild(was);
+    symQtyRow(was, from, style);
+    box.appendChild(text('span', 'sym-to', SYM_TO));
+    var now = el('div', 'tok-row');
+    box.appendChild(now);
+    symQtyRow(now, to, style);
+    return box;
+  }
+
+  // #endregion [S06.12] RENDER — THE SYMBOLIC READING
 
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
