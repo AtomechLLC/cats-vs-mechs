@@ -45,6 +45,112 @@
        hardcodes either of them. */
     --tok:22px;
     --tok-gap:6px;
+
+    /* ==================================================================
+       [C00] D-33 PASS A — ONE VOCABULARY OF STATE. Plan 05-D33a.
+       ==================================================================
+       THE DEFECT THIS ANSWERS WAS MEASURED, NOT GUESSED. The D-33 audit
+       scanned every rule in this stylesheet, nested rules included, and
+       found ONE COLOUR DOING FOUR JOBS: seventeen :hover rules, every
+       single one of them `border-color:var(--accent)`; :focus-visible at
+       `outline:2px solid var(--accent);outline-offset:2px`; and
+       .fg-act--on — an action a student has DECLARED — at the same
+       `outline:2px solid var(--accent);outline-offset:2px`, byte for
+       byte. A keyboard user could not tell "my focus is here" from "this
+       is declared", because on screen they were the same pixels. Lit
+       retarget targets were in accent too, which made it four.
+
+       SO THE FOUR MEANINGS GET FOUR TREATMENTS, and each one is derived
+       from a [C00] token with color-mix(). NO NEW HEX — [C07] states that
+       rule, [C13] and the fight band each restate it about themselves, and
+       check 107f scans the fight half of this sheet for a literal on every
+       run.
+
+       AND THE FIGHT BAND'S MARKER IS NOT SPELLED IN THIS COMMENT, WHICH
+       LOOKS LIKE A TYPO AND IS NOT. 107f and check 103e BOTH slice this
+       stylesheet by `indexOf` of that marker followed by a space, and take
+       the FIRST hit. Writing it here — 1,180 lines above the block it
+       names — moved both slices up to [C00] and reddened 107f on
+       [C01]'s page gradient and [C02]'s `.callout b`, two colours shipped
+       three phases ago that this pass never touched. Measured, on the
+       first run of this block. Any comment above the fight band that
+       wants to name it must write it without the trailing space:
+
+         hover     a MUTED accent border plus a faint wash. Never the full
+
+         hover     a MUTED accent border plus a faint wash. Never the full
+                   accent, so hover stops impersonating the other three.
+         declared  the full accent border, a FILL, and the outline it
+                   always had. The fill is what makes it readable from the
+                   back of a room; the outline is [C07]'s non-hue channel
+                   and is kept rather than traded away.
+         focus     the same 2px accent ring, at offset 3 rather than 2,
+                   with a 1px --bg ring inside it so the ring survives on
+                   top of a declared control's fill.
+         lit       --accent-2, the removal-badge channel — a different HUE
+                   as well as a different shape, because a lit target and
+                   a declared action are two different invitations.
+
+       THE HOVER WASH IS A GRADIENT AND NOT A background-color, AND THAT
+       IS THE ONE PIECE OF CLEVERNESS IN HERE, so it is written down. Every
+       :hover rule in this file is nested inside its base rule and
+       therefore carries (0,2,0), while every --on rule is a bare class at
+       (0,1,0) — so a hover that set background-COLOUR would win over a
+       declared state's fill and a hovered declaration would stop reading
+       as declared. Layering the hover on background-IMAGE puts it on a
+       different property from the fill entirely: the two compose, the
+       specificity fight never happens, and a hovered declared control
+       reads as both. It also transitions, which a background-image going
+       from `none` to a gradient does not — [C16] gives every control a
+       transparent gradient to interpolate FROM for exactly that reason.
+
+       TWO FILLS PER MEANING, BECAUSE THIS FILE HAS TWO KINDS OF CONTROL.
+       .fg-act, .ae-pill, .pk-sw and .bf-unit sit on a TRANSLUCENT tint
+       over their panel, so their fill mixes toward `transparent` and
+       washes whatever is behind it. .brd-btn, .vw-btn, .pv-btn and
+       .dc-alive sit on an OPAQUE --panel, so their fill mixes toward
+       --panel instead — mixing toward transparent there would punch the
+       panel out and let the page show through, which reads as a hole
+       rather than as a state. */
+    --state-hover-line:color-mix(in srgb, var(--accent) 45%, var(--line));
+    --state-hover-wash:linear-gradient(
+      color-mix(in srgb, var(--accent) 12%, transparent),
+      color-mix(in srgb, var(--accent) 12%, transparent));
+    /* .unit-rm reserves --accent-2 for its own hover and focus (see [C04]);
+       it gets the same shape of treatment in its own channel. */
+    --state-hover-line-2:color-mix(in srgb, var(--accent-2) 45%, var(--line));
+    --state-hover-wash-2:linear-gradient(
+      color-mix(in srgb, var(--accent-2) 12%, transparent),
+      color-mix(in srgb, var(--accent-2) 12%, transparent));
+    --state-on-line:var(--accent);
+    --state-on-fill:color-mix(in srgb, var(--accent) 18%, transparent);
+    --state-on-solid:color-mix(in srgb, var(--accent) 18%, var(--panel));
+    --state-focus:var(--accent);
+    --state-lit-line:var(--accent-2);
+    --state-lit-fill:color-mix(in srgb, var(--accent-2) 16%, transparent);
+
+    /* THE SCROLL AFFORDANCE'S TWO COLOURS. The audit's P3-3 measured ZERO
+       ::-webkit-scrollbar rules and ZERO scrollbar-color declarations in
+       the whole file, over six scrolling regions — which is what made
+       every clipping finding in that document invisible rather than
+       merely present. The thumb is --ink-faint at 60%, which is the
+       audit's own figure; the shade is --bg, so an edge cue is the page's
+       own darkness arriving rather than a new colour. */
+    --state-scroll-thumb:color-mix(in srgb, var(--ink-faint) 60%, transparent);
+    --state-scroll-shade:color-mix(in srgb, var(--bg) 92%, transparent);
+
+    /* THE RAMP. Measured before this line went in: `transition`
+       declarations in the entire stylesheet = 0, and computed
+       transition-duration on .brd-btn, .fg-act, .vw-btn, .bf-unit and
+       dialog = 0s. Every hover, every selection, every disable and every
+       dialog opening SNAPPED. 120ms is short enough that a student
+       clicking through a round never waits on it and long enough that the
+       eye registers the change as one object changing rather than as two
+       different objects. It is a DIAL in --tok's manner: one number, no
+       JavaScript anywhere in this file reads it, and [C16]'s
+       prefers-reduced-motion block takes it to nothing. */
+    --ramp:120ms;
+    --ramp-in:160ms;
   }
 
   /* ===================== [C01] BASE ===================== */
@@ -124,7 +230,7 @@
     background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
     border-radius:999px;padding:8px 16px;min-height:36px;
     font:inherit;font-size:18px;cursor:pointer;user-select:none;
-    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
 
@@ -214,7 +320,7 @@
        would also work here. The file's whole design is that render writes
        explicit classes from state; a parent-matching rule would create a
        second, invisible source of truth in a stylesheet with no scoping. */
-    &:focus-within{border-color:var(--accent)}
+    &:focus-within{border-color:var(--state-focus)}
   }
   .unit-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .unit-name{font-size:18px;font-weight:600}
@@ -233,7 +339,7 @@
     background:transparent;border:1px solid var(--ink-faint);color:var(--ink-dim);
     border-radius:10px;min-width:32px;min-height:32px;padding:0 8px;opacity:1;
     font:inherit;font-size:18px;line-height:1;cursor:pointer;user-select:none;
-    &:hover{border-color:var(--accent-2);color:var(--accent-2)}
+    &:hover{border-color:var(--state-hover-line-2);background-image:var(--state-hover-wash-2);color:var(--accent-2)}
     &:focus{border-color:var(--accent-2);color:var(--accent-2)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
@@ -242,7 +348,7 @@
     background:var(--panel);border:1px dashed var(--ink-faint);color:var(--ink);
     border-radius:var(--radius);padding:12px 16px;min-height:44px;
     font:inherit;font-size:18px;cursor:pointer;user-select:none;
-    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
 
@@ -327,7 +433,7 @@
     border-radius:10px;display:grid;place-items:center;
     font:inherit;font-size:24px;line-height:1;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
     &:active{background:var(--panel)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
@@ -338,15 +444,15 @@
     background:var(--bg-2);border:1px solid var(--line);color:var(--ink);
     border-radius:10px;padding:8px 6px;font:inherit;font-size:24px;font-weight:700;
   }
-  .stp-field:focus{border-color:var(--accent)}
+  .stp-field:focus{border-color:var(--state-focus)}
 
   /* Both halves of the focus ring, not either one. A programmatic focus() --
      which is exactly what the structural rebuild does when it puts the student
      back where they were -- does not re-arm :focus-visible, so the ring would
      vanish while focus was in fact correct. The attribute below is written on
      the body by render.sync from state.ui.kbdNav; its writer is plan 02-02. */
-  :focus-visible{outline:2px solid var(--accent);outline-offset:2px}
-  body[data-kbd="1"] :focus{outline:2px solid var(--accent);outline-offset:2px}
+  :focus-visible{outline:2px solid var(--state-focus);outline-offset:3px;box-shadow:0 0 0 1px var(--bg)}
+  body[data-kbd="1"] :focus{outline:2px solid var(--state-focus);outline-offset:3px;box-shadow:0 0 0 1px var(--bg)}
 
   /* ===================== [C07] PICKER ===================== */
   /* The token-appearance dialog. Every class here carries the .pk- prefix,
@@ -392,12 +498,12 @@
     border-radius:10px;color:var(--ink);
     font:inherit;font-size:13px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
   /* The live choice is marked by an outline AND a tick, never by colour on its
      own. Half of this surface IS colours, so a student who cannot tell two of
      them apart would otherwise have no way to read which one is in use. */
-  .pk-sw--on{outline:2px solid var(--accent);outline-offset:2px}
+  .pk-sw--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   .pk-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .pk-sw--on .pk-check{visibility:visible}
   .pk-sw-label{text-align:center}
@@ -437,7 +543,7 @@
     border-radius:10px;color:var(--ink);
     font:inherit;font-size:16px;line-height:1.2;text-align:left;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
   /* The name takes the slack so the tick lands in the same column on every
      row, which is what makes the live one findable by scanning down an edge. */
@@ -451,7 +557,7 @@
     display:block;width:100%;box-sizing:border-box;
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
     color:var(--ink);padding:9px 12px;font:inherit;font-size:18px;
-    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
 
   /* The making-and-taking-away row sits at the START of the line, because it
@@ -486,7 +592,7 @@
   .err-actions{display:flex;gap:8px;flex-wrap:wrap}
   .err-btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);
     border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
-  .err-btn:hover{border-color:var(--accent)}
+  .err-btn:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   .err-btn--danger{border-color:var(--accent-2);color:var(--accent-2)}
 
   /* ===================== [C09] SELFTEST REPORT ===================== */
@@ -732,12 +838,12 @@
     border-radius:10px;color:var(--ink);
     font:inherit;font-size:16px;line-height:1.2;text-align:left;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
   /* The name takes the slack so the tick lands in the same column on every row,
      which is what makes the live one findable by scanning down an edge. */
   .ae-item-name{flex:1 1 auto;text-align:left}
-  .ae-item--on{outline:2px solid var(--accent);outline-offset:2px}
+  .ae-item--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   .ae-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .ae-item--on .ae-check{visibility:visible}
 
@@ -751,9 +857,9 @@
     border-radius:10px;color:var(--ink);
     font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .ae-side--on{outline:2px solid var(--accent);outline-offset:2px}
+  .ae-side--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
 
   /* The chrome is .pk-name's, which is .err-detail's, so there is ONE look for
      "type words here" across all three of the file's free-text inputs. */
@@ -764,7 +870,7 @@
     display:block;width:100%;max-width:610px;box-sizing:border-box;
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
     color:var(--ink);padding:9px 12px;font:inherit;font-size:18px;
-    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
 
   /* The making-and-taking-away row sits at the START of the line because it
@@ -894,9 +1000,9 @@
     border-radius:9px;color:var(--ink);
     font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .ae-pill--on{outline:2px solid var(--accent);outline-offset:2px}
+  .ae-pill--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   /* ===============================================================
      THE TICK WAS NEVER VISIBLE ON A PILL OR ON A SIDE BUTTON, AND
      THAT IS A DEFECT THIS PLAN FOUND RATHER THAN A CHOICE IT MADE.
@@ -943,7 +1049,7 @@
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
     color:var(--ink);padding:6px 10px;font:inherit;font-size:17px;
     font-variant-numeric:tabular-nums;text-align:right;
-    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
   .ae-amt[hidden]{display:none}
 
@@ -1014,9 +1120,9 @@
     border-radius:9px;color:var(--ink);
     font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .ae-prop-pill--on{outline:2px solid var(--accent);outline-offset:2px}
+  .ae-prop-pill--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
 
   /* One editable row per transformation, plus the override row. Same wrapping
      rule .ae-term keeps and for the same measured reason. */
@@ -1032,7 +1138,7 @@
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
     color:var(--ink);padding:8px 10px;font:inherit;font-size:17px;
     font-variant-numeric:tabular-nums;text-align:right;
-    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
 
   /* The line that says nothing has landed. It is PERMANENT — no [hidden] rule
@@ -1114,7 +1220,7 @@
     font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.5;
     min-height:104px;max-height:216px;overflow-y:auto;resize:vertical;
     user-select:text;overflow-wrap:anywhere;
-    &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
 
   /* UX-02's floor, the same one [C07] and [C12] both hold, applied to the three
@@ -2024,9 +2130,9 @@
     border-radius:9px;color:var(--ink);
     font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .fg-act--on{outline:2px solid var(--accent);outline-offset:2px}
+  .fg-act--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   /* OUT OF REACH IS SAID IN TWO NON-COLOUR CHANNELS AND THE DIMMING IS ONLY ONE
      OF THEM. .brd-btn already carries &:disabled{opacity:.45}, and [C07]'s rule
      is that a state is never in colour or in dimming alone — a projector with
@@ -2061,7 +2167,7 @@
      While a change is half made it wears the outline, which is the row's own
      reading of a flow whose lit half plan 05-15 draws on the battlefield. */
   .fg-at{font-size:18px}
-  .fg-at--on{outline:2px solid var(--accent);outline-offset:2px}
+  .fg-at--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-solid)}
 
   /* What a declaration lands on. A sentence a room reads, so it is at the same
      size as every other sentence on this surface rather than at a caption
@@ -2754,14 +2860,14 @@
     background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink-dim);
     border-radius:999px;padding:2px 12px;min-height:24px;
     font:inherit;font-size:18px;cursor:pointer;user-select:none;
-    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
   }
   .dc-alive-t{font-size:18px}
   /* The tick is CARRIED at zero opacity rather than created and destroyed, so
      the word beside it never moves sideways when the state changes — .ae-check
      is the shipped precedent and this is its reasoning, not a second one. */
   .dc-check{opacity:0;font-size:18px}
-  .dc-alive--on{border-color:var(--ink);color:var(--ink)}
+  .dc-alive--on{border-color:var(--ink);color:var(--ink);background-color:color-mix(in srgb, var(--ink) 12%, var(--panel))}
   .dc-alive--on .dc-check{opacity:1}
 
   /* The sentence a person reads. Its own [hidden] rule for the reason
@@ -2989,7 +3095,7 @@
     border-radius:10px;color:var(--ink);
     font:inherit;line-height:1.2;text-align:left;cursor:pointer;
     user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
 
   /* THE UNIT'S NAME, AT THE 18px FLOOR AND PERMANENTLY VISIBLE. UX-02, and
@@ -3062,7 +3168,7 @@
      which is [S07.5]'s shipped precedent and what its banner requires of this
      plan by name. The D-27 overrule is scoped to the grid's action buttons and
      this surface is outside it. */
-  .bf-unit--lit{outline:2px solid var(--accent);outline-offset:2px}
+  .bf-unit--lit{outline:2px solid var(--state-lit-line);outline-offset:2px;border-color:var(--state-lit-line);background-color:var(--state-lit-fill)}
   .bf-pick{font-size:18px;color:var(--ink-dim)}
   .bf-pick[hidden]{display:none}
 
@@ -3368,9 +3474,9 @@
     border-radius:999px;color:var(--ink-dim);
     font:inherit;font-size:18px;font-weight:600;line-height:1.2;
     cursor:pointer;user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
   }
-  .vw-on{outline:2px solid var(--accent);outline-offset:2px;color:var(--ink)}
+  .vw-on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-solid);color:var(--ink)}
   .vw-name{white-space:nowrap}
   .vw-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .vw-on .vw-check{visibility:visible}
@@ -3481,13 +3587,14 @@
     border-radius:999px;color:var(--ink-dim);
     font:inherit;font-size:18px;font-weight:600;line-height:1.2;
     cursor:pointer;user-select:none;touch-action:manipulation;
-    &:hover{border-color:var(--accent);color:var(--accent)}
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
   }
   /* The border goes dashed to solid as well as the outline arriving, so the two
      states differ in a SECOND non-hue channel — [C07]'s rule, and the one the
      browser checks read back off computed style rather than off a class. */
   .pv-on{
-    outline:2px solid var(--accent);outline-offset:2px;color:var(--ink);
+    outline:2px solid var(--state-on-line);outline-offset:2px;color:var(--ink);
+    border-color:var(--state-on-line);background-color:var(--state-on-solid);
     border-style:solid;
   }
   .pv-name{white-space:nowrap}
@@ -3534,6 +3641,229 @@
      this block that writes a margin twice. */
   @media(max-width:760px){
     #views{width:auto;margin-left:0}
+  }
+
+  /* ===================== [C16] MOTION AND SCROLL ===================== */
+  /* The two document-wide layers D-33 PASS A adds, and the ONLY block in
+     this stylesheet that deliberately reaches across every region rather
+     than staying behind a prefix. Plan 05-D33a.
+
+     WHY IT IS ONE BLOCK AND WHY IT IS LAST, said plainly, because both
+     answers are load-bearing and neither is obvious:
+
+       IT IS ONE BLOCK because the defect it fixes is a CONSISTENCY
+       defect. The audit's finding was not "this region has no
+       transition"; it was that the file has seventeen hover rules and
+       none of them ramps, five internal scrollers and none of them says
+       so. A ramp written into [C03], [C07], [C12], [C13], [C14] and [C15]
+       separately is six places for one duration to drift apart, and the
+       drift would be invisible until somebody watched two surfaces side
+       by side — which is exactly how the four-meanings-one-colour defect
+       above survived sixteen plans. [C00] holds the two numbers; this
+       block holds the one selector list that spends them.
+
+       IT IS LAST because background is a SHORTHAND in two rules that own
+       scrollers — #strip in [C03] and .ld-row in [C14.2] — and a
+       shorthand resets background-image to none. A scroll cue written
+       into [C01], as P3-3 proposed, is silently deleted by both of them
+       at equal specificity and later source order, with nothing on screen
+       and nothing in the gate to say so. Written here it survives, and it
+       goes on surviving the next author who reaches for the shorthand.
+
+     WHAT IT DOES NOT DO, and each absence is a decision:
+       NO TRANSFORM AND NO GEOMETRY. Nothing here moves, scales or resizes
+       anything. This pass is defined by moving no gate figure, and every
+       browser cell that reads a box would be reading it mid-flight the
+       moment a transform ramps. A dialog's entrance is opacity ALONE for
+       the same reason: opacity cannot move a getBoundingClientRect.
+       NO NEW HEX. Every colour below is a [C00] token or a color-mix() of
+       one — [C07]'s rule, and check 107f scans this block, because the
+       slice it reads runs from [C14] to the close of this style block.
+       NO REFERENCE FUNCTION THAT TAKES A URI. The edge cues are
+       linear-gradient() and nothing else: no image, no data-URI, no SVG.
+
+     ------------------------------------------------------------------
+     1. THE RAMP
+     ------------------------------------------------------------------
+     The list is every control in the file that has a state to change, and
+     it is spelled out rather than reached with a universal selector: a
+     `*{transition:...}` would ramp the token shapes [C05] draws, the
+     ledger cards [C14.2] animates in, and the battlefield plates that
+     [S06.11] rebuilds on every commit — three places where the file has
+     ALREADY decided what may and may not animate, in banners that say so
+     at length. A named list is a list the next reader can audit.
+
+     background-image is in the list because the hover wash IS a
+     background-image ([C00] says why), and the transparent gradient below
+     is what it interpolates FROM — from `none` a background-image change
+     is discrete and the wash would snap while everything beside it
+     ramped. It is set here rather than in each rule for the same reason
+     the ramp is: one place, one value. Every :hover rule in this file is
+     nested and carries (0,2,0); this list is (0,1,0); so it can never win
+     over a state and is only ever the resting value. */
+  .brd-btn, .unit-rm, .brd-add, .stp-btn, .stp-field, .err-btn,
+  .pk-sw, .pk-list-item, .pk-name,
+  .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
+  .sh-code, .sh-paste,
+  .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn{
+    background-image:linear-gradient(transparent, transparent);
+    transition:
+      border-color var(--ramp) ease,
+      background-color var(--ramp) ease,
+      background-image var(--ramp) ease,
+      color var(--ramp) ease,
+      outline-color var(--ramp) ease,
+      box-shadow var(--ramp) ease,
+      opacity var(--ramp) ease;
+  }
+  /* The card and the round-state panel change colour when focus enters
+     them and when a round resolves; neither is a control, so neither is
+     in the list above, and both look wrong snapping beside controls that
+     no longer do. */
+  .unit-card, .fg-area, .ld-now{
+    transition:border-color var(--ramp) ease, background-color var(--ramp) ease;
+  }
+
+  /* ------------------------------------------------------------------
+     2. THE DIALOG ENTRANCE
+     ------------------------------------------------------------------
+     A keyframe rather than a transition, which is the file's own shipped
+     idiom for a thing arriving: .tok--in ([C05]) and .ld-row--in ([C14.2])
+     are both animations, both about 140-160ms, and both sit under a
+     prefers-reduced-motion guard. This is the third of them and it is
+     built to match rather than to be a fourth kind of thing.
+
+     OPACITY ONLY, AND THE BACKDROP RIDES WITH IT. showModal() is called
+     from four places in [S07] and the harness measures dialog boxes
+     immediately afterwards — the D-32 cells read #act-edit's height and
+     the bottom edge of its Done button — so an entrance that moved or
+     scaled the box would be a measurement taken mid-animation. Opacity
+     changes no rect. */
+  @keyframes dlg-in{from{opacity:0}to{opacity:1}}
+  .pk[open], .ae[open], .sh[open], .rs[open]{animation:dlg-in var(--ramp-in) ease-out}
+  .pk[open]::backdrop, .ae[open]::backdrop,
+  .sh[open]::backdrop, .rs[open]::backdrop{animation:dlg-in var(--ramp-in) ease-out}
+
+  /* ------------------------------------------------------------------
+     3. THE SCROLL AFFORDANCE — P3-3, on all seven scrolling regions
+     ------------------------------------------------------------------
+     Measured by the audit before this block existed: zero
+     ::-webkit-scrollbar rules and zero scrollbar-color declarations in
+     the file, over .fg-sides (twice — the round state and the picker),
+     .ld-list, .ld-row, .ld-now-body, #strip in its sidebar form, and the
+     two authoring dialogs' lists. Chrome's default overlay scrollbar does
+     not paint until a pointer is already inside the box, so every one of
+     those regions clipped load-bearing content with NO signal of any
+     kind — which is what made P1-1 through P1-4 and P2-12 invisible
+     rather than merely wrong.
+
+     BOTH SPELLINGS, DELIBERATELY. scrollbar-width / scrollbar-color are
+     Baseline Widely Available and are what Chrome 121+ honours; the
+     ::-webkit- rules are the same figures for engines that do not read
+     the standard pair. They are written to MATCH, so no engine shows a
+     scrollbar this file did not design.
+
+     THE EDGE CUE IS THE STANDARD FOUR-LAYER SCROLL SHADOW, and it is
+     worth spelling out because it looks like magic and is not. Four
+     background layers, painted in the order listed, first on top:
+
+       two COVER layers, background-attachment: local, so they are
+         positioned against the CONTENT and scroll away with it. The top
+         one sits at the top of the content and the bottom one at its
+         bottom;
+       two SHADE layers, background-attachment: scroll, so they are
+         painted against the BOX and never move.
+
+     At rest the covers sit exactly on top of the shades and nothing is
+     visible. Scroll down and the top cover slides up out of the box,
+     uncovering the top shade — so a shade appears at precisely the edge
+     that now has content behind it, and disappears again at the end of
+     the run. A region that does not overflow shows nothing at all,
+     because its content box and its scroll box are the same box. No
+     JavaScript, no scroll listener, no class to keep in sync.
+
+     --fade-cover IS SET PER REGION AND MUST MATCH WHAT IS BEHIND IT,
+     because a cover that is the wrong colour is a permanent smudge at the
+     edge rather than an invisible one. Each value below is the region's
+     actual backdrop: .fg-sides sits directly on .fg-area (--panel-2), the
+     dialog lists on .pk / .ae (--panel), #strip is --panel itself. The
+     ledger's three are mixes rather than exact, because those surfaces
+     are deliberately translucent over the page and the honest cover for a
+     translucent surface is that surface composited onto --bg. */
+  .fg-sides, .ld-list, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
+    scrollbar-width:thin;
+    scrollbar-color:var(--state-scroll-thumb) transparent;
+  }
+  .fg-sides::-webkit-scrollbar, .ld-list::-webkit-scrollbar,
+  .ld-row::-webkit-scrollbar, .ld-now-body::-webkit-scrollbar,
+  #strip::-webkit-scrollbar, .pk-list::-webkit-scrollbar,
+  .ae-list::-webkit-scrollbar{width:10px;height:10px}
+  .fg-sides::-webkit-scrollbar-track, .ld-list::-webkit-scrollbar-track,
+  .ld-row::-webkit-scrollbar-track, .ld-now-body::-webkit-scrollbar-track,
+  #strip::-webkit-scrollbar-track, .pk-list::-webkit-scrollbar-track,
+  .ae-list::-webkit-scrollbar-track{background:transparent}
+  .fg-sides::-webkit-scrollbar-thumb, .ld-list::-webkit-scrollbar-thumb,
+  .ld-row::-webkit-scrollbar-thumb, .ld-now-body::-webkit-scrollbar-thumb,
+  #strip::-webkit-scrollbar-thumb, .pk-list::-webkit-scrollbar-thumb,
+  .ae-list::-webkit-scrollbar-thumb{
+    background:var(--state-scroll-thumb);border-radius:999px;
+  }
+
+  /* The vertical six. */
+  .fg-sides, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list{
+    background-image:
+      linear-gradient(to bottom, var(--fade-cover) 60%, transparent),
+      linear-gradient(to top, var(--fade-cover) 60%, transparent),
+      linear-gradient(to bottom, var(--state-scroll-shade), transparent),
+      linear-gradient(to top, var(--state-scroll-shade), transparent);
+    background-repeat:no-repeat;
+    background-position:top, bottom, top, bottom;
+    background-size:100% 26px, 100% 26px, 100% 18px, 100% 18px;
+    background-attachment:local, local, scroll, scroll;
+  }
+  /* And the lane, which is the one that scrolls SIDEWAYS — P1-4's fourth
+     item, in the same idiom turned ninety degrees. */
+  .ld-list{
+    background-image:
+      linear-gradient(to right, var(--fade-cover) 60%, transparent),
+      linear-gradient(to left, var(--fade-cover) 60%, transparent),
+      linear-gradient(to right, var(--state-scroll-shade), transparent),
+      linear-gradient(to left, var(--state-scroll-shade), transparent);
+    background-repeat:no-repeat;
+    background-position:left, right, left, right;
+    background-size:30px 100%, 30px 100%, 20px 100%, 20px 100%;
+    background-attachment:local, local, scroll, scroll;
+  }
+  /* .fg-area .fg-sides rather than a bare .fg-sides on purpose: check
+     103e reads the FIRST `\n  .fg-sides{` in this file as that rule's
+     body, and a second bare one down here would be a second answer to a
+     question the gate asks by name. */
+  .fg-area .fg-sides{--fade-cover:var(--panel-2)}
+  .pk-list, .ae-list{--fade-cover:var(--panel)}
+  #strip{--fade-cover:var(--panel)}
+  .ld-list{--fade-cover:var(--bg)}
+  .ld-row{--fade-cover:color-mix(in srgb, var(--panel) 55%, var(--bg))}
+  .ld-now-body{--fade-cover:color-mix(in srgb, var(--accent) 7%, var(--bg))}
+
+  /* ------------------------------------------------------------------
+     4. AND ALL OF IT COMES OFF FOR ANYBODY WHO HAS ASKED FOR THAT
+     ------------------------------------------------------------------
+     The guard [C05] and [C14.2] each already write, extended to
+     everything this block added. scroll-behavior goes with it: [C01] sets
+     `smooth` on html, which is motion the same person asked not to see.
+     The edge cues and the scrollbars STAY — they are colour and not
+     movement, and taking them away would take the affordance with them. */
+  @media (prefers-reduced-motion: reduce){
+    html{scroll-behavior:auto}
+    .brd-btn, .unit-rm, .brd-add, .stp-btn, .stp-field, .err-btn,
+    .pk-sw, .pk-list-item, .pk-name,
+    .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
+    .sh-code, .sh-paste,
+    .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
+    .unit-card, .fg-area, .ld-now{transition:none}
+    .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
+    .pk[open]::backdrop, .ae[open]::backdrop,
+    .sh[open]::backdrop, .rs[open]::backdrop{animation:none}
   }
 </style>
 </head>
