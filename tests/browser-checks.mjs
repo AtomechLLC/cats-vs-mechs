@@ -1365,10 +1365,21 @@ for (const ch of ['chrome', 'msedge']) {
        placement would have passed it, which is correct — both arrangements hold the
        property, and this cell is about the property rather than about a position.
 
-       THE ORDER CLAUSE IS INVERTED RATHER THAN DROPPED: at the offset where the LAST
-       row is in view, the control must be at or below that row's top, which is
-       "after the rows" measured on screen. A regression that put the pair back on the
-       head line reddens here as well as in node check 108.
+       THE ORDER CLAUSE IS INVERTED RATHER THAN DROPPED, AND IT IS TAKEN AT THE ONE
+       OFFSET WHERE IT MEANS ANYTHING — the one where the input area's own BOTTOM EDGE
+       is on screen, which is where a sticky footer stops floating and SETTLES onto the
+       foot it belongs to. There the control must sit at or below the last row's top,
+       which is "after the rows" measured in pixels rather than in child order.
+
+       ASKING FOR IT AT EVERY OFFSET WAS THE FIRST DRAFT AND IT WENT RED CORRECTLY:
+       at y=1098 of a 2196 span, nine rows in view, the footer was pinned at 674 while
+       the last row sat below it. THAT IS WHAT A STICKY ACTION BAR DOES and it is the
+       cost of the idiom said out loud rather than asserted around — while the region
+       is taller than the window the bar floats OVER its last ~90px, and scrolling
+       further clears it. What must never happen is the bar being unreachable, which is
+       the clause above, or the bar settling anywhere but after the rows, which is this
+       one. A regression that put the pair back on the head line fails both, and node
+       check 108's last-child clause is the third reading of the same fact.
 
        MEASURED WHEN IT WENT IN, three rounds in the lane, real Chrome:
          1920x1080  four offsets with rows in view, Advance wholly on screen at all
@@ -1389,11 +1400,15 @@ for (const ch of ['chrome', 'msedge']) {
           .map((n) => n.getBoundingClientRect());
         const inView = rows.filter((r) => r.bottom > 0 && r.top < window.innerHeight);
         const last = rows[rows.length - 1];
+        const area = document.querySelector('#fight-input').getBoundingClientRect();
         out.samples.push({
           y: Math.round(window.scrollY),
           advance: a,
           rowsInView: inView.length,
           advWhole: a.top >= 0 && a.bottom <= window.innerHeight && a.h > 0,
+          // THE FOOTER HAS SETTLED when the area's own foot is on screen. Until
+          // then it is pinned to the window and floats over the rows, by design.
+          settled: area.bottom <= window.innerHeight + 1 && area.bottom > 0,
           lastRowInView: last.bottom > 0 && last.top < window.innerHeight,
           advBelowLastRow: a.top >= Math.round(last.top)
         });
@@ -1403,10 +1418,10 @@ for (const ch of ['chrome', 'msedge']) {
       return out;
     });
     const withRows = together.samples.filter((s) => s.rowsInView > 0);
-    const atLastRow = together.samples.filter((s) => s.lastRowInView);
+    const atLastRow = together.samples.filter((s) => s.settled && s.lastRowInView);
     note(ch, size.name, 'D-33 Advance against the picker rows, swept over five page offsets',
-      together.samples.map((s) => `y${s.y}:${s.advance.top}-${s.advance.bottom}/${s.rowsInView}rows`).join('  '));
-    ok(`${tag}: 18c. at EVERY page offset where a picker row is on screen the Advance control that commits them is WHOLLY on screen with it, and where the LAST row is in view the control sits AFTER it - D-33 P1-6 inverted the order clause and the banner says why`,
+      together.samples.map((s) => `y${s.y}:${s.advance.top}-${s.advance.bottom}/${s.rowsInView}rows${s.settled ? '/settled' : ''}`).join('  '));
+    ok(`${tag}: 18c. at EVERY page offset where a picker row is on screen the Advance control that commits them is WHOLLY on screen with it, and where the footer has SETTLED onto the foot of the area it sits AFTER the last row - D-33 P1-6 inverted the order clause and the banner says why`,
       withRows.length > 0 && withRows.every((s) => s.advWhole === true)
       && atLastRow.length > 0 && atLastRow.every((s) => s.advBelowLastRow === true),
       together);

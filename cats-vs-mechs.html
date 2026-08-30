@@ -2871,9 +2871,22 @@
      reading beside the lane instead of under it is what keeps the lane's cost
      to the height of one card rather than one card plus seventy-two lines of
      reading. Same rule, same breakpoint, a stronger reason. */
+  /* D-33 P1-4'S LANE CAPTION SPANS FOR .ld-head's REASON, AND IT WAS FOUND ON
+     SCREEN RATHER THAN REASONED ABOUT. #ledger is a GRID, and a new child of a
+     two-column grid takes a CELL: the caption landed in column one, the lane
+     was pushed into the 300px reading column beside it, and .ld-now dropped to
+     a full-width row of its own with its frame stretched across the page. The
+     node gate ran 1253 passed, 196 of 196 and the browser suite ran 222 of 222
+     over that, at both viewports, because every one of them reads containment,
+     order and text and not one of them reads which CELL a box landed in. It was
+     caught by looking at the picture.
+
+     ANY CHILD ADDED TO THIS REGION NEEDS A LINE HERE. That is the rule this
+     entry exists to leave behind, and it is why the two spanning selectors are
+     written together rather than the new one being tacked on somewhere else. */
   @media (min-width:1100px){
     #ledger{grid-template-columns:minmax(0, 1fr) minmax(300px, 26%)}
-    .ld-head{grid-column:1 / -1}
+    .ld-head, .ld-lede{grid-column:1 / -1}
   }
 
   /* PAST ROUNDS READ AS PAST, AND THE MECHANISM IS RECESSION RATHER THAN
@@ -2935,32 +2948,73 @@
     background:color-mix(in srgb, var(--panel) 55%, transparent);
     color:var(--ink-dim);
   }
-  /* AND THE ONE HEIGHT QUERY IN THIS FILE, WHICH IS HERE BECAUSE THE LANE IS
-     THE THING THAT SHOULD GIVE. On a 768-tall laptop the page spends 293px on
-     chrome before the band even starts, and 22vh of card is 169px of that
-     remainder — so the grid a student is actually playing on was starting at
-     660 of 768 with three rounds behind them. Measured, three rounds resolved,
-     twelve declarations a round, both browsers:
+  /* ==================================================================
+     THE ONE HEIGHT QUERY IN THIS FILE WAS HERE AND D-33 P1-4 DELETED IT,
+     BECAUSE THE THING IT WAS COMPENSATING FOR IS GONE. Plan 05-D33b.
+     ==================================================================
+     WHAT STOOD HERE, kept verbatim because a dial that is removed should leave
+     its derivation behind:
 
-       .ld-row bound at 768     lane box   .fg-sides top   Advance top
-         22vh                     174          660            593
-         15vh   <- shipped        120          591            524
+       "AND THE ONE HEIGHT QUERY IN THIS FILE, WHICH IS HERE BECAUSE THE LANE IS
+        THE THING THAT SHOULD GIVE. On a 768-tall laptop the page spends 293px
+        on chrome before the band even starts, and 22vh of card is 169px of that
+        remainder — so the grid a student is actually playing on was starting at
+        660 of 768 with three rounds behind them. Measured, three rounds
+        resolved, twelve declarations a round, both browsers:
 
-     THE LANE IS HISTORY AND THE GRID IS THE GAME, so when there is not enough
-     of both the lane is what shrinks. A card at 15vh still shows its round
-     number, its note and the first readings of its board, and the rest of it is
-     one scroll of the card away. Nothing else in this file is bounded by
-     viewport HEIGHT and it is worth saying why this one is: every other dial
-     here bounds a region that competes with the board for width or for a share
-     of the page, and this one bounds a region that competes with the round
-     being played for the fold. 820px is not a device and is not meant to be —
-     it is the height at which the arithmetic above stops working, with the
-     usual couple of pixels of cushion for the reason [C14]'s 1180px breakpoint
-     records: a media query is not evaluated against the same box the element is
-     laid out in. */
-  @media(max-height:820px){
-    .ld-row{max-height:15vh}
-  }
+          .ld-row bound at 768     lane box   .fg-sides top   Advance top
+            22vh                     174          660            593
+            15vh   <- shipped        120          591            524
+
+        THE LANE IS HISTORY AND THE GRID IS THE GAME, so when there is not
+        enough of both the lane is what shrinks. A card at 15vh still shows its
+        round number, its note and the first readings of its board, and the rest
+        of it is one scroll of the card away. ... 820px is not a device and is
+        not meant to be — it is the height at which the arithmetic above stops
+        working."
+
+     THE ACCEPTANCE CRITERION IN THAT PARAGRAPH IS THE ONE THE AUDIT MEASURED
+     AGAINST, AND IT FAILED. At 1366x768 with three rounds resolved: a card is
+     115px, its content 667px, and of its twelve unit lines ZERO were visible.
+     The round number (~26px) and the per-card note (~48px on two lines) filled
+     it and the word "Cats" was cut through its cap-height. The criterion was
+     written when a card held less than it holds now.
+
+     THE DIAL WAS THE THIRD FIX AND NOT THE FIRST, which is the audit's ordering
+     and the reason it works. P1-4 moved the note out of every card and onto the
+     lane — it was byte-identical on all three, and three cards spent ~144px of
+     a 345px lane printing one sentence three times. P2-10 stopped drawing a
+     tally that is zero, so a unit line went from `Cat 1 ▪▪▪ 0×▪` to `Cat 1 ▪▪▪`.
+     Card content: 667px -> 552px, and 74px of every card's TOP came back.
+
+     RE-DRIVEN AFTER BOTH, three rounds resolved, real Chrome, counting UNIT
+     LINES wholly inside the card rather than leaves — because a leaf is a token
+     shape and a room reads lines:
+
+       .ld-row     card box @1080 / lines of 12    @768 / lines of 12
+         15vh          162 / 9                       115 / 3
+         18vh          194 / 9                       138 / 6
+         22vh          238 / 10                      169 / 9   <- both shipped
+         26vh          281 / 12                      200 / 9
+         30vh          324 / 12                      230 / 10
+         34vh          367 / 12                      261 / 11
+
+     22vh AT 768 SHOWS NINE OF TWELVE, where 15vh showed three and the shipped
+     arrangement before this pass showed none. The base bound above is already
+     22vh, so THE QUERY IS DELETED RATHER THAN RETUNED: it existed to buy back
+     74px that a repeated sentence and a column of zeroes were spending, and
+     they are not spending it any more. One bound, one number, no breakpoint.
+
+     WHAT IT COSTS, SAID OUT LOUD AND SMALLER THAN IT LOOKS: at 1366x768 the
+     LANE goes from 152px to 173px and the round state's top from 726 to 748 —
+     21 pixels for six more unit lines a card. The lane's floor is set by the
+     reading beside it rather than by the card, which is why 15vh and 18vh both
+     measure 152: below that the card is shrinking into space the lane is
+     spending anyway.
+
+     AND IT IS AFFORDABLE NOW IN A WAY IT WAS NOT, because D-33 P1-6 made the
+     Advance control a sticky footer — the control this lane used to be shrunk
+     to protect is no longer a function of anything above it. */
 
   /* THE ENTRY ANIMATION IS ON THE ROW AND ON NOTHING INSIDE IT, and that is a
      correctness decision with [S06.8]'s name on it rather than a styling one.
@@ -2988,6 +3042,30 @@
   /* The sentence under it, which says WHICH board the numbers below are. It is
      at the floor too, because it is a label and not a footnote. */
   .ld-note{margin:0;font-size:18px;color:var(--ink-faint);line-height:1.4}
+  /* D-33 P1-4: THE NOTE ONCE, FOR THE LANE. It carried the same words this
+     class dresses inside every card until this pass — see [S06.8]'s ldFill and
+     LD_LANE_SAID — and it is drawn at the same size and the same ink, because
+     it is the same sentence saying the same thing about the same cards. What
+     changed is that there is one of it. */
+  .ld-lede{margin:-2px 0 0;font-size:18px;color:var(--ink-faint);line-height:1.4}
+
+  /* D-33 P1-5: THE EMPTY STATE, WHICH IS A CARD AND NOT AN ABSENCE. At round
+     one #ledger-list was an empty div under a heading, with 1,180px of empty
+     page beside it — "a label with nothing under it, which reads as a rendering
+     failure". This is .ld-row's own geometry with the border DASHED, which is a
+     change of shape rather than of hue and therefore says "not yet" at the back
+     of a room with the colour washed out. It is dimmer than a real card and it
+     is deliberately not tinted: it is the shape of history rather than history.
+
+     No new hex — the same --line mix .ld-row uses, taken down to 45% because a
+     dashed border at full strength reads as a live edge. */
+  .ld-row--wait{
+    justify-content:center;
+    border-style:dashed;
+    border-color:color-mix(in srgb, var(--line) 45%, transparent);
+    background:none;
+    color:var(--ink-faint);
+  }
 
   /* The two sides of a past round, along the line for the reason .fg-sides is:
      they are two halves of one round and reading them as a pair is the point.
@@ -17535,6 +17613,12 @@ App.render = (function () {
      the one that cannot be confused with the other two. A symbolic reading
      carries no `said` and no `word`, so no marker is written on it here — it
      carries its OWN, on the attribute channel [S06.12] owns. */
+  /* The lane's own caption, held as a constant for BF_PICK_SAID's reason: one
+     sentence, one copy. It says what the lane IS and never what a student
+     should conclude from it — D-33 P1-4 moved it out of every card and this is
+     the one place it is written. */
+  var LD_LANE_SAID = 'Each card is the board as it stood when that round began.';
+
   function ldSay(box, parts) {
     parts.forEach(function (part) {
       if (part.node !== undefined) { box.appendChild(part.node); return; }
@@ -17638,13 +17722,45 @@ App.render = (function () {
      mark [S06.9] draws on the board and [S06.11] draws on the battlefield. One
      state, one mark, one set of words, in the third place this artifact says
      it. */
+  /* ==================================================================
+     D-33 P2-10 — A TALLY THAT IS ZERO IS NOT DRAWN, AND THE DECISION
+     THIS OVERTURNS IS QUOTED RATHER THAN DELETED. Plan 05-D33b.
+     ==================================================================
+     WHAT THE BANNER ABOVE THIS FUNCTION SAID, verbatim:
+
+       "BOTH POOLS ARE DRAWN WHETHER OR NOT THEY ARE ZERO, which is what this
+        reading already did and is therefore not a decision this change gets to
+        make quietly. A past board where one unit shows no shield row and
+        another shows two would be a board a student has to work out the shape
+        of; the fixed pair is what makes a card scannable."
+
+     THE AUDIT MEASURED WHAT THE FIXED PAIR COSTS ON THE ONE REGION THAT HAS NO
+     HEIGHT TO SPARE: with no shield allocated, every unit line in every card
+     read `Cat 1 ▪▪▪ 0×▪` — eight lines per card, three cards, each spending
+     half its ink saying "zero". "It is the difference between a history card
+     that shows history and one that shows the word zero nine times."
+
+     AND THE ARGUMENT AGAINST IT WAS ALREADY OVERRULED ONE REGION AWAY, which is
+     what makes this a reconciliation rather than a reversal. [S06.11]'s
+     battlefield has drawn exactly this rule since plan 05-15 —
+     `line.hidden = (tok !== 'hp' && n === 0)` — so the shipped artifact already
+     answered "does a zero tally get a line" twice, differently, on two surfaces
+     a student reads in the same glance. This makes them one rule.
+
+     HEALTH IS ALWAYS DRAWN, at zero as much as at three, because a unit at zero
+     health is a real reading and an absent health line would be the labelled
+     empty box [S06.7] and this region both refuse. Everything else goes when it
+     is nothing. */
   function ldUnitParts(state, u) {
     var name = ldUnitName(state, u.id);
     var parts = [
       { said: name + ' ' },
-      { node: symQty(state, 'hp', u.hp, name + ' — ', ' ' + u.hp + '.', false) },
-      { node: symQty(state, 'shield', u.shield, name + ' — ', ' ' + u.shield + '.', false) }
+      { node: symQty(state, 'hp', u.hp, name + ' — ', ' ' + u.hp + '.', false) }
     ];
+    if (u.shield !== 0) {
+      parts.push({ node: symQty(state, 'shield', u.shield, name + ' — ',
+        ' ' + u.shield + '.', false) });
+    }
     if (!u.alive) {
       parts.push({ node: symMark(state, 'dead', name + ' — ', ', no longer standing.') });
     }
@@ -17792,11 +17908,30 @@ App.render = (function () {
      is about the ROWS: moving a row cancels the row's animation. Nothing
      inside a row is animated — [C14.2] states that and gives this as the
      reason — so rebuilding an interior replays nothing at all. */
+  /* ==================================================================
+     D-33 P1-4: THE NOTE IS PRINTED ONCE FOR THE LANE, NOT ONCE PER CARD.
+     Plan 05-D33b.
+     ==================================================================
+     WHAT STOOD IN EVERY CARD: a <p class="ld-note"> reading "The board as it
+     stood when round N began." — byte-identical on every card except for the
+     numeral, which the card's own <h3> already prints two lines above it.
+
+     WHAT IT COST, MEASURED. At 1366x768 a card is 115px (.ld-row is capped at
+     22vh, 15vh below 820px of viewport height). The round number takes ~26px
+     and this note took ~48px on two lines, so the card had ~40px left and spent
+     it on the word "Cats", cut through its cap-height. ZERO BOARD READINGS
+     SURVIVED — against the block's own shipped acceptance criterion, which
+     [C14.2] states in as many words: "A card at 15vh still shows its round
+     number, its note and the first readings of its board". Three cards spent
+     ~144px of a 345px lane saying one sentence three times.
+
+     SO IT MOVES TO THE LANE, under #ledger's own heading, as ONE caption. That
+     returns ~48px of a 115px card — from zero readings to several — without
+     touching the height dial at all, which is why the audit puts it first and
+     the dial third. LD_LANE_SAID is the constant; [S06.8]'s ldBuild writes it. */
   function ldFill(row, state, record) {
     row.replaceChildren();
     row.appendChild(text('h3', 'ld-round', 'Round ' + record.round));
-    row.appendChild(text('p', 'ld-note',
-      'The board as it stood when round ' + record.round + ' began.'));
     var board = el('div', 'ld-board');
     LD_SIDES.forEach(function (side) {
       board.appendChild(ldBoardSide(state, side, record.was ? record.was[side] : null));
@@ -17969,13 +18104,61 @@ App.render = (function () {
   // BUILT ONCE, and the flag that says so is cleared by the teardown, so the
   // next fight builds again. The heading is permanent, visible and at [C14]'s
   // 18px floor — never an icon and never a title= tooltip (UX-02).
+  //
+  // D-33 P1-4 ADDS THE LANE CAPTION HERE, and it is built rather than written
+  // into the shell for the reason every other reading in this region is: the
+  // region is torn down and rebuilt with the fight, and a caption left in the
+  // markup would stand over an empty lane on the setup page. It is INSERTED
+  // BEFORE the list rather than appended, because it is a caption for the lane
+  // and a caption below what it captions is a footnote.
   function ldBuild(root) {
     if (root.querySelector('.ld-now')) { return; }
+    var list = document.getElementById('ledger-list');
+    if (list && !root.querySelector('.ld-lede')) {
+      root.insertBefore(text('p', 'ld-lede', LD_LANE_SAID), list);
+    }
     var now = el('div', 'ld-now');
     now.appendChild(text('h3', 'ld-now-head', 'What changed since the previous round'));
     now.appendChild(el('div', 'ld-now-body'));
     now.hidden = true;
     root.appendChild(now);
+  }
+
+  /* ==================================================================
+     D-33 P1-5 — THE EMPTY STATE IS A CARD AND NOT A HEADING OVER
+     NOTHING. Plan 05-D33b.
+     ==================================================================
+     Measured at round one, 1920x1080: #ledger-list is an EMPTY div. The heading
+     "Earlier rounds" sits at x=160, the "What changed since the previous round"
+     panel floats at x=1344, and between them is 1,180px of empty page. "A
+     student who starts a fight should be able to read, from the screen alone,
+     that this strip is where history will accumulate. Right now round 1 shows a
+     label with nothing under it, which reads as a rendering failure."
+
+     ONE PLACEHOLDER CARD, at .ld-row's own geometry with a dashed border, and
+     it names the round it is waiting for so it is a reading rather than a
+     decoration. It is removed by the same ldGrow walk that appends real rows:
+     it carries the .ld-row--wait class and no data-ld-round, so it can never be
+     paired with a record by position.
+
+     IT IS EMPTY AND ABSENT TOGETHER, which is this file's standing rule for a
+     node that has two states: the card exists only while `past` is empty, and
+     the moment the first round resolves it is gone rather than hidden. */
+  function ldWait(list, state) {
+    var have = list.querySelector('.ld-row--wait');
+    if (state.fight.past.length > 0) {
+      if (have) { list.removeChild(have); }
+      return;
+    }
+    var say = 'Round ' + state.fight.round + ' will appear here once you advance.';
+    if (have) {
+      var line = have.querySelector('.ld-note');
+      if (line && line.textContent !== say) { line.textContent = say; }
+      return;
+    }
+    var card = el('article', 'ld-row ld-row--wait');
+    card.appendChild(text('p', 'ld-note', say));
+    list.appendChild(card);
   }
 
   /* The teardown, and it EMPTIES rather than merely hides, which is [S06.7]'s
@@ -17989,6 +18172,15 @@ App.render = (function () {
     if (list) { list.replaceChildren(); }
     var now = root.querySelector('.ld-now');
     if (now) { root.removeChild(now); }
+    /* D-33 P1-4's CAPTION GOES WITH THEM, AND THE HARNESS FOUND THIS RATHER
+       THAN THIS COMMENT PREDICTING IT. The paragraph above says the teardown
+       EMPTIES rather than merely hides, and gives the exact reason; the caption
+       was added to ldBuild in the same commit and not to here, so it survived
+       endFight under a hidden root and the SETUP page's Layer C scan went from
+       128 rendered strings to 129. One string, on a page it is not about,
+       counted into a floor whose whole job is to bound that page. */
+    var lede = root.querySelector('.ld-lede');
+    if (lede) { root.removeChild(lede); }
     root.hidden = true;
   }
 
@@ -18104,6 +18296,11 @@ App.render = (function () {
       var from = namesMoved ? 0 : (n - added);
       if (from < 0) { from = 0; }
       for (var i = from; i < n; i++) { ldFill(rows[i], state, past[i]); }
+      // D-33 P1-5: THE PLACEHOLDER IS DECIDED AFTER THE GROW WALK AND NOT
+      // BEFORE IT, so ldGrow's own trims never see a child it did not append.
+      // It is called on the same gate the rows are, because "is `past` empty"
+      // can only change when the row list does.
+      ldWait(list, state);
       // SCROLLED TO ITS END ON APPEND, AND IT DOES NOT HAPPEN BY ITSELF.
       // Measured in a real browser by plan 05-06: once the list is longer than
       // its own box the newest round is BEYOND THE END OF ITS OWN SCROLLER, and

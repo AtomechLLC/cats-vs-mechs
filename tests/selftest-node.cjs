@@ -10249,16 +10249,42 @@ const fgTeamSpoken = fgTeamRead('cats');
 const fgPageBefore = fgLeaves(fgBar).join('') + ''
   + fgLeaves(fgLedgerRoot).join('') + ''
   + fgLeaves(dom.byId['col-cats']).join('');
+/* ==========================================================================
+   D-33 P1-5 — TWO KINDS OF CARD LIVE IN THIS LANE NOW, AND EVERY ROW THAT
+   COUNTS THEM HAS TO SAY WHICH IT MEANS.
+   ==========================================================================
+   The audit measured round one: #ledger-list was an EMPTY div under a heading,
+   with 1,180px of empty page beside it — "a label with nothing under it, which
+   reads as a rendering failure". P1-5 renders ONE placeholder card there, at
+   .ld-row's own geometry with a dashed border, naming the round it waits for.
+
+   IT CARRIES .ld-row BECAUSE IT IS THE SAME OBJECT AT THE SAME SIZE — that is
+   the whole point of a placeholder — so `.ld-row` counts one more than it did
+   at exactly the moments `past` is empty. Rather than narrow every reader and
+   lose the claim, the two are counted SEPARATELY and BOTH are asserted, which
+   turns a defect this pass would otherwise have to work around into the
+   contract P1-5 actually makes: the placeholder is present exactly when there
+   is no history, and gone the moment there is. */
+function ldReal(root) {
+  return root.querySelectorAll('.ld-row')
+    .filter((n) => String(n.className || '').indexOf('ld-row--wait') === -1).length;
+}
+function ldWaiting(root) {
+  return root.querySelectorAll('.ld-row')
+    .filter((n) => String(n.className || '').indexOf('ld-row--wait') !== -1).length;
+}
 const fgStateBefore = JSON.stringify(A.state.get().fight);
 const fgRoundBefore = dom.byId['round-count'].textContent;
-const fgRowsBefore = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const fgRowsBefore = ldReal(fgLedgerRoot);
+const fgWaitBefore = ldWaiting(fgLedgerRoot);
 fgAdvancePress();
 const fgPageAfter = fgLeaves(fgBar).join('') + ''
   + fgLeaves(fgLedgerRoot).join('') + ''
   + fgLeaves(dom.byId['col-cats']).join('');
 const fgStateAfter = JSON.stringify(A.state.get().fight);
 const fgRoundAfter = dom.byId['round-count'].textContent;
-const fgRowsAfter = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const fgRowsAfter = ldReal(fgLedgerRoot);
+const fgWaitAfter = ldWaiting(fgLedgerRoot);
 const fgTeamResolved = fgTeamRead('cats');
 check(
   '96. ONE PRESS OF THE REAL ADVANCE CONTROL MOVES THE STATE AND MOVES THE '
@@ -10272,9 +10298,17 @@ check(
     + 'fingerprint moves over anything at all while this is the reading a '
     + 'student is actually watching. The declarations come off an action button '
     + 'on a picker row, which is D-27\'s surface, and the claim is exactly the '
-    + 'one this row was written with',
+    + 'one this row was written with. AND D-33 P1-5\'s PLACEHOLDER CARD IS '
+    + 'COUNTED BESIDE THE REAL ONES RATHER THAN WITH THEM: at round one the '
+    + 'lane holds ONE dashed card and NO history, and one Advance later it '
+    + 'holds one round and NO placeholder. That clause was added when the '
+    + 'placeholder landed - this row read `.ld-row` and went red on "1 -> 1", '
+    + 'which was the placeholder being counted as a round. Narrowing the reader '
+    + 'alone would have left the placeholder unasserted anywhere; counting both '
+    + 'makes its whole contract a claim in the gate',
   fgStateAfter !== fgStateBefore && fgPageAfter !== fgPageBefore
     && fgRoundAfter !== fgRoundBefore && fgRowsAfter === fgRowsBefore + 1
+    && fgWaitBefore === 1 && fgWaitAfter === 0
     && fgTeamSpoken !== fgTeamIdle && fgTeamResolved === fgTeamIdle
     && errPanel.hidden === true,
   'state moved=' + (fgStateAfter !== fgStateBefore)
@@ -10283,7 +10317,8 @@ check(
     + ' (' + fnv(fgPageBefore) + ' -> ' + fnv(fgPageAfter) + ')'
     + ' | the round on the bar ' + JSON.stringify(fgRoundBefore)
     + ' -> ' + JSON.stringify(fgRoundAfter)
-    + ' | ledger rows ' + fgRowsBefore + ' -> ' + fgRowsAfter
+    + ' | ledger rounds ' + fgRowsBefore + ' -> ' + fgRowsAfter
+    + ', placeholder cards ' + fgWaitBefore + ' -> ' + fgWaitAfter
     + ' | the cats\' team reading, verbatim: idle ' + JSON.stringify(fgTeamIdle)
     + ' -> declared ' + JSON.stringify(fgTeamSpoken)
     + ' -> resolved ' + JSON.stringify(fgTeamResolved)
@@ -10921,7 +10956,8 @@ const accAgreeMechs = accAgree('mechs');
 const accHpRow = fgBoard.querySelectorAll('.tok-row')
   .filter((r) => r.dataset.amt === 'hp' && r.dataset.unit === 'm1')[0];
 const accHealth = accHpRow ? accHpRow.children.length : -1;
-const accLedgerRows = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const accLedgerRows = ldReal(fgLedgerRoot);
+const accWaitAfterOne = ldWaiting(fgLedgerRoot);
 const accWhatChanged = fgLeaves(fgOne(fgLedgerRoot, '.ld-now-body')).join(' ');
 
 /* A HAND RULING, and its marker read off the card rather than out of the round.
@@ -10967,7 +11003,13 @@ const accUndoRead = fgDeadRead('cats', 'c1');
 // because the build slice is not what the fight page draws.
 fgPress(fgOne(fgBar, '[data-fg="reset"]'));
 const accResetRound = dom.byId['round-count'].textContent;
-const accResetRows = fgLedgerRoot.querySelectorAll('.ld-row').length;
+const accResetRows = ldReal(fgLedgerRoot);
+// AND THE PLACEHOLDER IS BACK, which is the half of D-33 P1-5's contract only a
+// reset can reach: the lane returns to having no history, so it returns to
+// saying so. A fight reset that left an empty lane under a heading would be the
+// audit's finding arriving through the one door that clears `past` without
+// ending the fight.
+const accWaitAfterReset = ldWaiting(fgLedgerRoot);
 const accResetCards = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
 const accBuildSurvived = JSON.stringify(A.state.get().build) === accBuildWas;
 check(
@@ -11009,7 +11051,11 @@ check(
     + 'silent answer to what a health number on this board means; '
     + 'a unit ruled dead is still a card in its own column; one press of the '
     + 'topbar undo brings the board back; and the fight reset puts the rosters '
-    + 'back with the student\'s build untouched, which is SHARE-07',
+    + 'back with the student\'s build untouched, which is SHARE-07. AND D-33 '
+    + 'P1-5\'s PLACEHOLDER IS READ AT BOTH ENDS: gone once a round has '
+    + 'resolved, and BACK after the fight reset - which is the one door that '
+    + 'empties `past` without ending the fight, and therefore the only place '
+    + 'the placeholder can be lost without any other row noticing',
   accStarted === true && accDeclLines === 2
     && accRec1 !== null && accRec1.at === accDefaultSaid
     && accDefaultSaid !== null && accLandsSaid !== null && accLandsSaid !== ''
@@ -11024,12 +11070,13 @@ check(
     && accAgreeResolved === true && accAgreeMechs === true
     && accPoolSpoken !== accPoolIdle && accPoolUndone === accPoolIdle
     && accPoolResolved === accPoolIdle
-    && accHealth >= 0 && accLedgerRows === 1 && accWhatChanged !== ''
+    && accHealth >= 0 && accLedgerRows === 1 && accWaitAfterOne === 0
+    && accWhatChanged !== ''
     && accMarkShown === true && accHealthRuled === accHealth
     && accWhatChangedNow !== accWhatChangedWas
     && accCardsNow === accCardsWas && accDeadRead.marked === true
     && accBoardAfterUndo !== accBoardBeforeUndo && accUndoRead.marked === false
-    && accResetRound === '1' && accResetRows === 0
+    && accResetRound === '1' && accResetRows === 0 && accWaitAfterReset === 1
     && accResetCards === accCardsWas && accBuildSurvived === true
     && errPanel.hidden === true,
   'declaration lines on the page=' + accDeclLines
@@ -11059,7 +11106,9 @@ check(
     + ' cats pool=' + JSON.stringify(accPoolCats)
     + ' mechs pool=' + JSON.stringify(accPoolMechs)
     + ' m1 health tokens=' + accHealth
-    + ' ledger rows=' + accLedgerRows
+    + ' ledger rounds=' + accLedgerRows
+    + ' placeholder after one round=' + accWaitAfterOne
+    + ' placeholder after the reset=' + accWaitAfterReset
     + ' what changed=' + JSON.stringify(accWhatChanged)
     + ' | the hand marker is shown=' + accMarkShown
     + ' and says ' + JSON.stringify(accMarkSays)
