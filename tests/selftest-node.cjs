@@ -12643,6 +12643,29 @@ const symCostCls = symCostSym === null ? ''
 const symCostGlyph = symCostSym === null ? ''
   : String(((symCostSym.querySelectorAll('.tok-g')[0] || {}).textContent) || '');
 const symCostText = symCostBox === null ? '' : fgLeaves(symCostBox).join(' ');
+/* AND THE OTHER PRIMITIVE IS READ TOO, WHICH PROBE BI FOUND THIS ROW MISSING.
+   [S06.12] has two shapes of reading — symQty, a QUANTITY of a type, and
+   symMark, ONE token standing for the type inside a sentence — and this row as
+   first written read only the first: the lane's shield reading and the picker's
+   cost are both quantities. Probe BI replaced symMark's `makeToken(styleFor(
+   state, tok))` with a hard-coded health token, so every requirement line, the
+   shortfall line and every unlanded-term line drew the shipped health mark for
+   whatever type they named, AND THE WHOLE SUITE RAN 188 OF 188. A generic mark
+   for a type a student invented is the exact failure this row exists to catch,
+   and it had no instrument. The requirement line is the site: a requirement
+   NAMING the invented type puts symMark on the picker, where its token can be
+   read back by shape, colour and glyph like any other. */
+A.ops.setActionReq('cats', fgCatsAct, 0, symOwnTok, 2);
+A.state.invalidate();
+A.state.flush();
+const symReqBox = fgOne(fgSideRootOf('cats'), '.fg-req');
+const symReqSym = symReqBox === null ? null : symReqBox.querySelector('.sym');
+const symReqSaid = symReqSym === null ? '' : symReqSym.getAttribute('title');
+const symReqCls = symReqSym === null ? ''
+  : String((symReqSym.querySelectorAll('.tok')[0] || {}).className || '');
+const symReqGlyph = symReqSym === null ? ''
+  : String(((symReqSym.querySelectorAll('.tok-g')[0] || {}).textContent) || '');
+const symReqText = symReqBox === null ? '' : fgLeaves(symReqBox).join(' ');
 check(
   '107b. A TOKEN TYPE A STUDENT INVENTED, RENAMED AND RESTYLED APPEARS IN THE '
     + 'LANE AND ON AN ACTION BUTTON EXACTLY AS THEY AUTHORED IT — 106c\'s claim '
@@ -12658,14 +12681,28 @@ check(
     + 'draw a generic one, and a generic mark for a type a student invented is '
     + 'the artifact saying their type is a second-class one. The cost box\'s '
     + 'TEXT is asserted to name the type NOWHERE, so the word arrived on the '
-    + 'hover rather than beside it',
+    + 'hover rather than beside it. AND BOTH OF [S06.12]\'s SHAPES ARE READ, '
+    + 'which probe BI proved this row was missing: symQty draws a QUANTITY and '
+    + 'symMark draws ONE token standing for the type inside a sentence, and as '
+    + 'first written this row read only the first. A hard-coded health token in '
+    + 'symMark made every requirement line, every shortfall line and every '
+    + 'unlanded-term line draw the shipped mark for whatever type they named, '
+    + 'and the whole suite ran 188 of 188 over it. The same invented type is '
+    + 'now put on an action as a REQUIREMENT and read back off the picker\'s '
+    + 'own reading line, symbol and word, with the sentence around it intact',
   symLaneShield !== null && symLaneTokCls.indexOf('tok--tri') !== -1
     && symLaneTokCls.indexOf('tok--coral') !== -1 && symLaneGlyph !== ''
     && symCostSym !== null && symCostCls.indexOf('tok--hex') !== -1
     && symCostCls.indexOf('tok--violet') !== -1
     && symCostGlyph === '\u{1F49C}'
     && symCostSaid === '3 ' + symOwnWord
-    && symCostText.indexOf(symOwnWord) === -1,
+    && symCostText.indexOf(symOwnWord) === -1
+    && symReqSym !== null && symReqCls.indexOf('tok--hex') !== -1
+    && symReqCls.indexOf('tok--violet') !== -1
+    && symReqGlyph === '\u{1F49C}'
+    && symReqSaid === symOwnWord
+    && symReqText.indexOf(symOwnWord) === -1
+    && symReqText.indexOf(' needs 2 ') !== -1,
   'the RENAMED type in the lane: tooltip=' + JSON.stringify(
     symLaneShield === null ? null : symLaneShield.getAttribute('title'))
     + ' token class=' + JSON.stringify(symLaneTokCls)
@@ -12676,6 +12713,10 @@ check(
     + ' | the cost box\'s TEXT reads ' + JSON.stringify(symCostText)
     + ' and names ' + JSON.stringify(symOwnWord) + '='
     + (symCostText.indexOf(symOwnWord) !== -1)
+    + ' | the same type as a REQUIREMENT, through symMark: tooltip='
+    + JSON.stringify(symReqSaid) + ' token class=' + JSON.stringify(symReqCls)
+    + ' glyph=' + JSON.stringify(symReqGlyph)
+    + ' | the requirement line reads ' + JSON.stringify(symReqText)
 );
 
 /* 107c. A COST IS A MINUS SIGN AND THE TYPE'S OWN TOKENS, AND IT COMPACTS AT
