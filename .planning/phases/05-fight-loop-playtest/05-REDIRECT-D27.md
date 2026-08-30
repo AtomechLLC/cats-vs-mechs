@@ -119,3 +119,36 @@ planner's open calls. Verbatim:
 ### Column layout per side, top to bottom
 
 [SIDE] → battlefield cluster → team resources → action picker rows. [ROUND] spans above both.
+
+---
+
+## D-28 — Second live-feedback round, 2026-08-29, from the developer operating the real artifact
+
+Verbatim, with a screenshot of the fight tab attached:
+
+> this is way too compressed - let the fight take the whole width.
+> earlier rounds should be a full lane above showing the past state and acctions selected.
+> The predictor turn off, and make it toggled sidebar / pop over
+
+### What this settles
+
+1. **The fight view takes the whole width.** Nothing shares its row.
+2. **The ledger becomes a full-width lane ABOVE the current round** — not a right-hand column.
+   Each past round shows its board state AND the actions that were selected that round (the `did`
+   record the ledger already stores). This matches the original round-loop description more
+   literally than the column did: "the previous state of the board moves up into a history."
+3. **The predictor (`#strip`, the projection) is OFF by default in the fight view**, behind a
+   toggle that opens it as a sidebar / popover. PROJ-05's "readable without navigating away" is
+   read as satisfied by a one-click toggle — the developer's call, flagged once, taken. The gate
+   rows asserting the strip's fight-view placement (103b and kin) are turned in the open under this
+   decision, not silently.
+
+### Orchestrator notes
+
+- The lane is horizontal: past rounds as cards in one row, newest nearest the current round,
+  horizontally scrollable when they overflow. Chosen because a full-width vertical stack would
+  push the current round off screen — the exact defect class this phase has fixed three times.
+- The REF-03 deferred item (reference cards hidden in fight view) is NOT folded in here — but the
+  new toggled sidebar is an obvious candidate home for them, and that option is noted on the
+  deferred item for the playtest decision.
+- Build view is untouched. The strip behaves as before outside a fight.
