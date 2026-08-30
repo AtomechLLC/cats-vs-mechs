@@ -29071,8 +29071,125 @@ App.selftest = (function () {
       restoredCode, untouchedCode);
     t.ok('the prototype is intact after the size and differences rows', protoIntact());
 
+    /* --- D-32: A MAXED-OUT ACTION ON THE WIRE, AND THE GRAMMAR THAT CARRIES
+           IT WITHOUT A VERSION BUMP.
+
+           THE VERSION STAYS v1 AND THAT IS A FINDING RATHER THAN A DECISION.
+           [S04.2] writes a term list as `cost.map(termCode).join(SEP.item)` and
+           [S04.3] reads it as `field.split(SEP.item)` and walks whatever comes
+           back — the grammar is COUNT-DRIVEN at every level, so a record
+           carrying four terms is the same shape as one carrying one and a v1
+           decoder in a file that predates D-32 parses it correctly and then
+           refuses it at the CAP, by name, rather than loading garbage. That is
+           the codec doing its job across a version skew, and it is why the
+           schema did not have to move. The three rows below are what say so
+           rather than leaving it to be read off two functions.
+
+           BYTE-IDENTICAL, NOT MERELY EQUIVALENT. The round trip is asserted as
+           an equality of CODES and not only of boards, because a decoder that
+           silently reordered a term list would hand back a board that compares
+           equal under a key-sorting comparison and re-encode differently — and
+           a cost is an ORDERED list, drawn in the order the student wrote it on
+           every surface that draws one. --- */
+    App.ops.resetToDefaults();
+    var wireSide = App.ops.createTokenType({ name: 'Momentum', shape: 'hex',
+      color: 'gold', glyph: App.data.GLYPHS[7], scope: 'side' });
+    var wireUnit = App.ops.createTokenType({ name: 'Poison', shape: 'circ',
+      color: 'violet', glyph: App.data.GLYPHS[15], scope: 'unit' });
+    var wireMine = App.ops.createAction('cats', 'Everything');
+    var wireCostToks = ['ap', wireSide, 'hp', wireUnit];
+    var wireReqToks = ['hp', 'shield', wireSide, wireUnit];
+    var wireXfToks = ['hp', 'shield', wireUnit, wireSide];
+    wireCostToks.forEach(function (tok, i) {
+      App.ops.setActionCost('cats', wireMine, i, tok, 11 + i);
+    });
+    wireReqToks.forEach(function (tok, i) {
+      App.ops.setActionReq('cats', wireMine, i, tok, 21 + i);
+    });
+    wireXfToks.forEach(function (tok, i) {
+      App.ops.setActionXf('cats', wireMine, i, App.data.XF_WHO[i % 2], tok,
+        (i % 2 === 0) ? -(31 + i) : (31 + i));
+    });
+    // AND THE SAME ON A SHIPPED ACTION, because D-07 says a shipped action and
+    // a student's are the same kind of thing and the wire treats them
+    // differently on purpose — one writes a name index and a head ordinal, the
+    // other writes a sequence number. A row that maxed only the authored one
+    // would leave half the encoder unexercised at the cap.
+    wireCostToks.forEach(function (tok, i) {
+      App.ops.setActionCost('cats', 'slash', i, tok, 11 + i);
+    });
+    wireReqToks.forEach(function (tok, i) {
+      App.ops.setActionReq('cats', 'slash', i, tok, 21 + i);
+    });
+    wireXfToks.forEach(function (tok, i) {
+      App.ops.setActionXf('cats', 'slash', i, App.data.XF_WHO[i % 2], tok,
+        (i % 2 === 0) ? -(31 + i) : (31 + i));
+    });
+    var wireBoard = liveBuild();
+    var wireCode = App.serialize.encode(wireBoard);
+    var wireBack = (wireCode === null) ? null : App.serialize.decode(wireCode);
+
+    t.ok('the board this is asked of really is at the cap on all three lists, on an '
+      + 'action of the student\'s own AND on one the board ships with — because every '
+      + 'claim below is satisfied spotlessly by a board that never reached it',
+      (function () {
+        return ['x1', 'slash'].every(function (id) {
+          var rec = wireBoard.cats.actions.find(function (a) { return a.id === id; });
+          return !!rec && rec.cost.length === App.ops.MAX_ACTION_COST
+            && rec.req.length === App.data.MAX_ACTION_REQ
+            && rec.xf.length === App.data.MAX_ACTION_XF;
+        });
+      })());
+
+    t.eq('A MAXED ACTION ROUND TRIPS EXACTLY — four cost terms, four requirements and '
+      + 'four changes, mixing action points, the two durability types, a type the '
+      + 'student keeps on the whole side and one they keep per unit, on both an '
+      + 'authored action and a shipped one',
+      (wireBack !== null && wireBack.ok === true)
+        ? stableText(wireBack.build) : String(wireBack && wireBack.why),
+      stableText(wireBoard));
+
+    t.eq('and it round trips BYTE-IDENTICALLY, which is what the row above cannot see: re-encoding '
+      + 'what came back produces the same characters, so no term list was reordered on '
+      + 'the way through. A cost is an ORDERED list — every surface draws it in the '
+      + 'order the student wrote it — and a comparison that sorts keys cannot see a '
+      + 'list that came back shuffled',
+      (wireBack !== null && wireBack.ok === true)
+        ? App.serialize.encode(wireBack.build) : 'refused',
+      wireCode);
+
+    t.eq('and the term ORDER itself is read back position by position, not inferred '
+      + 'from the equality above — the tokens of each list, in order, on the authored '
+      + 'action',
+      (function () {
+        var rec = wireBack.build.cats.actions.find(function (a) { return a.id === 'x1'; });
+        return [rec.cost.map(function (c) { return c.tok; }),
+          rec.req.map(function (r) { return r.tok; }),
+          rec.xf.map(function (x) { return x.tok; })];
+      })(), [wireCostToks, wireReqToks, wireXfToks]);
+
+    t.ok('THE GRAMMAR IS COUNT-DRIVEN AND THAT IS WHY THE VERSION DID NOT MOVE: the '
+      + 'code still carries this file\'s own version prefix and nothing else, and the '
+      + 'same decoder reads a one-term list and a four-term list through one path. A '
+      + 'code carrying four terms pasted into a copy of this file from before D-32 is '
+      + 'parsed and then REFUSED AT THE CAP by name — that is the codec working across '
+      + 'a version skew, and it is noted rather than fixed',
+      wireCode.indexOf(App.data.CODE_VERSION + App.data.CODE_SEP.section) === 0);
+
+    t.info('a maxed action on the wire — the whole board, characters, measured at 232 '
+      + 'when this row was written. Two actions at the cap on all three lists, a '
+      + 'vocabulary with two types the student made, and it is a quarter of '
+      + 'the way to the design target — which is the size answer to "is four terms '
+      + 'affordable" stated as a measurement rather than as a reassurance',
+      wireCode.length);
+
     /* --- THE REFUSAL MATRIX — SEVENTEEN WAYS OF BEING WRONG, EACH REACHING
            THE GUARD IT IS NAMED AFTER.
+
+           TWENTY UNDER D-32, WHICH ADDED THREE. The heading keeps SEVENTEEN in
+           view because that was research's own count and the number's whole
+           value is its provenance; the three added are one per term list, and
+           the two rows at the foot of this block carry the arithmetic.
 
            SHARE-03 is half "a good code comes back exactly" and half "a bad
            one is refused by name and changes nothing". The rows above are the
@@ -29159,6 +29276,38 @@ App.selftest = (function () {
         made[0] = 'N' + table.join(App.data.CODE_SEP.field);
       });
     }
+    /* D-32's TAMPER: REWRITE ONE TERM FIELD OF ONE ACTION RECORD WITH n TERMS.
+       It edits the CATS action field — parts[8], the seventh section of the
+       cats side — and rebuilds the first record's chosen field by repeating a
+       term the code already carries, so every ordinal in it still names
+       something this board holds. That is deliberate: a tamper that also
+       introduced an unknown token id would be refused by the TOKEN guard and
+       the row would be about the wrong thing. The digest is recomputed by
+       tampered() exactly as every other content row's is. */
+    var ACTION_FIELD = 8;
+    function overTerms(fieldAt, count, isChange) {
+      return tampered(function (made) {
+        var records = made[ACTION_FIELD].split(App.data.CODE_SEP.record);
+        var fields = records[0].split(App.data.CODE_SEP.field);
+        var one = fields[fieldAt].split(App.data.CODE_SEP.item)[0];
+        if (one === undefined || one === '') {
+          // The record this board happens to write first may carry an empty
+          // list in this position. A term of the right SHAPE is built from the
+          // first token ordinal, which every board has, so the row still
+          // reaches the cap guard rather than the shape one.
+          one = isChange
+            ? ('0' + App.data.CODE_SEP.term + '0' + App.data.CODE_SEP.term
+              + App.serialize.n36(App.data.MAX_XF_DELTA + 1))
+            : ('0' + App.data.CODE_SEP.term + App.serialize.n36(1));
+        }
+        var many = [];
+        for (var i = 0; i < count; i++) { many.push(one); }
+        fields[fieldAt] = many.join(App.data.CODE_SEP.item);
+        records[0] = fields.join(App.data.CODE_SEP.field);
+        made[ACTION_FIELD] = records.join(App.data.CODE_SEP.record);
+      });
+    }
+
     var nameTableSize = hostileParts[0].slice(1).split(App.data.CODE_SEP.field).length;
     var ROSTER = 12;   // board B's cats roster, the count parts[2] carries
 
@@ -29252,7 +29401,30 @@ App.selftest = (function () {
           new Array(App.data.MAX_TOKEN_NAME + 2).join('a'))) },
       { at: 'content', why: 'content', what: 'a name carries a character the board cannot show',
         what_it_is: 'a name carrying a control character, which TOKEN_NAME_REFUSE exists for',
-        code: putName(App.serialize.b64('Poi' + String.fromCharCode(7) + 'son')) }
+        code: putName(App.serialize.b64('Poi' + String.fromCharCode(7) + 'son')) },
+
+      /* --- THE THREE D-32 ADDED, one per term list. Each names a DIFFERENT
+             guard: [S04.3] runs three separate cap tests over three separate
+             fields, and a matrix that carried one over-cap shape would be one
+             of those three asserted once and the other two never reached. They
+             matter more than a cap test usually would, because the grammar is
+             COUNT-DRIVEN — a code carrying five terms PARSES perfectly and is
+             stopped only here, so this is the whole of what stands between an
+             over-cap paste and a board the ops would refuse to have built. --- */
+      { at: 'content', why: 'content', what: 'too many costs',
+        what_it_is: 'an action carrying one more cost term than MAX_ACTION_COST — the '
+          + 'shape a code written by a later version of this file arrives in, and the '
+          + 'reason the grammar being count-driven is safe rather than dangerous',
+        code: overTerms(2, App.ops.MAX_ACTION_COST + 1, false) },
+      { at: 'content', why: 'content', what: 'too many requirements',
+        what_it_is: 'an action carrying one more requirement than MAX_ACTION_REQ, '
+          + 'refused by its OWN guard rather than by the cost one beside it',
+        code: overTerms(3, App.data.MAX_ACTION_REQ + 1, false) },
+      { at: 'content', why: 'content', what: 'too many changes',
+        what_it_is: 'an action carrying one more transformation than MAX_ACTION_XF, '
+          + 'which is the third of three guards and the one a two-shape matrix leaves '
+          + 'unreached',
+        code: overTerms(4, App.data.MAX_ACTION_XF + 1, true) }
     ];
 
     REFUSALS.forEach(function (row) {
@@ -29276,10 +29448,21 @@ App.selftest = (function () {
            second says the body actually MOVED — a tamper that changed nothing
            would carry a valid digest too, and would decode perfectly. --- */
     var contentRows = REFUSALS.filter(function (row) { return row.at === 'content'; });
-    t.eq('there are TWELVE content rows, and research measured twelve of them as well — '
-      + 'the matrix is seventeen tamper shapes, of which one is the version, two are the '
-      + 'digest and two are not a build code at all',
-      contentRows.length, 12);
+    /* TURNED IN THE OPEN UNDER D-32, AND THE MATRIX GREW RATHER THAN MOVED.
+       This row read TWELVE and the matrix read SEVENTEEN, which was research's
+       own count. D-32 raised three caps and created three new ways for a code
+       to be wrong, each reaching a DIFFERENT guard — so three shapes were added
+       and both totals move with them. The recorded RED is the run on the commit
+       that added the shapes with these numbers still at 12 and 17. Research's
+       seventeen is kept in the sentence rather than overwritten, because the
+       point of the number is that the matrix is complete against a list
+       somebody drew up, and a total with no provenance is a number nobody can
+       check. */
+    t.eq('there are FIFTEEN content rows — research measured twelve, and D-32 added one '
+      + 'per term list when it made all three caps reachable from a paste. The matrix '
+      + 'is twenty tamper shapes, of which one is the version, two are the digest and '
+      + 'two are not a build code at all',
+      contentRows.length, 15);
     t.ok('every content row\'s code carries a digest RECOMPUTED over its own tampered body, '
       + 'which is the only reason any of them reaches the guard it names rather than '
       + 'stopping four characters earlier — without this the matrix is one guard asserted '
@@ -29290,11 +29473,14 @@ App.selftest = (function () {
       + 'row is a code that was never tampered at all', contentRows.every(function (row) {
         return bodyOf(row.code) !== bodyOf(hostileCode);
       }));
-    t.eq('the twelve name their guards as twelve readings rather than one repeated — '
-      + 'eleven distinct `what` strings over twelve rows, the repeat being the roster '
-      + 'read from both ends',
+    t.eq('the fifteen name their guards as fifteen readings rather than one repeated — '
+      + 'fourteen distinct `what` strings over fifteen rows, the repeat being the '
+      + 'roster read from both ends. D-32\'s three are three DISTINCT strings and not '
+      + 'one cap message with a noun in it, which is what says the decoder runs three '
+      + 'separate guards over three separate fields rather than one loop that would be '
+      + 'green over a code the cost cap alone had stopped',
       contentRows.map(function (row) { return row.what; })
-        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 11);
+        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 14);
 
     /* --- AND THE VERSION IS READ BEFORE THE DIGEST IS EVEN COMPUTED. The row
            above uses an untouched body, so its digest is still valid and the
@@ -29552,9 +29738,14 @@ App.selftest = (function () {
       + 'been run through the decoder in one sweep — this is SHARE-03\'s own wording, '
       + '"leaves the current build untouched", asserted rather than reasoned about',
       afterSweep, beforeSweep);
-    t.eq('and the sweep was not vacuous: thirty-seven codes went in, thirty-five of them '
+    // TURNED IN THE OPEN UNDER D-32: the totals were 37 and 35 and moved with
+    // the three over-cap shapes the matrix gained, one per term list. The claim
+    // — that the sweep is not vacuous and that nothing in it THREW — is
+    // unchanged, which is why the row is rewritten to the new counts rather
+    // than loosened into a comparison.
+    t.eq('and the sweep was not vacuous: forty codes went in, thirty-eight of them '
       + 'were refused, the other two are the good codes the paste table admits, and NOT '
-      + 'ONE of them threw', [everyBadCode.length, sweepRefused, sweepThrew], [37, 35, 0]);
+      + 'ONE of them threw', [everyBadCode.length, sweepRefused, sweepThrew], [40, 38, 0]);
     t.eq('and not one refusal carried a `build` key at all, so there is no partial board '
       + 'anywhere for a caller to half-apply even by mistake — a refusal is a record with '
       + 'a reason on it and nothing else', sweepPartial, 0);
