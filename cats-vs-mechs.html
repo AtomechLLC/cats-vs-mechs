@@ -1629,7 +1629,49 @@
      tabular-nums for the reason [C03] uses it on the board's own values: this
      figure moves under the eye on every Advance, and proportional digits make
      it jitter sideways while it does. */
-  .fg-round-head{display:flex;align-items:baseline;gap:10px}
+  /* ==================================================================
+     D-28 MOVED THE ROUND CONTROLS ONTO THIS ROW, AND IT IS A MEASURED
+     DEFECT RATHER THAN A REARRANGEMENT. Plan 05-D28.
+     ==================================================================
+     D-28 put a full-width lane of earlier rounds ABOVE this bar, and a lane
+     costs vertical space where the old right-hand column cost none. Driven in
+     real Chrome and real Edge with THREE rounds resolved and twelve
+     declarations a round, with the controls still appended BELOW .fg-sides:
+
+       Advance the round, top of its box    1094 of a 1080 viewport
+                                             951 of a  768 viewport
+
+     THE CONTROL THAT ENDS THE ROUND WAS BELOW THE FOLD AT BOTH SIZES, which is
+     the exact defect class this phase has now fixed three times — plan 05-07 on
+     the bar, plan 05-08 on the ledger, and the viewport fix on the band — and
+     this change had re-introduced it. Not a dial: a dial would have traded the
+     grid's height for the button's position and the developer's own complaint
+     about this tab is that it is too compressed.
+
+     THE FIX IS THAT THE ROUND'S CONTROLS BELONG WITH THE ROUND'S NUMBER. They
+     are on the same line as "Round 4" now, pushed to the far end by an auto
+     margin, so the top of the fight bar is a header for the round: what round
+     it is, what has not happened yet, and the two things you can do about it.
+     The cost is one row rather than two and the arithmetic no longer has a lane
+     in it — the controls are above .fg-sides, which is the region this block
+     bounds and which scrolls on itself, so no amount of roster and no setting
+     of that bound can push them down. Re-driven, same drive, same four
+     combinations: 656 of 1080 and 556 of 768, identical in Chrome and in Edge.
+
+     WHAT THAT COST, said out loud: FIGHT-10's notice (#fight-said) used to sit
+     ABOVE the two controls, and plan 05-14's own comment gave the reason — "the
+     moment a student most needs to have read it is the moment before they press
+     Advance". It now sits below them, at the foot of the bar. That is a real
+     trade and it is recorded rather than absorbed: the notice is still on the
+     same surface, still permanent, still at the 18px floor, and it is on
+     05-11's playtest list as a room question.
+
+     align-items is CENTER here now and baseline moved down one level onto
+     .fg-round-fig, which is what keeps the 18px label and the 28px figure on
+     one baseline while a 44px button shares their line. Two flex containers
+     rather than one, because the two alignments are two decisions. */
+  .fg-round-head{display:flex;align-items:center;flex-wrap:wrap;gap:10px 18px}
+  .fg-round-fig{display:flex;align-items:baseline;gap:10px}
   .fg-round-lbl{font-size:18px;font-weight:600;color:var(--ink-dim)}
   .fg-round-n{
     font-size:28px;font-weight:700;color:var(--ink);
@@ -1876,10 +1918,10 @@
      ancestor of #strip reports overflow `visible` after this rule, and #strip
      is still `sticky`, in both browsers and on all three boards above.
 
-     26vh IS A REHEARSAL DIAL in --tok's manner and in the ledger's, shipped
-     with the measurement that makes it one rather than with a guess. AND THE
-     TAB DID NOT TAKE THE PRESSURE OFF IT, WHICH IS WORTH SAYING BECAUSE IT
-     LOOKS AS THOUGH IT SHOULD HAVE. Plan 05-12 put the fight and the board
+     THIS DIAL IS A REHEARSAL DIAL in --tok's manner and in the ledger's,
+     shipped with the measurement that makes it one rather than with a guess.
+     AND THE TAB DID NOT TAKE THE PRESSURE OFF IT, WHICH IS WORTH SAYING BECAUSE
+     IT LOOKS AS THOUGH IT SHOULD HAVE. Plan 05-12 put the fight and the board
      behind a switch, so the fight no longer competes with the live BOARD for
      one viewport — but #topbar, #views, this region's own heading, FIGHT-10's
      line and the round controls are all still in the same scroll, and the table
@@ -1887,10 +1929,51 @@
      Advance goes off the bottom of a laptop. A dial that looks unnecessary
      after a rearrangement is a dial to re-measure, not one to turn off.
 
+     ==================================================================
+     26vh -> 32vh, PLAN 05-D28, AND THE PARAGRAPH ABOVE IS WHY IT MOVED
+     RATHER THAN IN SPITE OF IT.
+     ==================================================================
+     Its own closing sentence is the instruction this entry follows. D-28's lane
+     put the Advance control below the fold, and the fix was NOT this dial: the
+     round controls moved onto the round's own line, ABOVE this scroller. So the
+     property the sweep above shipped 26vh FOR — "the Advance goes off the bottom
+     of a laptop" — is now held structurally rather than by this number, and the
+     dial was re-measured against what it actually bounds now, which is how much
+     of a column a room reads without scrolling.
+
+     THE SWEEP, three rounds resolved, twelve declarations a round, real Chrome,
+     with the Advance control's top printed beside it to show it does not move:
+
+       .fg-sides   @1920x1080 box       @1366x768 box      Advance @1080 / @768
+         26vh       714/281/995          614/200/814          656 / 556
+         30vh       714/324/1038         614/230/845          656 / 556
+         32vh       714/346/1060  <-     614/246/860          656 / 556   <- shipped
+         34vh       714/367/1082         614/261/875          656 / 556
+         40vh       714/432/1146         614/307/921          656 / 556
+         46vh       714/497/1211         614/353/967          656 / 556
+
+     THE ADVANCE CONTROL READS 656 AND 556 IN EVERY ROW, which is the whole
+     argument for turning this at all: this dial no longer decides where that
+     control is. 32vh IS THE LARGEST SETTING WHOSE BOX ENDS INSIDE A 1080px
+     FOLD — 1060 of 1080, with 34vh the first to cross it at 1082 — and it is
+     taken for a property rather than for the pixels: the cats TEAM RESOURCES
+     reading sits at 1042, so at 26vh it was outside this scroller's window and
+     had to be scrolled to, and at 32vh it is inside it. FIGHT-09 asks that what
+     remains to spend is unambiguous AT A GLANCE, and a glance does not include
+     a scroll.
+
+     AT 1366x768 EVERY SETTING OVERSHOOTS THE FOLD AND 26vh DID TOO — 814 of 768
+     before, 860 after. That is a property of a 768-tall screen with a lane, a
+     switch and a sticky bar above it, not a regression, and it is stated here
+     rather than left to be found on a laptop. The scrolled CONTENT of one
+     column is 1171px at 1920 and 1603px at 1366 on the shipped 9-and-3 board,
+     so this region is a window on a column at every setting and the question of
+     whether that window is big enough is a room's to answer, not a comment's.
+
      The 2px of padding is the ledger list's, for its reason: an outline on a
      focused control at the edge of a scroller is clipped by the scroller
      without it. */
-  .fg-sides{max-height:26vh;overflow-y:auto;padding:2px}
+  .fg-sides{max-height:32vh;overflow-y:auto;padding:2px}
 
   /* The side's own reading box: ACT-07's refusals first, then one requirement
      line per action. It is deliberately not styled as a warning and carries no
@@ -1914,7 +1997,12 @@
      look different would turn a mechanical exemption into a visible one. */
   .fg-say, .fg-word{font:inherit;color:inherit}
 
-  .fg-round-acts{display:flex;align-items:center;flex-wrap:wrap;gap:12px}
+  /* margin-left:auto is the whole of D-28's move on this element — the row is a
+     child of .fg-round-head now and the auto margin is what puts it at the far
+     end of that line rather than beside the figure. It still wraps, so on a
+     narrow window it drops to its own line under the round number instead of
+     squeezing, which is [C12]'s rule about its own list held here too. */
+  .fg-round-acts{display:flex;align-items:center;flex-wrap:wrap;gap:12px;margin-left:auto}
   .fg-note{margin:0;font-size:18px;color:var(--ink-dim)}
   /* The floor again, stated on this region's own controls, so a later change to
      .brd-btn cannot drop the fight surface under it without saying so here. */
@@ -2065,6 +2153,32 @@
     border-radius:var(--radius);
     background:color-mix(in srgb, var(--panel) 55%, transparent);
     color:var(--ink-dim);
+  }
+  /* AND THE ONE HEIGHT QUERY IN THIS FILE, WHICH IS HERE BECAUSE THE LANE IS
+     THE THING THAT SHOULD GIVE. On a 768-tall laptop the page spends 293px on
+     chrome before the band even starts, and 22vh of card is 169px of that
+     remainder — so the grid a student is actually playing on was starting at
+     660 of 768 with three rounds behind them. Measured, three rounds resolved,
+     twelve declarations a round, both browsers:
+
+       .ld-row bound at 768     lane box   .fg-sides top   Advance top
+         22vh                     174          660            593
+         15vh   <- shipped        120          591            524
+
+     THE LANE IS HISTORY AND THE GRID IS THE GAME, so when there is not enough
+     of both the lane is what shrinks. A card at 15vh still shows its round
+     number, its note and the first readings of its board, and the rest of it is
+     one scroll of the card away. Nothing else in this file is bounded by
+     viewport HEIGHT and it is worth saying why this one is: every other dial
+     here bounds a region that competes with the board for width or for a share
+     of the page, and this one bounds a region that competes with the round
+     being played for the fold. 820px is not a device and is not meant to be —
+     it is the height at which the arithmetic above stops working, with the
+     usual couple of pixels of cushion for the reason [C14]'s 1180px breakpoint
+     records: a media query is not evaluated against the same box the element is
+     laid out in. */
+  @media(max-height:820px){
+    .ld-row{max-height:15vh}
   }
 
   /* THE ENTRY ANIMATION IS ON THE ROW AND ON NOTHING INSIDE IT, and that is a
@@ -2481,7 +2595,7 @@
      no error and no warning, and this block has a specific reason to be tempted
      by it — a cluster of shapes is exactly the sort of thing an author bounds
      with a scroller. IT IS ALREADY BOUNDED: .fg-field is a descendant of
-     .fg-sides, which [C14.1] bounds at 26vh with the scroll ON ITSELF, so the
+     .fg-sides, which [C14.1] bounds at 32vh with the scroll ON ITSELF, so the
      battlefield grows into an existing scroller and adds no second one. If it
      ever needs a bound of its own, the scroll goes on the element itself —
      [C12]'s action list, [C14]'s ledger list, [C14.1]'s sides, and this would
@@ -14615,8 +14729,15 @@ App.render = (function () {
      provides. */
   function fgBuildRoundHead(root) {
     var head = el('div', 'fg-round-head');
-    head.appendChild(text('span', 'fg-round-lbl', 'Round'));
-    head.appendChild(text('span', 'fg-round-n', ''));
+    // THE FIGURE GETS A BOX OF ITS OWN AS OF D-28, and it is an alignment
+    // decision rather than a wrapper for its own sake: the two round controls
+    // share this line now, so the row aligns on CENTRE and the 18px label and
+    // the 28px figure need their own baseline group inside it. [C14.1] carries
+    // the measurement that put the controls here.
+    var fig = el('div', 'fg-round-fig');
+    fig.appendChild(text('span', 'fg-round-lbl', 'Round'));
+    fig.appendChild(text('span', 'fg-round-n', ''));
+    head.appendChild(fig);
     var sides = root.querySelector('.fg-sides');
     if (sides) { root.insertBefore(head, sides); } else { root.appendChild(head); }
   }
@@ -14650,7 +14771,20 @@ App.render = (function () {
     reset.type = 'button';
     setData(reset, { fg: 'reset', k: 'fg/reset' });
     row.appendChild(reset);
-    root.appendChild(row);
+    /* D-28: THE ROW GOES ON THE ROUND'S OWN LINE, and the fall-through is the
+       same defensive one fgBuildRoundHead uses for .fg-sides. [C14.1] carries
+       the measurement — appended to the root, below .fg-sides, the Advance
+       control measured 1094 of a 1080 viewport and 951 of a 768 one with the
+       lane above it, which is the below-the-fold defect this phase has already
+       fixed three times.
+
+       fgRest IS UNAFFECTED AND THAT IS WORTH READING RATHER THAN ASSUMING: it
+       removes .fg-round-head FIRST and only then looks for .fg-round-acts, so
+       the row leaves with its new parent and the second lookup correctly finds
+       nothing. A teardown that had removed them in the other order would have
+       called removeChild with a node that is no longer a child. */
+    var head = root.querySelector('.fg-round-head');
+    if (head) { head.appendChild(row); } else { root.appendChild(row); }
   }
 
   /* The three value nodes plan 05-06 reserved on the bar, given the four spans
@@ -14674,11 +14808,20 @@ App.render = (function () {
       var node = document.getElementById(FIGHT_DECL_IDS[side]);
       if (node) { fgBuildSide(node, state, side); }
     });
-    // APPENDED LAST, so the two round controls sit below FIGHT-10's notice
-    // rather than above it. That order is deliberate: plan 05-09's line says a
-    // build edit made mid-fight applies to the build and not to this fight, and
-    // the moment a student most needs to have read it is the moment before they
-    // press Advance.
+    // BUILT LAST AND NO LONGER APPENDED LAST, and the difference is D-28's.
+    // This call still runs after the two sides so it can find the round head
+    // the first line of this function built; what changed is where it PUTS the
+    // row — onto that head's own line, above .fg-sides, because a lane of
+    // earlier rounds above this bar put the Advance control below the fold at
+    // both measured viewports. [C14.1] carries the readings.
+    //
+    // THE ORDER THIS GIVES UP IS RECORDED RATHER THAN DROPPED. The sentence
+    // that stood here was that the two controls sit BELOW FIGHT-10's notice
+    // because "the moment a student most needs to have read it is the moment
+    // before they press Advance". #fight-said is now below them instead. It is
+    // still on this surface, still permanent and still at the 18px floor, and
+    // whether a room reads it there is a question for the playtest rather than
+    // one this comment can settle.
     fgBuildRound(root);
   }
 
