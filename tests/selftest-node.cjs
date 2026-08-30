@@ -1662,8 +1662,9 @@ function makeStubDom() {
     group.appendChild(box);
   });
 
-  const aePropCost = idNode('act-prop-cost', 'p');
-  aePropCost.className = 'ae-prop-report';
+  // A container under D-32, matching the shell: one report line per cost term.
+  const aePropCost = idNode('act-prop-cost');
+  aePropCost.className = 'ae-prop-reports';
   aePropose.appendChild(aePropCost);
   const aePropReqs = idNode('act-prop-reqs');
   aePropReqs.className = 'ae-prop-reports';
@@ -9841,30 +9842,51 @@ function fgExpectedOff(side) {
     units: live.units.map((u) => ({ maxHp: u.hp, shield: u.shield }))
   };
   if (live.tally) { caster.tally = live.tally; }
-  const spoke = A.model.spokenFor(actions, st.fight.decl, side);
-  const priced = (a) => {
-    const c = A.model.actionApCost(a);
-    return Number.isInteger(c) ? c : 0;
-  };
+  /* TURNED IN THE OPEN UNDER D-32. This mirror computed condition (b) against
+     ONE pool — `rep.apCost > (live.ap - spoke + pledge)` — because a cost was
+     one term and action points were the only pool there was. D-32 made a cost a
+     LIST and made a side-scope type a student invented a pool on the same terms
+     (D-24), so the expectation walks every term the report prices and asks the
+     same question of each. The recorded RED is the run on the commit that moved
+     [S06.7] and left this reader on the old shape: the shipped board is ap-only
+     so it stayed GREEN there, and the row below that puts a two-pool cost on
+     the board is what actually made the difference visible — which is why that
+     row exists rather than this rewrite standing alone.
+
+     THE VOCABULARY IS HANDED IN because whether a term names a pool is a fact
+     about the TYPE. The three conditions and their order are unchanged, and so
+     is every sentence about why: the flag first because it settles the row, the
+     requirement second because it is the same answer for every row of a side,
+     the pool last because it is the only one that depends on what else has been
+     declared this round. */
+  const vocab = st.build.tokens;
+  const spoke = A.model.spokenForPools(actions, st.fight.decl, side, vocab);
   const out = [];
   live.units.forEach((u) => {
     const held = st.fight.decl.filter((d) => d.side === side && d.by === u.id)[0] || null;
-    const heldAct = held === null
-      ? null : (actions.filter((a) => a.id === held.act)[0] || null);
-    const pledge = heldAct === null ? 0 : priced(heldAct);
+    // The row's OWN pledge, per pool: what replacing this declaration gives
+    // back. Computed through the same derivation the preview uses, over a list
+    // holding only this row's standing declaration.
+    const pledge = held === null
+      ? Object.create(null)
+      : A.model.spokenForPools(actions, [held], side, vocab);
     actions.forEach((a) => {
-      const rep = A.model.affordability(caster, a);
+      const rep = A.model.affordability(caster, a, vocab);
       let off;
       // (c) the student's own ruling, read off the STORED flag and never off
       //     the health — D-00d, and the direction probe AX drives.
       if (u.alive === false) { off = true; }
       // (a) a requirement term unmet on the CASTER SIDE.
       else if (rep.met.some((m) => m.have < m.need)) { off = true; }
-      // a cost the report cannot price never disables — D-16.
-      else if (rep.apCost === null) { off = false; }
-      // (b) the pool this row may still draw on, with its OWN pledge given
-      //     back, which is the clause probe AQ drives.
-      else { off = rep.apCost > (live.ap - spoke + pledge); }
+      // (b) EVERY POOL THE COST NAMES, each against the room left in it with
+      //     this row's own pledge given back — the clause probe AQ drives,
+      //     asked once per term under D-32. A term this file holds no pool for
+      //     never disables, which is D-16's stance moved down to the term.
+      else {
+        off = rep.pays.some((c) => c.pool === true
+          && c.need > (c.have - A.model.pooledAt(spoke, c.tok)
+            + A.model.pooledAt(pledge, c.tok)));
+      }
       out.push('fg/act/' + side + '/' + u.id + '/' + a.id + '=' + off);
     });
   });
@@ -13673,6 +13695,185 @@ check(
     + ', all four columns hidden=' + sepRootsHidden
     + ', children left in them=' + sepRootsEmpty
     + ', round figure and controls left on a head line=' + sepFigGone
+);
+
+/* --- 109. D-32 ON THE FIGHT SURFACE: A COST THAT NAMES TWO POOLS -------------
+
+   "A multi-token cost spends what it names." Every clause of that reaches a
+   different piece of this surface, and the shipped board cannot exercise any of
+   them, because every action it ships costs action points and nothing else. So
+   the board is DRIVEN into the shape the claim is about: a type the student
+   invents at SIDE scope, a tally of it on the side, and an action costing both
+   action points and that type — all through the shipped ops.
+
+   FOUR CLAUSES, AND EACH ONE FAILS DIFFERENTLY.
+
+   (a) THE PREVIEW DEPLETES BOTH POOLS. The team resources draw one reading per
+       pool and both must move on the declaration and come BACK on the undo,
+       because a row that watched only the fall is green over a preview that
+       never returns — 108b's own argument, on a second pool.
+
+   (b) THE DISABLE CHECKS THE POOL THE ROW IS SHORT OF, WHICHEVER IT IS. The
+       board is driven twice: once where the action-point pool is the binding
+       one and once where the student's own pool is, with the other left
+       generous. A version of [S06.7] that walked only the ap term is green on
+       the first and red on the second, which is precisely the asymmetry a
+       single-pool check cannot see. The whole disabled set is compared against
+       the model-derived expectation rather than one control, which is 71c's
+       shape.
+
+   (c) A COST TERM NAMING SOMETHING THAT IS NOT A POOL DISABLES NOTHING. Health
+       is on units; there is no side pool to be short of; and a tool that cannot
+       show a side cannot pay does not get to act as though it can. Driven with
+       a cost naming health at more than the whole roster holds — every button
+       for that action must stay ENABLED.
+
+   (d) THE PICKER DRAWS EVERY TERM. The cost box on the button must carry one
+       reading per cost term, each with its own removal mark on its own shape,
+       and the box's own text must still name no type — which is 107c's claim
+       at a count of four instead of one.
+
+   FLOORED ON THE BOARD ACTUALLY BEING IN THE SHAPE THE CLAIMS ARE ABOUT: the
+   action's cost list is read back off state and must hold the terms the drive
+   wrote, because every clause above is satisfied spotlessly by a one-term
+   cost. --- */
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+const d32Pace = A.ops.createTokenType({
+  name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+});
+const d32Act = A.ops.createAction('cats', 'Surge');
+A.ops.setActionCost('cats', d32Act, 0, 'ap', 1);
+A.ops.setActionCost('cats', d32Act, 1, d32Pace, 2);
+A.ops.setTally('cats', null, d32Pace, 5);
+A.ops.setFactionAp('cats', 9);
+A.state.flush();
+const d32Terms = A.state.get().build.cats.actions
+  .filter((a) => a.id === d32Act)[0].cost
+  .map((c) => c.tok + ':' + c.n).join(',');
+
+fgPress(fgStart);
+A.state.flush();
+const d32TeamIdle = fgLeaves(fgOne(fgStateRootOf('cats'), '.fg-team')).join(' ');
+fgDeclare('cats', d32Act, 'c1');
+const d32TeamSpoken = fgLeaves(fgOne(fgStateRootOf('cats'), '.fg-team')).join(' ');
+// (a) both pools moved, and the map behind the reading says so in numbers.
+const d32Map = A.model.spokenForPools(A.state.get().build.cats.actions,
+  A.state.get().fight.decl, 'cats', A.state.get().build.tokens);
+const d32Both = A.model.pooledAt(d32Map, 'ap') === 1
+  && A.model.pooledAt(d32Map, d32Pace) === 2;
+fgDeclare('cats', d32Act, 'c1');
+const d32TeamUndone = fgLeaves(fgOne(fgStateRootOf('cats'), '.fg-team')).join(' ');
+
+// (d) one reading per term on the button, each mark on its own shape.
+const d32Btn = fgOne(fgSideRootOf('cats'), '[data-k="fg/act/cats/c1/' + d32Act + '"]');
+const d32CostBox = d32Btn ? fgOne(d32Btn, '.fg-act-cost') : null;
+// Counted by CLASS and not by attribute selector, which is 107c's own reading:
+// each term is one .sym box carrying its own accessible name, and each carries
+// one .sym-sign mark parented to a .tok. A count of readings and a count of
+// marks are two different failures — a version that drew four shapes under one
+// name would satisfy the second and not the first.
+const d32Marks = d32CostBox ? d32CostBox.querySelectorAll('.sym').length : -1;
+const d32Minus = d32CostBox
+  ? d32CostBox.querySelectorAll('.sym-sign').length : -1;
+const d32OnShape = d32CostBox
+  ? d32CostBox.querySelectorAll('.sym-sign').every((n) => n && n.parentNode
+    && n.parentNode.classList && n.parentNode.classList.contains('tok')) : false;
+const d32BoxText = d32CostBox ? fgLeaves(d32CostBox).join(' ') : '';
+
+/* THE FIGHT IS RE-SEEDED AFTER EVERY BUILD EDIT BELOW, AND THAT IS FIGHT-10
+   RATHER THAN CEREMONY: a pool edited on the build reaches a running fight at
+   the NEXT refill and not before, so a row that edited the build and read the
+   grid without restarting would be reading last round's pool and would say the
+   disable never fired. Measured on the first run of this row: every clause read
+   0 buttons off with the fight still holding 9 action points. */
+function d32Restart() {
+  A.ops.endFight();
+  A.state.flush();
+  fgPress(fgStart);
+  A.state.flush();
+}
+
+// (b) the ACTION-POINT pool binding: plenty of Momentum, no action points.
+A.ops.setFactionAp('cats', 0);
+A.ops.setTally('cats', null, d32Pace, 40);
+A.state.flush();
+d32Restart();
+const d32ApBoundSet = fgInsideGrid(disabledIn(fgApp));
+const d32ApBoundWant = fgExpectedBoth();
+const d32ApBoundOff = d32ApBoundSet
+  .split('|').filter((e) => e.indexOf(d32Act) !== -1 && e.indexOf('=true') !== -1).length;
+
+// (b) the STUDENT'S OWN pool binding: plenty of AP, one Momentum left. A
+//     [S06.7] that walked only the ap term reads every one of these as enabled.
+A.ops.setFactionAp('cats', 40);
+A.ops.setTally('cats', null, d32Pace, 1);
+A.state.flush();
+d32Restart();
+const d32PaceBoundSet = fgInsideGrid(disabledIn(fgApp));
+const d32PaceBoundWant = fgExpectedBoth();
+const d32PaceBoundOff = d32PaceBoundSet
+  .split('|').filter((e) => e.indexOf(d32Act) !== -1 && e.indexOf('=true') !== -1).length;
+
+// (c) a cost naming health, at more than the whole roster holds, disables
+//     nothing at all.
+A.ops.setActionCost('cats', d32Act, 1, 'hp', 99);
+A.ops.setFactionAp('cats', 40);
+A.state.flush();
+d32Restart();
+const d32NoPoolOff = fgInsideGrid(disabledIn(fgApp))
+  .split('|').filter((e) => e.indexOf(d32Act) !== -1 && e.indexOf('=true') !== -1).length;
+const d32NoPoolRows = A.state.get().build.cats.actions
+  .filter((a) => a.id === d32Act)[0].cost.length;
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+check(
+  '109. A COST THAT NAMES TWO POOLS DEPLETES BOTH, DISABLES ON WHICHEVER ONE '
+    + 'THE ROW IS SHORT OF, AND DRAWS ONE READING PER TERM — D-32, verbatim: '
+    + '"allow multiple input for all cost/needs/changes", and the orchestrator '
+    + 'call under it that a multi-token cost spends what it names. NOT ONE '
+    + 'CLAUSE OF THIS IS REACHABLE ON THE SHIPPED BOARD, because every action '
+    + 'the file ships costs action points and nothing else — so the board is '
+    + 'driven into the shape through createTokenType, setActionCost twice, '
+    + 'setTally and the real start and declare presses. THE TWO BINDING '
+    + 'DIRECTIONS ARE BOTH TAKEN and that pair is the point: with the '
+    + 'action-point pool short the old single-pool arithmetic is right, and '
+    + 'with the STUDENT\'S OWN pool short it is wrong while every other row in '
+    + 'this gate stays green. The preview is read verbatim at three moments — '
+    + 'idle, declared, undone — because half of the contract is the reading '
+    + 'coming BACK. A term naming HEALTH disables nothing, which is D-16 '
+    + 'arriving at the term: health lives on units, there is no side pool to '
+    + 'be short of, and a tool that cannot show a side cannot pay does not act '
+    + 'as though it can. Floored on the cost list actually holding two terms, '
+    + 'because every clause here is satisfied spotlessly by a cost of one',
+  d32Terms === 'ap:1,t1:2'.replace('t1', d32Pace)
+    && d32Both === true
+    && d32TeamIdle !== '' && d32TeamSpoken !== ''
+    && d32TeamSpoken !== d32TeamIdle && d32TeamUndone === d32TeamIdle
+    && d32Marks === 2 && d32Minus === 2 && d32OnShape === true
+    && d32BoxText.indexOf('Momentum') === -1
+    && d32ApBoundSet === d32ApBoundWant && d32ApBoundOff > 0
+    && d32PaceBoundSet === d32PaceBoundWant && d32PaceBoundOff > 0
+    && d32NoPoolRows === 2 && d32NoPoolOff === 0,
+  'cost terms on the record=' + JSON.stringify(d32Terms)
+    + ' | pools spoken for ap/own correct=' + d32Both
+    + ' | team reading idle ' + JSON.stringify(d32TeamIdle)
+    + ' -> declared ' + JSON.stringify(d32TeamSpoken)
+    + ' -> undone ' + JSON.stringify(d32TeamUndone)
+    + ' | readings on the button=' + d32Marks + ' removal marks=' + d32Minus
+    + ' every mark on a shape=' + d32OnShape
+    + ' box names the type=' + (d32BoxText.indexOf('Momentum') !== -1)
+    + ' | action-points binding: set matches the model=' + (d32ApBoundSet === d32ApBoundWant)
+    + ' buttons off=' + d32ApBoundOff
+    + ' | the student\'s own pool binding: set matches the model='
+    + (d32PaceBoundSet === d32PaceBoundWant) + ' buttons off=' + d32PaceBoundOff
+    + ' | a cost term naming health, cost rows=' + d32NoPoolRows
+    + ' buttons off=' + d32NoPoolOff
 );
 
 A.ops.resetToDefaults();

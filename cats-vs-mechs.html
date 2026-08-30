@@ -4326,7 +4326,14 @@
          requirement what is needed and what is present. NOTHING ON THIS PANE
          IS DISABLED ON WHAT THESE LINES SAY — see [S06.5]'s proposal block,
          which states the rule beside the code that writes them. -->
-    <p class="ae-prop-report" id="act-prop-cost"></p>
+    <!-- D-32 MADE THIS A CONTAINER RATHER THAN A LINE, and the change is
+         structural rather than cosmetic: a cost is a LIST now, so [S06.5]
+         writes one <p class="ae-prop-report"> per term into here, and a <p>
+         holding a <p> is markup a browser silently rewrites into siblings —
+         which would leave the emptied-on-every-visit rule reaching a node the
+         page had moved. It matches #act-prop-reqs beside it for the same
+         reason that one is a container: a requirement list was always many. -->
+    <div class="ae-prop-reports" id="act-prop-cost"></div>
     <div class="ae-prop-reports" id="act-prop-reqs"></div>
 
     <div class="ae-prop-rows" id="act-prop-rows">
@@ -13695,36 +13702,64 @@ App.render = (function () {
   // D-16's stance — a report that quietly omits half of what it was asked
   // about is worse than one that admits its blind spot — and it is the same
   // choice the projection's own ignored-list already makes.
+  /* D-32: ONE COST LINE PER TERM, AND THE SENTENCE IS THE ONE THAT WAS ALREADY
+     HERE. This block used to read cost[0] and write one line about it, because
+     a cost was one term; it now walks App.model.affordability's `pays` rows and
+     writes the same sentence once per term. Nothing about the WORDS moved — a
+     student who read "Pounce costs 2 Action Points of 3. Enough to spend." last
+     week reads it again, with a second line under it if their rule now names a
+     second thing.
+
+     WHICH OF THE THREE SENTENCES A TERM GETS IS DECIDED BY `pool` AND NOT BY
+     apCost, which is the same distinction moving down from the action to the
+     term: a term this file holds a pool for is compared, a term it does not is
+     said plainly with the blind spot admitted, and a cost with no readable
+     terms at all is "costs nothing". That last one is the arm that must NOT
+     read an empty `pays` as a price of zero — `pays` is empty both for an
+     action a student emptied and for a cost this file cannot read, and neither
+     of those is "free", so the sentence says what is on the record rather than
+     what it would cost.
+
+     THE REPORT NODE IS REBUILT WHOLE rather than the first line rewritten,
+     because a cost that went from three terms to one would otherwise leave two
+     stale sentences on a pane that is read as a statement of the rule. */
   function fillReport(state, side, live) {
     var faction = state.build[side];
-    var report = App.model.affordability(faction, live);
-    var cost = termList(live, 'cost')[0];
+    var report = App.model.affordability(faction, live, state.build.tokens);
     var costNode = document.getElementById('act-prop-cost');
 
     if (costNode) {
-      if (!cost) {
-        sayOver(costNode, [
+      costNode.replaceChildren();
+      if (report.pays.length === 0) {
+        var none = el('p', 'ae-prop-report');
+        sayInto(none, [
           { word: live.name, act: live.id },
           { said: ' costs nothing.' }
         ]);
-      } else if (report.apCost === null) {
-        sayOver(costNode, [
-          { word: live.name, act: live.id },
-          { said: ' costs ' + cost.n + ' ' },
-          { word: labelFor(state, cost.tok), tok: cost.tok },
-          { said: '. This report has no figure for that pool.' }
-        ]);
-      } else {
-        var short = report.apCost - report.apHave;
-        sayOver(costNode, [
-          { word: live.name, act: live.id },
-          { said: ' costs ' + report.apCost + ' ' },
-          { word: labelFor(state, cost.tok), tok: cost.tok },
-          { said: ' of ' + report.apHave + '. ' + ((short > 0)
-            ? 'Not enough to spend. Short by ' + short + '.'
-            : 'Enough to spend.') }
-        ]);
+        costNode.appendChild(none);
       }
+      report.pays.forEach(function (c) {
+        var line = el('p', 'ae-prop-report');
+        if (c.pool !== true) {
+          sayInto(line, [
+            { word: live.name, act: live.id },
+            { said: ' costs ' + c.need + ' ' },
+            { word: labelFor(state, c.tok), tok: c.tok },
+            { said: '. This report has no figure for that pool.' }
+          ]);
+        } else {
+          var short = c.need - c.have;
+          sayInto(line, [
+            { word: live.name, act: live.id },
+            { said: ' costs ' + c.need + ' ' },
+            { word: labelFor(state, c.tok), tok: c.tok },
+            { said: ' of ' + c.have + '. ' + ((short > 0)
+              ? 'Not enough to spend. Short by ' + short + '.'
+              : 'Enough to spend.') }
+          ]);
+        }
+        costNode.appendChild(line);
+      });
     }
 
     var reqNode = document.getElementById('act-prop-reqs');
@@ -14948,6 +14983,11 @@ App.render = (function () {
      rather than once per unit. */
   function fgCaster(state, side) {
     var live = state.fight[side];
+    // The side tally rides across untouched, and under D-32 it is load-bearing
+    // rather than completeness: presentOnCaster reads a side-scope pool out of
+    // it, so a cost naming a type a student keeps at side scope is priced
+    // against what the FIGHT holds of it and not against the build.
+
     var shim = {
       ap: live.ap,
       units: live.units.map(function (u) { return { maxHp: u.hp, shield: u.shield }; })
@@ -14993,21 +15033,38 @@ App.render = (function () {
    * the only one of the three that depends on what else has been declared this
    * round.
    * --------------------------------------------------------------------- */
-  function fgActionApCost(action) {
-    var c = App.model.actionApCost(action);
-    return Number.isInteger(c) ? c : 0;
-  }
+  /* D-32 REWROTE CONDITION (b) FROM ONE POOL TO EVERY POOL THE COST NAMES, and
+     everything the banner above says about it survives word for word — the own
+     pledge, the cost that cannot be priced, the order of the three. What
+     changed is that each of those sentences is now asked ONCE PER COST TERM
+     instead of once per action, because a cost naming action points AND a type
+     a student invented can be short of either one and a row that checked only
+     the first would enable a button the side cannot pay for.
 
-  // What this row's own standing declaration has already spoken for, in action
-  // points. Zero for a row with nothing standing, for an action that has left
-  // the board under it, and for a cost the file cannot price — the three
-  // absences spokenFor itself answers with zero, restated here so the two
-  // numbers cannot disagree about the same declaration.
-  function fgOwnPledge(state, side, unitId) {
+     THE OWN PLEDGE IS A MAP FOR THE SAME REASON THE PREVIEW IS. Replacing an
+     action frees the one it replaces, in EVERY pool it named — a row that gave
+     back only the action points would leave a student holding a declaration
+     they could not take back through the control that made it, which is the
+     denial-of-undo the banner already refuses, arriving one token type over.
+
+     A TERM WHOSE POOL THIS FILE DOES NOT HOLD DOES NOT DISABLE. That is
+     `pool: false` on the report row, and it is the same admitted blind spot
+     apCost: null carried before D-32: health and shield live on units, a type
+     a student keeps per unit lives on units, and a type this board no longer
+     holds is not a pool at all. The tool draws what the student wrote and
+     leaves the button alone. An EMPTY `pays` — a cost this file cannot read —
+     disables nothing either, and for the identical reason. */
+
+  // What this row's own standing declaration has already spoken for, per pool.
+  // Empty for a row with nothing standing, for an action that has left the
+  // board under it, and for a cost the file cannot read — the three absences
+  // spokenForPools itself answers with nothing, restated here so the two maps
+  // cannot disagree about the same declaration.
+  function fgOwnPledge(state, side, unitId, vocab) {
     var held = fgHeldBy(state, side, unitId);
-    if (held === null) { return 0; }
-    var live = fgAction(state, side, held.entry.act);
-    return live === null ? 0 : fgActionApCost(live);
+    if (held === null) { return Object.create(null); }
+    return App.model.spokenForPools(refActions(state, side),
+      [held.entry], side, vocab);
   }
 
   function fgReqUnmet(report) {
@@ -15017,12 +15074,22 @@ App.render = (function () {
     return false;
   }
 
-  function fgActionOff(state, side, unit, report, spoke) {
+  function fgCannotPay(report, spoke, own) {
+    for (var i = 0; i < report.pays.length; i++) {
+      var term = report.pays[i];
+      if (term.pool !== true) { continue; }
+      var room = term.have - App.model.pooledAt(spoke, term.tok)
+        + App.model.pooledAt(own, term.tok);
+      if (term.need > room) { return true; }
+    }
+    return false;
+  }
+
+  function fgActionOff(state, side, unit, report, spoke, vocab) {
     if (unit.alive === false) { return true; }
     if (fgReqUnmet(report)) { return true; }
-    if (report.apCost === null) { return false; }
-    var room = state.fight[side].ap - spoke + fgOwnPledge(state, side, unit.id);
-    return report.apCost > room;
+    return fgCannotPay(report, spoke,
+      fgOwnPledge(state, side, unit.id, vocab));
   }
 
   /* ---- FIGHT-03's declaration step, as D-27 drew it ----------------------
@@ -15134,18 +15201,41 @@ App.render = (function () {
      WROTE, in that type's own symbol — which is the same promise as before, and
      one the symbol keeps better than the word did: a cost in a type this file
      has no pool for now looks like the thing it is a cost in. */
-  function fgCostParts(state, action, apCost) {
-    var term = fgTerms(action, 'cost')[0];
-    if (apCost !== null) {
-      return [{ node: symQty(state, 'ap', apCost, String(apCost) + ' ', '', true) }];
-    }
-    if (!term || typeof term.tok !== 'string') {
+  /* D-32: EVERY COST TERM IS DRAWN, THROUGH THE SAME MACHINERY THE ONE TERM
+     WENT THROUGH. Nothing above this line changes: a cost is still a red mark
+     on the shape and the type's own tokens, still compacted at the file's one
+     threshold, still with the prose on the hover. What changes is the COUNT of
+     readings — one per term, in the order the student wrote them — and D-32
+     says exactly that: "the fight picker's minus-badge cost reading renders
+     every cost term, compacted per COMPACT_AT".
+
+     IT READS THE LIST THROUGH App.model.actionCostTerms AND NOT OFF THE RECORD.
+     That reader makes the shipped default explicit — a record with no cost
+     field costs the one action point the board always implied — so the button
+     for a shipped action draws exactly what it drew before, and a cost this
+     file cannot read at all still says "no cost" in the artifact's own words
+     rather than showing a blank a room has to guess about.
+
+     THE OLD apCost ARGUMENT IS GONE. It existed to answer "did the report
+     price this?", and that question is now asked per term by the report itself.
+     Passing a summed action-point figure in here would have drawn ONE ap
+     reading over a four-term cost and silently dropped the other three. */
+  function fgCostParts(state, action) {
+    var terms = App.model.actionCostTerms(action);
+    if (terms === null || terms.length === 0) {
       return [{ said: 'no cost' }];
     }
-    return [{ node: symQty(state, term.tok, term.n, String(term.n) + ' ', '', true) }];
+    return terms.map(function (term) {
+      return { node: symQty(state, term.tok, term.n, String(term.n) + ' ', '', true) };
+    });
   }
 
-  function fgActBtn(state, side, unit, action, report, on, off) {
+  // `report` LEFT THIS SIGNATURE UNDER D-32 rather than being kept and ignored.
+  // It was here for the cost figure, and the cost is now read off the action
+  // through App.model.actionCostTerms — one reading per term — so an argument
+  // that no line in the body touches would be a parameter the next reader
+  // assumes decides something.
+  function fgActBtn(state, side, unit, action, on, off) {
     var b = el('button', 'brd-btn fg-act' + (on ? ' fg-act--on' : ''));
     b.type = 'button';
     setData(b, {
@@ -15161,7 +15251,7 @@ App.render = (function () {
     setData(nameNode, { anm: action.id });
     b.appendChild(nameNode);
     var cost = el('span', 'fg-act-cost');
-    fgSay(cost, fgCostParts(state, action, report.apCost));
+    fgSay(cost, fgCostParts(state, action));
     b.appendChild(cost);
     b.appendChild(text('span', 'fg-check', '✓'));
     return b;
@@ -15212,7 +15302,7 @@ App.render = (function () {
      and its comment says so — so an action that asks for a target on a board
      with no living enemy left says so in words rather than leaving a gap in the
      sentence a room is reading. */
-  function fgRowFor(state, side, unit, actions, reports, spoke, half) {
+  function fgRowFor(state, side, unit, actions, reports, spoke, half, vocab) {
     var row = el('div', 'fg-row');
     var name = text('span', 'fg-unit', fgUnitName(state, unit.id));
     row.appendChild(name);
@@ -15221,8 +15311,8 @@ App.render = (function () {
     var acts = el('div', 'fg-acts');
     actions.forEach(function (action, i) {
       var on = (held !== null && held.entry.act === action.id);
-      acts.appendChild(fgActBtn(state, side, unit, action, reports[i], on,
-        fgActionOff(state, side, unit, reports[i], spoke)));
+      acts.appendChild(fgActBtn(state, side, unit, action, on,
+        fgActionOff(state, side, unit, reports[i], spoke, vocab)));
     });
     row.appendChild(acts);
 
@@ -15243,12 +15333,13 @@ App.render = (function () {
     return row;
   }
 
-  function fgFillRows(root, state, side, actions, reports, spoke, half) {
+  function fgFillRows(root, state, side, actions, reports, spoke, half, vocab) {
     var box = root.querySelector('.fg-rows');
     if (!box) { return; }
     box.replaceChildren();
     state.fight[side].units.forEach(function (unit) {
-      box.appendChild(fgRowFor(state, side, unit, actions, reports, spoke, half));
+      box.appendChild(fgRowFor(state, side, unit, actions, reports, spoke, half,
+        vocab));
     });
   }
 
@@ -15261,12 +15352,36 @@ App.render = (function () {
      label read live through labelFor and the exemption channel on the label
      node so a rename follows and a student's word never reddens CI.
 
-     THE ACTION POINTS DEPLETE AND THE TALLIES DO NOT, AND THE ASYMMETRY IS A
-     DECISION RATHER THAN AN OVERSIGHT. affordability has a pool figure for
-     action points and for nothing else — its own comment and D-16's stance —
-     so no shipped cost is ever paid out of a tally, and a tally shown draining
-     would be this surface inventing an economy the applier does not run. What
-     the tool cannot price it says plainly and leaves alone.
+     THE ASYMMETRY THAT USED TO BE HERE IS GONE, AND IT IS TURNED IN THE OPEN
+     RATHER THAN QUIETLY DELETED. What stood in this paragraph was:
+
+       "THE ACTION POINTS DEPLETE AND THE TALLIES DO NOT, AND THE ASYMMETRY IS
+        A DECISION RATHER THAN AN OVERSIGHT. affordability has a pool figure
+        for action points and for nothing else — its own comment and D-16's
+        stance — so no shipped cost is ever paid out of a tally, and a tally
+        shown draining would be this surface inventing an economy the applier
+        does not run."
+
+     Every clause of that was true and the first one has stopped being true.
+     D-32 made a cost a LIST, and D-24's rule that a student's type works on the
+     same terms as a shipped one then says what a cost naming that type must do:
+     spend it. affordability has a pool figure for every SIDE-SCOPE type now,
+     the applier moves those bags, and the preview draws them draining — so the
+     surface is no longer inventing an economy, it is reading the one below it.
+
+     THE ASYMMETRY DID NOT DISAPPEAR, IT MOVED DOWN A LEVEL, and that is the
+     part worth keeping in view. A type kept PER UNIT still does not deplete
+     here and cannot: there is no side-scope number for it to come out of, and
+     picking a unit to pay would be the tool adjudicating. Those rows draw their
+     count and nothing else, exactly as every row here did before. What the tool
+     cannot price it still says plainly and leaves alone.
+
+     WHICH ROWS ARE POOLS IS NOT DECIDED HERE. `live.tally` on the fight slice
+     IS the side-scope bag by construction — tallyOwner puts unit-scope numbers
+     on units — so every row this walk draws is a pool, and the reading is drawn
+     for all of them uniformly rather than for the ones that happen to have been
+     spoken for. A reading that appeared only when something had been declared
+     would be a reading a room learns to read as a warning.
 
      THE PAIR OF ACTION-POINT READINGS IS FIGHT-09's "SPENT VISIBLY DISTINCT
      FROM AVAILABLE", AND IT IS THE RESOLUTION OF THE apSpent-READS-ZERO
@@ -15294,32 +15409,37 @@ App.render = (function () {
      the four survive a projector with the colour washed out. [C14.1] carries
      the tint, derived with color-mix() from the token the board already draws
      action points with, so there is no new hex anywhere. */
+  // ONE POOL ROW, WRITTEN ONCE. The action points and a side-scope type a
+  // student invented are the same kind of thing to a cost (D-24), so they are
+  // drawn by one function rather than by two that could drift into saying the
+  // same fact two ways. The words and their order are the ones the ap row has
+  // carried since D-27, unchanged.
+  function fgResRow(state, box, tok, held, spoke, extra) {
+    var row = el('div', 'fg-res' + (extra === '' ? '' : ' ' + extra));
+    var lbl = text('span', 'fg-res-lbl', labelFor(state, tok));
+    setData(lbl, { lbl: tok });
+    row.appendChild(lbl);
+    row.appendChild(text('span', 'fg-res-spoke',
+      spoke + ' of ' + held + ' spoken for'));
+    row.appendChild(text('span', 'fg-res-left',
+      Math.max(0, held - spoke) + ' left to spend'));
+    box.appendChild(row);
+  }
+
   function fgFillTeam(root, state, side, spoke) {
     var box = root.querySelector('.fg-team');
     if (!box) { return; }
     box.replaceChildren();
     var live = state.fight[side];
 
-    var ap = el('div', 'fg-res');
-    var apLbl = text('span', 'fg-res-lbl', labelFor(state, 'ap'));
-    setData(apLbl, { lbl: 'ap' });
-    ap.appendChild(apLbl);
-    ap.appendChild(text('span', 'fg-res-spoke',
-      spoke + ' of ' + live.ap + ' spoken for'));
-    ap.appendChild(text('span', 'fg-res-left',
-      Math.max(0, live.ap - spoke) + ' left to spend'));
-    box.appendChild(ap);
+    fgResRow(state, box, 'ap', live.ap, App.model.pooledAt(spoke, 'ap'), '');
 
     var bag = live.tally;
     if (!bag) { return; }
     Object.keys(bag).forEach(function (tok) {
       if (!Number.isInteger(bag[tok])) { return; }
-      var row = el('div', 'fg-res fg-res--tally');
-      var lbl = text('span', 'fg-res-lbl', labelFor(state, tok));
-      setData(lbl, { lbl: tok });
-      row.appendChild(lbl);
-      row.appendChild(text('span', 'fg-res-n', String(bag[tok])));
-      box.appendChild(row);
+      fgResRow(state, box, tok, bag[tok], App.model.pooledAt(spoke, tok),
+        'fg-res--tally');
     });
   }
 
@@ -15887,10 +16007,20 @@ App.render = (function () {
         // once for the same reason. Nothing here is stored anywhere.
         var actions = refActions(state, side);
         var caster = fgCaster(state, side);
+        // D-32: THE VOCABULARY GOES DOWN WITH THE SIDE, because whether a cost
+        // term names a pool is a fact about the TYPE and the type table is the
+        // only place that holds it. It is passed rather than reached for, which
+        // is the same arrangement defaultAt already has with the fight slice.
+        var vocab = state.build.tokens;
         var reports = actions.map(function (a) {
-          return App.model.affordability(caster, a);
+          return App.model.affordability(caster, a, vocab);
         });
-        var spoke = App.model.spokenFor(actions, state.fight.decl, side);
+        // `spoke` IS A MAP NOW AND NOT A NUMBER — one entry per pool this
+        // round's declarations have spoken for. The ap figure is still one
+        // lookup away and both surfaces below take it that way, so the reading
+        // a student watches and the arithmetic that disables a button are the
+        // same walk over the same declarations.
+        var spoke = App.model.spokenForPools(actions, state.fight.decl, side, vocab);
         var half = fgHalfMade(side);
 
         // D-31: THE FIRST TWO WRITE INTO THE STATE ROOT AND THE LAST TWO INTO
@@ -15903,7 +16033,7 @@ App.render = (function () {
         // rather than argued here.
         fgFillStanding(seat, state, side);
         fgFillTeam(seat, state, side, spoke);
-        fgFillRows(node, state, side, actions, reports, spoke, half);
+        fgFillRows(node, state, side, actions, reports, spoke, half, vocab);
         fgFillReport(node, state, side, actions, reports);
       });
 
