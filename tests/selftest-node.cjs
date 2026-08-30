@@ -5721,6 +5721,47 @@ const fightRenamedOnPage = fightLabelsSaying('Ward');
 const fightAuthoredSeen = fightText.filter((e) => e.s === 'Zeal').length;
 const fightRenamedSeen = fightText.filter((e) => e.s === 'Ward').length;
 
+/* --- THE SAME PAGE WITH D-28's PROJECTION SIDEBAR OPEN, harvested a second
+   time and scanned again (plan 05-D28). Row 92b below is what this is for.
+
+   THE WAVE-1 LESSON IS THE WHOLE REASON THIS EXISTS: a surface the walk never
+   reaches reports clean forever. D-28 takes the projection OUT of the default
+   fight view, and a walk that only ever saw the default fight view would stop
+   scanning every word [S06.3] renders — silently, with no row going red and no
+   number moving, which is exactly the shape check 47c and probe AS each
+   measured from a different direction.
+
+   AND THE HONEST HALF, WHICH IS THAT THIS PAGE CANNOT SEE THE HIDING. The stub
+   has no stylesheet at all, and harvestInto reads the text of every leaf under
+   #app WITHOUT asking whether an ancestor is displayed — the shell's own view
+   switch comment says so about both views. So the projection's words are in the
+   CLOSED harvest too, and the two readings differ by nothing at all in this
+   page. What this drive therefore asserts is what it CAN: that the toggle is
+   real and moves the attribute both ways when a student presses it, and that
+   the projection's words are scanned in the state a student actually reads them
+   in. The claim that the closed state really removes the panel from the page is
+   a LAYOUT claim, it is asserted in tests/browser-checks.mjs check 10 in two
+   browsers at two sizes, and it is named here so a reader does not mistake this
+   row for it. */
+const fightProjBtn = dom.byId['proj-toggle'];
+press(fightProjBtn);
+release(fightProjBtn);
+A.state.invalidate();
+A.state.flush();
+const fightProjOpen = String(dom.byId['app'].dataset.proj || '') === '1'
+  && dom.byId['proj-toggle'].getAttribute('aria-expanded') === 'true';
+const fightOpenText = harvestInto(dom.byId['app'], [], '#app');
+const fightOpenHits = verdictHitsIn(fightOpenText).concat(relationshipHitsIn(fightOpenText));
+const fightStripText = harvestInto(dom.byId['strip'], [], '#strip');
+const fightStripInOpen = fightStripText
+  .filter((e) => fightOpenText.some((o) => o.s === e.s)).length;
+press(fightProjBtn);
+release(fightProjBtn);
+A.state.invalidate();
+A.state.flush();
+const fightProjShut = String(dom.byId['app'].dataset.proj || '') === ''
+  && dom.byId['proj-toggle'].getAttribute('aria-expanded') === 'false';
+
 A.ops.endFight();
 A.state.invalidate();
 A.state.flush();
@@ -6047,6 +6088,75 @@ A.state.flush();
    unit a side — clears it by 59. A walk pointed at the wrong node reads 0 and
    does not come close.
 
+   HISTORY — 116 -> 116, PLAN 05-D28, AND THE ENTRY IS THE MEASUREMENT RATHER
+   THAN THE MOVE. D-28 rearranged the whole fight tab: the band became a
+   full-width stack, the ledger became a horizontal lane above the round being
+   played, and the projection left the default fight view for a toggled sidebar.
+   Three changes, any of which a plan would reasonably expect to move a floor.
+   The obligation above says a plan that adds a fight surface re-measures, so
+   this one did, by the method the paragraph below prescribes — rosters trimmed
+   BEFORE startFight, each side varied separately:
+
+       cats varied, mechs held at 3        cards   strings   delta
+         2 cats                              5       264
+         3 cats                              6       293       +29
+         4 cats                              7       322       +29
+         5 cats                              8       351       +29
+         6 cats                              9       380       +29
+         9 cats                             12       467       +29 x3
+
+       mechs varied, cats held at 9
+         2 mechs                            11       437
+         3 mechs                            12       467       +30
+         4 mechs                            13       497       +30
+         5 mechs                            14       527       +30
+         6 mechs                            15       557       +30
+
+       cats x mechs     29c + 30m + 116     measured
+         2 x 2                234              234
+         2 x 3                264              264
+         3 x 3                293              293
+         4 x 4                352              352
+         6 x 6                470              470
+         9 x 3                467              467
+         9 x 6                557              557
+
+   EVERY FIGURE IS BYTE-IDENTICAL TO THE 120 -> 116 ENTRY ABOVE. A cat still
+   costs 29, a mech still costs 30, and the roster-independent part is still 116
+   on the board this row harvests.
+
+   WHY NOTHING MOVED, WHICH IS THE PART WORTH WRITING DOWN, because "we changed
+   three surfaces and the count did not move" is exactly the reading that means
+   a drive has stopped reaching something:
+
+     1. THE LANE'S ACTION LINES WERE ALREADY THERE. D-28 asks for past rounds
+        "showing the past state and acctions selected", and ldDidInto has
+        rendered exactly that since plan 05-08 — one line per declaration naming
+        who used what on whom, with the split's three facts under it. What D-28
+        moved is where those lines SIT, not whether they exist. Row 103f now
+        asserts both halves off a card so the day somebody tidies the actions
+        out of a card there is a row that says so.
+     2. THE TOGGLE RENDERS NO WORD, BY DESIGN. [S06.10]'s banner refuses a label
+        that says "Show the projection" and then "Hide the projection", and
+        ships one permanent label plus a real tick node instead. A permanent
+        label is STATIC MARKUP, this stub carries no text for static markup by
+        its standing convention, and Layer A reads it in the document. So the
+        control costs this harvest zero strings — which is the same reason
+        #round-label and #fight-head have always cost it zero.
+     3. THE PROJECTION NEVER LEFT THIS HARVEST AT ALL, and it is the one of the
+        three that a reader will assume moved the number. The hiding is a CSS
+        display rule; this page has no stylesheet and harvestInto never asks
+        whether an ancestor is displayed. So the strip's strings are in the
+        closed reading exactly as they are in the open one. Row 92b drives the
+        toggle anyway and harvests the OPEN state, for the wave-1 reason its own
+        comment gives; the claim that the closed state removes the panel from
+        the page is a layout claim and lives in tests/browser-checks.mjs.
+
+   AND ONE AXIS IS RETIRED FROM THE LIST BELOW RATHER THAN LEFT STANDING: there
+   is no seventh axis for the sidebar, because open and closed are the same
+   number here. If a later plan gives the toggle a rendered word, that word is a
+   seventh axis and it moves the constant.
+
    THE OBLIGATION STANDS, RESTATED RATHER THAN RETIRED, and it now carries one
    more instruction than it did. A plan that adds a fight surface after this one
    inherits the same method: trim the roster BEFORE startFight — a mid-fight
@@ -6096,6 +6206,41 @@ check(
     + '; board after endFight is '
     + (fightBoardBack ? 'byte-identical to the board before startFight'
       : 'NOT the board it was before startFight')
+);
+
+console.log('scan: ' + fightOpenText.length + ' rendered strings read from #app WITH '
+  + 'A FIGHT RUNNING AND D-28\'s PROJECTION SIDEBAR OPEN (Layer C, floor '
+  + FIGHT_FLOOR + ')');
+
+check(
+  '92b. AND THE SAME PAGE WITH THE PROJECTION SIDEBAR OPEN, harvested and '
+    + 'scanned a SECOND time. D-28 takes the projection out of the default '
+    + 'fight view, and the wave-1 lesson is that a surface the walk never '
+    + 'reaches reports clean forever — so the toggle is PRESSED, the open state '
+    + 'is harvested, and every string [S06.3] renders is scanned in the state a '
+    + 'student actually reads it in. The toggle is driven BOTH WAYS and both '
+    + 'ends are read back off the page, because a control that opens and cannot '
+    + 'close is a panel a student is stuck with. THIS PAGE CANNOT SEE THE '
+    + 'HIDING and the row says so rather than implying it: the stub has no '
+    + 'stylesheet and the walk never asks whether an ancestor is displayed, so '
+    + 'the two harvests are the same length by construction and the claim that '
+    + 'the closed state removes the panel is a LAYOUT claim asserted in '
+    + 'tests/browser-checks.mjs in two browsers at two sizes. Floored on the '
+    + 'projection\'s own leaves being FOUND and on every one of them being '
+    + 'present in the open harvest, because a walk over a strip that was never '
+    + 'painted finds nothing to judge spotlessly',
+  fightOpenHits.length === 0
+    && fightProjOpen === true && fightProjShut === true
+    && fightOpenText.length > FIGHT_FLOOR
+    && fightStripText.length > 0
+    && fightStripInOpen === fightStripText.length,
+  (fightOpenHits.length === 0 ? '' : fightOpenHits.join(' | ') + ' | ')
+    + 'harvested ' + fightOpenText.length + ' strings with the sidebar OPEN'
+    + ' against ' + fightText.length + ' with it closed (floor ' + FIGHT_FLOOR + ')'
+    + ' | one press opened it=' + fightProjOpen
+    + ' and a second press shut it=' + fightProjShut
+    + ' | the projection renders ' + fightStripText.length + ' leaves, of which '
+    + fightStripInOpen + ' are in the open harvest'
 );
 
 /* --- 47d. THE CONTROL FOR THE EXEMPTION, because an exemption nothing exercises
@@ -10456,10 +10601,42 @@ check(
 );
 
 /* 103b. PROJ-05 AND REF-03, READ OFF THE DOM AND OFF THE MARKUP RATHER THAN OFF
-   A COMMENT. The switch is allowed to put the two roster columns away and it is
+   A COMMENT.
+
+   ==================================================================
+   THIS ROW'S CLAIM WAS TURNED BY D-28 AND THE OLD CLAIM IS WRITTEN OUT
+   BEFORE THE NEW ONE. Plan 05-D28.
+   ==================================================================
+   WHAT IT ASSERTED, plan 05-12's: neither #strip nor #refband has #views as an
+   ancestor, both are still inside #board, and the band's own markup slice
+   carries neither spelling. Read as a whole with plan 05-12's summary, the row
+   stood for a stronger sentence than it literally checked — that the projection
+   is READABLE in the fight view without navigating away, in its Phase 3 box, on
+   arrival.
+
+   WHAT D-28 SAYS, verbatim: "The predictor turn off, and make it toggled
+   sidebar / pop over". So the projection is NOT on the default fight view any
+   more, and PROJ-05's "readable without navigating away" is read as satisfied
+   by ONE toggle press — the developer's call, flagged once in the redirect
+   record and taken there rather than here.
+
+   WHAT THIS ROW ASSERTS NOW, and the reason it is turned rather than deleted:
+   the STRUCTURAL claim is not weakened by D-28, it is what D-28 depends on. The
+   sidebar is #strip itself, so #strip must still be the node inside #board that
+   [S06.3] paints and check 103d reads — a plan that answered D-28 by building a
+   second panel in the fight band would leave a projection that agrees with the
+   board only for as long as somebody keeps two surfaces in step, and probe AK
+   measured that the WHOLE SUITE stays green over the strip being moved into the
+   band. So both halves stand exactly as they were, and the markup half gains
+   one clause: [C15]'s slice must carry BOTH of D-28's rules — the one that
+   takes the projection off the default fight view AND the one that brings it
+   back. A file with only the first is a projection a student cannot reach, and
+   it is one deleted line away at all times.
+
+   The switch is allowed to put the two roster columns away and it is
    allowed to put the fight band away. It is NOT allowed to take the projection
-   or the reference band with either of them, because PROJ-05 wants the
-   projection visible AT THE MOMENT the fight contradicts it and REF-03 wants
+   or the reference band OUT OF #board, because PROJ-05 wants the projection
+   visible AT THE MOMENT the fight contradicts it and REF-03 wants
    reference material readable without leaving the fight view.
 
    TWO HALVES, AND THE SPLIT IS AN HONEST ONE RATHER THAN A BELT-AND-BRACES
@@ -10492,38 +10669,61 @@ const vwBoardAt = html.indexOf('id="board"');
 const vwBoardText = vwBoardAt === -1 ? '' : html.slice(vwBoardAt, html.indexOf('id="selftest-report"'));
 const vwStripSpelling = 'id="strip"';
 const vwRefSpelling = 'id="refband"';
+/* D-28's two rules, read out of the stylesheet by the exact selectors that
+   carry them. Sliced from [C15]'s own marker to the close of the <style> block,
+   which is check 63's REF_OPEN/REF_CLOSE idiom and this row's own markup half
+   one level up. The slice is floored on being non-empty for the reason every
+   slice in this row is: a slice that came back empty carries neither spelling
+   and passes spotlessly. */
+const vwCssAt = html.indexOf('[C15] THE VIEW SWITCH');
+const vwCssText = vwCssAt === -1 ? '' : html.slice(vwCssAt, html.indexOf('</style>', vwCssAt));
+const vwHideRule = '#app[data-view="fight"] #strip{display:none}';
+const vwShowRule = '#app[data-view="fight"][data-proj="1"] #strip{';
 check(
-  '103b. #strip AND #refband ARE IN NEITHER SIDE OF THE SWITCH, walked from '
-    + 'both nodes rather than asserted about them. Neither has #views as an '
-    + 'ancestor and both are still inside #board — which is what makes PROJ-05 '
-    + 'and REF-03 structural: #board stands in BOTH views and only the two '
-    + '.brd-col columns are put away. The markup half carries the claim the '
-    + 'stub page structurally cannot: .fg-band is a class-only wrapper this '
-    + 'page does not build, so the band\'s own slice of cats-vs-mechs.html is '
-    + 'read for both spellings instead, and the board\'s slice is read for '
-    + 'both being present. Floored on both nodes being found and on all three '
-    + 'slices being non-empty, because a walk that found neither and a slice '
-    + 'that came back empty each pass spotlessly',
+  '103b. #strip AND #refband ARE IN NEITHER SIDE OF THE SWITCH AND BOTH ARE '
+    + 'STILL INSIDE #board, walked from both nodes rather than asserted about '
+    + 'them. That is what makes REF-03 structural and what makes D-28\'s '
+    + 'sidebar THE projection rather than a second one: #board stands in BOTH '
+    + 'views, only the two .brd-col columns are put away, and probe AK measured '
+    + 'that the whole suite stays green over the strip being moved into the '
+    + 'fight band. The markup half carries the claim the stub page structurally '
+    + 'cannot: .fg-band is a class-only wrapper this page does not build, so '
+    + 'the band\'s own slice of cats-vs-mechs.html is read for both spellings '
+    + 'instead, and the board\'s slice is read for both being present. AND THE '
+    + 'STYLESHEET HALF IS D-28\'s, added when this row\'s claim was turned: '
+    + '[C15] must carry BOTH the rule that takes the projection off the default '
+    + 'fight view and the rule that brings it back, because a file with only '
+    + 'the first is a projection a student cannot reach and it is one deleted '
+    + 'line away at all times. Floored on both nodes being found and on all '
+    + 'four slices being non-empty, because a walk that found neither and a '
+    + 'slice that came back empty each pass spotlessly',
   fgStrip !== null && vwRefband !== null
     && vwStripInSwitch === false && vwRefInSwitch === false
     && vwStripInBoard === true && vwRefInBoard === true
     && vwSwitchText.length > 0 && vwBandText.length > 0 && vwBoardText.length > 0
+    && vwCssText.length > 0
     && vwSwitchText.indexOf(vwStripSpelling) === -1
     && vwSwitchText.indexOf(vwRefSpelling) === -1
     && vwBandText.indexOf(vwStripSpelling) === -1
     && vwBandText.indexOf(vwRefSpelling) === -1
     && vwBoardText.indexOf(vwStripSpelling) !== -1
-    && vwBoardText.indexOf(vwRefSpelling) !== -1,
+    && vwBoardText.indexOf(vwRefSpelling) !== -1
+    && vwCssText.indexOf(vwHideRule) !== -1
+    && vwCssText.indexOf(vwShowRule) !== -1,
   '#strip inside the switch=' + vwStripInSwitch
     + ' inside #board=' + vwStripInBoard
     + ' | #refband inside the switch=' + vwRefInSwitch
     + ' inside #board=' + vwRefInBoard
     + ' | markup slices, chars: switch=' + vwSwitchText.length
     + ' band=' + vwBandText.length + ' board=' + vwBoardText.length
+    + ' [C15]=' + vwCssText.length
     + ' | the band\'s markup carries #strip=' + (vwBandText.indexOf(vwStripSpelling) !== -1)
     + ' #refband=' + (vwBandText.indexOf(vwRefSpelling) !== -1)
     + ' | the board\'s markup carries #strip=' + (vwBoardText.indexOf(vwStripSpelling) !== -1)
     + ' #refband=' + (vwBoardText.indexOf(vwRefSpelling) !== -1)
+    + ' | [C15] carries D-28\'s hide rule='
+    + (vwCssText.indexOf(vwHideRule) !== -1)
+    + ' and its show rule=' + (vwCssText.indexOf(vwShowRule) !== -1)
 );
 
 /* 103c. THE VIEW FOLLOWS A FIGHT ACROSS BOTH EDGES AND NOT BETWEEN THEM. The
@@ -10578,6 +10778,248 @@ check(
     && vwEdges[5] === 'started again=fight'
     && vwBeforeUndo === 'fight' && vwAfterUndo === 'build',
   vwEdges.join(' | ') + ' | before the undo=' + vwBeforeUndo
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
+/* --- 103d, 103e, 103f. D-28, DRIVEN (plan 05-D28). The developer, at the real
+   artifact, with a screenshot of the fight tab attached:
+
+     "this is way too compressed - let the fight take the whole width.
+      earlier rounds should be a full lane above showing the past state and
+      acctions selected.
+      The predictor turn off, and make it toggled sidebar / pop over"
+
+   Three rows for three claims, split by what each one can be wrong about
+   independently:
+
+     103d  PROJ-05's NEW READING. The projection is reachable from the fight
+           view by ONE toggle press, and the row asserts THAT rather than the
+           old placement claim — the toggle exists, it opens, the projection's
+           figures are present AND CURRENT inside it, it closes, and the whole
+           state is byte-identical across both presses.
+     103e  THE LANE IS ABOVE THE ROUND BEING PLAYED and its newest card is its
+           LAST child, read off both pages' DOM order and off the markup, with
+           the stylesheet read for the two properties that would put reading
+           order and document order out of step silently.
+     103f  A CARD CARRIES THE BOARD AS IT STOOD AND THE ACTIONS THAT WERE
+           SELECTED. D-28 asks for both; ldDidInto has drawn the second half
+           since plan 05-08 and nothing asserted it, so a tidy-up that dropped
+           the actions from a card would have been invisible.
+
+   WHAT THIS BLOCK DOES NOT DO IS AS DELIBERATE AS WHAT IT DOES. It does not
+   assert that the closed projection is off the screen, that the lane scrolls
+   sideways, or that Advance is above the fold. All three are LAYOUT and this
+   page has no layout engine — asserting them here would be the fourth green
+   row in this file over a surface nobody was watching. They are in
+   tests/browser-checks.mjs, in two browsers at two sizes. --- */
+
+A.ops.resetToDefaults();
+A.state.flush();
+fgPress(fgStart);
+const pvAtRestView = String(fgApp.dataset.view || '');
+const pvBtn = dom.byId['proj-toggle'];
+function pvRead() {
+  return {
+    proj: String(fgApp.dataset.proj || ''),
+    pressed: pvBtn.getAttribute('aria-pressed'),
+    expanded: pvBtn.getAttribute('aria-expanded'),
+    cls: String(pvBtn.className || '')
+  };
+}
+function pvSaysOn(r) {
+  return r.proj === '1' && r.pressed === 'true' && r.expanded === 'true'
+    && r.cls.indexOf('pv-on') !== -1;
+}
+function pvSaysOff(r) {
+  return r.proj === '' && r.pressed === 'false' && r.expanded === 'false'
+    && r.cls.indexOf('pv-on') === -1;
+}
+const pvClosed = pvRead();
+const pvStateWas = JSON.stringify(A.state.get());
+fgPress(pvBtn);
+const pvOpen = pvRead();
+const pvStateMid = JSON.stringify(A.state.get());
+// THE FIGURES INSIDE IT, AND THEY MUST BE CURRENT RATHER THAN MERELY PRESENT.
+// A sidebar carrying a COPY of the projection would read non-empty here and
+// would be exactly the thing [C15]'s "the same projection, not a second one
+// that happens to carry the same words" refuses. So the reading is taken, a
+// real op moves the number the projection is derived from, and the reading is
+// taken again: the two must DIFFER. That is a claim about the path a figure
+// travels and not about a string, which is probe AU's ruling applied here.
+const pvSaysFirst = fgLeaves(fgStrip);
+A.ops.setFactionAp('cats', 9);
+A.state.flush();
+const pvSaysAfter = fgLeaves(fgStrip);
+A.ops.setFactionAp('cats', 3);
+A.state.flush();
+fgPress(pvBtn);
+const pvShut = pvRead();
+const pvStateNow = JSON.stringify(A.state.get());
+// The partition, read off the page rather than off the shell comment that says
+// it: no node carries both routing words, and neither routing word is a
+// data-act — one would be routed straight into App.ops.dispatch by [S07.1]
+// whatever this region intended.
+const pvPrivate = vwRoot.querySelectorAll('[data-pv]').length;
+const pvAlsoVw = vwRoot.querySelectorAll('[data-pv]')
+  .filter((n) => typeof n.dataset.vw === 'string' && n.dataset.vw !== '').length;
+const pvActs = vwRoot.querySelectorAll('[data-act]').length;
+const pvDisabled = vwRoot.querySelectorAll('button')
+  .filter((n) => n.disabled === true).length;
+check(
+  '103d. PROJ-05 UNDER D-28: THE PROJECTION IS ONE PRESS AWAY FROM THE FIGHT '
+    + 'VIEW, AND THE PRESS IS DRIVEN. This is the reading that replaces plan '
+    + '05-12\'s placement claim, and it is a STRONGER row than the one it '
+    + 'replaces rather than a weaker one — the old row read where the '
+    + 'projection sat and could not tell a live projection from a dead copy of '
+    + 'one. Four things are read back through both states: the attribute on '
+    + '#app, both aria attributes, the on-class, and THE PROJECTION\'S OWN '
+    + 'FIGURES, which must be present AND MOVE when a real op moves the pool '
+    + 'they are derived from. A sidebar carrying a copy would read non-empty '
+    + 'and stand still. The whole state is serialised before, between and after '
+    + 'and must be byte-identical at all three readings: a panel a student '
+    + 'opened is a page preference, and a page preference in a slice would ride '
+    + 'in a build code and step under undo, which is check 103\'s claim '
+    + 'arriving on a second attribute. AND THE TOGGLE CARRIES data-pv AND NOT '
+    + 'data-act AND NOT data-vw, counted off the page. Nothing in this region '
+    + 'is ever disabled',
+  pvAtRestView === 'fight'
+    && pvSaysOff(pvClosed) && pvSaysOn(pvOpen) && pvSaysOff(pvShut)
+    && pvSaysFirst.length > 0 && pvSaysAfter.length > 0
+    && pvSaysFirst.join('|') !== pvSaysAfter.join('|')
+    && pvStateWas === pvStateMid && pvStateWas === pvStateNow
+    && pvPrivate === 1 && pvAlsoVw === 0 && pvActs === 0 && pvDisabled === 0,
+  'the view when the fight started=' + pvAtRestView
+    + ' | closed=' + JSON.stringify(pvClosed)
+    + ' | after ONE press=' + JSON.stringify(pvOpen)
+    + ' | after a second=' + JSON.stringify(pvShut)
+    + ' | the projection renders ' + pvSaysFirst.length + ' leaves and they '
+    + (pvSaysFirst.join('|') === pvSaysAfter.join('|') ? 'DID NOT move' : 'moved')
+    + ' when the pool moved'
+    + ' | state byte-identical across press one=' + (pvStateWas === pvStateMid)
+    + ' and across press two=' + (pvStateWas === pvStateNow)
+    + ' | data-pv controls=' + pvPrivate + ' of which also data-vw=' + pvAlsoVw
+    + ' | data-act under #views=' + pvActs
+    + ' | disabled controls under #views=' + pvDisabled
+);
+
+/* 103e. THE LANE IS ABOVE THE ROUND BEING PLAYED, AND THE ORDER IS READ RATHER
+   THAN ARRANGED. D-28: "earlier rounds should be a full lane above". The
+   orchestrator's own note on that line is that the lane runs HORIZONTALLY with
+   the newest nearest the round being played, because a full-width vertical
+   stack pushes the current round off screen — the exact defect class this phase
+   has now fixed three times.
+
+   THE ROW IS ABOUT ORDER AND NOT ABOUT PIXELS, which is the honest split: this
+   page cannot see a lane. What it CAN see, and what a CSS `order` or a
+   `row-reverse` would break silently while every DOM-order check in this
+   repository stayed green, is that document order and reading order are the
+   same thing. So three things are read: #ledger comes before #fightbar in this
+   page's own child order; the band's markup slice spells them in that same
+   order; and [C14.2]'s slice carries NEITHER `order:` NOR a reversed direction.
+   The third clause is the one that catches the tidy fix.
+
+   AND THE NEWEST CARD IS THE LAST CHILD, driven with two resolved rounds rather
+   than asserted — which is [S06.8]'s append contract read from the end a room
+   sees it from. */
+A.ops.resetToDefaults();
+A.state.flush();
+const ldKids = fgApp.children.map((n) => String(n.getAttribute('id') || n.className || '?'));
+const ldLedgerAt = ldKids.indexOf('ledger');
+const ldBarAt = ldKids.indexOf('fightbar');
+const ldBandLedgerAt = vwBandText.indexOf('id="ledger"');
+const ldBandBarAt = vwBandText.indexOf('id="fightbar"');
+const ldCssAt = html.indexOf('[C14.2] THE LEDGER');
+const ldCssText = ldCssAt === -1 ? '' : html.slice(ldCssAt, html.indexOf('[C14.3]', ldCssAt));
+const ldCssOrder = /(^|[;{\s])order\s*:/.test(ldCssText);
+const ldCssReverse = /(row|column)-reverse/.test(ldCssText);
+fgPress(fgStart);
+fgDeclare('cats', fgCatsAct, 'c1');
+fgAdvancePress();
+fgDeclare('cats', fgCatsAct, 'c1');
+fgAdvancePress();
+const ldList = dom.byId['ledger-list'];
+const ldRounds = ldList.children.map((r) => String(r.dataset.ldRound || '?'));
+const ldNewestIsLast = ldRounds.length > 1
+  && Number(ldRounds[ldRounds.length - 1]) === Math.max.apply(null, ldRounds.map(Number));
+check(
+  '103e. THE LANE OF EARLIER ROUNDS IS ABOVE THE ROUND BEING PLAYED AND ITS '
+    + 'NEWEST CARD IS ITS LAST CHILD, read off this page\'s child order, off '
+    + 'the band\'s own markup and off the stylesheet. D-28 moved the ledger '
+    + 'from a right-hand column to a full-width lane above, and the move was '
+    + 'made in the MARKUP: a CSS `order` would have put the sequence a screen '
+    + 'reader walks out of step with the sequence the room sees, and every '
+    + 'DOM-order check in this repository would have stayed green over it. So '
+    + '[C14.2]\'s slice is read for `order:` and for a reversed flex direction '
+    + 'and must carry NEITHER, which is the clause that catches the tidy fix. '
+    + 'The append contract is driven rather than asserted — two rounds are '
+    + 'resolved through the real controls and the newest must be the LAST card, '
+    + 'because that is the end of the lane and the end of the lane is what '
+    + 'touches the round being played. Floored on both regions being FOUND in '
+    + 'both pages and on the stylesheet slice being non-empty, because an '
+    + 'indexOf of -1 is smaller than every other index and would pass this row '
+    + 'by not existing',
+  ldLedgerAt !== -1 && ldBarAt !== -1 && ldLedgerAt < ldBarAt
+    && ldBandLedgerAt !== -1 && ldBandBarAt !== -1 && ldBandLedgerAt < ldBandBarAt
+    && ldCssText.length > 0 && ldCssOrder === false && ldCssReverse === false
+    && ldRounds.length === 2 && ldNewestIsLast,
+  '#app child order=' + JSON.stringify(ldKids)
+    + ' | #ledger at ' + ldLedgerAt + ', #fightbar at ' + ldBarAt
+    + ' | in the band\'s markup, #ledger at ' + ldBandLedgerAt
+    + ' and #fightbar at ' + ldBandBarAt
+    + ' | [C14.2] slice=' + ldCssText.length + ' chars, carries order:='
+    + ldCssOrder + ' carries a reversed direction=' + ldCssReverse
+    + ' | cards in the lane=' + JSON.stringify(ldRounds)
+    + ' newest is the last child=' + ldNewestIsLast
+);
+
+/* 103f. AND A CARD SHOWS THE STATE AND THE ACTIONS, which is the half of D-28's
+   sentence a layout change is most likely to lose. "earlier rounds should be a
+   full lane above showing the past state and acctions selected" — two things,
+   and the second one has been drawn by ldDidInto since plan 05-08 with NOTHING
+   IN THIS FILE ASSERTING IT. A card narrowed to 340px is exactly the moment
+   somebody decides the action lines do not fit.
+
+   BOTH HALVES ARE READ OFF THE SAME CARD, and the action half is read for the
+   three things that make it readable rather than for a node count: the unit
+   that acted, the action it used, and what it landed on. The words are compared
+   against the BUILD's own names rather than against strings typed here, which
+   is check 102's rule — a row carrying its own copy of a unit name is a row
+   asserting that this file agrees with itself. */
+const ldNewest = ldList.children[ldList.children.length - 1] || null;
+const ldCardBoard = ldNewest === null ? [] : fgLeaves(ldNewest.querySelector('.ld-board'));
+const ldCardActs = ldNewest === null ? [] : fgLeaves(ldNewest.querySelector('.ld-acts'));
+const ldCardAll = ldCardActs.join(' ');
+const ldBuildNow = A.state.get().build;
+const ldUnitWord = ldBuildNow.cats.units[0].name;
+const ldActWord = (ldBuildNow.cats.actions.filter((a) => a.id === fgCatsAct)[0] || {}).name;
+const ldSideWord = ldBuildNow.cats.name;
+const ldSaysUnit = ldCardAll.indexOf(ldUnitWord) !== -1;
+const ldSaysAct = typeof ldActWord === 'string' && ldCardAll.indexOf(ldActWord) !== -1;
+const ldBoardSaysSide = ldCardBoard.join(' ').indexOf(ldSideWord) !== -1;
+check(
+  '103f. EVERY CARD IN THE LANE SHOWS THE BOARD AS IT STOOD AND THE ACTIONS '
+    + 'THAT WERE SELECTED — D-28 asks for both and only one of the two had a '
+    + 'row watching it. The board half is read off the card\'s own board box '
+    + 'and must name the faction; the action half is read off the card\'s '
+    + 'action box and must name the UNIT that acted and the ACTION it used, '
+    + 'both compared against the live build\'s own words rather than against '
+    + 'strings typed into this row, which is check 102\'s rule: a row carrying '
+    + 'its own copy of a name asserts that this file agrees with itself. This '
+    + 'is the clause a 340px card is most likely to lose, and losing it would '
+    + 'have moved no number and reddened nothing',
+  ldNewest !== null && ldCardBoard.length > 0 && ldCardActs.length > 0
+    && ldBoardSaysSide && ldSaysUnit && ldSaysAct,
+  'the newest card carries ' + ldCardBoard.length + ' board leaves and '
+    + ldCardActs.length + ' action leaves'
+    + ' | the board half names the faction ' + JSON.stringify(ldSideWord)
+    + '=' + ldBoardSaysSide
+    + ' | the action half names the unit ' + JSON.stringify(ldUnitWord)
+    + '=' + ldSaysUnit + ' and the action ' + JSON.stringify(ldActWord)
+    + '=' + ldSaysAct
+    + ' | the action half reads: ' + JSON.stringify(ldCardAll.slice(0, 120))
 );
 
 A.ops.resetToDefaults();
