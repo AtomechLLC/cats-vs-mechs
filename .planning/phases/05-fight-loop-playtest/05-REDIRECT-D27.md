@@ -205,3 +205,32 @@ appears — picker costs, requirement shortfalls, transformation readings, lane 
 
 Also this round, tooling: browser checks now run headless so testing stops popping windows over
 the developer's work (committed separately).
+
+---
+
+## D-31 — Fifth live-feedback round, 2026-08-29: state and input part ways
+
+Verbatim:
+
+> separate the current round state from the action input area
+
+### What this settles
+
+The fight tab's current-round region splits into two visually and structurally distinct areas:
+
+1. **Round state** — the round number, both survivor counts, the battlefield clusters, and the
+   team resources. What IS.
+2. **Action input** — the per-unit action picker rows, the declaration readouts with their
+   change-target buttons, and the Advance / reset controls. What the student is ABOUT TO DO.
+
+The spoken-for resource preview stays with the resources in the state area (it is a reading of
+state), but continues to react live as declarations are made in the input area.
+
+### Orchestrator interpretation
+
+- Separation means a clear visual boundary (distinct panels/cards with their own headings), not
+  merely spacing. The column pairing survives inside each area — Cats left, Mechs right, in both.
+- Order top to bottom: earlier-rounds lane (D-28), then round state, then action input. Advance
+  lives with the input, since it commits what the input declared.
+- No behavioural change — this is layout and grouping only. Every gate row that reads positions
+  or containment gets turned openly if it moves.
