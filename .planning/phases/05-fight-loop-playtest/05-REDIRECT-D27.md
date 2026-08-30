@@ -234,3 +234,36 @@ state), but continues to react live as declarations are made in the input area.
   lives with the input, since it commits what the input declared.
 - No behavioural change — this is layout and grouping only. Every gate row that reads positions
   or containment gets turned openly if it moves.
+
+---
+
+## D-32 — Sixth live-feedback round, 2026-08-30: dense authoring, multi-term everything
+
+Verbatim, two messages:
+
+> make the action configuration more dense and allow multiple effects
+
+> allow multiple input for all cost/needs/changes
+
+### What this settles
+
+1. **The action editor's terms region gets DENSER** — more rule per screen, less chrome per row.
+2. **All three term lists become true multi-term lists**: an action may carry multiple cost terms,
+   multiple requirements, and multiple transformations.
+
+### Orchestrator calls (recorded, overridable)
+
+- **Caps go to 4 per list** (cost 1→4, req 2→4, xf 2→4). "Multiple" needs a number; 4 keeps the
+  codec's adversarial ceiling inside the Discord budget and a row of 4 fits the dense layout. Bump
+  on request — it is three constants plus their pinned rows.
+- **A multi-token cost spends what it names.** Cost was AP-only in practice; with multiple cost
+  terms a cost may name any tally (D-24: student tallies on the same terms). The spoken-for
+  preview depletes every named pool, the disable contract's condition (b) checks every named pool,
+  and Advance spends every named term. The projection's apCost reading keeps its meaning by
+  reading the ap term(s) from the list.
+- **Codec: version stays v1 if the grammar is count-driven** (verify, don't assume). Wire bounds
+  in [S04] are the same list one level down and must move in the same change — the drift rows
+  exist precisely for this. A new code carrying 3+ terms pasted into a STALE copy of the file
+  refuses by content rather than loading garbage; that is the codec doing its job, noted not fixed.
+- The fight picker's −badge cost reading (D-29/D-30) renders every cost term, compacted per
+  COMPACT_AT.
