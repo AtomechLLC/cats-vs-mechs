@@ -247,3 +247,68 @@ is logged with its measurement, which is plan 05-10's shipped precedent for exac
 what will make somebody ask.
 
 **Do not "tidy" the gap by renumbering the battlefield rows into it.** The gap is the record.
+
+### CLOSED BY D-29 — plan 05-D29
+
+D-29 edits `[S06.7]` (its `fgSay`, its `fgCostParts` and its requirement line all take the symbolic
+reading), so this item's own stated owner arrived. `check 105` → `check 95b`, with the history kept
+in the same sentence: the row shipped as 95b, 105 is deliberately absent from the numbering, and the
+gap in `tests/selftest-node.cjs` is still the record. **Nothing was renumbered.**
+
+---
+
+## 6. THE LANE'S SYMBOLIC READINGS ARE NOT REACHABLE AT 1366x768 WITHOUT SCROLLING THE CARD
+
+**Found:** plan 05-D29, by a browser check that went red three times before it went green.
+
+Measured in real Chrome and real Edge with five rounds resolved:
+
+| | @1920x1080 | @1366x768 |
+|---|---|---|
+| a lane card's window over its content | 238px over 1174px | **115px over 1174px** |
+| readings in the lane, and readings reachable by a mouse without scrolling a card | 240 / some | 240 / **none** |
+
+At 768 a card shows its round number, its note and the faction name, and the FIRST unit reading is
+already below the fold of its own scroller. Every one of the 240 symbolic readings needs the card
+scrolled before a mouse can reach it — which means the tooltip, which is where D-29 put the prose,
+is two interactions away rather than one.
+
+**This is D-28's bound and not D-29's notation.** `.ld-row` has been capped at 22vh (15vh below
+820px of viewport height) since the lane turned sideways, and a 9-and-3 board has always put twelve
+unit readings plus five action lines into that card. What D-29 changed is what the readings are made
+of, not how many there are. It is measured here for the first time because until D-29 nothing in
+this repository had a reason to ask whether a specific reading in a card could be POINTED AT.
+
+**The candidates, and none is taken here because all three are the developer's call:**
+
+1. **Raise `.ld-row`'s bound at small viewports.** One dial, and it costs the round being played the
+   vertical space the phase has already fixed three times.
+2. **Show less per card.** A card could draw only the units whose state MOVED that round, with the
+   rest behind the card's own scroll. That is a design change to what a past round IS.
+3. **Leave it.** A card is a summary you scroll into when you want it, which is what 05-11 item 17
+   already asks the room about.
+
+**Owner:** the 05-11 playtest. Item 17 asks the readability half and item 50 asks the symbol half.
+
+---
+
+## 7. THE BATTLEFIELD STILL NAMES ITS TYPES IN TEXT WHILE THE LANE DOES NOT
+
+**Found:** plan 05-D29, on a screenshot, and recorded rather than acted on.
+
+D-29's first sentence — *"show this using the symbols, rather than text"* — arrived with a
+screenshot of the LEDGER LANE. The lane, the split readings, the what-changed panel, the picker's
+costs and the requirement lines all took the change. `[S06.11]`'s battlefield did not, and the
+reason it did not is that it was ALREADY symbols-first: every unit shape has drawn its health,
+shield and tallies as that type's own tokens since plan 05-15, with a permanent visible LABEL beside
+each row at UX-02's 18px floor.
+
+So one surface on the fight tab reads `Health ●●●` and another reads `●●●` with "Health" on the
+hover. **That is a real inconsistency and it is left standing deliberately**, because removing the
+battlefield's labels would take the only place on the fight tab where a token type is named in text
+at all — and item 50 of the playtest script asks precisely whether a room can read a square as
+health without ever having been told. Removing the last label before that question is answered would
+remove the thing the answer depends on.
+
+**Owner:** the 05-11 playtest, item 50. If the room reads the symbols fine, the battlefield's labels
+are a candidate for the same treatment; if it does not, the labels are what saved it.

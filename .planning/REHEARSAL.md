@@ -205,6 +205,41 @@ byte-identical in the two browsers**:
 - The two questions the side-by-side arrangement raised are **retired**: there is no narrow ledger
   column any more, and a past round no longer scrolls the page — it scrolls its own card.
 
+#### D-29 CHANGED WHAT IS *IN* THE LANE AND ON THE BUTTONS, AND NOT WHERE ANYTHING SITS
+
+The developer, at the real artifact, with a screenshot of the lane attached: *"show this using the
+symbols, rather than text"*; *"instead of showing cost in 1 Action Points, show it as - then the
+symbol for the action points. Same with the cost of other skills."*; *"mouse over tooltip for the
+text description"*. **Every geometry figure in the table above is unchanged** — nothing moved, and
+the D-28 cells that measure it were re-run in both browsers at both sizes and are green. What
+changed is the notation inside the boxes:
+
+| reading | @1920x1080 | @1366x768 |
+|---|---|---|
+| a lane card, window over content | 238px over 1174px | **115px over 1174px** |
+| a driven hover on a lane reading, and what it says | 42x12, 3 tokens 12x12 → *"Cat 1 — Health 3."* | same |
+| a symbolic reading's tokens | 12x12 | 12x12 |
+| a compacted count's font size | 18px | 18px |
+| a picker cost: sign box / token box | 13x18 / 12x12 | 13x18 / 12x12 |
+| readings in the lane at three rounds, none spilling its card | 240 / 0 | 240 / 0 |
+
+**WHAT ONLY THE ROOM CAN ANSWER ABOUT IT:**
+
+- **A card is read WITHOUT hovering, from a seat.** The words that named each quantity are on the
+  hover now. **Does a green square read as health across a room? Does a student's own invented
+  type read as theirs?** This is the trade the change makes and it is 05-11 item 50.
+- **`Slash − ▲` against `Slash 1 Action Points`.** **Is the symbol faster, or a puzzle the first
+  time?** And: **on a row of three buttons, can you tell at a glance which action is dear?**
+  05-11 item 51.
+- **A card at 1366x768 is a 115px window over 1174px of content**, so not one symbolic reading in
+  it is reachable without scrolling the card. That is D-28's bound rather than D-29's notation —
+  the card has been a scroller since the lane turned sideways — but it is measured here for the
+  first time and it is what 05-11 item 17 is asking about.
+- **A native tooltip is drawn by the operating system and no automation can read it.** What was
+  driven is that a real mouse, at the centre of a real reading's box, lands on that reading and
+  that the browser has the sentence to show. **Whether a tooltip appears fast enough to be useful
+  mid-demo is a room question**, and so is whether an instructor at a projector can hover at all.
+
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
 ### C1. Clipboard tiers 1 and 2 actually fire *(Phase 4)*

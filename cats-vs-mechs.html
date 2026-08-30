@@ -13973,8 +13973,13 @@ App.render = (function () {
    * state anywhere; every disabled control on this page is decided from state
    * on every repaint, which is setEditorEnabled's rule and its reason —
    * re-deciding is what makes an undo move it too. That property is stronger
-   * than the grep it replaces, and check 105 is the numbered row that holds it
-   * so it cannot be lost to a plan acceptance line again.
+   * than the grep it replaces, and check 95b is the numbered row that holds it
+   * so it cannot be lost to a plan acceptance line again. (It said "check 105"
+   * from plan 05-13 until D-29. The row shipped as 95b, beside the check it was
+   * re-homed from, and 105 is DELIBERATELY ABSENT from the numbering — the gap
+   * is the record, and tests/selftest-node.cjs says so at the gap. Two plans
+   * logged this as deferred-items item 5 rather than fixing it, because both
+   * were forbidden from editing this file; D-29 edits [S06.7] and closes it.)
    *
    * AND THE TURN WAS MADE IN THE OPEN, ON THE 03.1-04 PRECEDENT. Check 95
    * asserted that 147 controls across three boards were never disabled. It was
