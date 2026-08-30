@@ -12790,6 +12790,19 @@ check(
 
    THE HARVEST IS TAKEN HERE AND NOT REUSED FROM ROW 92, because row 92's board
    is not this one and a floor is not an instrument for this question. */
+/* AND THE CHANNEL LIST ITSELF IS READ, WHICH IS THE CLAUSE PROBE BG's THIRD
+   STAGE PROVED THIS ROW NEEDED. Stage one planted an assembled judgement word
+   in a tooltip and rows 92 and 92b reddened by name. Stage two took BOTH
+   channels out of LABEL_ATTRS and the harvest fell 590 -> 417, the planted word
+   went unseen, and THIS row was one of the four that caught it. Stage three
+   took out only `title` — and rows 92 and 92b still reddened, because [S06.12]
+   writes the same sentence to `aria-label` from the same variable, while THIS
+   ROW STAYED GREEN: its "the sentence is in the scan" clause was satisfied by
+   the accessible name. That is a real gap and it is closed by naming both
+   channels rather than by inferring them, because a plan that dropped `title`
+   from the list would take the tooltip out of the scan and leave every scan in
+   this file green on the accessible name alone. */
+const symChannels = LABEL_ATTRS.slice();
 const symScan = harvestInto(dom.byId['app'], [], '#app');
 const symScanText = symScan.map((e) => e.s);
 const symLeafText = fgLeaves(dom.byId['app']);
@@ -12832,15 +12845,23 @@ check(
     + 'the whole attribute would take these sentences out of the only layer '
     + 'that can ever see them. Third, the STUDENT\'S half is not, which is '
     + 'ALLOC-10 — and the word is one this drive RENAMED a type to, so it '
-    + 'reaches the page by the real path and appears in no static markup. '
-    + 'Floored on a marked reading being FOUND, because a lane with none would '
-    + 'satisfy every clause by having nothing to strip',
+    + 'reaches the page by the real path and appears in no static markup. AND '
+    + 'FOURTH, LABEL_ATTRS IS READ AND MUST NAME BOTH CHANNELS, which is the '
+    + 'clause probe BG\'s third stage proved this row needed: taking only '
+    + '`title` out of that list left rows 92 and 92b reddening on the '
+    + 'accessible name and left THIS row green, so the tooltip could have '
+    + 'dropped out of the scan with nothing saying so. Floored on a marked '
+    + 'reading being FOUND, because a lane with none would satisfy every '
+    + 'clause by having nothing to strip',
   symMarked !== null && symMarkedWord !== '' && symMarkedRaw !== ''
     && symMarkedStripped !== symMarkedRaw
     && symStrippedSeen === true && symWordSeen === 0
     && symTookSaid !== '' && symTookInScan === true
-    && symTookRawInScan === false && symTookInText === 0,
-  'the harvest holds ' + symScan.length + ' strings and the page\'s TEXT '
+    && symTookRawInScan === false && symTookInText === 0
+    && symChannels.indexOf('title') !== -1
+    && symChannels.indexOf('aria-label') !== -1,
+  'the harvest reads the attribute channels ' + JSON.stringify(symChannels)
+    + ' | it holds ' + symScan.length + ' strings and the page\'s TEXT '
     + symLeafText.length + ' leaves'
     + ' | a sentence that is in no leaf at all — ' + JSON.stringify(symTookSaid)
     + ' — reaches the scan STRIPPED as ' + JSON.stringify(symTookStripped)
