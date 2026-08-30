@@ -2156,6 +2156,40 @@
   }
   .fg-acts{display:flex;flex-wrap:wrap;gap:8px}
 
+  /* D-33 P1-7 — THE ROW THAT IS ARMING SAYS SO WHERE THE PRESS HAPPENED.
+     The audit: "Change target" was pressed at y=1029 and the response — three
+     lit shapes — rendered at y=660-800, in a different panel, above the press
+     and 300px away, with one of the three cut in half by a scroller. Feedback
+     outside the eye's landing zone is feedback an instructor has to narrate.
+
+     IT IS THE --accent-2 CHANNEL AND THAT IS THE WHOLE POINT. Pass A gave "lit
+     as a target" its own channel to separate it from hover, focus and declared;
+     this row is the thing that DID the lighting, so it is drawn in the channel
+     of the thing it lit. The press and its response are one colour across two
+     panels, which is the only cue that survives the distance between them.
+
+     THREE CHANNELS AND COLOUR IS ONE OF THREE: the border rule down the left
+     edge (a change of shape, which is what survives a washed-out projector),
+     the fill, and the .fg-arming line's WORDS. [C07]'s rule, held again.
+
+     THE LEFT BORDER IS P3-6's, RE-COLOURED RATHER THAN ADDED TO. .fg-row
+     already carries a 2px transparent left border and the negative margin that
+     pays for it, so an arming row and a focused row change the same pixels and
+     neither makes the row jump. Arming wins the cascade over focus-within by
+     source order at equal specificity, which is the right way round: a student
+     whose keyboard is in the row they just armed should see the arming. */
+  .fg-row--arming{
+    border-left-color:var(--state-lit-line);
+    background-color:var(--state-lit-fill);
+  }
+  /* The one instruction, printed once where the press was instead of once per
+     lit shape. It takes the whole line so it reads as a sentence about the row
+     rather than as another chip in it. */
+  .fg-arming{
+    flex:1 0 100%;margin:2px 0 0;
+    font-size:18px;line-height:1.4;color:var(--ink-dim);max-width:60ch;
+  }
+
   /* THE STATE OF AN ACTION BUTTON IS SAID THREE TIMES AND COLOUR IS NONE OF
      THEM: an outline, a tick that is a REAL NODE, and aria-pressed on the
      button itself. [C07]'s rule, restated in [C12] and again here, and the
@@ -2215,7 +2249,15 @@
      While a change is half made it wears the outline, which is the row's own
      reading of a flow whose lit half plan 05-15 draws on the battlefield. */
   .fg-at{font-size:18px}
-  .fg-at--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-solid)}
+  /* D-33 P1-7 MOVES THIS FROM THE "DECLARED" CHANNEL TO THE "LIT" ONE, and it
+     is a one-token change with a real reading behind it: this control is not
+     declaring anything, it is ARMING a choice, and what it arms is drawn in
+     --accent-2 on the battlefield. Before this the button was blue and the
+     shapes it lit were pink, so the press and its response were two different
+     colours in two different panels — which is the same defect P1-7 measured in
+     distance, arriving in hue. The outline stays, because a state in this file
+     is never said in colour alone. */
+  .fg-at--on{outline:2px solid var(--state-lit-line);outline-offset:2px;border-color:var(--state-lit-line);background-color:var(--state-lit-fill)}
 
   /* What a declaration lands on. A sentence a room reads, so it is at the same
      size as every other sentence on this surface rather than at a caption
@@ -3306,6 +3348,23 @@
     border-radius:10px;color:var(--ink);
     font:inherit;line-height:1.2;text-align:left;cursor:pointer;
     user-select:none;touch-action:manipulation;
+    /* D-33 P1-7: THE STICKY BAR IS PART OF THE VIEWPORT AND scrollIntoView DOES
+       NOT KNOW THAT. [S07.5] scrolls the first lit shape into view on arming
+       with block:'nearest', which puts the node's own edge exactly on the
+       scrollport's edge — and #topbar is sticky at the top of that scrollport,
+       109px tall at 1920 and 161px at 1366, so "brought into view" landed the
+       shape UNDERNEATH it. Measured before this line: the first two lit shapes
+       came to rest at 0-91 of a 768 viewport, wholly behind a 161px bar.
+
+       scroll-margin is the standard answer and it costs no JavaScript: it
+       enlarges the box scrollIntoView aims at, so the shape settles below the
+       bar instead of under it. The offset is --topbar-now — the MEASURED chrome
+       height [S08] publishes on <html> so this file stops guessing at
+       --topbar-h — spelled exactly as #strip's sticky offset and [C15]'s
+       sidebar offset spell it, so a bar that wraps to two rows moves all three
+       by the same amount. The 14px is the air those two already leave. */
+    scroll-margin-top:calc(var(--topbar-now, var(--topbar-h)) + 14px);
+    scroll-margin-bottom:14px;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
 
@@ -16190,11 +16249,39 @@ App.render = (function () {
      it is deliberately the only thing that lights until plan 05-15 ships. The
      addendum puts the targets on the BATTLEFIELD and this plan does not paint
      inside that container, so faking a lit state in here would be a second
-     answer to a question 05-15 owns. */
+     answer to a question 05-15 owns.
+
+     ==================================================================
+     D-33 P1-7: IT SAYS WHAT IT IS DOING WHILE IT IS DOING IT.
+     Plan 05-D33b.
+     ==================================================================
+     The audit, on this control: "The 'Change target' button itself does not
+     change: nothing about it says it is now armed, and nothing says pressing it
+     again cancels." Its pressed state WAS drawn — the class and aria-pressed —
+     and the finding is that neither of those is a reading a room takes off a
+     projector while looking at a button 300px away from the thing that lit up.
+
+     SO THE LABEL CARRIES THE STATE, in .dc-alive's manner one region over: the
+     ACT when unpressed ("Change target") and what the student is now DOING when
+     pressed ("Choose a target"). aria-pressed tracks it, the class tracks it,
+     and the words track it — three channels rather than two, and the one that
+     reads at twenty feet is the new one.
+
+     PRESSING AGAIN TO LEAVE THE TARGET ALONE IS SAID ONCE, on the row's own
+     .fg-arming line rather than on this button, because a button whose label
+     explains its own second press is a label longer than the control. */
+  /* The artifact's own instruction while a change of target is half made, held
+     as a constant for BF_PICK_SAID's reason: it is one sentence and there must
+     be one copy of it. It says what may be done and never what should be —
+     which shape to pick is the student's ruling and this line has no opinion
+     about it. */
+  var FIGHT_ARMED_SAID = 'Pick a shape on the other side, or press this again '
+    + 'to leave the target as it is.';
+
   function fgAtBtn(state, side, unit, half) {
     var on = (half.act !== '' && half.by === unit.id);
     var b = text('button', 'brd-btn fg-at' + (on ? ' fg-at--on' : ''),
-      'Change target');
+      on ? 'Choose a target' : 'Change target');
     b.type = 'button';
     setData(b, {
       fg: 'at',
@@ -16231,6 +16318,10 @@ App.render = (function () {
     if (held !== null) {
       var live = fgAction(state, side, held.entry.act);
       var asks = (live !== null && App.model.needsAt(live));
+      // The same predicate fgAtBtn draws its pressed state from, taken once so
+      // the button, the row's class and the row's line cannot disagree about
+      // whether this row is the armed one.
+      var on = (half.act !== '' && half.by === unit.id);
       if (held.entry.at !== null || asks) {
         var line = el('p', 'fg-lands');
         fgSay(line, [{
@@ -16240,6 +16331,27 @@ App.render = (function () {
         }]);
         row.appendChild(line);
         row.appendChild(fgAtBtn(state, side, unit, half));
+        /* D-33 P1-7: THE FEEDBACK IS AT THE PRESS. The audit measured the
+           distance: "Change target" was pressed at y=1029 and the three lit
+           shapes rendered at y=660-800 — above the press and 300px away, in a
+           different panel, with one of the three cut in half by a scroller.
+           "If the response to a press appears outside the eye's landing zone,
+           the instructor has to narrate it — which is the tool failing to
+           teach."
+
+           So the ROW ITSELF is marked while the change is half made: the tint
+           is [C14.1]'s .fg-row--arming in the --accent-2 channel, which is the
+           channel the lit shapes are drawn in, so the press and its response
+           are one colour rather than two. And ONE instruction is printed here,
+           where the press was, instead of the same sentence on every lit shape.
+           It says both halves of what a student can do next — the audit's
+           "nothing says pressing it again cancels" — and it says leaving the
+           target alone rather than undoing anything, because nothing has been
+           committed to undo. */
+        if (on) {
+          row.className = 'fg-row fg-row--arming';
+          row.appendChild(text('p', 'fg-arming', FIGHT_ARMED_SAID));
+        }
       }
     }
     return row;
@@ -19042,10 +19154,34 @@ App.render = (function () {
   /* The artifact's own word for a unit this flow may be pointed at, held as a
      constant for DC_HAND_SAID's reason: it is written in a builder and in a
      per-frame pass, and two copies of one sentence is two things to keep in
-     step. It says what the student may DO and never what they SHOULD do —
-     "Pick this one" is an affordance; a sentence about which unit is the better
-     choice would be this surface making the decision the students are for. */
-  var BF_PICK_SAID = 'Pick this one.';
+     step. It says what the student may DO and never what they SHOULD do — it is
+     an affordance; a sentence about which unit is the wiser choice would be
+     this surface making the decision the students are for.
+
+     ==================================================================
+     D-33 P1-7 SHORTENS IT FROM A SENTENCE TO A WORD. Plan 05-D33b.
+     ==================================================================
+     It used to be 'Pick this one.' and the audit counted what that costs: every
+     lit shape carried the full sentence, so a three-mech roster printed the same
+     instruction three times and a twenty-four-a-side one would print it
+     twenty-four times. "Three repetitions of an instruction that belongs in one
+     place."
+
+     THE INSTRUCTION MOVED AND THE STATE STAYED, which is the distinction that
+     decides what is left here. The instruction — what to do now, and that
+     pressing again leaves the target alone — is printed ONCE, on the armed row,
+     at the press, by [S06.7]'s .fg-arming line. What a shape needs to say is
+     not an instruction at all: it is that THIS shape is one of the ones the
+     flow may land on, and one word says that.
+
+     IT IS STILL A REAL TEXT NODE AND THAT IS NOT NEGOTIABLE. [C14.4]'s banner:
+     the lit state is said in TWO CHANNELS and colour is neither of them on its
+     own — the outline, which is a change of shape and survives a projector with
+     the colour washed out, and a real text node a screen reader and the
+     rendered-page walk both reach. Shrinking the sentence keeps both. Deleting
+     it would have left the state said in an outline and a fill, which is
+     [C07]'s rule half-kept. */
+  var BF_PICK_SAID = 'Pick';
 
   /* WHICH LINES A UNIT SHAPE CARRIES, IN ORDER, AND WHY IT IS A LIST RATHER
      THAN FOUR APPENDS. The two shipped durability types lead, because they are
@@ -23190,6 +23326,50 @@ App.interactions = (function () {
        painted. A render sub-region calling another render sub-region would be a
        repaint whose trigger is invisible from the press that caused it. */
     App.render.battlefield(App.state.get());
+
+    /* D-33 P1-7's SECOND ITEM: "On arming, scrollIntoView({ block: 'nearest' })
+       the first lit node so the lit set is never clipped."
+
+       WHY IT IS NEEDED EVEN AFTER P1-2. The audit found the third lit shape cut
+       in half by the state area's scroller, "so the retarget flow can hide a
+       legal choice"; P1-2 removed that scroller and the cluster's own bound is
+       generous enough that the shipped board never clips. What P1-2 cannot fix
+       is the PAGE: the state panel and the input panel are two screens apart on
+       a laptop, and a student pressing a control at the bottom of one of them
+       has no reason to know that something lit up at the top of the other.
+
+       block:'nearest' AND NOTHING ELSE, which is the whole reason this is one
+       argument: it scrolls the LEAST amount that brings the node into view and
+       does NOTHING AT ALL if the node is already in view. A 'center' would yank
+       a page that was already showing the right thing, every time, which is a
+       worse failure than the one it fixes.
+
+       ONLY ON ARMING, NEVER ON CANCEL. The two attributes were just written
+       above; if they are empty this press CLEARED the flow, and scrolling
+       somebody to a set of shapes that just went dark is a page moving under a
+       student for no reason.
+
+       IT IS GUARDED THREE WAYS rather than trusted: the node may not exist (a
+       roster with nobody legal to point at), the method may not exist (the node
+       gate's stub DOM has no layout and no scrollIntoView), and the whole thing
+       is page work with no state behind it, so a throw here would take down a
+       press that had already succeeded. [C01] sets scroll-behavior:smooth and
+       the reduced-motion guard in [C16] takes it back to auto, so this respects
+       that preference without asking about it.
+
+       THE LIT SET IS ASKED FOR BY CLASS AND NOT BY SIDE, deliberately: which
+       side lights is [S06.11]'s ruling and check 106f asserts it is exactly the
+       opposing roster, so a second answer to that question in here would be the
+       two-regions-that-cannot-call-each-other problem 106f exists for, arriving
+       in a scroll. The FIRST match in document order is the top of the lit set,
+       which is the node that has to be in view for the rest to be findable. */
+    if (String(root.dataset.fgAct || '') !== '') {
+      var bar = document.getElementById('fightbar');
+      var firstLit = bar === null ? null : bar.querySelector('.bf-unit--lit');
+      if (firstLit && typeof firstLit.scrollIntoView === 'function') {
+        firstLit.scrollIntoView({ block: 'nearest', inline: 'nearest' });
+      }
+    }
   }
 
   /* WHICH SIDE A CHANGE-TARGET FLOW MAY PICK FROM, AND IT IS ONE LINE ON
