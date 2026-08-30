@@ -387,10 +387,17 @@
      glyph is --ink-dim (7.47:1), with --accent-2 reserved for hover and focus.
      Quiet and legible at the same time. opacity stays 1 at all times, and no
      rule anywhere in this file reveals this control on pointer-over. */
+  /* D-33 P3-1 GAVE IT A WORD, AND THE BOX HAD TO GROW BY EXACTLY THE WORD.
+     min-width was 32px, which is the square a multiplication sign needs; the
+     padding goes to 10px and the min-width to the touch floor so "Remove" has
+     room and the control keeps a real target. Nothing else about this rule
+     changes — the contrast argument above is about the border and the ink and
+     is untouched, and the control is still available rather than inviting. */
   .unit-rm{
     background:transparent;border:1px solid var(--ink-faint);color:var(--ink-dim);
-    border-radius:10px;min-width:32px;min-height:32px;padding:0 8px;opacity:1;
+    border-radius:10px;min-width:44px;min-height:32px;padding:0 10px;opacity:1;
     font:inherit;font-size:18px;line-height:1;cursor:pointer;user-select:none;
+    white-space:nowrap;
     &:hover{border-color:var(--state-hover-line-2);background-image:var(--state-hover-wash-2);color:var(--accent-2)}
     &:focus{border-color:var(--accent-2);color:var(--accent-2)}
     &:disabled{opacity:.45;cursor:not-allowed}
@@ -12698,9 +12705,28 @@ App.render = (function () {
     var head = el('div', 'unit-head');
     head.appendChild(text('span', 'unit-name', unit.name));
     if (setup) {
+      /* ==================================================================
+         D-33 P3-1 — THE ONE CONTROL THAT BROKE THIS PROJECT'S OWN UX-02
+         RULE WAS THE ONE THAT DELETES A STUDENT'S WORK. Plan 05-D33b.
+         ==================================================================
+         WHAT STOOD HERE: `rm.textContent = '\u00d7'` — a MULTIPLICATION SIGN,
+         with an aria-label and nothing else. [C07]'s banner states the rule it
+         broke in as many words, and [C12], [C13] and [C14] each restate it
+         about themselves: "a real, permanently visible text label at the 18px
+         minimum, never an icon". Six regions of this file hold that floor and
+         this control did not — on the only control on the page that takes a
+         student's roster away.
+
+         IT GETS THE WORD. The visible label is "Remove" and the ACCESSIBLE name
+         stays the full "Remove Cat 1", which is the pair the audit offers and
+         the right way round for a column of twelve identical buttons: a screen
+         reader hears which unit each one is for, and a room reads a word rather
+         than decoding a glyph. The aria-label is not redundant with the visible
+         text — it is strictly more specific than it, which is the one case an
+         aria-label on a labelled control is correct. */
       var rm = el('button', 'unit-rm');
       rm.type = 'button';
-      rm.textContent = '×';   // MULTIPLICATION SIGN
+      rm.textContent = 'Remove';
       rm.setAttribute('aria-label', 'Remove ' + unit.name);
       rm.disabled = faction.units.length <= 1;
       setData(rm, { k: side + '/' + unit.id + '/rm', act: 'removeUnit', side: side, unit: unit.id });
@@ -18529,6 +18555,14 @@ App.render = (function () {
   // name — and two copies of one sentence is two things to keep in step.
   var DC_HAND_SAID = 'Set by hand';
   var DC_DEAD_SAID = 'Still on the roster, ruled dead.';
+  /* D-33 P3-2's PAIR: the ACT while the toggle is unpressed, the STATE while it
+     is pressed. One object with two labels rather than one label that is true
+     half the time — the audit measured `aria-pressed="false">Marked dead` on a
+     cat at full health, which is the visible text and the accessible state
+     saying opposite things about the same unit. Neither word is on any of the
+     three banned lists: `dead` is the shipped vocabulary of the dead-marker
+     token, drawn on this very card. */
+  var DC_ALIVE_WORDS = { off: 'Mark dead', on: 'Marked dead' };
 
   /* THE READ PLAN 05-05 PROVED DERIVABLE, WRITTEN OUT HERE VERBATIM.
      `setByHand(state, side, unitId, tok)` was added to [S09.12] one plan ago as
@@ -18648,7 +18682,20 @@ App.render = (function () {
       k: 'fg/alive/' + unit.id, dc: 'alive', dcSide: side, dcUnit: unit.id
     });
     btn.setAttribute('aria-pressed', 'false');
-    btn.appendChild(text('span', 'dc-alive-t', 'Marked dead'));
+    /* D-33 P3-2: THE LABEL AND aria-pressed AGREED AT ONE END AND CONTRADICTED
+       EACH OTHER AT THE OTHER. Measured in the DOM by the audit:
+       `<button class="dc-alive" aria-pressed="false">Marked dead✓</button>` —
+       on a cat at full health. "Marked dead" is a past-tense STATUS CLAIM, and
+       while the button is unpressed that claim is false; the attribute beside
+       it correctly said so. A student reading the card was told the unit was
+       marked dead by the words and not marked dead by everything else.
+
+       The act when unpressed, the state when pressed. It is BUILT with the
+       unpressed word here and rewritten by dcFillStanding from the same reading
+       the class and the attribute come from, so all three move together or none
+       of them do. DC_ALIVE_WORDS holds the pair; no banned word is involved —
+       `dead` is the shipped vocabulary of the dead-marker token itself. */
+    btn.appendChild(text('span', 'dc-alive-t', DC_ALIVE_WORDS.off));
     btn.appendChild(text('span', 'dc-check', '✓'));
     line.appendChild(btn);
 
@@ -19078,6 +19125,12 @@ App.render = (function () {
     if (btn) {
       btn.setAttribute('aria-pressed', dead ? 'true' : 'false');
       dcClass(btn, 'dc-alive--on', dead);
+      // D-33 P3-2's fourth channel, written from the SAME `dead` reading as the
+      // attribute and the class two lines up — which is what makes them unable
+      // to contradict each other rather than merely unlikely to.
+      var word = btn.querySelector('.dc-alive-t');
+      var wantWord = dead ? DC_ALIVE_WORDS.on : DC_ALIVE_WORDS.off;
+      if (word && word.textContent !== wantWord) { word.textContent = wantWord; }
     }
 
     var said = line.querySelector('.dc-state');
