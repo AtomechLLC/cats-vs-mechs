@@ -2819,6 +2819,17 @@
      reading too long to be one. */
   .sym .tok-row{min-height:var(--tok)}
   .sym .tok-count{font-size:18px}
+  /* TWO READINGS SIDE BY SIDE NEED A GAP BETWEEN THEM AND THE FIRST RENDER DID
+     NOT HAVE ONE — measured on a real screenshot rather than reasoned about. A
+     unit's two pools are two separate .sym boxes inside one line, and with only
+     the inline whitespace between them a cat at three health with no shield
+     read "3 tokens 0x 1 token" as one unbroken run: a room has to work out
+     where the first quantity ends and the second begins, which is exactly the
+     ambiguity the symbols were supposed to remove. The gap is on the ADJACENT
+     SIBLING and not on .sym itself, so a reading standing alone inside a
+     sentence — a requirement line, a cost on a button — keeps sitting tight
+     against the words on either side of it. */
+  .sym + .sym{margin-left:10px}
   .sym-sign{font-size:18px;font-weight:700;line-height:1;color:inherit}
   /* The arrow between the two halves of a change. It is dimmer than either
      half because it is the punctuation of the reading rather than a value in
