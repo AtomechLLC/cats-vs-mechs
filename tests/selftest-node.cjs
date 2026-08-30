@@ -3660,15 +3660,47 @@ check(
     + ' rules broken: ' + JSON.stringify(boardRuleBreaks)
 );
 
+/* THE COUNT WENT 1 -> 2 UNDER D-33 P2-12 AND THE ROW IS TURNED RATHER THAN
+   RE-NUMBERED. Plan 05-D33c.
+
+   The claim this row makes is not "one access". It is, in its own words, that
+   "a proportional bar, a shared scale and a midpoint marker each need an inline
+   length or a per-frame custom property" — so what has to hold is that every
+   inline style access in this file is the TOPBAR MEASUREMENT and nothing else.
+   D-33 P2-12 publishes a second custom property from the same measurement of
+   the same element: --topbar-now is the bar's height and --topbar-foot is its
+   bottom edge, because a position:fixed panel is placed against the viewport
+   whether the bar has stuck or not and the height is its bottom edge only once
+   it has.
+
+   SO THE COUNT IS ASSERTED **AND** EVERY OCCURRENCE IS READ IN CONTEXT, which
+   is strictly stronger than the number was on its own: each access must be a
+   setProperty of a --topbar- custom property on documentElement. A bar drawn
+   with an inline width fails that however many accesses there are, and a
+   third --topbar- reading passes it — which is the right boundary, because the
+   thing forbidden here is a FIGURE drawn with a length, not a measurement of
+   the chrome. */
 const styleAccesses = html.split('.style').length - 1;
+const styleSites = html.split('.style').slice(1).map(
+  (tail) => tail.slice(0, 64).replace(/\s+/g, ' ')
+);
+const styleStrays = styleSites.filter(
+  (site) => site.indexOf('.setProperty(\'--topbar-') !== 0
+);
 check(
-  '57. and .style appears exactly once in the whole artifact, which is the '
-    + 'topbar measurement. A proportional bar, a shared scale and a midpoint '
-    + 'marker each need an inline length or a per-frame custom property, and '
-    + 'both of those are that one access — so this count is the cheapest '
-    + 'available proof that none of the three exists anywhere on the page',
-  styleAccesses === 1,
-  'occurrences: ' + styleAccesses
+  '57. every inline style access in the whole artifact is the TOPBAR '
+    + 'MEASUREMENT and nothing else. A proportional bar, a shared scale and a '
+    + 'midpoint marker each need an inline length or a per-frame custom '
+    + 'property, so this is the cheapest available proof that none of the three '
+    + 'exists anywhere on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12 and '
+    + 'the row now reads each occurrence IN CONTEXT rather than counting them: '
+    + '--topbar-now is the bar\'s height and --topbar-foot is its bottom edge, '
+    + 'published from one measurement of one element, because a fixed panel is '
+    + 'placed against the viewport whether the bar has stuck or not. A bar '
+    + 'drawn with an inline length fails this however many accesses there are',
+  styleAccesses === 2 && styleStrays.length === 0,
+  'occurrences: ' + styleAccesses + ' | sites: ' + JSON.stringify(styleSites)
+    + ' | not a --topbar- publication: ' + JSON.stringify(styleStrays)
 );
 
 A.state.restore(prjSaved);
@@ -10745,44 +10777,98 @@ check(
    it.
 
    ==========================================================================
-   THE FINDING, RECORDED RATHER THAN ASSERTED AROUND. Measured here: with the
-   view on the fight, all SIX action cards sit inside a roster column and NONE
-   is inside #refband. `#app[data-view="fight"] .brd-col{display:none}` hides
-   those columns. SO THE PER-ACTION REFERENCE — the card that says what Lasers
-   does and what it costs — IS NOT ON THE FIGHT TAB. What survives the switch is
-   #refband, which is a child of #board rather than of a column and carries the
-   counter map; and #strip, for the same reason.
+   THE FINDING THIS ROW WENT LOOKING FOR, AND THE DAY IT WENT RED. Kept in
+   full, because the row now asserts the OPPOSITE and a reader who meets the
+   new clauses without the old ones has no way to know what they replaced.
 
-   THIS IS NOT THIS PLAN'S TO FIX AND IT IS NOT FIXED HERE. The cards are
-   appended by buildColumn, which is plan 02-01's function carrying plan
-   03-05's named cross-plan edit — and that edit's own paragraph says in as many
-   words why they went into the column: "a student reading what Lasers does
-   needs it at least as much mid-fight as mid-build — which is REF-03, in Phase
-   5." The premise held for three phases and plan 05-12 changed it without
-   anything going red, because nothing in this repository read the cards WITH A
-   VIEW. The measurement and the two candidate fixes are in
-   deferred-items.md item 4; this plan edits cats-vs-mechs.html not at all.
+   Measured by plan 05-16: with the view on the fight, all SIX action cards sat
+   inside a roster column and NONE was inside #refband, and
+   `#app[data-view="fight"] .brd-col{display:none}` hides those columns. SO THE
+   PER-ACTION REFERENCE — the card that says what Lasers does and what it costs
+   — WAS NOT ON THE FIGHT TAB. What survived the switch was #refband, which is a
+   child of #board rather than of a column and carries the map; and #strip, for
+   the same reason.
 
-   SO THE ROW ASSERTS THE DEFECT IN THE DIRECTION IT IS TRUE, which is 95's
-   turned-in-the-open treatment and 72b's rule against quietly weakening a
-   boundary. `all six inside a column, none in the band` is asserted, so the
-   day somebody moves them THIS ROW GOES RED and whoever moved them reads this
-   paragraph. A row that had simply stopped counting them would have been the
-   fourth green row in this file over a surface nobody was watching.
+   That plan could not fix it — the cards are appended by buildColumn, which is
+   plan 02-01's function carrying plan 03-05's named cross-plan edit, and plan
+   05-16 edited cats-vs-mechs.html not at all — so the row ASSERTED THE DEFECT
+   IN THE DIRECTION IT WAS TRUE: `all six inside a column, none in the band`,
+   deliberately, "so the day somebody moves them THIS ROW GOES RED and whoever
+   moved them reads this paragraph". That is 95's turned-in-the-open treatment
+   and 72b's rule against quietly weakening a boundary, and it worked exactly
+   as designed.
+
    ==========================================================================
+   D-33 P3-8 MOVED THEM, THIS ROW WENT RED, AND HERE IS WHAT IT ASSERTS NOW.
+   Plan 05-D33c.
+   ==========================================================================
+   The fix is deferred item 4's own THIRD candidate, which that entry calls the
+   cheapest of the three and which D-33 P3-8 recommends: the six cards are
+   built into D-28's toggled sidebar beside the projection, by [S06.4], while a
+   fight runs. They cost #refband and the columns nothing in EITHER view, which
+   is the height dial candidates 1 and 2 both spend.
+
+   THE ROW ASSERTS MORE THAN IT DID, and every clause is a thing the old one
+   could not have caught:
+
+     the cards are in the PANEL — six of them, inside #strip, with their text
+       read rather than counted, because a card present and empty is a card
+       nobody can read;
+     the columns still have their own six, because the BUILD view is where a
+       student reads them while allocating and moving them out of the columns
+       would have been candidate 2 rather than candidate 3;
+     so the board carries TWELVE and the two sets are the same six ACTIONS,
+       compared by name — one builder, one set of words, and a panel that
+       silently drew a different list would redden here;
+     #refband still carries the map and no cards, which is the half of REF-03
+       that always held and is 103b's structural claim from the other side;
+     and the panel's set is REMOVED at rest, because a section left standing
+       under a hidden root after endFight is harvested onto the SETUP page's
+       Layer C scan — the failure plan 05-D33b's second deviation records.
+
+   WHAT THIS PAGE CANNOT SEE, said plainly rather than implied: the stub has no
+   stylesheet, so `display:none` on the columns is invisible to it and this row
+   cannot tell "in the panel" from "on the screen". The LAYOUT claim — that the
+   panel is on screen, that the cards inside it are readable, and that one press
+   of the toggle brings it back — is asserted in tests/browser-checks.mjs in two
+   browsers at two sizes. This row is the arrangement; that one is the pixels.
 
    THIS ROW AND CHECK 103b ARE THE TWO HALVES OF REF-03 AND NEITHER IS THE
    OTHER. 103b asserts that #refband is not INSIDE either side of the switch —
-   a structural claim about the markup, and it is the half that HOLDS. This
-   asserts what a student can actually read mid-round with the view on the
-   fight, and it is the half that does not. A surface can pass either one and
-   fail the other, which is exactly what it is doing today. */
+   a structural claim about the markup, and it is the half that always held.
+   This asserts what a student can actually reach mid-round with the view on
+   the fight, and it is the half that did not. Both hold now. */
 const fgRefView = String(fgApp.dataset.view || '');
 const fgRefCards = fgBoard.querySelectorAll('.ref-card');
 const fgRefLeaves = fgRefCards.reduce((n, card) => n + fgLeaves(card).length, 0);
 const fgRefInBand = dom.byId['refband'].querySelectorAll('.ref-card').length;
 const fgRefInCols = dom.byId['col-cats'].querySelectorAll('.ref-card').length
   + dom.byId['col-mechs'].querySelectorAll('.ref-card').length;
+// D-33 P3-8's set, in the panel. Read for its TEXT and for the ACTIONS it
+// names, because two sets of six cards that named different actions would
+// satisfy every count in this row.
+const fgRefStrip = dom.byId['strip'].querySelectorAll('.ref-card');
+const fgRefStripLeaves = fgRefStrip.reduce((n, c) => n + fgLeaves(c).length, 0);
+const fgRefNamesIn = (nodes) => nodes
+  .map((c) => (c.querySelectorAll('.ref-action')[0] || { textContent: '' }).textContent)
+  .filter((w) => w !== '')
+  .sort()
+  .join('|');
+const fgRefColNames = fgRefNamesIn(
+  dom.byId['col-cats'].querySelectorAll('.ref-card')
+    .concat(dom.byId['col-mechs'].querySelectorAll('.ref-card'))
+);
+const fgRefStripNames = fgRefNamesIn(fgRefStrip);
+// AND IT LEAVES WITH THE FIGHT. Driven here rather than asserted, and the
+// board is put back afterwards because every row below this one runs on it.
+const fgRefStateWas = JSON.stringify(A.state.get());
+A.ops.endFight();
+A.state.flush();
+const fgRefStripAtRest = dom.byId['strip'].querySelectorAll('.ref-card').length;
+const fgRefSectionAtRest = dom.byId['strip'].querySelectorAll('.ref-sb').length;
+A.state.restore(fgRefStateWas);
+A.state.flush();
+const fgRefStripBack = dom.byId['strip'].querySelectorAll('.ref-card').length;
 // AND WHAT DOES SURVIVE THE SWITCH, read rather than assumed: #refband's own
 // content. It is a child of #board and not of a column, so the fight view's
 // `.brd-col{display:none}` does not reach it.
@@ -10800,21 +10886,40 @@ check(
     + 'gone. AND IT RECORDS WHERE THEY ARE, WHICH IS THE FINDING THIS ROW WENT '
     + 'LOOKING FOR: all six sit inside a roster COLUMN and none inside '
     + '#refband, and the fight view hides those columns — so the per-action '
-    + 'reference is NOT on the fight tab today. That is asserted in the '
-    + 'direction it is TRUE, so the day somebody moves them this row reddens '
-    + 'and the paragraph above it gets read; the measurement and the two '
-    + 'candidate fixes are deferred-items item 4. What DOES survive the switch '
-    + 'is #refband, whose own content is read here too',
+    + 'reference was NOT on the fight tab, and it asserted that defect in the '
+    + 'direction it was TRUE so that the day somebody moved the cards this row '
+    + 'would redden. D-33 P3-8 MOVED THEM AND IT DID. IT NOW ASSERTS THE '
+    + 'ARRANGEMENT THAT REPLACED IT, which is deferred item 4\'s own third '
+    + 'candidate: SIX cards inside D-28\'s toggled panel, read for their text; '
+    + 'the columns still carrying their own six for the build view; the two '
+    + 'sets naming the SAME six actions, compared by name rather than counted, '
+    + 'because two lists of six that disagreed would satisfy every count here; '
+    + '#refband still carrying the map and no cards; and the panel\'s set '
+    + 'REMOVED when the fight ends and back when one runs, because a section '
+    + 'left under a hidden root is harvested onto the setup page\'s scan. The '
+    + 'stub has no stylesheet, so whether the panel is ON SCREEN is a LAYOUT '
+    + 'claim and lives in tests/browser-checks.mjs; this row is the arrangement',
   fgRefView === 'fight'
-    && fgRefCards.length === 6 && fgRefLeaves >= 12 && fgAddButtons === 0
-    && fgRefInBand === 0 && fgRefInCols === fgRefCards.length
+    && fgRefCards.length === 12 && fgRefLeaves >= 24 && fgAddButtons === 0
+    && fgRefInBand === 0 && fgRefInCols === 6
+    && fgRefStrip.length === 6 && fgRefStripLeaves >= 12
+    && fgRefStripNames === fgRefColNames && fgRefStripNames !== ''
+    && fgRefStripAtRest === 0 && fgRefSectionAtRest === 0
+    && fgRefStripBack === 6
     && fgBandLeaves > 0
     && fgLdRowsNow >= 1,
   'the view while this reading is taken=' + JSON.stringify(fgRefView)
     + ' | action and reference cards on the board=' + fgRefCards.length
     + ' of which inside #refband=' + fgRefInBand
-    + ' and inside a roster column (which the fight view hides)=' + fgRefInCols
-    + ' | leaf strings read out of those cards=' + fgRefLeaves
+    + ' inside a roster column (which the fight view hides)=' + fgRefInCols
+    + ' and inside the projection panel=' + fgRefStrip.length
+    + ' | leaf strings read out of all of them=' + fgRefLeaves
+    + ' and out of the panel\'s alone=' + fgRefStripLeaves
+    + ' | the actions the two sets name: panel=' + JSON.stringify(fgRefStripNames)
+    + ' columns=' + JSON.stringify(fgRefColNames)
+    + ' | cards in the panel after endFight=' + fgRefStripAtRest
+    + ' (sections=' + fgRefSectionAtRest + ') and after a fight runs again='
+    + fgRefStripBack
     + ' | leaf strings still readable in #refband on the fight tab='
     + fgBandLeaves
     + ' | setup-only Add buttons=' + fgAddButtons

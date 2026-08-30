@@ -4418,18 +4418,187 @@
      NO NEW HEX AND NO REFERENCE FUNCTION THAT TAKES A URI. The lift is a
      box-shadow derived from [C00]'s --bg with color-mix(), which is [C07]'s
      banner rule, and there is no image of any kind. */
+  /* ==================================================================
+     D-33 P2-12 — THE OFFSET FOLLOWS THE BAR'S FOOT AND NOT ITS HEIGHT.
+     Plan 05-D33c.
+     ==================================================================
+     Measured, real Chrome, the panel open at page scroll 0: #topbar
+     occupied 114..222 of the viewport and this box was placed at 123, so
+     it covered 99px of the control bar — Share and Reset at 1920, and
+     Actions, Share and Reset at 1366. That is the audit's P2-12 finding,
+     and the cause is arithmetic rather than layout: --topbar-now is the
+     bar's HEIGHT, which is its bottom edge only once it has STUCK, and a
+     position:fixed box is placed against the viewport whether it has or
+     not. Until a student scrolls, the shell head sits above the bar and
+     the bar's foot is 108px lower than its height.
+
+     --topbar-foot IS [S08]'s ANSWER and its banner bounds what it costs:
+     the bar's actual bottom edge, published on scroll, coalesced into
+     one animation frame and written only when the rounded value moves —
+     which on a page whose bar has already pinned is never. The fallback
+     is the old expression, so a page whose script has not run yet is no
+     worse placed than it was.
+
+     THE HEIGHT FOLLOWS THE SAME TERM, because a panel that started lower
+     and ended at the same place would simply clip more.
+
+     WHAT IS DELIBERATELY NOT ADDED IS A SCRIM, and the audit asks for
+     one. A scrim says "the page behind this is not for now", and PROJ-05
+     asks for the exact opposite: the projection is read BESIDE a fight a
+     student is still working. What the audit's sentence is actually
+     about — "no shadow, and no scrim, so page text bleeds against its
+     edges" — is separation, and separation is what the shadow, the
+     border and the header below are for. The shadow is deepened rather
+     than a dimming layer added over a surface a room is meant to keep
+     reading. */
   #app[data-view="fight"] #strip{display:none}
   #app[data-view="fight"][data-proj="1"] #strip{
     display:grid;
     position:fixed;
-    top:calc(var(--topbar-now, var(--topbar-h)) + 14px);
+    top:calc(var(--topbar-foot, var(--topbar-now, var(--topbar-h))) + 14px);
     right:14px;
     width:min(360px, calc(100vw - 44px));
-    max-height:calc(100vh - var(--topbar-now, var(--topbar-h)) - 28px);
+    max-height:calc(100vh - var(--topbar-foot, var(--topbar-now, var(--topbar-h))) - 28px);
     overflow-y:auto;
     z-index:30;
-    box-shadow:0 10px 30px color-mix(in srgb, var(--bg) 82%, transparent);
+    border-color:color-mix(in srgb, var(--ink-faint) 55%, var(--line));
+    box-shadow:0 18px 48px color-mix(in srgb, var(--bg) 62%, transparent);
   }
+
+  /* ==================================================================
+     D-33 P2-12 — THE OPEN PANEL PUSHES THE FIGHT INSTEAD OF SITTING ON
+     TOP OF IT. Plan 05-D33c.
+     ==================================================================
+     The audit, on this panel: it "covers ... the whole of .ld-now; at
+     1366 it covers ... the Mechs column of the round state — 27% of the
+     viewport width", and its prescription is "at ≤1366, make it push the
+     fight region rather than overlay it, or narrow it".
+
+     IT IS DONE AT BOTH SIZES AND NOT ONLY AT 1366, because the same
+     measurement at 1920 found the panel sitting on the fight input's
+     sticky footer: with the page scrolled to the picker rows, the panel
+     covered "Reset this fight" — a control, not a reading. A breakpoint
+     would have fixed the smaller screen and left a control under a panel
+     on the larger one.
+
+     NARROWING WAS THE OTHER OPTION AND IT WAS MEASURED OUT. The panel's
+     content is the projection, and [C10] sizes its headline for a
+     four-digit turn count at 24px: at 320px "≈9 turns to wipe Mechs"
+     sits on one line and at 264 it does not. The same arithmetic that
+     kept #board's middle track at 320 keeps this box at 360, and a
+     narrower panel would buy the fight 60px at the cost of the reading
+     the panel exists to carry.
+
+     IT IS padding AND NOT width OR margin, deliberately. [C14]'s banner
+     records what this file has already paid for getting the width
+     formula's ORDER wrong once — a `margin` shorthand landing after a
+     computed `margin-left` longhand silently zeroed it and put a 1600px
+     region 182px out of alignment. Padding touches neither term: the
+     band's box, its width expression and its computed left margin are
+     byte-identical open or closed, and only the content inside reflows.
+
+     THE REFLOW IS THE COST AND IT IS ACCEPTED RATHER THAN HIDDEN. The
+     fight surface does re-lay-out when a student presses the toggle,
+     which is the thing P2-2 has just finished removing from the control
+     bar. The difference is that this one is a DELIBERATE press with a
+     visible result, and the alternative is a control a student reaches
+     for and cannot see. 374px is the panel's 360 plus its 14px inset.
+
+     IT IS THE BAND AND ONLY THE BAND, and that sentence is here because
+     the first draft named #ledger beside it and #ledger is INSIDE the
+     band. The padding applied twice, the ledger's content box came down
+     to 574px at 1366, its two-column grid put a 300px reading beside a
+     lane that could not fit a 340px card, and the what-changed panel
+     drew straight over the lane's placeholder. Every gate was green over
+     it — 1253/0, 196/196 — and it was found on a screenshot. One
+     selector, one padding, one box. */
+  #app[data-view="fight"][data-proj="1"] .fg-band{padding-right:374px}
+
+  /* ==================================================================
+     D-33 P2-12 / P3-8 — THE PANEL'S OWN HEADER, ITS NAME AND ITS WAY
+     OUT. Plan 05-D33c.
+     ==================================================================
+     The audit: the panel "has NO header of its own (it begins abruptly
+     with the word 'Cats'), NO close control (the only dismissal is the
+     toggle 1,000px away at top-left)". Both are true and both are here.
+
+     IT IS STICKY INSIDE THE PANEL rather than merely first, for the
+     reason [C07]'s and [C12]'s footers are sticky rather than last: the
+     box below it scrolls, and a way out that scrolls away is a way out a
+     student cannot see. The negative margins take it to the panel's own
+     padding edges so the rule under it reads as a division of the
+     surface, which is the same idiom said a third time.
+
+     UX-02: "Close" IS A WORD AND NEVER A GLYPH. That rule is stated in
+     [C07], [C12], [C13] and [C15]'s own banner, it is what D-33 P3-1
+     just applied to the board's Remove control, and the one control in
+     this file that would most obviously have taken a multiplication sign
+     is this one.
+
+     IT IS IN THE FIGHT VIEW ONLY, which is #proj-toggle's own rule three
+     blocks down and for its reason: in the build view #strip is a column
+     of the board, it is not a panel, and a Close on it would be a
+     control that does nothing — "the thing UX-02 spends its whole budget
+     refusing". The build view stays byte-identical to what it was.
+
+     NO NEW HEX. --panel is the panel's own background read straight,
+     --line is every other division in the document, and the eyebrow's
+     colour is [C02]'s token. */
+  .pv-head{display:none}
+  #app[data-view="fight"][data-proj="1"] .pv-head{
+    display:flex;align-items:baseline;justify-content:space-between;gap:12px;
+    position:sticky;top:0;z-index:1;
+    margin:-18px -18px 0;padding:14px 18px 10px;
+    border-bottom:1px solid var(--line);
+    background:var(--panel);
+  }
+  .pv-title{
+    margin:0;color:var(--accent-2);font-size:15px;font-weight:700;
+    text-transform:uppercase;letter-spacing:1px;
+  }
+  /* .brd-btn's shape at this surface's smaller scale, restated rather
+     than borrowed — [C13]'s rule about .rs- and [C14]'s about its four.
+     18px is UX-02's floor and it is not negotiable on a control. */
+  .pv-close{
+    background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:999px;padding:4px 14px;min-height:32px;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;user-select:none;
+    flex:0 0 auto;
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
+  }
+
+  /* ==================================================================
+     D-33 P3-8 — REF-03 LANDS HERE, AND THIS IS DEFERRED ITEM 4's THIRD
+     CANDIDATE. Plan 05-D33c.
+     ==================================================================
+     The six per-action reference cards are appended by buildColumn into
+     the two roster columns, and this block undisplays those columns in
+     the fight view — so the cards that say what Lasers does and what it
+     costs have been on the page and off the screen during every fight
+     since plan 05-12 put the board behind a switch. REF-03 is "the
+     action reference is readable without leaving the fight view", and it
+     was not.
+
+     THE SECTION IS BUILT INTO THE PANEL BY [S06.4] WHILE A FIGHT RUNS
+     AND REMOVED AT REST, which is .dc-live's rule one region over. This
+     rule is what keeps it off the BUILD view: there the columns are
+     visible and carry their own cards, so a second set in the middle
+     column would be the same six cards twice on one screen. Nothing is
+     duplicated on screen in either view, at any moment.
+
+     THE PANEL IS TWO THINGS NOW AND ITS NAME SAYS SO. The deferred
+     item's own words: "the sidebar becomes two things (a projection and
+     a reference), the toggle's label stops being true". Both labels
+     move together — the toggle and the header carry the same words, and
+     the two sections inside carry their own headings, which is the
+     audit's "two labelled sections inside it". */
+  #app[data-view="build"] .ref-sb{display:none}
+  .ref-sb{display:grid;grid-auto-flow:row;gap:10px}
+  .ref-sb-head{
+    margin:0;color:var(--accent-2);font-size:15px;font-weight:700;
+    text-transform:uppercase;letter-spacing:1px;
+  }
+  .ref-sb-side{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
 
   /* THE CONTROL IS NOT IN THE BUILD VIEW AT ALL, which is D-28's own closing
      line — "Build view is untouched. The strip behaves as before outside a
@@ -5174,7 +5343,7 @@
   <div class="vw-switch" id="views" role="group" aria-label="Which screen, and the projection">
     <button class="vw-btn vw-on" type="button" id="view-build" data-k="vw/build" data-vw="build" aria-pressed="true"><span class="vw-name">The board</span><span class="vw-check">✓</span></button>
     <button class="vw-btn" type="button" id="view-fight" data-k="vw/fight" data-vw="fight" aria-pressed="false"><span class="vw-name">The fight</span><span class="vw-check">✓</span></button>
-    <button class="pv-btn" type="button" id="proj-toggle" data-k="pv/proj" data-pv="strip" aria-pressed="false" aria-expanded="false" aria-controls="strip"><span class="pv-name">The projection</span><span class="pv-check">✓</span></button>
+    <button class="pv-btn" type="button" id="proj-toggle" data-k="pv/proj" data-pv="strip" aria-pressed="false" aria-expanded="false" aria-controls="strip"><span class="pv-name">Projection and reference</span><span class="pv-check">✓</span></button>
   </div>
 
   <!-- ============ THE FIGHT REGION, plan 05-06 =========================
@@ -14506,6 +14675,58 @@ App.render = (function () {
     return panel;
   }
 
+  /* ====================================================================
+     D-33 P2-12 — THE PANEL'S HEADER AND ITS WAY OUT. Plan 05-D33c.
+     ====================================================================
+     The audit measured this surface as "a plain overlay ... no header of
+     its own (it begins abruptly with the word 'Cats'), no close control
+     (the only dismissal is the toggle 1,000px away at top-left)".
+
+     IT IS BUILT ONCE WITH THE REST OF THE STRIP and never removed, which
+     is this region's build-once rule and is also what keeps it out of
+     every teardown: [C15] draws it only in the fight view with the panel
+     open, so on the board tab it is a node with display:none and nothing
+     has to bookkeep it.
+
+     ALL FOUR OF THIS REGION'S SILENT-FAILURE RULES BIND IT AND IT BREAKS
+     NONE: no data-k, so keyed() cannot take its first document match in
+     here; no data-amt and not a .brd-value, so the value pass cannot
+     paint a confident zero over it; not .brd-line--opt; and built once.
+
+     THE CLOSE CONTROL CARRIES data-pv AND NOT data-act, deliberately. A
+     data-act is routed straight into App.ops.dispatch by [S07.1], and
+     closing a panel is PAGE work that writes one attribute on #app —
+     which is exactly the partition check 90b and check 93 read back off
+     this page. data-pv is [S07.6]'s own private spelling, it is the
+     attribute #proj-toggle already carries, and the two of them go
+     through one handler so a panel that can be opened can always be
+     closed by the same code. [S07.6] binds that handler to #board as
+     well as to #views, because this node lives inside #strip.
+
+     THE WORDS ARE THE ARTIFACT'S AND THEY ARE THE SAME WORDS THE TOGGLE
+     SAYS. D-33 P3-8 puts the reference in this panel beside the
+     projection, so the panel is two things and its name says both; a
+     header that named one of them would be the toggle's old label's
+     problem moved one surface along. "Close" is a WORD and never a
+     glyph, which is UX-02 and is the rule P3-1 has just applied to the
+     board's Remove control. */
+  var PV_PANEL_SAID = 'Projection and reference';
+  var PV_CLOSE_SAID = 'Close';
+
+  function projHead() {
+    var head = el('div', 'pv-head');
+    head.appendChild(text('h2', 'pv-title', PV_PANEL_SAID));
+    var close = text('button', 'pv-close', PV_CLOSE_SAID);
+    close.type = 'button';
+    setData(close, { pv: 'strip' });
+    // The panel is a disclosure, so the control that closes it says so to a
+    // screen reader in the same vocabulary #proj-toggle uses.
+    close.setAttribute('aria-controls', 'strip');
+    close.setAttribute('aria-expanded', 'true');
+    head.appendChild(close);
+    return head;
+  }
+
   function projIgnores() {
     var box = el('section', 'prj-ignores');
     box.appendChild(text('h3', 'prj-ignores-head', 'This projection ignores:'));
@@ -14595,6 +14816,7 @@ App.render = (function () {
     // placeholder line on the first frame and never runs again.
     if (strip.dataset.built !== '1') {
       strip.replaceChildren();
+      strip.appendChild(projHead());
       strip.appendChild(projPanel(state, 'cats'));
       strip.appendChild(projPanel(state, 'mechs'));
       strip.appendChild(projIgnores());
@@ -14776,6 +14998,98 @@ App.render = (function () {
   // merely likely: if the two ever disagree, this writes the pairs it can
   // account for and leaves the rest as built, instead of reading past the end
   // of the record list and printing the word `undefined` on a projector.
+  /* ====================================================================
+     D-33 P3-8 — REF-03 IN THE PANEL, AND THIS CLOSES DEFERRED ITEM 4.
+     Plan 05-D33c.
+     ====================================================================
+     THE FINDING, from plan 05-16's row 101, taken with a view for the
+     first time: with #app[data-view="fight"], all SIX per-action
+     reference cards sit inside a roster column and NONE is in #refband —
+     and [C15] undisplays those columns in the fight view. So the cards
+     that say what Lasers does, what it costs and what it damages have
+     been on the page and off the screen during every fight since plan
+     05-12 built the switch. What survived was #refband's three strings,
+     which is REF-01's map and not REF-02's cards.
+
+     THE THIRD CANDIDATE, AND IT IS THE DEFERRED ITEM'S OWN. That entry
+     lists three fixes and the third arrived with D-28's toggled sidebar:
+     "Put the cards in the toggled sidebar beside the projection. They
+     would be off the fight tab by default exactly as the projection now
+     is, one press away exactly as the projection now is, and cost the
+     band and the columns nothing in EITHER view — which is the height
+     dial candidates 1 and 2 both spend." D-33 P3-8 recommends it and
+     makes it cheaper still, because P2-12 has just given that panel a
+     header, a labelled close control and a scroll affordance: the cards
+     land in a container that was built to hold them.
+
+     WHAT IT COSTS, SAID PLAINLY BECAUSE THE DEFERRED ITEM SAYS IT: the
+     sidebar is two things now, so the toggle's label and the panel's
+     header both name both. REF-03's "readable without leaving the fight
+     view" is then served by the same one press that PROJ-05 is — which
+     is the developer's own reading of PROJ-05, taken in D-28, arriving
+     at its consequence.
+
+     IT IS THE SAME refCard() AND NOT A SECOND KIND OF CARD. One builder,
+     one set of words, one damage derivation; a student who reads a card
+     on the board and reads it again here must not have to work out
+     whether the two mean the same thing. refActions is the same live
+     read the columns take, so a renamed or student-authored action is
+     here on the frame it happens.
+
+     BUILT WHILE A FIGHT RUNS AND REMOVED AT REST, which is [S06.9]'s
+     .dc-live rule and is required rather than tidy for its reason: this
+     hangs off #strip, structure() never touches #strip, and a section
+     left standing after endFight would be harvested onto the SETUP
+     page's Layer C scan. That is the failure plan 05-D33b's second
+     deviation records, and it is the second time in two passes.
+
+     AND IT IS OFF THE BUILD VIEW BY CSS RATHER THAN BY A SECOND BUILD
+     CONDITION. There the columns are visible and carry their own cards;
+     [C15] hides this section so no student ever sees the same six cards
+     twice on one screen. One rule, and the build view stays what it was.
+
+     THE PANEL IS PAINTED BY [S06.3] ON THE FRAME BEFORE THIS ONE —
+     SYNC_HOOKS runs in registration order and this region is registered
+     after it — so the build flag is READ rather than assumed, exactly as
+     [S06.9] reads it for the live figures. */
+  var REF_SB_SAID = 'Action reference';
+
+  function refSideBlock(state, side) {
+    var box = el('div', 'ref-sb-side');
+    setData(box, { refSb: side });
+    box.appendChild(text('h3', 'ref-sb-side-head', state.build[side].name));
+    refActions(state, side).forEach(function (action) {
+      box.appendChild(refCard(action, side));
+    });
+    return box;
+  }
+
+  function refBuildPanel(strip, state) {
+    var root = el('section', 'ref-sb');
+    root.appendChild(text('h2', 'ref-sb-head', REF_SB_SAID));
+    LD_REF_SIDES.forEach(function (side) {
+      root.appendChild(refSideBlock(state, side));
+    });
+    strip.appendChild(root);
+    return root;
+  }
+
+  /* The teardown, and it covers exactly what a rebuild does not — [S06.9]'s
+     own sentence about .dc-live, which this section shares a container with. */
+  function refRest(strip) {
+    var box = strip.querySelector('.ref-sb');
+    if (box) { box.remove(); }
+  }
+
+  /* The two sides again, and a SEVENTH spelling of the same two ids rather
+     than a reuse of [S06.5]'s SIDE_IDS, [S06.7]'s FIGHT_SIDES, [S06.8]'s
+     LD_SIDES or [S06.9]'s DC_SIDES — for the mechanical reason every one of
+     those comments already gives. [S06] is ONE function scope, so a second
+     `var DC_SIDES` here would be a REDECLARATION of that binding rather than a
+     restatement of the decision: the two names would be one variable, and a
+     later plan narrowing either one would move the other without touching it. */
+  var LD_REF_SIDES = ['cats', 'mechs'];
+
   function syncReference(state) {
     if (typeof document === 'undefined') { return; }
     var band = document.getElementById('refband');
@@ -14790,6 +15104,36 @@ App.render = (function () {
     for (var i = 0; i < n; i++) {
       lines[i].textContent = beatsLine(state, recs[i]);
     }
+
+    /* D-33 P3-8's section in the panel. The cheap exit is first and it is the
+       whole cost of this for a student who never starts a fight: one lookup,
+       one null test and one flag read. */
+    var strip = document.getElementById('strip');
+    if (!strip) { return; }
+    if (state.fight === null) {
+      if (strip.dataset.refUp === '1') {
+        refRest(strip);
+        strip.dataset.refUp = '';
+      }
+      return;
+    }
+    if (strip.dataset.built !== '1') { return; }
+    /* THE SIGNATURE IS THE ACTION LISTS AND THE TWO NAMES, and it is a
+       fingerprint rather than a bit for buildColumn's reason: a student can
+       author, rename, re-cost and remove an action mid-fight, and every one of
+       those changes what a card says. JSON.stringify of an ARRAY rather than a
+       joined string, for pickerSig's stated reason — a delimiter is a character
+       a student can type, and a joined fingerprint can be made to report
+       "nothing changed" for a change. */
+    var sig = JSON.stringify([
+      state.build.cats.name, state.build.mechs.name,
+      LD_REF_SIDES.map(function (side) { return refActions(state, side); })
+    ]);
+    if (strip.dataset.refUp === '1' && strip.dataset.refSig === sig) { return; }
+    refRest(strip);
+    refBuildPanel(strip, state);
+    strip.dataset.refUp = '1';
+    strip.dataset.refSig = sig;
   }
 
   SYNC_HOOKS.push(syncReference);
@@ -19667,7 +20011,16 @@ App.render = (function () {
     var root = el('section', 'dc-live');
     root.appendChild(text('h3', 'dc-live-head', 'The fight as it stands'));
     DC_SIDES.forEach(function (side) { root.appendChild(dcLiveSide(state, side)); });
-    strip.appendChild(root);
+    /* D-33 P3-8 PUT A SECOND SECTION IN THIS CONTAINER AND THIS ONE GOES
+       ABOVE IT. [S06.4] appends its reference section on an earlier hook —
+       SYNC_HOOKS runs in registration order and that region is registered four
+       ahead of this one — so a plain append would put the LIVE figures at the
+       bottom of six reference cards, which is the reading PROJ-05 exists for
+       arriving last. Inserting before it is one expression and it is
+       deterministic in both directions: with no reference section present
+       (the build view during a fight, where [C15] hides it, or a frame before
+       [S06.4] has run) insertBefore(node, null) is an append. */
+    strip.insertBefore(root, strip.querySelector('.ref-sb'));
     return root;
   }
 
@@ -24938,6 +25291,54 @@ App.interactions = (function () {
 
   LATE_BINDERS.push(bindViews);
 
+  /* ====================================================================
+     D-33 P2-12's CLOSE CONTROL, AND WHY IT IS A SECOND BINDER ON A ROOT
+     THAT ALREADY HAS ONE. Plan 05-D33c.
+     ====================================================================
+     The panel's header carries a "Close" button ([S06.3] builds it) and
+     that node lives inside #strip, which is a child of #board. #views is
+     four regions away and cannot see the press.
+
+     THE ROOT IS #board AND NOT #strip, and that is the whole decision.
+     #strip would be a FOURTH static root: a new entry in check 93b's
+     three-root list, a fourth place a listener can be bound raw, and one
+     more thing for the next author to keep in the boundary. #board is
+     already one of the three, it already outlives every rebuild
+     (structure() replaces only the two column interiors, never #strip
+     and never #board), and [S07.5]'s bindBoardFight is already bound to
+     it — so this adds two listeners to a root the gate already floors
+     and already scans for raw bindings.
+
+     IT IS THE SAME TWO HANDLERS #views USES AND NOT A COPY. onViewPress
+     asks onProjPress first, which looks for the nearest [data-pv] and
+     declines quietly when there is none; then it looks for [data-vw],
+     which no node inside #board carries. So a press anywhere else on the
+     board walks up twice and does nothing — and a press on Close goes
+     through the SAME code that opens the panel, which is what makes "a
+     panel that can be opened can always be closed" a property rather
+     than a coincidence.
+
+     BOTH LISTENERS, for [S07.1]'s stated reason: isPrimaryPress on the
+     pointerdown so a right-click does not act on the control under the
+     context menu, and the detail !== 0 guard on the click so a keyboard
+     activation is served exactly once.
+
+     EVERY LISTENER GOES THROUGH App.boot.wrap. Check 93b reads that back
+     off the root structurally — wrap returns an anonymous zero-arity
+     function, so a raw binding is visible by name and by arity — and
+     these two are counted with the three already there. */
+  function bindProjClose() {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('board');
+    if (!root) { return; }
+    root.addEventListener('pointerdown',
+      App.boot.wrap('projection close press', onViewPress));
+    root.addEventListener('click',
+      App.boot.wrap('projection close key-press', onViewClick));
+  }
+
+  LATE_BINDERS.push(bindProjClose);
+
   // THE ACTS THIS REGION CLAIMS: NONE, for the reason the banner above gives in
   // full. UI_ACTS is untouched and so is HOLD_ACTS. The line is written down
   // rather than left as an absence, because an absence reads as an oversight
@@ -25175,18 +25576,79 @@ App.boot = (function () {
   // Everything here degrades to the shipped 64px: no ResizeObserver, no
   // element, no measurement, or a headless page with no layout at all, and the
   // var() fallback in [C01] stands.
+  /* ====================================================================
+     D-33 P2-12 — --topbar-foot, AND WHY --topbar-now WAS NOT ENOUGH.
+     Plan 05-D33c.
+     ====================================================================
+     --topbar-now is the bar's HEIGHT and it has been right for everything
+     that used it: #strip's sticky offset and .bf-unit's scroll margin are
+     both measured from the top of the viewport, and a STUCK bar's height
+     is its bottom edge. D-28's fixed sidebar used the same expression and
+     was wrong, because a fixed box is placed against the viewport whether
+     the bar has stuck or not.
+
+     MEASURED, real Chrome, the panel open at page scroll 0:
+
+       @1920x1080   #topbar 114..222      panel top 123   OVERLAPS 99px
+       @1366x768    #topbar 114..222      panel top 123   OVERLAPS 99px
+
+     — which is the audit's P2-12 finding exactly: "at 1920 it covers
+     #topbar's Share and Reset". The panel was placed 14px under a bar
+     that was 114px lower down the page than the arithmetic assumed,
+     because the shell head sits above the bar until the page scrolls.
+
+     SO THE FOOT IS PUBLISHED AS WELL AS THE HEIGHT: the bar's actual
+     bottom edge in the viewport, which is its height once it has stuck
+     and more than that before. Two properties, each answering exactly
+     one question and neither answering two — which is the rule [S06.6],
+     [S06.7] and [S06.10] each state about their own attributes.
+
+     IT IS PUBLISHED ON SCROLL, AND THE COST IS BOUNDED THREE WAYS. A
+     scroll listener writing a custom property is a style recalculation
+     per frame if it is written naively, so: it is PASSIVE, it is
+     coalesced into one requestAnimationFrame, and it writes only when
+     the rounded value has actually MOVED — which on a page whose bar is
+     already stuck is never. The whole of it runs while a student
+     scrolls a page and does nothing at all once the bar has pinned. */
+  var TOPBAR_FOOT = -1;
+  var footQueued = false;
+
   function publishTopbarHeight() {
     var bar = byId('topbar');
     if (!bar || typeof bar.getBoundingClientRect !== 'function') { return; }
-    var h = bar.getBoundingClientRect().height;
+    var box = bar.getBoundingClientRect();
+    var h = box.height;
     if (!(h > 0)) { return; }
     document.documentElement.style.setProperty('--topbar-now', h + 'px');
+    // The foot is floored at the height, so a bar scrolled ABOVE the
+    // viewport (which cannot happen while it is sticky, but can while a
+    // stylesheet is still loading) never hands back a negative offset.
+    var foot = Math.round(Math.max(h, box.bottom));
+    if (foot === TOPBAR_FOOT) { return; }
+    TOPBAR_FOOT = foot;
+    document.documentElement.style.setProperty('--topbar-foot', foot + 'px');
+  }
+
+  function queueTopbarFoot() {
+    if (footQueued) { return; }
+    footQueued = true;
+    var run = wrap('topbar foot', function () {
+      footQueued = false;
+      publishTopbarHeight();
+    });
+    if (typeof requestAnimationFrame === 'function') { requestAnimationFrame(run); }
+    else { run(); }
   }
 
   function watchTopbarHeight() {
     var bar = byId('topbar');
     if (!bar) { return; }
     publishTopbarHeight();
+    // The foot moves with the SCROLL as well as with the bar's own size,
+    // and the banner above bounds what that costs.
+    if (typeof window !== 'undefined' && typeof window.addEventListener === 'function') {
+      window.addEventListener('scroll', queueTopbarFoot, { passive: true });
+    }
     if (typeof ResizeObserver === 'function') {
       new ResizeObserver(wrap('topbar measure', publishTopbarHeight)).observe(bar);
       return;

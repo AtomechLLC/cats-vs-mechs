@@ -895,6 +895,117 @@ for (const ch of ['chrome', 'msedge']) {
     ok(`${tag}: 10e. #refband still has a real box in the fight view — REF-03 did not go with the projection`,
       projClosed.refband.w > 0 && projClosed.refband.h > 0, projClosed.refband);
 
+    /* ── 10f. D-33 P2-12 AND P3-8, AND THIS IS THE PIXEL HALF OF ROW 101.
+       Plan 05-D33c. Row 101 asserts the ARRANGEMENT — six cards in the panel,
+       six in the columns, the same six actions — off a stub with no stylesheet,
+       so it cannot tell "in the panel" from "on the screen". This cell is the
+       other half, and it is four claims that only a browser can make.
+
+       FIRST, THE PANEL COVERS NOTHING. The audit's P2-12 measured it over the
+       control bar's Share and Reset, over .ld-now and over the Mechs column,
+       and the cause was arithmetic: --topbar-now is the bar's HEIGHT, which is
+       its bottom edge only once it has stuck, and a fixed box is placed against
+       the viewport whether it has or not. So every control and reading the
+       audit named is read for INTERSECTION with the panel's box, at page scroll
+       zero AND scrolled — because the defect existed at one of those and not at
+       the other, which is exactly how it survived D-28.
+
+       SECOND, PROJ-05 AND REF-03 ARE BOTH SERVED WITHOUT LEAVING THE VIEW: with
+       the panel open, a projection figure and a per-action reference card are
+       BOTH on screen with real boxes, in the fight view, with the columns still
+       display:none.
+
+       THIRD, THE WAY OUT IS ON THE SURFACE. The panel's own Close is clicked —
+       not the toggle a thousand pixels away — and the panel goes; then ONE
+       press of the toggle brings it back with its cards. That pair is PROJ-05's
+       "one press away" said in both directions.
+
+       FOURTH, NOTHING IS DRAWN TWICE. In the build view during a fight the
+       panel's reference section is display:none while the columns carry their
+       own six cards, so no student ever sees the same six cards on one screen. */
+    await pg.click('#proj-toggle'); await pg.waitForTimeout(300);
+    const projCovers = () => pg.evaluate(() => {
+      const s = document.querySelector('#strip').getBoundingClientRect();
+      const hits = [];
+      document.querySelectorAll(
+        '#topbar button, #views button, .ld-now, #state-mechs, #decl-mechs, .fg-round-acts button'
+      ).forEach((n) => {
+        const r = n.getBoundingClientRect();
+        if (r.width && r.left < s.right && r.right > s.left
+          && r.top < s.bottom && r.bottom > s.top) {
+          hits.push((n.id || String(n.className).split(' ')[0]) + ':' + (n.textContent || '').slice(0, 14));
+        }
+      });
+      const bar = document.querySelector('#topbar').getBoundingClientRect();
+      return { hits, panelTop: Math.round(s.top), barBottom: Math.round(bar.bottom) };
+    });
+    const coversTop = await projCovers();
+    await pg.evaluate(() => window.scrollTo(0, 600)); await pg.waitForTimeout(300);
+    const coversScrolled = await projCovers();
+    await pg.evaluate(() => window.scrollTo(0, 0)); await pg.waitForTimeout(300);
+    const bothServed = await pg.evaluate(() => {
+      const fig = document.querySelector('#strip [data-prj="turns"]');
+      const card = document.querySelector('#strip .ref-card');
+      const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+      return {
+        view: document.querySelector('#app').dataset.view,
+        colsHidden: getComputedStyle(document.querySelector('.brd-col')).display === 'none',
+        figure: box(fig), figureSays: fig ? fig.textContent : null,
+        cards: document.querySelectorAll('#strip .ref-card').length,
+        card: box(card), cardSays: card ? card.textContent : null,
+        head: (document.querySelector('.pv-head .pv-title') || {}).textContent || null,
+        close: (document.querySelector('.pv-close') || {}).textContent || null,
+        headSticky: document.querySelector('.pv-head')
+          ? getComputedStyle(document.querySelector('.pv-head')).position : null
+      };
+    });
+    await pg.click('.pv-close'); await pg.waitForTimeout(300);
+    const afterClose = await pg.evaluate(() => ({
+      display: getComputedStyle(document.querySelector('#strip')).display,
+      proj: document.querySelector('#app').dataset.proj || '',
+      expanded: document.querySelector('#proj-toggle').getAttribute('aria-expanded')
+    }));
+    await pg.click('#proj-toggle'); await pg.waitForTimeout(300);
+    const afterReopen = await pg.evaluate(() => ({
+      display: getComputedStyle(document.querySelector('#strip')).display,
+      cards: document.querySelectorAll('#strip .ref-card').length
+    }));
+    await pg.click('#view-build'); await pg.waitForTimeout(300);
+    const inBuild = await pg.evaluate(() => ({
+      panelRef: document.querySelector('.ref-sb')
+        ? getComputedStyle(document.querySelector('.ref-sb')).display : null,
+      head: document.querySelector('.pv-head')
+        ? getComputedStyle(document.querySelector('.pv-head')).display : null,
+      colCards: document.querySelectorAll('#col-cats .ref-card, #col-mechs .ref-card').length,
+      onScreen: Array.from(document.querySelectorAll('.ref-card'))
+        .filter((n) => n.getBoundingClientRect().width > 0).length
+    }));
+    await pg.click('#view-fight'); await pg.waitForTimeout(250);
+    await pg.click('#proj-toggle'); await pg.waitForTimeout(250);
+    note(ch, size.name, 'D-33 what the open panel covers, scroll 0 / 600',
+      `${coversTop.hits.length ? coversTop.hits.join(',') : 'nothing'} / ${coversScrolled.hits.length ? coversScrolled.hits.join(',') : 'nothing'}`);
+    note(ch, size.name, 'D-33 panel top vs bar bottom, scroll 0 / 600',
+      `${coversTop.panelTop} vs ${coversTop.barBottom} / ${coversScrolled.panelTop} vs ${coversScrolled.barBottom}`);
+    note(ch, size.name, 'D-33 REF-03 in the panel: cards / a card reads',
+      `${bothServed.cards} / ${String(bothServed.cardSays).slice(0, 24)}`);
+    ok(`${tag}: 10f. the open panel COVERS NOTHING at either scroll offset, and PROJ-05 and REF-03 are both served without leaving the fight view: a projection figure and a per-action reference card both have real boxes inside it while the roster columns are display:none, its header names both readings, its own Close dismisses it and ONE press of the toggle brings it back with its cards — and in the BUILD view the panel's copy is display:none so the six cards are never on one screen twice`,
+      coversTop.hits.length === 0 && coversScrolled.hits.length === 0
+      && coversTop.panelTop >= coversTop.barBottom
+      && coversScrolled.panelTop >= coversScrolled.barBottom
+      && bothServed.view === 'fight' && bothServed.colsHidden === true
+      && bothServed.figure !== null && bothServed.figure.w > 0 && bothServed.figure.h > 0
+      && bothServed.cards === 6
+      && bothServed.card !== null && bothServed.card.w > 0 && bothServed.card.h > 0
+      && String(bothServed.cardSays).length > 0
+      && bothServed.head === 'Projection and reference'
+      && bothServed.close === 'Close' && bothServed.headSticky === 'sticky'
+      && afterClose.display === 'none' && afterClose.proj === ''
+      && afterClose.expanded === 'false'
+      && afterReopen.display !== 'none' && afterReopen.cards === 6
+      && inBuild.panelRef === 'none' && inBuild.head === 'none'
+      && inBuild.colCards === 6 && inBuild.onScreen === 6,
+      { coversTop, coversScrolled, bothServed, afterClose, afterReopen, inBuild });
+
     // ── 11. A FULL ROUND BY REAL CLICKS. One untargeted declaration, one target-directed
     // one, each in a SINGLE press; the team resources read before and after each; Advance;
     // the round and the ledger read back.
