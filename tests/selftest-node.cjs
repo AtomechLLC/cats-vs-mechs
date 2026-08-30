@@ -10918,7 +10918,8 @@ check(
    repository stayed green, is that document order and reading order are the
    same thing. So three things are read: #ledger comes before #fightbar in this
    page's own child order; the band's markup slice spells them in that same
-   order; and [C14.2]'s slice carries NEITHER `order:` NOR a reversed direction.
+   order; and the three rule bodies that decide it carry NEITHER `order:` NOR a
+   reversed direction.
    The third clause is the one that catches the tidy fix.
 
    AND THE NEWEST CARD IS THE LAST CHILD, driven with two resolved rounds rather
@@ -10931,8 +10932,31 @@ const ldLedgerAt = ldKids.indexOf('ledger');
 const ldBarAt = ldKids.indexOf('fightbar');
 const ldBandLedgerAt = vwBandText.indexOf('id="ledger"');
 const ldBandBarAt = vwBandText.indexOf('id="fightbar"');
-const ldCssAt = html.indexOf('[C14.2] THE LEDGER');
-const ldCssText = ldCssAt === -1 ? '' : html.slice(ldCssAt, html.indexOf('[C14.3]', ldCssAt));
+/* THE STYLESHEET HALF READS THE THREE RULE BODIES THAT DECIDE THIS, AND NOT A
+   BLOCK — a correction PROBE BB forced and one worth writing out, because the
+   first draft of this row was GREEN over the exact defect it was written for.
+   That draft sliced [C14.2] THE LEDGER and scanned it, which reads like the
+   right block and is not: `.ld-list` is declared up in [C14] beside the frame,
+   and only `.ld-row` is in [C14.2]. Probe BB set the lane to `row-reverse` —
+   the newest card at the wrong end of the lane, every DOM-order clause below
+   still true — and the run came back 1216/0, 184 of 184, exit 0.
+
+   So the three rules are read BY NAME instead of by neighbourhood: #ledger,
+   which could carry an `order` that moves the whole region; .ld-list, which
+   carries the lane's direction; and .ld-row, which could carry an `order` that
+   moves one card. Each is floored on being FOUND, because a rule body that came
+   back empty carries no property and would pass this row by not existing —
+   which is precisely how the first draft passed. */
+function ldCssRule(sel) {
+  const at = html.indexOf('\n  ' + sel + '{');
+  if (at === -1) { return ''; }
+  const end = html.indexOf('}', at);
+  return end === -1 ? '' : html.slice(at, end + 1);
+}
+const ldRuleLedger = ldCssRule('#ledger');
+const ldRuleList = ldCssRule('.ld-list');
+const ldRuleRow = ldCssRule('.ld-row');
+const ldCssText = ldRuleLedger + ldRuleList + ldRuleRow;
 const ldCssOrder = /(^|[;{\s])order\s*:/.test(ldCssText);
 const ldCssReverse = /(row|column)-reverse/.test(ldCssText);
 fgPress(fgStart);
@@ -10952,25 +10976,34 @@ check(
     + 'made in the MARKUP: a CSS `order` would have put the sequence a screen '
     + 'reader walks out of step with the sequence the room sees, and every '
     + 'DOM-order check in this repository would have stayed green over it. So '
-    + '[C14.2]\'s slice is read for `order:` and for a reversed flex direction '
-    + 'and must carry NEITHER, which is the clause that catches the tidy fix. '
+    + 'the three rule bodies that decide it - #ledger, .ld-list and .ld-row - '
+    + 'are read BY NAME for `order:` and for a reversed flex direction and must '
+    + 'carry NEITHER, which is the clause that catches the tidy fix. PROBE BB '
+    + 'is why they are read by name rather than by neighbourhood: the first '
+    + 'draft of this row sliced the [C14.2] BLOCK, .ld-list turns out to be '
+    + 'declared up in [C14] beside the frame, and a lane set to row-reverse ran '
+    + '1216 passed, 184 of 184 and exit 0. '
     + 'The append contract is driven rather than asserted — two rounds are '
     + 'resolved through the real controls and the newest must be the LAST card, '
     + 'because that is the end of the lane and the end of the lane is what '
     + 'touches the round being played. Floored on both regions being FOUND in '
     + 'both pages and on the stylesheet slice being non-empty, because an '
     + 'indexOf of -1 is smaller than every other index and would pass this row '
-    + 'by not existing',
+    + 'by not existing - and on all THREE rule bodies being found, for the same '
+    + 'reason arriving from the stylesheet side',
   ldLedgerAt !== -1 && ldBarAt !== -1 && ldLedgerAt < ldBarAt
     && ldBandLedgerAt !== -1 && ldBandBarAt !== -1 && ldBandLedgerAt < ldBandBarAt
-    && ldCssText.length > 0 && ldCssOrder === false && ldCssReverse === false
+    && ldRuleLedger.length > 0 && ldRuleList.length > 0 && ldRuleRow.length > 0
+    && ldCssOrder === false && ldCssReverse === false
     && ldRounds.length === 2 && ldNewestIsLast,
   '#app child order=' + JSON.stringify(ldKids)
     + ' | #ledger at ' + ldLedgerAt + ', #fightbar at ' + ldBarAt
     + ' | in the band\'s markup, #ledger at ' + ldBandLedgerAt
     + ' and #fightbar at ' + ldBandBarAt
-    + ' | [C14.2] slice=' + ldCssText.length + ' chars, carries order:='
-    + ldCssOrder + ' carries a reversed direction=' + ldCssReverse
+    + ' | rule bodies read, chars: #ledger=' + ldRuleLedger.length
+    + ' .ld-list=' + ldRuleList.length + ' .ld-row=' + ldRuleRow.length
+    + ', carries order:=' + ldCssOrder
+    + ' carries a reversed direction=' + ldCssReverse
     + ' | cards in the lane=' + JSON.stringify(ldRounds)
     + ' newest is the last child=' + ldNewestIsLast
 );
