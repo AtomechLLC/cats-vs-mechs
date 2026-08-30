@@ -663,10 +663,37 @@
      ever does need a shape, it is a CSS clip-path, which is what [C05] already
      does for the board's triangles and hexagons: the namespaced element
      constructor takes a URI of the shape the dev gate refuses document-wide. */
+  /* THE BOX IS 1040px WIDE UNDER D-32 AND IT WAS 660, AND THE PARAGRAPH ABOVE
+     IS THE ONE THIS ANSWERS RATHER THAN DELETES. It says "[C07] IS THE LAYOUT
+     ANALOG ... the two surfaces are the same object — a list plus an editor in
+     a modal — so the box ... is sized from the numbers [C07] settled". Every
+     word of that was true and the FIRST CLAUSE STOPPED BEING TRUE UNDER D-32.
+     The picker edits ONE token type: a name, a shape, a colour, a glyph. The
+     action editor now edits TWELVE TERMS, and each term carries a chooser over
+     the whole live vocabulary — which is the picker's entire subject appearing
+     eight times inside one row of this one. They are no longer the same
+     object, so this box takes a width of its own. Everything else about the
+     analogy holds and is untouched: the type scale, the tick-and-outline
+     idiom, the legends, the scrolling list.
+
+     1040 IS MEASURED AND THE MEASUREMENT IS WHAT IT IS FOR. On a board with
+     seven token types the transformation row is the widest thing here — a
+     reading at 96, a party chooser at 117, a token chooser at 613 and an
+     amount at 72, with 32 of gaps, which is 930 of content and 978 of box.
+     1040 leaves ~60px of headroom for one more shipped word, and a vocabulary
+     grown past that wraps rather than scrolls, which is [C12]'s rule about
+     every strip on this surface.
+
+     THE WIDTH IS SPENT ON HEIGHT AND ON NOTHING ELSE, which is why the two
+     rules under this one exist. A student reads a NAME and a LIST OF ACTIONS
+     at the same 610px they always did; what got wider is the region that had
+     twelve rows stacked four lines deep. width:calc(100vw - 48px) is
+     unchanged, so at any viewport narrower than 1088 the box gives the width
+     back and the rows wrap — the laptop case [C12] has always designed for. */
   .ae{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:22px 24px;max-width:660px;width:calc(100vw - 48px);
+    padding:22px 24px;max-width:1040px;width:calc(100vw - 48px);
     font:inherit;
   }
   .ae::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
@@ -684,8 +711,13 @@
      list may cost height and may never cost legibility. The cap is 3 shipped
      actions plus MAX_CUSTOM_ACTIONS of the student's own, so six rows is the
      usual case and the scroll is the tail. */
+     THE 610px CAP IS D-32's AND IT IS THE OTHER HALF OF THE WIDER BOX. A row
+     here holds one action's name; stretched to 992px it would be a name at the
+     far left of a line of nothing, and a list of them would be a column of
+     edges a student has to scan across. 610 is the width this list had when
+     the box was 660, so nothing about reading it changed. */
   .ae-list{
-    display:flex;flex-direction:column;gap:6px;
+    display:flex;flex-direction:column;gap:6px;max-width:610px;
     max-height:236px;overflow-y:auto;
     padding:2px;   /* room for .ae-item--on's outline, which draws outside the box */
   }
@@ -725,8 +757,11 @@
 
   /* The chrome is .pk-name's, which is .err-detail's, so there is ONE look for
      "type words here" across all three of the file's free-text inputs. */
+  /* max-width is D-32's, for .ae-list's reason one rule up: a 24-character
+     field drawn 992px wide tells a student they may type four times what the
+     op accepts, which is the field lying about its own bound. */
   .ae-name{
-    display:block;width:100%;box-sizing:border-box;
+    display:block;width:100%;max-width:610px;box-sizing:border-box;
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
     color:var(--ink);padding:9px 12px;font:inherit;font-size:18px;
     &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
@@ -751,10 +786,42 @@
      a token chooser over a vocabulary a student can grow to six entries, and an
      amount, and at the board's type scale that is wider than the dialog on a
      laptop. Wrapping keeps every control reachable with no horizontal scroll,
-     which is the one interaction a projector audience cannot follow. */
-  .ae-terms{margin:0 0 18px;display:flex;flex-direction:column;gap:14px}
+     which is the one interaction a projector audience cannot follow.
+
+     D-32 PART 2 — THE DENSITY PASS, AND ONE GAP BECAME TWO. The developer, at
+     the real artifact with part 1 on screen: "make the action configuration
+     more dense". The rule this replaces was
+
+       ".ae-terms{margin:0 0 18px;display:flex;flex-direction:column;gap:14px}"
+
+     over a FLAT run of eighteen children — three legends, three notes and
+     twelve rows, every neighbouring pair 14px apart. Two different distances
+     were being spelled with one number: the space between two rows of one
+     list, which is INSIDE a thing, and the space between the last cost row and
+     the Needs legend, which is BETWEEN two things. So the markup groups each
+     list and this says the two distances out loud: 6px inside, 16px between.
+     That alone is 8px x 9 of height back, and it makes the three lists read as
+     three lists rather than as one column of eighteen.
+
+     THE ROW FLOOR CAME DOWN FROM 44 TO 40 AND THE TARGET SIZE DID NOT MOVE.
+     44 was here as WCAG 2.5.5 Enhanced's floor, which is a claim about the
+     CONTROLS in the row — the pills and the amount field — and not about the
+     box they sit in. Both keep their own floors: .ae-pill is 38 and the amount
+     field measures 41 with its padding, and neither is touched by this. What
+     the 44 was actually doing was holding an EMPTY row four pixels taller than
+     its contents, twelve times over. */
+  .ae-terms{margin:0 0 18px;display:flex;flex-direction:column;gap:16px}
   .ae-terms[hidden]{display:none}
-  .ae-term{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:44px}
+  .ae-term-list{display:flex;flex-direction:column;gap:6px}
+  /* The legend and its note on ONE line — [C12]'s own words at the same size,
+     with the line break between them gone. align-items:baseline rather than
+     center because an 18px legend and a 15px note beside it are read as one
+     sentence, and one sentence sits on one baseline. It wraps, so at a narrow
+     viewport it becomes the two stacked blocks it used to be. */
+  .ae-term-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
+  .ae-term-head .ae-legend{margin:0}
+  .ae-term-head .ae-term-note{margin:0}
+  .ae-term{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:40px}
   .ae-term[hidden]{display:none}
   /* D-32 PART 2 — WHERE THE WORD "Spends" USED TO SIT, THE TERM NOW READS
      ITSELF. The rule this replaces is kept in view rather than deleted,
@@ -798,11 +865,30 @@
   /* The two choosers are one shape said twice, which is deliberate: a party and
      a token type are both a CHOICE FROM AN ALLOWLIST, and [C07]'s swatch grid
      is where this file settled what that looks like. The tick and the outline
-     say the live one together, never colour alone. */
+     say the live one together, never colour alone.
+
+     D-32 PART 2 GAVE THE TOKEN STRIP THE SLACK AND THE PARTY STRIP NONE, and
+     which one shrinks is the whole of it. A party chooser is two entries for
+     ever — App.data.XF_WHO is an allowlist of two — so it has a fixed width
+     and no business taking space from anything. A token chooser is one entry
+     per type on the board and the student decides how many that is, so it is
+     the only strip on the row that can outgrow the box. flex:1 1 auto with
+     min-width:0 makes it the strip that gives, which keeps the AMOUNT FIELD on
+     the same line as its own row instead of being pushed to a line of its own
+     the moment a seventh type is invented. That was the measured shape of the
+     old row and it is worth writing down: at 610px of content the strip was
+     821px wide, so it claimed the whole line, and the label above it and the
+     amount below it each took a line too. One row, three lines, 169px, twelve
+     times over. */
   .ae-term-who,.ae-term-toks{display:flex;flex-wrap:wrap;gap:6px}
+  .ae-term-who{flex:0 0 auto}
+  .ae-term-toks{flex:1 1 auto;min-width:0}
+  /* position:relative is D-32's and it is here for the tick below, which is
+     the only thing in this rule that changed besides the padding. */
   .ae-pill{
+    position:relative;
     display:flex;align-items:center;gap:6px;
-    min-height:38px;padding:6px 11px;
+    min-height:38px;padding:6px 8px;
     background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
     border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
     border-radius:9px;color:var(--ink);
@@ -811,14 +897,51 @@
     &:hover{border-color:var(--accent)}
   }
   .ae-pill--on{outline:2px solid var(--accent);outline-offset:2px}
+  /* ===============================================================
+     THE TICK WAS NEVER VISIBLE ON A PILL OR ON A SIDE BUTTON, AND
+     THAT IS A DEFECT THIS PLAN FOUND RATHER THAN A CHOICE IT MADE.
+     ===============================================================
+     [C12]'s banner says "the live row is marked by an outline AND a tick",
+     [S06.5]'s choicePill says "the live one is marked by an outline AND a
+     tick, never by colour alone", and [C07] states the same idiom for .pk-sw
+     — where .pk-sw--on .pk-check IS written. Here only .ae-item--on .ae-check
+     was, so the two other kinds of control on this surface built a tick node,
+     paid for its WIDTH in every row of every chooser, and never showed it. A
+     rule written at three sites and implemented at one is the shape of thing
+     the next reader assumes is deliberate, so it is fixed here rather than
+     noted: an outline alone is one channel, and aria-pressed is the other, and
+     the file's own rule asks for the visible second one.
+
+     ON A PILL IT IS A MARK RATHER THAN A COLUMN, which is D-30's idiom
+     arriving on a build surface. Its centre sits ON the pill's right edge —
+     the geometry the developer asked for on the token shape, said again about
+     a different box — so a tick that had been costing 20px of the row's width
+     while invisible now costs none of it at all while being seen. Half of it
+     hangs into the 6px gap; the mark is 13px, so 6.5 of overhang against 6 of
+     gap, and pointer-events:none keeps it out of the hit test of the pill
+     beside it. On a SIDE button it stays in the line: there are two of them,
+     they are not in a strip, and there is nothing there to buy. */
+  .ae-side--on .ae-check{visibility:visible}
+  .ae-pill--on .ae-check{visibility:visible}
+  .ae-pill .ae-check{
+    position:absolute;top:50%;right:0;
+    transform:translate(50%,-50%);
+    font-size:13px;pointer-events:none;
+  }
 
   /* The amount. Narrow, tabular, and NOT one of the board's stepper fields —
      .stp-field is what [S07.1]'s isField keys on, and a node wearing that class
-     in here would be read by a handler that knows nothing about slots. */
+     in here would be read by a handler that knows nothing about slots.
+
+     THE VERTICAL PADDING WENT 8 TO 6 UNDER D-32 AND THE TYPE DID NOT MOVE. 17px
+     is what a student reads a number they typed at, and it is above UX-02's
+     floor; what came off is four pixels of box around it, twelve rows deep. The
+     field measures 41px, which is what the 40px row floor above is set against
+     and which still clears the pill beside it. */
   .ae-amt{
-    width:5.5ch;box-sizing:content-box;
+    width:5.5ch;box-sizing:content-box;flex:0 0 auto;
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
-    color:var(--ink);padding:8px 10px;font:inherit;font-size:17px;
+    color:var(--ink);padding:6px 10px;font:inherit;font-size:17px;
     font-variant-numeric:tabular-nums;text-align:right;
     &:focus-visible{outline:2px solid var(--accent);outline-offset:1px}
   }
@@ -4212,79 +4335,116 @@
          data-ae-field and data-ae-slot are STATIC because the row IS the slot.
          They can never go stale under a repaint, which is what lets the commit
          path read them at blur time rather than recording them at focus time
-         the way the side and the action have to be. -->
+         the way the side and the action have to be.
+
+         D-32 PART 2 GAVE THIS BLOCK THREE STRUCTURES IT DID NOT HAVE, and all
+         three exist to buy HEIGHT. The developer, at the real artifact with
+         part 1 on screen: "make the action configuration more dense".
+
+           .ae-term-list  — one per field. Before this the region was a flat
+                            run of eighteen children under one 14px gap, so the
+                            space between a legend and its first row and the
+                            space between two rows of the same list were the
+                            same number and could not be told apart. They are
+                            two different distances and now say so: 6px inside
+                            a list, 16px between lists.
+           .ae-term-head  — the legend and its note on ONE line instead of two
+                            stacked blocks. The words are unchanged; what went
+                            is the line break between them, three times.
+           .ae-term-read  — plan D-32b's first commit. It replaced eight
+                            printings of "Spends" and "Needs" with the term
+                            itself in [S06.12]'s notation.
+
+         NOT ONE ROW ID MOVED AND NOT ONE ROW WAS ADDED OR REMOVED. The caps
+         are part 1's and this plan does not touch them, so the stub-drift gate
+         reads the same 135 ids on both sides of this change and check 65 still
+         counts the rows out of this markup against [S01]'s constants. A
+         density pass that renumbered a row would be part 2 doing part 1's job
+         again, badly. -->
     <div class="ae-terms" id="act-edit-terms">
-      <h3 class="ae-legend">Cost</h3>
-      <p class="ae-note ae-term-note">Spent when the action is used.</p>
-      <div class="ae-term" id="act-edit-cost-0" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-cost-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="0" data-k="ae/amt/cost/0">
-      </div>
-      <div class="ae-term" id="act-edit-cost-1" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-cost-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="1" data-k="ae/amt/cost/1">
-      </div>
-      <div class="ae-term" id="act-edit-cost-2" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-cost-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="2" data-k="ae/amt/cost/2">
-      </div>
-      <div class="ae-term" id="act-edit-cost-3" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-cost-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="3" data-k="ae/amt/cost/3">
-      </div>
-
-      <h3 class="ae-legend">Needs</h3>
-      <p class="ae-note ae-term-note">Must be there for the action to be used. It is not spent.</p>
-      <div class="ae-term" id="act-edit-req-0" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-req-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="0" data-k="ae/amt/req/0">
-      </div>
-      <div class="ae-term" id="act-edit-req-1" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-req-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="1" data-k="ae/amt/req/1">
-      </div>
-      <div class="ae-term" id="act-edit-req-2" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-req-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="2" data-k="ae/amt/req/2">
-      </div>
-      <div class="ae-term" id="act-edit-req-3" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-req-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="3" data-k="ae/amt/req/3">
+      <div class="ae-term-list">
+        <div class="ae-term-head">
+          <h3 class="ae-legend">Cost</h3>
+          <p class="ae-note ae-term-note">Spent when the action is used.</p>
+        </div>
+        <div class="ae-term" id="act-edit-cost-0" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-cost-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="0" data-k="ae/amt/cost/0">
+        </div>
+        <div class="ae-term" id="act-edit-cost-1" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-cost-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="1" data-k="ae/amt/cost/1">
+        </div>
+        <div class="ae-term" id="act-edit-cost-2" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-cost-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="2" data-k="ae/amt/cost/2">
+        </div>
+        <div class="ae-term" id="act-edit-cost-3" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-cost-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="3" data-k="ae/amt/cost/3">
+        </div>
       </div>
 
-      <h3 class="ae-legend">Changes</h3>
-      <p class="ae-note ae-term-note">What the action changes, and by how much. Put a minus in front for a change downward.</p>
-      <div class="ae-term" id="act-edit-xf-0" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-who"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-xf-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="0" data-k="ae/amt/xf/0">
+      <div class="ae-term-list">
+        <div class="ae-term-head">
+          <h3 class="ae-legend">Needs</h3>
+          <p class="ae-note ae-term-note">Must be there for the action to be used. It is not spent.</p>
+        </div>
+        <div class="ae-term" id="act-edit-req-0" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-req-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="0" data-k="ae/amt/req/0">
+        </div>
+        <div class="ae-term" id="act-edit-req-1" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-req-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="1" data-k="ae/amt/req/1">
+        </div>
+        <div class="ae-term" id="act-edit-req-2" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-req-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="2" data-k="ae/amt/req/2">
+        </div>
+        <div class="ae-term" id="act-edit-req-3" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-req-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action needs" data-ae-field="req" data-ae-slot="3" data-k="ae/amt/req/3">
+        </div>
       </div>
-      <div class="ae-term" id="act-edit-xf-1" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-who"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-xf-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="1" data-k="ae/amt/xf/1">
-      </div>
-      <div class="ae-term" id="act-edit-xf-2" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-who"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-xf-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="2" data-k="ae/amt/xf/2">
-      </div>
-      <div class="ae-term" id="act-edit-xf-3" hidden>
-        <div class="ae-term-read"></div>
-        <div class="ae-term-who"></div>
-        <div class="ae-term-toks"></div>
-        <input class="ae-amt" id="act-edit-xf-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="3" data-k="ae/amt/xf/3">
+
+      <div class="ae-term-list">
+        <div class="ae-term-head">
+          <h3 class="ae-legend">Changes</h3>
+          <p class="ae-note ae-term-note">What the action changes, and by how much. Put a minus in front for a change downward.</p>
+        </div>
+        <div class="ae-term" id="act-edit-xf-0" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-who"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-xf-0-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="0" data-k="ae/amt/xf/0">
+        </div>
+        <div class="ae-term" id="act-edit-xf-1" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-who"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-xf-1-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="1" data-k="ae/amt/xf/1">
+        </div>
+        <div class="ae-term" id="act-edit-xf-2" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-who"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-xf-2-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="2" data-k="ae/amt/xf/2">
+        </div>
+        <div class="ae-term" id="act-edit-xf-3" hidden>
+          <div class="ae-term-read"></div>
+          <div class="ae-term-who"></div>
+          <div class="ae-term-toks"></div>
+          <input class="ae-amt" id="act-edit-xf-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action changes it by" data-ae-field="xf" data-ae-slot="3" data-k="ae/amt/xf/3">
+        </div>
       </div>
     </div>
 
