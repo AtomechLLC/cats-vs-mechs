@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed the D-30 redirect (05-D30)
-last_updated: "2026-08-30T02:40:00.000Z"
-last_activity: 2026-08-29
+stopped_at: Completed the D-31 redirect (05-D31)
+last_updated: "2026-08-30T06:15:00.000Z"
+last_activity: 2026-08-30
 progress:
   total_phases: 7
   completed_phases: 6
@@ -26,19 +26,25 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 complete, plus the D-27, D-28, D-29 and D-30 redirect work; every
+Plan: 16 of 16 complete, plus the D-27, D-28, D-29, D-30 and D-31 redirect work; every
 autonomous plan in the phase is done
 Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate, it is
-still plan 11, and it now runs on the surface D-30 shipped with a 53-item script.
-The D-30 redirect (the removal minus is no longer a dash beside the symbol — it is a
-RED MARK on the shape's own top-left corner, centred on the left edge a quarter of the
-way down, with the removal ALSO said in words on the accessible name because colour and
-position are both pruned by `role="img"`) is built and verified: node gate 1216/0 with
-190 of 190 interaction rows, `FIGHT_FLOOR` **unchanged at 130**, browser checks 194/0
-in real Chrome and real Edge at 1920x1080 and 1366x768, HEADLESS, measuring the anchor
-at 0.00px and 0.2500 on all 126 marks. Nothing D-28 or D-29 measured moved.
-`.planning/phases/05-fight-loop-playtest/05-D30-SUMMARY.md`.
-Last activity: 2026-08-29
+still plan 11, and it now runs on the surface D-31 shipped with a 55-item script.
+The D-31 redirect (the round being played is TWO bordered, headed panels — "Where the
+round stands" above "What you are about to do" — with Cats left and Mechs right inside
+each of them, and the spoken-for reading staying with the resources in the top panel
+while still moving on a click in the bottom one) is built and verified: node gate
+1216/0 with 192 of 192 interaction rows, stub-drift 121 shell ids, `FIGHT_FLOOR`
+**130 → 132**, browser checks 206/0 in real Chrome and real Edge at 1920x1080 and
+1366x768, HEADLESS. D-30's badge geometry is byte-identical after the move. Zero diff
+over `[S01]`, `[S05]`, `[S07.5]` and every op.
+**One thing got worse and it is measured rather than missed:** at 1366x768 the Advance
+control opens BELOW the fold, because with the state panel's window at zero the control
+still lands at 777 on a 768px screen. Browser cell 18 was turned in the open at that
+size and cell 18c asserts the stronger property at both — Advance is on screen with the
+picker rows it commits, and above them. `deferred-items.md` item 9; 05-11 items 54/55.
+`.planning/phases/05-fight-loop-playtest/05-D31-SUMMARY.md`.
+Last activity: 2026-08-30
 
 Progress: [██████████] 100%
 
@@ -114,6 +120,8 @@ Recent decisions affecting current work:
 - [D-29, orchestrator]: The tooltip is written to `title` AND `aria-label` from one variable on a `role="img"` node, so nothing is conveyed by hover alone and UX-02 is answered rather than waived — its nine "never a title= tooltip" paragraphs were about a CONTROL'S LABEL and not one control grew one. And the words are still SCANNED: `data-tsay` is a fourth exemption channel that SUBTRACTS the student's fragment from those two attributes instead of skipping them, because a tooltip cannot be split across nodes and skipping it would take the artifact's own sentences out of the only layer that can see them.
 - [D-30]: The `−` that marks a resource being removed is a RED MARK ON THE SHAPE — its centre on the symbol's left edge, a quarter of the way down its height — and not a dash beside it. It appears wherever a REMOVAL is rendered, which is the picker's costs and the lane's split facts; a requirement line and a hand-ruling delta carry none, because a requirement subtracts nothing and a delta draws both ends.
 - [D-30, orchestrator]: The mark is parented to `.tok` and not to the reading, because a CSS percentage means nothing until you say what it is a percentage of — anchored to the reading it lands on the left edge of `12×` in the compact form. The red is `color-mix(in hsl, var(--accent-2), var(--coral))`: the two shipped warm tokens sit either side of red at ~334° and ~17°, so an sRGB average lands on a salmon between them and a POLAR mix walks the short arc through 360° onto red — no new hex, which is now checked by row 107f rather than merely stated. And the removal is said in WORDS on the accessible name (`SYM_TAKEN`), because colour plus position is two visual channels and `role="img"` prunes both.
+- [D-31]: The round being played is TWO regions — round state (the round number, both survivor readings, both battlefields, both teams' resources) above action input (the picker rows, both reading boxes, and Advance and Reset). Each is a bordered panel with its own heading, because the word was *separate* and a wider gap is not a separation. Cats left and Mechs right inside BOTH. The spoken-for preview stays with the resources and still moves live on a press in the input panel.
+- [D-31, orchestrator]: The split is two `<section>`s in the MARKUP for D-28's reason, and PROBE BQ proved the reason still bites — one `.fg-area--input{order:-1}` lifts the picker above the state on screen with the whole node gate at 192 of 192, exit 0. Advance travels with the input, which costs the fold at 1366x768: with the state panel's window at ZERO the control still lands at 777 on a 768px screen, so no dial reaches it. The fold claim was TURNED at that size rather than tuned around, and replaced at both sizes by the property it stood in for — Advance is on screen with the rows it commits, and above them. The one-line clamp that buys the fold back costs a 58px state panel and is written at the dial for the rehearsal to choose.
 - [Research]: Sharing is a compact build code, not a `file://` URL (leaks the student's home directory path, useless to recipients, not linkified by Discord).
 - [Phase 03.1]: Dialog strings feed the same PROJ-06 word list and the same check 48 as #app; DIALOG_ROOTS is gated in both directions against the stub page — A second word list is a second thing to keep in step; a dialog that escapes the harvest must fail the run rather than pass silently
 - [Phase 03.1]: MAX_ALLOC's literal moved from [S05] to [S01] so MIN_XF_DELTA and MAX_XF_DELTA derive from it once; [S05] still exports it — [S01] runs before [S05], so deriving the signed bound in App.data required the magnitude to live there; re-typing 99 was the one thing the plan forbade
@@ -239,6 +247,9 @@ None yet.
 - 05-D29: the BATTLEFIELD still names its token types in text (`Health ●●●`) while the lane beside it does not (`●●●`, with the word on the hover). Left standing deliberately: it is the last place on the fight tab where a type is named in text at all, and 05-11 item 50 asks whether a room can read a square as health without ever being told. `deferred-items.md` item 7.
 
 - 05-D30: NOTHING IN THIS REPOSITORY HAD EVER CHECKED THE NO-NEW-HEX RULE. PROBE BM replaced D-30's `color-mix` with the byte-identical literal `#ff6d78` and the whole node gate ran 1216/0, 189 of 189, exit 0 — as did both browser cells that read the mark's POSITION, because a typed colour is pixel-identical to a derived one. One cell caught it, and only where Playwright is installed. Row 107f now scans `[C14]` to the close of the `<style>` block as DECLARATIONS; `[C00]` through `[C13]` — three quarters of the stylesheet — is still unscanned. `deferred-items.md` item 8.
+- 05-D31: at 1366x768 the ADVANCE CONTROL OPENS BELOW THE FOLD and no setting of the state panel's window reaches it — swept 12vh to 32vh, and with a 92px window the control reads 869, so the chrome alone is 777px on a 768px screen. Browser cell 18 keeps the old claim unweakened at 1920x1080 (1057 of 1080) and asserts at 768 that the control is real, enabled and within one page scroll; cell 18c is new and asserts at both sizes that Advance is on screen with the picker rows AND above them. `deferred-items.md` item 9; 05-11 items 54 and 55.
+- 05-D31: THE FIRST DRAFT OF ROW 108 WAS GREEN OVER TWO DEFECTS AND BOTH PROBES ARE RECORDED. PROBE BO moved the two round controls to the FOOT of the input area — Advance at 1408 of a 1080 viewport — and the gate ran 192 of 192, exit 0, because the row counted them anywhere inside the area; cell 18c was green too, because both were on screen in the wrong order. PROBE BQ added `.fg-area--input{order:-1}` and the gate ran 192 of 192 again, because the row read three rules BY NAME and a modifier class is not one of three names. Both are closed; both took a browser to find.
+- 05-D31: A TEMPORAL-DEAD-ZONE THROW HID BEHIND "1216 passed, 0 failed" FOR TWO COMMITS. Row 108 read two head lookups one statement above the `const` that binds them, so the gate threw at load with every in-file row already printed green above it and the interaction-gate summary line never printed at all. Found by reading the EXIT CODE of a probe run, not by a failing row. The lesson is the grep: `passed,` is not a pass.
 - 05-D30: the node gate cannot see this change beyond the sign's PARENT, demonstrated rather than assumed — PROBE BL moved the anchor from 25% to 50% and the gate ran 189 of 189, exit 0. Three browser cells (21b, 21c, 21d) carry the half that only exists in pixels, and they run only where Playwright does.
 
 ## Deferred Items
@@ -251,6 +262,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-30T02:40:00.000Z
-Stopped at: Completed the D-30 redirect (05-D30) — 05-11's playtest is the only thing left in the phase
+Last session: 2026-08-30T06:15:00.000Z
+Stopped at: Completed the D-31 redirect (05-D31) — 05-11's playtest is the only thing left in the phase
 Resume file: None

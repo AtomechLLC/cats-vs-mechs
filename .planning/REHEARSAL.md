@@ -282,6 +282,52 @@ with it, which is how that is checked rather than asserted.
 - **A requirement line carries NO mark**, deliberately — nothing is subtracted by a requirement.
   **Is the absence legible as a distinction, or does it read as an inconsistency?**
 
+#### D-31 CUT THE ROUND IN TWO, AND THE CUT COST SOMETHING AT 1366x768
+
+The developer, fifth round, verbatim: *"separate the current round state from the action input
+area"*. The round is two bordered, headed panels now — **Where the round stands** (the round
+number, both survivor readings, both battlefields, both teams' resources) above **What you are
+about to do** (the picker rows, both reading boxes, Advance and Reset on that panel's own heading
+line). Cats left, Mechs right, inside both.
+
+| reading | @1920x1080 | @1366x768 |
+|---|---|---|
+| the state panel's box | 494–819 | 547–803 |
+| the input panel's box | 831–1265 | 815–1149 |
+| the gap between the two, and their borders | 12px, 1px each | 12px, 1px each |
+| the panels' background against `#fightbar`'s | `rgb(31,37,48)` vs `rgb(25,29,38)` | same |
+| both panel headings, computed size | 18px | 18px |
+| the state panel's window, over 364px of content | 238px | **169px** |
+| the input panel's window, over 1010px of content | 346px | 246px |
+| **Advance, bottom edge, 3 rounds in the lane** | **1057 of 1080** | **948 of 768** |
+| Advance and the picker rows, together, at the offset a room declares from | 390–437 and 502–942 | 177–224 and 289–729 |
+
+Real Chrome and real Edge agree to the digit on every figure. The spoken-for reading in the state
+panel moves on a **real click** on an action button in the input panel and comes back on a second
+click — driven in both browsers rather than argued for.
+
+**THE ONE THING THAT GOT WORSE, STATED FIRST.** At 1366x768 the Advance control is **below the fold
+when the round opens**, and that is measured rather than missed: with the state panel's window set
+to ZERO the control still lands at 777 on a 768px screen, because the chrome alone — the region
+heading, two panel borders, two paddings, two head lines and 47px of button — does not fit. No dial
+reaches it. What holds at both sizes instead is that Advance sits at the **top** of the panel whose
+rows a student declares in, so the scroll that brings the picker into view brings the button with
+it, and it is above the rows rather than below them. Browser cell 18 was turned in the open and cell
+18c is the new claim.
+
+**WHAT ONLY THE ROOM CAN ANSWER ABOUT IT:**
+
+- **Does reaching Advance on a laptop feel like scrolling to a control you lost, or like the button
+  being where your hands already are?** 05-11 item 55. The alternative is measured and one line: a
+  `min(22vh, calc(100vh - 710px))` clamp puts Advance at 757 of 768, at the price of a state panel
+  58px tall — a faction name and half a reading.
+- **Is the spoken-for reading in the right panel?** It is a reading of state, so it sits with the
+  resources; it is also the reading a student consults *while declaring*, which happens in the other
+  panel. 05-11 item 54.
+- **Two headings, four columns, two faction names each.** The side's name is drawn at the head of
+  both its columns, because a column with no name is a column a room cannot read. **From a seat,
+  does that read as structure or as repetition?**
+
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
 ### C1. Clipboard tiers 1 and 2 actually fire *(Phase 4)*

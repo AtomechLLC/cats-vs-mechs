@@ -350,3 +350,35 @@ whatever it finds.
 
 **Owner:** whichever plan next edits an early `[C]` block. Widening the slice is a one-line change
 to `hexAt`; what it costs is whatever the first run turns up.
+
+---
+
+## 9. THE ADVANCE CONTROL IS BELOW THE FOLD AT 1366x768 AND NO DIAL REACHES IT
+
+**Found:** plan 05-D31, by measurement, and turned in the open rather than dialled around.
+
+D-31 puts the two round controls with the ACTION INPUT — Advance is what commits what the input
+declared. That puts them below a whole second panel. Swept in real Chrome, three rounds resolved,
+twelve declarations standing, reading the bottom edge of Advance at page scroll zero:
+
+```
+  state window   @1920x1080 Advance      @1366x768 Advance
+    12vh            949 of 1080            869 of 768   BELOW
+    22vh           1057 of 1080  shipped   948 of 768   BELOW
+    26vh           1100 of 1080  BELOW     973 of 768   BELOW
+```
+
+**At 768 no setting clears it, including zero.** Read 869 against its 92px window: the chrome alone
+is 777px on a 768px screen. There is no free term in that arithmetic.
+
+**What was done instead of tuning a number until it passed:** browser cell 18 keeps the old claim
+unweakened at 1920x1080 and asserts at 768 that the control has a real box, is enabled, and is
+within one page scroll of the fold — so a regression that put it at 1600 still reddens. Cell 18c is
+new and asserts the property the fold was standing in for and never measured: scrolled to the picker
+rows, Advance is wholly on screen **and above them**. PROBE BO is why the last two words are there.
+
+**What is still open:** whether a room can work with it. The fix, if the rehearsal wants it, is one
+line at the dial in `[C14.1]` — `max-height:min(22vh, calc(100vh - 710px))` puts Advance at 757 of
+768 and costs a 58px state panel at that size. Both readings are in the comment beside the rule.
+
+**Owner:** the 05-11 playtest, items 54 and 55.
