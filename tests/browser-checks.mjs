@@ -2286,8 +2286,12 @@ for (const ch of ['chrome', 'msedge']) {
        it somewhere else; these four are the rule's own contract, and a rule
        that stops being parsed drops all four at once. It also reads the ONE
        thing P2-9 changed — the grid — so a later author who reverts the list to
-       a column of full-width bars does it in the open. */
-    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+       a column of full-width bars does it in the open.
+
+       TAKEN WITH THE DIALOG STILL OPEN from 23d above rather than re-opening
+       it: a modal <dialog> intercepts pointer events for the whole page, so a
+       click on the topbar opener from here times out against the dialog's own
+       backdrop. Measured the direct way, once. */
     const aeListCss = await pg.evaluate(() => {
       const n = document.querySelector('.ae-list');
       if (!n) return null;

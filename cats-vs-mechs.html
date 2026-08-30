@@ -519,19 +519,54 @@
      shapes and cost fewer nodes anyway. */
   .tok{position:relative;width:var(--tok);height:var(--tok);flex:0 0 auto}
   .tok-s{position:absolute;inset:0;background:var(--tok-fill);border-radius:3px}
+  /* ==================================================================
+     D-33 P3-5 - THE GLYPH IS SCALED TO THE SHAPE IT SITS IN, NOT TO THE
+     BOX AROUND IT. Plan 05-D33c.
+     ==================================================================
+     The audit: "Student emoji are illegible inside a small shape - a
+     fire emoji inside a 22px violet hexagon is a smudge at 1x. Scale the
+     glyph to the shape's INNER box."
+
+     THE WORD THAT MATTERS IS "INNER". This node is `inset:0` over the
+     token's whole square, and the shapes below then CLIP that square:
+     a triangle keeps 50% of the width at half height and nothing at the
+     apex, a diamond keeps an inscribed square about 0.7 on a side, a
+     hexagon cuts the corners. So one flat fraction of the BOX draws a
+     glyph that spills past the silhouette on three of the five shapes -
+     which is what makes it read as a smudge rather than as a picture:
+     the eye is asked to separate a coloured emoji from a coloured shape
+     whose edge runs through the middle of it.
+
+     --tok-glyph IS ONE MORE DIAL IN [C00]'s MANNER, defaulted here and
+     overridden per shape below, so a rehearsal that changes --tok moves
+     every glyph with it and the five fractions are read in one place.
+     Nothing hardcodes a pixel.
+
+     THE FRACTIONS ARE THE INSCRIBED SQUARE OF EACH SILHOUETTE, rounded
+     down: a square and a rectangle keep the .68 they have always had; a
+     circle and a hexagon take .58; a diamond's inscribed square is
+     about .70 of its diagonal, which is .48 of the box; and a triangle
+     takes .42 and is pushed to the lower two-thirds, because the top of
+     a triangle has no room in it at all. */
   .tok-g{
     position:absolute;inset:0;display:grid;place-items:center;
-    font-size:calc(var(--tok) * .68);line-height:1;pointer-events:none;
+    font-size:calc(var(--tok) * var(--tok-glyph, .68));line-height:1;pointer-events:none;
     font-family:"Segoe UI Emoji","Apple Color Emoji","Noto Color Emoji",sans-serif;
   }
 
   /* One rule per SHAPES id. `sq` needs none — the box already is the shape. */
   .tok--rect{width:calc(var(--tok) * 1.7)}
   .tok--tri .tok-s{clip-path:polygon(50% 0, 100% 100%, 0 100%);border-radius:0}
+  /* place-items:end pushes the glyph into the wide end of the wedge. */
+  .tok--tri{--tok-glyph:.42}
+  .tok--tri .tok-g{align-items:end;padding-bottom:6%}
   .tok--dia .tok-s{transform:rotate(45deg);border-radius:2px}
+  .tok--dia{--tok-glyph:.48}
   .tok--dia .tok-g{transform:rotate(-45deg)}
   .tok--circ .tok-s{border-radius:50%}
+  .tok--circ{--tok-glyph:.58}
   .tok--hex .tok-s{clip-path:polygon(25% 0,75% 0,100% 50%,75% 100%,25% 100%,0 50%);border-radius:0}
+  .tok--hex{--tok-glyph:.58}
 
   /* One rule per COLORS id. The fill stays at the pure token value so the
      measured 7:1-to-11:1 ratios against --panel hold; color-mix() is for
@@ -3609,12 +3644,45 @@
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
   }
   .dc-alive-t{font-size:18px}
-  /* The tick is CARRIED at zero opacity rather than created and destroyed, so
-     the word beside it never moves sideways when the state changes — .ae-check
-     is the shipped precedent and this is its reasoning, not a second one. */
-  .dc-check{opacity:0;font-size:18px}
+  /* ==================================================================
+     D-33 P3-7 - THE ONE HIDDEN TICK THAT REALLY IS IN AN ACCESSIBLE
+     NAME, AND IT IS NOT THE ONE THE AUDIT NAMED. Plan 05-D33c.
+     ==================================================================
+     P3-7 reports that "an UNDECLARED .fg-act has textContent 'Slash-✓'.
+     The .fg-check span is visibility:hidden, which hides it visually but
+     leaves it in the accessible name". The first sentence is true and
+     the second is not, and the difference is the whole of this fix.
+     Driven in real Chrome and read off the accessibility tree:
+
+       an undeclared .fg-act   name = "Slash Removes: 1 Action points"
+       an unpressed .dc-alive  name = "Mark dead ✓"
+
+     visibility:hidden REMOVES a node from the accessible name - that is
+     the accname spec, and .fg-check, .pk-check, .ae-check, .vw-check and
+     .pv-check all use it, so five of the file's six ticks were already
+     correct. opacity:0 does NOT: it is a paint-time property and the
+     node stays in the tree. So the one control in this file that told a
+     screen reader "Mark dead ✓" while its own aria-pressed said false is
+     this one - the dead marker, which is the toggle a student uses to
+     make a ruling.
+
+     THE REASON THE OLD SPELLING GAVE IS KEPT WHOLE, because it is right
+     and visibility:hidden satisfies it exactly: "the tick is CARRIED
+     rather than created and destroyed, so the word beside it never moves
+     sideways when the state changes". A visibility:hidden node keeps its
+     box, so nothing moves; .ae-check is still the shipped precedent, and
+     this is now the same spelling as well as the same reasoning.
+
+     WHAT IS NOT DONE, AND WHY, because P3-7's other half is a real
+     reading: the tick IS still in textContent on all six, so the Layer C
+     harvest counts a '✓' on every unpressed control. That is a harvest
+     artifact and not something a student or a screen reader meets - and
+     removing the character from the tree when unset would move the
+     board, fight and dialog harvests all at once for no reading anybody
+     takes. Measured and recorded rather than changed. */
+  .dc-check{visibility:hidden;font-size:18px}
   .dc-alive--on{border-color:var(--ink);color:var(--ink);background-color:color-mix(in srgb, var(--ink) 12%, var(--panel))}
-  .dc-alive--on .dc-check{opacity:1}
+  .dc-alive--on .dc-check{visibility:visible}
 
   /* The sentence a person reads. Its own [hidden] rule for the reason
      .prj-work[hidden], .ld-now[hidden] and .fg-said[hidden] each carry one:
@@ -4046,6 +4114,28 @@
      and its count are permanently visible and the tooltip is the DESCRIPTION of
      a reading that is already on screen. A rule here that made anything appear
      on pointer-over would turn the description into the reading. */
+  /* D-33 P3-5's SECOND HALF, and it is the artifact's own copy taken at
+     its word. The audit: "in the fight picker's smaller token context
+     let shape and colour carry the meaning alone. The picker dialog's
+     own copy already tells the student the emoji is decoration on top of
+     shape and colour." That copy, verbatim from [C07]'s surface: "The
+     shape and the colour carry the meaning on their own. The emoji is
+     decoration on top of them, so a token still reads correctly on a
+     projector that has never heard of that emoji."
+
+     AT 12px A GLYPH IS 7px AND IS NOT DECORATION, IT IS NOISE - it is
+     the one thing in a reading that a room cannot resolve, sitting on
+     top of the two things it can. The shape and the colour are
+     untouched, so nothing about what a reading MEANS changes; what goes
+     is a smudge over the middle of it. Every surface that draws a
+     reading follows: the picker's costs, the lane, the what-changed
+     panel and the editor's terms, because all four draw .sym.
+
+     THE BOARD AND THE BATTLEFIELD KEEP THEIRS. There the token is the
+     subject rather than a term inside a sentence, it is drawn at 22px
+     and up, and the glyph is the student's own authorship on their own
+     board. */
+  .sym .tok-g{display:none}
   .sym{
     --tok:12px;
     --tok-gap:3px;
