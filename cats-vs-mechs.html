@@ -390,6 +390,46 @@
      chrome is [C11]'s, in the way #strip's children are [C10]'s. */
   #refband{grid-column:1 / -1}
 
+  /* ==================================================================
+     D-33 P3-9's FIRST BULLET — THE TWO COLUMNS ARE NOT PAIRED ROWS, AND
+     THEY ARE NOT GOING TO BE. Plan 05-D33c: measured and ANSWERED rather
+     than implemented, recorded here so the next reader does not re-open
+     it.
+     ==================================================================
+     The audit: "Cross-column row rhythm breaks as soon as tallies
+     differ. With Rage on the cats, 'Cat 2' heads at y=777 while 'Mech 2'
+     heads at y=723. The two rosters read as paired rows and then drift.
+     If pairing is intended, a subgrid on the two columns aligns them; if
+     it is not, the eye should not be invited to pair them in the first
+     place."
+
+     REPRODUCED EXACTLY, real Chrome, both viewports, reading every unit
+     name's top:
+
+       shipped board          cats 525 709 893 1077 ...  mechs 525 709 893
+       one unit-scoped type
+       written on Cat 1 ONLY  cats 525 763 947 1131 ...  mechs 525 709 893
+
+     — 54px of drift from the second row down, from one number on one
+     card. The mechanism is .brd-line--opt: a per-unit type's line is
+     HIDDEN while its tally reads zero, so Cat 1 grows a line and Cat 2
+     is pushed down while Mech 2 is not.
+
+     PAIRING IS NOT INTENDED AND CANNOT BE. The rosters are 9 and 3 on
+     the shipped board and either can be added to; every unit's
+     allocation is independent, which is the whole exercise. A subgrid
+     would force each ROW to the height of its taller card — which on
+     this board means padding three Mech cards to the height of nine Cat
+     cards and leaving six rows of empty track under them. That is not
+     alignment, it is a table with nothing in most of it.
+
+     WHAT THE AUDIT'S SECOND CLAUSE ASKS FOR IS ALREADY TRUE AS FAR AS A
+     RULE CAN MAKE IT: these are two independent flex columns with no
+     shared track, no row rule and no connecting line. What invites the
+     eye to pair them is that both start at the same y and both are
+     rosters — and that is the board, not a stylesheet. Recorded for the
+     rehearsal rather than dialled: whether a room actually reads across
+     is a question only a room answers. */
   .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
 
   /* A [C03] EDIT BY PLAN 03-03, named as one because this rule was written by
@@ -1663,6 +1703,25 @@
   .sh-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
   .sh-pane[hidden]{display:none}
 
+  /* D-33 P3-9's SECOND BULLET, MEASURED AND NOT REPRODUCED. Plan
+     05-D33c. The audit: "The load pane's textarea shows a native resize
+     grabber and a different border from the copy pane's. Normalise in
+     [C13]." Read off computed style in real Chrome at both viewports:
+
+       #share-code     border 1px rgb(42,49,64)   resize vertical
+       #sh-load-field  border 1px rgb(42,49,64)   resize vertical
+
+     They are the SAME rule — this one — so the borders are identical to
+     the byte and both carry the grabber. The "2px accent border" the
+     audit saw on #share-code is its :focus-visible ring, which that
+     field wears because the share surface focuses it on open so a
+     student can press Ctrl+C over the selection.
+
+     THE GRABBER STAYS, and that is a decision rather than an oversight.
+     [C08]'s .err-detail is this chrome's origin and it is resizable so a
+     long error can be read; the same argument holds for a long build
+     code. Recorded rather than changed, in plan 05-D33b's manner for the
+     two audit claims the code did not support. */
   .sh-code, .sh-paste{
     display:block;width:100%;box-sizing:border-box;
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
@@ -4618,6 +4677,27 @@
      visible and 18px, and the state is said in the class, in aria-pressed /
      aria-expanded, and by a tick that is a REAL NODE whose visibility the
      on-class moves. Never colour alone. */
+  /* D-33 P3-9's THIRD BULLET, MEASURED AND ANSWERED. Plan 05-D33c. The
+     audit: "The view switch changes its member count between views —
+     'The projection' appears only in fight view. Reserving the slot
+     stops the group from resizing under the cursor."
+
+     NOTHING RESIZES UNDER A CURSOR, because the toggle is LAST. Read off
+     the page at 1920x1080, the two view controls' left edges:
+
+       build view   view-build 153   view-fight 304   (toggle absent)
+       fight view   view-build 153   view-fight 304   toggle 446
+
+     Byte-identical. A third control appended to the END of a
+     left-aligned row cannot move the two before it, so the group grows
+     rightwards into empty space and every control a hand is travelling
+     to stays where it was.
+
+     RESERVING THE SLOT WOULD COST MORE THAN IT BUYS: a permanent ~240px
+     hole in the board tab's switch row, on every session, to reserve
+     space for a control that "is not in the build view at all" — which
+     is this rule's own reason, three lines down, and D-28's closing
+     line. Recorded rather than dialled. */
   #app[data-view="build"] #proj-toggle{display:none}
   .pv-btn{
     display:flex;align-items:center;gap:8px;
