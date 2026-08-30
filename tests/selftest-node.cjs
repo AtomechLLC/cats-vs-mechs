@@ -1311,37 +1311,23 @@ function makeStubDom() {
     topbar.appendChild(b);
     return b;
   }
-  // plan 05-06's two new topbar groups, FIRST in the cluster because that is
-  // where the markup puts them: a reading a room has to take in leads the bar
-  // rather than joining the end of a queue of controls, and Reset stays last
-  // and apart where SHARE-04's fourth criterion put it.
+  // plan 05-06's second topbar group. The FIGHT group leads the tools here
+  // because that is where the markup puts it; the round-and-pool READING now
+  // comes last and on its own line, which is D-33 P2-2 and is mirrored at the
+  // foot of this builder rather than here. Reset stays last among the tools and
+  // apart, where SHARE-04's fourth criterion put it.
   //
-  // THE FIRST GROUP IS NOT A CONTROL, so topbarButton() is deliberately not
-  // used for it. That helper stamps a data-act onto whatever it makes, and a
-  // reading carrying an act would be an act on this page the shell does not
-  // carry — which is precisely the drift section 5b exists to make impossible,
-  // arriving through a convenience rather than through a typo. Three empty
-  // value nodes, no data-act, no data-k, spelled from the markup.
-  const fightRead = createElement('div');
-  fightRead.className = 'brd-tokedit fg-read';
-  topbar.appendChild(fightRead);
-  const roundLabel = idNode('round-label', 'span');
-  roundLabel.className = 'brd-tokedit-label';
-  fightRead.appendChild(roundLabel);
-  [['round-count', 'fg-round'],
-    ['pool-cats', 'fg-pool'],
-    ['pool-mechs', 'fg-pool']].forEach(([id, cls]) => {
-    const n = idNode(id, 'span');
-    n.className = cls;
-    fightRead.appendChild(n);
-  });
-  // And the sixth control, which IS one. It takes an id where the four buttons
-  // below take none, because [S06.7] has to reach it by id to disable it while
-  // a fight is running — topbarButton() hands back no id, so the button is
-  // built by hand here and its act and its key are copied off the markup.
-  // startFight is state work, so it is dispatched and is deliberately NOT in
-  // UI_ACTS; there is no handler to register for it and nothing in this repo
-  // presses it until plan 05-10.
+  // It IS a control, and it takes an id where the four buttons below take none,
+  // because [S06.7] has to reach it by id: it is D-33 P2-4's lifecycle toggle
+  // and that region writes its LABEL and its ACT from whether a fight is
+  // running. topbarButton() hands back no id, so the button is built by hand
+  // here and its key is copied off the markup. Its data-act is seeded from the
+  // markup's own resting value and then owned by the render, which is why the
+  // setup harvest carries "Start the fight" from D-33 P2-4 onward and did not
+  // before: the node used to be built empty and left empty.
+  //
+  // startFight and endFight are both state work, so both are dispatched and
+  // neither is in UI_ACTS.
   const fightLabel = idNode('fight-label', 'span');
   fightLabel.className = 'brd-tokedit-label';
   topbar.appendChild(fightLabel);
@@ -1369,6 +1355,33 @@ function makeStubDom() {
   topbarButton('sh', 'openShare', null);
   topbar.appendChild(idNode('reset-label', 'span'));
   topbarButton('rs', 'openResetAsk', null);
+
+  /* D-33 P2-2 — THE ROUND-AND-POOL READING, LAST AND ON ITS OWN LINE, which is
+     where the markup moved it: it is the one thing in this cluster nobody
+     presses, and the controls above it must not move when a fight starts. It
+     ships HIDDEN and [S06.7] shows it, so a page with no fight running never
+     draws the word "Round" over nothing.
+
+     IT IS NOT A CONTROL, so topbarButton() is deliberately not used for it.
+     That helper stamps a data-act onto whatever it makes, and a reading
+     carrying an act would be an act on this page the shell does not carry —
+     precisely the drift section 5b exists to make impossible, arriving through
+     a convenience rather than through a typo. Three empty value nodes, no
+     data-act, no data-k, spelled from the markup. */
+  const fightRead = createElement('div');
+  fightRead.className = 'brd-tokedit fg-read';
+  fightRead.hidden = true;
+  topbar.appendChild(fightRead);
+  const roundLabel = idNode('round-label', 'span');
+  roundLabel.className = 'brd-tokedit-label';
+  fightRead.appendChild(roundLabel);
+  [['round-count', 'fg-round'],
+    ['pool-cats', 'fg-pool'],
+    ['pool-mechs', 'fg-pool']].forEach(([id, cls]) => {
+    const n = idNode(id, 'span');
+    n.className = cls;
+    fightRead.appendChild(n);
+  });
 
   // The token-appearance <dialog>, likewise hand-made from the static markup.
   // Exactly three members beyond a plain element, because that is all [S06.2]
@@ -9371,9 +9384,28 @@ fgDeclare('mechs', fgMechsAct, 'm1');
    a view press into App.ops.dispatch, which is the one way page work becomes
    state work without anybody deciding to make it, and it belongs in the same
    walk as the other three regions rather than in a clause of its own. */
+/* ==========================================================================
+   PLAN 05-D33c ADDS A SEVENTH, AND IT IS A CONTROL CHANGING ITS ACT RATHER
+   THAN A CONTROL BEING ADDED. D-33 P2-4.
+   ==========================================================================
+   #fight-start was disabled for the whole of a fight while occupying prime bar
+   space, and endFight was an op with a real dispatch arm that NOTHING on the
+   page could reach. It is a lifecycle toggle now: it names startFight at rest
+   and endFight while a fight runs, and it is never disabled in either state.
+
+   SO THE ACT IS READ IN BOTH STATES rather than once. The walk above runs on a
+   board somebody has PLAYED on, so it can only ever see the running half — a
+   row that read only that would be green over a control stuck on endFight
+   forever, which is a page a student can never start a fight from. Both
+   readings are taken below and both are asserted by name.
+
+   endFight IS A REAL [S05] OP AND IS THEREFORE CORRECTLY NOT IN UI_ACTS, which
+   is this row's second half doing its job on the day it was given something
+   new to judge. */
 const FG_DISPATCHED = [
   // the act the page sends          the op [S05] exports for it
   ['startFight', 'startFight'],
+  ['endFight', 'endFight'],
   ['resetFight', 'resetFight'],
   ['declare', 'declareAction'],
   ['clearDeclaration', 'clearDeclaration'],
@@ -9393,6 +9425,24 @@ const fgActsFound = [];
 if (fgActsFound.indexOf(fgStart.dataset.act) === -1) {
   fgActsFound.push(fgStart.dataset.act);
 }
+// D-33 P2-4's control, read in BOTH of its states off the page. The board above
+// is mid-fight, so this is the running reading; the rest reading is taken by
+// ending the fight and put back by starting one again, because every row below
+// this one is taken on the played board and a row that left the board altered
+// is a row that costs the rows after it.
+const fgLifeRunning = { said: fgStart.textContent, act: fgStart.dataset.act,
+  off: fgStart.disabled };
+A.ops.endFight();
+A.state.flush();
+const fgLifeRest = { said: fgStart.textContent, act: fgStart.dataset.act,
+  off: fgStart.disabled };
+fgPress(fgStart);
+fgDeclare('cats', fgCatsAct, 'c1');
+fgDeclare('mechs', fgMechsAct, 'm1');
+fgAdvancePress();
+fgDeclare('cats', fgCatsAct, 'c2');
+fgAdvancePress();
+fgDeclare('mechs', fgMechsAct, 'm1');
 const fgUiOnly = fgActsFound.filter((a) => A.interactions.UI_ACTS.indexOf(a) !== -1);
 const fgUnhandled = fgUiOnly.filter((a) => A.interactions.UI_HANDLED.indexOf(a) === -1);
 const fgStateActs = fgActsFound.filter((a) => A.interactions.UI_ACTS.indexOf(a) === -1);
@@ -9458,12 +9508,24 @@ check(
     + 'surfaces and the view switch carry ZERO acts inside them on purpose, so '
     + 'it is their private data-fg, data-dc and data-vw controls that are '
     + 'floored — a region with no controls at all passes an all-clear '
-    + 'spotlessly',
+    + 'spotlessly. AND THE SEVENTH ACT ARRIVED WITH D-33 P2-4, ON A CONTROL '
+    + 'THAT ALREADY EXISTED: #fight-start is a lifecycle toggle now, naming '
+    + 'startFight at rest and endFight while a fight runs, never disabled in '
+    + 'either. Both readings are taken off the page BY NAME, because the played '
+    + 'board this row runs on can only ever show the running half and a row '
+    + 'that read only that would be green over a control stuck on endFight '
+    + 'forever — a page nobody can start a fight from',
   fgActsInside === 0 && fgUnhandled.length === 0 && fgNotOps.length === 0
     && fgParked.length === 0 && fgNoOpBehind.length === 0
-    && fgPrivateCount >= 45 && fgStateActs.indexOf('startFight') !== -1,
+    && fgPrivateCount >= 45
+    && fgLifeRunning.act === 'endFight' && fgLifeRunning.said === 'End the fight'
+    && fgLifeRunning.off === false
+    && fgLifeRest.act === 'startFight' && fgLifeRest.said === 'Start the fight'
+    && fgLifeRest.off === false,
   'acts on data-act inside #fightbar + #ledger + #views=' + fgActsInside
     + ' | acts found=' + JSON.stringify(fgActsFound)
+    + ' | the lifecycle control while a fight runs='
+    + JSON.stringify(fgLifeRunning) + ' and at rest=' + JSON.stringify(fgLifeRest)
     + ' | UI-only=' + JSON.stringify(fgUiOnly)
     + ' | claimed but unhandled=' + JSON.stringify(fgUnhandled)
     + ' | field acts, read off the live FIELD_OPS=' + JSON.stringify(fgFieldActs)
@@ -10053,9 +10115,17 @@ check(
     + 'so mechanically. OUTSIDE the grid the whole disabled set is identical '
     + 'across three boards that differ only in what a side can pay, what it can '
     + 'meet and who has been ruled dead — Advance stays enabled on a side that '
-    + 'cannot pay, the alive toggle stays enabled on a unit already marked, the '
-    + 'change-target control is never disabled, and the single =true is still '
-    + 'the start control bounding what the TOOL may do to ITSELF. INSIDE the '
+    + 'cannot pay, the alive toggle stays enabled on a unit already marked, and '
+    + 'the change-target control is never disabled. THE ONE =true OUTSIDE THE '
+    + 'GRID IS GONE AND THAT CLAUSE IS TURNED IN THE OPEN UNDER D-33 P2-4: it '
+    + 'required EXACTLY ONE disabled control out there — the start button, '
+    + '"bounding what the TOOL may do to ITSELF" — and that button is a '
+    + 'lifecycle toggle now, naming startFight at rest and endFight while a '
+    + 'fight runs, so the bound is expressed by the control naming the act that '
+    + 'IS available instead of by greying out the act that is not. The clause '
+    + 'now requires NOTHING outside the grid to be disabled at all, which is the '
+    + 'never-disable rule arriving whole on this surface and is a STRONGER '
+    + 'claim than the one it replaces. INSIDE the '
     + 'grid the disabled set is exactly the three conditions — requirement '
     + 'unmet, the row\'s own remaining pool cannot pay, or the unit ruled dead '
     + '— computed here from state independently of the render and compared BOTH '
@@ -10087,7 +10157,7 @@ check(
     && fgFundedOffCount === 0 && fgOwingOffCount > 0
     && fgDeadRuledOff.length === 0
     && fgOwingReport !== fgFundedReport
-    && fgFundedTrue.length === 1 && fgFundedTrue[0] === 'fg=true'
+    && fgFundedTrue.length === 0
     && fgAdvanceEntry.length === 1 && fgAdvanceEntry[0] === 'fg/advance=false'
     && fgDeadToggles.length === 0 && fgAtEntries.length === 0
     && fgControlCount >= 100,
@@ -12064,12 +12134,16 @@ check(
     + 'undone — and compared as a SET rather than one control at a time, which '
     + 'is 71c\'s shape and its reason. The change-target control itself is '
     + 'enabled at every one of them: a student handed a default they cannot '
-    + 'change has been given a resolution rather than a suggestion. The single '
-    + '=true the set holds is the start control, which is the tool bounding '
-    + 'what it can do to ITSELF',
+    + 'change has been given a resolution rather than a suggestion. THE SET '
+    + 'HOLDS NO =true AT ALL NOW, and that clause is turned in the open under '
+    + 'D-33 P2-4 alongside check 95: it used to require exactly one — the '
+    + 'start control, "bounding what it can do to ITSELF" — and that control is '
+    + 'a lifecycle toggle now rather than a button disabled for the whole of a '
+    + 'fight. NOTHING on this page is disabled by anything but the declaration '
+    + 'grid and its own three conditions, which is what this row always meant',
   fgFlowRest === fgFlowHalf && fgFlowRest === fgFlowDone
     && fgFlowRest === fgFlowUndone
-    && fgFlowTrue.length === 1 && fgFlowTrue[0] === 'fg=true'
+    && fgFlowTrue.length === 0
     && fgFlowAtEntry.length === 1 && fgFlowAtEntry[0] === 'fg/at/cats/c1=false'
     && errPanel.hidden === true,
   'controls compared=' + fgFlowRest.split('|').length

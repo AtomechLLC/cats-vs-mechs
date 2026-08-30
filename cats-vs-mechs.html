@@ -274,9 +274,62 @@
      not left live. */
   .brd-cluster{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
   .brd-tokedit{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
-  /* UX-02: a real, permanently visible text label at the 18px minimum.
-     Never icon-only, never revealed on hover, never a title= tooltip. */
-  .brd-tokedit-label{font-size:18px;color:var(--ink-dim)}
+  /* ==================================================================
+     D-33 P2-2 — THE READING TAKES ITS OWN LINE, AT THE END. Plan
+     05-D33c. The markup comment on the group carries the measurement
+     and the argument; this is the one declaration that does it.
+
+     flex-basis AND NOT `order`. Moving it in CSS would put the sequence
+     a screen reader walks out of step with the one the room sees, which
+     is PROBE BB's finding and the reason check 108 SCANS for `order:`
+     rather than naming three rules. The node moved in the markup; this
+     only says it does not share a line.
+
+     justify-content:flex-end so the reading hangs under the tools it
+     follows rather than starting at the far left of a 1600px bar with a
+     void beside it, which is what the audit photographed at 1366. */
+  .brd-cluster .fg-read{flex:0 0 100%;justify-content:flex-end}
+  .brd-cluster .fg-read[hidden]{display:none}
+  /* ==================================================================
+     D-33 P2-3 — A CAPTION OVER ITS CONTROL, NOT A PEER OF IT. Plan
+     05-D33c.
+     ==================================================================
+     The audit measured five label-plus-button pairs reading as ten
+     controls: "Token appearance | Tokens", "Action rules | Actions",
+     "Build code | Share", "Start over | Reset", "The fight | Start the
+     fight" — every label the SAME 18px as the button beside it,
+     differing only in colour. Ten pieces of text to scan to find five
+     buttons, on the one surface this artifact says has to read from
+     twenty feet.
+
+     THE TREATMENT IS .eyebrow's AND THE SIZE IS NOT, and that is the
+     one decision in this rule. [C02] defines .eyebrow at 12px and the
+     four dialogs use it; the audit proposes it here verbatim. It cannot
+     be taken verbatim: [C10] and [C11] both state the same standing
+     rule about themselves — "nothing at or below 14px may carry
+     information, so .eyebrow and .ex are unavailable however neatly
+     they would have fitted" — and a caption naming what a control opens
+     is information. So the SHAPE of the eyebrow is taken (uppercase,
+     tracked, weight) and the size stops at 15px, which is the first
+     size above that floor.
+
+     THE COLOUR CHANNEL IS DELIBERATELY NOT .eyebrow's. Its --accent-2
+     is the removal-badge and lit-target channel (D-30, and D-33 P1-7's
+     retarget flow), and it is louder than --ink-dim; a caption printed
+     in it would out-shout the control it captions, which is the defect
+     inverted rather than fixed. --ink-dim stays.
+
+     UX-02 IS UNTOUCHED AND THE FLOOR IT SETS IS NOT THIS NODE'S. Its
+     rule is that a CONTROL carries a real, permanently visible text
+     label at 18px, never an icon and never a tooltip — and every one of
+     the five buttons still does, in full, unchanged. This node is the
+     group's caption, and it is still permanent, still visible, still a
+     real text node, and still the target of the group's
+     aria-labelledby. */
+  .brd-tokedit-label{
+    font-size:15px;font-weight:700;color:var(--ink-dim);
+    text-transform:uppercase;letter-spacing:1px;
+  }
 
   .brd-btn{
     background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
@@ -286,6 +339,39 @@
     &:disabled{opacity:.45;cursor:not-allowed}
   }
 
+  /* ==================================================================
+     D-33 P3-9 ASKED FOR A FRACTIONAL MIDDLE TRACK BELOW 1600, AND THE
+     MEASUREMENT SAYS NO. Plan 05-D33c — recorded rather than left as an
+     unexplained 320.
+     ==================================================================
+     The audit: "#strip is a fixed 320px at both viewports: at 1366 the
+     advisory projection takes 24% of the width while each roster column
+     — the surface the task is on — gets 36%. Consider a fractional
+     basis at ≤1366."
+
+     Considered, driven in real Chrome at both viewports, reading the
+     projection's own headline height as the track shrank:
+
+       track                              @1366 strip / column / headline
+       minmax(220px, 320px)   (shipped)     320 / 483 / ONE line   (38px)
+       minmax(220px, clamp(220px,20%,320)) 264 / 511 / TWO lines   (77px)
+       minmax(220px, clamp(220px,24%,320)) 317 / 484 / ONE line    (38px)
+
+       @1920 all three are byte-identical: 320 / 622 / one line.
+
+     THE 320 IS NOT A ROUND NUMBER, IT IS THE PROJECTION'S HEADLINE. At
+     320 "≈9 turns to wipe Mechs" sits on one line at [C10]'s 24px, and
+     [C10]'s banner sizes that figure for a four-digit turn count on a
+     24-unit roster. The first setting that buys the roster columns
+     anything at all breaks that sentence in two; the setting that keeps
+     it whole buys them one pixel. There is no free term in this
+     arithmetic, which is the same shape plan 05-D31 recorded about the
+     Advance control's fold.
+
+     SO THE TRACK STAYS AND THE FINDING IS ANSWERED RATHER THAN
+     IMPLEMENTED. If a room says at rehearsal that the roster columns
+     need the width more than the projection needs its headline on one
+     line, the lever is this track and the cost is written above. */
   #board{
     display:grid;grid-template-columns:1fr minmax(220px, 320px) 1fr;gap:18px;align-items:start;
     /* D-01 wants both columns fully visible at once, which the 1280px document
@@ -4494,12 +4580,46 @@
            question no gate in this repo can answer: it is plan 05-10's
            acceptance run and plan 05-11's rehearsal, both named here so
            neither has to rediscover the number. -->
-      <div class="brd-tokedit fg-read">
-        <span class="brd-tokedit-label" id="round-label">Round</span>
-        <span class="fg-round" id="round-count"></span>
-        <span class="fg-pool" id="pool-cats"></span>
-        <span class="fg-pool" id="pool-mechs"></span>
-      </div>
+      <!-- ==============================================================
+           D-33 P2-2 — THE READING MOVED TO THE END OF THE CLUSTER AND
+           TAKES ITS OWN LINE. Plan 05-D33c.
+           ==============================================================
+           MEASURED, both viewports, before this change: #topbar went
+           64px -> 109px at 1920 and 109px -> 161px at 1366 the moment a
+           fight started, because this group was inserted at the HEAD of
+           a wrapping flex cluster and pushed every control after it onto
+           a new row. At 1366 that left "The fight / Start the fight"
+           orphaned at the end of row one and the whole tools group
+           right-aligned on row two with a large void beside it — the bar
+           re-laying itself out in front of a room, mid-demo, which is
+           the audit's whole complaint.
+
+           IT IS A READING AND NOT A CONTROL, and that is what decides
+           the order. Nothing here is pressed. The controls a hand is
+           travelling to are the ones that must not move, so they go
+           FIRST and this goes last, on its own line — [C03] gives it
+           flex-basis 100% rather than a CSS `order`, so the sequence a
+           screen reader walks and the one the room sees stay the same
+           (PROBE BB's lesson, recorded at check 108).
+
+           WHAT THAT BUYS, MEASURED: the tools row is byte-identical
+           before and during a fight at both sizes. The bar still grows
+           by one ROW when a fight starts, and that is kept rather than
+           reserved: reserving the line permanently would spend ~45px of
+           the board tab's first screen on an empty row, every session,
+           to save a downward shift that moves nothing anybody is
+           reaching for. FIGHT-09 is untouched — the round and both pools
+           are still on the one bar that is always in view, in BOTH
+           views.
+
+           AND IT IS HIDDEN OUTRIGHT WHEN NO FIGHT IS RUNNING, which is
+           P2-11's rule arriving on the bar: before this the group
+           rendered the word "Round" with nothing after it, orphaned at
+           the far left of the cluster — a labelled empty box, which is
+           the exact ambiguity this artifact spends [S06.7]'s banner
+           refusing. [S06.7] hides it in fgRest and shows it in
+           fightBar, on the same two frames it fills and empties the
+           spans inside it. -->
       <div class="brd-tokedit fg-apart" role="group" aria-labelledby="fight-label">
         <span class="brd-tokedit-label" id="fight-label">The fight</span>
         <button class="brd-btn" type="button" id="fight-start" data-k="fg" data-act="startFight">Start the fight</button>
@@ -4595,6 +4715,19 @@
       <div class="brd-tokedit rs-apart" role="group" aria-labelledby="reset-label">
         <span class="brd-tokedit-label" id="reset-label">Start over</span>
         <button class="brd-btn brd-btn--danger" type="button" data-k="rs" data-act="openResetAsk">Reset</button>
+      </div>
+      <!-- THE ROUND AND THE TWO POOLS. The long comment above the fight
+           group says why this is LAST and why it takes its own line: it
+           is the one thing in this cluster nobody presses, and the
+           controls above it must not move when it arrives. Its three
+           value nodes are EMPTY here and [S06.7] writes them; the group
+           itself ships hidden and [S06.7] shows it, so a page with no
+           fight running never draws the word "Round" over nothing. -->
+      <div class="brd-tokedit fg-read" hidden>
+        <span class="brd-tokedit-label" id="round-label">Round</span>
+        <span class="fg-round" id="round-count"></span>
+        <span class="fg-pool" id="pool-cats"></span>
+        <span class="fg-pool" id="pool-mechs"></span>
       </div>
     </div>
   </div>
@@ -15935,6 +16068,107 @@ App.render = (function () {
   // could ever spell it cannot spell it differently.
   var FIGHT_NOBODY_WORD = 'nobody';
 
+  /* ====================================================================
+     D-33 P2-4 — THE LIFECYCLE CONTROL'S TWO LABELS AND ITS TWO ACTS, AND
+     THIS OVERTURNS A RULING THE SHELL WROTE DOWN. Plan 05-D33c.
+     ====================================================================
+     THE AUDIT: "#fight-start is disabled for the entire duration of a
+     fight while occupying prime bar space, and the endFight op exists in
+     the dispatch and is reachable. The only exits a student can see are
+     'Reset this fight' (buried inside #fight-input) and reloading the
+     page. Make the one control a lifecycle toggle — 'Start the fight' /
+     'End the fight' — instead of a permanently disabled button. This
+     moves TOWARD the standing never-disable rule rather than away from
+     it: D-27's disable overrule is explicitly scoped to fight
+     DECLARATION, and this control is not a declaration."
+
+     THE SHELL REFUSED EXACTLY THIS AND THE REFUSAL IS QUOTED RATHER THAN
+     DELETED, because it was a real decision and this reverses half of
+     it. #fight-start's markup comment says:
+
+       "it is deliberately NOT a second meaning bolted onto this button.
+        Two reasons. The bound is the first: a fight reset up here would
+        be a permanent control this paragraph has just finished saying
+        there is no room for. A mis-press is the second, and it is the
+        one that would be felt: a single button reading 'Start the
+        fight' before a fight and 'Reset the fight' during one changes
+        what it does under a cursor that has not moved, in front of a
+        room, and the two acts are not symmetrical — one of them throws a
+        played fight away."
+
+     BOTH REASONS ARE ABOUT A DIFFERENT SECOND MEANING FROM THIS ONE, and
+     that is the whole of why this is a turn rather than a relitigation.
+
+       THE BOUND IS UNSPENT. The refusal is to a fight RESET on the bar,
+       which would be a SECOND control. This is the same one control,
+       and the cluster does not grow by a node.
+
+       THE ASYMMETRY IS THE OTHER PAIR'S. Start-against-Reset is a
+       lifecycle edge against a mid-fight act. Start-against-End is the
+       lifecycle's OWN two edges, which is what "symmetrical" means: one
+       opens the thing the other closes, and neither is reachable in the
+       other's state.
+
+       THE MIS-PRESS IS ANSWERED BY THE FILE'S OWN TEST RATHER THAN BY A
+       DISABLE. resetFight's comment states D-17 in as many words —
+       "does undo stop being able to recover this while the student is
+       still working?" — and answers it for itself: "A fight reset does
+       not meet that test — the build is untouched and the board is one
+       Ctrl+Z away." endFight is commitStructural, so it is ONE undo
+       entry and leaves the build alone; the identical sentence applies
+       to it word for word. And the label is not the same word under an
+       unmoved cursor: it says "End the fight" while a fight runs and
+       "Start the fight" when none does, which is the third channel
+       neither the class nor the act reaches.
+
+     WHAT IT COSTS THE GATE, AND ALL OF IT IS TURNED IN THE OPEN: check
+     95's "the single =true is still the start control bounding what the
+     TOOL may do to ITSELF" becomes NOTHING outside the grid is disabled
+     at all, which is the never-disable rule arriving whole on this
+     surface; and check 93's act partition gains endFight, which is a
+     real [S05] op with a real dispatch arm and is therefore correctly
+     NOT in UI_ACTS.
+
+     ONE OBJECT WITH TWO LABELS, in DC_ALIVE_WORDS' shape and for its
+     reason: the label and the act are written from ONE reading of
+     whether a fight is running, on the two frames that already decide
+     it, so they cannot contradict each other rather than merely being
+     unlikely to. */
+  var FG_LIFE = {
+    off: { said: 'Start the fight', act: 'startFight' },
+    on: { said: 'End the fight', act: 'endFight' }
+  };
+
+  /* The one writer of both, so neither site spells either. `running` is the
+     same boolean the two callers already branch on — fightBar runs only with a
+     fight and fgRest runs only without one — so there is no third reading of
+     "is a fight on" anywhere near this control. */
+  function fgLifeControl(running) {
+    var btn = document.getElementById('fight-start');
+    if (!btn) { return; }
+    var want = running ? FG_LIFE.on : FG_LIFE.off;
+    if (btn.textContent !== want.said) { btn.textContent = want.said; }
+    if (btn.dataset.act !== want.act) { btn.dataset.act = want.act; }
+    // NEVER DISABLED, IN EITHER STATE, and it is written rather than left
+    // absent: this line is what the audit's "moves toward the never-disable
+    // rule" actually is, and an absence here reads as an oversight.
+    btn.disabled = false;
+  }
+
+  /* The round-and-pool reading's own visibility, on the same two frames. It is
+     hidden at rest because the group would otherwise render the word "Round"
+     with nothing after it — a labelled empty box, on the bar, which is the
+     ambiguity D-33 P2-11 removes from the battlefield and the same rule. */
+  function fgReadGroup(running) {
+    // The bar is asked for by id and the group by class INSIDE it, rather than
+    // one compound selector, for keyed()'s standing reason: a document-wide
+    // lookup takes the FIRST match, and this file has one class name reachable
+    // from two roots more often than it does not.
+    var bar = document.getElementById('topbar');
+    var box = bar ? bar.querySelector('.fg-read') : null;
+    if (box) { box.hidden = !running; }
+  }
+
   /* A line the page ASSEMBLES out of its own words and the student's, one node
      per fragment. It is sayInto's idiom RESTATED rather than borrowed, for the
      reason [S06.6] restates setShareEnabled and [C13] restates its own spacer
@@ -16067,34 +16301,44 @@ App.render = (function () {
     return String(unitId);
   }
 
-  /* A CONTROL DISABLED WHILE IT HOLDS FOCUS DROPS THE KEYBOARD ONTO <body>, and
-     #fight-start is the one press in this file that does it: a student presses
-     Start, this region's very next frame disables the button under their
-     finger, and a keyboard user is left at the top of the document with nothing
-     but Tab to get back.
+  /* ====================================================================
+     fgHandOff IS GONE UNDER D-33 P2-4, AND ITS ARGUMENT IS KEPT HERE
+     BECAUSE THE TRAP IT NAMED IS REAL AND WILL BE MET AGAIN. Plan
+     05-D33c.
+     ====================================================================
+     What it said, and every word of it was true of the surface it was
+     written for:
 
-     [S06.1]'s collapsing-optional-line paragraph records the same trap from the
-     other end, and its answer was to KEEP the control on screen while the
-     student is standing on it. That answer is not available here, because the
-     entire reason for the disable is that this button must not be pressed a
-     second time. So the keyboard is handed FORWARD instead — to the first
-     control of the surface the press just opened, which is where the student
-     was going anyway.
+       "A CONTROL DISABLED WHILE IT HOLDS FOCUS DROPS THE KEYBOARD ONTO
+        <body>, and #fight-start is the one press in this file that does
+        it: a student presses Start, this region's very next frame
+        disables the button under their finger, and a keyboard user is
+        left at the top of the document with nothing but Tab to get
+        back. [S06.1]'s collapsing-optional-line paragraph records the
+        same trap from the other end, and its answer was to KEEP the
+        control on screen while the student is standing on it. That
+        answer is not available here, because the entire reason for the
+        disable is that this button must not be pressed a second time.
+        So the keyboard is handed FORWARD instead."
 
-     IT IS #fight-start's HAND-OFF AND NOT THE GRID'S, and that is worth saying
-     now that the grid disables buttons of its own. An action button that goes
-     out of reach does so because a student declared something, spent something
-     or ruled somebody dead — the keyboard is on the control they pressed and
-     the rebuild puts it back there through withPreservedFocus, which is a
-     different contract with a different answer. A disabled control still holds
-     focus and is still reachable by Shift+Tab; it is the one that DISAPPEARS
-     that drops the keyboard, and none of these does. */
-  function fgHandOff(root) {
-    var next = root.querySelector('[data-k]');
-    if (next && typeof next.focus === 'function') {
-      next.focus({ preventScroll: true });
-    }
-  }
+     THE PREMISE IS THE SENTENCE IN THE MIDDLE, and P2-4 removes it: the
+     answer that "is not available here" is available now. The control
+     is not disabled in either state — it names the act that IS
+     available — so nothing goes out of reach under a finger, the node
+     keeps focus through the repaint, and there is nothing to hand
+     forward to. A hand-off that can never fire is a function the next
+     reader has to work out is dead, so it is deleted and this is its
+     record.
+
+     THE OTHER HALF OF THE OLD PARAGRAPH STILL BINDS AND IS NOT DELETED
+     WITH IT: an action button in the GRID that goes out of reach is a
+     different contract with a different answer. A disabled control
+     still holds focus and is still reachable by Shift+Tab; it is the
+     one that DISAPPEARS that drops the keyboard, and none of the grid's
+     does — withPreservedFocus puts the keyboard back on the control the
+     student pressed. Any later plan that disables a control OUTSIDE the
+     grid inherits the trap above along with the obligation to answer
+     it. */
 
   /* ACT-07's refusal, applied to a DECLARATION rather than to a proposal, and
      it is missingTerm's shape restated for the reason fgSay restates sayInto.
@@ -17291,8 +17535,11 @@ App.render = (function () {
     if (prompt) { prompt.hidden = false; }
     var round = document.getElementById('round-count');
     if (round) { round.textContent = ''; }
-    var start = document.getElementById('fight-start');
-    if (start) { start.disabled = false; }
+    // D-33 P2-4: the lifecycle control goes back to naming the act that is
+    // available, and P2-2's reading group goes away rather than standing empty.
+    // Both through the one writer each, so this teardown spells neither.
+    fgLifeControl(false);
+    fgReadGroup(false);
     /* D-31: EACH IS REMOVED FROM ITS OWN PARENT AND NOT FROM THE REGION ROOT.
        The figure sits on the state area's head line and the two controls sit on
        the input area's, so neither is a child of #fightbar any more — and
@@ -17427,19 +17674,33 @@ App.render = (function () {
       var roundN = root.querySelector('.fg-round-n');
       if (roundN) { roundN.textContent = String(state.fight.round); }
 
-      // THE ONE DISABLE OUTSIDE THE GRID, and the banner says which kind it is:
-      // startFight throws on a fight that is already running, so this is the
-      // tool bounding what it can do to itself. Re-decided from state on every
-      // repaint rather than toggled by whoever last pressed something —
-      // setEditorEnabled's rule and its reason: re-deciding is what makes an
-      // undo move it too, and it is the same rule the grid's own three
-      // conditions are decided under.
-      var start = document.getElementById('fight-start');
-      var held = false;
-      if (start) {
-        held = (start === document.activeElement);
-        start.disabled = true;
-      }
+      /* ==============================================================
+         D-33 P2-4 — THERE IS NO DISABLE OUTSIDE THE GRID ANY MORE.
+         Plan 05-D33c. The paragraph this replaces is kept, because it
+         was right about what the disable WAS and the change is to what
+         the control is:
+
+           "THE ONE DISABLE OUTSIDE THE GRID, and the banner says which
+            kind it is: startFight throws on a fight that is already
+            running, so this is the tool bounding what it can do to
+            itself."
+
+         True, and the bound is now expressed by the control naming the
+         act that IS available rather than by greying out the act that
+         is not. Re-decided from state on every repaint exactly as
+         before — setEditorEnabled's rule, and what makes an undo of
+         startFight move this label too.
+
+         THE FOCUS HAND-OFF WENT WITH THE DISABLE, and that is the
+         reason rather than tidying: fgHandOff existed because a
+         DISABLED control loses focus silently, so a student holding the
+         keyboard on Start when a fight began was dropped to <body>.
+         Nothing is disabled here now, so the node the keyboard is on
+         stays focusable and keeps focus through the repaint. A hand-off
+         that can never fire is a hand-off the next reader has to work
+         out is dead. */
+      fgLifeControl(true);
+      fgReadGroup(true);
 
       // D-31's TWO AREAS COME OUT FROM BEHIND THEIR [hidden] HERE, on the same
       // frame the prompt above goes behind its own. They are shown ONCE per
@@ -17505,7 +17766,6 @@ App.render = (function () {
         fgFillReport(node, state, side, actions, reports);
       });
 
-      if (held) { fgHandOff(root); }
     });
 
     // TWO attributes, each answering exactly one question and neither answering
