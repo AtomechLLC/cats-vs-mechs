@@ -13360,8 +13360,40 @@ function sepCssRule(sel) {
 const sepRuleArea = sepCssRule('.fg-area');
 const sepRuleSides = sepCssRule('.fg-sides');
 const sepRuleSide = sepCssRule('.fg-side');
+/* AND THE SCAN IS OVER EVERY RULE THAT CAN REACH THESE BOXES, NOT OVER THREE
+   RULES READ BY NAME — PROBE BQ, and it is 103e's own PROBE BB arriving on this
+   plan's markup. The first draft read `.fg-area`, `.fg-sides` and `.fg-side` by
+   name, exactly as 103e reads its three. The probe added ONE line —
+   `.fg-area--input{order:-1}` — which lifts the picker above the state on
+   screen while every DOM-order clause in this row stays true, and the whole
+   node gate ran 192 of 192, exit 0. A modifier class is not one of the three
+   names, and a name list cannot be completed by adding a fourth name.
+
+   SO THE SLICE IS SCANNED AS RULES. Comments are stripped first (they discuss
+   `order:` on purpose, and 107f strips them for the same reason arriving from
+   the colour side), the slice is cut into selector/body pairs, and any rule
+   whose SELECTOR mentions the fight region or one of its boxes has its BODY
+   read for `order:` and for a reversed direction. The three by-name reads are
+   KEPT as the floor: a slice that came back empty carries no property and
+   would pass this row by not existing, which is 103e's recorded reason for
+   flooring its own three. */
+const sepCssSlice = (() => {
+  const at = html.indexOf('[C14] ');
+  const end = html.indexOf('</style>');
+  return (at === -1 || end === -1 || end < at) ? ''
+    : html.slice(at, end).replace(/\/\*[\s\S]*?\*\//g, ' ');
+})();
+const sepCssRules = (sepCssSlice.match(/[^{}]+\{[^{}]*\}/g) || [])
+  .map((r) => {
+    const brace = r.indexOf('{');
+    return { sel: r.slice(0, brace), body: r.slice(brace) };
+  })
+  .filter((r) => /\.fg-area|\.fg-side|#fightbar/.test(r.sel));
+const sepCssOffenders = sepCssRules.filter((r) =>
+  /(^|[;{\s])order\s*:/.test(r.body) || /(row|column)-reverse/.test(r.body));
 const sepCssText = sepRuleArea + sepRuleSides + sepRuleSide;
-const sepCssOrder = /(^|[;{\s])order\s*:/.test(sepCssText);
+const sepCssOrder = /(^|[;{\s])order\s*:/.test(sepCssText)
+  || sepCssOffenders.length > 0;
 const sepCssReverse = /(row|column)-reverse/.test(sepCssText);
 // WHAT IS IN WHICH, COUNTED IN BOTH DIRECTIONS. A clause that only asked
 // whether the battlefield is in the state area would pass over a page that drew
@@ -13427,8 +13459,14 @@ check(
     + 'repointed reader: a reader that follows the page is a reader that agrees '
     + 'with whatever the page is. FOUR CLAIMS. The ORDER is read three ways — '
     + 'this page\'s own child order inside #fightbar, the artifact\'s markup '
-    + 'spelling the same order, and the three rule bodies that could move either '
-    + 'area read BY NAME for `order:` and for a reversed direction, which is '
+    + 'spelling the same order, and EVERY RULE IN [C14] whose selector reaches '
+    + 'one of these boxes scanned for `order:` and for a reversed direction. '
+    + 'PROBE BQ is why it is a scan and not three names: the first draft read '
+    + 'three rules BY NAME, the probe added one line — .fg-area--input with an '
+    + 'order of -1 — which lifts the picker above the state ON SCREEN while '
+    + 'every DOM-order clause in this row stays true, and the gate ran 192 of '
+    + '192, exit 0. A modifier class is not one of three names, and a name list '
+    + 'cannot be completed by adding a fourth name. That is '
     + '103e\'s shape and PROBE BB\'s reason: a separation made in CSS puts the '
     + 'sequence a screen reader walks out of step with the one the room sees and '
     + 'every DOM-order check here stays green over it. The CONTENTS are counted '
@@ -13453,6 +13491,7 @@ check(
   sepStateAt !== -1 && sepInputAt !== -1 && sepStateAt < sepInputAt
     && sepMarkAt !== -1 && sepMarkInputAt !== -1 && sepMarkAt < sepMarkInputAt
     && sepRuleArea.length > 0 && sepRuleSides.length > 0 && sepRuleSide.length > 0
+    && sepCssRules.length >= 3
     && sepCssOrder === false && sepCssReverse === false
     && sepStateHolds.every((s) => s === '1,1,1,0,0')
     && sepInputHolds.every((s) => s === '0,0,0,1,1')
@@ -13468,6 +13507,10 @@ check(
     + ' .fg-sides=' + sepRuleSides.length + ' .fg-side=' + sepRuleSide.length
     + ', carries order:=' + sepCssOrder
     + ' carries a reversed direction=' + sepCssReverse
+    + ' | rules in [C14] whose selector reaches these boxes=' + sepCssRules.length
+    + ', of which carry order: or a reversed direction=' + sepCssOffenders.length
+    + (sepCssOffenders.length === 0 ? ''
+      : ' | the first: ' + JSON.stringify(sepCssOffenders[0].sel.trim()))
     + ' | state columns hold standing,field,team,rows,reportbox='
     + JSON.stringify(sepStateHolds)
     + ' | input columns hold the same five=' + JSON.stringify(sepInputHolds)
