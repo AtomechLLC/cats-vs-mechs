@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed the D-31 redirect (05-D31)
-last_updated: "2026-08-30T06:15:00.000Z"
+stopped_at: Completed D-32 part 1 of 2 — the multi-term data model (05-D32a)
+last_updated: "2026-08-30T10:40:00.000Z"
 last_activity: 2026-08-30
 progress:
   total_phases: 7
@@ -26,24 +26,37 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 complete, plus the D-27, D-28, D-29, D-30 and D-31 redirect work; every
-autonomous plan in the phase is done
-Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate, it is
-still plan 11, and it now runs on the surface D-31 shipped with a 55-item script.
-The D-31 redirect (the round being played is TWO bordered, headed panels — "Where the
-round stands" above "What you are about to do" — with Cats left and Mechs right inside
-each of them, and the spoken-for reading staying with the resources in the top panel
-while still moving on a click in the bottom one) is built and verified: node gate
-1216/0 with 192 of 192 interaction rows, stub-drift 121 shell ids, `FIGHT_FLOOR`
-**130 → 132**, browser checks 206/0 in real Chrome and real Edge at 1920x1080 and
-1366x768, HEADLESS. D-30's badge geometry is byte-identical after the move. Zero diff
-over `[S01]`, `[S05]`, `[S07.5]` and every op.
-**One thing got worse and it is measured rather than missed:** at 1366x768 the Advance
-control opens BELOW the fold, because with the state panel's window at zero the control
-still lands at 777 on a 768px screen. Browser cell 18 was turned in the open at that
-size and cell 18c asserts the stronger property at both — Advance is on screen with the
-picker rows it commits, and above them. `deferred-items.md` item 9; 05-11 items 54/55.
-`.planning/phases/05-fight-loop-playtest/05-D31-SUMMARY.md`.
+Plan: 16 of 16 complete, plus the D-27, D-28, D-29, D-30, D-31 and D-32 redirect work;
+every autonomous plan in the phase is done
+Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate and it is
+still plan 11.
+**D-32 is TWO dispatches and part 1 of 2 is done.** The developer asked for two things:
+"make the action configuration more dense" and "allow multiple input for all
+cost/needs/changes". The SECOND is built, end to end below the surface: all three term
+lists cap at **4** (`MAX_ACTION_COST` 1→4, `MAX_ACTION_REQ` and `MAX_ACTION_XF` 2→4) with
+`WIRE_BOUNDS.maxActionCost` moved in the same change, `setActionCost` taking a slot like
+its two siblings, and a cost that **spends what it names** — the preview depletes every
+pool, the disable checks every pool against the previewed remainder, Advance spends every
+term and records what each paid. A pool is action points or a type a student keeps at
+SIDE scope (D-24); health and shield are deliberately not pools, because spending them
+means choosing which unit pays and that is adjudication. The projection's `apCost` keeps
+its meaning by reading the ap terms out of the list, and `costIsApOnly` is what stops a
+partly-priced cost from overstating throughput. The codec stayed at **v1** — verified,
+not assumed: the grammar is count-driven, so a maxed action (4 cost, 4 req, 4 xf, shipped
+and student-authored tokens) round-trips byte-identically, and the adversarial ceiling was
+**re-measured, not scaled**: 2984 → **3434**, its emoji twin 3186 → **3636**, board E 675
+→ **879** with its gate moved 800 → 1000. Refusal matrix **17 → 20 shapes**, one per term
+list, each reaching its own guard past a recomputed checksum.
+Gate: node **1253/0** with **194 of 194** interaction rows, stub-drift **135 shell ids**
+(was 121), `FIGHT_FLOOR` **132 — unmoved**, browser checks **206/0 HEADLESS**.
+Fifteen pinned rows turned in the open, each recorded RED first; nine probes run against
+committed snapshots, and PROBE CA is why the matrix needed three shapes and not one.
+**What is deliberately NOT done:** the density pass. The authoring pane can now show
+twelve full-height term rows at once and it works — gate 69g drives all twelve populated,
+row 110 authors a maxed action by pressing pills and typing amounts, end to end into a
+resolved round — but it is not dense. `deferred-items.md` item 10 carries what part 2
+owns and why the split was made this way.
+`.planning/phases/05-fight-loop-playtest/05-D32a-SUMMARY.md`.
 Last activity: 2026-08-30
 
 Progress: [██████████] 100%
@@ -102,6 +115,7 @@ Progress: [██████████] 100%
 | Phase 05 P16 | 214min | 3 tasks tasks | 5 files files |
 | Phase 05 D28 | 195min | 6 tasks | 6 files |
 | Phase 05 D29 | 210min | 8 tasks | 6 files |
+| Phase 05 D32a | 240min | 7 tasks | 3 files |
 
 ## Accumulated Context
 
@@ -117,6 +131,9 @@ Recent decisions affecting current work:
 - [D-28]: The fight tab takes the whole width; earlier rounds are a full-width HORIZONTAL lane above the round being played, scrolled to its end so the newest is what you see; the projection is off by default in the fight view and comes back as a fixed sidebar on one press of `#proj-toggle`. The sidebar IS `#strip` — the same node moved out of flow, never a second panel carrying a copy — which is what keeps PROJ-05 about THE reading rather than about a surface that agrees with it.
 - [D-28, orchestrator]: the lane is horizontal because a full-width vertical stack pushes the round being played off the bottom, the defect class this phase has fixed three times; and the ledger moved in the MARKUP rather than with a CSS `order`, because an order property puts the sequence a screen reader walks out of step with the sequence the room sees while every DOM-order check stays green.
 - [D-29]: The fight surface reads in SYMBOLS with the prose on hover. The ledger lane's board states, deltas and resolution readings, and every cost and requirement on the picker, draw the token type's OWN shape, colour and glyph through the shipped `styleFor` / `labelFor` / `makeToken` / `syncRow` — called, never re-derived — so a student-authored type appears there exactly as they authored it and compaction is `COMPACT_AT` and nothing else. A cost is `−` plus the token. Sentences stay only where a symbol cannot carry the meaning.
+- [D-32]: All three term lists cap at FOUR, and a multi-token cost SPENDS WHAT IT NAMES. A pool is action points or a type a student keeps at SIDE scope — D-24's rule as arithmetic. Health and shield are deliberately NOT pools: they live on units, and spending them would mean the tool choosing which unit pays, which is adjudication. A cost naming one is drawn, reported, disables nothing and spends nothing.
+- [D-32, orchestrator]: `actionApCost` keeps its meaning by being SPLIT rather than widened — `actionCostTerms` reads the whole cost, `actionApCost` projects the action-point half over it — and `costIsApOnly` in `actionModelled` is what stops a partly-priced cost from being afforded as often as a plain one-point action and overstating the projection in silence.
+- [D-32, verified]: the build code stayed at **v1** because the grammar was already count-driven at every level. A code carrying four terms pasted into a copy of the file from before D-32 parses and is then refused AT THE CAP, by name — the codec working across a version skew, noted rather than fixed.
 - [D-29, orchestrator]: The tooltip is written to `title` AND `aria-label` from one variable on a `role="img"` node, so nothing is conveyed by hover alone and UX-02 is answered rather than waived — its nine "never a title= tooltip" paragraphs were about a CONTROL'S LABEL and not one control grew one. And the words are still SCANNED: `data-tsay` is a fourth exemption channel that SUBTRACTS the student's fragment from those two attributes instead of skipping them, because a tooltip cannot be split across nodes and skipping it would take the artifact's own sentences out of the only layer that can see them.
 - [D-30]: The `−` that marks a resource being removed is a RED MARK ON THE SHAPE — its centre on the symbol's left edge, a quarter of the way down its height — and not a dash beside it. It appears wherever a REMOVAL is rendered, which is the picker's costs and the lane's split facts; a requirement line and a hand-ruling delta carry none, because a requirement subtracts nothing and a delta draws both ends.
 - [D-30, orchestrator]: The mark is parented to `.tok` and not to the reading, because a CSS percentage means nothing until you say what it is a percentage of — anchored to the reading it lands on the left edge of `12×` in the compact form. The red is `color-mix(in hsl, var(--accent-2), var(--coral))`: the two shipped warm tokens sit either side of red at ~334° and ~17°, so an sRGB average lands on a salmon between them and a POLAR mix walks the short arc through 360° onto red — no new hex, which is now checked by row 107f rather than merely stated. And the removal is said in WORDS on the accessible name (`SYM_TAKEN`), because colour plus position is two visual channels and `role="img"` prunes both.

@@ -382,3 +382,32 @@ line at the dial in `[C14.1]` — `max-height:min(22vh, calc(100vh - 710px))` pu
 768 and costs a 58px state panel at that size. Both readings are in the comment beside the rule.
 
 **Owner:** the 05-11 playtest, items 54 and 55.
+
+---
+
+## 10. THE ACTION EDITOR IS TWELVE ROWS TALL AND HAS NOT BEEN MADE DENSE YET
+
+**Found:** plan 05-D32a, by construction, and it is the OTHER half of D-32 rather than a defect.
+
+D-32 is two sentences. "allow multiple input for all cost/needs/changes" is done — all three
+lists cap at four, the ops take a slot, the shell reserves the rows, and every reading below the
+surface follows. "make the action configuration more dense" is NOT done, and this plan deliberately
+did not start it: a plan that redesigned the terms region while it was also moving three caps, a
+codec bound, an op signature and the whole disable arithmetic would have had no way to say which
+of those two things broke a row.
+
+**What that leaves on screen right now:** the authoring pane can show twelve term rows at once —
+four Spends, four Needs, four Changes — each a full-height row with its own label, its own chooser
+strip of one pill per token type, and its own amount field. On a board with six token types that
+is twelve rows of eight pills. It WORKS: gate row 69g drives all twelve populated at once and row
+110 authors a maxed action by pressing pills and typing amounts, end to end into a resolved round.
+It is not dense.
+
+**What part 2 owns:** the density pass on the terms region, and the picker's display of a four-term
+cost. `.fg-act-cost` was given a wrapping flex row here so four readings do not butt together into
+one long number, which is the minimum that keeps the surface working at the new caps — it is not a
+design for four terms.
+
+**Owner:** the second D-32 dispatch. Nothing here blocks the 05-11 playtest; if that runs first,
+the terms region is worth watching over a student's shoulder, because how a room actually fills
+four cost slots is the thing the density pass should be designed against.
