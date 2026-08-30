@@ -1829,6 +1829,220 @@ for (const ch of ['chrome', 'msedge']) {
       && authored.label === 'Zeal' && authored.glyph === made.glyph && authored.count === 4,
       authored);
 
+    /* ── 23. D-32 PART 2: THE TERMS REGION, MEASURED — the claim this whole plan
+       exists to make, and the only harness in the repository that can make it.
+       The developer, at the real artifact with part 1 on screen: "make the
+       action configuration more dense".
+
+       WHAT IT MEASURED BEFORE THE CHANGE, on this exact drive — a board with
+       seven token types, an action at the cap on all three lists, real Chrome,
+       both viewports:
+
+         #act-edit-terms       2507px
+         every cost/req row     169px      (a label line, a chooser line
+         every xf row           181px       that wrapped to two, and an
+                                            amount line, stacked)
+         the author pane       3243px      against 1038px of dialog at
+                                            1920x1080 and 726px at 1366x768
+
+       The row was three lines because .ae-term-toks measured 821px inside
+       610px of content, so the strip claimed the whole line and pushed the
+       label above it and the amount below it onto lines of their own. Twelve
+       times.
+
+       THE BUDGET IS 900 AND THE MEASUREMENT IS 707, and the slack is
+       deliberate: a budget set at the measurement is a budget that reddens on
+       a font, and this cell is about a REGIME — one line per row — not about a
+       pixel. The per-row assertion is what actually pins that: 48px admits the
+       41px row and its 40px floor and refuses a second line, which cannot be
+       reached at any type size without the strip wrapping again. */
+    await endFight(pg);
+    const aeMade = await pg.evaluate(() => {
+      App.ops.resetToDefaults();
+      const unitTok = App.ops.createTokenType({ name: 'Zeal', scope: 'unit', shape: 'hex', color: 'violet', glyph: '' });
+      const sideTok = App.ops.createTokenType({ name: 'Momentum', scope: 'side', shape: 'circ', color: 'gold', glyph: '' });
+      const act = App.ops.createAction('mechs', 'Unfair');
+      [0, 1, 2, 3].forEach((s) => {
+        App.ops.setActionCost('mechs', act, s, s === 0 ? 'ap' : (s === 1 ? sideTok : unitTok), s + 1);
+        App.ops.setActionReq('mechs', act, s, s === 0 ? 'hp' : (s === 1 ? 'shield' : unitTok), s + 1);
+        App.ops.setActionXf('mechs', act, s, App.data.XF_WHO[s % 2], s === 0 ? 'hp' : unitTok, s === 0 ? -3 : (s + 1));
+      });
+      App.state.invalidate();
+      if (App.render.flush) App.render.flush();
+      return { act, unitTok, sideTok, vocab: Object.keys(App.state.get().build.tokens).length };
+    });
+    // Opened the way a student opens it, and moved onto the authored action by
+    // pressing its own row: showModal() schedules nothing, which is this
+    // file's four-times-learned lesson, and the side chooser is a real press.
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    await pg.click('#act-edit-side-mechs'); await pg.waitForTimeout(250);
+    await pg.click(`[data-k="ae/list/mechs/${aeMade.act}"]`); await pg.waitForTimeout(300);
+
+    const dense = await pg.evaluate(() => {
+      const terms = document.querySelector('#act-edit-terms');
+      const rows = [...document.querySelectorAll('#act-edit-terms .ae-term')].filter((n) => !n.hidden);
+      const h = (n) => Math.round(n.getBoundingClientRect().height);
+      return {
+        terms: h(terms),
+        rows: rows.map(h),
+        strips: rows.map((r) => h(r.querySelector('.ae-term-toks'))),
+        shown: rows.length,
+        pane: h(document.querySelector('#act-edit-pane-author')),
+        pills: document.querySelectorAll('#act-edit-terms .ae-pill').length
+      };
+    });
+    const tallest = Math.max(...dense.rows);
+    note(ch, size.name, 'D-32 terms region height (was 2507)', `${dense.terms}px over ${dense.shown} rows, ${dense.pills} pills`);
+    note(ch, size.name, 'D-32 tallest term row (was 181)', `${tallest}px, strips ${Math.max(...dense.strips)}px`);
+    note(ch, size.name, 'D-32 author pane height (was 3243)', `${dense.pane}px`);
+    ok(`${tag}: 23. the terms region is dense — twelve rows, every one of them ONE line`,
+      dense.shown === 12 && dense.terms > 0 && dense.terms <= 900 && tallest <= 48
+      && dense.pills === 104 && aeMade.vocab === 7,
+      dense);
+
+    /* ── 23b. A MAXED ACTION AUTHORED THROUGH THE DENSE EDITOR BY REAL CLICKS.
+       Node row 110 drives the same twelve terms against a stub with no layout
+       engine; what it cannot know is whether a student can actually HIT the
+       controls after they were made smaller. Every press below is a real
+       pointer press on a real box, and the pill it lands on is found by the
+       data-k the artifact wrote — so a pill that moved under another pill, or
+       under the amount field, or off the dialog, fails here by timing out on a
+       press rather than by measuring a number nobody would have questioned. */
+    const aeAuthored = await (async () => {
+      await pg.click('#act-edit-new'); await pg.waitForTimeout(250);
+      const act = await pg.evaluate(() => document.querySelector('#act-edit').dataset.edPick);
+      // THE TOKEN PILL FIRST AND THE PARTY PILL SECOND, and the order is not a
+      // preference: an empty transformation slot draws NO party chooser at all
+      // — fillWhoChoices returns early on a slot with no term, deliberately,
+      // because two dead buttons naming nobody is worse than none — so a drive
+      // that pressed the party first would wait thirty seconds for a control
+      // the surface is correct not to have drawn yet.
+      const write = async (field, slot, tok, who, amount) => {
+        const op = field === 'cost' ? 'setActionCost' : (field === 'req' ? 'setActionReq' : 'setActionXf');
+        await pg.click(`[data-k="ae/${op}/${slot}/tok/${tok}"]`); await pg.waitForTimeout(140);
+        if (who) { await pg.click(`[data-k="ae/setActionXf/${slot}/who/${who}"]`); await pg.waitForTimeout(140); }
+        const f = `#act-edit-${field}-${slot}-amt`;
+        await pg.fill(f, String(amount));
+        await pg.press(f, 'Enter');
+        await pg.waitForTimeout(140);
+      };
+      const toks = ['ap', 'hp', 'shield', aeMade.sideTok];
+      for (let s = 0; s < 4; s++) { await write('cost', s, toks[s], null, s + 1); }
+      for (let s = 0; s < 4; s++) { await write('req', s, toks[s], null, 1); }
+      for (let s = 0; s < 4; s++) {
+        await write('xf', s, s === 0 ? 'hp' : aeMade.unitTok, s % 2 === 0 ? 'target' : 'caster', s === 0 ? -2 : s + 1);
+      }
+      return pg.evaluate((id) => {
+        const rec = App.state.get().build.mechs.actions.filter((a) => a.id === id)[0];
+        return {
+          lens: [rec.cost.length, rec.req.length, rec.xf.length].join('/'),
+          cost: rec.cost.map((c) => c.tok + ':' + c.n).join(','),
+          xf: rec.xf.map((x) => x.who + ':' + x.tok + ':' + x.d).join(','),
+          reads: document.querySelectorAll('#act-edit-terms .ae-term-read .sym').length
+        };
+      }, act);
+    })();
+    const wantCost = ['ap:1', 'hp:2', 'shield:3', aeMade.sideTok + ':4'].join(',');
+    note(ch, size.name, 'D-32 maxed action authored by clicks', `${aeAuthored.lens} lens, ${aeAuthored.reads} readings`);
+    ok(`${tag}: 23b. a 4/4/4 action is authorable by real clicks through the dense editor`,
+      aeAuthored.lens === '4/4/4' && aeAuthored.cost === wantCost
+      && aeAuthored.xf.split(',').length === 4 && aeAuthored.reads === 12,
+      { aeAuthored, wantCost });
+
+    /* ── 23c. THE DIALOG FITS BOTH VIEWPORTS AND DONE IS REACHABLE. "Fits" is
+       two different claims and both are made: the BOX is inside the viewport
+       on all four edges, which is what a modal must be; and the CONTENT is
+       reachable, which for a surface taller than any laptop is a scroll rather
+       than a fit. The second half is driven — the dialog is scrolled to its
+       end and Done must then be wholly on screen — because a box that fits
+       over content nothing can reach is the failure this cell exists for.
+
+       AND THE TICK IS READ, on the pressed pill and on an unpressed one. It
+       was invisible on every pill and every side button before this plan and
+       nothing anywhere noticed, because a tick that is `visibility:hidden`
+       still contributes its text to every harvest in the node gate. Only a
+       browser can tell the difference between built and shown. */
+    const fit = await pg.evaluate(() => {
+      const d = document.querySelector('#act-edit');
+      const r = d.getBoundingClientRect();
+      d.scrollTop = d.scrollHeight;
+      const done = document.querySelector('#act-edit-done').getBoundingClientRect();
+      const on = document.querySelector('#act-edit-terms .ae-pill--on');
+      const off = document.querySelector('#act-edit-terms .ae-pill:not(.ae-pill--on)');
+      const tick = on ? on.querySelector('.ae-check') : null;
+      const tr = tick ? tick.getBoundingClientRect() : null;
+      const pr = on ? on.getBoundingClientRect() : null;
+      return {
+        boxIn: r.top >= 0 && r.left >= 0 && r.bottom <= innerHeight + 1 && r.right <= innerWidth + 1,
+        w: Math.round(r.width), h: Math.round(r.height),
+        overflow: getComputedStyle(d).overflowY,
+        doneIn: done.top >= 0 && done.bottom <= innerHeight + 1 && done.width > 0,
+        doneBottom: Math.round(done.bottom),
+        onTick: tick ? getComputedStyle(tick).visibility : null,
+        offTick: off ? getComputedStyle(off.querySelector('.ae-check')).visibility : null,
+        tickDx: (tr && pr) ? Math.round((tr.left + tr.width / 2) - pr.right) : null,
+        vp: `${innerWidth}x${innerHeight}`
+      };
+    });
+    await pg.click('#act-edit-done'); await pg.waitForTimeout(200);
+    const closed = await pg.evaluate(() => document.querySelector('#act-edit').open);
+    note(ch, size.name, 'D-32 dialog box / Done after a scroll to the end', `${fit.w}x${fit.h} in ${fit.vp}, Done bottom ${fit.doneBottom}`);
+    note(ch, size.name, 'D-32 the tick on a pill, pressed / unpressed', `${fit.onTick} / ${fit.offTick}, centre ${fit.tickDx}px from the right edge`);
+    ok(`${tag}: 23c. the editor fits the viewport, Done is reachable, and the tick is SHOWN on the pressed pill`,
+      fit.boxIn === true && fit.overflow === 'auto' && fit.doneIn === true
+      && fit.onTick === 'visible' && fit.offTick === 'hidden'
+      && Math.abs(fit.tickDx) <= 2 && closed === false,
+      { fit, closed });
+
+    /* ── 23d. D-30's MARK, ON THE EDITOR'S OWN READING, WITH THE GEOMETRY
+       UNMOVED. Cells 21b/21c/21d make this claim about the fight surface in
+       this same run and are untouched; this is the same three readings taken
+       on the surface D-32 part 2 added, because a notation that agreed with
+       the fight in its WORDS and disagreed in its GEOMETRY would read as two
+       artifacts at the exact distance the mark is meant to be seen from.
+       0px from the shape's left edge, a quarter of the way down it, in the
+       colour the fight's marks are — and NOT ONE MARK on a requirement. */
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    await pg.click('#act-edit-side-mechs'); await pg.waitForTimeout(250);
+    await pg.click(`[data-k="ae/list/mechs/${aeMade.act}"]`); await pg.waitForTimeout(300);
+    const aeMarks = await pg.evaluate(() => {
+      const at = (sel) => {
+        const sym = document.querySelector(sel + ' .sym');
+        if (!sym) return null;
+        const sign = sym.querySelector('.sym-sign');
+        if (!sign) return { mark: false, said: sym.getAttribute('title') };
+        const shape = sign.parentElement;
+        const sr = shape.getBoundingClientRect();
+        const gr = sign.getBoundingClientRect();
+        return {
+          mark: true, said: sym.getAttribute('title'),
+          onTok: shape.classList.contains('tok'),
+          dx: Math.round(((gr.left + gr.width / 2) - sr.left) * 100) / 100,
+          dy: Math.round(((gr.top + gr.height / 2) - sr.top) / sr.height * 10000) / 10000,
+          color: getComputedStyle(sign).color
+        };
+      };
+      return {
+        cost: at('#act-edit-cost-0 .ae-term-read'),
+        req: at('#act-edit-req-0 .ae-term-read'),
+        down: at('#act-edit-xf-0 .ae-term-read'),
+        up: at('#act-edit-xf-1 .ae-term-read'),
+        all: document.querySelectorAll('#act-edit-terms .sym-sign').length
+      };
+    });
+    note(ch, size.name, 'D-32 the mark on an editor cost — dx / dy / colour',
+      aeMarks.cost && aeMarks.cost.mark ? `${aeMarks.cost.dx}px, ${aeMarks.cost.dy} down, ${aeMarks.cost.color}` : 'no mark');
+    note(ch, size.name, 'D-32 marks in the terms region', `${aeMarks.all}, requirement carries ${aeMarks.req && aeMarks.req.mark ? 'one' : 'none'}`);
+    ok(`${tag}: 23d. the editor's removal mark is D-30's geometry exactly, and a requirement carries none`,
+      aeMarks.cost !== null && aeMarks.cost.mark === true && aeMarks.cost.onTok === true
+      && aeMarks.cost.dx === 0 && aeMarks.cost.dy === 0.25
+      && aeMarks.req !== null && aeMarks.req.mark === false
+      && aeMarks.down !== null && aeMarks.down.mark === true
+      && aeMarks.up !== null && aeMarks.up.mark === false
+      && aeMarks.all === 5,
+      aeMarks);
+    await pg.click('#act-edit-done'); await pg.waitForTimeout(150);
+
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
     ok(`${tag}: 16. no page error and no console error across every press above`,
       errs.length === 0, errs.slice(0, 3));

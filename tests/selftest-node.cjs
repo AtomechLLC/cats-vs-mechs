@@ -14091,6 +14091,236 @@ A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
 
+/* 111. THE EDITOR AND THE FIGHT SAY ONE SENTENCE, AND THE ROW COMPARES THEM
+   RATHER THAN ASSERTING BOTH — D-32 part 2, the redirect's own words: "the
+   editor and the fight read as one language".
+
+   THE COMPARISON IS THE CLAIM AND A PAIR OF SEPARATE ASSERTIONS IS NOT. A row
+   that read "the editor says Removes: 2 Action points" and, separately, "the
+   picker says Removes: 2 Action points" is two typed strings agreeing with two
+   surfaces, and it stays green on the day one of them changes and the typed
+   copy changes with it. What cannot be typed past is the two SURFACES being
+   equal to each other: [S06.5]'s termReading and [S06.7]'s fgCostParts both
+   call symQty, and the moment one of them passes a different prefix, a
+   different suffix or a different removal flag, this row goes red without
+   anybody having decided in advance what the sentence ought to be.
+
+   IT IS READ AS AN ORDERED LIST OF TWO, because a cost is an ordered list and
+   one term would let an editor that drew the terms backwards pass. The second
+   term names a type the student INVENTED, which is the arm data-tsay exists
+   for and the one a shipped-type-only drive would never reach.
+
+   THE REMOVAL MARK IS ASKED FOR FOUR TIMES IN ONE BREATH, and the four answers
+   are the whole of the ruling [S06.5]'s termReading paragraph makes: a cost
+   carries it, a requirement does not, a change DOWNWARD carries it, a change
+   UPWARD does not. This is 107b's claim on the fight surface arriving on the
+   build surface, and it is a distinction a prefix applied to every reading
+   would fail on two of the four.
+
+   AND THE TOOLTIP IS STILL SCANNED, which is the thing that goes wrong
+   silently. Words moving into an attribute leave a scanner that reads only
+   textContent, and D-29's answer is data-tsay: the harvest reads the tooltip
+   with the STUDENT'S fragment removed and the ARTIFACT'S half kept. So the row
+   runs the real harvest over the real row and asserts the artifact's words are
+   in it and the student's word is not. */
+const edSaved = JSON.stringify(A.state.get());
+const edTok = A.ops.createTokenType({
+  name: 'Vigour', shape: 'hex', color: 'violet', glyph: '', scope: 'unit'
+});
+const edAct = A.ops.createAction('cats', 'Twin');
+A.ops.setActionCost('cats', edAct, 0, 'ap', 2);
+A.ops.setActionCost('cats', edAct, 1, edTok, 3);
+A.ops.setActionReq('cats', edAct, 0, 'hp', 1);
+A.ops.setActionXf('cats', edAct, 0, 'target', 'hp', -3);
+A.ops.setActionXf('cats', edAct, 1, 'caster', edTok, 2);
+A.state.flush();
+aeOpen('cats', edAct);
+
+function edReading(field, slot) {
+  const row = aeTermRowOf(field, slot);
+  const box = row ? row.querySelector('.ae-term-read') : null;
+  const sym = box ? box.querySelector('.sym') : null;
+  if (!sym) { return null; }
+  const sign = sym.querySelectorAll('.sym-sign')[0] || null;
+  return {
+    said: sym.getAttribute('title'),
+    aria: sym.getAttribute('aria-label'),
+    tsay: sym.dataset.tsay,
+    toks: sym.querySelectorAll('.tok').length,
+    sign: sign !== null,
+    onShape: sign !== null
+      && String(sign.parentNode.className).split(' ').indexOf('tok') !== -1
+  };
+}
+const edCost = [edReading('cost', 0), edReading('cost', 1)];
+const edReq = edReading('req', 0);
+const edDown = edReading('xf', 0);
+const edUp = edReading('xf', 1);
+const edSaidHere = edCost.map((r) => (r === null ? '(none)' : r.said)).join(' | ');
+// The harvest over the row that names the student's type, run for real.
+const edHarvest = harvestInto(aeTermRowOf('cost', 1), [], '#act-edit')
+  .map((e) => e.s).join(' ~ ');
+if (aeDialog.open === true) { aeDialog.close(); }
+A.state.flush();
+
+// The same action, on the picker, through the shipped controls.
+A.ops.setFactionAp('cats', 9);
+A.state.flush();
+fgPress(fgStart);
+A.state.flush();
+const edBtn = fgActBtnOf('cats', 'c1', edAct);
+const edBox = edBtn === null ? null : fgOne(edBtn, '.fg-act-cost');
+const edSaidThere = edBox === null ? '(no box)'
+  : edBox.querySelectorAll('.sym')
+    .map((n) => n.getAttribute('title')).join(' | ');
+A.state.restore(edSaved);
+A.state.flush();
+clearPanel();
+
+check(
+  '111. THE EDITOR DRAWS A TERM IN THE FIGHT\'S OWN NOTATION, AND THE TWO '
+    + 'SURFACES ARE COMPARED TO EACH OTHER RATHER THAN EACH TO A TYPED STRING '
+    + '— D-32 part 2, "the editor and the fight read as one language". Both '
+    + 'readings come through [S06.12]\'s symQty, so an editor that passed a '
+    + 'different prefix, suffix or removal flag from the picker fails here with '
+    + 'nobody having had to decide in advance what the sentence should say. '
+    + 'READ AS AN ORDERED PAIR, because a cost is an ordered list and a single '
+    + 'term would pass an editor that drew them backwards; the second names a '
+    + 'type the student invented, which is the only arm that exercises '
+    + 'data-tsay. THE MARK IS ASKED FOR FOUR TIMES: a cost carries it, a '
+    + 'requirement does not, a change DOWNWARD carries it, a change UPWARD does '
+    + 'not — 107b\'s distinction arriving on the build surface, and one a prefix '
+    + 'written at every reading would fail twice. AND THE REAL HARVEST IS RUN '
+    + 'OVER THE ROW: the artifact\'s half of the tooltip must be IN it and the '
+    + 'student\'s word must be OUT of it, because a sentence that moved into an '
+    + 'attribute and out of the scan reports clean for ever',
+  edCost[0] !== null && edCost[1] !== null && edReq !== null
+    && edDown !== null && edUp !== null
+    && edSaidHere === edSaidThere && edSaidThere.indexOf('(no box)') === -1
+    && edCost[0].said === edCost[0].aria && edCost[1].tsay === 'Vigour'
+    && edCost[0].toks === 2 && edCost[1].toks === 3
+    && edCost[0].sign === true && edCost[0].onShape === true
+    && edCost[1].sign === true && edCost[1].onShape === true
+    && edReq.sign === false && edDown.sign === true && edDown.onShape === true
+    && edUp.sign === false
+    && edDown.toks === 3 && edUp.toks === 2
+    && edHarvest.indexOf('Removes:') !== -1
+    && edHarvest.indexOf('Vigour') === -1,
+  'the editor says ' + JSON.stringify(edSaidHere)
+    + ' | the picker says ' + JSON.stringify(edSaidThere)
+    + ' | marks cost/cost/req/down/up='
+    + [edCost[0], edCost[1], edReq, edDown, edUp]
+      .map((r) => (r === null ? '(none)' : (r.sign ? 'mark' : 'no mark'))).join('/')
+    + ' | tokens drawn=' + [edCost[0], edCost[1], edReq, edDown, edUp]
+      .map((r) => (r === null ? '-' : r.toks)).join('/')
+    + ' | harvest over the authored-type row=' + JSON.stringify(edHarvest)
+);
+
+/* 112. THE DENSITY PASS IS STRUCTURAL, AND IT IS READ OFF THE SHELL, THE STUB
+   AND THE STYLESHEET RATHER THAN OFF A SCREENSHOT.
+
+   A HEIGHT IS A BROWSER'S CLAIM AND THIS HARNESS HAS NO LAYOUT ENGINE, so the
+   707px the terms region measures is cells 23 and 23b's to make. What this row
+   holds is the SHAPE that produces it, which is the half that can be undone by
+   an edit rather than by a stylesheet: the eight repeated words are gone, the
+   twelve readings that replaced them exist in BOTH pages, and the three lists
+   are grouped so the two distances a flat run could not tell apart are two
+   numbers.
+
+   .ae-term-lbl IS ASKED FOR ACROSS THE WHOLE DOCUMENT AND NOT ONLY THE MARKUP.
+   A class deleted from the shell and left in the stylesheet is a rule for
+   nothing; left in the stub it is a node the artifact will never fill.
+
+   AND IT IS ASKED FOR WITH THE COMMENTS STRIPPED, WHICH IS 107f's LESSON
+   ARRIVING BY A DIFFERENT DOOR AND WAS THIS ROW'S FIRST RECORDED RED. This
+   file's own convention is that a rule a change reverses is QUOTED VERBATIM
+   beside the rule that replaced it rather than deleted — [C12] carries the old
+   .ae-term-lbl declaration and the old .ae-terms declaration for exactly that
+   reason, and D-32 part 1 did the same with the cost chooser's emptying
+   entry. So a row scanning raw text finds the class it is asserting gone, and
+   finds the OLD gap value ahead of the new one, and reddens over the honesty
+   the file requires. Comments are removed first, in both spellings, and what
+   is left is what a browser is actually given. */
+const dnLive = html.replace(/<!--[\s\S]*?-->/g, ' ')
+  .replace(/\/\*[\s\S]*?\*\//g, ' ');
+/*
+   THE STUB IS COUNTED AGAINST THE SHELL IN BOTH DIRECTIONS, which is the
+   stub-drift gate's own discipline applied to a CLASS rather than to an id.
+   Nothing about this change moved an id, so the id gate reads 135 on both
+   sides of it and would have stayed green over a stub that kept twelve label
+   spans and grew no reading at all — and [S06.5] fills the reading by class,
+   so every row of every editor drive would have quietly drawn nothing.
+
+   THE TWO TICK RULES ARE HERE BECAUSE THEY WERE MISSING, and that is a defect
+   this plan found rather than a claim it invented. [C12]'s banner says "the
+   live row is marked by an outline AND a tick"; [S06.5]'s choicePill says the
+   same about a pill; [C07] writes .pk-sw--on .pk-check for the picker. Only
+   .ae-item--on .ae-check was ever written here, so a chooser pill and a side
+   button each built a tick, paid for its width, and never showed it. */
+const dnLbl = dnLive.indexOf('ae-term-lbl');
+const dnShellRead = (dnLive.match(/class="ae-term-read"/g) || []).length;
+const dnShellList = (dnLive.match(/class="ae-term-list"/g) || []).length;
+const dnShellHead = (dnLive.match(/class="ae-term-head"/g) || []).length;
+const dnTermsNode = dom.byId['act-edit-terms'];
+const dnStubRead = dnTermsNode
+  ? dnTermsNode.querySelectorAll('.ae-term-read').length : -1;
+const dnStubLbl = dnTermsNode
+  ? dnTermsNode.querySelectorAll('.ae-term-lbl').length : -1;
+const dnStubRows = dnTermsNode
+  ? dnTermsNode.querySelectorAll('.ae-term').length : -1;
+const dnCap = A.ops.MAX_ACTION_COST + A.data.MAX_ACTION_REQ + A.data.MAX_ACTION_XF;
+const dnStyle = (dnLive.match(/<style>([\s\S]*?)<\/style>/) || ['', ''])[1];
+const dnGapOf = (selector) => {
+  const at = dnStyle.indexOf(selector + '{');
+  if (at === -1) { return null; }
+  const body = dnStyle.slice(at + selector.length + 1,
+    dnStyle.indexOf('}', at));
+  const hit = body.match(/gap:(\d+)px/);
+  return hit === null ? null : Number(hit[1]);
+};
+const dnOuterGap = dnGapOf('.ae-terms');
+const dnInnerGap = dnGapOf('.ae-term-list');
+const dnPillTick = dnStyle.indexOf('.ae-pill--on .ae-check');
+const dnSideTick = dnStyle.indexOf('.ae-side--on .ae-check');
+check(
+  '112. THE DENSITY PASS IS STRUCTURAL AND IS READ OFF THE SHELL, THE STUB AND '
+    + 'THE STYLESHEET. .ae-term-lbl — the span that printed "Spends" four times '
+    + 'and "Needs" four more under legends that already said both — is asked '
+    + 'for across the WHOLE document, because a class deleted from the markup '
+    + 'and left in the stylesheet is a rule for nothing and left in the stub is '
+    + 'a node the artifact will never fill. The twelve readings that replaced '
+    + 'it are counted in BOTH pages against the three caps, which is the '
+    + 'stub-drift gate\'s discipline applied to a CLASS: this change moved no '
+    + 'id, so that gate reads 135 either way and would have passed a stub that '
+    + 'kept the labels and grew no reading, leaving every editor drive in this '
+    + 'file quietly drawing nothing. The three lists are grouped, and the gap '
+    + 'INSIDE a list and the gap BETWEEN two lists are read out of the '
+    + 'stylesheet and must DIFFER — one number for two distances is the flat '
+    + 'run this pass replaced. AND THE TWO TICK RULES ARE ASSERTED TO EXIST '
+    + 'because they did not: [C12], [S06.5] and [C07] all say the live one is '
+    + 'an outline AND a tick, and only .ae-item--on .ae-check was ever written, '
+    + 'so a pill and a side button each built a tick, paid for its width in '
+    + 'every row of every chooser, and never showed it',
+  dnLbl === -1
+    && dnShellRead === dnCap && dnStubRead === dnCap && dnStubRows === dnCap
+    && dnStubLbl === 0
+    && dnShellList === 3 && dnShellHead === 3
+    && dnOuterGap !== null && dnInnerGap !== null && dnOuterGap !== dnInnerGap
+    && dnPillTick !== -1 && dnSideTick !== -1,
+  'ae-term-lbl anywhere in the document=' + (dnLbl === -1 ? 'no' : 'at ' + dnLbl)
+    + ' | readings in the shell=' + dnShellRead + ' in the stub=' + dnStubRead
+    + ' (cap ' + dnCap + ', rows in the stub=' + dnStubRows + ')'
+    + ' | label spans left in the stub=' + dnStubLbl
+    + ' | lists=' + dnShellList + ' heads=' + dnShellHead
+    + ' | gap between lists=' + dnOuterGap + ' inside a list=' + dnInnerGap
+    + ' | .ae-pill--on .ae-check=' + (dnPillTick !== -1)
+    + ' .ae-side--on .ae-check=' + (dnSideTick !== -1)
+);
+
+A.ops.resetToDefaults();
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore
