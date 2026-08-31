@@ -1,0 +1,49 @@
+# Deploys the workshop artifact to GitHub Pages.
+#
+# Adapted 2026-08-30 from the stock static-content workflow that previously lived alone on main:
+# that version uploaded the ENTIRE repository, which would have published .planning/'s internal
+# docs and served a 404 at the site root (no index.html). This one deploys a two-file dist:
+# the artifact as index.html (so the bare URL works) and under its own name (so a downloaded
+# copy keeps the filename the course materials use).
+#
+# The artifact itself is a single self-contained file with no build step - the "build" here is
+# two copies.
+name: Deploy the artifact to Pages
+
+on:
+  push:
+    branches: ["main"]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: "pages"
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Stage the artifact
+        run: |
+          mkdir dist
+          cp cats-vs-mechs.html dist/index.html
+          cp cats-vs-mechs.html dist/cats-vs-mechs.html
+      - name: Setup Pages
+        uses: actions/configure-pages@v5
+      - name: Upload artifact
+        uses: actions/upload-pages-artifact@v3
+        with:
+          path: 'dist'
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v5
