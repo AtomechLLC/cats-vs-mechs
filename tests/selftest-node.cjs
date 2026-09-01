@@ -5761,6 +5761,23 @@ check(
 // 134 IS RAISED TO 138 BY PLAN 04-05, against a measured 145. The arithmetic is
 // the one this note has kept three times already: seven below the measured
 // total.
+//
+// AND IT IS DELIBERATELY NOT RAISED AGAIN, for the fourth time and by the third
+// plan in a row. The measured total has been 145 (04-05), 166 (05-D32a), 172
+// (05-D32b) and is 173 as of plan 05-D35b, which added D-35's range group to
+// the token editor: one legend, two words, two fields and a sentence, of which
+// ONE — the sentence [S06.2] renders under the pair — is text this page can
+// see. The static words are read by Layer A in the document instead, which is
+// the paragraph above being right rather than lucky.
+//
+// THE FLOOR IS A TRIPWIRE FOR A SURFACE GOING DARK AND IS NOT A RATCHET ON A
+// GROWING ONE. That is 05-D32a's recorded ruling over a 21-string move and
+// 05-D32b's over a 6-string one, and re-deriving it at 166 or 172 would have
+// meant a plan that legitimately took a sentence OFF a dialog reddening a row
+// about nothing. Its companion FIGHT_FLOOR DID move under this same plan, from
+// 132 to 248, and the difference between the two is the whole reason both notes
+// are worth reading: that constant is a measured roster-INDEPENDENT base and
+// this one is a hand-set bound seven below a total nobody re-derives.
 const DIALOG_FLOOR = 138;
 
 // The floor for a harvest of the PICKER ALONE, which check 47g takes because it
@@ -6703,7 +6720,47 @@ A.state.flush();
    be caught. This is written down rather than left implicit because a future
    reader comparing +2 against four new strings will otherwise conclude the
    measurement is wrong. */
-const FIGHT_FLOOR = 132;
+/* HISTORY — 132 -> 248, PLAN 05-D35b, AND IT IS THE LARGEST MOVE THIS CONSTANT
+   HAS EVER MADE. D-35 part two adds two whole regions that draw the same number
+   of strings on every board: [S06.13]'s round-rules block in #app, and
+   [S06.7]'s "Each round" reading inside the round-state area. Neither draws one
+   word per unit, so both land entirely on the roster-INDEPENDENT constant this
+   floor is.
+
+   RE-DERIVED BY THE METHOD ABOVE AND NOT BY SUBTRACTION FROM THE SHIPPED BOARD.
+   Four roster shapes, driven on the artifact at commit a063d16 and on the same
+   drive against the artifact as it stood at 9dd2fca's parent, undressed and
+   again dressed. The per-unit cost is UNCHANGED in every column, which is the
+   check on the whole re-measurement — a change that had touched a card would
+   move it:
+
+     undressed          before   after   delta      dressed        before  after  delta
+       2 cats, 2 mechs     212     328     116        2 x 2           220    339    119
+       3 x 3               272     388     116        3 x 3           284    403    119
+       4 x 3               302     418     116        4 x 3           316    435    119
+       5 x 3               332     448     116        5 x 3           348    467    119
+     per unit               30      30       0        per unit         32     32      0
+
+   THE SMALLER DELTA IS TAKEN, which is the opposite of the choice the paragraph
+   above makes about dressing and is the right one for a MOVE rather than for a
+   base. The base is the dressed constant because row 92's drive always dresses
+   and a floor under it would clear a dressed page that had lost every unit. The
+   MOVE has to be a lower bound on what this change adds to any board a student
+   can build: the editor draws one pill per token type, so a board carrying more
+   types draws more strings and a board carrying fewer draws fewer. 116 is the
+   undressed figure, 119 the dressed one, and a floor built on 119 would trip on
+   a board that is legitimately thinner. So 132 + 116 = 248.
+
+   AND ONE HONEST NOTE ABOUT WHAT THIS FLOOR NOW GUARDS. #roundrules is
+   display:none in the fight view — [C15] puts it away, because it is authoring
+   and this is the playing view — and this harness has no layout engine, so its
+   strings are in this harvest anyway. That is not new and it is not a defect in
+   the measurement: .brd-col is display:none in the same view and its unit cards
+   are what the 30-a-unit column above is made of. The floor has always counted
+   what the PAGE holds rather than what the SCREEN shows, and the browser cells
+   are where a region actually being on screen is asserted — 25c reads
+   getComputedStyle(#roundrules).display and requires 'none' in this very view. */
+const FIGHT_FLOOR = 248;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
