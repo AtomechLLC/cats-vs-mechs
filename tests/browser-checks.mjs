@@ -2625,6 +2625,100 @@ for (const ch of ['chrome', 'msedge']) {
     });
     await pg.click('#view-build'); await pg.waitForTimeout(200);
 
+    /* ── 25a. THE ROUND-RULES BLOCK AS A STUDENT FIRST OPENS IT, AND IT IS
+       MEASURED HERE RATHER THAN IN 25b BECAUSE OF PROBE DC.
+
+       The board has just been put back to defaults, so this is the shipped
+       vocabulary of five token types and the shipped two rules - and it is the
+       ONLY moment in this run with SLACK left over in the row. That slack is
+       the whole point. Cell 25b takes its measurements after a sixth type has
+       been invented, at which point the row is over-constrained: PROBE DC set
+       the token track back to `1fr` - the exact stretch that stranded the
+       amount 160px right of its pills on the block this plan replaces - and
+       25b measured 0px and passed in all four columns, because a track with no
+       free space to claim cannot claim any. A cell that only ever measures a
+       full row is green over the defect by construction.
+
+       So the binding is read WHERE A GROW WOULD SHOW - and re-running PROBE DC
+       against this cell taught the second half, which is worth writing down
+       because it turns which clause is load-bearing. `amtGap` NEVER catches a
+       stretched track in a grid: the amount is the NEXT COLUMN, so a track
+       that claims the spare space carries the amount along with it and the two
+       stay flush at 0px while the pair drifts 80px right together. What
+       actually catches it is `slack` - the row no longer ends short of the
+       list - and under the probe that read 0 where it reads 80. So amtGap is
+       kept because it is the number that names the original defect and would
+       catch a spacer or a margin put back between the two, and `slack > 0` is
+       the clause that guards the track. Neither subsumes the other and only
+       one of them is a floor on this measurement being a measurement at all.
+
+       AND EVERY ROW IS ONE LINE HERE, which is the claim 25b cannot make: the
+       token strip is the one track a student grows, and past the shipped
+       vocabulary it wraps INSIDE its own column with nothing else moving. One
+       line on the board a student opens; a wrapped chooser and a bound amount
+       on the board they build. Both are measured, in that order, and neither
+       is claimed of the other. */
+    const rrFirst = await pg.evaluate(() => {
+      const root = document.querySelector('#roundrules');
+      if (!root) return null;
+      const list = root.querySelector('.rr-list');
+      const lr = list.getBoundingClientRect();
+      const rows = Array.from(root.querySelectorAll('.rr-rule'))
+        .filter((n) => getComputedStyle(n).display !== 'none');
+      const cellsOf = (n) => Array.from(n.querySelectorAll(':scope > .rr-cell'));
+      // A row is display:contents and has no box of its own, so the band a
+      // student reads as "one rule" is the union of its cells.
+      const bandH = (n) => {
+        const bs = cellsOf(n).map((c) => c.getBoundingClientRect());
+        return Math.round(Math.max(...bs.map((b) => b.bottom))
+          - Math.min(...bs.map((b) => b.top)));
+      };
+      const row0 = rows[0];
+      const cells0 = cellsOf(row0);
+      const toks = row0.querySelector('.rr-toks').getBoundingClientRect();
+      const amt = row0.querySelector('.rr-amt').getBoundingClientRect();
+      const cols = Array.from(root.querySelectorAll('.rr-cols > .rr-cell'));
+      const colLefts = cols.map((c) => Math.round(c.getBoundingClientRect().left));
+      const cellLefts = cells0.map((c) => Math.round(c.getBoundingClientRect().left));
+      const add = document.querySelector('#rr-add');
+      const rm = row0.querySelector('.rr-rm');
+      return {
+        rows: rows.length,
+        ruleCount: App.state.get().build.rules.length,
+        types: Object.keys(App.state.get().build.tokens).length,
+        tallest: Math.max(...rows.map(bandH)),
+        // The row does not fill the list: there is room for a stretched track
+        // to stretch into, which is what makes the next reading a reading.
+        slack: Math.round(lr.right
+          - cells0[cells0.length - 1].getBoundingClientRect().right),
+        amtGap: Math.round(amt.left - toks.right),
+        colsAligned: colLefts.length === cellLefts.length
+          && colLefts.every((x, i) => Math.abs(x - cellLefts[i]) <= 1),
+        colWords: cols.map((c) => c.textContent),
+        addWord: add.textContent, addOff: add.disabled,
+        rmWord: rm.textContent,
+        rmPerRow: rows.every((n) => n.querySelectorAll('.rr-rm').length === 1)
+      };
+    });
+    await pg.locator('#roundrules').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35c-shipped-${ch}-${size.name}.png`)
+    });
+    note(ch, size.name, 'D-35c the shipped board - rows / tallest / slack / amount gap',
+      rrFirst ? `${rrFirst.rows} rows, ${rrFirst.tallest}px, slack ${rrFirst.slack}px, gap ${rrFirst.amtGap}px` : 'no node');
+    ok(`${tag}: 25a. THE ROUND-RULES BLOCK AS A STUDENT FIRST OPENS IT: two rules, ONE LINE EACH, four column words standing over the four groups they name, and the amount sitting against the pills it belongs to. THIS IS THE CELL THAT CAN SEE THE DEFECT AND 25b IS NOT - PROBE DC. The block this replaces let the token strip take every spare pixel of the row and pushed the amount to the far right; put that stretch back and cell 25b, which measures after a sixth type has been invented and the row is over-constrained, passes in all four columns, because a track with no free space cannot claim any. So the binding is measured HERE, on the shipped vocabulary, where there is spare room for a stretched track to stretch into - and the spare room is ASSERTED rather than assumed, because it is the clause doing the work: in a grid the amount is the next COLUMN, so a stretched track carries it along and the gap between them stays 0px while the pair drifts right together. The gap is kept because it names the original defect and catches a spacer put back between the two; the SLACK is what catches the track, and under PROBE DC it read 0 where it reads 80. Every row is ONE LINE at the shipped vocabulary; past it the token strip wraps inside its own column and nothing else on the row moves, which is 25b's reading and is deliberately not claimed here`,
+      rrFirst !== null
+      && rrFirst.rows === 2 && rrFirst.ruleCount === 2 && rrFirst.types === 5
+      && rrFirst.slack > 0
+      && rrFirst.amtGap >= 0 && rrFirst.amtGap <= 24
+      && rrFirst.tallest > 0 && rrFirst.tallest <= 56
+      && rrFirst.colsAligned === true
+      && rrFirst.colWords[1].indexOf('Who') === 0
+      && rrFirst.colWords[2].indexOf('Which') === 0
+      && rrFirst.colWords[3].indexOf('How') === 0
+      && rrFirst.addWord.indexOf('Add') !== -1 && rrFirst.addOff === false
+      && rrFirst.rmWord === 'Remove' && rrFirst.rmPerRow === true,
+      rrFirst);
+
     /* ── 25. THE RANGE PAIR ON THE TOKEN EDITOR. Two fields and their words on
        ONE line, wholly inside the dialog and wholly inside the viewport, with
        the sentence under them saying what the pair IS — and a refused bound
@@ -2772,6 +2866,13 @@ for (const ch of ['chrome', 'msedge']) {
                     "the amount belongs to this rule" is a NUMBER. It read 160
                     on the shipped block with the pills ending at 1327; the
                     same reading is what D-33 P2-7 took on .ae-term-toks.
+                    IT IS KEPT HERE AND IT IS NOT THE ROW THAT GUARDS IT -
+                    cell 25a is. PROBE DC put the stretch back and this cell
+                    passed at 0px in all four columns, because by the time this
+                    runs a sixth type has been invented and the row has no
+                    spare pixel for a stretched track to claim. 25a takes the
+                    same reading on the shipped vocabulary, where the slack
+                    exists and is asserted to exist.
          colsAligned - every header cell's left edge against the same column's
                     left edge on a rule row. This is the whole of the grouping
                     claim: a word written once stands over the group it labels
