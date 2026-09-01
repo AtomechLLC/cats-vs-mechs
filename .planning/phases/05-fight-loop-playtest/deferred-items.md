@@ -634,3 +634,65 @@ happened to land on the same tally, the answer is a per-rule entry on the round 
 can, because the "Each round" block above tells them what the rules are, nothing is owed.
 
 **Owner:** the 05-11 playtest.
+
+---
+
+## 17. THE BATTLEFIELD'S RESOURCE READINGS ARE A POINTER AFFORDANCE, NOT A KEYBOARD ONE
+
+**Found:** plan 05-D36, wiring the readings.
+
+D-36 makes every resource reading on the fight tab a press target. Two of the four classes are
+reachable by keyboard and two are not, and the reason is a content-model constraint rather than a
+choice:
+
+- **The team-resource rows ARE real `<button>`s.** They sit inside nothing, so they can be. Tab
+  reaches them, Enter opens the control, the keyboard goes into it, Escape shuts it and hands the
+  focus back to the row. Browser cell 26d drives that round trip end to end.
+- **A battlefield reading is a `<div>` inside `.bf-unit`, which is itself the retarget flow's
+  `<button>`.** `<button>`'s content model allows neither an interactive descendant nor a
+  descendant carrying `tabindex`, so the reading cannot be made focusable without either shipping
+  invalid markup or restructuring the shape.
+
+**So a student on a keyboard can rule a side's pool and a side's tally from the fight tab, and
+cannot rule a unit's health, shield or tally from it.** The board tab's own paths are unchanged
+and the alive toggle is still there, but there is no keyboard route to the *fight-slice* unit
+numbers from anywhere.
+
+**The fix, priced.** Lift `.bf-lines` OUT of the shape button: `.bf-unit` becomes a plain wrapper
+holding a `<button class="bf-plate">` (the retarget control, carrying the name, the dead sentence
+and the Pick word) and a sibling `.bf-lines` of real `<button class="bf-res">` readings. It is
+valid, it is fully keyboard-operable, and it costs about twenty assertions across both suites —
+every one that reads `[data-fg="bf"]` as "the shape node" and then reaches inside it for
+`.bf-line`, `.bf-name`, `.bf-said`, `.bf-pick` or the `bf-unit--lit` / `--dead` classes
+(`selftest-node.cjs` 11406, 12610-12736, 12968-13061, 13227; `browser-checks.mjs` 595, 698-714,
+1084-1126, 2094). It also shrinks the retarget flow's click target from the whole plate to the
+name row, which is a **design** question the developer should answer rather than an executor.
+
+**Owner:** the 05-11 playtest, or a plan the developer asks for. It is written down here rather
+than half-done in 05-D36, whose scope was the control.
+
+---
+
+## 18. A RESOURCE READING THAT IS HIDDEN AT ZERO CANNOT BE CLICKED BACK UP
+
+**Found:** plan 05-D36, driving the four reading classes.
+
+`[S06.11]`'s hide pass takes a battlefield line away when its amount is zero — every type except
+health, which is exempt for a reason its own paragraph gives at length. So a shield ruled down to
+zero, or a tally that reaches zero, **stops being a press target**, and the D-36 control cannot
+bring it back up from the fight tab. `[S06.14]` handles this correctly rather than silently: the
+box closes on the frame its anchor stops being drawn, instead of floating over the page pointing
+at nothing.
+
+**It is not obviously wrong.** A reading that is not there is not a reading, and the rule that
+hides it is D-33 P2-11's, measured against a photograph of a labelled empty box. But a student
+running a Recharge house rule wants to put a shield back, and today the route is the board tab's
+build stepper — which edits the **allocation**, not the fight — or an undo.
+
+**The three admissible answers,** none of them taken here because each is a design decision:
+1. exempt `shield` from the hide pass during a fight, as health already is;
+2. draw a zero reading for every type in the fight view and let D-33's rule govern the board only;
+3. give the nudge box a way to reach the whole unit rather than one reading — which is a different
+   control from the one the developer asked for.
+
+**Owner:** the 05-11 playtest.

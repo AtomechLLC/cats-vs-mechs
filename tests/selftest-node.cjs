@@ -955,9 +955,21 @@ function makeStubDom() {
     return attr.slice(5).replace(/-([a-z])/g, (m, c) => c.toUpperCase());
   }
 
-  // Supports exactly what the artifact asks for: a tag name, one or more
-  // classes, and one or more [data-*] tests with or without a value.
-  const SEL_PART = /\.([A-Za-z0-9_-]+)|\[([A-Za-z-]+)(?:="((?:[^"\\]|\\.)*)")?\]|([A-Za-z][A-Za-z0-9]*)/g;
+  // Supports exactly what the artifact asks for: a tag name, an #id, one or
+  // more classes, and one or more [data-*] tests with or without a value.
+  //
+  // THE #id BRANCH ARRIVED WITH D-36 AND IS FIRST IN THE ALTERNATION ON
+  // PURPOSE. [S07.5]'s dismissal handler asks whether a press landed inside the
+  // nudge with closest('#fg-nudge') — the artifact's own idiom for "this one
+  // node" — and without this branch the '#' matched nothing while `fg` and
+  // `nudge` each matched the TAG alternative, so the test collapsed into
+  // "tagName is FG and tagName is NUDGE" and the stub answered null for a press
+  // that was plainly inside the box. That is the stub silently disagreeing with
+  // every browser, and the alternative to fixing it here was writing the
+  // ARTIFACT around the stub — which is precisely what the stub-drift gate
+  // exists to refuse. Check 119 measured the divergence before this line
+  // existed: the box shut on its own − button.
+  const SEL_PART = /#([A-Za-z0-9_-]+)|\.([A-Za-z0-9_-]+)|\[([A-Za-z-]+)(?:="((?:[^"\\]|\\.)*)")?\]|([A-Za-z][A-Za-z0-9]*)/g;
 
   function matches(node, selector) {
     SEL_PART.lastIndex = 0;
@@ -967,16 +979,18 @@ function makeStubDom() {
     while ((m = SEL_PART.exec(selector)) !== null) {
       saw = true;
       if (m[1] !== undefined) {
-        ok = ok && classesOf(node).indexOf(m[1]) !== -1;
+        ok = ok && String(node._attrs.id || '') === m[1];
       } else if (m[2] !== undefined) {
-        if (m[2].indexOf('data-') !== 0) { ok = false; }
+        ok = ok && classesOf(node).indexOf(m[2]) !== -1;
+      } else if (m[3] !== undefined) {
+        if (m[3].indexOf('data-') !== 0) { ok = false; }
         else {
-          const key = datasetKey(m[2]);
-          if (m[3] === undefined) { ok = ok && node.dataset[key] !== undefined; }
-          else { ok = ok && String(node.dataset[key]) === unescapeValue(m[3]); }
+          const key = datasetKey(m[3]);
+          if (m[4] === undefined) { ok = ok && node.dataset[key] !== undefined; }
+          else { ok = ok && String(node.dataset[key]) === unescapeValue(m[4]); }
         }
-      } else if (m[4] !== undefined) {
-        ok = ok && node.tagName === m[4].toUpperCase();
+      } else if (m[5] !== undefined) {
+        ok = ok && node.tagName === m[5].toUpperCase();
       }
     }
     return saw && ok;
@@ -1136,6 +1150,27 @@ function makeStubDom() {
     node.getBoundingClientRect = () => ({
       width: 0, height: node._rectHeight, top: 0, left: 0, right: 0, bottom: node._rectHeight
     });
+
+    /* A PER-NODE style WITH setProperty AND NOTHING ELSE — D-36. [S06.14]
+       publishes the nudge's two offsets as custom properties on the box itself,
+       which is the one place in the artifact that writes an inline style to a
+       node that is not documentElement, and check 57 above reads every such
+       access in context. Without this the stub throws the moment a row opens
+       the control, and a `if (node.style)` guard in the ARTIFACT would be the
+       stub shaping the shipped code — the failure the stub-drift gate exists to
+       refuse. Only setProperty is modelled: nothing else is used, and a stub
+       that answered for more would let a length written the forbidden way pass
+       here and fail in a browser.
+       _props is readable, so a row can assert WHAT was published rather than
+       only that nothing threw. */
+    node._props = Object.create(null);
+    node.style = {
+      setProperty(name, value) { node._props[name] = String(value); },
+      getPropertyValue(name) {
+        return Object.prototype.hasOwnProperty.call(node._props, name)
+          ? node._props[name] : '';
+      }
+    };
 
     node.closest = (selector) => {
       let n = node;
@@ -16462,6 +16497,258 @@ check(
     + ' round held=' + wtRoundHeld
     + ' | harvest=' + wtWords.length + ' strings, verdict words: '
     + (wtVerdicts.join(', ') || 'none')
+);
+
+A.ops.endFight();
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+/* --- 118-120. D-36, THE CONTROL AND ITS TWO CLAIMS ON THE PAGE ---------------
+   The developer, at the real artifact: "add the ability to directly click on a
+   resource to directly modify the value of that resource in the current round."
+
+   WHAT IS DRIVEN HERE AND WHAT IS DRIVEN IN A BROWSER, said once so neither
+   file is asked for the other's claim. The PLACEMENT, the rapid-press focus
+   case and the centre-of-a-lit-shape hit test all need a layout engine and a
+   real default focus-on-mousedown; they live in tests/browser-checks.mjs, cells
+   26 to 26f, and they are the reason that file exists. What lives HERE is
+   everything a stub page can hold to account: the key spelling and its
+   uniqueness, the partition between what this surface handles and what it
+   dispatches, the never-disable rule, and the press paths themselves. */
+
+const d36Tok = A.ops.createTokenType({
+  name: 'Chill', shape: 'tri', color: 'violet', glyph: '', scope: 'unit'
+});
+const d36Side = A.ops.createTokenType({
+  name: 'Rage', shape: 'hex', color: 'coral', glyph: '', scope: 'side'
+});
+A.ops.setTokenBounds(d36Tok, { min: 0, max: 3 });
+A.ops.setTally('cats', 'c1', d36Tok, 2);
+A.ops.setTally('cats', null, d36Side, 2);
+A.ops.setUnitShield('cats', 'c1', 2);
+A.state.invalidate({ structural: true });
+A.state.flush();
+fgPress(fgStart);
+
+const d36Box = dom.byId['fg-nudge'];
+const d36Readings = () => fgBar.querySelectorAll('[data-fg="res"]');
+const d36Read = (side, unit, tok) => d36Readings().filter((n) =>
+  String(n.dataset.fgSide || '') === side
+  && String(n.dataset.fgUnit || '') === unit
+  && String(n.dataset.fgTok || '') === tok)[0] || null;
+const d36Open = () => ({
+  shut: d36Box.hidden === true,
+  side: String(d36Box.dataset.fgSide || ''),
+  unit: String(d36Box.dataset.fgUnit || ''),
+  tok: String(d36Box.dataset.fgTok || ''),
+  who: dom.byId['fg-nudge-who'].textContent,
+  type: dom.byId['fg-nudge-tok'].textContent,
+  val: dom.byId['fg-nudge-val'].textContent,
+  says: dom.byId['fg-nudge-says'].hidden ? '' : dom.byId['fg-nudge-says'].textContent,
+  x: d36Box.style.getPropertyValue('--fgn-x')
+});
+
+/* 118. THE READINGS ARE CONTROLS, AND THE KEY SPACE STAYS DISJOINT.
+   94b's reading taken again on a page that just grew one key per rulable
+   reading per unit per side plus one per team resource — and the disjointness
+   is PROBED rather than asserted, because "cannot collide by construction" is
+   the sentence every collision in this repository was shipped under. */
+const d36Keys = d36Readings().map((n) => String(n.dataset.k || ''));
+const d36BfKeys = fgBar.querySelectorAll('[data-fg="bf"]').map((n) => String(n.dataset.k || ''));
+const d36AllKeys = [];
+(function walk(n) {
+  if (n.dataset && n.dataset.k !== undefined) { d36AllKeys.push(String(n.dataset.k)); }
+  n.children.forEach(walk);
+})(dom.byId['app']);
+const d36Dupes = d36AllKeys.filter((k, i) => d36AllKeys.indexOf(k) !== i);
+// THE COLLISION PROBE. `fg/res/{side}/{unit}/{tok}` and `fg/bf/{side}/{unit}`
+// differ at the SECOND segment, so no assignment of unit ids and token ids can
+// make one produce the other — but the way to know that is to try. Every
+// battlefield key is re-spelled with the resource prefix's segment count and
+// looked for in the live key set, and the two sets are intersected outright.
+const d36Crossed = d36BfKeys.filter((k) => d36Keys.indexOf(k) !== -1);
+const d36Shaped = d36Keys.filter((k) => k.indexOf('fg/res/') !== 0
+  || k.split('/').length !== 5);
+const d36LedgerKeys = fgLedgerRoot.querySelectorAll('[data-fg="res"]').length;
+const d36NoAct = d36Readings().filter((n) => n.dataset.act !== undefined).length
+  + [dom.byId['fg-nudge-less'], dom.byId['fg-nudge-more']]
+    .filter((n) => n.dataset.act !== undefined).length;
+const d36Disabled = d36Readings().filter((n) => n.disabled === true).length
+  + [dom.byId['fg-nudge-less'], dom.byId['fg-nudge-more']]
+    .filter((n) => n.disabled === true).length;
+const d36UiActs = A.interactions.UI_ACTS || [];
+check(
+  '118. D-36 — EVERY RESOURCE READING ON THE FIGHT TAB IS A CONTROL, AND ITS '
+    + 'KEY SPACE CANNOT REACH THE BATTLEFIELD\'S. Each reading carries the one '
+    + 'spelling [S06.14] owns — fg/res/{side}/{unit-or-side}/{token} — every '
+    + 'data-k on the whole page is still unique with them painted, and the two '
+    + 'spaces are INTERSECTED OUTRIGHT rather than argued about, because '
+    + '"cannot collide by construction" is the sentence every collision in this '
+    + 'repository shipped under. The unit slot holds the literal `side` for a '
+    + 'number the side holds, which is a word this file wrote and never a '
+    + 'student\'s. NO READING IS INSIDE THE LEDGER, which is check 94\'s own '
+    + 'rule about a past round\'s row carrying a key that could steal a focus '
+    + 'restore. NOT ONE OF THEM CARRIES data-act — #fightbar is inside #app and '
+    + '[S07.1] routes any data-act straight into App.ops.dispatch, so one here '
+    + 'would fire an op with a payload nothing meant to send — and neither '
+    + 'private name this feature adds is in UI_ACTS, which is the table that '
+    + 'turns a dispatched op into page work. AND NOTHING IS EVER DISABLED: the '
+    + 'D-27 overrule is scoped to the declaration grid and this surface is '
+    + 'outside it',
+  d36Keys.length > 0 && d36Dupes.length === 0 && d36Crossed.length === 0
+    && d36Shaped.length === 0 && d36LedgerKeys === 0
+    && d36NoAct === 0 && d36Disabled === 0
+    && d36UiActs.indexOf('res') === -1 && d36UiActs.indexOf('nudge') === -1
+    && d36Read('cats', 'c1', 'hp') !== null
+    && d36Read('cats', 'c1', 'shield') !== null
+    && d36Read('cats', 'c1', d36Tok) !== null
+    && d36Read('cats', '', 'ap') !== null
+    && d36Read('cats', '', d36Side) !== null
+    && d36Read('cats', 'c1', 'dead') === null
+    && d36Keys.indexOf('fg/res/cats/side/ap') !== -1,
+  'readings=' + d36Keys.length + ' | battlefield keys=' + d36BfKeys.length
+    + ' | duplicate keys on the page=' + JSON.stringify(d36Dupes)
+    + ' | keys in BOTH spaces=' + JSON.stringify(d36Crossed)
+    + ' | wrongly shaped=' + JSON.stringify(d36Shaped)
+    + ' | readings inside #ledger=' + d36LedgerKeys
+    + ' | carrying data-act=' + d36NoAct + ' | disabled=' + d36Disabled
+);
+
+/* 119. THE PRESS PATHS, DRIVEN ON THE REAL CONTROLS. */
+fgPress(d36Read('cats', 'c1', 'hp'));
+const d36OnHp = d36Open();
+fgPress(dom.byId['fg-nudge-less']);
+const d36AfterLess = Object.assign({ hp: A.state.get().fight.cats.units[0].hp },
+  d36Open());
+// The same reading again SHUTS it — the control that starts something is the
+// control that takes it back, which is the action button's and the
+// change-target button's shape one region up.
+fgPress(d36Read('cats', 'c1', 'hp'));
+const d36Toggled = d36Open();
+// A team resource: the unit slot is empty and the record carries a null.
+fgPress(d36Read('cats', '', 'ap'));
+fgPress(dom.byId['fg-nudge-more']);
+const d36Pool = {
+  ap: A.state.get().fight.cats.ap,
+  rec: A.state.get().fight.hand[A.state.get().fight.hand.length - 1]
+};
+// A student's own type at unit scope, at its own authored ceiling.
+fgPress(d36Read('cats', 'c1', d36Tok));
+fgPress(dom.byId['fg-nudge-more']);
+const d36TallyUp = Object.assign(
+  { n: A.state.get().fight.cats.units[0].tally[d36Tok] }, d36Open());
+fgPress(dom.byId['fg-nudge-more']);
+const d36TallyClamped = Object.assign(
+  { n: A.state.get().fight.cats.units[0].tally[d36Tok],
+    rulings: A.state.get().fight.hand.filter((h) => h.tok === d36Tok).length },
+  d36Open());
+// ESCAPE, on the document, and a press ELSEWHERE — D-36's two dismissals.
+dom.document._listeners.keydown.forEach((fn) => fn(dom.event('keydown', { key: 'Escape' })));
+A.state.flush();
+const d36ByEsc = d36Open();
+fgPress(d36Read('cats', '', d36Side));
+const d36Reopened = d36Open();
+fgPress(dom.byId['fight-head']);
+const d36ByElsewhere = d36Open();
+check(
+  '119. D-36 — A PRESS ON A READING OPENS THE CONTROL, ITS BUTTONS RULE, AND '
+    + 'EITHER DISMISSAL SHUTS IT. Driven on the artifact\'s own controls, at '
+    + 'every scope the record can carry. The box names the owner and the type '
+    + 'it was opened on and shows the number that is really on the board; the − '
+    + 'writes a real hand ruling through [S05]; pressing the SAME reading again '
+    + 'shuts it, which is the action button\'s own shape one region up. A team '
+    + 'resource leaves the unit slot EMPTY and the record carries a NULL there, '
+    + 'because a pool belongs to the side and to no unit. A tally of a type the '
+    + 'student invented rises to its authored ceiling AND STOPS, recording '
+    + 'nothing for the press that moved nothing and saying what the board keeps '
+    + 'the number between — arithmetic and factual, naming no type, and with no '
+    + 'error panel anywhere near it. Then Escape shuts it and a press on a '
+    + 'heading that is neither the box nor a reading shuts it, which is what '
+    + 'the listener on the DOCUMENT is for: "elsewhere" includes the top bar '
+    + 'and both dialogs. AND THE PLACEMENT IS PUBLISHED AS A CUSTOM PROPERTY '
+    + 'rather than as an inline length, which is check 57\'s widened allowlist '
+    + 'read from the other end — the value is written here even with no layout '
+    + 'engine behind it',
+  d36OnHp.shut === false && d36OnHp.who === 'Cat 1' && d36OnHp.type === 'Health'
+    && d36OnHp.val === '3' && d36OnHp.unit === 'c1'
+    && d36AfterLess.hp === 2 && d36AfterLess.val === '2'
+    && d36Toggled.shut === true
+    && d36Pool.ap === 4 && d36Pool.rec.unit === null && d36Pool.rec.tok === 'ap'
+    && d36TallyUp.n === 3 && d36TallyUp.type === 'Chill' && d36TallyUp.val === '3'
+    && d36TallyClamped.n === 3 && d36TallyClamped.rulings === 1
+    && d36TallyClamped.says === 'This board keeps this number between 0 and 3.'
+    && d36ByEsc.shut === true
+    && d36Reopened.shut === false && d36Reopened.type === 'Rage'
+    && d36ByElsewhere.shut === true
+    && d36Box.style.getPropertyValue('--fgn-x') !== ''
+    && errPanel.hidden === true,
+  'opened on health=' + JSON.stringify(d36OnHp)
+    + ' | after the minus=' + JSON.stringify(d36AfterLess)
+    + ' | pressing it again=' + JSON.stringify(d36Toggled)
+    + ' | the pool=' + JSON.stringify(d36Pool)
+    + ' | the tally at its ceiling=' + JSON.stringify(d36TallyClamped)
+    + ' | by Escape=' + JSON.stringify(d36ByEsc)
+    + ' | by a press elsewhere=' + JSON.stringify(d36ByElsewhere)
+    + ' | panel hidden=' + errPanel.hidden
+);
+
+/* 120. THE TWO CLAIMS ON A BATTLEFIELD SHAPE, SEPARATED. The browser cells
+   drive this with a real centre click; what this row can hold to account is the
+   ROUTING, which is where the separation actually lives. */
+const d36Shape = fgStateRootOf('cats')
+  .querySelectorAll('[data-fg="bf"]').filter((n) => n.dataset.fgVal === 'c2')[0];
+const d36Line = d36Read('cats', 'c2', 'hp');
+const d36Nested = d36Line !== null && d36Line.closest('[data-fg]') === d36Line
+  && d36Line.closest('[data-fg="bf"]') === d36Shape;
+// AT REST: the reading opens the nudge and the shape opens nothing.
+fgPress(d36Line);
+const d36RestReading = d36Open();
+dom.document._listeners.keydown.forEach((fn) => fn(dom.event('keydown', { key: 'Escape' })));
+A.state.flush();
+fgPress(d36Shape);
+const d36RestShape = Object.assign({ decls: A.state.get().fight.decl.length }, d36Open());
+// ARMED: every press anywhere on a shape belongs to the retarget flow. The
+// action is one that NEEDS a target, read through the shipped derivation for
+// fgMechsAct's own stated reason — a declaration that pointed at nobody draws
+// no change-target control, and this row would then press a null.
+fgDeclare('mechs', fgMechsAct, 'm1');
+fgPress(fgAtBtnOf('mechs', 'm1'));
+const d36ArmedLit = fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
+  .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length;
+fgPress(d36Read('cats', 'c3', 'hp'));
+const d36Armed = Object.assign({
+  at: (A.state.get().fight.decl.filter((d) => d.by === 'm1')[0] || {}).at,
+  lit: fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
+    .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length
+}, d36Open());
+check(
+  '120. D-36 — THE RETARGET FLOW\'S CLAIM ON A SHAPE IS UNCHANGED AND THE '
+    + 'READINGS SEPARATE FROM IT CLEANLY, which is D-36\'s own pair of '
+    + 'sentences and neither of them alone. THE MECHANISM IS READ OFF THE PAGE '
+    + 'FIRST: the reading is a DESCENDANT of the shape and closest(\'[data-fg]\') '
+    + 'from it returns the reading rather than the shape, which is the whole of '
+    + 'how the two are told apart. AT REST a press on the reading opens the '
+    + 'control and a press on the shape opens nothing and declares nothing — '
+    + '[S07.5]\'s quiet decline with no flow open. ARMED, the opposing roster '
+    + 'lights and a press on the READING of a lit shape moves the target, puts '
+    + 'the lights out and does NOT open the control: nesting alone satisfies '
+    + '"must not collide" and fails "the claim is unchanged", so the separation '
+    + 'is in TIME as well as in space. The browser checks found that with a '
+    + 'real centre click and two shipped cells went red over it',
+  d36Nested === true
+    && d36RestReading.shut === false && d36RestReading.unit === 'c2'
+    && d36RestShape.shut === true && d36RestShape.decls === 0
+    && d36ArmedLit === 9
+    && d36Armed.at === 'c3' && d36Armed.shut === true && d36Armed.lit === 0
+    && errPanel.hidden === true,
+  'the reading is nested and resolves to itself=' + d36Nested
+    + ' | at rest, the reading=' + JSON.stringify(d36RestReading)
+    + ' | at rest, the shape=' + JSON.stringify(d36RestShape)
+    + ' | lit while armed=' + d36ArmedLit
+    + ' | after the press on a lit shape\'s reading=' + JSON.stringify(d36Armed)
+    + ' | panel hidden=' + errPanel.hidden
 );
 
 A.ops.endFight();
