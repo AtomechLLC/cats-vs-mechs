@@ -3,9 +3,9 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-34 — a cancel step on modifying actions (05-D34)
-last_updated: "2026-08-30T11:00:00.000Z"
-last_activity: 2026-08-30
+stopped_at: Completed D-35 PART 1 of 2 — round rules as data and token min/max bounds (05-D35a)
+last_updated: "2026-09-01T00:00:00.000Z"
+last_activity: 2026-09-01
 progress:
   total_phases: 7
   completed_phases: 6
@@ -26,7 +26,7 @@ See: .planning/PROJECT.md (updated 2026-08-26)
 ## Current Position
 
 Phase: 05
-Plan: 16 of 16 complete, plus the D-27 through D-34 redirect work;
+Plan: 16 of 16 complete, plus the D-27 through D-35 redirect work;
 every autonomous plan in the phase is done
 Status: Blocked on 05-11 — the playtest. It is a `checkpoint:human-verify` gate and it is
 still plan 11.
@@ -260,7 +260,65 @@ register is now **1–57**: section K holds P2-6 (symbols in the proposal pane, 
 D-29's own scope) and P3-4 (one removal mark per term group rather than per glyph, which
 touches D-30's own spec) — the two findings D-33's audit refused to implement without the
 developer.
-Last activity: 2026-08-30
+
+**D-35 IS TWO DISPATCHES AND PART 1 IS DONE.** The developer asked for two things: "add a
+feature to configure what happens each round (default +3 action points, but also things like
+-1 of a status effect token)" and "Add a property for min and max of a token on a unit or
+side". **Part 1 (05-D35a) is everything below the surface** — the schema, the ops, the clamp,
+the applier and the codec. **It renders nothing new**; part 2 builds the authoring surfaces.
+
+**Bounds.** A token type carries `min` and `max`, authored, and they SHIP AT `[0, MAX_ALLOC]`
+— exactly the pair `int()` has enforced since Phase 1, which is why the board did not move by
+a number or by a character of build code. `bounded(vocab, tok, value, what)` replaced the
+literal pair at **eleven** write paths plus every arm of `applyTerm` and both arms of the cost
+spend. `setTokenBounds` is the one writer, with the house three-layer gate, and it **refuses**
+a bound out of range or a min above its max rather than clamping one — writing a different
+rule from the one the student typed is the failure the file is built to avoid. THE CLAMP IS AT
+WRITE TIME ONLY: a tightened bound leaves standing numbers alone, which is what lets a board
+whose ceiling dropped after the fact still round-trip.
+
+**Round rules.** `build.rules` is a list of `{ who, tok, d }` capped at 8, seeded with the
+developer's own default of **+3 action points to each side**. `who` indexes four frozen
+records — a side, or each of a side's units. `setRoundRule` is the one writer, in
+`setActionCost`'s idiom (append / replace / remove). `advanceRound` applies the list where the
+hardcoded refill stood; a rule naming a scope with no such number lands NOWHERE, a rule naming
+a departed type is refused BY NAME outside the commit, and **nothing ever writes `alive`** — a
+`-99` health rule floors every unit and kills none, driven at a floor of 0 and at a floor the
+student raised. The shield's no-refill stopped being a ruling of Advance's and became an
+ABSENCE OF A RULE a student may fill. The DOES/does-NOT table was amended on both sides.
+
+**THE +3 FORK IS REAL, PRESERVED, AND WIDER THAN D-35 RECORDED.** `+3` ADDS; the refill
+REPLACED. They agree only in a round that spends the pool to nothing. The shipped 9v3 fight,
+driven three rounds, is **BYTE-IDENTICAL** to commit `fe67194`'s — asserted as a whole-slice
+equality against a 5,429-character literal captured from the old file, not a recomputation.
+Leave a point unspent and they diverge AT THREE: a hand-ruling round now leaves the pools at
+`[4, 5]` where it left `[3, 3]`. At nine, `+3` reads **11 / 13 / 15** over three rounds and the
+refill — expressible as a rule of `+99` clamped at a max of 9 — reads **9 / 9 / 9**. Both are
+driven side by side in `[S09.12]`. **Neither is asserted to be right**; `deferred-items` 13 is
+the playtest question, and answering it is a one-line edit to `DEFAULTS.rules`.
+
+**The wire stayed v1, and a literal earns it.** Both extensions are ON THE END — two fields on
+a vocabulary record, one section on the body, written only when the rules differ from the seed
+— so a five-field record means the shipped bounds and a sixteen-section body means the shipped
+rules. The row that makes that a MEASUREMENT rather than an argument is a **real pre-D-35
+code**, produced at `fe67194` and pasted as a literal: it loads the classmate's board with
+`[0, 99]` on every type and the shipped rule list. The shipped board still writes its old **45
+characters exactly**. An EMPTY rules section and an ABSENT one mean different things, so a
+student who deletes every rule can still share that. Refusal matrix **20 → 28 shapes** (two for
+bounds, six for rules), each reaching its OWN guard past a recomputed digest.
+Sizes re-measured: **45 / 344 / 283 / 909 / 3542 / 3744**. Bounds cost 5 characters per written
+vocabulary record, a rule about 4; the ceiling moved 3%.
+Gate: node **1261 → 1327 / 0, exit 0**, **200 → 201** interaction rows (+114), stub-drift
+**136 — unmoved, and that is the point: this change moved no id**, `DIALOG_FLOOR` **138**/172
+unmoved, `FIGHT_FLOOR` **132**/592, browser checks **242 / 0 HEADLESS** unmoved.
+`deferred-items.md` items **13** (the fork, for 05-11) and **14** (D-35's "shield gets a max of
+its starting value" is not a type property, and the two readings that would satisfy it are both
+changes of kind).
+`.planning/phases/05-fight-loop-playtest/05-D35a-SUMMARY.md`.
+Next: **part 2 of D-35** — the bounds pair on the token editor, a round-rules list a student
+can read and edit, and the fight surface saying what a round rule did. `rulesNaming` is already
+exported for the removal warning.
+Last activity: 2026-09-01
 
 Progress: [██████████] 100%
 
@@ -494,6 +552,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-08-30T23:55:00.000Z
-Stopped at: Completed D-33 PASS C (05-D33c) — the P2/P3 tiers and REF-03. The D-33 audit is fully spent apart from its two developer-decision items, which are now 05-11 sheet items 56 and 57. 05-11's playtest is the only thing left in the phase
+Last session: 2026-09-01T00:00:00.000Z
+Stopped at: Completed D-35 PART 1 of 2 (05-D35a) — round rules as data and token min/max bounds, everything below the surface. Part 2 builds the authoring surfaces; the +3-versus-refill fork is preserved, driven at nine, and put to the 05-11 playtest as deferred item 13
 Resume file: None

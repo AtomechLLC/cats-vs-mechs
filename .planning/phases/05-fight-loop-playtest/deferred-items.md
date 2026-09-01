@@ -521,3 +521,63 @@ a timeout into `ok(..., false, ...)` so the run continues and the LATER cells ge
 
 **Owner:** whichever pass next adds browser cells. Nothing here blocks the 05-11 playtest, and the
 shipped run is green in all four columns; this is about what a red run tells you.
+
+---
+
+## 13. THE +3 FORK IS WIDER THAN D-35 RECORDED, AND IT IS A PLAYTEST QUESTION
+
+**Found:** plan 05-D35a, by three shipped rows going red.
+
+D-35 records the fork as "identical while AP is 3, and genuinely different at the candidate
+retune of 9". Driving it found the second half is right and the first is narrower than written:
+`+3` **adds** to what is on the board and the refill **replaced** it, so the two agree only in a
+round where a side spends its pool to nothing.
+
+- **At three, spending all three** — the shipped 9v3 fight — they are byte-identical. `[S09.12]`
+  holds that as a whole-slice equality against a literal captured at commit `fe67194`.
+- **At three, leaving a point unspent** — they diverge on the shipped board. A round resolving
+  one declared Lasers now leaves the pools at `[4, 5]` where a refill left `[3, 3]`.
+- **At nine** — `+3` reads 11, 13, 15 over three rounds where the refill reads 9, 9, 9.
+
+**Neither semantic is asserted to be the right one and the old one is still expressible** — a
+rule of `+99` clamped by the action-point type's own max IS a refill, and `[S09.12]` drives both
+side by side. So this is not work owed; it is a decision.
+
+**The question for a room:** does a pool that carries its leftovers forward make the 9v3
+contested, or does it make an under-spent round compound into a runaway? And is a student who
+leaves a point unspent rewarded for it, punished for it, or simply unaffected — and did they
+notice either way?
+
+**Owner:** the 05-11 playtest, alongside the AP sweep it interacts with directly. Answering it is
+a one-line edit to `DEFAULTS.rules`.
+
+---
+
+## 14. D-35's "SHIELD GETS A MAX OF ITS STARTING VALUE" IS NOT A TYPE PROPERTY
+
+**Found:** plan 05-D35a, while writing `DEFAULTS.tokens`.
+
+D-35's orchestrator note says the shield "simply has no round rule by default (and a max of its
+starting value)". The first clause shipped exactly as written — the shipped `rules` list carries
+no shield entry, which is how the old no-refill ruling survives as an absence a student can fill.
+The second cannot be implemented as stated: **bounds are properties of the TYPE**, which is the
+developer's own wording ("a property for min and max of a token on a unit or side"), and three
+mechs may start at three different shields. There is no single number "the shield's starting
+value" for a type-wide field to hold.
+
+What shipped instead: shield carries the type-wide pair `[0, MAX_ALLOC]`, like every other
+shipped type, and the no-refill behaviour comes entirely from the absence of a rule.
+
+**Why this is an item rather than a fix.** Two readings would satisfy the note, and both are
+changes of kind rather than of value:
+
+1. **A per-unit bound** — a bounds pair on the unit record as well as on the type. That is a new
+   scope for a field the whole codec, the whole clamp and the whole authoring surface are built
+   around, and it doubles the wire cost of bounds on a 24-a-side board.
+2. **A bound that resolves to another field** — `shield.max` meaning "this unit's build shield".
+   That is a per-type special case in a vocabulary D-24 exists to keep free of them, and the same
+   shape was declined for `ap` in this plan for the same reason.
+
+**Owner:** part two of D-35, or the developer, on the evidence of a room. The concrete question a
+playtest answers is whether anybody authoring a `+1 shield` rule then wants it to stop at the
+number the unit started with — which is the only case where the difference is visible at all.
