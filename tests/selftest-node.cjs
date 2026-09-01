@@ -15227,6 +15227,109 @@ A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();
 
+/* 114. D-35 PART ONE, READ OFF THE PAGE: A BOARD WHOSE TYPES CARRY AUTHORED
+   BOUNDS AND WHOSE ROUNDS RUN ON STUDENT-WRITTEN RULES STILL RENDERS.
+
+   THIS IS A SURVIVAL CHECK AND IT SAYS SO. Part one of D-35 ships the schema,
+   the ops, the clamp and the codec, and it ships NO NEW SURFACE — part two
+   builds the authoring controls. So the claim this row makes is deliberately
+   the modest one: every surface that exists today draws a board carrying both
+   features, through the real controls, with nothing on screen to say the board
+   is unusual and nothing in the error panel. A row claiming more would be
+   claiming a surface that has not been built.
+
+   WHY IT IS HERE RATHER THAN IN [S09.12]. The artifact's own suite holds the
+   state-level rows — the clamp at every write path, the applier, the byte-
+   identical fight, the fork at nine — and it is forbidden by [S09.12]'s own
+   banner from asserting anything about a page. This is the page half: the
+   board tab, the fight tab, the battlefield and the ledger, driven with real
+   presses on a board no earlier row in this file has ever produced.
+
+   THE HARVEST RIDES WITH IT, because a board whose numbers are bounded is a
+   board whose readings could have gained a sentence about the bound — "capped
+   at 4", "cannot go below 2" — and every one of those is a judgement the tool
+   has no business making. Layer C is re-run over the fight page here rather
+   than trusted from row 92, which took its harvest before this board existed. */
+A.ops.resetToDefaults();
+A.state.flush();
+const d35Chill = A.ops.createTokenType({
+  name: 'Chill', shape: 'dia', color: 'accent-2', glyph: '', scope: 'unit'
+});
+A.ops.setTokenBounds('hp', { min: 1, max: 4 });
+A.ops.setTokenBounds('shield', { min: 0, max: 2 });
+A.ops.setTokenBounds(d35Chill, { min: 0, max: 3 });
+A.ops.setTally('cats', 'c1', d35Chill, 3);
+A.ops.setRoundRule(0, 'cats', 'ap', 2);
+A.ops.setRoundRule(2, 'catsEach', d35Chill, -1);
+A.state.invalidate({ structural: true });
+A.state.flush();
+
+// The board tab first, with the bounded types on it. Read as the same three
+// things check 79 reads off a loaded link: the cards are there, a health row
+// is drawn, and the panel is quiet.
+const d35BoardCards = dom.byId['col-cats'].querySelectorAll('.unit-card').length;
+const d35BoardRows = dom.byId['col-cats']
+  .querySelectorAll('.tok-row[data-amt="hp"]').length;
+const d35ChillDrawn = dom.byId['col-cats']
+  .querySelectorAll('.tok-row[data-amt="' + d35Chill + '"]').length;
+const d35BoardQuiet = errPanel.hidden === true;
+
+// Then the fight, through the real controls, and a round advanced.
+fgPress(fgStart);
+A.state.flush();
+const d35PoolBefore = A.state.get().fight.cats.ap;
+const d35ChillBefore = A.state.get().fight.cats.units[0].tally[d35Chill];
+fgDeclare('cats', fgCatsAct, 'c1');
+fgAdvancePress();
+A.state.flush();
+const d35PoolAfter = A.state.get().fight.cats.ap;
+const d35ChillAfter = (A.state.get().fight.cats.units[0].tally || {})[d35Chill];
+const d35Shapes = A.ops.SIDES.reduce((n, side) =>
+  n + fgStateRootOf(side).querySelectorAll('[data-fg="bf"]').length, 0);
+const d35LedgerRows = fgLedgerRoot.querySelectorAll('.ld-row')
+  .filter((n) => String(n.className || '').indexOf('ld-row--wait') === -1).length;
+const d35Words = harvestInto(dom.byId['app'], [], '#app');
+const d35Verdicts = verdictHitsIn(d35Words);
+const d35FightQuiet = errPanel.hidden === true;
+
+check(
+  '114. D-35 PART ONE SURVIVES EVERY SURFACE THAT EXISTS TODAY. A board whose '
+    + 'health is bounded to 1-4, whose shield is bounded to 0-2 and which '
+    + 'carries a type of the student\'s own bounded to 0-3, plus two round '
+    + 'rules — one on the pool and one taking a point of Chill off each cat — '
+    + 'is drawn on the board tab, started into a fight through the real Start '
+    + 'control, declared on through a real picker button and advanced through '
+    + 'the real Advance. THE CLAIM IS THE MODEST ONE ON PURPOSE: part one '
+    + 'ships no surface for either feature, so what is asserted is that the '
+    + 'shipped surfaces do not break and that the rules RAN — the pool moved '
+    + 'by the rule the student wrote rather than by a refill, and the Chill '
+    + 'tally came down by one. THE HARVEST RIDES WITH IT, re-taken over the '
+    + 'fight page on THIS board rather than inherited from row 92, because a '
+    + 'bounded board is exactly where a helpful sentence about a cap would be '
+    + 'written and every such sentence is a judgement the tool may not make',
+  d35BoardCards === 9 && d35BoardRows === 9 && d35ChillDrawn > 0
+    && d35BoardQuiet === true
+    && d35PoolBefore === 3 && d35ChillBefore === 3
+    && d35PoolAfter === 4 && d35ChillAfter === 2
+    && d35Shapes === 12 && d35LedgerRows === 1
+    && d35Words.length >= FIGHT_FLOOR && d35Verdicts.length === 0
+    && d35FightQuiet === true,
+  'board: ' + d35BoardCards + ' cards, ' + d35BoardRows + ' health rows, '
+    + d35ChillDrawn + ' Chill rows, panel quiet=' + d35BoardQuiet
+    + ' | the pool ' + d35PoolBefore + ' -> ' + d35PoolAfter
+    + ' (one point declared, then the student\'s own +2 rule)'
+    + ' | Chill on c1 ' + d35ChillBefore + ' -> ' + d35ChillAfter
+    + ' | battlefield shapes=' + d35Shapes + ', ledger rounds=' + d35LedgerRows
+    + ' | harvest=' + d35Words.length + ' strings (floor ' + FIGHT_FLOOR + ')'
+    + ', verdict words: ' + (d35Verdicts.join(', ') || 'none')
+    + ' | panel quiet=' + d35FightQuiet
+);
+
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore

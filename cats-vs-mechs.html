@@ -6873,20 +6873,39 @@ App.data = (function () {
   // nobody read back, which is how both of this phase's grammar bugs stayed
   // invisible for as long as they did:
   //   45     the shipped board, untouched;
-  //   295    a realistic 12v5 student build — one built-in renamed, one
+  //   344    a realistic 12v5 student build — one built-in renamed, one
   //            restyled, two authored token types, four tallies, three authored
   //            actions carrying a cost, a requirement and a transformation, one
-  //            shipped action renamed, and one unit removed so the ids are
-  //            non-contiguous;
+  //            shipped action renamed, one unit removed so the ids are
+  //            non-contiguous, and (D-35) two types bounded and three round
+  //            rules written;
   //   283    24v24, every unit a distinct health and shield pair, nothing
   //            authored;
-  //   675    24v24 exercising everything Phases 2.1 and 3.1 shipped — all six
+  //   909    24v24 exercising everything Phases 2.1 and 3.1 shipped — all six
   //            authored token types, a tally for every type on every unit, six
   //            authored actions, ordinary short names;
-  //   3434   an adversarial board: the above, plus non-contiguous ids on both
-  //            sides, two-digit values everywhere, and all 23 nameable things
-  //            given distinct 24-character ASCII names;
-  //   3636   the same board with distinct 23-emoji names.
+  //   3542   an adversarial board: the above, plus non-contiguous ids on both
+  //            sides, two-digit values everywhere, all 23 nameable things given
+  //            distinct 24-character ASCII names, a distinct bound pair on
+  //            every one of the eleven types and the round-rule list filled to
+  //            its cap;
+  //   3744   the same board with distinct 23-emoji names.
+  //
+  // RE-MEASURED UNDER D-35 AND THE FIGURES ARE THE RUN'S, not the old ones
+  // adjusted. What the two features cost, decomposed: FIVE CHARACTERS per
+  // vocabulary record that is written at all — a min and a max, each an ordinal
+  // — and about FOUR per round rule. So the whole of D-35 at its own ceiling is
+  // 55 characters of bounds and 34 of rules, and the ceiling moved by 108,
+  // which is 3%. THE SHIPPED BOARD DID NOT MOVE AT ALL, because a type still
+  // wearing its shipped record writes nothing and a rules list still matching
+  // the seed writes no section.
+  //
+  // ONE FIGURE ABOVE WAS ALREADY STALE WHEN THIS PARAGRAPH WAS REWRITTEN, and
+  // it is worth a sentence: the 24v24 authored board read 675 here and had
+  // measured 879 since D-32 raised the term caps. D-32 re-measured the two
+  // ceiling boards in this list and left that one alone. The figure lives in a
+  // t.info row, and an info row never fails — which is exactly why a number in
+  // a comment beside it has to be re-read rather than trusted.
   //
   // THOSE TWO FIGURES WERE 2984 AND 3186 UNTIL D-32, and they are re-measured
   // rather than adjusted: D-32 raised MAX_ACTION_COST, MAX_ACTION_REQ and
@@ -6903,7 +6922,8 @@ App.data = (function () {
   // CHARACTERS ARE, and the conclusion is the operative sentence here:
   //
   //   DO NOT MOVE MAX_CUSTOM_TYPES, MAX_CUSTOM_ACTIONS, MAX_ACTION_COST,
-  //   MAX_ACTION_REQ OR MAX_ACTION_XF to buy build-code characters.
+  //   MAX_ACTION_REQ, MAX_ACTION_XF OR MAX_ROUND_RULES to buy build-code
+  //   characters.
   //
   // And the same sentence read the other way is why D-32 could raise three of
   // them without re-opening the schema: 450 characters bought a student four
@@ -7111,9 +7131,10 @@ App.data = (function () {
   // a board; none of them is a judgement about a build.
   //
   // CODE_TARGET is the design target for a board a student ACTUALLY builds, and
-  // it is a target rather than a guarantee: the realistic 12v5 measured 295 and
-  // the fully authored 24v24 measured 675. See the measured decomposition
-  // beside MAX_CUSTOM_ACTIONS above for the rest of the table.
+  // it is a target rather than a guarantee: the realistic 12v5 measured 344 and
+  // the fully authored 24v24 measured 909, both re-measured under D-35. See the
+  // measured decomposition beside MAX_CUSTOM_ACTIONS above for the rest of the
+  // table and for what the bounds and the round rules cost on the wire.
   var CODE_TARGET = 512;
 
   // CODE_WARN is D-18's threshold — the point past which the surface says, in
@@ -29735,6 +29756,434 @@ App.selftest = (function () {
       if (dlg && dlg.open === true) { dlg.close(); }
     }
 
+    /* =====================================================================
+       D-35 SITS AT THE END OF THIS SUITE, AFTER THE PAGE ROWS AND BEFORE THE
+       HAND-BACK, AND THE PLACEMENT IS A MEASURED FINDING RATHER THAN A
+       PREFERENCE. Written above the no-DOM bracket — the obvious home, beside
+       the other vocabulary rows — its resetToDefaults calls moved the id
+       sequence out from under the board rows below it, which create a type and
+       then address it as `t1`. The whole suite threw on a stub page with
+       "There is no token type t1 on this board", and because a thrown suite
+       stops before its own hand-back, the PAGE was left showing the shipped
+       board — which reddened interaction-gate check 82, three hundred rows
+       away, on a link that had nothing to do with any of this.
+
+       So these rows go last, where the only thing after them is the hand-back
+       that puts the board back. The rule the near-miss states, worth more than
+       the fix: a suite that drives resetToDefaults is a suite whose successors
+       inherit a different id space, and this file's suites are one long
+       sequence rather than a set of independent cases.
+       ===================================================================== */
+
+    /* ===================================================================== */
+    /* ===== D-35, PART ONE: THE BOUNDS A STUDENT AUTHORS ON A TYPE ========= */
+    /* =====================================================================
+       "Add a property for min and max of a token on a unit or side." Two
+       fields, one writer, and a clamp at EVERY write path in the file. The
+       paths are driven one at a time below rather than sampled, because a
+       clamp added to an absolute setter and forgotten on its nudge sibling is
+       exactly the drift this file's own paragraphs are about — and the sibling
+       is the one a press-and-hold reaches.
+
+       THE FIGHT-SLICE PATHS ARE NOT HERE. They are in [S09.12], beside the
+       fight they belong to, for this suite's own stated split. */
+
+    // Local, because a helper reached across an IIFE boundary is not reachable
+    // at all — the reason [S09.12] writes its own copy of the same two.
+    function protoIntact07() {
+      return Object.getPrototypeOf({}) === Object.prototype
+        && Object.prototype.polluted === undefined
+        && Object.prototype.min === undefined
+        && Object.prototype.max === undefined;
+    }
+    function unit07(side, unitId) {
+      return App.state.get().build[side].units.filter(function (u) {
+        return u.id === unitId;
+      })[0];
+    }
+
+    App.ops.resetToDefaults();
+    App.state.flush();
+
+    t.eq('the bounds writer and its reader are both exported, because every '
+      + 'write path in the file spends the reader and a suite that asserted '
+      + 'against a re-typed pair of numbers would be checking itself',
+      [typeof App.ops.setTokenBounds, typeof App.ops.tokenBounds],
+      ['function', 'function']);
+
+    t.eq('every one of the five types the board ships with carries the pair, '
+      + 'at the floor and the ceiling this file has enforced since Phase 1 — '
+      + 'which is the whole reason the shipped board behaves identically after '
+      + 'the change that made them data',
+      App.data.TOKEN_IDS.map(function (id) {
+        var b = App.ops.tokenBounds(App.state.get().build.tokens, id);
+        return id + ':' + b.min + '-' + b.max;
+      }).join(' '),
+      App.data.TOKEN_IDS.map(function (id) {
+        return id + ':0-' + App.data.MAX_ALLOC;
+      }).join(' '));
+
+    /* --- THE FOUR BUILD-SLICE WRITE PATHS, ONE AT A TIME, EACH AGAINST A
+           BOUND THE OTHER THREE COULD NOT HAVE SATISFIED. --- */
+    App.ops.setTokenBounds('hp', { min: 2, max: 4 });
+    App.state.flush();
+    t.eq('the pair the student authored is on the record and nothing else on it '
+      + 'moved', [App.state.get().build.tokens.hp.min,
+        App.state.get().build.tokens.hp.max,
+        App.state.get().build.tokens.hp.name,
+        App.state.get().build.tokens.hp.shape],
+      [2, 4, 'Health', 'sq']);
+
+    App.ops.setUnitMaxHp('cats', 'c1', 9);
+    App.ops.setUnitMaxHp('cats', 'c2', 0);
+    App.state.flush();
+    t.eq('THE ABSOLUTE HEALTH SETTER CLAMPS TO THE TYPE\'S OWN PAIR: nine lands '
+      + 'on the authored ceiling of four and nothing lands on the authored '
+      + 'floor of two, where both would have landed on 99 and 0 before D-35',
+      [unit07('cats', 'c1').maxHp, unit07('cats', 'c2').maxHp], [4, 2]);
+
+    var stepUp = App.ops.nudgeUnitMaxHp('cats', 'c1', 5);
+    var stepDown = App.ops.nudgeUnitMaxHp('cats', 'c2', -5);
+    App.state.flush();
+    t.eq('AND SO DOES ITS NUDGE SIBLING, WHICH IS THE HALF A CLAMP WRITTEN AT '
+      + 'ONE CALL SITE MISSES. Both are already sitting on their bound, so both '
+      + 'report FALSE — and that boolean is [S07]\'s sixth stop condition, so a '
+      + 'bound the ramp could not see would be forty no-op commits a second '
+      + 'against a number that cannot move',
+      [stepUp, stepDown, unit07('cats', 'c1').maxHp, unit07('cats', 'c2').maxHp],
+      [false, false, 4, 2]);
+
+    App.ops.setTokenBounds('shield', { min: 0, max: 1 });
+    App.ops.setUnitShield('mechs', 'm1', 7);
+    App.state.flush();
+    var shieldStep = App.ops.nudgeUnitShield('mechs', 'm1', 3);
+    App.state.flush();
+    t.eq('THE SHIELD PAIR, BOTH WRITERS, ON A CEILING OF ONE — a different type '
+      + 'and a different bound from the health rows above, so a clamp reading '
+      + 'one type\'s record for every write fails here rather than passing by '
+      + 'coincidence',
+      [unit07('mechs', 'm1').shield, shieldStep], [1, false]);
+
+    App.ops.setTokenBounds('ap', { min: 1, max: 2 });
+    App.ops.setFactionAp('cats', 8);
+    App.ops.setFactionAp('mechs', 0);
+    App.state.flush();
+    t.eq('THE FACTION POOL, WHICH IS THE ONE QUANTITY OF THE FOUR KEPT ON A '
+      + 'SIDE RATHER THAN ON A UNIT — eight lands on two and nothing lands on '
+      + 'one, so the scope a type is kept at is not something the clamp has to '
+      + 'know about',
+      [App.state.get().build.cats.ap, App.state.get().build.mechs.ap], [2, 1]);
+
+    var apStep = App.ops.nudgeFactionAp('cats', 4);
+    App.state.flush();
+    t.eq('and its nudge sibling', [apStep, App.state.get().build.cats.ap],
+      [false, 2]);
+
+    var bTally = App.ops.createTokenType({
+      name: 'Poise', shape: 'hex', color: 'violet', glyph: '', scope: 'unit'
+    });
+    App.ops.setTokenBounds(bTally, { min: 0, max: 3 });
+    App.ops.setTally('cats', 'c1', bTally, 40);
+    App.state.flush();
+    var tallyStep = App.ops.nudgeTally('cats', 'c1', bTally, 9);
+    App.state.flush();
+    t.eq('AND A TYPE THE STUDENT INVENTED, THROUGH BOTH TALLY WRITERS — D-24 '
+      + 'held one feature further out: an authored type is bounded on the same '
+      + 'terms as one the board ships with, and there is no second tier here '
+      + 'either',
+      [App.state.get().build.cats.units[0].tally[bTally], tallyStep], [3, false]);
+
+    /* --- THE CLAMP IS AT WRITE TIME AND DOES NOT REACH BACK, which is the
+           decision tokenBounds' own paragraph states and the one a reader is
+           most likely to "fix". Driven in that order, because the alternative
+           — a sweep on every bounds edit — is one op quietly rewriting every
+           number on two rosters. --- */
+    App.ops.setTokenBounds('hp', { min: 0, max: App.data.MAX_ALLOC });
+    App.ops.setUnitMaxHp('cats', 'c1', 40);
+    App.state.flush();
+    App.ops.setTokenBounds('hp', { min: 0, max: 5 });
+    App.state.flush();
+    var stoodAt = unit07('cats', 'c1').maxHp;
+    App.ops.setUnitMaxHp('cats', 'c1', 40);
+    App.state.flush();
+    t.eq('TIGHTENING A BOUND LEAVES THE NUMBERS ALREADY ON THE BOARD ALONE, AND '
+      + 'THE NEXT WRITE OBEYS IT. Forty stands at forty after the ceiling drops '
+      + 'to five, and the same write repeated lands on five — read as a PAIR, '
+      + 'because a row reading only the second figure would be green over an op '
+      + 'that had swept the whole roster on the way past',
+      [stoodAt, unit07('cats', 'c1').maxHp], [40, 5]);
+
+    /* --- THE REFUSALS. A bound is REFUSED rather than clamped, because
+           writing a different rule from the one the student typed is the
+           failure this whole file is built to avoid. The board is handed a
+           small pair FIRST so the two one-ended refusals below have a record
+           to be wrong against, and the snapshot is taken after that. --- */
+    App.ops.resetToDefaults();
+    App.ops.setTokenBounds('hp', { min: 2, max: 5 });
+    App.state.flush();
+    var boundsDepth = App.state.undoDepth();
+    var boundsBoard = JSON.stringify(App.state.get());
+    var boundsWrong = [];
+    var boundsProtoHeld = true;
+    function boundsRefuses(what, fn) {
+      var threw = false;
+      try { fn(); } catch (e) { threw = true; }
+      if (!threw) { boundsWrong.push(what); }
+      if (!protoIntact07()) { boundsProtoHeld = false; }
+    }
+    boundsRefuses('a max one past MAX_ALLOC', function () {
+      App.ops.setTokenBounds('hp', { min: 0, max: App.data.MAX_ALLOC + 1 });
+    });
+    boundsRefuses('a min below nothing', function () {
+      App.ops.setTokenBounds('hp', { min: -1, max: 5 });
+    });
+    boundsRefuses('a min above its max', function () {
+      App.ops.setTokenBounds('hp', { min: 6, max: 5 });
+    });
+    boundsRefuses('a min alone, above the max already on the record',
+      function () { App.ops.setTokenBounds('hp', { min: 6 }); });
+    boundsRefuses('a max alone, below the min already on the record',
+      function () { App.ops.setTokenBounds('hp', { max: 1 }); });
+    [1.5, '5', null, NaN, []].forEach(function (bad) {
+      boundsRefuses('a max of ' + JSON.stringify(bad), function () {
+        App.ops.setTokenBounds('hp', { max: bad });
+      });
+    });
+    App.data.RESERVED_KEYS.forEach(function (key) {
+      boundsRefuses('the reserved key ' + key, function () {
+        App.ops.setTokenBounds(key, { min: 0, max: 5 });
+      });
+    });
+    boundsRefuses('a type that is not on this board', function () {
+      App.ops.setTokenBounds('t44', { min: 0, max: 5 });
+    });
+    boundsRefuses('an id that is not a token id at all', function () {
+      App.ops.setTokenBounds('length', { min: 0, max: 5 });
+    });
+    App.state.flush();
+
+    t.eq('FIFTEEN HOSTILE BOUNDS, EVERY ONE REFUSED BY NAME — out of range at '
+      + 'either end, the wrong way round in three ways including the two where '
+      + 'only ONE end is supplied and the record holds the other, five values '
+      + 'that are not whole numbers, all three reserved prototype keys, a type '
+      + 'that is not on this board and an id that is not a token id at all',
+      boundsWrong, []);
+
+    t.ok('and the prototype held after every single one, checked inside the '
+      + 'walk rather than once at the end', boundsProtoHeld);
+    t.eq('and not one of them moved the board or left an undo entry behind it, '
+      + 'because every guard runs OUTSIDE the commit',
+      [JSON.stringify(App.state.get()) === boundsBoard,
+        App.state.undoDepth() - boundsDepth],
+      [true, 0]);
+
+    t.eq('AND A WRITE THAT CHANGES NOTHING COMMITS NOTHING, which is the no-op '
+      + 'contract setTokenStyle and renameTokenType both keep and for their '
+      + 'reason: a bounds field driven from a keystroke surface must not put a '
+      + 'do-nothing Ctrl+Z step between the student and the edit they want back',
+      (function () {
+        var was = App.state.undoDepth();
+        var moved = App.ops.setTokenBounds('hp',
+          App.ops.tokenBounds(App.state.get().build.tokens, 'hp'));
+        App.state.flush();
+        return [moved, App.state.undoDepth() - was];
+      })(), [false, 0]);
+
+    /* AND AN END LEFT OUT IS NOT A HOSTILE VALUE — it is the ONLY way to write
+       one end without restating the other, which is what the patch shape is
+       for. `undefined` therefore means "leave that end as it stands" and is
+       the one value in the table above's neighbourhood that must NOT throw.
+       Recorded as its own row because the refusal list above reads as
+       though every unusual value is refused, and this is the exception the
+       dispatch arm depends on: it builds { min: p.min, max: p.max } off a
+       payload that may carry only one of them. */
+    t.eq('an end left out leaves that end alone and moves the other, which is '
+      + 'how the router\'s one payload writes either half',
+      (function () {
+        App.ops.setTokenBounds('hp', { min: 1, max: 9 });
+        App.ops.dispatch('setTokenBounds', { tokenId: 'hp', max: 4 });
+        App.state.flush();
+        var b = App.ops.tokenBounds(App.state.get().build.tokens, 'hp');
+        App.ops.dispatch('setTokenBounds', { tokenId: 'hp', min: 3 });
+        App.state.flush();
+        var c = App.ops.tokenBounds(App.state.get().build.tokens, 'hp');
+        return [b.min, b.max, c.min, c.max];
+      })(), [1, 4, 3, 4]);
+
+    /* ===================================================================== */
+    /* ===== D-35, PART TWO: THE ROUND RULES, AS AUTHORED =================== */
+    /* =====================================================================
+       "add a feature to configure what happens each round (default +3 action
+       points, but also things like -1 of a status effect token)". What Advance
+       DOES with them is [S09.12]'s; these rows are the authoring end — the
+       shipped seed, the one writer, its cap and its refusals. */
+    App.ops.resetToDefaults();
+    App.state.flush();
+
+    t.eq('THE SHIPPED BOARD SEEDS THE DEVELOPER\'S OWN DEFAULT, AND IT IS +3 '
+      + 'ACTION POINTS TO EACH SIDE — two rules, one per side, because a rule '
+      + 'names one who and this artifact exists to let two sides look nothing '
+      + 'alike. Read as the whole list, so a third seeded rule reddens here',
+      App.state.get().build.rules,
+      [{ who: 'cats', tok: 'ap', d: 3 }, { who: 'mechs', tok: 'ap', d: 3 }]);
+
+    t.eq('AND NOT ONE OF THEM NAMES THE SHIELD, WHICH IS HOW THE OLD NO-REFILL '
+      + 'RULING SURVIVES AS AN ABSENCE. Recharge\'s shield gain is deliberately '
+      + 'absent from DEFAULTS and the shipped list carries no shield entry, so '
+      + 'nothing restores a shield — and a student who wants one now WRITES the '
+      + 'rule instead of pressing a hand ruling every round',
+      App.state.get().build.rules.filter(function (r) {
+        return r.tok === 'shield';
+      }).length, 0);
+
+    t.eq('the writer is exported, and it is the ONLY one — a second spelling of '
+      + 'a list edit is how a cap and a dense-list rule stop agreeing, which is '
+      + 'the reason the three term writers share writeSlot',
+      Object.keys(App.ops).filter(function (k) {
+        return /RoundRule/i.test(k) && typeof App.ops[k] === 'function';
+      }).sort(), ['setRoundRule']);
+
+    /* --- ONE OP COVERS APPEND, REPLACE AND REMOVE, which is setActionCost's
+           idiom argument for argument, so a student who has learned one has
+           learned the other. --- */
+    var ruleTok = App.ops.createTokenType({
+      name: 'Chill', shape: 'dia', color: 'accent-2', glyph: '', scope: 'unit'
+    });
+    var ruleAppended = App.ops.setRoundRule(2, 'catsEach', ruleTok, -1);
+    App.state.flush();
+    t.eq('A WRITE AT THE END APPENDS, and the appended rule is the developer\'s '
+      + 'own second example — one less of a status token, on each of a side\'s '
+      + 'units, which is the scope no other list in this file has',
+      [ruleAppended, App.state.get().build.rules.length,
+        App.state.get().build.rules[2]],
+      [true, 3, { who: 'catsEach', tok: ruleTok, d: -1 }]);
+
+    App.ops.setRoundRule(0, 'cats', 'ap', 9);
+    App.state.flush();
+    t.eq('A WRITE INSIDE REPLACES, and the list does not grow',
+      [App.state.get().build.rules.length, App.state.get().build.rules[0].d],
+      [3, 9]);
+
+    App.ops.setRoundRule(0, App.ops.CLEAR_TERM, null, null);
+    App.state.flush();
+    t.eq('AND A WHO OF CLEAR_TERM REMOVES THE SLOT AND CLOSES THE HOLE, so the '
+      + 'list stays dense and no walk meets an undefined one commit later',
+      App.state.get().build.rules.map(function (r) { return r.who; }),
+      ['mechs', 'catsEach']);
+
+    t.eq('a write that changes nothing commits nothing here either',
+      (function () {
+        var was = App.state.undoDepth();
+        var moved = App.ops.setRoundRule(0, 'mechs', 'ap', 3);
+        App.state.flush();
+        return [moved, App.state.undoDepth() - was];
+      })(), [false, 0]);
+
+    /* --- THE CAP, DRIVEN TO IT AND ONE PAST IT. MAX_ROUND_RULES is read off
+           the export rather than re-typed, for the reason every cap in this
+           file is exported at all. --- */
+    while (App.state.get().build.rules.length < App.data.MAX_ROUND_RULES) {
+      App.ops.setRoundRule(App.state.get().build.rules.length, 'cats', 'hp', -1);
+    }
+    App.state.flush();
+    t.eq('the list fills to MAX_ROUND_RULES and no further',
+      App.state.get().build.rules.length, App.data.MAX_ROUND_RULES);
+    t.throws('and the slot one past the cap is REFUSED rather than clamped to '
+      + 'the last one — a clamp would write slot 0 for a caller that asked for '
+      + 'slot 8 and then report success, so the student\'s rule would change '
+      + 'somewhere they were not looking', function () {
+        App.ops.setRoundRule(App.data.MAX_ROUND_RULES, 'cats', 'ap', 1);
+      });
+
+    /* --- the refusals, in the bad-input-table idiom this suite already uses
+           twice. Every one of them names a DIFFERENT guard. --- */
+    App.ops.resetToDefaults();
+    App.state.flush();
+    var ruleDepth = App.state.undoDepth();
+    var ruleBoard = JSON.stringify(App.state.get());
+    var ruleWrong = [];
+    var ruleProtoHeld = true;
+    function ruleRefuses(what, fn) {
+      var threw = false;
+      try { fn(); } catch (e) { threw = true; }
+      if (!threw) { ruleWrong.push(what); }
+      if (!protoIntact07()) { ruleProtoHeld = false; }
+    }
+    ['catsUnits', 'CATS', '', 'both', undefined, 7, {}].forEach(function (bad) {
+      ruleRefuses('a who of ' + JSON.stringify(bad), function () {
+        App.ops.setRoundRule(0, bad, 'ap', 1);
+      });
+    });
+    App.data.RESERVED_KEYS.forEach(function (key) {
+      ruleRefuses('a token of ' + key, function () {
+        App.ops.setRoundRule(0, 'cats', key, 1);
+      });
+    });
+    ruleRefuses('a token that is not on this board', function () {
+      App.ops.setRoundRule(0, 'cats', 't44', 1);
+    });
+    ruleRefuses('a delta of nothing, which is a line a student reads every '
+      + 'round and cannot act on', function () {
+        App.ops.setRoundRule(0, 'cats', 'ap', 0);
+      });
+    [null, '3', 1.5, NaN, undefined, []].forEach(function (bad) {
+      ruleRefuses('a delta of ' + JSON.stringify(bad), function () {
+        App.ops.setRoundRule(0, 'cats', 'ap', bad);
+      });
+    });
+    [-1, 1.5, '0', null, App.data.MAX_ROUND_RULES + 1].forEach(function (bad) {
+      ruleRefuses('a slot of ' + JSON.stringify(bad), function () {
+        App.ops.setRoundRule(bad, 'cats', 'ap', 1);
+      });
+    });
+    ruleRefuses('a slot PAST the end of the list, which would open a hole a '
+      + 'walk meets as undefined', function () {
+        App.ops.setRoundRule(3, 'cats', 'ap', 1);
+      });
+    App.state.flush();
+
+    t.eq('TWENTY-FOUR HOSTILE DRIVES ACROSS ALL FOUR ARGUMENTS OF THE ONE RULE '
+      + 'WRITER — seven parties including one that reads like a real scope and '
+      + 'is not, all three reserved prototype keys and a type that is not on '
+      + 'this board, a delta of nothing and six that are not whole numbers, '
+      + 'five slots that are not slots and one past the end of a dense list — '
+      + 'every one refused BY NAME',
+      ruleWrong, []);
+    t.ok('and the prototype held after every single one, checked inside the '
+      + 'walk rather than once at the end', ruleProtoHeld);
+    t.eq('not one of them moved the board or left an undo entry behind it',
+      [JSON.stringify(App.state.get()) === ruleBoard,
+        App.state.undoDepth() - ruleDepth],
+      [true, 0]);
+
+    /* --- A RULE NAMES A TYPE, SO REMOVING THAT TYPE HAS A CONSEQUENCE THE
+           STUDENT DESERVES TO SEE FIRST. This is ACT-07's treatment one scope
+           up, and it is deliberately the SAME treatment: the removal is
+           allowed and the rule is NOT rewritten, because a rewritten rule is a
+           silently changed rule. rulesNaming is what lets the surface say what
+           will break, and Advance refuses BY NAME at fire time — [S09.12]
+           drives that half. --- */
+    App.ops.resetToDefaults();
+    var goneTok = App.ops.createTokenType({
+      name: 'Ember', shape: 'circ', color: 'coral', glyph: '', scope: 'unit'
+    });
+    App.ops.setRoundRule(2, 'mechsEach', goneTok, -2);
+    App.state.flush();
+    t.eq('rulesNaming answers with the slot a student can go and edit, not with '
+      + 'a count — the same shape actionsNaming hands the surface one scope down',
+      App.ops.rulesNaming(App.state.get().build, goneTok),
+      [{ at: 2, who: 'mechsEach', tok: goneTok }]);
+    t.eq('and with nothing at all for a type no rule names',
+      App.ops.rulesNaming(App.state.get().build, 'shield'), []);
+    App.ops.removeTokenType(goneTok);
+    App.state.flush();
+    t.eq('THE REMOVAL IS ALLOWED AND THE RULE IS LEFT EXACTLY AS THE STUDENT '
+      + 'WROTE IT, still naming the departed type. That is ACT-07\'s ruling and '
+      + 'not an oversight: a rule this file quietly repaired would be a rule '
+      + 'that no longer says what the student wrote, with no step to undo and '
+      + 'nothing on screen to notice',
+      App.state.get().build.rules[2], { who: 'mechsEach', tok: goneTok, d: -2 });
+
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the token-authoring suite handed the board back untouched',
@@ -33159,6 +33608,21 @@ App.selftest = (function () {
               }
             });
         });
+        /* D-35 AT THE CEILING, AND LAST FOR BOARD B's REASON: a bound authored
+           before the tallies above would have clamped them, and a ceiling board
+           whose numbers were quietly cut is a ceiling measured against a board
+           no student can build. Every one of the eleven types is given a pair
+           of its own — a distinct one, so the name table cannot absorb them —
+           and the rule list is filled to MAX_ROUND_RULES across all four
+           parties, which is the widest a build code can be on this feature. */
+        App.data.TOKEN_IDS.concat(made).forEach(function (id, i) {
+          App.ops.setTokenBounds(id, { min: 1 + (i % 9), max: 90 - (i % 7) });
+        });
+        for (var q = 0; q < App.data.MAX_ROUND_RULES; q++) {
+          App.ops.setRoundRule(q, App.data.ROUND_WHO_IDS[q % App.data.ROUND_WHO_IDS.length],
+            (q % 2 === 0) ? made[q % made.length] : 'hp',
+            (q % 2 === 0) ? -97 : 97);
+        }
         return liveBuild();
       };
     }
@@ -33176,8 +33640,10 @@ App.selftest = (function () {
           + 'another restyled, two types of their own (one kept per unit, one on the whole '
           + 'side), four tallies, three actions of their own carrying a cost, a requirement '
           + 'and two changes, a shipped action renamed, and a unit removed so the ids have '
-          + 'a hole in them',
-        measured: 297,
+          + 'a hole in them. RE-MEASURED UNDER D-35, which added two authored bounds and '
+          + 'three round rules to this fixture so the refusal matrix has a bounds field '
+          + 'and a rules section to tamper: 297 before, 344 after',
+        measured: 344,
         drive: function () {
           App.ops.resetToDefaults();
           fillTo('cats', 12);
@@ -33214,6 +33680,21 @@ App.selftest = (function () {
           App.ops.renameAction('mechs', 'lasers', 'Beam');
           App.ops.removeUnit('cats', 'c3');
           App.ops.addUnit('cats');
+          /* D-35 ARRIVES ON THIS BOARD LAST, AND LAST IS DELIBERATE. Bounds
+             clamp at write time, so a pair authored BEFORE the health and
+             shield writes above would have clamped them and this fixture would
+             quietly stop being the board its description names. Authored here,
+             they bound writes that have not happened yet — which is the
+             semantic the ops keep and the one the codec has to carry.
+             Board B is also the REFUSAL MATRIX's fixture, so it is the board
+             that has to carry a rules section and a vocabulary record long
+             enough to have a bound in it; without both, four of the tamper
+             shapes below would have nothing to edit. */
+          App.ops.setTokenBounds('hp', { min: 1, max: 12 });
+          App.ops.setTokenBounds(poison, { min: 0, max: 5 });
+          App.ops.setRoundRule(0, 'cats', 'ap', 4);
+          App.ops.setRoundRule(2, 'catsEach', poison, -1);
+          App.ops.setRoundRule(3, 'cats', pace, 2);
           return liveBuild();
         }
       },
@@ -33233,8 +33714,14 @@ App.selftest = (function () {
       {
         mark: 'E',
         what: '24 versus 24 with all six types of the student\'s own, a tally for every '
-          + 'type on every unit, and six actions of their own, all with ordinary short names',
-        measured: 675,
+          + 'type on every unit, and six actions of their own, all with ordinary short '
+          + 'names. RE-MEASURED UNDER D-35: 879 before and 909 after, the difference '
+          + 'being five characters of bounds on each of the six authored types. THIS '
+          + 'FIGURE READ 675 UNTIL NOW AND WAS ALREADY STALE — D-32 raised the three '
+          + 'term caps and re-measured H and I in this same field while leaving E\'s at '
+          + 'the pre-D-32 number, which is exactly the drift an INFO row cannot catch, '
+          + 'because an INFO row never fails. Recorded rather than quietly corrected',
+        measured: 909,
         drive: function () {
           App.ops.resetToDefaults();
           fillTo('cats', App.ops.MAX_UNITS);
@@ -33275,16 +33762,20 @@ App.selftest = (function () {
           + 'two-digit values everywhere, and all twenty-three nameable things given '
           + 'distinct names at the code-point cap. RE-MEASURED UNDER D-32, which raised '
           + 'all three term caps to four and drove the cost list to its cap here too: it '
-          + 'read 2984 before that change and reads 3434 after it',
-        measured: 3434,
+          + 'read 2984 before that change and 3434 after it. RE-MEASURED AGAIN UNDER '
+          + 'D-35, which gives all eleven types a distinct authored pair of bounds and '
+          + 'fills the round-rule list to MAX_ROUND_RULES across all four parties: 3542',
+        measured: 3542,
         drive: ceilingBoard(longAscii)
       },
       {
         mark: 'I',
         what: 'the same ceiling with every one of those names written in astral emoji, '
           + 'which is twice the UTF-16 units and four times the bytes. RE-MEASURED UNDER '
-          + 'D-32: 3186 before, 3636 after',
-        measured: 3636,
+          + 'D-32: 3186 before, 3636 after. AND AGAIN UNDER D-35: 3744, the same 108 '
+          + 'characters its ASCII twin gained, because bounds and rules are ordinals and '
+          + 'numbers and carry no text for a name table to pay for',
+        measured: 3744,
         drive: ceilingBoard(longAstral)
       }
     ];
@@ -33382,6 +33873,103 @@ App.selftest = (function () {
         return (back !== null && back.ok === true) ? stableText(back.build) : 'refused';
       })(), stableText(derivedBoard));
 
+    /* --- D-35: THE WIRE STAYS v1, AND THIS IS THE ROW THAT EARNS IT ---------
+           D-35 says: stay v1 ONLY if the grammar extension is honestly
+           backwards-decodable, otherwise bump to v2 with v1 still decoded. The
+           extension is two things, and each is backwards-decodable by
+           CONSTRUCTION rather than by hope:
+             - a vocabulary record gained two fields ON THE END, so a record at
+               the old length means "the shipped bounds";
+             - the rules are a SECTION ON THE END that is only written when the
+               list differs from the shipped one, so a body at the old section
+               count means "the shipped rules".
+
+           BUT CONSTRUCTION IS AN ARGUMENT AND THIS ROW IS A MEASUREMENT. The
+           string below is a REAL v1 code, produced by driving the artifact AT
+           COMMIT fe67194 — the commit before D-35 — through renameTokenType,
+           setTokenStyle, createTokenType, setTally, setFactionAp, setUnitMaxHp
+           and addUnit. It carries a five-field built-in record, a six-field
+           custom record and sixteen sections, which is every shape the old
+           grammar could produce. Nothing in this file can move it.
+
+           IT IS PASTED AS A LITERAL AND NOT RE-DERIVED, for the reason the
+           fight-slice literal in [S09.12] is: a code this file generated would
+           agree with this file, which is the one thing the row must not do. */
+    var D35_OLD_CODE = 'v1~NVmlnb3Vy.RGFtYWdl.UG9pc29u~V0.0.0.0.0_3.3.3.8.1_C1.4.4.f.0.2'
+      + '~A9~5~6!0-8*3!0~5!2-8*~~~~B4~3~4*6!3~4*~~~~7nwy';
+    var d35Old = App.serialize.decode(D35_OLD_CODE);
+
+    t.eq('A BUILD CODE FROM BEFORE D-35 STILL LOADS, AND LOADS THE BOARD IT WAS WRITTEN '
+      + 'ON. Sixteen sections and a five-field vocabulary record — every shape the old '
+      + 'grammar could produce — and the board that comes back is the classmate\u2019s: a '
+      + 'renamed Health, a restyled Damage, a type of their own carrying a tally, a pool '
+      + 'of five, a cat at six health and a fourth mech. This is what keeps the wire at '
+      + 'v1: the extension is backwards-decodable in fact, not only in argument',
+      d35Old.ok !== true ? String(d35Old.why) + '/' + String(d35Old.what)
+        : [d35Old.build.tokens.hp.name, d35Old.build.tokens.t1.name,
+          d35Old.build.cats.units[0].tally.t1, d35Old.build.cats.ap,
+          d35Old.build.cats.units[0].maxHp, d35Old.build.mechs.units.length].join(' '),
+      'Vigour Poison 2 5 6 4');
+
+    t.eq('AND EVERY TYPE ON IT COMES BACK WITH THE BOUNDS THIS FILE HAS ALWAYS ENFORCED, '
+      + 'which is the only honest reading of a code that says nothing about them — a '
+      + 'decoder that invented a narrower pair would silently change a board, and one '
+      + 'that left the fields off entirely would hand back a record the ops do not write',
+      d35Old.ok !== true ? 'refused'
+        : Object.keys(d35Old.build.tokens).map(function (id) {
+          return d35Old.build.tokens[id].min + '-' + d35Old.build.tokens[id].max;
+        }).join(' '),
+      new Array(7).join('0-' + App.data.MAX_ALLOC + ' ').trim());
+
+    t.eq('AND IT COMES BACK WITH THE SHIPPED ROUND RULES, which is the other honest '
+      + 'reading: a board written before the feature existed played by the rule Advance '
+      + 'then had, and the shipped +3 to each side IS that rule expressed as data',
+      d35Old.ok !== true ? 'refused' : d35Old.build.rules,
+      App.data.DEFAULTS.rules);
+
+    t.eq('AND THE SHIPPED BOARD STILL WRITES THE CODE IT WROTE BEFORE D-35, CHARACTER FOR '
+      + 'CHARACTER. Forty-five characters, the same forty-five: an untouched board writes '
+      + 'no vocabulary record to hang a bound on and its rules match the seed, so the '
+      + 'rules section is not written at all. The differences-only rule is what makes a '
+      + 'schema extension cost nothing on the board every student starts from',
+      (function () {
+        App.ops.resetToDefaults();
+        return App.serialize.encode(liveBuild());
+      })(), 'v1~N~V~A9~3~9*3!0~9*~~~~B3~3~3*6!3~3*~~~~7tvo');
+
+    t.eq('AND A STUDENT WHO DELETES EVERY ROUND RULE CAN SHARE THAT, which is the one '
+      + 'case "only write the differences" could have made unsayable: an EMPTY rules '
+      + 'section and an ABSENT one mean different things, and the empty one round trips '
+      + 'to an empty list rather than to the seed',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.setRoundRule(1, App.ops.CLEAR_TERM, null, null);
+        App.ops.setRoundRule(0, App.ops.CLEAR_TERM, null, null);
+        var code = App.serialize.encode(liveBuild());
+        var back = App.serialize.decode(code);
+        return [App.state.get().build.rules.length,
+          back.ok === true ? back.build.rules.length : 'refused',
+          code.split(App.data.CODE_SEP.section).length];
+      })(), [0, 0, 19]);
+
+    t.eq('AND A BOARD CARRYING D-35 AT ITS CAP ROUND TRIPS EXACTLY — every one of the '
+      + 'eleven types given a distinct authored pair and the rule list filled to '
+      + 'MAX_ROUND_RULES across all four parties, which is board H. Asserted as a '
+      + 'BYTE-IDENTICAL re-encode and not only as an equal board, because a rules list '
+      + 'is ORDERED — Advance walks it in the order the student wrote it, and two rules '
+      + 'on one token in the other order are a different round',
+      (function () {
+        var live = BOARDS[4].drive();
+        var code = App.serialize.encode(live);
+        var back = App.serialize.decode(code);
+        if (back.ok !== true) { return 'refused'; }
+        return [back.build.rules.length,
+          App.serialize.encode(back.build) === code].join(' ');
+      })(), App.data.MAX_ROUND_RULES + ' true');
+
+    App.ops.resetToDefaults();
+    App.state.flush();
+
     /* --- THE SIZE BUDGET, WITH THE MEASURED MARGIN WRITTEN IN. Three gates
            against numbers in the source, so a schema regression is loud rather
            than absorbed. Boards H and I are deliberately NOT gated: they are
@@ -33392,8 +33980,16 @@ App.selftest = (function () {
       + 'and it is that short only because a type or an action still identical to the one '
       + 'the file ships writes nothing at all',
       measured.A < 60);
+    /* TURNED IN THE OPEN UNDER D-35, RE-MEASURED RATHER THAN SCALED, exactly as
+       D-32 turned the row below it. Board B gained two authored bounds and three
+       round rules — 297 to 344 — and the threshold does not move, because the
+       claim this row makes is about the DESIGN TARGET and 344 is still 168
+       characters inside it. The two numbers a reader needs are both here: what a
+       realistic student build costs, and how much of SHARE-04's budget that is. */
     t.ok('a board a student could actually build fits in 400 characters, and it measures '
-      + '297 — a margin of 103, and comfortably inside the design target of 512',
+      + '344 — a margin of 56, and comfortably inside the design target of 512 with the '
+      + 'whole of D-35 authored on it: two token types bounded and three round rules '
+      + 'written, which together cost 47 characters',
       measured.B < 400);
     /* TURNED IN THE OPEN UNDER D-32, AND RE-MEASURED RATHER THAN SCALED. This
        row read "fits in 800 characters, and it measures 675 — a margin of 125"
@@ -33406,9 +34002,10 @@ App.selftest = (function () {
        wearing a measurement's clothes. The threshold moves with it, to 1000,
        which keeps the same shape of claim: a round ceiling above the measured
        figure with the margin written in. */
-    t.ok('a fully authored 24-versus-24 board fits in 1000 characters, and it measures 879 '
-      + '— a margin of 121, and comfortably under half the message limit and well under '
-      + 'the warning threshold the share surface draws',
+    t.ok('a fully authored 24-versus-24 board fits in 1000 characters, and it measures 909 '
+      + '— a margin of 91, and comfortably under half the message limit and well under '
+      + 'the warning threshold the share surface draws. D-35 moved it by 30, which is '
+      + 'five characters of bounds on each of the six types this board invents',
       measured.E < 1000);
     t.ok('and it is still under CODE_WARN, so the surface says nothing about it — which '
       + 'is the claim that actually matters to a student, and it is read off the exported '
@@ -33541,7 +34138,7 @@ App.selftest = (function () {
       + 'a version skew, and it is noted rather than fixed',
       wireCode.indexOf(App.data.CODE_VERSION + App.data.CODE_SEP.section) === 0);
 
-    t.info('a maxed action on the wire — the whole board, characters, measured at 232 '
+    t.info('a maxed action on the wire — the whole board, characters, measured at 242 '
       + 'when this row was written. Two actions at the cap on all three lists, a '
       + 'vocabulary with two types the student made, and it is a quarter of '
       + 'the way to the design target — which is the size answer to "is four terms '
@@ -33551,10 +34148,12 @@ App.selftest = (function () {
     /* --- THE REFUSAL MATRIX — SEVENTEEN WAYS OF BEING WRONG, EACH REACHING
            THE GUARD IT IS NAMED AFTER.
 
-           TWENTY UNDER D-32, WHICH ADDED THREE. The heading keeps SEVENTEEN in
-           view because that was research's own count and the number's whole
-           value is its provenance; the three added are one per term list, and
-           the two rows at the foot of this block carry the arithmetic.
+           TWENTY-EIGHT UNDER D-35. The heading keeps SEVENTEEN in view because
+           that was research's own count and the number's whole value is its
+           provenance; D-32 added three, one per term list, and D-35 added
+           eight — two for a token type's authored bounds and six for the round
+           rules — and the two rows at the foot of this block carry the
+           arithmetic.
 
            SHARE-03 is half "a good code comes back exactly" and half "a bad
            one is refused by name and changes nothing". The rows above are the
@@ -33650,6 +34249,33 @@ App.selftest = (function () {
        the row would be about the wrong thing. The digest is recomputed by
        tampered() exactly as every other content row's is. */
     var ACTION_FIELD = 8;
+    /* D-35's TAMPER SITES. The rules are the LAST section of the body, which
+       for this fixture is parts[16] — board B authors three rules, so the
+       section is written and there is something in it to edit. The bound
+       fields sit on the END of a vocabulary record, at positions 5 and 6 of a
+       built-in's seven, so editBuiltin above reaches them with no new helper. */
+    var RULE_FIELD = 16;
+    function ruleRecordsOf(made) {
+      return made[RULE_FIELD].slice(1).split(App.data.CODE_SEP.record);
+    }
+    function putRules(made, records) {
+      made[RULE_FIELD] = 'R' + records.join(App.data.CODE_SEP.record);
+    }
+    function editRule(at, value) {
+      return tampered(function (made) {
+        var records = ruleRecordsOf(made);
+        records[0] = putField(records[0], at, value);
+        putRules(made, records);
+      });
+    }
+    function overRules(count) {
+      return tampered(function (made) {
+        var records = ruleRecordsOf(made);
+        var many = [];
+        for (var i = 0; i < count; i++) { many.push(records[0]); }
+        putRules(made, many);
+      });
+    }
     function overTerms(fieldAt, count, isChange) {
       return tampered(function (made) {
         var records = made[ACTION_FIELD].split(App.data.CODE_SEP.record);
@@ -33789,7 +34415,63 @@ App.selftest = (function () {
         what_it_is: 'an action carrying one more transformation than MAX_ACTION_XF, '
           + 'which is the third of three guards and the one a two-shape matrix leaves '
           + 'unreached',
-        code: overTerms(4, App.data.MAX_ACTION_XF + 1, true) }
+        code: overTerms(4, App.data.MAX_ACTION_XF + 1, true) },
+
+      /* --- THE EIGHT D-35 ADDED — two for the bounds, six for the round
+             rules, and every one of them reaching a guard NO OTHER ROW IN THIS
+             MATRIX REACHES. They matter for the reason the D-32 three do and
+             one reason more: both features are new SURFACE on the wire, so
+             until these rows existed a code could carry a bound of 4,000 or a
+             list of forty rules and the whole matrix would have been green
+             over it. The `what` strings are eight distinct readings rather
+             than one message with a noun in it, which is what says the decoder
+             runs eight separate guards rather than one loop a single shape
+             would satisfy. --- */
+      { at: 'content', why: 'content', what: 'a bound is out of bounds',
+        what_it_is: 'a token type whose authored MAXIMUM is one past MAX_ALLOC — a rule '
+          + 'no write path in this file would ever have admitted, arriving on a field '
+          + 'that did not exist before D-35',
+        code: editBuiltin(6, App.serialize.n36(App.data.MAX_ALLOC + 1)) },
+      { at: 'content', why: 'content', what: 'a bound is upside down',
+        what_it_is: 'a token type whose minimum is above its maximum, which is a rule no '
+          + 'number can satisfy — int() would answer the minimum for every write and the '
+          + 'board would silently hold one value forever',
+        code: editBuiltin(5, App.serialize.n36(App.data.MAX_ALLOC)) },
+      { at: 'content', why: 'content', what: 'too many round rules',
+        what_it_is: 'a rules list one longer than MAX_ROUND_RULES — the shape a code '
+          + 'written by a later version of this file arrives in, and the only thing '
+          + 'standing between it and a board the ops would refuse to have built, because '
+          + 'the rules grammar is COUNT-DRIVEN exactly as the term lists are',
+        code: overRules(App.data.MAX_ROUND_RULES + 1) },
+      { at: 'content', why: 'content', what: 'a round rule names no token type',
+        what_it_is: 'a round rule whose token ordinal is past the end of the vocabulary '
+          + 'the code itself carries — a rule naming a type that departed, refused by its '
+          + 'OWN reading rather than by a dereference of undefined',
+        code: editRule(1, App.serialize.n36(60)) },
+      { at: 'content', why: 'content', what: 'no such round rule party',
+        what_it_is: 'a round rule naming a party past the end of ROUND_WHO, which is the '
+          + 'guard a code from a file that had added a fifth scope would meet',
+        code: editRule(0, App.serialize.n36(App.data.ROUND_WHO_IDS.length)) },
+      { at: 'content', why: 'content', what: 'a round rule is the wrong shape',
+        what_it_is: 'a round rule carrying two fields where the grammar has three, which '
+          + 'is what a truncated section looks like from the inside',
+        code: tampered(function (made) {
+          var records = ruleRecordsOf(made);
+          records[0] = records[0].split(App.data.CODE_SEP.field).slice(0, 2)
+            .join(App.data.CODE_SEP.field);
+          putRules(made, records);
+        }) },
+      { at: 'content', why: 'content', what: 'a round rule is out of bounds',
+        what_it_is: 'a round rule whose amount is one past MAX_XF_DELTA once the bias is '
+          + 'taken off — refused against the real number rather than against the biased '
+          + 'spelling nobody reasons in, which is the treatment a transformation already '
+          + 'gets one scope down',
+        code: editRule(2, App.serialize.n36(App.data.MAX_XF_DELTA * 2 + 1)) },
+      { at: 'content', why: 'content', what: 'a round rule of nothing is not written down',
+        what_it_is: 'a round rule that changes nothing, which the write path refuses and '
+          + 'the wire must refuse too — a line a student reads every round and cannot act '
+          + 'on has no place in a list they have to check against the board',
+        code: editRule(2, App.serialize.n36(App.data.MAX_XF_DELTA)) }
     ];
 
     REFUSALS.forEach(function (row) {
@@ -33823,11 +34505,22 @@ App.selftest = (function () {
        point of the number is that the matrix is complete against a list
        somebody drew up, and a total with no provenance is a number nobody can
        check. */
-    t.eq('there are FIFTEEN content rows — research measured twelve, and D-32 added one '
-      + 'per term list when it made all three caps reachable from a paste. The matrix '
-      + 'is twenty tamper shapes, of which one is the version, two are the digest and '
-      + 'two are not a build code at all',
-      contentRows.length, 15);
+    /* TURNED IN THE OPEN AGAIN UNDER D-35, AND THE MATRIX GREW RATHER THAN
+       MOVED — the second time this row has been turned and for the same reason
+       D-32 turned it: a schema extension creates new ways for a code to be
+       wrong, and each of them has to reach a guard of its OWN. Eight shapes
+       were added, two for the authored bounds and six for the round rules, and
+       both totals move with them. The recorded RED is the run on the commit
+       that added the shapes with these numbers still at 15 and 20. Research's
+       twelve is still in the sentence, because the point of the number is that
+       the matrix is complete against a list somebody drew up, and a total with
+       no provenance is a number nobody can check. */
+    t.eq('there are TWENTY-THREE content rows — research measured twelve, D-32 added one '
+      + 'per term list when it made all three caps reachable from a paste, and D-35 '
+      + 'added eight: two for a token type’s authored bounds and six for the round '
+      + 'rules. The matrix is twenty-eight tamper shapes, of which one is the version, '
+      + 'two are the digest and two are not a build code at all',
+      contentRows.length, 23);
     t.ok('every content row\'s code carries a digest RECOMPUTED over its own tampered body, '
       + 'which is the only reason any of them reaches the guard it names rather than '
       + 'stopping four characters earlier — without this the matrix is one guard asserted '
@@ -33838,14 +34531,14 @@ App.selftest = (function () {
       + 'row is a code that was never tampered at all', contentRows.every(function (row) {
         return bodyOf(row.code) !== bodyOf(hostileCode);
       }));
-    t.eq('the fifteen name their guards as fifteen readings rather than one repeated — '
-      + 'fourteen distinct `what` strings over fifteen rows, the repeat being the '
-      + 'roster read from both ends. D-32\'s three are three DISTINCT strings and not '
-      + 'one cap message with a noun in it, which is what says the decoder runs three '
-      + 'separate guards over three separate fields rather than one loop that would be '
-      + 'green over a code the cost cap alone had stopped',
+    t.eq('the twenty-three name their guards as twenty-three readings rather than one '
+      + 'repeated — twenty-two distinct `what` strings over twenty-three rows, the '
+      + 'repeat being the roster read from both ends. D-32\'s three and D-35\'s eight '
+      + 'are eleven DISTINCT strings and not two cap messages with nouns in them, which '
+      + 'is what says the decoder runs a separate guard over each separate field rather '
+      + 'than one loop that would be green over a code the first cap had stopped',
       contentRows.map(function (row) { return row.what; })
-        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 14);
+        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 22);
 
     /* --- AND THE VERSION IS READ BEFORE THE DIGEST IS EVEN COMPUTED. The row
            above uses an untouched body, so its digest is still valid and the
@@ -34109,13 +34802,15 @@ App.selftest = (function () {
       + '"leaves the current build untouched", asserted rather than reasoned about',
       afterSweep, beforeSweep);
     // TURNED IN THE OPEN UNDER D-32: the totals were 37 and 35 and moved with
-    // the three over-cap shapes the matrix gained, one per term list. The claim
-    // — that the sweep is not vacuous and that nothing in it THREW — is
-    // unchanged, which is why the row is rewritten to the new counts rather
-    // than loosened into a comparison.
-    t.eq('and the sweep was not vacuous: forty codes went in, thirty-eight of them '
+    // the three over-cap shapes the matrix gained, one per term list. TURNED
+    // AGAIN UNDER D-35, which added eight more — two for the authored bounds
+    // and six for the round rules — so they read 48 and 46. The claim, that
+    // the sweep is not vacuous and that nothing in it THREW, is unchanged both
+    // times, which is why the row is rewritten to the new counts rather than
+    // loosened into a comparison that would stop counting anything.
+    t.eq('and the sweep was not vacuous: forty-eight codes went in, forty-six of them '
       + 'were refused, the other two are the good codes the paste table admits, and NOT '
-      + 'ONE of them threw', [everyBadCode.length, sweepRefused, sweepThrew], [40, 38, 0]);
+      + 'ONE of them threw', [everyBadCode.length, sweepRefused, sweepThrew], [48, 46, 0]);
     t.eq('and not one refusal carried a `build` key at all, so there is no partial board '
       + 'anywhere for a caller to half-apply even by mistake — a refusal is a record with '
       + 'a reason on it and nothing else', sweepPartial, 0);
@@ -36978,6 +37673,406 @@ App.selftest = (function () {
         + 'budget is a hundred times',
         [at0.cost, at10.cost, atCap.cost].join(' / '));
     })();
+
+    /* ===================================================================== */
+    /* ===== D-35: THE BOUNDS AND THE ROUND RULES, AT THE FIGHT END ========= */
+    /* =====================================================================
+       [S09.7] holds the authoring end — the writers, their guards and their
+       caps. These are the rows that need a FIGHT: the fight-slice write paths
+       obeying a type's authored pair, the applier obeying it, and what Advance
+       does with the student's list where the hardcoded refill used to be.
+
+       THE FIRST ROW OF THIS BLOCK IS THE ONE THAT MATTERS MOST, and it is the
+       one this whole change is answerable to: the shipped board's fight, driven
+       three rounds, is BYTE-IDENTICAL to what it was before the round rules
+       existed. It is asserted against a literal captured from the file at the
+       commit before this change rather than against a recomputation, because a
+       recomputation would agree with whatever this file now does. */
+
+    /* --- THE SHIPPED FIGHT, WHOLE, FROM BEFORE D-35 -----------------------
+       Captured by driving the artifact AT COMMIT fe67194 — three full rounds
+       of the 9v3 board, every declaration a shipped action, both pools spent to
+       nothing each round. It is the entire fight slice and not a digest of it,
+       so a difference anywhere in the history, the per-declaration record, the
+       split figures or the live board fails here.
+
+       WHY A LITERAL AND NOT A SECOND COMPUTATION: the +3 rule reproducing the
+       refill is the claim, and a row that recomputed the expectation from the
+       shipped rules would be comparing this file against itself and calling the
+       agreement evidence. This string is the OLD file's answer, and nothing in
+       the new one can move it.
+
+       WHAT IT WILL COST A LATER PLAN, said plainly: any deliberate change to
+       the fight record's shape reddens this row, and turning it means driving
+       the same three rounds and pasting the new answer with the reason beside
+       it. That is the price of a regression pin this exact, and it is the right
+       price for the one claim a "byte-identical" promise is made of. */
+    var D35_FIGHT_BEFORE =
+      '{"round":4,"decl":[],"past":[{"round":1,"was":{"cats":{"ap":3,"units":[{"id":"c1","hp":3,"sh'
+        +       'ield":0,"alive":true},{"id":"c2","hp":3,"shield":0,"alive":true},{"id":"c3","hp":3,"shield":'
+        +       '0,"alive":true},{"id":"c4","hp":3,"shield":0,"alive":true},{"id":"c5","hp":3,"shield":0,"ali'
+        +       've":true},{"id":"c6","hp":3,"shield":0,"alive":true},{"id":"c7","hp":3,"shield":0,"alive":tr'
+        +       'ue},{"id":"c8","hp":3,"shield":0,"alive":true},{"id":"c9","hp":3,"shield":0,"alive":true}]},'
+        +       '"mechs":{"ap":3,"units":[{"id":"m1","hp":6,"shield":3,"alive":true},{"id":"m2","hp":6,"shiel'
+        +       'd":3,"alive":true},{"id":"m3","hp":6,"shield":3,"alive":true}]}},"did":[{"side":"cats","act"'
+        +       ':"slash","by":"c1","at":"m1","apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}]'
+        +       ',"hit":{"shield":1,"health":0,"spare":0},"unlanded":[]},{"side":"cats","act":"slash","by":"c'
+        +       '2","at":"m1","apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield"'
+        +       ':1,"health":0,"spare":0},"unlanded":[]},{"side":"cats","act":"slash","by":"c3","at":"m2","ap'
+        +       'Paid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":1,"health":0,"s'
+        +       'pare":0},"unlanded":[]},{"side":"mechs","act":"lasers","by":"m1","at":"c1","apPaid":1,"apSho'
+        +       'rt":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":0,"health":3,"spare":0},"unla'
+        +       'nded":[]},{"side":"mechs","act":"fly","by":"m2","at":null,"apPaid":1,"apShort":0,"spent":[{"'
+        +       'tok":"ap","want":1,"paid":1}],"hit":{"shield":0,"health":0,"spare":0},"unlanded":[]},{"side"'
+        +       ':"mechs","act":"recharge","by":"m3","at":null,"apPaid":1,"apShort":0,"spent":[{"tok":"ap","w'
+        +       'ant":1,"paid":1}],"hit":{"shield":0,"health":0,"spare":0},"unlanded":[]}]},{"round":2,"was":'
+        +       '{"cats":{"ap":3,"units":[{"id":"c1","hp":0,"shield":0,"alive":true},{"id":"c2","hp":3,"shiel'
+        +       'd":0,"alive":true},{"id":"c3","hp":3,"shield":0,"alive":true},{"id":"c4","hp":3,"shield":0,"'
+        +       'alive":true},{"id":"c5","hp":3,"shield":0,"alive":true},{"id":"c6","hp":3,"shield":0,"alive"'
+        +       ':true},{"id":"c7","hp":3,"shield":0,"alive":true},{"id":"c8","hp":3,"shield":0,"alive":true}'
+        +       ',{"id":"c9","hp":3,"shield":0,"alive":true}]},"mechs":{"ap":3,"units":[{"id":"m1","hp":6,"sh'
+        +       'ield":1,"alive":true},{"id":"m2","hp":6,"shield":2,"alive":true},{"id":"m3","hp":6,"shield":'
+        +       '3,"alive":true}]}},"did":[{"side":"cats","act":"slash","by":"c1","at":"m1","apPaid":1,"apSho'
+        +       'rt":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":1,"health":0,"spare":0},"unla'
+        +       'nded":[]},{"side":"cats","act":"slash","by":"c2","at":"m1","apPaid":1,"apShort":0,"spent":[{'
+        +       '"tok":"ap","want":1,"paid":1}],"hit":{"shield":0,"health":1,"spare":0},"unlanded":[]},{"side'
+        +       '":"cats","act":"slash","by":"c3","at":"m2","apPaid":1,"apShort":0,"spent":[{"tok":"ap","want'
+        +       '":1,"paid":1}],"hit":{"shield":1,"health":0,"spare":0},"unlanded":[]},{"side":"mechs","act":'
+        +       '"lasers","by":"m1","at":"c1","apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}]'
+        +       ',"hit":{"shield":0,"health":0,"spare":3},"unlanded":[]},{"side":"mechs","act":"fly","by":"m2'
+        +       '","at":null,"apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":'
+        +       '0,"health":0,"spare":0},"unlanded":[]},{"side":"mechs","act":"recharge","by":"m3","at":null,'
+        +       '"apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":0,"health":0'
+        +       ',"spare":0},"unlanded":[]}]},{"round":3,"was":{"cats":{"ap":3,"units":[{"id":"c1","hp":0,"sh'
+        +       'ield":0,"alive":true},{"id":"c2","hp":3,"shield":0,"alive":true},{"id":"c3","hp":3,"shield":'
+        +       '0,"alive":true},{"id":"c4","hp":3,"shield":0,"alive":true},{"id":"c5","hp":3,"shield":0,"ali'
+        +       've":true},{"id":"c6","hp":3,"shield":0,"alive":true},{"id":"c7","hp":3,"shield":0,"alive":tr'
+        +       'ue},{"id":"c8","hp":3,"shield":0,"alive":true},{"id":"c9","hp":3,"shield":0,"alive":true}]},'
+        +       '"mechs":{"ap":3,"units":[{"id":"m1","hp":5,"shield":0,"alive":true},{"id":"m2","hp":6,"shiel'
+        +       'd":1,"alive":true},{"id":"m3","hp":6,"shield":3,"alive":true}]}},"did":[{"side":"cats","act"'
+        +       ':"slash","by":"c1","at":"m1","apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}]'
+        +       ',"hit":{"shield":0,"health":1,"spare":0},"unlanded":[]},{"side":"cats","act":"slash","by":"c'
+        +       '2","at":"m1","apPaid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield"'
+        +       ':0,"health":1,"spare":0},"unlanded":[]},{"side":"cats","act":"slash","by":"c3","at":"m2","ap'
+        +       'Paid":1,"apShort":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":1,"health":0,"s'
+        +       'pare":0},"unlanded":[]},{"side":"mechs","act":"lasers","by":"m1","at":"c1","apPaid":1,"apSho'
+        +       'rt":0,"spent":[{"tok":"ap","want":1,"paid":1}],"hit":{"shield":0,"health":0,"spare":3},"unla'
+        +       'nded":[]},{"side":"mechs","act":"fly","by":"m2","at":null,"apPaid":1,"apShort":0,"spent":[{"'
+        +       'tok":"ap","want":1,"paid":1}],"hit":{"shield":0,"health":0,"spare":0},"unlanded":[]},{"side"'
+        +       ':"mechs","act":"recharge","by":"m3","at":null,"apPaid":1,"apShort":0,"spent":[{"tok":"ap","w'
+        +       'ant":1,"paid":1}],"hit":{"shield":0,"health":0,"spare":0},"unlanded":[]}]}],"cats":{"ap":3,"'
+        +       'units":[{"id":"c1","hp":0,"shield":0,"alive":true},{"id":"c2","hp":3,"shield":0,"alive":true'
+        +       '},{"id":"c3","hp":3,"shield":0,"alive":true},{"id":"c4","hp":3,"shield":0,"alive":true},{"id'
+        +       '":"c5","hp":3,"shield":0,"alive":true},{"id":"c6","hp":3,"shield":0,"alive":true},{"id":"c7"'
+        +       ',"hp":3,"shield":0,"alive":true},{"id":"c8","hp":3,"shield":0,"alive":true},{"id":"c9","hp":'
+        +       '3,"shield":0,"alive":true}]},"mechs":{"ap":3,"units":[{"id":"m1","hp":3,"shield":0,"alive":t'
+        +       'rue},{"id":"m2","hp":6,"shield":0,"alive":true},{"id":"m3","hp":6,"shield":3,"alive":true}]}'
+        +       '}';
+
+    App.ops.resetToDefaults();
+    App.ops.startFight();
+    App.state.flush();
+    for (var d35r = 0; d35r < 3; d35r++) {
+      App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+      App.ops.declareAction('cats', 'slash', 'c2', 'm1');
+      App.ops.declareAction('cats', 'slash', 'c3', 'm2');
+      App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+      App.ops.declareAction('mechs', 'fly', 'm2', null);
+      App.ops.declareAction('mechs', 'recharge', 'm3', null);
+      App.ops.advanceRound();
+    }
+    App.state.flush();
+
+    t.eq('THE SHIPPED BOARD IS BYTE-IDENTICAL ACROSS D-35. Nine cats and three '
+      + 'mechs, three rounds, every declaration made through the shipped ops '
+      + 'and every point of both pools spent — and the WHOLE fight slice equals '
+      + 'the one the file produced before round rules existed, character for '
+      + 'character. The +3 rule reproduces the refill it replaced at a pool of '
+      + 'three that gets spent, which is the shipped board; where it does NOT '
+      + 'reproduce it is the fork, and the two rows below drive both halves of '
+      + 'that rather than leaving it to this sentence',
+      JSON.stringify(fight()), D35_FIGHT_BEFORE);
+
+    t.eq('and the run really did resolve three rounds and take a mech down to '
+      + 'three health, so the row above is an equality between two boards that '
+      + 'something happened on rather than between two empty ones',
+      [fight().round, fight().past.length, fight().mechs.units[0].hp,
+        fight().cats.units[0].hp, fight().cats.units[0].alive],
+      [4, 3, 3, 0, true]);
+
+    /* --- THE FORK, DRIVEN AT NINE, WITH BOTH SEMANTICS SIDE BY SIDE.
+           D-35's record: "+3 capped at the side's configured AP is identical
+           while AP is 3, and genuinely different at the candidate retune of 9
+           (+3/round meters a 9-pool over three rounds; refill-to-9 does not).
+           Playtest question: which one makes the 9v3 contested?"
+
+           BOTH READINGS ARE EXPRESSIBLE IN THE SHIPPED FEATURE, which is what
+           makes this a fork and not a loss: +3 is the seeded rule, and the old
+           refill is a rule of +99 clamped by the action-point type's own max.
+           So the row drives the SAME nine-point board twice, once under each,
+           and reads the pool back after each of three rounds.
+
+           THE PLAN NUMBER MATTERS HERE: D-25 says no plan before 05-11 touches
+           DEFAULTS.cats.ap, and this row does not — it sets the pool through
+           the shipped op on a board it then hands back, which is what every
+           other row in this suite does with every other number. */
+    function d35Sweep(ruleDelta, ruleMax) {
+      App.ops.resetToDefaults();
+      App.ops.setFactionAp('cats', 9);
+      App.ops.setTokenBounds('ap', { min: 0, max: ruleMax });
+      App.ops.setRoundRule(0, 'cats', 'ap', ruleDelta);
+      App.ops.startFight();
+      App.state.flush();
+      var read = [];
+      for (var i = 0; i < 3; i++) {
+        // One cat declares one Slash a round, so eight of the nine points are
+        // left standing — which is the condition the two semantics disagree
+        // under. A round that spends the pool to nothing agrees under both.
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.advanceRound();
+        App.state.flush();
+        read.push(fight().cats.ap);
+      }
+      return read.join(' ');
+    }
+
+    t.eq('THE +3 FORK, DRIVEN AT NINE, AND THE TWO SEMANTICS PART COMPANY ON '
+      + 'THE FIRST ROUND. A nine-point pool that spends one point a round '
+      + 'reads 11, 13, 15 under the shipped +3 rule — the leftovers carry and '
+      + 'the pool GROWS — and 9, 9, 9 under a rule of +99 clamped at a max of '
+      + 'nine, which is the refill this change replaced, expressed in the '
+      + 'feature that replaced it. NEITHER IS ASSERTED TO BE THE RIGHT ONE. '
+      + 'D-35 puts the question to the playtest: which of the two makes the '
+      + '9v3 contested? This row exists so the difference is a measurement on '
+      + 'the record rather than a paragraph, and so the day 05-11 answers it '
+      + 'the answer is a one-line edit to a seeded rule',
+      [d35Sweep(3, App.data.MAX_ALLOC), d35Sweep(App.data.MAX_ALLOC, 9)],
+      ['11 13 15', '9 9 9']);
+
+    /* --- THE FOUR WHOS, EACH LANDING ON THE NUMBER IT NAMES AND NO OTHER.
+           Two scopes times two sides, driven in one fight, because a rule that
+           reached both sides would be invisible to a row that watched one. --- */
+    App.ops.resetToDefaults();
+    var d35Chill = App.ops.createTokenType({
+      name: 'Chill', shape: 'dia', color: 'accent-2', glyph: '', scope: 'unit'
+    });
+    var d35Momentum = App.ops.createTokenType({
+      name: 'Momentum', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+    });
+    App.ops.setTally('cats', 'c1', d35Chill, 5);
+    App.ops.setTally('cats', 'c2', d35Chill, 5);
+    App.ops.setTally('mechs', null, d35Momentum, 2);
+    // Slot 0 is the cats' shipped +3; the mechs' stays where it is, so the row
+    // below reads a side that was ruled on beside one that was not.
+    App.ops.setRoundRule(0, 'catsEach', d35Chill, -2);
+    App.ops.setRoundRule(2, 'mechs', d35Momentum, 3);
+    App.ops.setRoundRule(3, 'mechsEach', 'hp', -1);
+    App.ops.startFight();
+    App.state.flush();
+    App.ops.advanceRound();
+    App.state.flush();
+
+    t.eq('THE FOUR WHOS EACH LAND ON THE NUMBER THEY NAME. "each of the cats" '
+      + 'takes two Chill off EVERY cat that had any and leaves the ones that '
+      + 'had none at nothing; "the mechs" adds three Momentum to the side bag '
+      + 'and to no unit; "each of the mechs" takes a point of health off all '
+      + 'three; and the mechs\' own shipped +3 still fills the pool. Read as '
+      + 'seven figures across both sides, because a rule that reached the wrong '
+      + 'side would be invisible to a row that watched one',
+      [tallyOf(fight().cats.units[0], d35Chill),
+        tallyOf(fight().cats.units[1], d35Chill),
+        tallyOf(fight().cats.units[2], d35Chill),
+        tallyOf(fight().mechs, d35Momentum),
+        fight().mechs.units[0].hp, fight().mechs.units[1].hp,
+        fight().cats.units[0].hp],
+      [3, 3, 0, 5, 5, 5, 3]);
+
+    t.eq('AND A RULE THAT NAMES A NUMBER THE SCOPE DOES NOT HOLD LANDS NOWHERE '
+      + 'RATHER THAN INVENTING A HOME FOR IT. Action points on each unit, '
+      + 'health on a whole side, and a rule on the drawing-only `dmg` and '
+      + '`dead` types all move nothing at all — picking a unit to receive a '
+      + 'side\'s health would be the tool adjudicating, which is ruleTerm\'s own '
+      + 'treatment of the same case one scope down. Driven as four rules in one '
+      + 'round and read as the whole fight slice before and after',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.setRoundRule(0, 'catsEach', 'ap', 5);
+        App.ops.setRoundRule(1, 'cats', 'hp', -5);
+        App.ops.setRoundRule(2, 'mechsEach', 'dmg', 4);
+        App.ops.setRoundRule(3, 'mechs', 'dead', 1);
+        App.ops.startFight();
+        App.state.flush();
+        var was = JSON.stringify(fight());
+        App.ops.advanceRound();
+        App.state.flush();
+        var now = JSON.parse(JSON.stringify(fight()));
+        // The round number and the history are the only things a round with no
+        // landing rule may move, so they are put back before the comparison
+        // rather than excluded from it by reading fewer fields.
+        now.round = JSON.parse(was).round;
+        now.past = [];
+        return JSON.stringify(now);
+      })(), (function () {
+        var was = JSON.parse(D35_FIGHT_BEFORE);
+        return JSON.stringify({
+          round: 1, decl: [], past: [],
+          cats: was.past[0].was.cats, mechs: was.past[0].was.mechs
+        });
+      })());
+
+    /* --- THE LINE THIS FEATURE COMES CLOSEST TO CROSSING, DRIVEN. A round
+           rule is a STUDENT'S rule the tool executes, and the one thing it may
+           never do is decide a unit is dead. A rule of −99 health floors every
+           unit at the health type's own min and writes nothing else. --- */
+    App.ops.resetToDefaults();
+    App.ops.setRoundRule(0, 'catsEach', 'hp', -App.data.MAX_ALLOC);
+    App.ops.startFight();
+    App.state.flush();
+    App.ops.advanceRound();
+    App.state.flush();
+    t.eq('A ROUND RULE THAT TAKES EVERY CAT TO ZERO HEALTH LEAVES EVERY ONE OF '
+      + 'THEM ALIVE. Clamping at the health type\'s floor of zero is NOT '
+      + 'killing: zero health PROMPTS a death ruling from the table and never '
+      + 'causes one (D-00d), and this is the first feature in the file where a '
+      + 'STUDENT\'S OWN RULE could have flipped the flag. Read as the whole '
+      + 'roster and the living count, because a row watching one unit would be '
+      + 'green over an applier that killed the other eight',
+      [fight().cats.units.map(function (u) { return u.hp; }).join(''),
+        fight().cats.units.map(function (u) { return u.alive; })
+          .filter(function (a) { return a !== true; }).length,
+        App.model.aliveCount(fight().cats)],
+      ['000000000', 0, 9]);
+
+    t.eq('AND WITH A FLOOR THE STUDENT RAISED, THE SAME RULE STOPS AT THE FLOOR '
+      + 'AND STILL WRITES NO FLAG — a bound of two means a cat cannot be taken '
+      + 'below two by a rule, by an action or by anything else, and it does not '
+      + 'mean the tool has an opinion about what two health means',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.setTokenBounds('hp', { min: 2, max: App.data.MAX_ALLOC });
+        App.ops.setRoundRule(0, 'catsEach', 'hp', -App.data.MAX_ALLOC);
+        App.ops.startFight();
+        App.state.flush();
+        App.ops.advanceRound();
+        App.state.flush();
+        return [fight().cats.units.map(function (u) { return u.hp; }).join(''),
+          App.model.aliveCount(fight().cats)];
+      })(), ['222222222', 9]);
+
+    /* --- THE FIGHT-SLICE WRITE PATHS, EACH AGAINST AN AUTHORED PAIR. [S09.7]
+           drives the four build-slice ones; these are the five that only exist
+           while a fight is running. --- */
+    App.ops.resetToDefaults();
+    App.ops.setTokenBounds('hp', { min: 1, max: 4 });
+    App.ops.setTokenBounds('shield', { min: 0, max: 2 });
+    App.ops.startFight();
+    App.state.flush();
+    App.ops.setUnitHp('cats', 'c1', 40);
+    App.ops.setUnitHp('cats', 'c2', 0);
+    App.ops.setFightShield('mechs', 'm1', 40);
+    App.state.flush();
+    var d35Nudge = App.ops.nudgeFightHp('cats', 'c1', 5);
+    App.state.flush();
+    t.eq('THE THREE HAND-RULING WRITERS CLAMP TO THE TYPE\'S OWN PAIR — the '
+      + 'absolute health setter, its nudge sibling and the fight shield writer '
+      + '— and the nudge reports FALSE on a value already sitting on its bound, '
+      + 'which is the ramp\'s stop condition',
+      [fight().cats.units[0].hp, fight().cats.units[1].hp,
+        fight().mechs.units[0].shield, d35Nudge],
+      [4, 1, 2, false]);
+
+    t.eq('AND THE RULING RECORD SHOWS THE CLAMPED VALUE RATHER THAN THE ONE '
+      + 'THAT WAS ASKED FOR, so the ledger reads what the board holds — the '
+      + 'same property the hand ops\' own bad-input table asserts against '
+      + 'MAX_ALLOC, now against a bound the student wrote',
+      fight().hand.map(function (h) { return h.tok + ' ' + h.from + '->' + h.to; }),
+      ['hp 3->4', 'hp 3->1', 'shield 3->2']);
+
+    t.eq('THE APPLIER CLAMPS TOO, ON EVERY ARM IT HAS: a transformation that '
+      + 'would take health past the authored ceiling stops at it, one that '
+      + 'would take a shield past its own stops there, and a DAMAGE split is '
+      + 'computed against the numbers that are really on the board and then '
+      + 'written through the same bounds — so the health floor holds while the '
+      + 'record still says how much of the hit the health took. Four figures, '
+      + 'because a clamp on the plain arm and none on the damage arm is exactly '
+      + 'the shape a partial change takes',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.setTokenBounds('hp', { min: 2, max: 4 });
+        App.ops.setTokenBounds('shield', { min: 0, max: 1 });
+        var heal = App.ops.createAction('cats', 'Mend');
+        App.ops.setActionXf('cats', heal, 0, App.data.XF_WHO[0], 'hp', 9);
+        App.ops.setActionXf('cats', heal, 1, App.data.XF_WHO[0], 'shield', 9);
+        App.ops.startFight();
+        App.state.flush();
+        App.ops.declareAction('cats', heal, 'c1', null);
+        App.ops.declareAction('mechs', 'lasers', 'm1', 'c2');
+        App.ops.advanceRound();
+        App.state.flush();
+        var hit = fight().past[0].did[1].hit;
+        return [fight().cats.units[0].hp, fight().cats.units[0].shield,
+          fight().cats.units[1].hp, hit.health];
+      })(), [4, 1, 2, 3]);
+
+    /* --- A RULE NAMING A TYPE THE BOARD NO LONGER HOLDS IS REFUSED BY NAME AT
+           ADVANCE, WHICH IS ACT-07's OTHER HALF. [S09.7] drives the authoring
+           end: the removal is allowed and the rule is not rewritten. This is
+           what happens when the round comes round. --- */
+    App.ops.resetToDefaults();
+    var d35Gone = App.ops.createTokenType({
+      name: 'Ember', shape: 'circ', color: 'coral', glyph: '', scope: 'unit'
+    });
+    App.ops.setRoundRule(2, 'catsEach', d35Gone, -1);
+    App.ops.removeTokenType(d35Gone);
+    App.ops.startFight();
+    App.state.flush();
+    var d35GoneBoard = JSON.stringify(App.state.get());
+    var d35GoneDepth = App.state.undoDepth();
+    var d35GoneThrew = false;
+    var d35GoneSaid = '';
+    try { App.ops.advanceRound(); } catch (e) {
+      d35GoneThrew = true;
+      d35GoneSaid = String(e.message);
+    }
+    App.state.flush();
+    t.eq('ADVANCE REFUSES BY NAME RATHER THAN SKIPPING IN SILENCE, and the '
+      + 'refusal names the type the rule points at. A rule that quietly stopped '
+      + 'applying is the tool dropping the student\'s rule, which is the reason '
+      + 'ruleTerm refuses the same case one scope down — and the refusal is '
+      + 'taken in the ruling pass, OUTSIDE the commit, so the board and the '
+      + 'undo stack are exactly where they were',
+      [d35GoneThrew, d35GoneSaid.indexOf(d35Gone) !== -1,
+        JSON.stringify(App.state.get()) === d35GoneBoard,
+        App.state.undoDepth() - d35GoneDepth],
+      [true, true, true, 0]);
+
+    /* --- FIGHT-10's BOUNDARY, RE-READ THROUGH THE NEW FEATURE. A build edit
+           made mid-fight reaches the fight at the next round and not before —
+           and an edit to the RULES is a build edit, so it obeys the same line
+           rather than a new one. --- */
+    t.eq('AN EDIT TO THE ROUND RULES MADE MID-FIGHT LANDS AT THE NEXT ROUND '
+      + 'AND NOT BEFORE, which is FIGHT-10 unchanged: the rules live in the '
+      + 'build slice, so editing one is a build edit and the fight reads it '
+      + 'when the round comes round. The pool is read at three moments — before '
+      + 'the edit, immediately after it, and after the Advance — because a row '
+      + 'reading only the last would be green over a rule that had reached in '
+      + 'and moved the board while the student was still typing it',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.startFight();
+        App.state.flush();
+        var before = fight().cats.ap;
+        App.ops.setRoundRule(0, 'cats', 'ap', 7);
+        App.state.flush();
+        var justAfter = fight().cats.ap;
+        App.ops.advanceRound();
+        App.state.flush();
+        return [before, justAfter, fight().cats.ap];
+      })(), [3, 3, 10]);
+
+    App.ops.resetToDefaults();
+    App.state.flush();
+    t.ok('the prototype is intact after the whole D-35 block', protoIntact());
 
     App.state.restore(savedAll);
     App.state.flush();
