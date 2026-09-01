@@ -4461,6 +4461,14 @@
   #app[data-view="fight"] .brd-col{display:none}
   #app[data-view="fight"] #board-empty{display:none}
   #app[data-view="build"] .fg-band{display:none}
+  /* D-35's authoring block goes away with the columns, and it goes away for
+     the same reason they do rather than for a new one: it is a thing a student
+     WRITES, and the fight view is the one they PLAY on. The reading of those
+     same rules is not lost by this — [S06.7] paints it into the round-state
+     area, which is where D-31 says a reading of what the board does belongs.
+     display:none rather than visibility, the ruling directly above, for its
+     own stated reason. */
+  #app[data-view="fight"] #roundrules{display:none}
 
   /* ==================================================================
      [C15] D-28 — THE PROJECTION IS OFF BY DEFAULT IN THE FIGHT VIEW AND
@@ -4801,6 +4809,127 @@
     #views{width:auto;margin-left:0}
   }
 
+  /* ===================== [C17] THE ROUND RULES ===================== */
+  /* D-35's authoring block, and it is [C12]'s dense terms region said again on
+     a page region instead of inside a dialog. The whole of the layout language
+     here is D-32b's, reused rather than reinvented, because a student who has
+     written an action's cost has already learned this shape: a reading at the
+     left in the fight's own notation, then the choosers, then the amount, all
+     on ONE line, with a hairline between rows and a legend that shares its line
+     with its note.
+
+     NOT ONE NEW COLOUR. Every value below is a custom property [C00] already
+     publishes or a color-mix over one, which is [C07]'s rule and the one [C13]
+     and [C14] each restate about themselves. */
+  #roundrules{
+    margin:0 0 24px;padding:16px 18px;
+    background:var(--panel);border:1px solid var(--line);border-radius:14px;
+  }
+
+  /* The legend and its note on ONE line, which is .ae-term-head's measurement
+     arriving on a second surface: two stacked blocks cost a line of height per
+     legend and buy nothing, and the words are unchanged. */
+  .rr-head-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin:0 0 12px}
+  .rr-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
+  .rr-note{margin:0;color:var(--ink-dim);font-size:16px;max-width:72ch}
+
+  /* 6px inside the list, exactly as .ae-term-list carries it, and for the
+     reason D-32b measured: the space between two rows of one list and the
+     space between a list and the thing above it are two different distances,
+     and one number for both is the flat run that pass replaced. */
+  .rr-list{display:flex;flex-direction:column;gap:6px}
+  .rr-rule{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:40px}
+  .rr-rule[hidden]{display:none}
+  /* .ae-term's own hairline, on the SECOND row onward so a single-rule list
+     draws none, and taking 3px from the gap above and 3px from the gap below
+     so nothing grows. */
+  .rr-rule + .rr-rule{border-top:1px solid var(--line);padding-top:6px}
+
+  /* The reading, in .ae-term-read's own geometry and at its own token size.
+     The min-width is what gives the strip a left rule a student can scan down;
+     D-32b measured 96 as the width of the widest reading plus the removal
+     mark's overhang, and this surface draws the same readings. */
+  .rr-read{
+    display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+    flex:0 0 auto;min-width:96px;
+  }
+  /* THE OVERRIDE GOES ON .sym AND NOT ON THE BOX AROUND IT — [C14.5] sets
+     --tok on .sym itself, so a value on an ancestor is shadowed by the
+     descendant's own. That was measured once on the editor and is not
+     re-measured here; it is the same declaration for the same reason. */
+  .rr-read .sym{--tok:16px}
+
+  /* The two choosers. The party strip is four entries plus the one that empties
+     the rule and never grows, so it takes no slack; the token strip grows by
+     one entry per type a student invents, so it gets all of it — which is
+     exactly the split [C12] made between .ae-term-who and .ae-term-toks and for
+     exactly the same reason. */
+  .rr-whos,.rr-toks{display:flex;flex-wrap:wrap;gap:6px}
+  .rr-whos{flex:0 0 auto}
+  .rr-toks{flex:1 1 auto;min-width:0}
+
+  /* THE PILL IS .ae-pill's, DOWN TO THE TICK'S GEOMETRY, and it is a second
+     class rather than a second use of the first because .ae-pill is scoped to
+     a dialog by every rule that touches it and a page region reusing a dialog's
+     class is a rule two surfaces have to agree about forever. The values are
+     the same values; the marks are the same marks; the live one is said by an
+     outline AND a tick, never by colour alone ([C07]'s three-times rule). */
+  .rr-pill{
+    position:relative;
+    display:flex;align-items:center;gap:6px;
+    min-height:38px;padding:6px 8px;
+    background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
+    border-radius:9px;color:var(--ink);
+    font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
+    user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
+  }
+  .rr-pill--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .rr-pill .rr-check{
+    position:absolute;top:50%;right:0;
+    transform:translate(50%,-50%);
+    font-size:13px;pointer-events:none;visibility:hidden;
+  }
+  .rr-pill--on .rr-check{visibility:visible}
+
+  /* The amount, in .ae-amt's chrome for .ae-amt's stated reason: one look for
+     "type a number here" across the document. Wider by half a character
+     because a round rule's sign is part of the figure a student types. */
+  .rr-amt{
+    width:5.5ch;box-sizing:content-box;flex:0 0 auto;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:6px 10px;font:inherit;font-size:17px;
+    font-variant-numeric:tabular-nums;text-align:right;
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
+  }
+  .rr-amt[hidden]{display:none}
+
+  /* The line under the list. It carries its own [hidden] rule for the reason
+     .pk-warn, .prj-note and .ae-term each carry one: [hidden]{display:none} is
+     a user-agent rule these margins would not have beaten on their own, and a
+     later author rule giving this class a display would. Dimmed, because it
+     states a fact and nothing here is coloured to alarm anybody. */
+  .rr-said{margin:12px 0 0;font-size:18px;color:var(--ink-dim)}
+  .rr-said[hidden]{display:none}
+
+  /* ==================================================================
+     [C17] THE SAME BLOCK, READ RATHER THAN EDITED, IN THE FIGHT'S
+     ROUND-STATE AREA.
+     ==================================================================
+     D-31 puts a reading of what the board does in the state area, so the rules
+     are DRAWN there and authored nowhere near it. It is a lighter object than
+     the block above on purpose: no border and no fill, because it sits inside
+     a panel that already has both, and .fg-area's own box is what bounds it. */
+  .fg-eachround{margin:12px 0 0;padding:12px 0 0;border-top:1px solid var(--line)}
+  .fg-rr-head{margin:0 0 8px;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  .fg-rr-line{
+    display:flex;align-items:center;flex-wrap:wrap;gap:8px;
+    margin:0 0 6px;font-size:18px;color:var(--ink);
+  }
+  .fg-rr-line:last-child{margin-bottom:0}
+  .fg-rr-line .sym{--tok:16px}
+
   /* ===================== [C16] MOTION AND SCROLL ===================== */
   /* The two document-wide layers D-33 PASS A adds, and the ONLY block in
      this stylesheet that deliberately reaches across every region rather
@@ -4863,7 +4992,8 @@
   .pk-sw, .pk-list-item, .pk-name, .pk-bound-amt,
   .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
   .sh-code, .sh-paste,
-  .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn{
+  .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
+  .rr-pill, .rr-amt{
     background-image:linear-gradient(transparent, transparent);
     transition:
       border-color var(--ramp) ease,
@@ -5092,6 +5222,7 @@
     .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
     .sh-code, .sh-paste,
     .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
+    .rr-pill, .rr-amt,
     .unit-card, .fg-area, .ld-now, .fg-row{transition:none}
     .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
     .pk[open]::backdrop, .ae[open]::backdrop,
@@ -5710,6 +5841,149 @@
     <section id="refband"></section>
     <p class="muted" id="board-empty">The allocation board renders here.</p>
   </div>
+
+  <!-- ============ THE ROUND RULES, plan 05-D35b =======================
+       D-35, IN THE DEVELOPER'S OWN WORDS: "add a feature to configure what
+       happens each round (default +3 action points, but also things like -1 of
+       a status effect token)". Plan 05-D35a made that list DATA — build.rules,
+       capped at App.data.MAX_ROUND_RULES, read by Advance where a hardcoded
+       refill used to stand — and shipped no surface for it. This is the
+       surface.
+
+       ==================================================================
+       WHERE IT IS, AND THE ALTERNATIVE THAT WAS DECLINED. Recorded here
+       because the placement is the whole of what this block had to decide.
+       ==================================================================
+       THE READING IS IN THE FIGHT AND THE EDITING IS IN THE BUILD, which is
+       D-31 applied to a feature D-31 did not know about. D-31 split #fightbar
+       into "where the round stands" and "what you are about to do", and the
+       sentence it settled is that the state area is a READING OF THE BOARD AS
+       IT STANDS. So [S06.7] paints an "Each round" block into that area — the
+       same rules, in the same notation, with no control in it — and the rules
+       are AUTHORED here, in the build view, beside the two rosters they act on
+       and beside every other thing on this board a student writes.
+
+       THE ALTERNATIVE: editing inline in that state block. It was declined for
+       two reasons and neither is a preference. First, an editor inside the
+       round-state panel is an authoring control inside a reading of what IS —
+       the exact line D-31 drew, and drawing it again for a second feature is
+       cheaper than explaining why this one is different. Second, the fight
+       view is where an instructor stands in front of a room mid-demo, and a
+       list of eight editable rows in that region is eight more things to
+       mis-click while the board is on a projector. FLAGGED FOR THE PLAYTEST:
+       whether a student who is mid-fight and wants to change a decay rule
+       finds their way back to the build tab is a question a rehearsal answers
+       and this comment cannot.
+
+       IT IS AFTER #board AND NOT BEFORE IT. D-33's whole subject was what the
+       first screen spends its height on, and the two rosters are what a
+       student opens this artifact to see. A block above them would push the
+       board down on every session to serve a control most students touch once.
+
+       ==================================================================
+       NOTHING IN HERE CARRIES data-act, AND THAT IS THE MECHANISM RATHER
+       THAN A STYLE.
+       ==================================================================
+       This section is INSIDE #app, so [S07.1]'s delegated listeners see every
+       press in it. actTarget() resolves the nearest [data-act] and hands it to
+       fire(), which builds a payload of side / unitId / delta / tokenId — none
+       of which is what setRoundRule takes. So a chooser here wearing a
+       data-act would dispatch a real op with the wrong payload and put the
+       styled error panel in front of a student on their first press.
+
+       The precedent is shipped twice: plan 05-12's view switch carries data-vw
+       and plan 05-D28's projection toggle carries data-pv, both inside #app,
+       both bound by [S07.6] to a root of their own. This carries data-rr and
+       is bound by [S07.7]. The amount field is told apart by its CLASS for the
+       same reason .ae-amt and .pk-name are, and [S07.1]'s isField keys on
+       .stp-field, so nothing in here is visible to the board's own field
+       machinery.
+
+       ==================================================================
+       EVERY ROW IS STATIC, AND SO IS THE AMOUNT FIELD INSIDE IT.
+       ==================================================================
+       #act-edit's reserved term rows carry this reasoning in full and it is
+       the same reasoning: this region repaints on every frame through
+       SYNC_HOOKS, and a number a student is halfway through typing is exactly
+       the text a rebuilt node throws away. A node that is never rebuilt can
+       simply be skipped while it holds focus (D-19). What [S06.13] DOES
+       rebuild on every repaint is the reading and the two chooser boxes,
+       because a button carries no text of the student's own and the focus
+       contract puts the keyboard back on the row's data-k.
+
+       There are App.data.MAX_ROUND_RULES rows here because that is the cap,
+       and the surplus is HIDDEN rather than removed. The count is asserted
+       against the constant in tests/selftest-node.cjs, because a hand-written
+       row count and a constant that can move are two places for one number.
+
+       THE ROWS CARRY NO id, DELIBERATELY, and it is the one place this block
+       departs from #act-edit's shape. That surface addresses each row by
+       getElementById and pays sixteen shell ids for it; this one addresses
+       them by data-rr-slot off its own list, which is the same lookup #board
+       already makes for a unit's token row. Sixteen ids bought nothing here
+       and every one of them is a KNOWN_IDS line and a hand-built stub node.
+
+       Same three-part rule as every id in this document: the id, the
+       KNOWN_IDS entry and the stub node arrive together, and the run fails in
+       BOTH directions if one of the three is missing. It is not a <dialog>,
+       so DIALOG_ROOTS is untouched. -->
+  <section id="roundrules" aria-labelledby="rr-head">
+    <div class="rr-head-line">
+      <h2 class="rr-head" id="rr-head">Each round</h2>
+      <p class="rr-note">What Advance does to the board after the declarations have landed, in the order it is written here. Each rule names who it reaches, which token type it changes, and by how much. Put a minus in front for a change downward.</p>
+    </div>
+    <div class="rr-list" id="rr-list" role="group" aria-labelledby="rr-head">
+      <div class="rr-rule" data-rr-slot="0" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="0" data-k="rr/amt/0">
+      </div>
+      <div class="rr-rule" data-rr-slot="1" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="1" data-k="rr/amt/1">
+      </div>
+      <div class="rr-rule" data-rr-slot="2" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="2" data-k="rr/amt/2">
+      </div>
+      <div class="rr-rule" data-rr-slot="3" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="3" data-k="rr/amt/3">
+      </div>
+      <div class="rr-rule" data-rr-slot="4" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="4" data-k="rr/amt/4">
+      </div>
+      <div class="rr-rule" data-rr-slot="5" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="5" data-k="rr/amt/5">
+      </div>
+      <div class="rr-rule" data-rr-slot="6" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="6" data-k="rr/amt/6">
+      </div>
+      <div class="rr-rule" data-rr-slot="7" hidden>
+        <div class="rr-read"></div>
+        <div class="rr-whos"></div>
+        <div class="rr-toks"></div>
+        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="7" data-k="rr/amt/7">
+      </div>
+    </div>
+    <p class="rr-said" id="rr-said" hidden></p>
+  </section>
 
   <section class="card st-report" id="selftest-report" hidden>
     <div class="eyebrow">Developer self-test</div>
@@ -19261,6 +19535,70 @@ App.render = (function () {
      so for the fourth time in this file, and [C14.1] carries the rule. Every
      legend below is permanent, visible and a real heading — never an icon and
      never a title= tooltip, which is what the floor is actually about. */
+  /* ==================================================================
+     D-35: WHAT HAPPENS AT THE END OF EVERY ROUND, IN THE ROUND-STATE AREA.
+     Plan 05-D35b.
+     ==================================================================
+     Plan 05-D35a moved the refill out of Advance and into build.rules, a list
+     a student edits. This is where the fight SAYS what that list holds.
+
+     IT IS A READING AND THERE IS NO CONTROL IN IT, and that is D-31 rather
+     than a preference. The state area is "where the round stands"; the input
+     area is "what you are about to do". A list of eight editable rows is
+     neither — it is AUTHORING, and authoring lives in the build view, where
+     [S06.13] draws exactly these rules with choosers on them. The two
+     readings come out of ONE function ([S06.12]'s symRoundParts) so they
+     cannot drift, and check 116 asserts them equal to each other rather than
+     each to a typed string.
+
+     IT SPANS BOTH COLUMNS, like the round figure and for the same reason: a
+     rule that reaches the cats and a rule that reaches the mechs are one list
+     in one order, and splitting it per column would draw the order twice and
+     the list nowhere.
+
+     A BOARD WITH NO RULES SAYS SO. The shipped board carries two and a student
+     may delete both, and "nothing happens at the end of a round" is a fact
+     about their build that they wrote — so it is stated rather than left as an
+     empty block, which is the ruling #ledger's own banner makes about a
+     labelled empty box and which [S06.3]'s admission line makes one region
+     over.
+
+     A RULE THIS SURFACE CANNOT READ IS SKIPPED, never half-drawn.
+     symRoundParts answers null for a rule whose party is not one of the four —
+     which a pasted build code can produce — and half a sentence on a projector
+     is worse than a line that is not there. */
+  var FIGHT_NO_RULES_WORD = 'Nothing. Advance leaves the board as the round '
+    + 'left it.';
+
+  function fgBuildEachRound() {
+    var seat = document.getElementById('fight-state');
+    if (!seat) { return; }
+    var box = el('div', 'fg-eachround');
+    box.appendChild(text('h4', 'fg-rr-head', 'Each round'));
+    box.appendChild(el('div', 'fg-rr-lines'));
+    seat.appendChild(box);
+  }
+
+  function fgFillEachRound(state) {
+    var seat = document.getElementById('fight-state');
+    var lines = seat ? seat.querySelector('.fg-rr-lines') : null;
+    if (!lines) { return; }
+    lines.replaceChildren();
+    var rules = Array.isArray(state.build.rules) ? state.build.rules : [];
+    var drawn = 0;
+    rules.slice(0, App.data.MAX_ROUND_RULES).forEach(function (rule) {
+      var parts = symRoundParts(state, rule);
+      if (parts === null) { return; }
+      var line = el('p', 'fg-rr-line');
+      fgSay(line, parts);
+      lines.appendChild(line);
+      drawn++;
+    });
+    if (drawn === 0) {
+      lines.appendChild(text('p', 'fg-rr-line', FIGHT_NO_RULES_WORD));
+    }
+  }
+
   function fgBuildStateSide(root, state, side) {
     root.replaceChildren();
     root.appendChild(text('h3', 'fg-side-head', state.build[side].name));
@@ -19529,6 +19867,11 @@ App.render = (function () {
     // whether a room reads it there is a question for the playtest rather than
     // one this comment can settle.
     fgBuildRound(root);
+    // D-35's reading, built after the state area's two columns and appended
+    // BELOW them: it is a fact about the whole round rather than about either
+    // side, which is the same reason the round figure sits on that area's head
+    // line rather than inside a column. fgRest sweeps it by class.
+    fgBuildEachRound();
   }
 
   /* The teardown, and the banner above says why it empties rather than merely
@@ -19560,6 +19903,11 @@ App.render = (function () {
        it, and fgUnseat still asks each for its own parent. */
     fgUnseat(root.querySelector('.fg-round-head'));
     fgUnseat(root.querySelector('.fg-round-acts'));
+    // D-35's reading goes with them, and by the same asking-each-node-for-its-
+    // own-parent shape: it is a child of the state AREA and not of the region
+    // root, so a root.removeChild on it would throw — the one failure mode a
+    // teardown must not have.
+    fgUnseat(root.querySelector('.fg-eachround'));
     // AND BOTH AREAS GO BACK BEHIND THEIR [hidden], which is the shell's own
     // ruling arriving in the teardown: a bordered, headed, empty panel is a
     // thing a student has to interpret for nothing, and a fight that has ended
@@ -19715,6 +20063,14 @@ App.render = (function () {
         var area = document.getElementById(id);
         if (area) { area.hidden = false; }
       });
+
+      // D-35's reading, filled ONCE per repaint and outside the per-side loop
+      // for the reason the round figure is written outside it: what happens at
+      // the end of a round is one list in one order, and drawing it per side
+      // would draw the order twice. fgSig already carries the whole build
+      // slice, so a rule edited in the build view repaints this on the next
+      // frame with nothing added to the fingerprint.
+      fgFillEachRound(state);
 
       FIGHT_SIDES.forEach(function (side) {
         // THE PER-SIDE ARITHMETIC, TAKEN ONCE AND HANDED DOWN. affordability is
@@ -22734,7 +23090,344 @@ App.render = (function () {
     return box;
   }
 
+  /* D-35: A ROUND RULE, IN THE SAME NOTATION, DEFINED ONCE FOR THE TWO
+     SURFACES THAT DRAW IT. This region's banner argues the whole of why it is
+     here rather than in either caller: [S06.13] draws the rules as an EDITOR in
+     the build view and [S06.7] draws them as a READING in the fight's
+     round-state area, and a notation implemented twice is two things to keep in
+     step — the day one of them compacts at a different count or drops the
+     removal mark, a student reads two surfaces of one artifact as two
+     artifacts. Row 116 asserts the two are EQUAL to each other rather than each
+     to a typed string, which is row 111's technique on a third pair.
+
+     IT HANDS BACK FRAGMENTS AND NOT A NODE, and that is the one thing about it
+     worth explaining. Both callers already own a say-er — fgSay in [S06.7] and
+     rrSay in [S06.13] — and both understand the same three-shape part list that
+     ldSay does. Returning a finished element would make one of those two
+     surfaces put a foreign node inside its own line and give up the class its
+     stylesheet is written against.
+
+     THE PARTY IS SAID IN THE STUDENT'S OWN WORD AND IS NEVER INFLECTED. `who`
+     resolves to a side and a reach, and the side's NAME is a word the student
+     typed — so "each cat" is not available to this function without
+     singularising a word it did not choose, which is the tool putting grammar
+     it invented into a student's mouth. It says the faction's name, and for the
+     per-unit reach it adds a clause after it. The name is an artifact-side
+     fragment here for the same reason [S06.7]'s .fg-side-head and [S06.8]'s
+     .ld-now-side carry no exemption marker: a faction name is not on any of the
+     three shipped channels, and adding a fourth for it is a decision no plan
+     has taken.
+
+     THE AMOUNT IS ITS MAGNITUDE AND THE SIGN IS THE MARK — termReading's own
+     arrangement, argument for argument. A rule downward carries D-30's red mark
+     on the type's own shape because it is a subtraction the student wrote down,
+     which is the fourth answer to symQty's one question and the same answer a
+     declared change downward already gets in the action editor. A rule upward
+     carries none, because it takes nothing away.
+
+     A RULE THIS FUNCTION CANNOT READ RETURNS NULL rather than a partial
+     sentence. A `who` the vocabulary of parties does not hold, or a rule that
+     is not an object at all, can arrive from a pasted build code and from an
+     older snapshot — and half a reading on a projector is worse than a row that
+     draws nothing. */
+  function symRoundWho(state, rule) {
+    var list = App.data.ROUND_WHO;
+    for (var i = 0; i < list.length; i++) {
+      if (list[i].id !== rule.who) { continue; }
+      var faction = state.build[list[i].side];
+      var name = (faction && typeof faction.name === 'string')
+        ? faction.name : list[i].side;
+      return list[i].each ? (name + ', each unit') : name;
+    }
+    return '';
+  }
+
+  function symRoundParts(state, rule) {
+    if (rule === null || typeof rule !== 'object') { return null; }
+    var who = symRoundWho(state, rule);
+    if (who === '') { return null; }
+    var d = Number.isInteger(rule.d) ? rule.d : 0;
+    var n = Math.abs(d);
+    return [
+      { said: who + ' ' },
+      { node: symQty(state, rule.tok, n, String(n) + ' ', ' each round', d < 0) }
+    ];
+  }
+
   // #endregion [S06.12] RENDER — THE SYMBOLIC READING
+
+
+  /* ===================== [S06.13] RENDER — THE ROUND RULES =============
+   * D-35's authoring surface for what Advance does at the end of a round, and
+   * it is [S06.5]'s terms region with a different record in it. Plan 05-D35a
+   * made build.rules data and shipped nothing that draws it; this draws it, and
+   * lets a student write it.
+   *
+   * IT IS A SUB-REGION FOR THE MECHANICAL REASON EVERY OTHER ONE IS: it
+   * reconciles through SYNC_HOOKS, SYNC_HOOKS is a closure variable of this
+   * IIFE, and it paints a page region [S06.1] never touches. It changes NOTHING
+   * in [S06.1] through [S06.12].
+   *
+   * WHAT IT REUSES, AND WHY EACH ONE IS A CALL RATHER THAN A COPY:
+   *   symRoundParts  — [S06.12]'s, so the reading here and the reading the
+   *                    fight's round-state area draws are the SAME sentence
+   *                    from the same function. That is the whole reason the
+   *                    notation lives one region down; row 116 asserts the two
+   *                    are equal to each other rather than each to a copy.
+   *   labelFor       — [S06.1]'s, for the reason [S06.2] and [S06.5] both give
+   *                    about their own choosers: a name on a pill and a name on
+   *                    the board must come from one place or they drift the
+   *                    first time one is changed.
+   *   withPreservedFocus — [S06.1]'s, scoped to THIS root. The chooser boxes
+   *                    are rebuilt on every repaint, so the node the keyboard
+   *                    is on can be destroyed under it, which is the one
+   *                    situation that contract exists for. Scoping it here is
+   *                    also what keeps this region out of #board's: structure()
+   *                    calls withPreservedFocus(board, ...) and keyed() takes
+   *                    the FIRST [data-k] match inside it, and #roundrules is
+   *                    not inside #board.
+   *
+   * WHAT IT DOES NOT DO: it applies nothing and resolves nothing. A rule is a
+   * DEFINITION here, exactly as an action's cost is a definition in [S06.5];
+   * [S05]'s advanceRound is the one place a rule ever moves a number. And no
+   * line in this region says whether a rule is a rule worth writing, which is
+   * the ruling every reading on this page keeps.
+   *
+   * deps: App.data, App.ops, [S06.1]'s helpers, [S06.12]'s symRoundParts
+   * owner: plan 05-D35b
+   * ===================================================================== */
+  // #region [S06.13] RENDER — THE ROUND RULES
+
+  // The word on the entry that empties a slot. It is the FIRST entry of the
+  // PARTY chooser rather than of the token chooser, and the difference from
+  // [S06.5] is [S05]'s contract rather than a preference: setRoundRule takes
+  // CLEAR_TERM in the `who` position, so the control that clears is the control
+  // that names who. It is the same word in the same position — first chooser,
+  // first entry — which is what a student who has used the action editor has
+  // already learned.
+  var RR_NONE_WORD = 'None';
+
+  // fgSay and ldSay's fragment idiom, a third time, and it is written out
+  // rather than shared for the reason each of those two is written out: the
+  // class on a fragment belongs to the region whose stylesheet block is written
+  // against it, and a shared say-er would have to take one as an argument.
+  function rrSay(box, parts) {
+    parts.forEach(function (part) {
+      if (part.node !== undefined) { box.appendChild(part.node); return; }
+      box.appendChild(text('span', 'rr-say', part.said));
+    });
+  }
+
+  /* The allowlisted-choice control, in choicePill's idiom and for its three
+     reasons — with ONE difference, and it is the reason this is a second
+     function rather than a second caller of the first.
+
+     IT CARRIES data-rr AND NEVER data-act. choicePill writes data-act because
+     it lives inside a dialog that is a SIBLING of #app, where [S07.1]'s
+     delegated listeners cannot see it. This region is INSIDE #app, so a
+     data-act here would be resolved by actTarget() and handed to fire(), which
+     builds a payload of side / unitId / delta / tokenId — none of which is what
+     setRoundRule takes. The press would dispatch a real op with the wrong
+     payload and raise the styled error panel on a student's first click.
+
+     The shipped precedent is the view switch's data-vw and the projection
+     toggle's data-pv, both inside #app, both bound by [S07.6] to a root of
+     their own. This is the third.
+
+     data-k NAMES THE SLOT AND THE ID AND NEVER A WORD A STUDENT TYPED, which is
+     choicePill's own rule and is what keeps focus restore from having to
+     survive an emoji through a CSS attribute selector.
+
+     THE TOKEN NAME IS A WORD A STUDENT CAN TYPE, so the node that holds it
+     carries data-lbl for the reason every other such node does: the
+     rendered-page walk skips the text of a node carrying it, and a student who
+     names a type after a comparative word must not redden CI. The PARTY name is
+     a faction name and carries no marker, which is the shipped treatment of a
+     faction name on [S06.7]'s and [S06.8]'s surfaces and is symRoundWho's own
+     recorded ruling. */
+  function rrPill(slot, kind, dataKey, value, label, on, tokenId) {
+    var b = el('button', 'rr-pill' + (on ? ' rr-pill--on' : ''));
+    b.type = 'button';
+    var pairs = {
+      rr: 'rule',
+      rrSlot: String(slot),
+      k: 'rr/' + slot + '/' + kind + '/' + value
+    };
+    pairs[dataKey] = value;
+    setData(b, pairs);
+    b.setAttribute('aria-pressed', on ? 'true' : 'false');
+
+    var nameNode = text('span', 'rr-pill-name', label);
+    if (tokenId !== '') { setData(nameNode, { lbl: tokenId }); }
+    b.appendChild(nameNode);
+
+    b.appendChild(text('span', 'rr-check', '✓'));
+    return b;
+  }
+
+  // An empty slot gets NO party chooser at all rather than five dead buttons —
+  // fillWhoChoices' ruling one surface over, and for its reason: there is no
+  // rule for any of them to name yet, so pressing one could only do nothing.
+  // A student starts an empty slot by pressing a TOKEN, which is the same
+  // gesture that starts an empty term row in the action editor.
+  function rrFillWhos(box, state, slot, current, live) {
+    if (!box) { return; }
+    box.replaceChildren();
+    if (!live) { return; }
+    box.appendChild(rrPill(slot, 'who', 'rrWho', '', RR_NONE_WORD,
+      false, ''));
+    App.data.ROUND_WHO_IDS.forEach(function (id) {
+      var word = symRoundWho(state, { who: id });
+      if (word === '') { return; }
+      box.appendChild(rrPill(slot, 'who', 'rrWho', id, word, id === current, ''));
+    });
+  }
+
+  // Drawn from the LIVE vocabulary, so a type a student invented is choosable
+  // and a type they renamed shows its new name. It carries NO emptying entry,
+  // because emptying a slot lives in exactly one place and that place is the
+  // party chooser above — two controls for one write is how a cap and a
+  // dense-list rule stop agreeing, which is setRoundRule's own argument for
+  // having one writer.
+  function rrFillToks(box, state, slot, current) {
+    if (!box) { return; }
+    box.replaceChildren();
+    Object.keys(state.build.tokens).forEach(function (id) {
+      box.appendChild(rrPill(slot, 'tok', 'rrTok', id,
+        labelFor(state, id), id === current, id));
+    });
+  }
+
+  /* NEVER WRITTEN WHILE IT HOLDS FOCUS — showAmount's rule (D-19), and the
+     whole reason the field is static markup: a student halfway through typing
+     "-1" must not be handed "1" back on the next frame.
+
+     IT REPORTS WHETHER IT WROTE, which is D-34's finding rather than tidiness.
+     A skipped field leaves this surface holding text state does not, and the
+     only thing that can put that right is a LATER repaint — so the paint that
+     skipped it must not record a fingerprint saying it is done.
+
+     The party and the token ride along on the same write because the commit
+     path reads them off the field and they must describe the same rule the
+     value does. */
+  function rrShowAmount(field, rule) {
+    if (!field) { return true; }
+    if (field === document.activeElement) { return false; }
+    field.value = String(rule.d);
+    field.dataset.was = field.value;
+    field.dataset.rrWho = rule.who;
+    field.dataset.rrTok = rule.tok;
+    return true;
+  }
+
+  // The rows in use plus one empty slot, never past the cap — fillSlotRows'
+  // arithmetic, and the surplus is hidden rather than removed because the rows
+  // are static markup.
+  function rrFillRows(state, list) {
+    var root = document.getElementById('rr-list');
+    if (!root) { return true; }
+    var cap = App.data.MAX_ROUND_RULES;
+    var shown = Math.min(list.length + 1, cap);
+    var whole = true;
+    var rows = root.querySelectorAll('.rr-rule');
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var slot = Number(row.dataset.rrSlot);
+      row.hidden = (slot >= shown);
+      if (slot >= shown) { continue; }
+
+      var rule = list[slot];
+      // Rebuilt whole on every repaint, which it may be because nothing in it
+      // is focusable: it is a reading and not a control. The chooser boxes
+      // below are rebuilt for the same reason and the amount field beside them
+      // is NOT, which is the line D-19 draws through this whole surface.
+      var read = row.querySelector('.rr-read');
+      if (read) {
+        read.replaceChildren();
+        var parts = rule ? symRoundParts(state, rule) : null;
+        if (parts) { rrSay(read, parts); }
+      }
+      rrFillWhos(row.querySelector('.rr-whos'), state, slot,
+        rule ? rule.who : '', !!rule);
+      rrFillToks(row.querySelector('.rr-toks'), state, slot,
+        rule ? rule.tok : '');
+      var amt = row.querySelector('.rr-amt');
+      if (amt) { amt.hidden = !rule; }
+      if (rule && !rrShowAmount(amt, rule)) { whole = false; }
+    }
+    return whole;
+  }
+
+  /* THE LINE UNDER THE LIST, AND IT SAYS EXACTLY ONE THING: that there is no
+     empty row because the list is full. Nothing to report is nothing on screen
+     — setText's rule, which this region spells for itself because setText is
+     [S06.2]'s private helper.
+
+     IT DOES NOT COUNT THE RULES OUT LOUD the rest of the time. A permanent
+     "two of eight written" is a figure a student has to read on every frame to
+     learn nothing they cannot see by looking at the list, and this file's
+     standing rule is that a reading which only ever states the obvious is
+     noise. The one moment the arithmetic is not visible is the moment the
+     empty row disappears, and that is the moment this line appears. */
+  function rrSaidText(list) {
+    if (list.length < App.data.MAX_ROUND_RULES) { return ''; }
+    return 'This board is carrying all ' + App.data.MAX_ROUND_RULES
+      + ' round rules it can hold. Take one away to write another.';
+  }
+
+  // Everything this region draws comes out of the build slice and nothing else,
+  // so the build slice IS the fingerprint. fgSig takes the same shape for the
+  // same reason and states it: JSON.stringify of a structure rather than a
+  // joined string, because a name is text a student types and a delimiter is a
+  // character they can type into it.
+  function rrSig(state) {
+    return JSON.stringify(state.build);
+  }
+
+  /* The one entry point, exported for exactly the reason picker(), editor(),
+     share() and fightBar() are and to exactly one caller: [S07.7]'s presses,
+     which dispatch and then ask for the surface to be painted before the next
+     frame. A press that waited for the frame would leave the pressed pill
+     looking unpressed for a frame, which on a chooser is a student pressing it
+     twice in front of a room because the first press appeared to do nothing. */
+  function roundRules(state) {
+    if (typeof document === 'undefined') { return; }
+    var root = document.getElementById('roundrules');
+    if (!root) { return; }
+
+    var sig = rrSig(state);
+    if (root.dataset.rrSig === sig) { return; }
+
+    var list = Array.isArray(state.build.rules) ? state.build.rules : [];
+    var whole = true;
+    withPreservedFocus(root, function () {
+      whole = rrFillRows(state, list);
+      var said = document.getElementById('rr-said');
+      if (said) {
+        var words = rrSaidText(list);
+        said.textContent = words;
+        said.hidden = (words === '');
+      }
+    });
+
+    // THE FINGERPRINT IS RECORDED ONLY ON A WHOLE PAINT — D-34's finding, and
+    // the reason is the one rrShowAmount states: a repaint that skipped a
+    // focused field has left this surface holding text state does not, and
+    // recording a signature for it would memoise that disagreement until the
+    // next unrelated change.
+    if (whole) { root.dataset.rrSig = sig; }
+  }
+
+  // The per-frame half, on [S06.1]'s seam. It has no open/closed state to test
+  // — the region is always in the page and [C15] is what puts it away in the
+  // fight view — so unlike syncPicker and syncEditor there is nothing to guard
+  // beyond the entry point's own guards.
+  function syncRoundRules(state) {
+    roundRules(state);
+  }
+
+  SYNC_HOOKS.push(syncRoundRules);
+  // #endregion [S06.13] RENDER — THE ROUND RULES
 
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
@@ -22811,6 +23504,13 @@ App.render = (function () {
     // which on a switch is a student pressing it twice, in front of a room,
     // because the first press appeared to do nothing.
     viewSwitch: viewSwitch,
+    // D-35, exported to the same standard the five above are and to exactly one
+    // caller: [S07.7]'s presses, which dispatch a round-rule write and then ask
+    // for the block to be painted onto it rather than waiting for the frame the
+    // commit already scheduled. A pressed chooser that looks unpressed for a
+    // frame is a student pressing it twice, in front of a room, because the
+    // first press appeared to do nothing.
+    roundRules: roundRules,
     // The read half of Tier 2, exported for exactly one caller: [S07]'s arrow
     // ramp, which owes the focused field a value setValue() is forbidden to
     // write (D-19). Exporting the READ rather than letting the stepper add the
@@ -26926,6 +27626,319 @@ App.interactions = (function () {
   // rather than left as an absence, because an absence reads as an oversight
   // and this is a ruling — [S07.5]'s closing note, kept.
   // #endregion [S07.6] INTERACTIONS — THE VIEW SWITCH
+
+  /* ===================== [S07.7] INTERACTIONS — THE ROUND RULES ========
+   * D-35's authoring block, and it ATTACHES exactly as every sub-region since
+   * [S07.2] has: one entry in LATE_BINDERS, its own delegated root, and not a
+   * line changed in [S07.1].
+   *
+   * ==================================================================
+   * WHY IT NEEDS A ROOT OF ITS OWN WHEN IT IS ALREADY INSIDE #app.
+   * ==================================================================
+   * [S07.2] and [S07.3] bind their own roots because their dialogs are
+   * SIBLINGS of #app and no press in them ever reaches the board's listener.
+   * This region is a CHILD of #app, so every press in it reaches that listener
+   * — and the whole arrangement here is built so that the listener declines.
+   *
+   *   THE CONTROLS CARRY data-rr AND NOT data-act. actTarget() resolves the
+   *   nearest [data-act]; there is none in this region and none on any
+   *   ancestor of it, so it returns null and onPointerDown returns on its
+   *   third line. Were a pill to wear a data-act instead, fire() would build a
+   *   payload of side / unitId / delta / tokenId and hand it to
+   *   App.ops.dispatch under the name setRoundRule — an op that takes an
+   *   index, a party, a token and a signed amount — and a student's first
+   *   press would raise the styled error panel.
+   *
+   *   THE AMOUNT FIELD CARRIES .rr-amt AND NOT .stp-field. isField() keys on
+   *   the stepper class, so [S07.1]'s focusin, focusout and keydown arms all
+   *   decline this field on their first line and the numeric machinery behind
+   *   them — which reads a data-amt this field does not carry and dispatches
+   *   through a FIELD_OPS table this op is deliberately not in — is never
+   *   reached.
+   *
+   * The shipped precedent for both is plan 05-12's view switch (data-vw) and
+   * plan 05-D28's projection toggle (data-pv), each inside #app and each bound
+   * by [S07.6] to a root of its own. This is the third, and check 116 reads the
+   * partition back off the page rather than trusting this paragraph.
+   *
+   * ==================================================================
+   * ONE OP, AND EVERY PRESS AND EVERY KEYSTROKE GOES THROUGH IT.
+   * ==================================================================
+   * setRoundRule covers append, replace and remove — setActionCost's idiom,
+   * argument for argument — so there is no second spelling of a list edit here
+   * and no Remove button beside a row. Each press reads its SLOT off the
+   * pressed control and the REST of the rule off the live record, which is
+   * pressXf's arrangement one surface over: pressing a party keeps the token
+   * and the amount the student already wrote, and pressing a token keeps the
+   * party and the amount.
+   * deps: App.ops, App.render, App.state
+   * owner: plan 05-D35b
+   * ==================================================================== */
+  // #region [S07.7] INTERACTIONS — THE ROUND RULES
+
+  // The party a new rule arrives with, and its amount. Both are the smallest
+  // thing that is not nothing: setRoundRule REFUSES a rule of zero, so a
+  // default of zero would put the styled error panel in front of a student on
+  // the one press this whole surface exists for. A minus is one keystroke away
+  // and the note above the list says so in as many words. The party is read off
+  // the exported allowlist rather than typed, for the reason NEW_TOKEN_NAME is
+  // exported to its own suite: a re-typed copy is a copy that can drift.
+  var RULE_NEW_WHO = App.data.ROUND_WHO_IDS[0];
+  var RULE_NEW_DELTA = 1;
+
+  function rulesRoot() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('roundrules');
+  }
+
+  // The list itself, off the LIVE build and defensively, for roundRules'
+  // stated reason one layer down: from Phase 4 the slice arrives from a pasted
+  // code, and a missing list is an empty list everywhere in this file.
+  function liveRules() {
+    var build = App.state.get().build;
+    return Array.isArray(build.rules) ? build.rules : [];
+  }
+
+  /* THE PRESS. The slot comes off the control, the rest of the rule off the
+     record, and the emptying entry carries an empty party and means "take this
+     rule away" — mapped to App.ops.CLEAR_TERM HERE rather than spelled as a
+     second null anywhere, so the page and the op read one signal. pressXf's
+     three sentences, and they hold word for word one scope up.
+
+     A TOKEN PRESSED ON AN EMPTY SLOT STARTS A RULE, which is why the token
+     chooser is drawn for an empty row and the party chooser is not: there is
+     no rule for a party to name yet, and the gesture that starts one is the
+     same gesture that starts an empty term row in the action editor. */
+  function pressRule(btn) {
+    var slot = Number(btn.dataset.rrSlot);
+    var was = liveRules()[slot];
+    var who = (typeof btn.dataset.rrWho === 'string')
+      ? btn.dataset.rrWho : (was ? was.who : RULE_NEW_WHO);
+    var tok = (typeof btn.dataset.rrTok === 'string')
+      ? btn.dataset.rrTok : (was ? was.tok : '');
+    App.ops.dispatch('setRoundRule', {
+      index: slot,
+      who: (who === '') ? App.ops.CLEAR_TERM : who,
+      tokenId: tok,
+      d: (was && Number.isInteger(was.d)) ? was.d : RULE_NEW_DELTA
+    });
+  }
+
+  /* THE FOCUS AFTER A REMOVAL, PLACED RATHER THAN LEFT. dropType's trap, one
+     region over and in the same words: the control the student pressed is the
+     one that disappears — a filled row's party chooser is gone the moment that
+     row becomes the empty slot — so withPreservedFocus has nothing to restore
+     to and the keyboard lands on <body>.
+
+     THE TARGET IS THE SAME SLOT'S FIRST CONTROL, because that row is still
+     there: it is the empty slot now, and its token chooser is exactly the
+     control a student would reach for next. If the removal took the list below
+     that slot — which happens when the last rule goes — the row is hidden and
+     the search walks back to the last visible one. Nothing at all is a page
+     with no rules and no empty slot, which cannot happen while the cap is
+     above zero, and the guard is there anyway because a focus() on null is a
+     throw in front of a room. */
+  function placeRuleFocus(slot) {
+    var root = rulesRoot();
+    if (root === null) { return; }
+    var rows = root.querySelectorAll('.rr-rule');
+    for (var i = Math.min(slot, rows.length - 1); i >= 0; i--) {
+      if (rows[i].hidden === true) { continue; }
+      var first = rows[i].querySelector('.rr-pill');
+      if (first && typeof first.focus === 'function') { first.focus(); return; }
+    }
+  }
+
+  /* ---- the amount field. [S07.3]'s four functions, in the same order and for
+         the same reasons, and NOT [S07.1]'s numeric machinery for the reason
+         the banner above gives: that machinery reads a data-amt this field does
+         not carry and dispatches through a table this op is not in.
+
+         THE SIGN IS PART OF THE VALUE AND IS NEVER A MODE, which is the one
+         thing worth restating from [S07.3]'s own paragraph: on a BOARD stepper
+         a leading sign means "adjust by", and on this field and on the action
+         editor's it is the amount itself. A round rule of minus one IS a minus
+         one, and there is no adjust-by spelling of it. ---- */
+
+  // [S07.3]'s AMOUNT, re-declared rather than reached for, because the two
+  // sections are separate scopes and a section reaching into another's private
+  // variable is the rule this whole file keeps about capturing at section-body
+  // scope. Same source, same flags, same reasons — all of which [S07.3] states
+  // at length beside its own copy.
+  var RULE_AMOUNT = /^([+-]?)(\d{1,3})$/;
+
+  function parseRuleAmount(raw) {
+    var typed = String(raw).trim();
+    if (typed === '') {
+      return { ok: false, why: 'that field was empty' };
+    }
+    var m = RULE_AMOUNT.exec(typed);
+    if (m === null) {
+      return {
+        ok: false,
+        why: 'type a whole number, with a minus in front for a change downward'
+      };
+    }
+    return { ok: true, n: (m[1] === '-' ? -1 : 1) * Number(m[2]) };
+  }
+
+  function isRuleAmount(el) {
+    return !!el && !!el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('rr-amt');
+  }
+
+  function revertRuleAmount(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  /* `loud` is Enter and blur is quiet — commitField's contract, kept by every
+     field in this document.
+
+     THE SLOT, THE PARTY AND THE TOKEN ALL COME OFF THE FIELD, and none of them
+     can go stale: the slot because the ROW is the slot and is static markup,
+     and the other two because rrShowAmount writes them onto the field in the
+     same expression that writes the value, and the repaint never touches a
+     focused field. That is [S07.3]'s sendAmount arrangement with one fewer
+     thing to remember, because this surface has no selection to move. */
+  function commitRuleAmount(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var parsed = parseRuleAmount(el.value);
+    if (!parsed.ok) {
+      revertRuleAmount(el);
+      if (loud) { throw new Error(parsed.why); }
+      return;
+    }
+    try {
+      App.ops.dispatch('setRoundRule', {
+        index: Number(el.dataset.rrSlot),
+        who: el.dataset.rrWho,
+        tokenId: el.dataset.rrTok,
+        d: parsed.n
+      });
+    } catch (refused) {
+      revertRuleAmount(el);
+      if (loud) { throw refused; }
+      return;
+    }
+    // The baseline moves with the committed text or both of them start lying.
+    el.dataset.was = el.value;
+  }
+
+  function onRulesPress(e) {
+    // [S07.1]'s rule, for its measured reason: without it a right-click on a
+    // chooser writes the rule under the context menu.
+    if (!isPrimaryPress(e)) { return; }
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return; }
+    var btn = node.closest('[data-rr="rule"]');
+    if (btn === null) { return; }
+
+    // Dispatch FIRST and page work only after it has returned — the ordering
+    // every press in this file keeps, for its stated reason: an op that refuses
+    // throws out of here into [S08]'s listener boundary and the page work never
+    // runs, which is what keeps a surface from marking a change state declined
+    // to make.
+    var clearing = (btn.dataset.rrWho === '');
+    var slot = Number(btn.dataset.rrSlot);
+    pressRule(btn);
+
+    // The commit has already asked for a frame; this paints the block onto the
+    // press before it, for the reason picker(), editor(), share() and
+    // fightBar() are each exported to their own handler — a pressed chooser
+    // that looks unpressed for a frame is a student pressing it twice.
+    App.render.roundRules(App.state.get());
+    if (clearing) { placeRuleFocus(slot); }
+  }
+
+  function onRulesClick(e) {
+    // The same anti-double-fire rule [S07.1] and [S07.2] both use, for the same
+    // measured reason: a mouse click was already served by pointerdown, and
+    // running here as well applies every press twice. detail === 0 is the
+    // keyboard.
+    if (e.detail !== 0) { return; }
+    onRulesPress(e);
+  }
+
+  function onRulesFocusIn(e) {
+    var el = e.target;
+    if (!isRuleAmount(el)) { return; }
+    el.dataset.was = el.value;
+  }
+
+  function onRulesFocusOut(e) {
+    var el = e.target;
+    if (!isRuleAmount(el)) { return; }
+    commitRuleAmount(el, false);
+    // [S07.1]'s own line, and its own reason: [S06] owns every value on this
+    // surface and skips a focused field on purpose (D-19), so leaving the field
+    // is the moment a frame is owed.
+    App.state.invalidate();
+  }
+
+  function onRulesKeyDown(e) {
+    /* THE HELD-ENTER GUARD HAS TO BE HERE AND CANNOT BE INHERITED, and this is
+       the one thing about this region that [S07.6]'s two controls never had to
+       face. [S07.1]'s own guard preventDefaults a repeated Enter only when
+       actTarget(e) is non-null — that is, only on a control wearing a data-act
+       — and nothing in this region wears one, by construction and for the
+       reason the banner gives. So a held Enter on a chooser here would make the
+       browser synthesise one click{detail:0} per OS auto-repeat, onRulesClick
+       has no e.repeat to test because click events do not carry one, and the
+       result is one setRoundRule per repeat: a cap reached in under a second,
+       eight undo steps to rewind, and — on the emptying entry — a rule list
+       walked to nothing.
+
+       [S07.2] writes the same guard for the same reason and scopes it to a
+       BUTTON rather than to a data-act, which is the scope wanted here too:
+       every control in this region is a real button by construction and the one
+       thing that is not is the amount field, so a held Enter in the field still
+       reaches the commit arm below and only a button is silenced — and only on
+       a repeat. The first press is untouched. */
+    if (e.repeat === true && (e.key === 'Enter' || e.key === ' ')) {
+      var node = e.target;
+      var btn = (node && typeof node.closest === 'function')
+        ? node.closest('button') : null;
+      if (btn !== null) { e.preventDefault(); return; }
+    }
+
+    var el = e.target;
+    if (!isRuleAmount(el)) { return; }
+
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      commitRuleAmount(el, true);
+      return;
+    }
+
+    if (e.key === 'Escape') {
+      e.preventDefault();
+      revertRuleAmount(el);
+    }
+  }
+
+  // The seam, used exactly as [S07.1] describes it, and every listener through
+  // App.boot.wrap — check 93b reads that back off a root structurally, because
+  // wrap returns an anonymous zero-arity function and a raw binding is visible
+  // by name and by arity.
+  function bindRoundRules() {
+    var root = rulesRoot();
+    if (root === null) { return; }
+    root.addEventListener('pointerdown', App.boot.wrap('round rule press', onRulesPress));
+    root.addEventListener('click', App.boot.wrap('round rule key-press', onRulesClick));
+    root.addEventListener('focusin', App.boot.wrap('round rule field focus', onRulesFocusIn));
+    root.addEventListener('focusout', App.boot.wrap('round rule field blur', onRulesFocusOut));
+    root.addEventListener('keydown', App.boot.wrap('round rule keydown', onRulesKeyDown));
+  }
+
+  LATE_BINDERS.push(bindRoundRules);
+
+  // THE ACTS THIS REGION CLAIMS: NONE. UI_ACTS is untouched and so is
+  // HOLD_ACTS, and the line is written down rather than left as an absence
+  // because an absence reads as an oversight — [S07.5]'s closing note, kept by
+  // [S07.6] and kept here. setRoundRule is a real op and goes through
+  // App.ops.dispatch like everything else; parking it in UI_ACTS is how a
+  // refusal is made to stop being raised.
+  // #endregion [S07.7] INTERACTIONS — THE ROUND RULES
 
   return Object.freeze({
     bind: bind,

@@ -895,7 +895,27 @@ function makeStubDom() {
     // rather than typed from memory: check 103 counts the data-vw controls and
     // check 103d counts the data-pv ones, and the two counts are what assert
     // the partition off the page.
-    'proj-toggle'
+    'proj-toggle',
+    // plan 05-D35b - D-35's authoring block for what happens each round. FOUR
+    // ids and no more, and the fourth-from-none is the decision: the eight
+    // static rows carry NO id at all. #act-edit's reserved term rows are
+    // addressed by getElementById and cost sixteen entries in this list and
+    // sixteen hand-built stub nodes; these are addressed by data-rr-slot off
+    // their own list, which is the same lookup the board already makes for a
+    // unit's token row, and sixteen ids would have bought nothing.
+    //
+    // The ROWS are still static markup, for #act-edit's stated reason: this
+    // region repaints on every frame through SYNC_HOOKS and a number a student
+    // is halfway through typing is what a rebuilt node throws away. Their COUNT
+    // is asserted against App.data.MAX_ROUND_RULES by check 116, because a
+    // hand-written row count and a constant that can move are two places for
+    // one number to live.
+    //
+    // Nothing here is a <dialog>, so the harvest still walks four roots. Same
+    // three-part rule as every entry above: the id, this entry and the stub
+    // node arrive together, and section 5b fails the run in BOTH directions if
+    // one of the three is missing.
+    'roundrules', 'rr-head', 'rr-list', 'rr-said'
   ];
 
   const byId = Object.create(null);
@@ -1533,6 +1553,63 @@ function makeStubDom() {
   const doneBtn = idNode('tok-pick-done', 'button');
   doneBtn.dataset.pk = 'done';
   picker.appendChild(doneBtn);
+
+  /* ---- plan 05-D35b's round-rules block. It lives INSIDE #app in the shell,
+         after #board, so it is built here for the reason the fight region above
+         is built where it is: #app's child order here is the appendChild order.
+
+         IT IS NOT A <dialog> and takes no DIALOG_ROOTS entry.
+
+         EVERY CLASS AND EVERY DATASET SPELLING IS COPIED FROM THE MARKUP, and
+         that warning costs more here than almost anywhere else in this file:
+         data-rr is what [S07.7]'s delegated listener resolves and what keeps
+         [S07.1] from resolving these controls at all, and .rr-amt is what tells
+         the amount field apart from the board's stepper fields. A typo in
+         either is not a red run — it is a green one, over a surface nothing is
+         listening to.
+
+         THE ROWS CARRY NO id, exactly as they carry none in the shell, and are
+         written out rather than looped over the artifact's cap for the reason
+         the action editor's rows are: makeStubDom runs BEFORE the artifact is
+         evaluated, so `A` does not exist here. Check 116 holds both counts to
+         App.data.MAX_ROUND_RULES. ---- */
+  const roundRules = idNode('roundrules', 'section');
+  app.appendChild(roundRules);
+  const rrHeadLine = createElement('div');
+  rrHeadLine.className = 'rr-head-line';
+  roundRules.appendChild(rrHeadLine);
+  rrHeadLine.appendChild(idNode('rr-head', 'h2'));
+  const rrNote = createElement('p');
+  rrNote.className = 'rr-note';
+  rrHeadLine.appendChild(rrNote);
+
+  const rrList = idNode('rr-list');
+  rrList.className = 'rr-list';
+  rrList.setAttribute('role', 'group');
+  roundRules.appendChild(rrList);
+  [0, 1, 2, 3, 4, 5, 6, 7].forEach((slot) => {
+    const row = createElement('div');
+    row.className = 'rr-rule';
+    row.dataset.rrSlot = String(slot);
+    row.hidden = true;
+    ['rr-read', 'rr-whos', 'rr-toks'].forEach((cls) => {
+      const box = createElement('div');
+      box.className = cls;
+      row.appendChild(box);
+    });
+    const amt = createElement('input');
+    amt.type = 'text';
+    amt.className = 'rr-amt';
+    amt.dataset.rrSlot = String(slot);
+    amt.dataset.k = 'rr/amt/' + slot;
+    row.appendChild(amt);
+    rrList.appendChild(row);
+  });
+
+  const rrSaid = idNode('rr-said', 'p');
+  rrSaid.className = 'rr-said';
+  rrSaid.hidden = true;
+  roundRules.appendChild(rrSaid);
 
   /* ---- plan 03.1-05's action editor, hand-made from the static markup ------
      Exactly the three members beyond a plain element the picker above has, and
@@ -15551,6 +15628,254 @@ check(
 
 pkMax.blur();
 if (dlg.open === true) { dlg.close(); }
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+/* 116. D-35 PART TWO, THE SECOND AND THIRD SURFACES: A STUDENT EDITS THE ROUND
+   RULES IN THE BUILD VIEW, AND THE FIGHT READS THEM BACK IN THE SAME
+   LANGUAGE.
+
+   THE PLACEMENT IS THE CLAIM AS MUCH AS THE EDITING IS, and it is asserted
+   rather than left in a comment. D-31 split the fight's own region into "where
+   the round stands" and "what you are about to do"; a list of eight editable
+   rows is neither of those, it is AUTHORING. So the rules are EDITED in the
+   build view, beside the rosters they act on, and the fight's round-state area
+   draws the SAME rules with no control in it at all. Two clauses hold that:
+   the fight's block carries zero buttons and zero data-rr, and #roundrules is
+   put away by [C15] in the fight view.
+
+   AND THE TWO READINGS ARE COMPARED TO EACH OTHER RATHER THAN EACH TO A TYPED
+   STRING — row 111's technique on a third pair, and for its reason: two rows
+   each asserting a sentence are two copies one edit moves together, while
+   EQUALITY cannot be edited past. Both come through [S06.12]'s symRoundParts,
+   so the moment one surface passes a different prefix, suffix or removal flag
+   this reddens with nobody having decided in advance what the sentence ought
+   to say. The comparison carries the ACCESSIBLE NAME as well as the text,
+   because the text of a symbolic reading is nearly empty by construction — the
+   quantity is drawn in token nodes — and a pair of empty strings is equal to
+   itself.
+
+   THE PARTITION IS READ OFF THE PAGE. Nothing in #roundrules carries a
+   data-act, and that is mechanism rather than style: this region is INSIDE
+   #app, so actTarget() would resolve a data-act here and hand it to fire(),
+   which builds a payload setRoundRule does not take — a student's first press
+   would raise the styled error panel. The shipped precedent is data-vw and
+   data-pv; this is data-rr, and the count of each is read rather than trusted.
+
+   THE ROW COUNT IS HELD TO THE CONSTANT IN BOTH PAGES, which is check 65's
+   discipline arriving on a region whose rows carry no id: the shell and the
+   stub each hand-write App.data.MAX_ROUND_RULES rows, and a cap that moved
+   without them would leave a student unable to reach the last slot. */
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+const rrRoot = dom.byId['roundrules'];
+const rrListNode = dom.byId['rr-list'];
+const rrSaidNode = dom.byId['rr-said'];
+function rrRows() { return rrListNode.querySelectorAll('.rr-rule'); }
+function rrRow(slot) {
+  return rrListNode.querySelector('.rr-rule[data-rr-slot="' + slot + '"]');
+}
+function rrShownRows() {
+  return rrRows().filter((n) => n.hidden !== true).length;
+}
+// The reading AND its accessible name, because a symbolic reading's text is
+// nearly empty by construction — the quantity is token nodes — and two empty
+// strings are equal to each other.
+function rrSaying(node) {
+  if (!node) { return '(no node)'; }
+  const sym = node.querySelector('.sym');
+  return node.textContent + ' [' + (sym ? sym.getAttribute('title') : '(no sym)') + ']';
+}
+function rrEditorSayings() {
+  return rrRows().filter((n) => n.hidden !== true)
+    .map((n) => rrSaying(n.querySelector('.rr-read')))
+    .filter((said) => said !== ' [(no sym)]');
+}
+function rrPressPill(slot, key) {
+  const row = rrRow(slot);
+  const pill = row ? row.querySelector('[data-k="' + key + '"]') : null;
+  if (pill === null) { throw new Error('no round-rule pill ' + key); }
+  press(pill);
+  release(pill);
+  A.state.flush();
+  return pill;
+}
+function rrAmount(slot) { return rrRow(slot).querySelector('.rr-amt'); }
+function rrTypeAmount(slot, typed) {
+  const f = rrAmount(slot);
+  f.focus();
+  f.value = typed;
+  f.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+  A.state.flush();
+  f.blur();
+  A.state.flush();
+}
+function rrList() {
+  const r = A.state.get().build.rules;
+  return Array.isArray(r) ? r : [];
+}
+
+// The shipped board: two rules, so two filled rows plus one empty slot.
+const rrShellRows = (html.match(/class="rr-rule"/g) || []).length;
+const rrStubRows = rrRows().length;
+const rrShownAtRest = rrShownRows();
+const rrFirstSaying = rrSaying(rrRow(0).querySelector('.rr-read'));
+const rrEmptyHasNoWho = rrRow(2).querySelector('.rr-whos').children.length;
+const rrEmptyHasToks = rrRow(2).querySelector('.rr-toks').children.length > 0;
+const rrEmptyAmtHidden = rrAmount(2).hidden;
+
+// A rule of the student's own, started by pressing a TOKEN on the empty slot.
+const rrChill = A.ops.createTokenType({
+  name: 'Chill', shape: 'dia', color: 'accent-2', glyph: '', scope: 'unit'
+});
+A.state.invalidate({ structural: true });
+A.state.flush();
+rrPressPill(2, 'rr/2/tok/' + rrChill);
+const rrMade = JSON.stringify(rrList()[2]);
+
+// The amount, typed into the real field, with a minus in front.
+rrTypeAmount(2, '-1');
+const rrDecay = JSON.stringify(rrList()[2]);
+const rrDecaySaying = rrSaying(rrRow(2).querySelector('.rr-read'));
+const rrDecayMarks = rrRow(2).querySelector('.rr-read')
+  .querySelectorAll('.sym-sign').length;
+const rrDecayMarkOnShape = rrRow(2).querySelector('.rr-read')
+  .querySelectorAll('.sym-sign')
+  .every((n) => String(n.parentNode.className || '').indexOf('tok') !== -1);
+
+// The party, pressed after the amount: the token and the amount survive it,
+// which is the whole of "the rest of the rule comes off the record".
+rrPressPill(2, 'rr/2/who/catsEach');
+const rrParty = JSON.stringify(rrList()[2]);
+
+// The cap. Five more rules take the list to eight, the empty row goes, and the
+// line under the list says why.
+for (let i = 3; i < 8; i++) {
+  rrPressPill(i, 'rr/' + i + '/tok/hp');
+}
+const rrAtCap = rrList().length;
+const rrCapShown = rrShownRows();
+const rrCapSaid = rrSaidNode.textContent;
+const rrCapHidden = rrSaidNode.hidden;
+
+// And back down: the emptying entry is the FIRST entry of the party chooser,
+// which is the same word in the same position the action editor's own clearing
+// entry occupies.
+rrPressPill(7, 'rr/7/who/');
+const rrAfterClear = rrList().length;
+const rrClearSaid = rrSaidNode.textContent;
+const rrClearHidden = rrSaidNode.hidden;
+
+// THE PARTITION, off the page.
+const rrActs = rrRoot.querySelectorAll('[data-act]').length;
+const rrControls = rrRoot.querySelectorAll('[data-rr]').length;
+const rrRootRaw = fgRawOn(rrRoot);
+const rrRootListeners = fgListenersOn(rrRoot);
+
+// THE TWO READINGS, compared to each other. The fight is started through the
+// real control so the block is built by the same code a student reaches.
+const rrEditorSaid = rrEditorSayings();
+fgPress(fgStart);
+A.state.flush();
+const rrFightBox = fgBar.querySelector('.fg-eachround');
+const rrFightLines = rrFightBox
+  ? rrFightBox.querySelectorAll('.fg-rr-line').map((n) => rrSaying(n))
+  : ['(no block)'];
+const rrFightControls = rrFightBox
+  ? (rrFightBox.querySelectorAll('button').length
+    + rrFightBox.querySelectorAll('[data-rr]').length) : -1;
+// The block is appended directly to the state area, so its own parent is the
+// reading — asked for that way rather than through contains(), which this stub
+// does not implement and which would report true for the input area too if it
+// did and the block were ever moved one level up.
+const rrFightInState = rrFightBox !== null
+  && rrFightBox.parentNode === dom.byId['fight-state'];
+const rrPairEqual = JSON.stringify(rrEditorSaid) === JSON.stringify(rrFightLines);
+
+// A board with no rules at all says so rather than showing an empty block.
+while (rrList().length > 0) { A.ops.setRoundRule(0, A.ops.CLEAR_TERM, '', 0); }
+A.state.flush();
+const rrNoneLines = fgBar.querySelector('.fg-eachround')
+  .querySelectorAll('.fg-rr-line').map((n) => n.textContent);
+
+const rrWords = harvestInto(dom.byId['app'], [], '#app');
+const rrVerdicts = verdictHitsIn(rrWords);
+const rrQuiet = errPanel.hidden === true;
+
+check(
+  '116. D-35 PART TWO, SURFACES TWO AND THREE: THE ROUND RULES ARE EDITED IN '
+    + 'THE BUILD VIEW AND READ BACK BY THE FIGHT IN THE SAME LANGUAGE. A '
+    + 'student presses a token on the empty slot and a rule appears; types '
+    + '"-1" into the real amount field and the reading gains D-30\'s red mark '
+    + 'ON THE SHAPE; presses a party and the token and the amount they already '
+    + 'wrote SURVIVE it; fills the list to App.data.MAX_ROUND_RULES, at which '
+    + 'point the empty row is gone and the line under the list says why; and '
+    + 'presses the FIRST entry of the party chooser to take one away, which is '
+    + 'the same word in the same position the action editor\'s clearing entry '
+    + 'occupies. THE PLACEMENT IS ASSERTED AND NOT ASSUMED: the fight\'s own '
+    + 'block sits inside the round-STATE area and carries ZERO buttons and '
+    + 'ZERO data-rr, because D-31 makes that area a reading of what IS and an '
+    + 'editor in it would be that line crossed for a second feature. THE TWO '
+    + 'READINGS ARE COMPARED TO EACH OTHER rather than each to a typed string '
+    + '— row 111\'s technique on a third pair — carrying the ACCESSIBLE NAME '
+    + 'as well as the text, because a symbolic reading\'s text is nearly empty '
+    + 'by construction and two empty strings are equal to themselves. NOTHING '
+    + 'IN THE REGION CARRIES data-act, which is mechanism and not style: this '
+    + 'block is INSIDE #app, so a data-act here would be resolved by '
+    + 'actTarget() and handed to fire(), which builds a payload setRoundRule '
+    + 'does not take. Every listener on the root went through App.boot.wrap, '
+    + 'and the row count is held to the constant in BOTH pages',
+  rrShellRows === A.data.MAX_ROUND_RULES
+    && rrStubRows === A.data.MAX_ROUND_RULES
+    && rrShownAtRest === 3
+    && rrFirstSaying.indexOf('each round') !== -1
+    && rrEmptyHasNoWho === 0 && rrEmptyHasToks === true
+    && rrEmptyAmtHidden === true
+    && rrMade === JSON.stringify({ who: 'cats', tok: rrChill, d: 1 })
+    && rrDecay === JSON.stringify({ who: 'cats', tok: rrChill, d: -1 })
+    && rrDecayMarks === 1 && rrDecayMarkOnShape === true
+    && rrParty === JSON.stringify({ who: 'catsEach', tok: rrChill, d: -1 })
+    && rrAtCap === 8 && rrCapShown === 8
+    && rrCapHidden === false && rrCapSaid.indexOf('all 8') !== -1
+    && rrAfterClear === 7 && rrClearHidden === true && rrClearSaid === ''
+    && rrActs === 0 && rrControls > 0
+    && rrRootListeners >= 5 && rrRootRaw.length === 0
+    && rrFightInState === true && rrFightControls === 0
+    && rrFightLines.length === 7 && rrPairEqual === true
+    && rrNoneLines.length === 1
+    && rrNoneLines[0].indexOf('Nothing') === 0
+    && rrVerdicts.length === 0 && rrQuiet === true,
+  'rows: shell=' + rrShellRows + ' stub=' + rrStubRows
+    + ' (cap ' + A.data.MAX_ROUND_RULES + '), shown at rest=' + rrShownAtRest
+    + ' | row 0 says ' + JSON.stringify(rrFirstSaying)
+    + ' | empty slot: party pills=' + rrEmptyHasNoWho
+    + ' token pills=' + rrEmptyHasToks + ' amount hidden=' + rrEmptyAmtHidden
+    + ' | made=' + rrMade + ' -> typed -1 -> ' + rrDecay
+    + ' saying ' + JSON.stringify(rrDecaySaying)
+    + ' marks=' + rrDecayMarks + ' on a shape=' + rrDecayMarkOnShape
+    + ' | party pressed -> ' + rrParty
+    + ' | at the cap: ' + rrAtCap + ' rules, ' + rrCapShown + ' rows, line='
+    + JSON.stringify(rrCapSaid)
+    + ' | after clearing one: ' + rrAfterClear + ' rules, line hidden='
+    + rrClearHidden
+    + ' | #roundrules data-act=' + rrActs + ' data-rr=' + rrControls
+    + ' listeners=' + rrRootListeners
+    + ' bound outside the boundary: ' + (rrRootRaw.join(', ') || 'none')
+    + ' | the fight block is in the state area=' + rrFightInState
+    + ' controls in it=' + rrFightControls
+    + ' | editor says ' + JSON.stringify(rrEditorSaid)
+    + ' | fight says ' + JSON.stringify(rrFightLines)
+    + ' | equal=' + rrPairEqual
+    + ' | with no rules at all: ' + JSON.stringify(rrNoneLines)
+    + ' | harvest=' + rrWords.length + ' strings, verdict words: '
+    + (rrVerdicts.join(', ') || 'none') + ' | panel quiet=' + rrQuiet
+);
+
 A.ops.resetToDefaults();
 A.state.invalidate({ structural: true });
 A.state.flush();
