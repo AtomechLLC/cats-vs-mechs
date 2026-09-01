@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-35 PART 2 of 2 — the three authoring surfaces (05-D35b)
-last_updated: "2026-09-01T02:00:00.000Z"
+stopped_at: Completed D-35c — the round rules made operable (05-D35c)
+last_updated: "2026-09-01T06:00:00.000Z"
 last_activity: 2026-09-01
 progress:
   total_phases: 7
@@ -363,9 +363,30 @@ sticky foot.
 `deferred-items.md` items **15** (where a student expects to edit a rule mid-fight) and **16**
 (the reading says a number moved and never which rule moved it).
 `.planning/phases/05-fight-loop-playtest/05-D35b-SUMMARY.md`.
-Next: **05-11, the playtest** — the last thing in the phase, and it now carries four questions
+
+**D-35c — THE ROUND RULES MADE OPERABLE.** The developer looked for the round-rules UI and
+asked for it again, which is the only reading that settles whether a surface is discoverable.
+Five defects, each now a number: the amount was stranded **160px** right of its pills
+(`.rr-toks{flex:1 1 auto}` — [C17] was written from D-32's spelling of the token strip rather
+than from the one D-33 P2-7 had already fixed) and measures **0px** with **80px** of slack left
+in the row; the dangling half-row is gone and visible rows **=== rule count**; there is an
+**`+ Add a round rule`** under the list and a **`Remove`** on every row, both wearing the word
+per D-33 P3-1; the ten pills are five grid **columns** under four words written ONCE in a header,
+each aligned with its column to the pixel; and the symbolic reading — which WAS already being
+drawn, the dispatch's fifth item being the one thing in it not literally true — now has a column,
+a header word, and a second consumer (`symRoundSaid`, off `symRoundBits`) that check 116 holds
+to it. **The op did not move**: `setRoundRule` still covers append, replace and remove and is
+still the only writer; "None" left the party chooser so that strip answers one question.
+Gate: node **1327 / 0, exit 0**, **204 of 204** (no row added — 116 and 117 re-driven), stub-drift
+**144 → 145** (`#rr-add`), browser checks **254 → 262 / 0 HEADLESS** (+cells 25a, 25b2).
+`FIGHT_FLOOR` stays **248** and the reason is not D-35b's repeated: this change makes the
+region's MINIMUM contribution SMALLER (a board with no rules used to draw one empty row of token
+pills and now draws none), so the +10 measured on the shipped board is not a lower bound.
+`.planning/phases/05-fight-loop-playtest/05-D35c-SUMMARY.md`.
+Next: **05-11, the playtest** — the last thing in the phase, and it now carries five questions
 rather than two: the AP sweep, the +3-versus-refill fork (item 13), the round-rules placement
-(item 15) and whether a decay needs attributing (item 16).
+(item 15), whether a decay needs attributing (item 16), and whether a two-line rule band reads
+as one rule on a projector once a student has invented a sixth token type.
 Last activity: 2026-09-01
 
 Progress: [██████████] 100%
@@ -588,6 +609,12 @@ None yet.
 - 05-D32b: **THE STUB-DRIFT GATE CANNOT SEE A CLASS.** PROBE CD put `.ae-term-lbl` back in the stub and removed `.ae-term-read`: 135 shell ids, all built, that gate green — and every editor drive in the file quietly drawing nothing. Rows 111 and 112 caught it, and 112 is the class-level drift row this change needed because it moved no id.
 - 05-D32b: an apostrophe and a backtick on ONE line of a comment in the script block take **Layer B from 8,586 literals to 1,878** — the single-quote arm swallows the opening backtick and the closing one opens a 46,510-character span. The extractor's own floor named it in one line, which is what that floor is for. Recorded at the site that tripped it.
 
+- 05-D35c: **A CELL CAN NAME A DEFECT AND STILL BE UNABLE TO SEE IT, AND THE ANSWER WAS A CELL IN A DIFFERENT PLACE.** PROBE DC put the stranded amount back — the token track to `1fr` — and cell 25b, the cell whose whole sentence is about that defect, passed at 0px in all four columns. By the time it runs a sixth token type has been invented and the row is over-constrained: a track with no free space cannot claim any and the two layouts are pixel-identical. New cell 25a takes the reading on the shipped board where 80px of slack exists, and asserts `slack > 0` as a floor on the measurement being a measurement. It also turned which clause is load-bearing: `amtGap` can NEVER catch a stretched track in a GRID, because the amount is the next COLUMN and rides along with it at 0px while the pair drifts right together.
+- 05-D35c: **A HIDDEN ROW WAS HOLDING TEN LIVE BUTTONS AND A GATE CHECK WAS PRESSING ONE.** PROBE DI found nothing, which is how it surfaced. The surplus round-rule rows are static markup, so hiding one left it holding the pills of whatever rule last stood in it — invisible on screen, absent from the accessibility tree, clean to every reading in this repository. Check 117 authored its decay rule by pressing a token pill on a row that was hidden the entire time, and passed, because this stub's `querySelector` does not honour `hidden`. Rows are emptied on the paint that hides them; 116 reads a hidden row back for zero pills.
+- 05-D35c: **`align-items:center` ON A GRID DRAWS A PER-ROW HAIRLINE AS FOUR DISCONNECTED SEGMENTS,** because centred cells are only as tall as their contents and a wrapped chooser puts five border-tops at three different heights. Every number in the cell was green — row count, band height, amount gap, column alignment — because none of them is about where a border starts. The nineteenth consecutive rendered change in this phase whose defect only a picture showed.
+- 05-D35c: **A PROBE FOUND A VARIABLE THAT WAS ALREADY INERT.** Setting `shown` back to `list.length + 1` changed nothing, because `slot === list.length` reads `undefined` out of the list and the row is hidden on the next line whatever the count says. Deleted rather than kept: a variable that cannot change the answer is a variable the next reader has to prove cannot change the answer.
+- 05-D35c: **A TWO-PART SELECTOR IN THE NODE GATE MATCHES NOTHING, SILENTLY.** This stub's `querySelector` reads ONE simple selector, so `'.rr-read .sym'` returned null and a new clause read `false` over a page where both strings were correct. Chain, or the clause is green-over-nothing in the other direction.
+
 - 05-D30: the node gate cannot see this change beyond the sign's PARENT, demonstrated rather than assumed — PROBE BL moved the anchor from 25% to 50% and the gate ran 189 of 189, exit 0. Three browser cells (21b, 21c, 21d) carry the half that only exists in pixels, and they run only where Playwright does.
 
 ## Deferred Items
@@ -600,6 +627,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-01T02:00:00.000Z
-Stopped at: Completed D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
+Last session: 2026-09-01T06:00:00.000Z
+Stopped at: Completed D-35c (05-D35c) — the round rules made operable: the amount bound to its rule (160px -> 0px), the dangling half-row gone, an Add under the list and a Remove on every row, ten pills grouped into five columns under four words written once, and the symbolic reading given a column of its own. The op did not move. Node 1327/0 exit 0, 204 of 204, 145 shell ids; browser 262/0 headless (+25a, +25b2). Two probes found nothing and both became commits. Previously: D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
 Resume file: None
