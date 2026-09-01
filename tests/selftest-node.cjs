@@ -15686,10 +15686,27 @@ function rrShownRows() {
 // The reading AND its accessible name, because a symbolic reading's text is
 // nearly empty by construction — the quantity is token nodes — and two empty
 // strings are equal to each other.
+function rrDeepText(node) {
+  // The stub's textContent is a plain PROPERTY and not an aggregating getter,
+  // so a line assembled out of one node per fragment reads as the empty string
+  // through it. Measured while writing this row: the party words were absent
+  // from both sides of the comparison and the pair was equal because both were
+  // empty. This walks, which is what harvestInto does one layer up and for the
+  // same reason.
+  const out = [];
+  (function walk(n) {
+    if (!n) { return; }
+    if (typeof n.textContent === 'string' && n.textContent !== '') {
+      out.push(n.textContent);
+    }
+    (n.children || []).forEach(walk);
+  }(node));
+  return out.join('');
+}
 function rrSaying(node) {
   if (!node) { return '(no node)'; }
   const sym = node.querySelector('.sym');
-  return node.textContent + ' [' + (sym ? sym.getAttribute('title') : '(no sym)') + ']';
+  return rrDeepText(node) + ' [' + (sym ? sym.getAttribute('title') : '(no sym)') + ']';
 }
 function rrEditorSayings() {
   return rrRows().filter((n) => n.hidden !== true)
