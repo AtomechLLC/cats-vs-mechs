@@ -6994,6 +6994,50 @@ App.data = (function () {
   // state can do that.
   var MAX_PAST_ROUNDS = 30;
 
+  /* ---- D-35: WHAT HAPPENS EACH ROUND, AS DATA -----------------------------
+     The developer's words, verbatim: "add a feature to configure what happens
+     each round (default +3 action points, but also things like -1 of a status
+     effect token)". So Advance stops carrying a hardcoded refill and applies a
+     LIST the student can edit — each entry a who, a token and a signed delta,
+     in the field spelling [S01]'s transformation record already uses, because a
+     student who has read one of these has read the other.
+
+     WHO IS AN INDEX INTO A FROZEN LIST OF RECORDS, not a pair of fields and not
+     a string this file takes apart. Four entries cover the developer's two
+     scopes — a side's own pool, or each of that side's units — and each record
+     carries the side and the reach it means, so no caller anywhere does string
+     surgery on an id to find out which side a rule is about. XF_WHO is the
+     precedent one level down and this is the same shape with two more facts in
+     it.
+
+     INDEX STABILITY — the same rule TOKEN_SCOPES, GLYPHS and XF_WHO carry, for
+     the same reason. [S04] encodes a `who` as its POSITION here. Entries may be
+     APPENDED to the end. They may never be reordered, and never removed,
+     without bumping the build code's wire version.
+
+     THE IDS ARE EXPORTED SEPARATELY AND DERIVED FROM THE RECORDS rather than
+     written twice: [S04] needs a flat list to take a position in and [S05]
+     needs one to run its allowlist over, and two hand-written lists that have
+     to agree is the drift this section closes everywhere else.
+     ------------------------------------------------------------------------ */
+  var ROUND_WHO = deepFreeze([
+    { id: 'cats', side: 'cats', each: false },
+    { id: 'mechs', side: 'mechs', each: false },
+    { id: 'catsEach', side: 'cats', each: true },
+    { id: 'mechsEach', side: 'mechs', each: true }
+  ]);
+  var ROUND_WHO_IDS = deepFreeze(ROUND_WHO.map(function (r) { return r.id; }));
+
+  // How many round rules a student may keep. Eight, and it is a cap for the
+  // reason every cap above it is one rather than for a measured cost: a list
+  // long enough to be unreadable on a projector is a list nobody can check
+  // against the board it is about, and a rule nobody reads is a rule the tool
+  // is applying on its own. MEASURED on the wire at four characters a rule, so
+  // the whole list at its cap is 34 characters of a 512-character budget —
+  // which is to say the cap is not buying build-code characters and must not be
+  // moved to.
+  var MAX_ROUND_RULES = 8;
+
   /* --- THE WIRE. Seven named constants that decide the SHAPE of a build code.
          Each carries the arithmetic or the source that chose it, in the
          MAX_CUSTOM_TYPES idiom above, because every one of them is a thing a
@@ -7147,6 +7191,16 @@ App.data = (function () {
         // own board would be a caveat this file invented for them. A later plan
         // restoring it should read this paragraph, and the row in [S09.1] that
         // states the same thing in its own label, before it does.
+        //
+        // AND THE OTHER HALF OF THIS RULING HAS MOVED INTO DATA (D-35). What
+        // used to be true by Advance's own construction — "the shield does not
+        // refill" — is now true because THE SHIPPED `rules` LIST CARRIES NO
+        // SHIELD RULE. Nothing in [S05] refuses one: a student who rules
+        // "Recharge gives a point of shield back every round" authors a +1
+        // shield rule and the tool applies it, which is the same promotion from
+        // ruling to data this whole change is. The absence above is still the
+        // decision; it is now an absence a student can fill rather than one
+        // this file enforces.
         { id: 'recharge', name: 'Recharge', dmg: 0, keywords: ['shield'],
           cost: [{ tok: 'ap', n: 1 }], req: [], xf: [] }
       ]
@@ -7168,13 +7222,65 @@ App.data = (function () {
     // names need not be unique (D-11) — the key already disambiguates them.
     // One edit here covers three call sites, because defaults() below is a
     // JSON deep copy of this literal and resetToDefaults reuses defaults().
+    //
+    // `min` AND `max` ARE D-35's SECOND HALF — "Add a property for min and max
+    // of a token on a unit or side" — and they ship at the bound this file has
+    // always enforced, which is the whole reason the shipped board behaves
+    // identically after the change that added them. int() has clamped every
+    // quantity to [0, MAX_ALLOC] since Phase 1; these two fields make that pair
+    // AUTHORED DATA instead of a constant, so a student can say "this status
+    // never goes past 3" or "this pool never falls under 1" and every write path
+    // in the file obeys them. They travel in the build code like every other
+    // authored property (SHARE-08).
+    //
+    // THEY ARE PROPERTIES OF THE TYPE AND NOT OF A UNIT, which is the reading
+    // the developer's own sentence takes: a token lives on a unit or on a side,
+    // and its bounds are the type's, applied at whichever scope the type keeps
+    // its number. That matters most where it is least obvious — D-35's aside
+    // that shield gets "a max of its starting value" cannot be a TYPE property
+    // on a board where three mechs may start at three different shields, so
+    // what ships here is the type-wide bound and shield's no-refill comes from
+    // having NO ROUND RULE rather than from a ceiling. Recorded rather than
+    // quietly resolved, because the difference is visible the first time a
+    // student authors a +1 shield rule.
     tokens: {
-      hp:     { shape: 'sq',   color: 'green',   glyph: '',           name: 'Health' },
-      ap:     { shape: 'tri',  color: 'gold',    glyph: '',           name: 'Action points' },
-      shield: { shape: 'sq',   color: 'accent',  glyph: '',           name: 'Shield' },
-      dmg:    { shape: 'dia',  color: 'coral',   glyph: '',           name: 'Damage' },
-      dead:   { shape: 'rect', color: 'ink-dim', glyph: '\u{1F480}',  name: 'Dead marker' }  // SKULL
-    }
+      hp:     { shape: 'sq',   color: 'green',   glyph: '',           name: 'Health',        min: 0, max: MAX_ALLOC },
+      ap:     { shape: 'tri',  color: 'gold',    glyph: '',           name: 'Action points', min: 0, max: MAX_ALLOC },
+      shield: { shape: 'sq',   color: 'accent',  glyph: '',           name: 'Shield',        min: 0, max: MAX_ALLOC },
+      dmg:    { shape: 'dia',  color: 'coral',   glyph: '',           name: 'Damage',        min: 0, max: MAX_ALLOC },
+      dead:   { shape: 'rect', color: 'ink-dim', glyph: '\u{1F480}',  name: 'Dead marker',   min: 0, max: MAX_ALLOC }  // SKULL
+    },
+    /* D-35: WHAT HAPPENS EACH ROUND, SEEDED WITH THE DEVELOPER'S OWN DEFAULT.
+       "+3 action points" to each side, written as two rules because a rule
+       names one who — and the two are separately editable for the same reason
+       the two factions' pools are: this artifact exists to let two sides look
+       nothing alike.
+
+       THIS IS THE +3 FORK AND IT IS TAKEN LITERALLY RATHER THAN TIDIED INTO
+       THE OLD BEHAVIOUR. What Advance did until this change was REFILL each
+       pool to the side's configured AP. "+3 each round" and "refill to 3" are
+       the same board while the pool is 3 and every point of it gets spent, and
+       they are different rules the moment either of those stops holding:
+         - at the candidate retune of 9, +3 METERS a nine-point pool across
+           three rounds and a refill hands all nine over every round;
+         - and in any round a side leaves points unspent, +3 CARRIES THEM
+           FORWARD where the refill threw them away.
+       Both differences are the feature rather than the defect. The old
+       semantic stays expressible — a rule of +99 is a refill, because every
+       write is clamped to the token's own max — and WHICH ONE MAKES THE 9v3
+       CONTESTED IS A PLAYTEST QUESTION, not one this file answers. [S09.12]
+       carries a row driving both readings side by side at 9 so the divergence
+       is on the record rather than in this paragraph alone.
+
+       IT LIVES IN `build` BECAUSE A CLASSMATE LOADING YOUR CODE MUST GET YOUR
+       RULES. Round rules define how the fight behaves; a build code that
+       carried the roster and dropped them would hand over a board that plays
+       differently with nothing anywhere to say so — SHARE-08's own argument,
+       one key over. */
+    rules: [
+      { who: 'cats', tok: 'ap', d: 3 },
+      { who: 'mechs', tok: 'ap', d: 3 }
+    ]
   });
 
   // REF-01 and REF-02. The reference material the shipped board comes with:
@@ -7281,6 +7387,14 @@ App.data = (function () {
     // that can drift away from this definition, and plan 05-04's advanceRound
     // reads it at the one place it drops the oldest round.
     MAX_PAST_ROUNDS: MAX_PAST_ROUNDS,
+    // D-35's round rules. Exported for the stated reason every cap and every
+    // allowlist above is: [S04] takes a position in ROUND_WHO_IDS, [S05] runs
+    // its allowlist over the same list and reads the records for the side and
+    // the reach, and [S09] asserts against these names rather than against a
+    // re-typed copy that can drift away from this definition.
+    ROUND_WHO: ROUND_WHO,
+    ROUND_WHO_IDS: ROUND_WHO_IDS,
+    MAX_ROUND_RULES: MAX_ROUND_RULES,
     // The wire. [S04] reads every one of these at its call sites and [S09.11]
     // asserts against these names, never against a re-typed copy of the value.
     CODE_VERSION: CODE_VERSION,
@@ -9062,22 +9176,50 @@ App.serialize = (function () {
         + ordinal(xf.tok) + SEP.term + biased;
     }
 
-    // THE VOCABULARY. Built-ins first, in TOKEN_IDS order, and a built-in that
-    // still looks exactly as it shipped writes nothing.
+    /* THE VOCABULARY. Built-ins first, in TOKEN_IDS order, and a built-in that
+       still looks exactly as it shipped writes nothing.
+
+       D-35 PUT TWO MORE FIELDS ON THE END OF BOTH RECORD SHAPES — the type's
+       authored min and its max — and ON THE END is the load-bearing half. A
+       record written before this change carries five fields for a built-in and
+       six for a custom type; one written after carries seven and eight. The
+       reader accepts both lengths and fills the shipped bounds in for the short
+       form, so A CODE A CLASSMATE SHARED LAST TERM STILL LOADS, with the bounds
+       this file has always enforced. That is what keeps the wire version at v1:
+       the extension is honestly backwards-decodable rather than merely
+       backwards-shaped, and [S09.11] drives a literal pre-D-35 code to prove
+       it rather than reasoning about one.
+
+       THE BOUNDS JOIN THE "STILL AS IT SHIPPED" TEST, which is the line that
+       decides whether a record is written at all. Without them a student who
+       moved only a bound would emit no record and their rule would be lost on
+       the way to a classmate — the same silent-loss shape [S04]'s banner names
+       about `dmg`, arriving through a field that IS writable. */
     var vocabRecords = [];
+    function boundFields(live) {
+      return [amount(Number.isInteger(live.min) ? live.min : 0),
+        amount(Number.isInteger(live.max) ? live.max : App.data.MAX_ALLOC)];
+    }
+    function sameBounds(live, shipped) {
+      return (Number.isInteger(live.min) ? live.min : 0)
+          === (Number.isInteger(shipped.min) ? shipped.min : 0)
+        && (Number.isInteger(live.max) ? live.max : App.data.MAX_ALLOC)
+          === (Number.isInteger(shipped.max) ? shipped.max : App.data.MAX_ALLOC);
+    }
     App.data.TOKEN_IDS.forEach(function (id, i) {
       var live = build.tokens[id];
       var shipped = App.data.DEFAULTS.tokens[id];
       if (!live || typeof live !== 'object') { refuse(); return; }
       if (live.shape === shipped.shape && live.color === shipped.color
-        && live.glyph === shipped.glyph && live.name === shipped.name) { return; }
+        && live.glyph === shipped.glyph && live.name === shipped.name
+        && sameBounds(live, shipped)) { return; }
       vocabRecords.push([
         n36(i),
         slotIn(App.data.SHAPES, live.shape),
         slotIn(App.data.COLORS, live.color),
         slotIn(App.data.GLYPHS, live.glyph),
         nameIndex(live.name)
-      ].join(SEP.field));
+      ].concat(boundFields(live)).join(SEP.field));
     });
     // Then the customs, in the derived order, each carrying its own sequence
     // number so the id is REBUILT from a number on the way back and never from
@@ -9094,8 +9236,46 @@ App.serialize = (function () {
         slotIn(App.data.GLYPHS, live.glyph),
         slotIn(App.data.TOKEN_SCOPES, live.scope),
         nameIndex(live.name)
-      ].join(SEP.field));
+      ].concat(boundFields(live)).join(SEP.field));
     });
+
+    /* D-35's ROUND RULES, AND ONLY WHEN THEY DIFFER FROM THE SHIPPED LIST.
+       That is rule 1 of the three that decide the size, applied to the newest
+       section: a board still carrying the seeded "+3 action points to each
+       side" writes NO SECTION AT ALL, so the untouched board's code does not
+       move by a single character and a code from before this change is exactly
+       what this file now writes for the same board.
+
+       AN EMPTY SECTION AND AN ABSENT ONE MEAN DIFFERENT THINGS, which is the
+       distinction that makes "differences only" safe here. A student who
+       DELETED every rule writes 'R' with nothing after it — seventeen sections
+       — and gets an empty list back. A code with sixteen sections carries no
+       opinion at all and gets the shipped list. Collapsing the two would make
+       "no rules at all" unshareable. */
+    var shippedRules = App.data.DEFAULTS.rules.map(function (r) {
+      return [r.who, r.tok, r.d].join(' ');
+    }).join('|');
+    var liveRules = Array.isArray(build.rules) ? build.rules : [];
+    var ruleSame = liveRules.map(function (r) {
+      return (r === null || typeof r !== 'object') ? '?'
+        : [r.who, r.tok, r.d].join(' ');
+    }).join('|') === shippedRules;
+    var ruleSection = null;
+    if (!ruleSame) {
+      ruleSection = 'R' + liveRules.map(function (r) {
+        if (!r || typeof r !== 'object') { return refuse(); }
+        if (!Number.isInteger(r.d)) { return refuse(); }
+        if (r.d < App.data.MIN_XF_DELTA) { return refuse(); }
+        if (r.d > App.data.MAX_XF_DELTA) { return refuse(); }
+        var biased = n36(r.d + App.data.MAX_XF_DELTA);
+        if (biased === null) { return refuse(); }
+        // The same bias xfCode uses, for the same reason: a signed value needs
+        // no sign character, which is what keeps the minus free to separate
+        // items two levels up.
+        return [slotIn(App.data.ROUND_WHO_IDS, r.who), ordinal(r.tok), biased]
+          .join(SEP.field);
+      }).join(SEP.record);
+    }
 
     function sideCode(mark, side, shippedSide, prefix, label) {
       if (!side || typeof side !== 'object') { return refuse(); }
@@ -9192,8 +9372,10 @@ App.serialize = (function () {
 
     // The name table is complete only once both sides have been written, which
     // is why the body is assembled here rather than above.
-    var body = ['N' + names.join(SEP.field), 'V' + vocabRecords.join(SEP.record)]
-      .concat(sideCodes).join(SEP.section);
+    var sections = ['N' + names.join(SEP.field), 'V' + vocabRecords.join(SEP.record)]
+      .concat(sideCodes);
+    if (ruleSection !== null) { sections.push(ruleSection); }
+    var body = sections.join(SEP.section);
     var digest = checksum(body);
     if (digest === null) { return null; }
     return App.data.CODE_VERSION + SEP.section + body + SEP.section + digest;
@@ -9320,12 +9502,23 @@ App.serialize = (function () {
     if (mine === null) { return { ok: false, why: 'shape' }; }
     if (digest !== mine) { return { ok: false, why: 'checksum' }; }
 
+    /* THE SECTION COUNT, AND D-35 MADE IT TWO ADMISSIBLE COUNTS RATHER THAN
+       ONE. Sixteen sections is a code written before round rules existed, or
+       one whose rules still match the shipped list; seventeen carries a rules
+       section of its own. Both are v1, because the extension is honestly
+       backwards-decodable: the older shape means "the shipped rules", which is
+       exactly what a board written before this change had. Anything else is
+       still refused as a SHAPE, before a single value is read out of it. */
     var parts = body.split(SEP.section);
-    if (parts.length !== 2 + WIRE_SIDES.length * WIRE_SIDE_FIELDS) {
+    var WIRE_BASE = 2 + WIRE_SIDES.length * WIRE_SIDE_FIELDS;
+    if (parts.length !== WIRE_BASE && parts.length !== WIRE_BASE + 1) {
       return { ok: false, why: 'shape' };
     }
     if (parts[0].charAt(0) !== 'N') { return { ok: false, why: 'shape' }; }
     if (parts[1].charAt(0) !== 'V') { return { ok: false, why: 'shape' }; }
+    if (parts.length === WIRE_BASE + 1 && parts[WIRE_BASE].charAt(0) !== 'R') {
+      return { ok: false, why: 'shape' };
+    }
 
     /* CONTENT — is what it says admissible? Every guard below sits BEHIND the
        digest rather than being replaced by it, because the two answer
@@ -9389,10 +9582,37 @@ App.serialize = (function () {
         shape: shipped.shape,
         color: shipped.color,
         glyph: shipped.glyph,
-        name: shipped.name
+        name: shipped.name,
+        min: shipped.min,
+        max: shipped.max
       };
       order.push(id);
     });
+
+    /* D-35's BOUNDS, READ OFF THE END OF A RECORD THAT MAY NOT CARRY THEM.
+       A record two fields longer than the pre-D-35 shape carries an authored
+       min and max; one at the old length carries the shipped pair. Both are
+       admitted, which is the whole of what keeps a stale code loading rather
+       than refusing — and the guards below are re-run on whatever arrives,
+       because a pasted code reaches none of the write path's.
+
+       TWO GUARDS AND TWO SENTENCES, never one. A bound outside [0, MAX_ALLOC]
+       and a min above its max are different mistakes, they are made in
+       different ways, and a matrix that collapsed them would be one guard
+       asserted twice and reported as two. */
+    function boundsFrom(fields, at, shipped) {
+      if (fields.length === at) {
+        return { min: shipped.min, max: shipped.max };
+      }
+      var lo = p36(fields[at]);
+      var hi = p36(fields[at + 1]);
+      if (lo === null || hi === null) { return stop('a bound is out of bounds'); }
+      if (lo > App.data.MAX_ALLOC || hi > App.data.MAX_ALLOC) {
+        return stop('a bound is out of bounds');
+      }
+      if (lo > hi) { return stop('a bound is upside down'); }
+      return { min: lo, max: hi };
+    }
 
     var vocabField = parts[1].slice(1);
     if (vocabField !== '') {
@@ -9400,7 +9620,9 @@ App.serialize = (function () {
       for (var vi = 0; vi < vocabRecords.length; vi++) {
         var vf = vocabRecords[vi].split(SEP.field);
         if (vocabRecords[vi].charAt(0) === 'C') {
-          if (vf.length !== 6) { return content('a token type is the wrong shape'); }
+          if (vf.length !== 6 && vf.length !== 8) {
+            return content('a token type is the wrong shape');
+          }
           var seq = p36(vf[0].slice(1));
           if (seq === null) { return content('no such token type'); }
           var madeId = 't' + seq;
@@ -9413,14 +9635,23 @@ App.serialize = (function () {
           var cGlyph = entryAt(App.data.GLYPHS, vf[3], 'no such glyph');
           var cScope = entryAt(App.data.TOKEN_SCOPES, vf[4], 'no such scope');
           var cName = nameAt(vf[5]);
+          // A custom type has no shipped record to fall back to, so the pair a
+          // short record means is the file's own floor and ceiling — the same
+          // pair createTokenType hands a new type.
+          var cBounds = boundsFrom(vf, 6, { min: 0, max: App.data.MAX_ALLOC });
           if (cShape === null || cColor === null || cGlyph === null
-            || cScope === null || cName === null) { return content(problem); }
+            || cScope === null || cName === null || cBounds === null) {
+            return content(problem);
+          }
           tokens[madeId] = {
-            shape: cShape, color: cColor, glyph: cGlyph, name: cName, scope: cScope
+            shape: cShape, color: cColor, glyph: cGlyph, name: cName, scope: cScope,
+            min: cBounds.min, max: cBounds.max
           };
           order.push(madeId);
         } else {
-          if (vf.length !== 5) { return content('a token type is the wrong shape'); }
+          if (vf.length !== 5 && vf.length !== 7) {
+            return content('a token type is the wrong shape');
+          }
           var builtinId = entryAt(App.data.TOKEN_IDS, vf[0], 'no such token type');
           if (builtinId === null) { return content(problem); }
           if (moved[builtinId] === true) {
@@ -9430,11 +9661,13 @@ App.serialize = (function () {
           var bColor = entryAt(App.data.COLORS, vf[2], 'no such colour');
           var bGlyph = entryAt(App.data.GLYPHS, vf[3], 'no such glyph');
           var bName = nameAt(vf[4]);
+          var bBounds = boundsFrom(vf, 5, App.data.DEFAULTS.tokens[builtinId]);
           if (bShape === null || bColor === null || bGlyph === null
-            || bName === null) { return content(problem); }
+            || bName === null || bBounds === null) { return content(problem); }
           moved[builtinId] = true;
           tokens[builtinId] = {
-            shape: bShape, color: bColor, glyph: bGlyph, name: bName
+            shape: bShape, color: bColor, glyph: bGlyph, name: bName,
+            min: bBounds.min, max: bBounds.max
           };
         }
       }
@@ -9690,6 +9923,49 @@ App.serialize = (function () {
     }
 
     out.tokens = tokens;
+
+    /* D-35's ROUND RULES. Absent means the shipped list — the backwards-
+       decodable arm, and the reason a code from before this change loads with
+       the board it was written on. PRESENT AND EMPTY means a student who
+       removed every rule, which is a thing they are allowed to say.
+
+       FOUR GUARDS, FOUR SENTENCES, and none of them shared with a guard above:
+       the field count, the party ordinal, the token ordinal and the amount.
+       The token is looked up in `order`, which is built in lockstep with the
+       vocabulary, so a rule naming a type this code did not carry is refused
+       by its own reading rather than by a dereference of undefined — the
+       lesson unbag's own paragraph records from probe J. */
+    var rules = [];
+    if (parts.length === WIRE_BASE + 1) {
+      var ruleField = parts[WIRE_BASE].slice(1);
+      if (ruleField !== '') {
+        var ruleRecords = ruleField.split(SEP.record);
+        if (ruleRecords.length > App.data.MAX_ROUND_RULES) {
+          return content('too many round rules');
+        }
+        for (var ri = 0; ri < ruleRecords.length; ri++) {
+          var rf = ruleRecords[ri].split(SEP.field);
+          if (rf.length !== 3) { return content('a round rule is the wrong shape'); }
+          var rWho = entryAt(App.data.ROUND_WHO_IDS, rf[0], 'no such round rule party');
+          if (rWho === null) { return content(problem); }
+          var rTok = entryAt(order, rf[1], 'a round rule names no token type');
+          if (rTok === null) { return content(problem); }
+          var rBiased = p36(rf[2]);
+          if (rBiased === null) { return content('a round rule is out of bounds'); }
+          var rD = rBiased - App.data.MAX_XF_DELTA;
+          if (rD < App.data.MIN_XF_DELTA || rD > App.data.MAX_XF_DELTA) {
+            return content('a round rule is out of bounds');
+          }
+          if (rD === 0) { return content('a round rule of nothing is not written down'); }
+          rules.push({ who: rWho, tok: rTok, d: rD });
+        }
+      }
+    } else {
+      App.data.DEFAULTS.rules.forEach(function (r) {
+        rules.push({ who: r.who, tok: r.tok, d: r.d });
+      });
+    }
+    out.rules = rules;
     return { ok: true, build: out };
   }
 
@@ -9921,6 +10197,52 @@ App.ops = (function () {
     if (value < min) { return min; }
     if (value > max) { return max; }
     return value;
+  }
+
+  /* ---- D-35: THE AUTHORED BOUNDS, READ AT EVERY WRITE ---------------------
+     int() above takes a min and a max as arguments and has been handed the
+     same pair — 0 and MAX_ALLOC — at every call site in this file since Phase
+     1. D-35 makes that pair AUTHORED DATA on the token type, so these two
+     functions are what stand between the type's record and int(): one reads
+     the pair off the vocabulary, the other spends it.
+
+     THE CLAMP IS AT WRITE TIME AND ONLY AT WRITE TIME, which is the house
+     convention this file already runs on and is a decision rather than an
+     implementation detail. A bound tightened AFTER a number was written does
+     not reach back and change it — the student's number stands until something
+     writes it — for two reasons that point the same way: a bound that
+     retroactively edited a board would change numbers on a surface nobody was
+     looking at, and a codec that refused a value its own board legitimately
+     holds could not round-trip that board. [S04] is written to the same rule
+     and its own paragraph says so from the other end.
+
+     EVERY FIELD IS READ DEFENSIVELY. A vocabulary reaches here from a pasted
+     build code, from an [S09] restore of a snapshot taken before this change,
+     and from a board a student is halfway through authoring — so an absent or
+     unreadable bound is the bound this file has always enforced rather than a
+     throw, and a pair the wrong way round collapses to the max rather than
+     inverting int()'s comparison into a value that can never be written at
+     all. The refusals for a bound that is out of range or upside down live at
+     the WRITE path — setTokenBounds and [S04.3] — where a student can be told
+     which one, not here, where every read would have to raise it again.
+     ------------------------------------------------------------------------ */
+  function tokenBounds(vocab, tokenId) {
+    var rec = (vocab !== null && typeof vocab === 'object'
+      && Object.prototype.hasOwnProperty.call(vocab, tokenId)) ? vocab[tokenId] : null;
+    var lo = (rec !== null && Number.isInteger(rec.min)) ? rec.min : 0;
+    var hi = (rec !== null && Number.isInteger(rec.max)) ? rec.max : MAX_ALLOC;
+    if (lo < 0) { lo = 0; }
+    if (hi > MAX_ALLOC) { hi = MAX_ALLOC; }
+    if (lo > hi) { lo = hi; }
+    return { min: lo, max: hi };
+  }
+
+  // int() with the type's own pair in place of the two literals every call site
+  // used to write. The `what` still names the quantity, so a refusal reads the
+  // same as it always did.
+  function bounded(vocab, tokenId, value, what) {
+    var b = tokenBounds(vocab, tokenId);
+    return int(value, b.min, b.max, what);
   }
 
   // The other half of the boundary: the KEY, not just the value. Every op
@@ -10334,14 +10656,14 @@ App.ops = (function () {
   function setFactionAp(side, ap) {
     requireSide(side);
     App.state.commit('ap ' + side, function (s) {
-      s.build[side].ap = int(ap, 0, MAX_ALLOC, 'action points');
+      s.build[side].ap = bounded(s.build.tokens, 'ap', ap, 'action points');
     });
   }
 
   function setUnitMaxHp(side, unitId, maxHp) {
     requireSide(side);
     App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, s.build[side].units).maxHp = int(maxHp, 0, MAX_ALLOC, 'max health');
+      findUnit(side, unitId, s.build[side].units).maxHp = bounded(s.build.tokens, 'hp', maxHp, 'max health');
     });
   }
 
@@ -10371,7 +10693,7 @@ App.ops = (function () {
   function setUnitShield(side, unitId, shield) {
     requireSide(side);
     App.state.commit('shield ' + side + '/' + unitId, function (s) {
-      findUnit(side, unitId, s.build[side].units).shield = int(shield, 0, MAX_ALLOC, 'shield');
+      findUnit(side, unitId, s.build[side].units).shield = bounded(s.build.tokens, 'shield', shield, 'shield');
     });
   }
 
@@ -10401,7 +10723,7 @@ App.ops = (function () {
     var moved = false;
     App.state.commit('ap ' + side, function (s) {
       var faction = s.build[side];
-      var next = int(faction.ap + delta, 0, MAX_ALLOC, 'action points');
+      var next = bounded(s.build.tokens, 'ap', faction.ap + delta, 'action points');
       moved = (next !== faction.ap);
       faction.ap = next;
     });
@@ -10414,7 +10736,7 @@ App.ops = (function () {
     var moved = false;
     App.state.commit('maxHp ' + side + '/' + unitId, function (s) {
       var unit = findUnit(side, unitId, s.build[side].units);
-      var next = int(unit.maxHp + delta, 0, MAX_ALLOC, 'max health');
+      var next = bounded(s.build.tokens, 'hp', unit.maxHp + delta, 'max health');
       moved = (next !== unit.maxHp);
       unit.maxHp = next;
     });
@@ -10427,7 +10749,7 @@ App.ops = (function () {
     var moved = false;
     App.state.commit('shield ' + side + '/' + unitId, function (s) {
       var unit = findUnit(side, unitId, s.build[side].units);
-      var next = int(unit.shield + delta, 0, MAX_ALLOC, 'shield');
+      var next = bounded(s.build.tokens, 'shield', unit.shield + delta, 'shield');
       moved = (next !== unit.shield);
       unit.shield = next;
     });
@@ -10679,7 +11001,7 @@ App.ops = (function () {
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
       var g = fightOf(s);
       var unit = findUnit(side, unitId, g[side].units);
-      var next = int(hp, 0, MAX_ALLOC, 'health');
+      var next = bounded(s.build.tokens, 'hp', hp, 'health');
       if (next !== unit.hp) { ruled(g, side, unitId, 'hp', unit.hp, next); }
       unit.hp = next;
     });
@@ -10706,7 +11028,7 @@ App.ops = (function () {
     App.state.commit('hp ' + side + '/' + unitId, function (s) {
       var g = fightOf(s);
       var unit = findUnit(side, unitId, g[side].units);
-      var next = int(unit.hp + delta, 0, MAX_ALLOC, 'health');
+      var next = bounded(s.build.tokens, 'hp', unit.hp + delta, 'health');
       moved = (next !== unit.hp);
       if (moved) { ruled(g, side, unitId, 'hp', unit.hp, next); }
       unit.hp = next;
@@ -10740,7 +11062,7 @@ App.ops = (function () {
     App.state.commit('fight shield ' + side + '/' + unitId, function (s) {
       var g = fightOf(s);
       var unit = findUnit(side, unitId, g[side].units);
-      var next = int(value, 0, MAX_ALLOC, 'shield');
+      var next = bounded(s.build.tokens, 'shield', value, 'shield');
       if (next !== unit.shield) { ruled(g, side, unitId, 'shield', unit.shield, next); }
       unit.shield = next;
     });
@@ -11162,12 +11484,22 @@ App.ops = (function () {
        units the student named                    are the student's own rule
      split a negative delta on a token in        FIGHT-16, the one resolution
        DAMAGE_KEYS across shield then health       rule the developer set
-     clamp every write through int()             int()'s shipped contract
+     clamp every write to the TOKEN TYPE's own    D-35: the bounds are authored
+       min and max, through int()                  data now, and int()'s shipped
+                                                   contract spends them
      record what it did, and the board as it     FIGHT-14: bookkeeping is this
        stood BEFORE the round resolved             tool's whole job
      step the round and empty the declarations   FIGHT-13
-     refill each side's pool from the build      the shipped projection already
-                                                   assumes it — paragraph below
+     apply the student's ROUND RULES — a who,    D-35, and it REPLACES the row
+       a token and a signed delta, each one        that read "refill each side's
+       written by the student                      pool from the build". The
+                                                   refill was Advance's own
+                                                   arithmetic; a rule is the
+                                                   student's. The shipped list
+                                                   seeds +3 action points to
+                                                   each side and nothing else,
+                                                   which is why the shield still
+                                                   does not come back
 
      ADVANCE DOES NOT                          WHY
      ----------------------------------------  -------------------------------
@@ -11198,7 +11530,22 @@ App.ops = (function () {
      refill a shield                            Recharge's shield gain is
                                                   DELIBERATELY ABSENT from
                                                   DEFAULTS, defended there by a
-                                                  paragraph and an [S09.1] row
+                                                  paragraph and an [S09.1] row.
+                                                  As of D-35 that is an ABSENCE
+                                                  OF A ROUND RULE rather than a
+                                                  rule of Advance's, so a
+                                                  student may author one
+     write a round rule the student did not     D-35. Advance READS
+       author, or invent a home for one that      `build.rules` and authors
+       names a number the board has not          nothing. A rule naming a scope
+                                                  that holds no such number
+                                                  lands NOWHERE, because
+                                                  picking a unit to receive a
+                                                  side's health is deciding
+     mark a unit dead when a round rule takes   D-00d again, and this is the
+       its health to the floor                    line where a STUDENT'S OWN
+                                                  rule could have caused it.
+                                                  Clamping is not killing
      decide the fight is over                   D-26. A board where one side is
                                                   all dead is a thing a student
                                                   READS. It is not a thing this
@@ -11291,6 +11638,28 @@ App.ops = (function () {
     return plan;
   }
 
+  /* D-35's half of ACT-07, and it is the SAME ruling one scope up. A round rule
+     naming a token type this board no longer holds is refused BY NAME, before
+     the commit is entered, naming the type — never skipped in silence. The
+     reason ruleTerm gives holds word for word: a student who removed a type has
+     to fix it where the mistake is, and a rule that quietly stopped applying is
+     the tool dropping their rule.
+
+     It runs in the RULING PASS beside ruleRound rather than inside
+     applyRoundRules, which is this op's own stated rule: every refusal is taken
+     on the LIVE board and OUTSIDE the commit, so the mutator writes on the
+     detached copy with nothing left to throw. */
+  function ruleRoundRules(build) {
+    roundRules(build).forEach(function (rule) {
+      if (rule === null || typeof rule !== 'object') { return; }
+      var tok = rule.tok;
+      if (typeof tok === 'string'
+        && Object.prototype.hasOwnProperty.call(build.tokens, tok)) { return; }
+      throw new Error('A round rule changes "' + String(tok)
+        + '", and there is no token type "' + String(tok) + '" on this board.');
+    });
+  }
+
   function ruleRound(state, f) {
     var vocab = state.build.tokens;
     return f.decl.map(function (d) {
@@ -11335,31 +11704,48 @@ App.ops = (function () {
      does to a board is the student's ruling; the tool records what was
      declared, what was actually paid, and by how much the pool fell short.
 
-     THE POOL REFILLS EACH ROUND, AND THIS IS AN INFERENCE BEING PROMOTED TO A
-     RULING RATHER THAN A PREFERENCE. Nothing in this file states it today, but
-     bestPair computes per-turn throughput from faction.ap and turnsToWipe
-     multiplies that across turns, so the shipped projection ALREADY assumes a
-     refill — and measured, a non-refilling pool makes the shipped fight never
-     resolve at all. So it is written down here instead of left to be
-     rediscovered. The refill is the LAST act of the round, from
-     state.build[side].ap, which puts two facts on the record at once:
-       - the pool a student reads while declaring is the pool for the round
-         they are declaring, always full, never last round's leftovers;
-       - FIGHT-10's boundary, stated rather than accidental — a build edit made
-         mid-fight reaches the fight at the NEXT refill and not before.
-     Its cost, named: action points do not carry across a round boundary in
-     either direction. Unspent points are gone and a student-authored term that
-     GAINED points applies to the round it landed in and no later one. That is
-     one rule rather than two, and the alternative — carrying a delta forward —
-     makes the pool a second drifting number the projection cannot see.
+     WHAT HAPPENS AT THE END OF A ROUND IS THE STUDENT'S LIST, AND THIS
+     PARAGRAPH IS THE RULING IT REPLACED, TURNED IN THE OPEN (D-35). What stood
+     here promoted an inference to a ruling: bestPair computes per-turn
+     throughput from faction.ap and turnsToWipe multiplies it across turns, so
+     the shipped projection ALREADY assumes the pool comes back, and measured, a
+     pool that never came back made the shipped fight never resolve. That
+     observation still holds and it is still why a rule of this shape ships by
+     default. What has changed is WHO WROTE IT: the refill was Advance's own
+     arithmetic, and what runs now is `build.rules` — a list the student edits,
+     seeded in [S01] with the developer's own default of +3 action points to
+     each side. Advance READS the list and applies it; it authors nothing.
 
-     THE SHIELD DOES NOT REFILL. Recharge carries the `shield` keyword and its
-     shield gain is deliberately absent from DEFAULTS, defended there by a
-     paragraph and a shipped [S09.1] row. Advance restores no shield on its
-     own; a student who rules "Recharge gives 3 shield" records it by hand
-     through plan 05-05's op. A student's OWN authored `+shield` term is a
-     different thing entirely and it lands, because that is a number they wrote
-     down themselves.
+     THE THREE FACTS THAT SURVIVE THE MOVE, because they were properties of
+     WHERE it happens rather than of what it did:
+       - the rules are the LAST act of the round, so the pool a student reads
+         while declaring is the pool for the round they are declaring;
+       - FIGHT-10's boundary is unchanged — a build edit made mid-fight, INCLUDING
+         an edit to the rules themselves, reaches the fight at the next round
+         and not before;
+       - one commit, one Ctrl+Z, exactly as before.
+
+     WHAT HAS GENUINELY CHANGED, STATED RATHER THAN GLOSSED: a +3 rule ADDS to
+     what is there and a refill REPLACED it. At a three-point pool that every
+     side spends to nothing they are the same board, which is why the shipped
+     fight is byte-identical across this change and why [S09.12] asserts that
+     over a whole driven fight rather than claiming it here. They part company
+     in two places, and both are the feature: a side that leaves points unspent
+     CARRIES THEM FORWARD, and at the candidate retune of nine a +3 rule METERS
+     the pool over three rounds where a refill hands all nine over every time.
+     Which of the two makes the 9v3 contested is the playtest's question. The
+     old semantic remains expressible — a rule of +99 is a refill, because every
+     write below is clamped to the token's own max.
+
+     THE SHIELD DOES NOT REFILL, AND IT IS NOW AN ABSENCE OF A RULE RATHER THAN
+     A RULING OF ADVANCE'S. Recharge carries the `shield` keyword and its shield
+     gain is deliberately absent from DEFAULTS, defended there by a paragraph
+     and a shipped [S09.1] row. The shipped `rules` list carries no shield entry,
+     so nothing restores a shield — and a student who rules "Recharge gives a
+     point back every round" now WRITES THAT RULE instead of pressing the
+     hand-ruling op every round. Both remain available. A student's OWN authored
+     `+shield` transformation term is a third thing again and it lands, because
+     that is a number they wrote down themselves.
 
      THE SPLIT IS TAKEN THROUGH App.model.termDamage, WHICH IS THE FILE'S ONE
      READING OF A TERM AS DAMAGE, rather than through a second membership test
@@ -11369,11 +11755,19 @@ App.ops = (function () {
      absorbs it. Named because it is arguable: whether self-inflicted harm
      should spend a shield is a ruling, and it belongs to the table rather than
      to a second definition of damage in here. */
-  function applyTerm(g, record, plan, entry) {
+  //
+  //   THE VOCABULARY IS AN ARGUMENT NOW, AND IT IS D-35's ONLY MARK ON THIS
+  //   FUNCTION. Every write below used to pass int() the literal pair 0 and
+  //   MAX_ALLOC; each one now passes the TYPE's own authored pair through
+  //   bounded(). The bag is handed IN rather than reached for, because this
+  //   applier runs on the detached copy inside the mutator and the build slice
+  //   it must read is that copy's — reaching for App.state.get() here would
+  //   read the board as it stood before the round started.
+  function applyTerm(g, vocab, record, plan, entry) {
     if (plan.kind === '') { entry.unlanded.push({ who: plan.who, tok: plan.tok }); return; }
     if (plan.kind === 'ap') {
       var pool = g[plan.side];
-      pool.ap = int(pool.ap + plan.delta, 0, MAX_ALLOC, 'action points');
+      pool.ap = bounded(vocab, 'ap', pool.ap + plan.delta, 'action points');
       return;
     }
     if (plan.kind === 'tally') {
@@ -11382,23 +11776,31 @@ App.ops = (function () {
       // the same { units: [ { id } ] } shape the build side has, which is what
       // lets one function serve both.
       var owner = tallyOwner(g, plan.side, (plan.rec.scope === 'side') ? null : plan.unitId, plan.rec);
-      writeTally(owner, plan.tok, int(readTally(owner, plan.tok) + plan.delta,
-        0, MAX_ALLOC, 'a tally of "' + plan.rec.name + '"'));
+      writeTally(owner, plan.tok, bounded(vocab, plan.tok,
+        readTally(owner, plan.tok) + plan.delta,
+        'a tally of "' + plan.rec.name + '"'));
       return;
     }
     var unit = findUnit(plan.side, plan.unitId, g[plan.side].units);
     if (plan.kind === 'shield') {
-      unit.shield = int(unit.shield + plan.delta, 0, MAX_ALLOC, 'shield');
+      unit.shield = bounded(vocab, 'shield', unit.shield + plan.delta, 'shield');
       return;
     }
     var damage = App.model.termDamage({ who: plan.who, tok: plan.tok, d: plan.delta });
     if (damage === 0) {
-      unit.hp = int(unit.hp + plan.delta, 0, MAX_ALLOC, 'health');
+      unit.hp = bounded(vocab, 'hp', unit.hp + plan.delta, 'health');
       return;
     }
+    // THE SPLIT IS COMPUTED FIRST AND CLAMPED SECOND, AND THE ORDER IS THE
+    // RULING. damageSplit reads the shield and health that are actually there
+    // and divides the hit between them; the bounds then say what may be
+    // WRITTEN. So a health floor above zero stops the number at the floor and
+    // the RECORD still says how much of the hit the health took — the student
+    // reads both, which is what lets them rule on the difference. And `alive`
+    // is still not written, at a floor of zero or at any other.
     var split = App.model.damageSplit(unit.shield, unit.hp, damage);
-    unit.shield = int(unit.shield - split.shield, 0, MAX_ALLOC, 'shield');
-    unit.hp = int(unit.hp - split.health, 0, MAX_ALLOC, 'health');
+    unit.shield = bounded(vocab, 'shield', unit.shield - split.shield, 'shield');
+    unit.hp = bounded(vocab, 'hp', unit.hp - split.health, 'health');
     entry.hit.shield += split.shield;
     entry.hit.health += split.health;
     entry.hit.spare += split.spare;
@@ -11417,6 +11819,7 @@ App.ops = (function () {
     var state = App.state.get();
     var f = fightOf(state);
     var plans = ruleRound(state, f);
+    ruleRoundRules(state.build);
     var next = f.round + 1;
 
     // THE LABEL CARRIES THE ROUND NUMBER AND SHORTENING IT IS THE BUG.
@@ -11543,7 +11946,7 @@ App.ops = (function () {
           var took = 0;
           if (isPool && c.tok === 'ap') {
             took = Math.min(c.n, pool.ap);
-            pool.ap = int(pool.ap - took, 0, MAX_ALLOC, 'action points');
+            pool.ap = bounded(s.build.tokens, 'ap', pool.ap - took, 'action points');
           } else if (isPool) {
             // A side-scope bag, read and written through the same two helpers
             // the applier uses, so the sparse-storage rules (a tally of zero
@@ -11551,7 +11954,7 @@ App.ops = (function () {
             // rather than being spelled a second time.
             var held = readTally(pool, c.tok);
             took = Math.min(c.n, held);
-            writeTally(pool, c.tok, int(held - took, 0, MAX_ALLOC,
+            writeTally(pool, c.tok, bounded(s.build.tokens, c.tok, held - took,
               'a tally a cost spends'));
           }
           spent.push({ tok: c.tok, want: c.n, paid: took });
@@ -11592,17 +11995,95 @@ App.ops = (function () {
           hit: { shield: 0, health: 0, spare: 0 },
           unlanded: []
         };
-        p.terms.forEach(function (plan) { applyTerm(g, record, plan, entry); });
+        p.terms.forEach(function (plan) { applyTerm(g, s.build.tokens, record, plan, entry); });
         record.did.push(entry);
       });
 
       g.decl = [];
       g.round = next;
-      SIDES.forEach(function (side) {
-        g[side].ap = int(s.build[side].ap, 0, MAX_ALLOC, 'action points');
-      });
+      applyRoundRules(g, s.build);
     });
     return next;
+  }
+
+  /* D-35: THE ROUND RULES, APPLIED WHERE THE REFILL USED TO BE.
+     A rule is `{ who, tok, d }` and the walk is deliberately the SAME SHAPE as
+     ruleTerm's above, one scope up: resolve who into a side and a reach, decide
+     which number on the board carries that token, and write a signed delta
+     through bounded(). It is written as one function rather than inline for the
+     reason applyTerm is: the day a surface wants to show what a round rule DID,
+     there is one place that knows.
+
+     WHAT IT DOES NOT DO, and every line of this is the bookkeeping/adjudication
+     boundary held one feature further out:
+       - it never writes `alive`. A rule of −99 health floors a unit at the
+         health type's own min and stops. Zero health PROMPTS a death ruling
+         from the table; it never causes one (D-00d). This is the fifth place
+         that sentence is written down and the first where a STUDENT'S OWN RULE
+         could have caused it, which is exactly why it is written here.
+       - it never invents a home for a number. A rule naming a token the named
+         scope holds no number for — action points on each unit, health on a
+         whole side, the drawing-only `dmg` and `dead` types — lands NOWHERE and
+         is skipped in silence, which is ruleTerm's own treatment of the same
+         case one level down. Picking a unit to receive a side's health would be
+         the tool adjudicating.
+       - it never reads REFERENCE.beats, never tests a requirement and never
+         consults a keyword. A round rule is a number the student wrote,
+         applied to the board they wrote it about.
+
+     A DEPARTED TOKEN IS THE ONE CASE THAT IS NOT SILENT ANYWHERE, and it is
+     closed at the AUTHORING end rather than here: removeTokenType refuses to
+     remove a type a round rule names, and [S04.3] refuses a code whose rule
+     names an ordinal the vocabulary does not hold. So by the time a rule
+     reaches this walk it names a type this board carries — and if a later
+     change breaks that, the hasOwnProperty test below skips it rather than
+     throwing halfway through a commit that has already moved the board. */
+  function applyRoundRules(g, build) {
+    var vocab = build.tokens;
+    var rules = Array.isArray(build.rules) ? build.rules : [];
+    rules.slice(0, App.data.MAX_ROUND_RULES).forEach(function (rule) {
+      if (rule === null || typeof rule !== 'object') { return; }
+      var who = roundWhoRecord(rule.who);
+      if (who === null) { return; }
+      var tok = rule.tok;
+      if (typeof tok !== 'string') { return; }
+      if (!Object.prototype.hasOwnProperty.call(vocab, tok)) { return; }
+      if (!Number.isInteger(rule.d)) { return; }
+      var side = g[who.side];
+
+      if (!who.each) {
+        // The side's own numbers: the action-point pool, or a bag on a type the
+        // student created at side scope. Nothing else lives on a side.
+        if (tok === 'ap') {
+          side.ap = bounded(vocab, 'ap', side.ap + rule.d, 'action points');
+          return;
+        }
+        if (App.data.TOKEN_IDS.indexOf(tok) !== -1) { return; }
+        if (vocab[tok].scope !== 'side') { return; }
+        writeTally(side, tok, bounded(vocab, tok, readTally(side, tok) + rule.d,
+          'a tally of "' + String(vocab[tok].name) + '"'));
+        return;
+      }
+
+      // Each of that side's units, in roster order. A unit ruled dead is NOT
+      // skipped, and the absence of that special case is the ruling: whether a
+      // dead unit still decays a poison tally is the table's question, and a
+      // tool that answered it by skipping would have answered it silently.
+      side.units.forEach(function (unit) {
+        if (tok === 'hp') {
+          unit.hp = bounded(vocab, 'hp', unit.hp + rule.d, 'health');
+          return;
+        }
+        if (tok === 'shield') {
+          unit.shield = bounded(vocab, 'shield', unit.shield + rule.d, 'shield');
+          return;
+        }
+        if (App.data.TOKEN_IDS.indexOf(tok) !== -1) { return; }
+        if (vocab[tok].scope !== 'unit') { return; }
+        writeTally(unit, tok, bounded(vocab, tok, readTally(unit, tok) + rule.d,
+          'a tally of "' + String(vocab[tok].name) + '"'));
+      });
+    });
   }
 
   // One commit, therefore one undo entry (D-12). The undo stack is never
@@ -11758,8 +12239,17 @@ App.ops = (function () {
       out[sideId] = side;
     });
 
-    // The vocabulary last, matching the slice's own key order. Every id is a
-    // KEY here, so every one of them goes through the key boundary.
+    // The vocabulary, matching the slice's own key order. Every id is a KEY
+    // here, so every one of them goes through the key boundary.
+    //
+    // D-35's bounds are rebuilt from NAMED FIELDS beside the other four, and
+    // they are re-run against the SAME two refusals setTokenBounds enforces —
+    // the range, and the pair being the right way round. That is the rule this
+    // walk states at the top applied to the newest fields: every bound the
+    // write path enforces is re-run here, because a pasted code reaches none of
+    // [S05]'s guards. A throw from here is a DEFECT and is meant to reach the
+    // error boundary — decode has already refused both shapes by name, so the
+    // two disagreeing is the event this walk exists to make loud.
     var tokens = {};
     Object.keys(decoded.tokens).forEach(function (id) {
       var key = requireTokenId(id);
@@ -11773,9 +12263,42 @@ App.ops = (function () {
       if (App.data.TOKEN_IDS.indexOf(key) === -1) {
         made.scope = allowlisted(App.data.TOKEN_SCOPES, rec.scope, 'a scope');
       }
+      made.min = int(rec.min, 0, MAX_ALLOC, 'the least of a token type');
+      made.max = int(rec.max, 0, MAX_ALLOC, 'the most of a token type');
+      if (made.min > made.max) {
+        throw new Error('A build code named bounds the wrong way round on "'
+          + String(made.name) + '": ' + made.min + ' is above ' + made.max + '.');
+      }
       tokens[key] = made;
     });
     out.tokens = tokens;
+
+    /* D-35's round rules, LAST, matching the slice's own key order — and every
+       one of them rebuilt field by field through the same three guards
+       setRoundRule runs: the who against the exported allowlist, the token
+       through requireTokenId's named-refusal-then-pattern order, and the
+       existence check against the vocabulary THIS WALK JUST BUILT rather than
+       against the one the code claimed. The cap is re-run for the reason the
+       term caps above it are: the wire grammar is count-driven, so a list of
+       nine parses perfectly and is stopped only by a cap somebody wrote down. */
+    var rules = [];
+    (Array.isArray(decoded.rules) ? decoded.rules : []).forEach(function (rule) {
+      var whoRec = requireRoundWho(rule.who);
+      var tok = requireTokenId(rule.tok);
+      if (!Object.prototype.hasOwnProperty.call(tokens, tok)) {
+        throw new Error('A build code named a round rule on a token type this board '
+          + 'does not have: ' + JSON.stringify(tok) + '.');
+      }
+      rules.push({
+        who: whoRec.id,
+        tok: tok,
+        d: int(rule.d, App.data.MIN_XF_DELTA, App.data.MAX_XF_DELTA, 'a round rule')
+      });
+    });
+    if (rules.length > App.data.MAX_ROUND_RULES) {
+      throw new Error('A build code carries too many round rules.');
+    }
+    out.rules = rules;
     return out;
   }
 
@@ -12064,6 +12587,31 @@ App.ops = (function () {
     return out;
   }
 
+  // D-35's sibling of actionsNaming, and it exists for the identical reason one
+  // scope up: a round rule names a token type by id, so removing that type has
+  // a consequence a student deserves to see BEFORE it happens. PURE — it takes
+  // a build slice, reads no singleton, writes nothing and produces no sentence;
+  // the surface that renders the warning writes the words. It hands back the
+  // SLOT, the who and the id, so whoever writes the line writes it about the
+  // rule the student can actually go and edit.
+  //
+  // hasOwnProperty and an Array.isArray on every step, for the reason
+  // actionsNaming gives: from Phase 4 a build slice arrives out of a pasted
+  // code rather than from this file.
+  function rulesNaming(build, tokenId) {
+    var out = [];
+    if (build === null || typeof build !== 'object') { return out; }
+    if (!Object.prototype.hasOwnProperty.call(build, 'rules')) { return out; }
+    if (!Array.isArray(build.rules)) { return out; }
+    build.rules.forEach(function (rule, at) {
+      if (rule === null || typeof rule !== 'object') { return; }
+      if (!Object.prototype.hasOwnProperty.call(rule, 'tok')) { return; }
+      if (rule.tok !== tokenId) { return; }
+      out.push({ at: at, who: rule.who, tok: rule.tok });
+    });
+    return out;
+  }
+
   // Every guard runs BEFORE the commit is entered, matching setTokenStyle
   // above, so a refusal leaves no phantom undo step over a board that never
   // changed — with exactly one documented exception, called out below.
@@ -12124,12 +12672,23 @@ App.ops = (function () {
       // mutator already gives: a merge copies whatever keys the caller
       // supplied, which is how a reserved key slips past an allowlist that
       // only inspected the values.
+      // D-35's two fields are written HERE, at the floor and the ceiling this
+      // file has always enforced, rather than left absent for a reader to fill
+      // in. An absent field and a field holding the default are the same board
+      // to every reader in this file — tokenBounds answers the same pair for
+      // both — but they are NOT the same to a round trip: the codec writes what
+      // the record holds and hands back what it wrote, so a type created
+      // without them would come back with them and the trip would not be exact.
+      // Every type on this board carries the same six keys, which is also what
+      // keeps the vocabulary one kind of thing (D-07's rule, one tier down).
       s.build.tokens[made] = {
         shape: p.shape,
         color: p.color,
         glyph: p.glyph,
         name: name,
-        scope: p.scope
+        scope: p.scope,
+        min: 0,
+        max: MAX_ALLOC
       };
     });
     // Handed back so [S07.2] can select the new type in the list the moment
@@ -12822,6 +13381,164 @@ App.ops = (function () {
     return true;
   }
 
+  /* ---- D-35: THE BOUNDS A STUDENT AUTHORS ON A TOKEN TYPE ----------------
+   * setTokenStyle's sibling, and deliberately NOT a fourth key on its patch:
+   * a bound is a rule about a quantity and a shape is a mark on a projector,
+   * they are refused on different grounds and they read back to a student as
+   * different sentences. One op each is also what lets [S09.7] drive one
+   * without the other.
+   *
+   * The whole three-layer id gate, exactly as its two neighbours carry it:
+   *   1. the named refusal list, inside requireTokenId
+   *   2. TOKEN_ID_PATTERN, inside requireTokenId
+   *   3. a hasOwnProperty existence check against the LIVE vocabulary
+   *
+   * TWO REFUSALS OF ITS OWN, each with its own sentence:
+   *   - a bound outside [0, MAX_ALLOC] is refused rather than clamped. int()
+   *     clamps a quantity because a quantity out of range is a slip; a BOUND
+   *     out of range is a rule that cannot be kept, and quietly writing a
+   *     different rule from the one the student typed is the failure this whole
+   *     file is built to avoid.
+   *   - a min above its max is refused, because there is no number that
+   *     satisfies it and int() would answer the min for every write — a board
+   *     where every health silently became 7 with nothing to say why.
+   *
+   * IT DOES NOT REACH BACK OVER THE NUMBERS ALREADY ON THE BOARD, and that is
+   * the decision tokenBounds' own paragraph states: bounds clamp at write time.
+   * A student who tightens a max sees the next write obey it, not this one
+   * rewriting nine units under them. The alternative — sweep the board on every
+   * bounds edit — is one op quietly editing every number on two rosters, which
+   * is exactly the "second, mechanical reason for the board to disagree" this
+   * artifact refuses everywhere else.
+   */
+  function setTokenBounds(tokenId, patch) {
+    requireTokenId(tokenId);
+    var vocab = App.state.get().build.tokens;
+    if (!Object.prototype.hasOwnProperty.call(vocab, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+    }
+    var live = vocab[tokenId];
+    var p = patch || {};
+    var lo = (p.min === undefined) ? tokenBounds(vocab, tokenId).min : p.min;
+    var hi = (p.max === undefined) ? tokenBounds(vocab, tokenId).max : p.max;
+    if (!Number.isInteger(lo) || !Number.isInteger(hi)) {
+      throw new TypeError('A bound is a whole number, and this one is '
+        + JSON.stringify(Number.isInteger(lo) ? hi : lo) + '.');
+    }
+    if (lo < 0 || lo > MAX_ALLOC || hi < 0 || hi > MAX_ALLOC) {
+      throw new Error('A bound on "' + String(live.name) + '" has to be between 0 and '
+        + MAX_ALLOC + ', and this one is ' + ((lo < 0 || lo > MAX_ALLOC) ? lo : hi) + '.');
+    }
+    if (lo > hi) {
+      throw new Error('The least "' + String(live.name) + '" a unit or a side may hold '
+        + 'cannot be more than the most: ' + lo + ' is above ' + hi + '.');
+    }
+    // The no-op contract setTokenStyle and renameTokenType both keep, for the
+    // reason they both give: a field driven from a keystroke surface must not
+    // put a do-nothing Ctrl+Z step between the student and the edit they want.
+    if (tokenBounds(vocab, tokenId).min === lo
+      && tokenBounds(vocab, tokenId).max === hi) { return false; }
+    App.state.commit('token bounds ' + tokenId, function (s) {
+      var t = s.build.tokens[tokenId];
+      t.min = lo;
+      t.max = hi;
+    });
+    return true;
+  }
+
+  /* ---- D-35: THE ROUND RULES A STUDENT AUTHORS -----------------------------
+   * "add a feature to configure what happens each round (default +3 action
+   * points, but also things like -1 of a status effect token)". advanceRound
+   * READS this list; these are what WRITE it, and there is exactly one writer
+   * — setRoundRule — for the reason the three term writers share writeSlot: a
+   * second spelling of a list edit is how a cap and a dense-list rule stop
+   * agreeing.
+   *
+   * THE SLOT IDIOM IS setActionCost's, ARGUMENT FOR ARGUMENT. A write at the
+   * end appends, a write inside replaces, a write PAST the end is refused
+   * rather than left to open a hole, and `who` of CLEAR_TERM removes the rule
+   * at that slot. One op covers add, replace and remove, which is what the term
+   * writers already prove is enough.
+   *
+   * THE THREE LAYERS ARE HERE TOO, adapted to a list rather than a key: the
+   * `who` is checked against the EXPORTED allowlist and refused by name, the
+   * token goes through requireTokenId's own named-refusal-then-pattern order,
+   * and the third layer is the existence check against the LIVE vocabulary —
+   * because a rule naming a type this board does not hold is a rule that can
+   * never land, and refusing it here is the only place a student is standing.
+   */
+  function roundWhoRecord(who) {
+    for (var i = 0; i < App.data.ROUND_WHO.length; i++) {
+      if (App.data.ROUND_WHO[i].id === who) { return App.data.ROUND_WHO[i]; }
+    }
+    return null;
+  }
+
+  function requireRoundWho(who) {
+    var rec = roundWhoRecord(who);
+    if (rec === null) {
+      throw new Error('A round rule names one of ' + App.data.ROUND_WHO_IDS.join(', ')
+        + ', and "' + String(who) + '" is none of them.');
+    }
+    return rec;
+  }
+
+  // The list itself, off the live build, defensively — from a pasted code or an
+  // older snapshot the key may be absent, and a missing list is an empty list
+  // for termsOf's own stated reason.
+  function roundRules(build) {
+    return Array.isArray(build.rules) ? build.rules : [];
+  }
+
+  function setRoundRule(index, who, tokenId, d) {
+    if (typeof index !== 'number' || !Number.isInteger(index)) {
+      throw new TypeError('Expected a whole number for the round rule slot, got '
+        + JSON.stringify(index));
+    }
+    if (index < 0 || index >= App.data.MAX_ROUND_RULES) {
+      throw new Error('There is no round rule slot ' + index + ' — a board carries at most '
+        + App.data.MAX_ROUND_RULES + '.');
+    }
+    var was = roundRules(App.state.get().build);
+
+    var rule = CLEAR_TERM;
+    if (who !== CLEAR_TERM) {
+      var whoRec = requireRoundWho(who);
+      requireTokenId(tokenId);
+      var vocab = App.state.get().build.tokens;
+      // Layer 3. A rule may only name a type the board actually holds — the
+      // check removeTokenType is the other half of.
+      if (!Object.prototype.hasOwnProperty.call(vocab, tokenId)) {
+        throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+      }
+      if (index > was.length) {
+        throw new Error('This board has no round rule slot ' + index
+          + ' to write yet — it carries ' + was.length + '.');
+      }
+      var delta = int(d, App.data.MIN_XF_DELTA, App.data.MAX_XF_DELTA, 'a round rule');
+      // A rule of nothing is not a rule. Refused rather than stored, for the
+      // reason [S04.3] refuses a change of zero on the wire: a list entry that
+      // does nothing is a line a student reads every round and cannot act on.
+      if (delta === 0) {
+        throw new Error('A round rule adds or takes away at least one "'
+          + String(vocab[tokenId].name) + '", and this one changes nothing.');
+      }
+      // Field by field, never a merge, for createTokenType's stated reason.
+      rule = { who: whoRec.id, tok: tokenId, d: delta };
+    }
+
+    var nextList = writeSlot(was, index, rule, App.data.MAX_ROUND_RULES);
+    if (JSON.stringify(nextList) === JSON.stringify(was)) { return false; }
+    // THE SLOT IS IN THE LABEL, writeTerms' own rule and for its own reason:
+    // two rules edited in quick succession are two Ctrl+Z steps, while a hold
+    // on one amount is one.
+    App.state.commit('round rule ' + index, function (s) {
+      s.build.rules = writeSlot(roundRules(s.build), index, rule,
+        App.data.MAX_ROUND_RULES);
+    });
+    return true;
+  }
+
   /* ---- the tally: the number a student writes down beside their own
    * invention (D-00e). The tool stores it and never infers what it means, and
    * nothing anywhere in this file acts on it — a type a student made counts
@@ -12916,7 +13633,8 @@ App.ops = (function () {
     requireTokenId(tokenId);
     var rec = tallyType(App.state.get().build.tokens, tokenId);
     var live = tallyOwner(App.state.get().build, side, unitId, rec);
-    var next = int(n, 0, MAX_ALLOC, 'a tally of "' + rec.name + '"');
+    var next = bounded(App.state.get().build.tokens, tokenId, n,
+      'a tally of "' + rec.name + '"');
     if (readTally(live, tokenId) === next) { return false; }
     App.state.commit(tallyLabel(side, unitId, tokenId), function (s) {
       writeTally(tallyOwner(s.build, side, unitId, rec), tokenId, next);
@@ -12940,7 +13658,8 @@ App.ops = (function () {
     App.state.commit(tallyLabel(side, unitId, tokenId), function (s) {
       var owner = tallyOwner(s.build, side, unitId, rec);
       var current = readTally(owner, tokenId);
-      var next = int(current + delta, 0, MAX_ALLOC, 'a tally of "' + rec.name + '"');
+      var next = bounded(s.build.tokens, tokenId, current + delta,
+        'a tally of "' + rec.name + '"');
       moved = (next !== current);
       writeTally(owner, tokenId, next);
     });
@@ -13033,6 +13752,15 @@ App.ops = (function () {
       // op deliberately has no arm at all — see the absence block below.
       case 'loadBuildCode': return loadBuildCode(p.code);
       case 'setTokenStyle': return setTokenStyle(p.tokenId, p.patch);
+      // D-35's two, one key each, named for the op like every arm around them.
+      // The bounds arm takes a patch for setTokenStyle's own reason — either
+      // end may be written alone — and the op reads exactly two keys off it.
+      // The rule arm is read key by key for the reason the term arms give: a
+      // rule is a RECORD, so a payload forwarded whole would be a
+      // caller-supplied key set one nesting level from a token id.
+      case 'setTokenBounds': return setTokenBounds(p.tokenId,
+        { min: p.min, max: p.max });
+      case 'setRoundRule': return setRoundRule(p.index, p.who, p.tokenId, p.d);
       // Read key by key rather than forwarding the payload object whole. The
       // op's own guards would refuse a stray key's VALUE, but they would never
       // see a key nobody meant to send; naming the five here is what keeps the
@@ -13270,6 +13998,22 @@ App.ops = (function () {
     loadBuildCode: loadBuildCode,
     loadBuildCodeAtBoot: loadBuildCodeAtBoot,
     setTokenStyle: setTokenStyle,
+    // D-35. The bounds writer beside the style writer, because they are the two
+    // authored properties of a type that are neither its name nor its id — and
+    // tokenBounds beside it, because it is the READER every write path in this
+    // file spends and [S09] must assert against the function the ops actually
+    // run rather than against a re-typed pair of numbers.
+    setTokenBounds: setTokenBounds,
+    tokenBounds: tokenBounds,
+    // D-35's round rules. ONE writer, for the reason writeSlot has one: a
+    // second spelling of a list edit is how a cap and a dense-list rule stop
+    // agreeing. rulesNaming is exported for the page rather than for the suite
+    // alone — it is the only way a surface can ask what a token-type removal
+    // will break without writing a second walk of the list, which is exactly
+    // what actionsNaming is for one scope down.
+    setRoundRule: setRoundRule,
+    requireRoundWho: requireRoundWho,
+    rulesNaming: rulesNaming,
     createTokenType: createTokenType,
     removeTokenType: removeTokenType,
     renameTokenType: renameTokenType,
@@ -26989,7 +27733,17 @@ App.selftest = (function () {
     // must not paint the report red.
     // The label deliberately does not name a number: `tokens` arrived in
     // Phase 2 and Phase 4's codec work may well add another key.
-    t.eq('the board has its build keys', Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+    /* THE BUILD SLICE'S KEY SET, TURNED IN THE OPEN UNDER D-35. It read four
+       keys for four phases and it reads FIVE now: `rules` is the round-rule
+       list the developer asked for, and it lives in `build` because a
+       classmate loading your code must get your rules. The RECORDED RED is the
+       run on the commit that seeded the list with these rows still demanding
+       four. The row is REWRITTEN rather than deleted, for the reason plan
+       03.1-04 gives every time this file turns a shipped assertion: a deleted
+       contract row is a contract that has quietly stopped being enforced, and
+       the whole value of this one is that a SIXTH key still reddens it. */
+    t.eq('the board has its build keys', Object.keys(App.state.get().build),
+      ['schema', 'cats', 'mechs', 'tokens', 'rules']);
 
     /* --- and each SIDE has its own, which nothing asserted until this phase.
            Four rows pinned Object.keys(build); none pinned Object.keys of a
@@ -27935,9 +28689,12 @@ App.selftest = (function () {
       App.state.undoDepth(), depth0);
 
     /* --- the build slice's key set is a contract [S09.3] asserts exactly, and
-           nothing in this phase may add a top-level key to it. --- */
-    t.eq('the build slice still holds exactly the four keys it shipped with',
-      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+           nothing in THIS phase may add a top-level key to it. D-35 added one
+           — `rules` — and turned every row that reads this set in the same
+           change rather than one at a time. --- */
+    t.eq('the build slice still holds exactly the five keys it now ships with',
+      Object.keys(App.state.get().build),
+      ['schema', 'cats', 'mechs', 'tokens', 'rules']);
 
     /* ============ plan 02.1-02, the create and remove write paths ============
        Two more paths now index build.tokens with a key the caller supplied,
@@ -27960,8 +28717,20 @@ App.selftest = (function () {
     t.eq('a type of the student\'s own takes the first id in the sequence',
       madeId, 't1');
     var madeRec = App.state.get().build.tokens.t1;
-    t.eq('and the record holds exactly the five fields a type is made of',
-      Object.keys(madeRec).sort(), ['color', 'glyph', 'name', 'scope', 'shape']);
+    /* TURNED IN THE OPEN UNDER D-35, AND THE COUNT MOVED FROM FIVE TO SEVEN.
+       A type now carries the min and the max a student may author on it, and
+       createTokenType writes both at the floor and the ceiling this file has
+       always enforced rather than leaving them absent — its own comment says
+       why an absent field and a field holding the default are not the same
+       thing to a round trip. The recorded RED is the run on the commit that
+       added them with this row still demanding five. */
+    t.eq('and the record holds exactly the seven fields a type is made of',
+      Object.keys(madeRec).sort(),
+      ['color', 'glyph', 'max', 'min', 'name', 'scope', 'shape']);
+    t.eq('with the bounds at the floor and the ceiling this file has always '
+      + 'enforced, so a type made today behaves exactly as one made before '
+      + 'D-35 did — which is the whole reason the shipped board did not move',
+      [madeRec.min, madeRec.max], [0, App.ops.MAX_ALLOC]);
     t.eq('carrying the name the student typed', madeRec.name, 'Poison');
     t.eq('the shape they picked', madeRec.shape, 'circ');
     t.eq('the colour they picked', madeRec.color, 'violet');
@@ -28137,8 +28906,10 @@ App.selftest = (function () {
            shape that costs no shipped assertion. A top-level build.tally key
            turns [S09.3]'s 'the board has its build keys' row red. --- */
     t.eq('and six types of a student\'s own plus their numbers still add no '
-      + 'top-level key to the build slice',
-      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+      + 'top-level key to the build slice — five since D-35 put the round '
+      + 'rules there, and a sixth still reddens this row',
+      Object.keys(App.state.get().build),
+      ['schema', 'cats', 'mechs', 'tokens', 'rules']);
 
     /* ========== plan 02.1-02, the rename and the tally write paths ==========
        The board is handed back here, MID-SUITE, so the rows below start from
@@ -28317,9 +29088,11 @@ App.selftest = (function () {
       + 'full cap of a student\'s own',
       Object.keys(App.state.get().build.tokens).length,
       App.data.TOKEN_IDS.length + App.data.MAX_CUSTOM_TYPES);
-    t.eq('and even so the build slice holds exactly the four keys it shipped '
-      + 'with — the nested shape adds no top-level key',
-      Object.keys(App.state.get().build), ['schema', 'cats', 'mechs', 'tokens']);
+    t.eq('and even so the build slice holds exactly the five keys it now ships '
+      + 'with — the nested shape adds no top-level key, and D-35\'s `rules` is '
+      + 'the one key four phases of this row did not read',
+      Object.keys(App.state.get().build),
+      ['schema', 'cats', 'mechs', 'tokens', 'rules']);
     t.ok('every value in the build slice is still a whole number, a piece of '
       + 'text or a flag, so [S09.3]\'s walk keeps its meaning', (function walk(v) {
         if (v === null) { return true; }
@@ -29935,8 +30708,13 @@ App.selftest = (function () {
            REFERENCE is declared beside DEFAULTS and not inside it, and this is
            the row that holds that placement: static copy a student cannot edit
            has no business travelling in a share code. --- */
+    /* TURNED IN THE OPEN UNDER D-35: the sorted list gained `rules`, which is
+       the round-rule seed and is emphatically NOT reference material — it is a
+       thing the student edits and a thing the build code carries, which is the
+       exact test this row applies. REFERENCE is still outside DEFAULTS and
+       still adds nothing, which is what the row is about. */
     t.eq('defaults() gained no key for any of this',
-      Object.keys(d).sort().join(','), 'cats,mechs,schema,tokens');
+      Object.keys(d).sort().join(','), 'cats,mechs,rules,schema,tokens');
     t.ok('and none of it reached the build slice under another name',
       d.reference === undefined && d.effects === undefined && d.beats === undefined);
 
@@ -32570,11 +33348,20 @@ App.selftest = (function () {
       + 'so writing its vocabulary down in another order is a real difference and not a '
       + 'shuffle of one entry with itself',
       ownTypes.length > 1);
+    // `rules` is carried across with the rest of the slice under D-35. It is
+    // written out key by key here on purpose — this fixture is the one place
+    // in the suite that hands encode a build IT assembled rather than one the
+    // ops produced — so a key added to the slice and forgotten here would make
+    // the row below compare two different boards and call the difference an
+    // ordering bug. The recorded RED is exactly that: this literal without the
+    // line below wrote an EMPTY rules section against a straight code that
+    // wrote none at all.
     var reordered = {
       schema: derivedBoard.schema,
       cats: derivedBoard.cats,
       mechs: derivedBoard.mechs,
-      tokens: {}
+      tokens: {},
+      rules: derivedBoard.rules
     };
     ownTypes.slice().reverse().forEach(function (id) {
       reordered.tokens[id] = derivedBoard.tokens[id];
@@ -33266,8 +34053,13 @@ App.selftest = (function () {
       }
       return (at === undefined || at === null) ? 'nothing is there' : Object.keys(at).join(',');
     }
-    t.eq('a decoded build holds EXACTLY the four keys the slice holds, in the order the '
-      + 'slice holds them', pinnedKeys([]), 'schema,cats,mechs,tokens');
+    /* TURNED IN THE OPEN UNDER D-35 — five keys, in the order the slice holds
+       them, and the ORDER half is what makes this more than a count: decode
+       writes `rules` last because the slice writes it last, and a decoder that
+       assembled the keys in a different order would hand back a build that
+       stringifies differently from the one that was encoded. */
+    t.eq('a decoded build holds EXACTLY the five keys the slice holds, in the order the '
+      + 'slice holds them', pinnedKeys([]), 'schema,cats,mechs,tokens,rules');
     t.eq('and each faction holds exactly its five, plus the tally bag on the side that '
       + 'carries one and nothing else anywhere',
       [pinnedKeys(['cats']), pinnedKeys(['mechs'])],
@@ -34048,13 +34840,26 @@ App.selftest = (function () {
     App.state.flush();
     var spendEntry = fight().past[0].did[0];
 
+    /* TURNED IN THE OPEN UNDER D-35. What stood here read the pool back as 6
+       and said "the refill at the end of the round puts the action points back
+       from the build, which is the rule that was already here and is
+       untouched". The rule is NOT untouched: it is data now, and the shipped
+       list adds +3 rather than restoring the build's figure. Six points less
+       the two this cost spends is four, and the round rule then adds three, so
+       the pool reads SEVEN. THE RECORDED RED IS THIS ROW reading 7 against an
+       expectation of 6 on the commit that made the rules data.
+
+       THE FUEL FIGURE IS UNCHANGED AND THAT IS THE HALF THIS ROW IS ACTUALLY
+       ABOUT: eight less three is five, and it stays five, because no round rule
+       names Fuel. A tally still does not come back on its own — the difference
+       is that a student may now WRITE a rule that brings it back, which is the
+       whole of what D-35 moved. */
     t.eq('ADVANCE SPENDS EVERY POOL THE COST NAMES. Six action points less two '
-      + 'is four; eight Fuel less three is five; and the refill at the end of '
-      + 'the round puts the action points back from the build, which is the '
-      + 'rule that was already here and is untouched — so the pool read after '
-      + 'the round is the build pool and the FUEL is what carries the spend '
-      + 'forward, because a tally does not refill',
-      [fight().cats.ap, tallyOf(fight().cats, spendFuel)], [6, 5]);
+      + 'is four, and the shipped ROUND RULE then adds three, so the pool reads '
+      + 'seven; eight Fuel less three is five and stays five, because no round '
+      + 'rule names Fuel — so what carries the spend forward is the tally, and '
+      + 'what comes back is exactly what a rule says comes back',
+      [fight().cats.ap, tallyOf(fight().cats, spendFuel)], [7, 5]);
 
     t.eq('AND IT SPENDS NOTHING FOR A TERM NAMING SOMETHING THAT IS NOT A POOL. '
       + 'Health is on units and there is no side number for it to come out of, '
@@ -35296,14 +36101,37 @@ App.selftest = (function () {
       [roundRec.did[0].apPaid, roundRec.did[0].apShort,
         roundRec.did[1].apPaid, roundRec.did[1].apShort], [2, 0, 1, 0]);
 
-    t.eq('AND THE POOLS READ FULL AFTERWARDS, BECAUSE THE POOL REFILLS EACH '
-      + 'ROUND. This is the consequence of that ruling stated as a fact rather '
-      + 'than left to be discovered: the pool a student reads while declaring '
-      + 'is the pool for the round they are declaring, always the build\'s, '
-      + 'never last round\'s leftovers — so what a round SPENT is a thing the '
-      + 'record holds and the live board does not',
+    /* TURNED IN THE OPEN UNDER D-35, AND THE RECORDED RED IS [4, 5, 3, 3]
+       AGAINST AN EXPECTATION OF [3, 3, 3, 3]. What stood here said the pools
+       read full "because the pool REFILLS each round, always the build's, never
+       last round's leftovers" — and every word of that sentence is now false
+       except the first clause. The round above declares two of the cats' three
+       points and one of the mechs', so under a refill both pools went back to
+       three and under the shipped +3 rule the LEFTOVERS CARRY: one plus three
+       is four, and two plus three is five.
+
+       IT IS REWRITTEN RATHER THAN RELAXED, and the arithmetic is written into
+       the label so the row states the rule it now keeps instead of merely
+       agreeing with it. THE FOUR FIGURES ARE STILL FOUR: the two fight pools
+       moved and the two BUILD pools did not, which is FIGHT-10's division and
+       the untouched half of what this row was always for.
+
+       AND THIS IS THE HONEST SCOPE OF THE +3 FORK, MET ON THE SHIPPED BOARD AT
+       THREE RATHER THAN AT THE RETUNE OF NINE. D-35's record names nine as
+       where the two semantics part company; this row is where they part company
+       at three, in any round a side does not spend every point. The shipped
+       fight is byte-identical across this change only because a nine-cat side
+       with three points spends all three every round — [S09.12]'s equality row
+       drives exactly that fight, and the divergence row beside it drives nine. */
+    t.eq('AND THE POOLS CARRY THEIR LEFTOVERS PLUS THE SHIPPED +3 ROUND RULE — '
+      + 'one unspent point becomes four and two become five, where the refill '
+      + 'this replaced put both back to the build\'s three. That is D-35 read '
+      + 'off a real resolved round rather than argued for, and it is the same '
+      + 'divergence at three that the retune of nine makes unmissable. The two '
+      + 'BUILD pools beside them do not move at all, which is FIGHT-10 and is '
+      + 'why four figures are read rather than two',
       [fight().cats.ap, fight().mechs.ap, build().cats.ap, build().mechs.ap],
-      [3, 3, 3, 3]);
+      [4, 5, 3, 3]);
 
     t.eq('THE UNIT THE DECLARATION POINTED AT TOOK THE HIT THROUGH ITS SHIELD '
       + 'FIRST AND THEN ITS HEALTH, and the three numbers of the split are in '
@@ -35838,12 +36666,36 @@ App.selftest = (function () {
         App.model.aliveCount(fight().cats)],
       [0, true, 8]);
 
+    /* TURNED IN THE OPEN UNDER D-35, AND THE POOL FIGURES ARE THE FORK ITSELF
+       SHOWING UP ON THE SHIPPED BOARD. What stood here read [0, 0, 3, 3] and
+       said "neither pool moved at all", which was true of a REFILL: the round
+       above resolves ONE declared Lasers, so the cats spend nothing of their
+       three and the mechs spend one of theirs, and a refill put both pools back
+       to the build's three either way.
+
+       A +3 RULE ADDS INSTEAD OF REPLACING, so the unspent points carry: the
+       cats read 3 + 3 = 6 and the mechs 2 + 3 = 5. THE RECORDED RED IS THIS
+       ROW, on the commit that made the round rules data, reading [0, 0, 6, 5]
+       against an expectation of [0, 0, 3, 3]. It is REWRITTEN rather than
+       relaxed, and the two pool figures stay in it, because the claim the row
+       is actually about — a hand ruling moves the number it names and nothing
+       else — is unchanged and still worth pinning.
+
+       AND THIS IS THE HONEST SCOPE OF THE FORK, wider than "at nine". D-35's
+       record names the retune of nine as where +3 and refill part company;
+       they also part company HERE, at three, in any round a side leaves a point
+       unspent. [S09.12]'s divergence row below drives both readings at nine
+       side by side; this row is the same difference met by accident on the
+       shipped board, and it is left visible rather than smoothed away by
+       spending the pool first. */
     t.eq('and not one of those three rulings moved a number it was not asked '
       + 'to move: the health ops left both flags alone, the alive ops left both '
-      + 'health values alone, and neither pool moved at all',
+      + 'health values alone, and neither POOL moved by anything the rulings '
+      + 'did — the two pool figures are last round\'s leftovers plus the +3 '
+      + 'round rule, which is D-35 and not a ruling',
       [fight().cats.units[0].shield, fight().cats.units[1].shield,
         fight().cats.ap, fight().mechs.ap],
-      [0, 0, 3, 3]);
+      [0, 0, 6, 5]);
 
     App.ops.setUnitHp('mechs', 'm1', 2);
     App.state.flush();

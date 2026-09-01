@@ -7709,7 +7709,22 @@ check(
    The name walk is the second half and it is not a duplicate: a key set can be
    correct at the top level while a proposal hides one level down inside a unit
    or an action, which is exactly where a plan under time pressure would put
-   it. */
+   it.
+
+   TURNED IN THE OPEN UNDER D-35: the build slice reads FIVE keys now, the fifth
+   being `rules`, the round-rule list the developer asked for. The RECORDED RED
+   is this row on the commit that seeded it, printing
+   build="schema,cats,mechs,tokens,rules" against a demand for four. It is
+   rewritten and not loosened — a SIXTH key still reddens it, and the two
+   faction key sets are untouched, because a round rule names a side by id and
+   never hangs off one.
+
+   AND THE NAME WALK IS WHY THE RULE RECORD IS SPELLED `who`/`tok`/`d`. Every
+   one of `proposal`, `override`, `caster`, `target` and `pending` is a word a
+   round rule could plausibly have been given a field for; the transformation
+   record two levels down already answers the same question with `who`, and
+   reusing that spelling keeps this walk green by construction rather than by
+   somebody remembering the list. */
 const skState = A.state.get();
 const skWords = [];
 (function walkKeys(node, where) {
@@ -7730,7 +7745,7 @@ check(
     + 'anything. The proposal lives on the DOM, which is what makes it '
     + 'impossible for undo, for a build code or for the projection to read one',
   Object.keys(skState).sort().join(',') === 'build,fight,ui'
-    && Object.keys(skState.build).join(',') === 'schema,cats,mechs,tokens'
+    && Object.keys(skState.build).join(',') === 'schema,cats,mechs,tokens,rules'
     && Object.keys(skState.build.cats).join(',') === 'id,name,ap,units,actions'
     && Object.keys(skState.build.mechs).join(',') === 'id,name,ap,units,actions'
     && skWords.length === 0,
@@ -10353,6 +10368,39 @@ check(
    empties the declaration list, so it must come back to where it started. That
    is FIGHT-09's reading measured MOVING rather than asserted about, and it is
    the half of limitations entry 30 that an Advance owns. */
+/* ==========================================================================
+   D-35 — THE "RESOLVED === IDLE" CLAUSE OF THIS ROW AND OF 102 IS TURNED, IN
+   THE OPEN, AND REPLACED BY A CLAIM THAT IS NOT ABOUT A REFILL.
+   ==========================================================================
+   Both rows asserted that the spoken-for reading after an Advance is the SAME
+   STRING it was before any declaration. That was true only because the pool
+   was REFILLED to the build's figure, so "0 of 3 spoken for, 3 left to spend"
+   came back character for character. D-35 makes the end of a round a student's
+   own rule, and the shipped rule ADDS three rather than restoring three — so a
+   round that left a point unspent resolves to "0 of 5 spoken for, 5 left to
+   spend" and the string equality fails while the surface is behaving exactly
+   as it should. THE RECORDED RED is both rows on the commit that made the
+   rules data, printing that reading against a demand for the idle one.
+
+   WHAT THE CLAIM ACTUALLY WAS, recovered and asserted directly: after an
+   Advance, NOTHING IS SPOKEN FOR and the WHOLE pool is left to spend. That is
+   read positionally off the numbers in the reading — first figure zero, second
+   equal to third — so it survives a pool that moved and it stays independent
+   of the wording, which is probe AU's rule for this row. The verbatim reading
+   is still printed at every moment, so a reader of a red run still sees what
+   the room saw.
+
+   It is STRICTLY MORE than the string equality it replaces on the half that
+   matters: a surface that left one point spoken for after the round resolved
+   passed the old clause on a board whose pool happened to come back to the
+   same figure, and fails this one. */
+function fgSpokenNums(text) {
+  return String(text).match(/\d+/g) || [];
+}
+function fgNothingSpoken(text) {
+  const n = fgSpokenNums(text);
+  return n.length === 3 && n[0] === '0' && n[1] === n[2];
+}
 A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
@@ -10426,7 +10474,8 @@ check(
   fgStateAfter !== fgStateBefore && fgPageAfter !== fgPageBefore
     && fgRoundAfter !== fgRoundBefore && fgRowsAfter === fgRowsBefore + 1
     && fgWaitBefore === 1 && fgWaitAfter === 0
-    && fgTeamSpoken !== fgTeamIdle && fgTeamResolved === fgTeamIdle
+    && fgTeamSpoken !== fgTeamIdle && fgNothingSpoken(fgTeamResolved)
+    && fgNothingSpoken(fgTeamIdle) && !fgNothingSpoken(fgTeamSpoken)
     && errPanel.hidden === true,
   'state moved=' + (fgStateAfter !== fgStateBefore)
     + ' (' + fnv(fgStateBefore) + ' -> ' + fnv(fgStateAfter) + ')'
@@ -11250,7 +11299,8 @@ check(
     && accRec1 !== null && accRec1.at === accDefaultSaid
     && accDefaultSaid !== null && accLandsSaid !== null && accLandsSaid !== ''
     && accTeamSpoken !== accTeamIdle && accTeamUndone === accTeamIdle
-    && accTeamAgain === accTeamSpoken && accTeamResolved === accTeamIdle
+    && accTeamAgain === accTeamSpoken && fgNothingSpoken(accTeamResolved)
+    && fgNothingSpoken(accTeamIdle) && !fgNothingSpoken(accTeamSpoken)
     && accRec2Was !== null && accRec2Now !== null
     && accLitCount > 0 && accRec2Now.at === accPickTarget
     && accRec2Now.at !== accRec2Was.at
@@ -11259,7 +11309,7 @@ check(
     && accAgreeUndone === true && accAgreeAgain === true
     && accAgreeResolved === true && accAgreeMechs === true
     && accPoolSpoken !== accPoolIdle && accPoolUndone === accPoolIdle
-    && accPoolResolved === accPoolIdle
+    && fgNothingSpoken(accPoolResolved)
     && accHealth >= 0 && accLedgerRows === 1 && accWaitAfterOne === 0
     && accWhatChanged !== ''
     && accMarkShown === true && accHealthRuled === accHealth
@@ -12940,14 +12990,30 @@ function bfDisabledField() {
 }
 A.ops.resetToDefaults();
 A.state.flush();
+/* THE STARVING METHOD IS TURNED IN THE OPEN UNDER D-35, AND THE OLD ONE NO
+   LONGER WORKS FOR A GOOD REASON. What stood here set the BUILD pool to zero on
+   both sides and pressed Advance, because "advanceRound is the only thing in
+   this file that refills it, so the build is set to nothing first and the
+   Advance carries that through". Advance does not refill from the build any
+   more — it applies the student's round rules, and the shipped rule adds three
+   whatever the build says. THE RECORDED RED is this row printing
+   `fight pools driven to [6,6]` against a demand for [0,0].
+
+   So the pool is starved THROUGH THE FEATURE ITSELF: each side's shipped +3
+   rule is rewritten to take everything away, and the Advance carries THAT
+   through — clamped at the action-point type's own floor of zero, which is the
+   bounds half of D-35 doing the work. It is still a REAL op and a REAL Advance
+   press, which is what check 95's method was actually for, and it now exercises
+   two shipped features on the way to the board this row is about.
+
+   The build pools are set to nothing as well, so a later reader who restores a
+   refill finds this row red rather than quietly starving nothing. */
 fgPress(fgStart);
 const bfOffFunded = bfDisabledField();
-// The pool is driven to zero through a REAL Advance rather than by writing a
-// number into the slice, which is check 95's own method and its reason:
-// advanceRound is the only thing in this file that refills it, so the build is
-// set to nothing first and the Advance carries that through.
 A.ops.setFactionAp('cats', 0);
 A.ops.setFactionAp('mechs', 0);
+A.ops.setRoundRule(0, 'cats', 'ap', -A.ops.MAX_ALLOC);
+A.ops.setRoundRule(1, 'mechs', 'ap', -A.ops.MAX_ALLOC);
 A.state.flush();
 fgAdvancePress();
 const bfOffStarved = bfDisabledField();
