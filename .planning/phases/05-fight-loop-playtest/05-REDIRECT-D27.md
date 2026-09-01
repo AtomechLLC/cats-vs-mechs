@@ -397,3 +397,33 @@ resource — opens a small inline control AT THAT SPOT to change the value in th
 - The battlefield stays read-only for anything that is NOT a resource reading; the retarget flow's
   claim on unit-shape clicks is unchanged — a resource click and a unit-shape click must not
   collide (the resource tokens are children; hit-testing must separate them cleanly).
+
+---
+
+## D-37 — Eleventh round, 2026-09-01: the unit popup
+
+Verbatim:
+
+> click on a unit then click on the popup window to modify the values associated with it
+
+### What this settles
+
+Clicking a unit on the battlefield (at rest — a half-made retarget still owns the battlefield)
+opens a popup for THAT unit showing every value associated with it: health, shield, every status
+tally including the zero-hidden ones, and the dead marker. Clicking a value inside the popup
+modifies it — the D-36 nudge idiom, now inside a surface with room to breathe.
+
+### Orchestrator interpretation (recorded, overridable)
+
+- **This supersedes D-36's per-reading nudge ON THE BATTLEFIELD** — the readings there return to
+  being readings, the unit shape's click opens the popup, and the nudge lives inside it. The
+  team-resource direct click stays as D-36 built it. Recorded as a supersession, not a bug in
+  D-36: the popup resolves D-36's own two deferred items (17: the popup is a true keyboard
+  surface with real buttons; 18: a value at zero is present and clickable in the popup).
+- Every change is still a hand ruling: shipped ops, the round's by-hand record, one undoable
+  commit per change, D-35 bounds clamping with readable refusals.
+- The popup follows the shipped dialog/popup idioms (positioning near the unit, Escape and
+  click-elsewhere dismiss, focus management per the file's conventions), carries the unit's name
+  as its heading, and renders values in the D-29 symbolic language with the scanned tooltips.
+- The dead marker toggle joins the popup as one of the unit's values (its board-tab control
+  remains).
