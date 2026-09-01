@@ -2605,6 +2605,319 @@ for (const ch of ['chrome', 'msedge']) {
 
     await pg.click('#act-edit-done'); await pg.waitForTimeout(150);
 
+    /* ══════════════════════════════════════════════════════════════════
+       25, 25b, 25c — D-35 PART TWO'S THREE SURFACES, IN A REAL BROWSER.
+       Plan 05-D35b.
+       ══════════════════════════════════════════════════════════════════
+       Eighteen consecutive rendered changes in this phase had a defect only a
+       picture showed, so every one of these three takes one — and every one of
+       them also asserts a REGIME rather than a pixel, which is cell 23's own
+       lesson: a budget set at the measurement reddens on a font.
+
+       THE BOARD IS PUT BACK FIRST. Everything above this point has authored
+       actions, renamed things and left a dialog closed on a selection, and a
+       measurement taken on a board four cells have been editing is a
+       measurement of nothing in particular. */
+    await pg.evaluate(() => {
+      App.ops.resetToDefaults();
+      App.state.invalidate({ structural: true });
+      if (App.render.flush) App.render.flush();
+    });
+    await pg.click('#view-build'); await pg.waitForTimeout(200);
+
+    /* ── 25. THE RANGE PAIR ON THE TOKEN EDITOR. Two fields and their words on
+       ONE line, wholly inside the dialog and wholly inside the viewport, with
+       the sentence under them saying what the pair IS — and a refused bound
+       heard through the file's one refusal surface with the field put back.
+
+       THE ORDER IS DELIBERATE AND WAS MEASURED THE HARD WAY: the loud refusal
+       goes LAST, because an error raised while a modal is open CLOSES that
+       modal first (the node gate's check 24 states it), so a screenshot taken
+       after the refusal would be a picture of the board. */
+    await pg.click('[data-act="openTokenPicker"]'); await pg.waitForTimeout(250);
+    await pg.click('#tok-pick-new-unit'); await pg.waitForTimeout(200);
+    await pg.fill('#tok-pick-name', 'Chill');
+    await pg.press('#tok-pick-name', 'Enter'); await pg.waitForTimeout(200);
+    await pg.fill('#tok-pick-max', '3');
+    await pg.press('#tok-pick-max', 'Enter'); await pg.waitForTimeout(250);
+
+    /* THE GROUP IS DRIVEN INTO VIEW FIRST, AND THAT IS A FINDING RATHER THAN
+       A SETUP STEP. The first draft of this cell measured the row where it
+       landed and asserted `top >= 0 && bottom <= innerHeight`, which PASSED at
+       both sizes — and the screenshot it took at 1366x768 showed the two
+       fields cut in half by the dialog's sticky foot with the sentence under
+       them entirely below the fold. That is D-33 P1-2's lesson arriving on a
+       new group, word for word: a box whose viewport-relative rectangle is on
+       screen can still be clipped by a SCROLLING ANCESTOR, and a cell that
+       reads only the rectangle is green over exactly the defect the audit
+       photographed.
+
+       So the claim is the one cell 6b makes about the picker rows and NOT a
+       claim that the group ships above the fold — the dialog is 1466px against
+       726px of viewport at 1366 and Shape, Colour and Emoji are below the fold
+       too, which is the arrangement D-33 P1-3 gave this dialog a scroller and
+       a cue for. What is asserted is REACHABLE AND THEN WHOLE: scrolled to, the
+       row is cut by no ancestor, both fields are inside the viewport, and the
+       sentence that says what the pair means is on screen WITH them — because
+       a reading that arrives one scroll after the control it explains is a
+       reading nobody reads. */
+    const bounds = await pg.evaluate(async () => {
+      const group = document.querySelector('#tok-pick-bounds-label').parentElement.parentElement;
+      group.scrollIntoView({ block: 'center' });
+      await new Promise((r) => setTimeout(r, 400));
+      // cell 6b's own walk, copied rather than shared because the two cells are
+      // in different scopes: is this node cut by ANY scrolling ancestor?
+      const cutBy = (node) => {
+        const r = node.getBoundingClientRect();
+        let q = node.parentElement;
+        while (q && q !== document.body) {
+          const cs = getComputedStyle(q);
+          if (/auto|scroll|hidden/.test(cs.overflowY) || /auto|scroll|hidden/.test(cs.overflowX)) {
+            const pr = q.getBoundingClientRect();
+            if (r.top < pr.top - 0.6 || r.bottom > pr.bottom + 0.6
+              || r.left < pr.left - 0.6 || r.right > pr.right + 0.6) { return true; }
+          }
+          q = q.parentElement;
+        }
+        return false;
+      };
+      const row = document.querySelector('.pk-bounds');
+      const min = document.querySelector('#tok-pick-min');
+      const max = document.querySelector('#tok-pick-max');
+      const said = document.querySelector('#tok-pick-bounds-said');
+      const dlg = document.querySelector('#tok-picker');
+      if (!row || !min || !max || !said) return null;
+      const r = row.getBoundingClientRect();
+      const dr = dlg.getBoundingClientRect();
+      const tops = Array.from(row.querySelectorAll('.pk-bound'))
+        .map((n) => Math.round(n.getBoundingClientRect().top));
+      const lbl = row.querySelector('.pk-bound-lbl');
+      const sr = said.getBoundingClientRect();
+      return {
+        lines: new Set(tops).size,
+        h: Math.round(r.height),
+        inDialog: Math.round(r.left) >= Math.round(dr.left) - 1
+          && Math.round(r.right) <= Math.round(dr.right) + 1,
+        inView: r.top >= 0 && r.bottom <= innerHeight + 1 && r.width > 0,
+        clipped: cutBy(row) || cutBy(min) || cutBy(max) || cutBy(said),
+        // The sentence is on screen WITH the pair, not one scroll behind it.
+        saidWithPair: sr.top >= 0 && sr.bottom <= innerHeight + 1
+          && sr.top >= r.bottom - 1,
+        minV: min.value, maxV: max.value,
+        wordPx: Math.round(parseFloat(getComputedStyle(lbl).fontSize)),
+        wordShown: getComputedStyle(lbl).visibility !== 'hidden'
+          && lbl.textContent.trim().length > 0,
+        saidShown: said.hidden === false && said.textContent.length > 0,
+        said: said.textContent,
+        state: JSON.stringify([App.ops.tokenBounds(App.state.get().build.tokens,
+          document.querySelector('#tok-picker').dataset.tok)])
+      };
+    });
+    await pg.locator('#tok-picker').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35b-bounds-${ch}-${size.name}.png`)
+    });
+    note(ch, size.name, 'D-35 range pair — lines / height / fields',
+      bounds ? `${bounds.lines} line(s), ${bounds.h}px, ${bounds.minV}/${bounds.maxV}` : 'no node');
+    note(ch, size.name, 'D-35 range reading',
+      bounds ? JSON.stringify(bounds.said).slice(0, 90) : 'no node');
+
+    // The refusal, last, for the reason the block comment gives.
+    await pg.fill('#tok-pick-min', '9');
+    await pg.press('#tok-pick-min', 'Enter'); await pg.waitForTimeout(300);
+    const boundRefusal = await pg.evaluate(() => ({
+      panel: document.querySelector('#err-panel').hidden === false,
+      says: document.querySelector('#err-message').textContent,
+      field: document.querySelector('#tok-pick-min').value,
+      floor: App.ops.tokenBounds(App.state.get().build.tokens,
+        document.querySelector('#tok-picker').dataset.tok).min
+    }));
+    note(ch, size.name, 'D-35 a refused bound — panel / field / floor',
+      `${boundRefusal.panel} / ${JSON.stringify(boundRefusal.field)} / ${boundRefusal.floor}`);
+    ok(`${tag}: 25. D-35's range pair sits on ONE line inside the token editor and, once the group is scrolled to, is cut by NO scrolling ancestor and sits wholly inside the viewport with its own sentence beside it — the first draft of this cell read the rectangle alone, passed at both sizes, and photographed two fields cut in half by the dialog's sticky foot, both fields carry a permanent visible word at the projector floor, and the sentence under them says what the pair IS — the shipped 0-to-99 reads as the range every board starts from, which two boxes of digits cannot say on their own. A ceiling typed into the real field lands on the type; a FLOOR ABOVE THAT CEILING is refused rather than cut, the panel carries the type's own name, the field goes back and the board does not move. Read as a REGIME and not a pixel — one line, both words shown, not a height budget that reddens on a font`,
+      bounds !== null && bounds.lines === 1 && bounds.inDialog === true
+      && bounds.inView === true && bounds.clipped === false
+      && bounds.saidWithPair === true
+      && bounds.minV === '0' && bounds.maxV === '3'
+      && bounds.wordPx >= 18 && bounds.wordShown === true
+      && bounds.saidShown === true
+      && bounds.said.indexOf('between 0 and 3') !== -1
+      && boundRefusal.panel === true
+      && boundRefusal.says.indexOf('Chill') !== -1
+      && boundRefusal.field === '0' && boundRefusal.floor === 0,
+      { bounds, boundRefusal });
+
+    await pg.click('#err-dismiss'); await pg.waitForTimeout(200);
+    await pg.evaluate(() => {
+      const d = document.querySelector('#tok-picker');
+      if (d && d.open === true) { d.close(); }
+    });
+    await pg.waitForTimeout(200);
+
+    /* ── 25b. THE ROUND-RULES BLOCK IN THE BUILD VIEW, AUTHORED BY REAL
+       CLICKS. Every visible row is ONE line — [C17] is [C12]'s dense terms
+       region on a page region and the whole reason that language exists is
+       that a three-line row twelve times over is a surface nobody can read —
+       and the block is wholly inside the viewport at both sizes.
+
+       AND THE REMOVAL MARK IS READ WHERE D-30 PUT IT: on the shape, not beside
+       it. That is the one thing neither node gate can see and the pictures
+       above it are what a human confirms. */
+    const rrTok = await pg.evaluate(() => {
+      const ids = Object.keys(App.state.get().build.tokens);
+      const made = ids[ids.length - 1];
+      // Three points of it on the first cat, so the decay below has something
+      // to take away. The stepper path is the node gate's check 102 and
+      // re-driving it here would be that row's claim borrowed rather than this
+      // one's made.
+      App.ops.setTally('cats', 'c1', made, 3);
+      App.state.invalidate();
+      if (App.render.flush) App.render.flush();
+      return made;
+    });
+    await pg.waitForTimeout(200);
+    await pg.click(`[data-k="rr/2/tok/${rrTok}"]`); await pg.waitForTimeout(250);
+    await pg.fill('.rr-rule[data-rr-slot="2"] .rr-amt', '-1');
+    await pg.press('.rr-rule[data-rr-slot="2"] .rr-amt', 'Enter');
+    await pg.waitForTimeout(250);
+    await pg.click('[data-k="rr/2/who/catsEach"]'); await pg.waitForTimeout(250);
+
+    const rrBox = await pg.evaluate(() => {
+      const root = document.querySelector('#roundrules');
+      if (!root) return null;
+      const r = root.getBoundingClientRect();
+      const rows = Array.from(root.querySelectorAll('.rr-rule'))
+        .filter((n) => n.offsetParent !== null || getComputedStyle(n).display !== 'none');
+      const heights = rows.map((n) => Math.round(n.getBoundingClientRect().height));
+      const read = document.querySelector('.rr-rule[data-rr-slot="2"] .rr-read');
+      const sign = read ? read.querySelector('.sym-sign') : null;
+      const shape = sign ? sign.parentNode : null;
+      const sr = sign ? sign.getBoundingClientRect() : null;
+      const shr = shape ? shape.getBoundingClientRect() : null;
+      return {
+        h: Math.round(r.height), w: Math.round(r.width),
+        left: Math.round(r.left), right: Math.round(r.right),
+        inView: r.left >= 0 && r.right <= innerWidth + 1 && r.width > 0,
+        rows: rows.length,
+        tallest: heights.length ? Math.max(...heights) : -1,
+        signOnShape: !!shape && String(shape.className || '').split(' ').indexOf('tok') !== -1,
+        signColor: sign ? getComputedStyle(sign).color : '(none)',
+        // The CENTRE of the sign against the shape's left, which is cell 23d's
+        // own measurement and not a second one: [C14.5] gives the sign
+        // translate(-50%,-50%), so its LEFT edge sits half its width outside
+        // the shape and a cell reading that would disagree with 23d about the
+        // same geometry by exactly half a glyph. Measured the wrong way first,
+        // -6px against 23d's 0, which is the reading this comment exists for.
+        signOffLeft: sr && shr
+          ? Math.round((sr.left + sr.width / 2) - shr.left) : -999,
+        signOffTop: sr && shr
+          ? Math.round(((sr.top + sr.height / 2) - shr.top) / shr.height * 100) : -999,
+        pillsOnRow2: root.querySelectorAll('.rr-rule[data-rr-slot="2"] .rr-pill').length,
+        tickShown: (() => {
+          const on = root.querySelector('.rr-pill--on .rr-check');
+          const off = root.querySelector('.rr-pill:not(.rr-pill--on) .rr-check');
+          return [on ? getComputedStyle(on).visibility : 'none',
+            off ? getComputedStyle(off).visibility : 'none'].join('/');
+        })(),
+        rule: JSON.stringify(App.state.get().build.rules[2])
+      };
+    });
+    await pg.locator('#roundrules').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35b-rules-${ch}-${size.name}.png`)
+    });
+    note(ch, size.name, 'D-35 round rules — height / rows / tallest row',
+      rrBox ? `${rrBox.h}px, ${rrBox.rows} rows, tallest ${rrBox.tallest}px` : 'no node');
+    note(ch, size.name, 'D-35 the decay mark — parent / colour / offset',
+      rrBox ? `${rrBox.signOnShape} ${rrBox.signColor} ${rrBox.signOffLeft}px/${rrBox.signOffTop}%` : 'no node');
+    note(ch, size.name, 'D-35 the rule, authored by clicks',
+      rrBox ? rrBox.rule : 'no node');
+    ok(`${tag}: 25b. D-35's round-rules block is authored BY REAL CLICKS — a token pressed on the empty slot starts a rule, "-1" typed into the real amount field turns it into a decay, and a party pressed afterwards keeps the token and the amount already written. Every visible row is ONE line — three written rules and the one empty slot the list always offers — and the block is wholly inside the viewport, which is [C17] being [C12]'s dense language on a page region rather than a stack of three-line bars. THE REMOVAL MARK IS ON THE SHAPE and not beside it — D-30's geometry, read off the live layout: the sign's parent is a .tok, its left is flush with the shape's left and its centre sits a quarter of the way down. The live chooser is said by an outline AND a tick, and the tick on an unpressed pill is hidden — the rule [C12] promised at three sites and implemented at one until D-32b`,
+      rrBox !== null && rrBox.inView === true
+      && rrBox.rows === 4 && rrBox.tallest > 0 && rrBox.tallest <= 56
+      && rrBox.signOnShape === true
+      && rrBox.signOffLeft === 0 && rrBox.signOffTop === 25
+      && rrBox.pillsOnRow2 > 5
+      && rrBox.tickShown === 'visible/hidden'
+      && rrBox.rule === JSON.stringify({ who: 'catsEach', tok: rrTok, d: -1 }),
+      rrBox);
+
+    /* ── 25c. THE FIGHT SAYS WHAT THE RULES ARE, AND THEN WHAT THEY DID.
+       D-31's line, read off the live page: the "Each round" block is inside the
+       round-STATE area and carries NO control at all, and the whole authoring
+       block is display:none in this view. Then two rounds are advanced with
+       nothing declared, so the only thing that can move a number is a rule, and
+       the decay is read back off the what-changed reading BY THE TYPE'S OWN
+       NAME. */
+    await pg.click('#fight-start'); await pg.waitForTimeout(350);
+    const eachRound = await pg.evaluate(() => {
+      const box = document.querySelector('#fight-state .fg-eachround');
+      const rules = document.querySelector('#roundrules');
+      if (!box) return null;
+      const r = box.getBoundingClientRect();
+      const state = document.querySelector('#fight-state').getBoundingClientRect();
+      const input = document.querySelector('#fight-input').getBoundingClientRect();
+      return {
+        lines: box.querySelectorAll('.fg-rr-line').length,
+        controls: box.querySelectorAll('button, input, [data-rr]').length,
+        symbols: box.querySelectorAll('.sym .tok').length,
+        named: Array.from(box.querySelectorAll('.sym'))
+          .every((n) => (n.getAttribute('title') || '') !== ''
+            && n.getAttribute('title') === n.getAttribute('aria-label')),
+        h: Math.round(r.height),
+        inState: r.top >= state.top - 1 && r.bottom <= state.bottom + 1,
+        aboveInput: r.bottom <= input.top + 1,
+        editorAway: rules ? getComputedStyle(rules).display : '(no node)',
+        head: (box.querySelector('.fg-rr-head') || {}).textContent
+      };
+    });
+    await pg.locator('#fight-state .fg-eachround').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35b-eachround-${ch}-${size.name}.png`)
+    });
+    note(ch, size.name, 'D-35 the fight reading — lines / controls / height',
+      eachRound ? `${eachRound.lines} / ${eachRound.controls} / ${eachRound.h}px` : 'no node');
+
+    await pg.click('[data-k="fg/advance"]'); await pg.waitForTimeout(350);
+    await pg.click('[data-k="fg/advance"]'); await pg.waitForTimeout(350);
+    const decaySeen = await pg.evaluate((tok) => {
+      const body = document.querySelector('.ld-now-body');
+      if (!body) return null;
+      const name = App.render.labelFor(App.state.get(), tok);
+      const said = Array.from(body.querySelectorAll('.ld-now-line'))
+        .map((n) => {
+          const sym = n.querySelector('.sym');
+          return sym ? sym.getAttribute('title') : n.textContent;
+        });
+      return {
+        said: said,
+        decay: said.filter((t) => t.indexOf(name + ' 2 to 1.') !== -1).length,
+        pool: said.filter((t) => t.indexOf('3 to 6.') !== -1
+          || t.indexOf('6 to 9.') !== -1).length,
+        live: App.state.get().fight.cats.units[0].tally[tok],
+        round: App.state.get().fight.round
+      };
+    }, rrTok);
+    await pg.locator('.ld-now').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35b-whatchanged-${ch}-${size.name}.png`)
+    });
+    note(ch, size.name, 'D-35 the decay, seen on Advance',
+      decaySeen ? `round ${decaySeen.round}, tally ${decaySeen.live}, decay lines ${decaySeen.decay}` : 'no node');
+    ok(`${tag}: 25c. THE FIGHT SAYS WHAT THE RULES ARE AND THEN WHAT THEY DID. The "Each round" block sits inside the round-STATE area, ABOVE the input area, and carries ZERO controls — D-31's line held for a second feature, read off the live layout rather than asserted in a comment — while the whole authoring block is display:none in this view. Every reading in it draws a real token and carries a title equal to its aria-label, which is D-29's admissibility argument on a fourth surface. Then two rounds are advanced with NOTHING DECLARED, so the only thing that can move a number is a rule: the student's own decay is read back off the what-changed reading by the type's own name at both ends, and the pool's +3 rides along as a second, independent witness in the same reading`,
+      eachRound !== null && eachRound.lines === 3 && eachRound.controls === 0
+      && eachRound.symbols > 0 && eachRound.named === true
+      && eachRound.inState === true && eachRound.aboveInput === true
+      && eachRound.editorAway === 'none'
+      && String(eachRound.head).indexOf('Each round') === 0
+      && decaySeen !== null && decaySeen.round === 3 && decaySeen.live === 1
+      && decaySeen.decay === 1 && decaySeen.pool === 2,
+      { eachRound, decaySeen });
+
+    await endFight(pg);
+    await pg.evaluate(() => {
+      App.ops.resetToDefaults();
+      App.state.invalidate({ structural: true });
+      if (App.render.flush) App.render.flush();
+    });
+    await pg.waitForTimeout(200);
+
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
     ok(`${tag}: 16. no page error and no console error across every press above`,
       errs.length === 0, errs.slice(0, 3));

@@ -6862,18 +6862,21 @@
  *     [S06.9] the board in fight mode — the markers and the live read   (plan 05-09)
  *     [S06.10] the view switch — which of the two regions paints    (plan 05-12)
  *     [S06.11] the battlefield — one labelled shape per unit       (plan 05-15)
+ *     [S06.12] the symbolic reading three surfaces render           (plan 05-D29)
+ *     [S06.13] the round rules — what happens at the end of one   (plan 05-D35b)
  *   [S07] INTERACTIONS  delegated handlers on stable roots                 (Phase 2, plan 02-02)
  *     [S07.2] the token-appearance dialog's handlers                       (plan 02-03)
  *     [S07.3] the action editor's handlers                                 (plan 03.1-05)
  *     [S07.4] the share and confirm dialogs' handlers                      (plan 04-06)
  *     [S07.5] the fight's presses — the bar's and the board's         (plan 05-10)
  *     [S07.6] the view switch's two presses                          (plan 05-12)
+ *     [S07.7] the round rules' presses and its amount field       (plan 05-D35b)
  *   [S08] BOOT          wiring + the error boundary                        (plan 01-02)
  *   [S09] SELFTEST      in-file assertions, gated behind #selftest         (plan 01-01)
  *   [S10] LAUNCH        the one entry call                                 (plan 01-01)
  *
  * The stylesheet above carries its own region markers on the same scheme,
- * [C00] TOKENS through [C15] THE VIEW SWITCH — search a token such as [C07] and
+ * [C00] TOKENS through [C17] THE ROUND RULES — search a token such as [C07] and
  * you land in exactly one place there too. This sentence used to stop at [C14]
  * THE FIGHT and plan 05-12 amended it in the same change that made it false,
  * which is [S03]'s rule about a banner that quietly lies and is the same move
@@ -6897,7 +6900,16 @@
  * paints at all. Plan 05-D28 gave it a second prefix, .pv-, for D-28's
  * projection toggle — which is why that block also decides whether #strip is
  * drawn at all in the fight view, and carries the retired [C03] EDIT plan
- * 05-12 wrote to place it there. [S06.10] paints both surfaces and [S07.6]
+ * 05-12 wrote to place it there.
+ * AND [C15] IS NO LONGER THE LAST BLOCK, which is this paragraph keeping [S03]'s
+ * rule for the fourth time rather than being trimmed: [C16] MOTION AND SCROLL is
+ * plan 05-D33's and applies across every region, and [C17] THE ROUND RULES is
+ * plan 05-D35b's — the block [S06.13] and [S07.7] paint into in the build view,
+ * plus the lighter reading [S06.7] draws from the same notation inside the
+ * round-state area. [C14] divides into FIVE sub-blocks and not four: [C14.5] is
+ * plan 05-D29's, and it is the geometry every symbolic reading in this file is
+ * drawn with — the one [S06.12] owns and [C12], [C17] and [C14.2] each override
+ * the token size on. [S06.10] paints both surfaces and [S07.6]
  * presses both.
  *
  * Region order is fixed. Dependency arrows point DOWN only; reference another
