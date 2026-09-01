@@ -28768,14 +28768,73 @@ App.interactions = (function () {
     return box ? box : null;
   }
 
+  /* focus(), GUARDED THREE WAYS AND NEVER TRUSTED. The node may be null (a
+     reading a repaint has not put back), the method may be absent (the node
+     gate's stub DOM has no layout and no focus), and the whole thing is page
+     work with no state behind it — so a throw here would take down a press that
+     had already succeeded. This is [S07.5]'s own scrollIntoView guard, one
+     function over, for the same three reasons. */
+  function fgFocus(node) {
+    if (node && typeof node.focus === 'function') { node.focus(); }
+  }
+
+  /* SHUT, AND HAND THE KEYBOARD BACK TO THE READING IT CAME FROM.
+
+     The return is what makes the keyboard route a ROUTE rather than a
+     one-way door: a student who tabbed to a team resource, opened the control
+     with Enter and pressed Escape lands back on the row they were reading
+     instead of on <body>, which is where focus falls when a focused node is
+     hidden. It is the same contract [S06.1]'s withPreservedFocus keeps across a
+     rebuild, asked for at a different moment.
+
+     THE ANCHOR IS LOOKED UP BEFORE THE ATTRIBUTES ARE CLEARED, because clearing
+     them is what makes it unfindable — and it is looked up FRESH rather than
+     remembered in a variable, because the team-resource row is REBUILT on every
+     commit and a remembered node reference would be a detached one by the time
+     this runs.
+
+     IT IS A WALK AND COMPARISON RATHER THAN A BUILT SELECTOR, AND THAT IS THE
+     POINT. The obvious spelling is a querySelector built from the key, and it
+     would put a SECOND copy of [S06.14]'s fgnKey in a different IIFE — which is
+     precisely the drift [S07.5]'s banner fixed the `fg/bf/` spelling in writing
+     to prevent one plan ago. Comparing the three attributes the box already
+     holds against the three each reading carries needs no key at all, so there
+     is nothing here to drift and no caller string interpolated into a selector
+     — keyed()'s CSS.escape hazard, avoided by not building one. */
+  function fgNudgeAnchor(box) {
+    if (typeof document === 'undefined') { return null; }
+    if (typeof document.querySelectorAll !== 'function') { return null; }
+    var want = {
+      side: String(box.dataset.fgSide || ''),
+      unit: String(box.dataset.fgUnit || ''),
+      tok: String(box.dataset.fgTok || '')
+    };
+    var all = document.querySelectorAll('[data-fg="res"]');
+    for (var i = 0; i < all.length; i++) {
+      if (String(all[i].dataset.fgSide || '') === want.side
+        && String(all[i].dataset.fgUnit || '') === want.unit
+        && String(all[i].dataset.fgTok || '') === want.tok) { return all[i]; }
+    }
+    return null;
+  }
+
+  /* THE SHUT ITSELF.
+
+     IT ONLY LANDS WHERE FOCUS CAN LIVE. A battlefield reading is a div — it is
+     inside a control already and cannot be one — so focus() is a no-op there
+     and the keyboard stays wherever it was, which is correct rather than a
+     gap: that surface has no keyboard route into this control in the first
+     place, and its own comment in [S06.11] says why and what the fix would be. */
   function fgNudgeShut() {
     var box = fgNudgeBox();
     if (box === null) { return; }
     if (String(box.dataset.fgTok || '') === '') { return; }
+    var back = fgNudgeAnchor(box);
     box.dataset.fgSide = '';
     box.dataset.fgUnit = '';
     box.dataset.fgTok = '';
     App.render.resourceNudge(App.state.get());
+    fgFocus(back);
   }
 
   /* IS A CHANGE OF TARGET HALF MADE ANYWHERE. Read off the two declaration
@@ -28852,6 +28911,21 @@ App.interactions = (function () {
     box.dataset.fgUnit = unit;
     box.dataset.fgTok = tok;
     App.render.resourceNudge(App.state.get());
+    /* AND THE KEYBOARD GOES INTO THE CONTROL THAT JUST APPEARED, which is the
+       half that makes the keyboard route work at all: this box is the LAST
+       child of #fightbar, so a student who opened it from a team-resource row
+       three hundred nodes earlier in document order would otherwise have to Tab
+       past everything between the two to reach the button they asked for.
+       fgNudgeShut hands the focus back to the row when they leave, so the pair
+       is a round trip rather than a one-way door.
+
+       IT COSTS THE POINTER PATH NOTHING. This runs during pointerdown, and the
+       browser's own default focus-on-mousedown then targets whatever was under
+       the cursor — so a mouse open ends with focus on the reading or on the
+       shape around it, exactly as it did before this line, and the first press
+       of the pair puts it on the button anyway. Plan 05-10 measured that
+       sequence in full. */
+    fgFocus(document.getElementById('fg-nudge-less'));
   }
 
   /* THE RULING. Every argument is read off the BOX rather than off the pressed
@@ -28922,6 +28996,35 @@ App.interactions = (function () {
     var box = fgNudgeBox();
     if (box === null || box.hidden === true) { return; }
     fgNudgeShut();
+  }
+
+  /* THE BOX FOLLOWS A SCROLL, AND A SCREENSHOT IS WHAT FOUND THIS. The
+     placement is measured off the anchor's rect and published as two custom
+     properties by [S06.14], which runs on SYNC_HOOKS — and a SCROLL COMMITS
+     NOTHING, so no frame is scheduled and the box stays at coordinates the page
+     has moved out from under. The browser checks' own picture of the round-state
+     panel showed it: Playwright scrolls a region into view before capturing, the
+     panel moved, and the box did not.
+
+     RE-PLACED RATHER THAN DISMISSED, which is the choice worth recording. A
+     popover that vanishes on a scroll is a common answer and it is the wrong one
+     here: the readings this opens on sit in a column a student scrolls THROUGH
+     while reading the board, and a control that disappeared because they looked
+     at the next unit is a control they learn not to trust. "AT THAT SPOT" is
+     D-36's own phrase and a scroll does not change which spot.
+
+     CAPTURE PHASE, deliberately: a scroll event does not BUBBLE, so a listener
+     on the document in the bubble phase would never see a scroll inside
+     .fg-sides — which is exactly the scroller [C14.1] puts around the readings
+     this control opens on. Capture reaches it.
+
+     IT DECLINES WHILE THE BOX IS SHUT, so the cost to a student who never opens
+     one is one hidden-property read per scroll event, which is the same bargain
+     the two dismissal handlers make. */
+  function onDocScroll() {
+    var box = fgNudgeBox();
+    if (box === null || box.hidden === true) { return; }
+    App.render.resourceNudge(App.state.get());
   }
 
   // The flag, read off STATE and not off the button's aria-pressed. The
@@ -29119,6 +29222,13 @@ App.interactions = (function () {
       App.boot.wrap('nudge dismiss press', onDocPress));
     document.addEventListener('keydown',
       App.boot.wrap('nudge dismiss keydown', onDocKeyDown));
+    // CAPTURE AND PASSIVE, and each word earns its place: capture because a
+    // scroll event does not bubble and the readings live inside .fg-sides' own
+    // scroller, passive because this handler never calls preventDefault and
+    // saying so lets the browser scroll without waiting for it.
+    document.addEventListener('scroll',
+      App.boot.wrap('nudge follow scroll', onDocScroll),
+      { capture: true, passive: true });
   }
 
   LATE_BINDERS.push(bindNudgeDismiss);
@@ -40641,8 +40751,207 @@ App.selftest = (function () {
     t.eq('and the constant is the arithmetic rather than a number somebody '
       + 'typed: the roster ceiling per side, times the two sides, times the '
       + 'three values a unit carries that a student can rule on — its health, '
-      + 'its shield and whether it is still standing',
+      + 'its shield and whether it is still standing. UNDER D-36 THAT PRODUCT '
+      + 'IS A FLOOR RATHER THAN AN EXACT COUNT and the number deliberately does '
+      + 'not move: a student may now also rule the pool and every tally at '
+      + 'either scope, so "one ruling per rulable number" is larger than this — '
+      + 'and this is a bound on a RECORD sized by what thirty stringified '
+      + 'snapshots cost, not a ruling on what a student may do. The op\'s own '
+      + 'paragraph carries the measurement and the condition for raising it',
       App.ops.MAX_HAND_RULINGS, App.ops.MAX_UNITS * 2 * 3);
+
+    /* ===== D-36: THE OTHER FIVE HAND RULINGS =============================
+       "add the ability to directly click on a resource to directly modify the
+       value of that resource in the current round" — the developer, at the real
+       artifact. The SURFACE is driven in tests/browser-checks.mjs, where a real
+       click and a real layout exist; what is driven HERE is the layer under it,
+       on the same terms the four ops above are: every one of these is a hand
+       ruling, so every claim the group's banner makes has to hold of it. */
+
+    App.ops.resetToDefaults();
+    var d36Tok = App.ops.createTokenType({
+      name: 'Chill', shape: 'tri', color: 'violet', glyph: '', scope: 'unit'
+    });
+    var d36Side = App.ops.createTokenType({
+      name: 'Rage', shape: 'hex', color: 'coral', glyph: '', scope: 'side'
+    });
+    App.ops.setTokenBounds(d36Tok, { min: 0, max: 3 });
+    App.ops.setTally('cats', 'c1', d36Tok, 2);
+    App.ops.setTally('cats', null, d36Side, 2);
+    App.ops.startFight();
+    App.state.flush();
+
+    t.eq('THE FIVE WRITERS D-36 NEEDED ARE EXPORTED AND ROUTED, and the shield '
+      + 'nudge is the one setFightShield\'s own paragraph reserved BY NAME two '
+      + 'plans ago — "the day a surface carries the pair, the sibling is eight '
+      + 'lines in nudgeFightHp\'s exact shape". This is that day. Read off the '
+      + 'LIVE export object and the LIVE router rather than from a list typed '
+      + 'here, so an op exported without an arm, or an arm with no op behind '
+      + 'it, reddens rather than shipping',
+      ['nudgeFightShield', 'setFightAp', 'nudgeFightAp',
+        'setFightTally', 'nudgeFightTally'].map(function (name) {
+        return typeof App.ops[name];
+      }).join(' '),
+      'function function function function function');
+
+    t.eq('THE RECORD GAINS A SIDE-SCOPE SHAPE AND `unit` IS NULL FOR IT, which '
+      + 'is a real answer and not a missing one: a pool and a side-scope tally '
+      + 'belong to the side and to no unit. Five rulings, one per writer, read '
+      + 'back as the whole list — the shape, the side, the unit, the token and '
+      + 'both ends of every move. `tok` is the TYPE the board draws in every '
+      + 'case, so a reader holding the record beside the board is comparing '
+      + 'like with like, which is the group\'s own spelling rule read over ids '
+      + 'it did not have before',
+      (function () {
+        App.ops.nudgeFightShield('cats', 'c1', 1);
+        App.ops.setFightAp('cats', 7);
+        App.ops.nudgeFightAp('cats', -2);
+        App.ops.setFightTally('cats', 'c1', d36Tok, 3);
+        App.ops.nudgeFightTally('cats', null, d36Side, 1);
+        App.state.flush();
+        return fight().hand.map(function (h) {
+          return [h.side, String(h.unit), h.tok, h.from, h.to].join('/');
+        }).join(' | ');
+      })(),
+      'cats/c1/shield/0/1 | cats/null/ap/3/7 | cats/null/ap/7/5 | '
+        + 'cats/c1/' + d36Tok + '/2/3 | cats/null/' + d36Side + '/2/3');
+
+    t.eq('EVERY ONE OF THEM CLAMPS TO THE TYPE\'S OWN D-35 PAIR AND THE RECORD '
+      + 'SHOWS THE CLAMPED VALUE, which is the property the three older writers '
+      + 'already keep, taken over the ids that arrive from a caller. The tally '
+      + 'is bounded 0-3 by the student, so a set of 9 lands on 3 and a nudge '
+      + 'from there reports FALSE — the boolean the surface reads to say "this '
+      + 'number is already on its bound" instead of raising a panel in the '
+      + 'middle of a workshop',
+      (function () {
+        App.ops.setFightTally('cats', 'c1', d36Tok, 9);
+        App.state.flush();
+        var held = fight().cats.units[0].tally[d36Tok];
+        var moved = App.ops.nudgeFightTally('cats', 'c1', d36Tok, 1);
+        var down = App.ops.nudgeFightTally('cats', 'c1', d36Tok, -1);
+        App.state.flush();
+        var last = fight().hand[fight().hand.length - 1];
+        return [held, moved, down, last.from + '->' + last.to];
+      })(),
+      [3, false, true, '3->2']);
+
+    t.eq('AND NOTHING RECORDS A RULING THAT MOVED NOTHING. "A number went from '
+      + 'one value to another" is false of a set that landed on the value '
+      + 'already there, and a run of presses saturated against a clamp would '
+      + 'otherwise fill the round\'s list with rulings nobody made — the '
+      + 'group\'s own rule, read over all five of the new writers at once',
+      (function () {
+        var before = fight().hand.length;
+        App.ops.setFightAp('cats', fight().cats.ap);
+        App.ops.nudgeFightAp('cats', 0);
+        App.ops.setFightShield('cats', 'c1', fight().cats.units[0].shield);
+        App.ops.setFightTally('cats', 'c1', d36Tok,
+          fight().cats.units[0].tally[d36Tok]);
+        App.state.flush();
+        return fight().hand.length - before;
+      })(), 0);
+
+    t.eq('D-00d HOLDS AT THE NEW WRITERS TOO, IN BOTH DIRECTIONS. A pool ruled '
+      + 'to nothing, a shield ruled to nothing and a tally ruled to nothing '
+      + 'leave every flag exactly where it was: not one of these ops touches '
+      + '`alive`, and none of them decides the fight is over (D-26). Read as '
+      + 'the whole living count rather than one unit, because a row watching '
+      + 'one would be green over an op that killed the other eight',
+      (function () {
+        App.ops.setFightAp('cats', 0);
+        App.ops.setFightShield('cats', 'c1', 0);
+        App.ops.setFightTally('cats', 'c1', d36Tok, 0);
+        App.ops.setUnitHp('cats', 'c1', 0);
+        App.state.flush();
+        return [fight().cats.units.filter(function (u) { return u.alive; }).length,
+          fight().cats.units[0].alive, fight().cats.ap,
+          Object.prototype.hasOwnProperty.call(
+            fight().cats.units[0].tally || {}, d36Tok)];
+      })(), [9, true, 0, false]);
+
+    t.eq('THE TALLY PAIR IS THE FIRST HAND OP WITH A CALLER-SUPPLIED TOKEN '
+      + 'POSITION, AND IT IS CLOSED AT THE SAME BOUNDARY setTally CLOSES IT. '
+      + 'Three reserved prototype keys, a type that is not on the board, one of '
+      + 'the five the board is BUILT on — whose quantity is the health, shield '
+      + 'or action points already there rather than a tally of its own — a '
+      + 'side-scope type asked for on a unit and a unit-scope type asked for on '
+      + 'the side: every one refused by name, the board unmoved and the '
+      + 'prototype intact',
+      (function () {
+        var wrong = [];
+        var was = JSON.stringify(App.state.get());
+        function refuses(what, run) {
+          try { run(); wrong.push(what + ' DID NOT THROW'); }
+          catch (e) { /* by name, checked below on the message shape */
+            if (!/^(There is no token type|"|Unknown side |No unit |Expected)/
+              .test(String(e.message))) { wrong.push(what + ': ' + e.message); }
+          }
+          if (!protoIntact()) { wrong.push(what + ' MOVED THE PROTOTYPE'); }
+        }
+        ['__proto__', 'constructor', 'prototype', 't99', 'hp', 'ap', 'dead']
+          .forEach(function (bad) {
+            refuses('setFightTally token ' + JSON.stringify(bad), function () {
+              App.ops.setFightTally('cats', 'c1', bad, 1);
+            });
+            refuses('nudgeFightTally token ' + JSON.stringify(bad), function () {
+              App.ops.nudgeFightTally('cats', 'c1', bad, 1);
+            });
+          });
+        refuses('a side-scope type asked for on a unit', function () {
+          App.ops.setFightTally('cats', 'c1', d36Side, 1);
+        });
+        refuses('a unit-scope type asked for on the side', function () {
+          App.ops.setFightTally('cats', null, d36Tok, 1);
+        });
+        refuses('the pool op on an unknown side', function () {
+          App.ops.setFightAp('dogs', 1);
+        });
+        refuses('the shield nudge on an unknown side', function () {
+          App.ops.nudgeFightShield('dogs', 'c1', 1);
+        });
+        if (JSON.stringify(App.state.get()) !== was) {
+          wrong.push('THE BOARD MOVED');
+        }
+        return wrong;
+      })(), []);
+
+    t.eq('AND THE ROUTER TAKES ALL FIVE UNDER THEIR OWN NAMES, key by key, '
+      + 'which is what keeps the page\'s payload and the op\'s contract the '
+      + 'same list. `unitId` is passed THROUGH rather than defaulted, because '
+      + 'null is the side-scope answer and a router that turned an absent key '
+      + 'into a unit id would decide a scope the student did not name',
+      (function () {
+        App.ops.resetFight();
+        App.state.flush();
+        App.ops.dispatch('nudgeFightShield', { side: 'cats', unitId: 'c1', delta: 2 });
+        App.ops.dispatch('setFightAp', { side: 'mechs', value: 5 });
+        App.ops.dispatch('nudgeFightAp', { side: 'mechs', delta: -1 });
+        App.ops.dispatch('setFightTally',
+          { side: 'cats', unitId: 'c1', tokenId: d36Tok, value: 1 });
+        App.ops.dispatch('nudgeFightTally',
+          { side: 'cats', unitId: null, tokenId: d36Side, delta: -1 });
+        App.state.flush();
+        return [fight().cats.units[0].shield, fight().mechs.ap,
+          fight().cats.units[0].tally[d36Tok], fight().cats.tally[d36Side],
+          fight().hand.length];
+      })(), [2, 4, 1, 1, 5]);
+
+    t.eq('THE RULING RECORD\'S TOKEN NAMES A TYPE THE BOARD ACTUALLY HOLDS, '
+      + 'every entry, which is the claim that REPLACES the shipped "one of a '
+      + 'fixed set of three". D-36 widened what a ruling can name and it did '
+      + 'not widen it to anything: the five ids the board is built on plus the '
+      + 'live vocabulary, and nothing else can reach the record because the '
+      + 'only caller-supplied position goes through requireTokenId and '
+      + 'tallyType first',
+      fight().hand.filter(function (h) {
+        return !Object.prototype.hasOwnProperty.call(
+          App.state.get().build.tokens, h.tok);
+      }), []);
+
+    t.ok('the prototype is intact after the whole D-36 block', protoIntact());
+    App.ops.endFight();
+    App.ops.resetToDefaults();
+    App.state.flush();
 
     t.eq('A ROUND OF HAND RULINGS LEAVES THE BUILD CODE BYTE-IDENTICAL, which '
       + 'is FIGHT-10 read from the codec\'s end: [S04].encode takes the build '
