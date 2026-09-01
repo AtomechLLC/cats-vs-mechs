@@ -2629,8 +2629,18 @@
      never depleted, and a reading that looked like the pool would be promising
      an economy the applier does not run. */
   .fg-team{display:flex;flex-direction:column;gap:6px}
+  /* D-36 MAKES THIS ROW A <button> AND THE RESET IS FOLDED IN HERE RATHER THAN
+     WRITTEN AS button.fg-res, for the specificity reason [C14.6] states in
+     full: a `button.fg-res{font:inherit}` would outrank this rule's own
+     font-size and drop the row through UX-02's 18px floor. One declaration of
+     each property, in one place, with nothing to lose a cascade against.
+     THE ROW LOOKS EXACTLY AS IT DID — every value below the reset is the one
+     that shipped, and the reading only becomes visibly pressable on hover,
+     which is [C14.6]'s own rule. */
   .fg-res{
     display:flex;align-items:baseline;flex-wrap:wrap;gap:8px;
+    background:none;border:0;width:100%;padding:0;text-align:left;
+    font-family:inherit;font-weight:inherit;
     font-size:18px;color:var(--ink-dim);
     font-variant-numeric:tabular-nums;
   }
@@ -4297,6 +4307,153 @@
      everything, on every surface, for exactly that reason. */
   .sym-say{font:inherit;color:inherit}
 
+  /* ===================== [C14.6] THE RESOURCE NUDGE ===================== */
+  /* The `.fgn-` rules [S06.14] paints with — D-36, the developer at the real
+     artifact: "add the ability to directly click on a resource to directly
+     modify the value of that resource in the current round". One control, held
+     in the static shell, moved to whatever reading was pressed.
+
+     THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT AND RESTATED,
+     for the reason [C14.1] through [C14.5] each restate them: no
+     reference-function-with-a-URI construct, no namespaced markup or element
+     constructor, and no new hex. Every colour below is a [C00] token or a
+     color-mix() of one.
+
+     ===================================================================
+     WHY THIS ONE BLOCK CARRIES A `position` WHEN [C14.4] FORBIDS ONE.
+     ===================================================================
+     [C14.4]'s prohibition is on the BATTLEFIELD's own boxes — a cluster of
+     shapes inside a scroller that already exists — and it stands untouched.
+     This is a different kind of thing: a control that has to appear AT the
+     reading it edits, which is D-36's own word ("opens a small inline control
+     AT THAT SPOT"), and a box that has to be able to sit over the reading's
+     neighbours without reflowing the cluster it came from.
+
+     IT IS position:fixed AND NOT position:absolute, and the choice is #strip's
+     own ([C15]) taken for the same measured reason. An absolute box needs a
+     positioned ancestor; the nearest candidates here are inside .fg-sides,
+     which [C14.1] bounds with a scroller — so an absolute box would be CLIPPED
+     by the very container the reading lives in, which is the defect this phase
+     has now fixed three times. A fixed box is placed against the viewport and
+     is clipped by nothing. [S06.14] computes left/top from the reading's own
+     getBoundingClientRect on every frame it is open, so "fixed" costs nothing
+     at a scroll: the box follows its anchor because the anchor's rect is
+     re-read, and the anchor going out of view is a press elsewhere away from
+     being dismissed.
+
+     THE STACKING ORDER IS DELIBERATE AND IT IS THE MIDDLE OF THREE. #topbar is
+     20, #strip's sidebar is 30 and .err-panel is 50. This sits at 40: ABOVE the
+     sidebar, because a nudge opened while the projection is showing must not
+     disappear behind it, and BELOW the error panel, because a panel reporting a
+     refusal must never be covered by the control that caused it.
+
+     ===================================================================
+     IT IS THE SHIPPED STEPPER'S IDIOM AND NOT A SECOND ONE.
+     ===================================================================
+     D-36: "a nudge pair (−/+) with the value between, in the shipped stepper
+     idiom". So .fgn-btn INHERITS [C06]'s .stp-btn geometry rather than
+     restating it — 44x44 is WCAG 2.5.5 Target Size (Enhanced, AAA) and the
+     twenty-rapid-clicks stress test is exactly what this control is for — and
+     the markup wears BOTH classes, which is the same move .fg-btn makes over
+     .brd-btn one region up. What this block adds is only what differs: the
+     box around the pair, and the fact that the value between them is a
+     READING and not a field.
+
+     THE VALUE IS A READING AND NOT A FIELD, WHICH IS A DECISION. [C06]'s
+     .stp-field is an <input> and [S07.1]'s isField keys on that class; a field
+     in here would need focus, blur and Escape-reverts semantics on a surface
+     [S07.5]'s own banner says has no field in it at all — "NOT ONE NODE IN
+     EITHER OF THESE TWO ROOTS IS A FIELD" — and D-36's dismissal rule (click
+     elsewhere, or Escape) would then be fighting the field's own Escape. So the
+     value is a span, styled to .stp-field's weight and size so the pair reads
+     as the stepper a student already knows, with a fixed width for .stp-field's
+     own stated reason: the box must not reflow while a held − steps it through
+     11, 10, 9.
+
+     NOTHING IN HERE IS EVER DISABLED, and that absence IS the requirement.
+     The D-27 overrule is scoped to the declaration grid's action buttons and
+     this surface is outside it, so a − on a number already at its floor is a
+     press that declines quietly and says so in .fgn-says — never a greyed
+     control a student is left to interpret. There is no :disabled rule below. */
+  .fgn{
+    position:fixed;z-index:40;
+    /* The two offsets [S06.14] publishes, with a fallback that puts an
+       unplaced box in the top-left corner rather than nowhere — a box that
+       inherited `auto` would sit wherever static flow left it, which on a
+       fixed element is a position nothing computed. */
+    left:var(--fgn-x, 8px);top:var(--fgn-y, 8px);
+    display:flex;flex-direction:column;gap:6px;
+    padding:10px 12px;max-width:320px;
+    background:var(--panel);border:1px solid var(--state-focus);
+    border-radius:12px;
+    box-shadow:0 10px 28px color-mix(in srgb, var(--bg) 70%, transparent);
+  }
+  .fgn[hidden]{display:none}
+  /* The reading's own name, at UX-02's 18px floor: the box is moved around the
+     page, so a pair of buttons with no name on them would be a control a
+     student has to remember the provenance of. TWO NODES, an owner and a type,
+     for the gate reason the shell comment beside them gives at length; they are
+     computed-identical on screen on purpose, so a student cannot tell which
+     word came from where.
+
+     NO GENERATED CONTENT SEPARATES THEM. A `content:" — "` between the two
+     spans would be rendered text that Layer C's walk cannot see — the wave-1
+     lesson in its third form, after the attribute edition D-29 recorded — so
+     the separation is a flex gap, which is layout and carries no words. */
+  .fgn-lbl{
+    margin:0;display:flex;flex-wrap:wrap;gap:8px;
+    font-size:18px;font-weight:700;color:var(--ink);
+  }
+  .fgn-who{font:inherit;color:inherit}
+  .fgn-tok{font:inherit;color:inherit}
+  .fgn-row{display:flex;align-items:center;gap:6px;user-select:none}
+  /* Geometry inherited from [C06]'s .stp-btn, which the markup also wears.
+     This rule exists for one reason only: the box sits on --panel rather than
+     on the page, so the button's own --panel-2 fill would read as a hole in it.
+     Everything else — the 44x44, the radius, the hover, the active — is the
+     shipped stepper's and is deliberately not restated. */
+  .fgn-btn{background:var(--bg-2)}
+  /* A fixed width, never a content-sized one, for .stp-field's stated reason:
+     the reading must not reflow the box while a held button steps it. */
+  .fgn-val{
+    min-width:76px;height:44px;display:grid;place-items:center;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:10px;
+    font-size:24px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;
+  }
+  /* THE BOUND, SAID WHEN THE NUMBER IS SITTING ON ONE. It takes .pk-warn's
+     treatment rather than inventing a third, because it is the same kind of
+     sentence one surface over: arithmetic and factual, saying what the board
+     keeps this number between and never whether that is a range worth having. */
+  .fgn-says{margin:0;font-size:18px;line-height:1.3;color:var(--ink-dim)}
+  .fgn-says[hidden]{display:none}
+
+  /* THE READING AS A PRESS TARGET. Two surfaces carry one, and they are
+     styled by ONE rule because they are one affordance — [C07]'s consistency
+     rule, and the same argument .fg-res and .bf-line would each make alone.
+
+     THE HOVER IS THE WHOLE AFFORDANCE AND IT IS NOT COLOUR ALONE: the cursor
+     changes, which is a channel a colourblind reader has, and the wash is
+     [C00]'s own --state-hover-wash so this surface says "pressable" in the
+     language every other control on the page says it in. A reading that is not
+     hovered looks exactly as it did before D-36, which is deliberate — the
+     battlefield is a READING first and the developer asked for an edit to be
+     available on it, not for it to become a form. */
+  .bf-line[data-fg="res"], .fg-res[data-fg="res"]{
+    cursor:pointer;border-radius:8px;
+    &:hover{background-image:var(--state-hover-wash)}
+  }
+  /* THE TEAM-RESOURCE READING'S OWN BUTTON RESET LIVES IN [C14.1] AND NOT
+     HERE, and the reason is a specificity trap worth naming rather than
+     leaving for the next author to measure. That row is a real <button> now —
+     it is not inside another control, so it can be one — and a button carries
+     a user-agent `font` shorthand that has to be taken off. Written here as
+     `button.fg-res{font:inherit}` it would be specificity (0,1,1) against
+     .fg-res's (0,1,0), so it would ALSO override that rule's font-size:18px
+     and silently drop the row through UX-02's floor. So the reset is folded
+     into .fg-res itself, where there is one declaration of each property and
+     nothing to lose a cascade against. */
+
   /* ===================== [C15] THE VIEW SWITCH ===================== */
   /* The switch between the board and the fight, plan 05-12, plus D-28's
      projection toggle, plan 05-D28. TWO PREFIXES, .vw- and .pv-, and they are
@@ -5933,6 +6090,72 @@
       </div>
     </section>
     <p class="fg-said" id="fight-said" hidden></p>
+
+    <!-- D-36's INLINE NUDGE, and it is ONE control for the whole surface rather
+         than one per reading. The developer: "add the ability to directly click
+         on a resource to directly modify the value of that resource in the
+         current round". [S06.14] moves this box to whatever reading was pressed
+         and writes the three values on it; [S07.5] opens it, dispatches its two
+         presses and dismisses it.
+
+         IT IS STATIC SHELL AND THAT IS THE WHOLE REASON IT IS HERE RATHER THAN
+         BUILT WHERE IT APPEARS. Plan 05-10 MEASURED the failure a built one
+         would have: "a POINTER press on any control whose own node is rebuilt
+         drops the keyboard to <body>", because withPreservedFocus restores
+         focus during pointerdown and the browser's own focus-on-mousedown then
+         targets a node the rebuild has detached. This control repaints on EVERY
+         commit — that is what a nudge is — so a rebuilt one would lose the
+         button under the student's finger on the FIRST press, and a rapid −−−
+         would land one press of the three. These two buttons are never
+         rebuilt by anything: only the value, the label and the bound sentence
+         are written per frame, which is [S06.3]'s build-once/write-every-frame
+         division taken to its end.
+
+         IT IS INSIDE #fightbar ON PURPOSE, twice over: [S07.5]'s delegated
+         listener is bound there, so these presses are routed by the region that
+         owns the fight without a listener of their own; and the whole of
+         #fightbar is inside #app, so Layer C's fight-mode harvest reads every
+         word in here without a root of its own.
+
+         NO data-act ANYWHERE IN IT. #fightbar is inside #app and [S07.1]'s
+         delegated listener routes any node carrying one straight into
+         App.ops.dispatch, so a data-act here would fire an op with a payload
+         nothing on this surface meant to send — [S06.7]'s and [S06.9]'s shared
+         safety boundary, kept for a third region. The two buttons carry
+         data-fg, which is the fight's own private spelling.
+
+         THE VALUE IS A SPAN AND NOT AN INPUT. [S07.5]'s banner records that not
+         one node in its two roots is a field, and D-36's dismissal rule
+         (elsewhere, or Escape) would otherwise be fighting a field's own
+         Escape-reverts semantics. It is a reading between two buttons.
+
+         Same three-part rule as every region above: the id, the KNOWN_IDS entry
+         and the stub node arrive together, and the run fails in both directions
+         if one of the three is missing. Six ids here, six of each. -->
+    <div class="fgn" id="fg-nudge" hidden>
+      <!-- THE HEADING IS TWO NODES AND NOT ONE STRING, which is fgSay's, ldSay's
+           and dcSay's shared arrangement and is a GATE concern rather than a
+           styling one. The first span holds the unit's or the faction's name —
+           words the ARTIFACT says, which belong in Layer C's harvest — and the
+           second holds the token type's name, which is a word the STUDENT may
+           have typed and carries data-lbl so it is read as a label rather than
+           as copy. Built as one string it would have to be either wholly read,
+           which reddens CI the day a student names a type after a word on this
+           file's own list, or wholly exempt, which would take the artifact's own
+           words out of the only layer that can see them. -->
+      <p class="fgn-lbl" id="fg-nudge-lbl">
+        <span class="fgn-who" id="fg-nudge-who"></span>
+        <span class="fgn-tok" id="fg-nudge-tok"></span>
+      </p>
+      <div class="fgn-row">
+        <button class="stp-btn fgn-btn" type="button" id="fg-nudge-less"
+                data-fg="nudge" data-fg-step="-1" data-k="fg/nudge/less">−</button>
+        <span class="fgn-val" id="fg-nudge-val"></span>
+        <button class="stp-btn fgn-btn" type="button" id="fg-nudge-more"
+                data-fg="nudge" data-fg-step="1" data-k="fg/nudge/more">+</button>
+      </div>
+      <p class="fgn-says" id="fg-nudge-says" hidden></p>
+    </div>
   </section>
 
   </div><!-- .fg-band -->
@@ -11501,12 +11724,29 @@ App.ops = (function () {
      names, so a reader holding the two side by side is comparing like with
      like, and every from/to in the list is then a whole number.
 
-     NOTE WHAT IS *NOT* CALLER-SUPPLIED HERE, because it is a stronger property
-     than validating it would have been: no hand op takes a token id. `tok` is
-     written by the op itself from a fixed set of three, so the one and only
-     caller-supplied key position in this group is the unit id, and it goes
-     through findUnit exactly as every other op's does. [S09.12] reads the whole
-     list back and requires every `tok` in it to be one of the three.
+     WHAT IS *NOT* CALLER-SUPPLIED HERE, AND THE SENTENCE IS NARROWER THAN IT
+     WAS — TURNED IN THE OPEN BY D-36. What stood here was: "no hand op takes a
+     token id. `tok` is written by the op itself from a fixed set of three, so
+     the one and only caller-supplied key position in this group is the unit id,
+     and it goes through findUnit exactly as every other op's does. [S09.12]
+     reads the whole list back and requires every `tok` in it to be one of the
+     three."
+
+     D-36 makes a student's own tally a thing they can rule on directly, and a
+     tally is named by an id. So the property now reads: the FIVE ops that write
+     a number the board is built on — health, its nudge sibling, the shield
+     pair and the pool pair — still write `tok` themselves from a fixed set,
+     and the TWO tally ops take an id that goes through requireTokenId and
+     tallyType before it reaches the record, which is the same boundary setTally
+     has run on the build slice since Phase 2.1. [S09.12] reads the whole list
+     back and requires every `tok` in it to be a shipped id or a type the live
+     vocabulary holds, which is the wider claim that replaces the count of three.
+
+     AND `unit` MAY NOW BE NULL, which is a real answer rather than a missing
+     one: a pool and a side-scope tally belong to the side, not to any unit.
+     D-36's own block below states it at the ops that write it, and [S06.8]'s
+     ldHandInto has the arm that says a faction's name where the others say a
+     unit's.
 
      NOTHING IS RECORDED WHEN NOTHING MOVED. "A number went from one value to
      another" is false of a set that landed on the value already there, and a
@@ -11536,6 +11776,20 @@ App.ops = (function () {
   // honestly hold. The OLDEST drops, for the reason MAX_PAST_ROUNDS' comment
   // gives: a list whose NEWEST entry silently vanished would still be the right
   // length. [S09.12] asserts against this constant rather than a re-typed 144.
+  //
+  // D-36 MAKES THAT ARITHMETIC A FLOOR RATHER THAN AN EXACT COUNT, AND THE
+  // NUMBER DOES NOT MOVE. A student may now also rule on the pool and on every
+  // tally at either scope, so "one ruling per rulable number" is no longer 144
+  // — it is 144 plus two pools plus one per tally the board carries. THE
+  // CONSTANT STAYS WHERE IT IS ON PURPOSE, and the reason is the paragraph
+  // above rather than inertia: this is a bound on a RECORD, sized by what
+  // thirty stringified snapshots cost, and NOT a ruling on what a student may
+  // do. Nothing refuses a 145th ruling — the oldest simply leaves the list.
+  // Raising it raises the snapshot cost 05-05 measured at 8529 bytes, in thirty
+  // copies, to buy a longer history of a round nobody has ever filled: the
+  // shipped board is nine units a side and a round in which one student made
+  // 144 separate hand rulings has not happened in a workshop. The day it does,
+  // this is one number and the measurement beside it.
   var MAX_HAND_RULINGS = MAX_UNITS * SIDES.length * 3;
 
   // Created ON DEMAND and absent from a round that holds no ruling, which is the
@@ -11632,14 +11886,25 @@ App.ops = (function () {
   // looking at. The identical-label rule is for an op and its own ± sibling;
   // these are not siblings, they are the two halves of a boundary.
   //
-  // THERE IS NO nudgeFightShield, AND THE ASYMMETRY IS A DECISION RATHER THAN
-  // AN OMISSION. A signed sibling exists to serve a ± pair on a control, and
-  // plan 05-09's fight surface draws a dead marker, an alive toggle and a
-  // by-hand marker — it draws no ± pair for a shield, and plan 05-10's control
-  // table lists these four ops and no fifth. An op with no presser is a claim
-  // the file cannot keep. The day a surface carries the pair, the sibling is
-  // eight lines in nudgeFightHp's exact shape and this paragraph is what tells
-  // the next author it was considered.
+  // THERE IS NO nudgeFightShield — TURNED IN THE OPEN BY D-36, WHICH IS THE DAY
+  // THIS PARAGRAPH NAMED. What stood here was:
+  //
+  //   "THERE IS NO nudgeFightShield, AND THE ASYMMETRY IS A DECISION RATHER
+  //    THAN AN OMISSION. A signed sibling exists to serve a ± pair on a
+  //    control, and plan 05-09's fight surface draws a dead marker, an alive
+  //    toggle and a by-hand marker — it draws no ± pair for a shield, and plan
+  //    05-10's control table lists these four ops and no fifth. An op with no
+  //    presser is a claim the file cannot keep. The day a surface carries the
+  //    pair, the sibling is eight lines in nudgeFightHp's exact shape and this
+  //    paragraph is what tells the next author it was considered."
+  //
+  // The developer asked for the surface — "add the ability to directly click on
+  // a resource to directly modify the value of that resource in the current
+  // round" — so the pair exists, on the battlefield's own shield reading, and
+  // the sibling is written below in nudgeFightHp's exact shape as promised. The
+  // old paragraph is QUOTED rather than deleted, in plan 03.1-04's register: it
+  // recorded the condition under which it would stop being true, and the
+  // condition arrived.
   function setFightShield(side, unitId, value) {
     requireSide(side);
     App.state.commit('fight shield ' + side + '/' + unitId, function (s) {
@@ -11649,6 +11914,166 @@ App.ops = (function () {
       if (next !== unit.shield) { ruled(g, side, unitId, 'shield', unit.shield, next); }
       unit.shield = next;
     });
+  }
+
+  // The ± sibling the paragraph above promised, in nudgeFightHp's exact shape
+  // and held to the same three properties: the guards run OUTSIDE the commit,
+  // the read and the write share ONE mutator, and the label is IDENTICAL to
+  // setFightShield's so a run of presses collapses into one Ctrl+Z. The boolean
+  // is the ramp's stop condition and D-36's refusal reading — the fight nudge
+  // is the one control on the page that reports "this number is already on its
+  // bound" by getting `false` back rather than by raising a panel.
+  function nudgeFightShield(side, unitId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'shield');
+    var moved = false;
+    App.state.commit('fight shield ' + side + '/' + unitId, function (s) {
+      var g = fightOf(s);
+      var unit = findUnit(side, unitId, g[side].units);
+      var next = bounded(s.build.tokens, 'shield', unit.shield + delta, 'shield');
+      moved = (next !== unit.shield);
+      if (moved) { ruled(g, side, unitId, 'shield', unit.shield, next); }
+      unit.shield = next;
+    });
+    return moved;
+  }
+
+  /* ===== D-36: THE SIDE'S OWN NUMBERS, RULED BY HAND ======================
+
+     The developer, at the real artifact: "add the ability to directly click on
+     a resource to directly modify the value of that resource in the current
+     round". A resource on the fight tab is one of four things — a unit's
+     health, its shield, a tally it carries, or a number the SIDE holds — and
+     the first two already had writers. These are the other two.
+
+     THEY ARE HAND RULINGS AND NOT A SECOND ECONOMY, which is the whole reason
+     they are in this group rather than beside advanceRound. Nothing here spends
+     anything, prices anything or decides anything: a student says the pool is 5
+     and the tool writes 5 down, exactly as setUnitHp says a unit is on 2
+     health. The group's banner governs all of them — maximally permissive about
+     what a student may decide, maximally strict about what this file may infer
+     — and every one of them records the move in the round's `hand` list through
+     the same `ruled` above.
+
+     THE RECORD GAINS A SIDE-SCOPE SHAPE, AND THAT IS THE ONE THING IN HERE THE
+     NEXT READER HAS TO KNOW. `unit` is NULL for a number the side holds, which
+     is a real answer and not a missing one: a pool belongs to the column it is
+     drawn in and to no unit. [S06.8] reads it and says the FACTION's name where
+     it says a unit's name for the others — its own arm, one region away, in the
+     words ldNowSide already uses for a side. Nothing else in the record moves:
+     `from` and `to` are still whole numbers, `side` is still one of two, and
+     `tok` is still written by the op rather than supplied by a caller for the
+     two shipped-id ops. The tally pair is the FIRST hand op in this file that
+     takes a token id from its caller, and it goes through requireTokenId and
+     tallyType exactly as setTally does one region down — so what widens is the
+     SET of ids a ruling can name, not the number of unchecked strings.
+
+     THE TALLY PAIR REUSES tallyOwner AND DOES NOT COPY IT. That function is
+     written against a container with a `[side]` holding `units`, which is true
+     of the build slice and true of the fight slice alike, so "which record
+     carries this number" is answered in ONE place for both — the alternative
+     being a second copy that decides a side-scope type lives somewhere else on
+     one of the two slices. tallyType, readTally and writeTally are reused for
+     the same reason, including rule 1 and rule 2 (a tally of zero deletes its
+     key; a bag with no keys deletes itself), so a bag on the fight slice is the
+     same shape as a bag on the build slice and the codec never learns a second
+     one. All four are declarations further down this same IIFE and are hoisted;
+     they are grouped with the build tally ops because that is where a reader
+     looks for them.
+
+     MAX_ALLOC IS NOT THE BOUND AND `bounded` IS — D-35's clamp, on every write
+     path, which is the discipline plan 05-D35a set and this group already
+     keeps. A student who wrote a ceiling on their own type gets that ceiling
+     here too, and the nudge reports FALSE rather than throwing when the number
+     is already sitting on it. */
+
+  // ONE SPELLING OF THE FIGHT POOL'S LABEL AND ONE OF THE FIGHT TALLY'S, so an
+  // op and its ± sibling cannot drift apart and quietly stop coalescing —
+  // tallyLabel's rule, restated for the slice it does not cover. NOT
+  // setFactionAp's label and NOT tallyLabel's: those write the BUILD, and a
+  // shared label would fold an allocation edit and a mid-fight ruling made
+  // inside the same 500 ms into one undo entry. setFightShield's own paragraph
+  // argues that at length and this is the same boundary, twice more.
+  function fightApLabel(side) { return 'fight ap ' + side; }
+  function fightTallyLabel(side, unitId, tokenId) {
+    return 'fight tally ' + tokenId + ' ' + side + '/' + String(unitId);
+  }
+
+  function setFightAp(side, value) {
+    requireSide(side);
+    App.state.commit(fightApLabel(side), function (s) {
+      var g = fightOf(s);
+      var next = bounded(s.build.tokens, 'ap', value, 'action points');
+      if (next !== g[side].ap) { ruled(g, side, null, 'ap', g[side].ap, next); }
+      g[side].ap = next;
+    });
+  }
+
+  function nudgeFightAp(side, delta) {
+    requireSide(side);
+    requireDelta(delta, 'action points');
+    var moved = false;
+    App.state.commit(fightApLabel(side), function (s) {
+      var g = fightOf(s);
+      var next = bounded(s.build.tokens, 'ap', g[side].ap + delta, 'action points');
+      moved = (next !== g[side].ap);
+      if (moved) { ruled(g, side, null, 'ap', g[side].ap, next); }
+      g[side].ap = next;
+    });
+    return moved;
+  }
+
+  // A null unit id is the SIDE's bag and a named one is that unit's, which is
+  // tallyOwner's ruling read on the other slice. It is normalised once here so
+  // the record, the label and the owner lookup all say the same thing about
+  // "nobody" — an `undefined` arriving from a caller that omitted the argument
+  // would otherwise be stored in the record as a key with no value.
+  function fightUnitOrNull(unitId) {
+    return (unitId === null || unitId === undefined) ? null : unitId;
+  }
+
+  function setFightTally(side, unitId, tokenId, n) {
+    requireSide(side);
+    requireTokenId(tokenId);
+    var live = App.state.get();
+    var rec = tallyType(live.build.tokens, tokenId);
+    // Ruled on the LIVE board before the funnel is entered, so a bad scope or a
+    // unit that is not on this side throws with no phantom undo step — the
+    // arrangement every op in this section keeps.
+    var owner = tallyOwner(fightOf(live), side, unitId, rec);
+    var next = bounded(live.build.tokens, tokenId, n, 'a tally of "' + rec.name + '"');
+    if (readTally(owner, tokenId) === next) { return false; }
+    var who = fightUnitOrNull(unitId);
+    App.state.commit(fightTallyLabel(side, unitId, tokenId), function (s) {
+      var g = fightOf(s);
+      var o = tallyOwner(g, side, unitId, rec);
+      var from = readTally(o, tokenId);
+      writeTally(o, tokenId, next);
+      if (from !== next) { ruled(g, side, who, tokenId, from, next); }
+    });
+    return true;
+  }
+
+  function nudgeFightTally(side, unitId, tokenId, delta) {
+    requireSide(side);
+    requireDelta(delta, 'a tally');
+    requireTokenId(tokenId);
+    var live = App.state.get();
+    var rec = tallyType(live.build.tokens, tokenId);
+    tallyOwner(fightOf(live), side, unitId, rec);
+    var who = fightUnitOrNull(unitId);
+    var moved = false;
+    App.state.commit(fightTallyLabel(side, unitId, tokenId), function (s) {
+      var g = fightOf(s);
+      var o = tallyOwner(g, side, unitId, rec);
+      var current = readTally(o, tokenId);
+      var next = bounded(s.build.tokens, tokenId, current + delta,
+        'a tally of "' + rec.name + '"');
+      moved = (next !== current);
+      if (moved) { ruled(g, side, who, tokenId, current, next); }
+      writeTally(o, tokenId, next);
+    });
+    return moved;
   }
 
   // The other half of D-00d: a stored flag, settable independently of health,
@@ -14322,6 +14747,21 @@ App.ops = (function () {
       case 'nudgeFightHp': return nudgeFightHp(p.side, p.unitId, p.delta);
       case 'setFightShield': return setFightShield(p.side, p.unitId, p.value);
       case 'setAlive': return setAlive(p.side, p.unitId, p.value);
+      /* D-36's FIVE, named for the op like the four above them and read key by
+         key like every arm in this router that is not a field op. The tally
+         pair is read key by key with teeth: it is the first hand op that takes
+         a token id, so naming the four keys here is what keeps the page's
+         payload and the op's contract the same list — a payload forwarded whole
+         would be a caller-supplied key set arriving one nesting level from a
+         token id, which is the shape the term arms refuse. `unitId` is passed
+         THROUGH rather than defaulted, because null is the side-scope answer
+         and a router that turned an absent key into a unit id would decide a
+         scope the student did not name. */
+      case 'nudgeFightShield': return nudgeFightShield(p.side, p.unitId, p.delta);
+      case 'setFightAp': return setFightAp(p.side, p.value);
+      case 'nudgeFightAp': return nudgeFightAp(p.side, p.delta);
+      case 'setFightTally': return setFightTally(p.side, p.unitId, p.tokenId, p.value);
+      case 'nudgeFightTally': return nudgeFightTally(p.side, p.unitId, p.tokenId, p.delta);
       case 'startFight': return startFight();
       case 'endFight': return endFight();
       // The third of the lifecycle arms, one key, named like every arm around it.
@@ -14555,6 +14995,21 @@ App.ops = (function () {
     nudgeFightHp: nudgeFightHp,
     setFightShield: setFightShield,
     setAlive: setAlive,
+    // D-36. THE OTHER FIVE HAND RULINGS, exported with the four above because
+    // they are the same act with five more spellings: the student overruling
+    // the bookkeeping, now on every number the fight tab shows them. The shield
+    // nudge is the sibling setFightShield's own paragraph reserved by name and
+    // then wrote; the pool pair and the tally pair are the writers D-36's
+    // interpretation names — "setUnitHp / nudgeFightHp / setFightShield / the
+    // fight tally writers" — and the last two of those did not exist until this
+    // change. THE TALLY PAIR IS THE ONE TO READ TWICE: it takes a token id, so
+    // it is the first hand op with a caller-supplied key position beyond the
+    // unit, and it spends requireTokenId and tallyType to close it.
+    nudgeFightShield: nudgeFightShield,
+    setFightAp: setFightAp,
+    nudgeFightAp: nudgeFightAp,
+    setFightTally: setFightTally,
+    nudgeFightTally: nudgeFightTally,
     MAX_HAND_RULINGS: MAX_HAND_RULINGS,
     startFight: startFight,
     endFight: endFight,
@@ -19577,8 +20032,44 @@ App.render = (function () {
     };
   }
 
-  function fgResRow(state, box, tok, held, spoke, extra) {
-    var row = el('div', 'fg-res' + (extra === '' ? '' : ' ' + extra));
+  /* D-36 MAKES THE ROW A CONTROL, and the change is three attributes and a tag
+     name. The developer: "add the ability to directly click on a resource to
+     directly modify the value of that resource in the current round" — a side's
+     team resource is one of the four readings that names, and this is where it
+     is drawn.
+
+     IT IS A REAL <button>, which the battlefield's own readings cannot be:
+     those are inside a control already and a button inside a button is not a
+     thing the content model allows. This row is inside nothing, so it is the
+     element it behaves like — reachable by Tab, activated by Enter and Space
+     without a line of JavaScript, and named by its own contents.
+
+     IT CARRIES data-fg AND NEVER data-act. #fightbar is inside #app and
+     [S07.1]'s delegated listener routes any node carrying a data-act straight
+     into App.ops.dispatch — [S06.7]'s, [S06.9]'s and [S06.11]'s shared safety
+     boundary, kept here for a fourth region.
+
+     THE UNIT SLOT IS EMPTY AND THAT IS THE SIDE-SCOPE ANSWER. Everything drawn
+     in this box belongs to the side: the pool by construction, and a tally here
+     only because tallyOwner put a side-scope type on the side. [S07.5] reads an
+     empty data-fg-unit as null and [S05]'s writers take null as "the side's
+     own", so the emptiness is carried rather than translated at three places.
+
+     THE KEY IS [S06.14]'s fgnKey AND NOT A SECOND SPELLING — the same rule
+     [S07.5]'s banner fixed for the battlefield one plan ago, for the same
+     reason: two regions each inventing a key is two keys that drift, and check
+     94b reads every key on the page back for uniqueness the moment they exist.
+
+     NOTHING HERE IS EVER DISABLED. A row whose number is sitting on its bound
+     still opens, and the control says which bound it is on — the D-27 overrule
+     is scoped to the declaration grid's action buttons and this is not one. */
+  function fgResRow(state, box, side, tok, held, spoke, extra) {
+    var row = el('button', 'fg-res' + (extra === '' ? '' : ' ' + extra));
+    row.type = 'button';
+    setData(row, {
+      fg: 'res', fgSide: side, fgUnit: '', fgTok: tok,
+      k: fgnKey(side, null, tok)
+    });
     var lbl = text('span', 'fg-res-lbl', labelFor(state, tok));
     setData(lbl, { lbl: tok });
     row.appendChild(lbl);
@@ -19594,13 +20085,13 @@ App.render = (function () {
     box.replaceChildren();
     var live = state.fight[side];
 
-    fgResRow(state, box, 'ap', live.ap, App.model.pooledAt(spoke, 'ap'), '');
+    fgResRow(state, box, side, 'ap', live.ap, App.model.pooledAt(spoke, 'ap'), '');
 
     var bag = live.tally;
     if (!bag) { return; }
     Object.keys(bag).forEach(function (tok) {
       if (!Number.isInteger(bag[tok])) { return; }
-      fgResRow(state, box, tok, bag[tok], App.model.pooledAt(spoke, tok),
+      fgResRow(state, box, side, tok, bag[tok], App.model.pooledAt(spoke, tok),
         'fg-res--tally');
     });
   }
@@ -20857,12 +21348,33 @@ App.render = (function () {
      never assume an array. A round nobody ruled in says nothing, which is
      correct: silence here is the absence of an event, not a surface that
      failed to draw. */
+  /* D-36 GIVES THE RECORD A SIDE-SCOPE SHAPE AND THIS IS THE ARM THAT READS IT.
+     A ruling on the pool or on a side-scope tally belongs to the SIDE and names
+     no unit, so `unit` is null — a real answer, which [S05]'s own block states
+     at the ops that write it. Read as a unit id it would have printed the word
+     "null" beside a number, which is the tool showing a student its own
+     internals in the one panel they are told to read.
+
+     THE FACTION'S NAME IS ldNowSide's OWN READ, `state.build[side].name`, taken
+     off the LIVE build for ldUnitName's stated reason: a faction renamed on
+     round nine has to land on round one's row on the frame it happens. It
+     carries no exemption marker, which is .ld-now-side's shipped ruling one
+     function down — a faction name is not on any of the three channels — and
+     the SIDE is read defensively because a record can arrive from a round
+     resolved before the side it names was anything this file recognises. */
+  function ldHandWho(state, r) {
+    if (r.unit !== null && r.unit !== undefined) { return ldUnitName(state, r.unit); }
+    var faction = Object.prototype.hasOwnProperty.call(state.build, r.side)
+      ? state.build[r.side] : null;
+    return (faction && typeof faction.name === 'string') ? faction.name : String(r.side);
+  }
+
   function ldHandInto(acts, state, record) {
     if (!Object.prototype.hasOwnProperty.call(record, 'hand')) { return; }
     if (!Array.isArray(record.hand) || record.hand.length === 0) { return; }
     acts.appendChild(text('p', 'ld-sub', 'Set by hand this round'));
     record.hand.forEach(function (r) {
-      var handName = ldUnitName(state, r.unit);
+      var handName = ldHandWho(state, r);
       acts.appendChild(ldLine('ld-fact', [
         { said: handName + ' ' },
         { node: symDelta(state, r.tok, r.from, r.to, handName + ' — ',
@@ -21510,13 +22022,36 @@ App.render = (function () {
   // would move the other without touching it.
   var DC_SIDES = ['cats', 'mechs'];
 
-  /* THE THREE NUMBERS A RULING CAN NAME, and the list is closed rather than
-     open on purpose. Plan 05-05 shipped four hand ops and every one of them
-     writes its own `tok` from a fixed set of three — health, shield, and
-     whether the unit is still standing, recorded under the shipped `dead`
-     type's own 0-or-1. There is no caller-supplied token position anywhere in
-     that layer, so there is nothing here to validate and nothing to widen: a
-     fourth entry in this array would be a marker for a ruling no op can make. */
+  /* THE THREE NUMBERS A RULING CAN NAME ON EVERY UNIT — AND THE WORD "ONLY" IS
+     GONE FROM THIS PARAGRAPH, TURNED IN THE OPEN BY D-36. What stood here was:
+
+       "THE THREE NUMBERS A RULING CAN NAME, and the list is closed rather than
+        open on purpose. Plan 05-05 shipped four hand ops and every one of them
+        writes its own `tok` from a fixed set of three — health, shield, and
+        whether the unit is still standing, recorded under the shipped `dead`
+        type's own 0-or-1. There is no caller-supplied token position anywhere
+        in that layer, so there is nothing here to validate and nothing to
+        widen: a fourth entry in this array would be a marker for a ruling no
+        op can make."
+
+     Its last clause named the condition under which it would stop being true
+     and D-36 met it: setFightTally and nudgeFightTally rule on a tally, so a
+     tally row with no marker on it would now be the board saying a student did
+     not do a thing they did. The three below are the three EVERY unit has and
+     they are still a literal; the tally rows are picked up by the walk beside
+     them, which reads the ids off the page's OWN data-amt rather than building
+     a selector out of the vocabulary — so the rule this list exists to keep is
+     kept exactly: no student text ever goes near a selector string.
+
+     WHAT IS STILL NOT MARKED, SAID OUT LOUD SO IT READS AS A DECISION: the
+     SIDE's numbers. A pool ruled by hand and a side-scope tally ruled by hand
+     are recorded with a null unit and there is no side-scope row on a unit
+     card to hang a marker on — the board's pool row lives in the column head,
+     which dcMarkCard is not run over. Those two rulings ARE shown, on the two
+     surfaces built for them: the fight tab's own reading, and the ledger's "Set
+     by hand this round" list, which [S06.8]'s ldHandWho gave a faction arm in
+     the same change. A marker site in the column head is a change to
+     buildColumn and is left for the plan that wants it. */
   var DC_RULABLE = ['hp', 'shield', 'dead'];
 
   // The artifact's own words, held as constants because each of them is written
@@ -21733,18 +22268,33 @@ App.render = (function () {
      card's own rows rather than being threaded through the four call sites that
      built them, so not one of those four changes shape.
 
-     THE SELECTOR IS BUILT FROM A LOCAL LITERAL AND NEVER FROM STATE, which is
-     the one thing keyed() reaches for CSS.escape to do: DC_RULABLE is a list of
-     three ids this file wrote, so there is no student text anywhere near this
-     string. A tally row for a type a student invented is NOT decorated, and
-     that is correct rather than an omission — no hand op can write one, so a
-     marker on one would be a marker for a ruling that cannot be made. */
+     NO SELECTOR IS EVER BUILT FROM STATE, and D-36 widened what is marked
+     without giving that up. What stood here said "A tally row for a type a
+     student invented is NOT decorated, and that is correct rather than an
+     omission — no hand op can write one, so a marker on one would be a marker
+     for a ruling that cannot be made." A hand op CAN write one now, so the
+     tally rows are marked too — and the ids come off the PAGE, out of each
+     row's own data-amt, rather than out of the vocabulary. There is still no
+     student text anywhere near a selector string: the three-id literal is
+     interpolated as before, and the tally pass interpolates nothing at all.
+
+     THE TWO PASSES CANNOT DOUBLE-MARK A ROW. The walk skips any id already in
+     DC_RULABLE, so health, shield and the dead marker are decorated once, by
+     the pass that names them. It also skips a row with no data-amt at all,
+     which is every row this file builds empty for a per-frame fill. */
   function dcMarkCard(card, side, unit) {
     DC_RULABLE.forEach(function (tok) {
       var row = card.querySelector('.tok-row[data-amt="' + tok + '"]');
       if (!row || !row.parentNode) { return; }
       row.parentNode.appendChild(dcHandMark(side, unit.id, tok));
     });
+    var rows = card.querySelectorAll('.tok-row[data-amt]');
+    for (var i = 0; i < rows.length; i++) {
+      var tok = String(rows[i].dataset.amt || '');
+      if (tok === '' || DC_RULABLE.indexOf(tok) !== -1) { continue; }
+      if (!rows[i].parentNode) { continue; }
+      rows[i].parentNode.appendChild(dcHandMark(side, unit.id, tok));
+    }
   }
 
   /* THE PER-FRAME PASS, and it has NO FINGERPRINT on purpose — which is a
@@ -22794,6 +23344,54 @@ App.render = (function () {
     tokens.forEach(function (tok) {
       var line = el('div', 'bf-line');
       setData(line, { bfAmt: tok });
+      /* ==============================================================
+         D-36: THE READING IS THE PRESS TARGET, AND IT SEPARATES FROM
+         THE SHAPE'S OWN PRESS BY NESTING.
+         ==============================================================
+         The developer: "add the ability to directly click on a resource
+         to directly modify the value of that resource in the current
+         round", with the hit-testing settled in the same breath — "the
+         retarget flow's claim on unit-shape clicks is unchanged … the
+         resource tokens are children; hit-testing must separate them
+         cleanly."
+
+         THE MECHANISM IS closest() AND NOTHING ELSE. [S07.5]'s delegated
+         listener resolves a press with node.closest('[data-fg]'), which
+         returns the NEAREST ancestor carrying one — so a press that
+         lands anywhere inside this line resolves to `res` and a press on
+         the shape's name, its padding or either of its two sentences
+         walks past this node and resolves to the shape's own `bf`. The
+         two are disjoint by construction rather than by an ordering
+         rule, and the gate drives both directions on an ARMED board,
+         which is the only state in which they could be confused.
+
+         IT IS A div AND NOT A button, WHICH IS A CONSTRAINT AND NOT A
+         PREFERENCE. This line is inside .bf-unit, which IS a button —
+         [S06.11]'s banner and [C14.4]'s both argue why the shape is the
+         control — and <button>'s content model allows neither an
+         interactive descendant nor a descendant carrying tabindex. So
+         the battlefield's readings are a POINTER affordance: the mouse
+         separates them cleanly and the keyboard reaches the shape. The
+         team-resource rows one region up are not inside anything and ARE
+         real buttons, so the keyboard route to this control exists —
+         and once the box is open, both of its buttons are ordinary
+         focusable controls. What is missing is a keyboard route to a
+         UNIT's reading specifically, and the fix is structural (lift
+         .bf-lines out of the shape button, which moves twenty
+         assertions): it is written down as a deferred item rather than
+         half-done here.
+
+         `dead` IS NOT PRESSABLE. [S06.14]'s fgnRulable says why: it is a
+         flag's 0-or-1, not a quantity, and it already has its own
+         control on the board tab. An unmarked line simply carries no
+         data-fg, so closest() walks straight past it to the shape — a
+         press on the dead marker retargets, exactly as it did before. */
+      if (fgnRulable(tok)) {
+        setData(line, {
+          fg: 'res', fgSide: side, fgUnit: unit.id, fgTok: tok,
+          k: fgnKey(side, unit.id, tok)
+        });
+      }
       // THE LABEL CARRIES THE TOKEN-NAME EXEMPTION CHANNEL. This is where a
       // renamed type enters the Layer C harvest, and an unmarked one reddens CI
       // on the student's own word. The literal is written here as well as by
@@ -23899,6 +24497,314 @@ App.render = (function () {
   SYNC_HOOKS.push(syncRoundRules);
   // #endregion [S06.13] RENDER — THE ROUND RULES
 
+  /* ===================== [S06.14] RENDER — THE RESOURCE NUDGE ==========
+   * D-36, the developer at the real artifact: "add the ability to directly
+   * click on a resource to directly modify the value of that resource in the
+   * current round". This region draws the control that appears when they do.
+   *
+   * A SUB-REGION FOR THE MECHANICAL REASON EVERY OTHER ONE IS: it reconciles
+   * through SYNC_HOOKS, SYNC_HOOKS is a closure variable of this IIFE, and it
+   * paints a page region no other sub-region touches. It changes NOTHING in
+   * [S06.1] through [S06.13] except the two lines that make a reading
+   * PRESSABLE — one in [S06.7]'s fgResRow and one in [S06.11]'s bfBuildUnit —
+   * and both of those are attributes, not structure.
+   *
+   * ===================================================================
+   * WHAT IS OPEN LIVES ON THE BOX AND NOT IN A SLICE.
+   * ===================================================================
+   * Which reading the nudge is open on is a form's transient selection, and
+   * this file has ruled on that shape three times: [S07.3] keeps the editor's
+   * selection in its own scope, [S07.4] keeps the share pane's on an attribute,
+   * and [S06.7]/[S07.5] keep the half-made change of target on two attributes
+   * of the acting side's root. [S09.3] pins the `ui` key set exactly, so there
+   * is nowhere legitimate for a fourth key there, and [S05] OPS' banner says
+   * that layer never reads or writes the page.
+   *
+   * So it is THREE ATTRIBUTES on #fg-nudge itself — the side, the unit (empty
+   * for a number the side holds) and the token id. [S07.5] writes them and this
+   * region only reads them, which is fgHalfMade's arrangement exactly: one
+   * writer, one reader, and a render tier that never authors a value another
+   * region owns.
+   *
+   * ===================================================================
+   * THE VALUE IS READ FROM STATE EVERY FRAME AND STORED NOWHERE.
+   * ===================================================================
+   * fgnAmount is the ONE reader, and it is the same question bfAmount answers
+   * for a unit — so the unit arm CALLS bfAmount rather than restating it, and
+   * what this function adds is the SIDE arm bfAmount has no reason to have. A
+   * second reading of "what does this reading hold" is exactly the drift
+   * [S06.11]'s own banner refuses about health, one scope up.
+   *
+   * NOTHING DERIVED IS STORED. The number between the two buttons is read out
+   * of the slice on the frame it is drawn, the bound sentence is derived from
+   * App.ops.tokenBounds on the same frame, and the box's position is measured
+   * off the anchor's own rect. A commit lands, sync() runs, this region redraws
+   * — and a student holding − watches the number come down because the number
+   * IS the state.
+   *
+   * ===================================================================
+   * WHY IT MOVES A STATIC NODE INSTEAD OF BUILDING ONE AT THE READING.
+   * ===================================================================
+   * Plan 05-10 MEASURED the failure the obvious implementation has: "a POINTER
+   * press on any control whose own node is rebuilt drops the keyboard to
+   * <body>", because withPreservedFocus restores focus during pointerdown and
+   * the browser's own focus-on-mousedown then targets a node the rebuild has
+   * detached. A nudge repaints on EVERY press by construction, so a built-where-
+   * it-appears control would lose the button under the student's finger on the
+   * first press and a rapid −−− would land ONE of three.
+   *
+   * So the two buttons are STATIC SHELL and this region never replaces them. It
+   * writes text into three nodes, toggles one `hidden`, and publishes two
+   * custom properties for the position. Not one node is created or destroyed
+   * here, on any frame, which is why the ramp works at all.
+   *
+   * THE POSITION IS TWO CUSTOM PROPERTIES AND NOT AN INLINE LENGTH, and check
+   * 57's allowlist was widened for it in the open rather than around it. That
+   * row's own words say what it forbids — "a FIGURE drawn with a length" — and
+   * an offset that places a box beside the thing it edits is not a figure. It
+   * is the same kind of measurement [S08] publishes for the top bar, and it is
+   * published in the same way.
+   *
+   * ===================================================================
+   * WHAT THIS SURFACE MAY NEVER SAY.
+   * ===================================================================
+   * It prices nothing, compares nothing and recommends nothing. The only
+   * sentence it draws beyond a name and a number says what the board keeps this
+   * number between — boundsText's own register, arithmetic and factual — and it
+   * appears only when the number is sitting on one of those two ends, which is
+   * the moment a student pressing − and seeing nothing move needs to be told
+   * why. Never "you cannot", never "too low", never a judgement about the
+   * number a student chose.
+   *
+   * deps: App.model, App.ops, [S06.1]'s labelFor, [S06.7]'s fgUnitName,
+   *       [S06.11]'s bfAmount
+   * owner: plan 05-D36
+   * ===================================================================== */
+  // #region [S06.14] RENDER — THE RESOURCE NUDGE
+
+  // The key every pressable reading carries, spelled ONCE so [S06.7], [S06.11],
+  // this region and [S07.5] cannot each invent one — [S07.5]'s own banner fixes
+  // the battlefield's `fg/bf/` spelling for exactly this reason, one plan ago.
+  //
+  // IT CANNOT COLLIDE WITH `fg/bf/{side}/{unit}` BY CONSTRUCTION, and check 94b
+  // reads every key on the page back for uniqueness rather than taking it on
+  // trust: the prefixes differ at the second segment, and no token id is a unit
+  // id. FGN_SIDE stands where a unit id would be for a number the SIDE holds —
+  // it is a literal this file wrote, never a student's word, and unit ids are
+  // generated by this file too (c1, m1, …), so the two spaces cannot meet.
+  var FGN_SIDE = 'side';
+  function fgnKey(side, unitId, tok) {
+    return 'fg/res/' + side + '/' + (unitId === null ? FGN_SIDE : unitId) + '/' + tok;
+  }
+
+  /* WHICH READINGS A STUDENT MAY RULE ON, AND THE ONE THAT IS EXCLUDED IS
+     EXCLUDED FOR A REASON RATHER THAN BY OVERSIGHT. `dead` is drawn as a line
+     on the battlefield like the others, and it is NOT a quantity — it is the
+     0-or-1 spelling of a stored flag, and the flag already has its own control
+     on the board tab (the alive toggle, [S06.9], FIGHT-04). A ± pair on it
+     would be a second way to write one boolean, which is the thing this file
+     refuses everywhere: two spellings of one write drift the first time one of
+     them grows a guard. */
+  function fgnRulable(tok) { return tok !== 'dead'; }
+
+  /* WHAT ONE READING HOLDS. The unit arm is bfAmount, CALLED and not restated —
+     [S06] is one function scope and that function already answers this exact
+     question for health, the shield and every tally a unit carries. The side
+     arm is what this adds: the pool is a number on the side, and a side-scope
+     tally is read out of the side's own bag through hasOwnProperty and checked
+     for an integer, which is fgFillTeam's guard and bfAmount's, for the reason
+     both give — from Phase 4 that object can arrive from a pasted build code.
+
+     NULL FOR A READING THAT IS NOT THERE, never 0, and the difference matters:
+     a unit that has left the roster mid-fight and a unit sitting on zero are
+     different answers, and the box closes on the first rather than offering to
+     nudge a number that no longer exists. */
+  function fgnAmount(state, side, unitId, tok) {
+    if (state.fight === null) { return null; }
+    if (!Object.prototype.hasOwnProperty.call(state.fight, side)) { return null; }
+    var live = state.fight[side];
+    if (unitId === null) {
+      if (tok === 'ap') { return live.ap; }
+      var bag = live.tally;
+      if (!bag || !Object.prototype.hasOwnProperty.call(bag, tok)) { return 0; }
+      return Number.isInteger(bag[tok]) ? bag[tok] : 0;
+    }
+    for (var i = 0; i < live.units.length; i++) {
+      if (live.units[i].id === unitId) { return bfAmount(live.units[i], tok); }
+    }
+    return null;
+  }
+
+  // WHO the reading belongs to, in the words the rest of the file uses: a unit's
+  // name through [S06.7]'s fgUnitName, and a side's through the build's own
+  // faction name — which is ldNowSide's and ldHandWho's read, so the ledger and
+  // this control name a side the same way.
+  function fgnWho(state, side, unitId) {
+    if (unitId !== null) { return fgUnitName(state, unitId); }
+    var faction = Object.prototype.hasOwnProperty.call(state.build, side)
+      ? state.build[side] : null;
+    return (faction && typeof faction.name === 'string') ? faction.name : String(side);
+  }
+
+  /* THE BOUND, SAID ONLY WHEN THE NUMBER IS ON ONE. boundsText is [S06.5]'s and
+     is deliberately NOT called: that sentence is written for a dialog that is
+     editing the pair itself and says which of the two ranges is in force, which
+     is a paragraph on a control this size. This says the one fact a student
+     standing on a bound needs — what the board keeps this number between — in
+     the same arithmetic-and-factual register, and it NAMES NO TYPE, because the
+     heading two nodes up already says which reading is open and a student's word
+     in here would need an exemption channel of its own.
+
+     EMPTY STRING WHEN THE NUMBER IS BETWEEN THE TWO ENDS, and the caller hides
+     the node on it — "hidden" and "empty" saying one thing about a node is
+     dcStandingLine's rule and the whole file's. */
+  function fgnBoundSaid(state, tok, n) {
+    var b = App.ops.tokenBounds(state.build.tokens, tok);
+    if (n > b.min && n < b.max) { return ''; }
+    return 'This board keeps this number between ' + b.min + ' and ' + b.max + '.';
+  }
+
+  // The reading the box is anchored to, found by the key it carries. document-
+  // wide rather than scoped, because the two surfaces that draw a pressable
+  // reading are in two different roots and the key is unique across the page —
+  // which check 94b is what proves rather than what assumes.
+  function fgnAnchor(side, unitId, tok) {
+    if (typeof document === 'undefined') { return null; }
+    if (typeof document.querySelector !== 'function') { return null; }
+    return document.querySelector('[data-fg="res"][data-k="'
+      + fgnKey(side, unitId, tok) + '"]');
+  }
+
+  /* WHERE THE BOX SITS. Measured off the anchor's own rect every frame, so a
+     scroll, a resize or a repaint that moved the reading moves the box with it.
+
+     BELOW THE READING BY DEFAULT AND ABOVE IT WHEN THERE IS NO ROOM, and
+     clamped into the viewport on both axes, because the readings this opens on
+     sit at the edges of two columns and a box that opened half off screen would
+     be a control a student cannot finish using. The 8px is the margin every
+     clamp below leaves; the 6px is the air between the box and the reading.
+
+     EVERY BROWSER-ONLY CALL IS GUARDED. The node gate's stub DOM has no layout:
+     no getBoundingClientRect, no offsetWidth and no window. This whole function
+     is a no-op there, which is correct — a position is a thing only a real
+     viewport has — and the value, the label and the sentence are all written
+     before it runs, so everything the gate reads is already on the page. */
+  function fgnPlace(box, anchor) {
+    if (typeof anchor.getBoundingClientRect !== 'function') { return; }
+    if (typeof window === 'undefined') { return; }
+    var r = anchor.getBoundingClientRect();
+    var w = box.offsetWidth || 0;
+    var h = box.offsetHeight || 0;
+    var vw = window.innerWidth || 0;
+    var vh = window.innerHeight || 0;
+    var x = r.left;
+    if (vw > 0 && w > 0) { x = Math.max(8, Math.min(x, vw - w - 8)); }
+    var y = r.bottom + 6;
+    if (vh > 0 && h > 0 && y + h > vh - 8) { y = Math.max(8, r.top - h - 6); }
+    box.style.setProperty('--fgn-x', Math.round(x) + 'px');
+    box.style.setProperty('--fgn-y', Math.round(y) + 'px');
+  }
+
+  // Emptied AND hidden together, which is dcStandingLine's rule and the reason
+  // it gives: "hidden" and "empty" say the same thing about a node, so no later
+  // check has to work out which of the two it means. The three attributes go
+  // too — they are what "open" means, and a box left holding a stale side would
+  // be a press away from ruling on a unit nobody pointed at.
+  function fgnShut(box) {
+    box.hidden = true;
+    box.dataset.fgSide = '';
+    box.dataset.fgUnit = '';
+    box.dataset.fgTok = '';
+  }
+
+  // One write per node and only when it changes, for dcMark's stated reason:
+  // assigning textContent replaces the text node even when the string is
+  // identical, and a node replaced every frame is a node a selection cannot
+  // survive.
+  function fgnText(node, want) {
+    if (node && node.textContent !== want) { node.textContent = want; }
+  }
+
+  function resourceNudge(state) {
+    if (typeof document === 'undefined') { return; }
+    var box = document.getElementById('fg-nudge');
+    if (!box) { return; }
+
+    var side = String(box.dataset.fgSide || '');
+    var tok = String(box.dataset.fgTok || '');
+    var unitRaw = String(box.dataset.fgUnit || '');
+    var unitId = (unitRaw === '') ? null : unitRaw;
+
+    // Every reason to be shut, in one place: nothing is open, no fight is
+    // running any more, the reading names a type the board no longer holds, or
+    // the unit has left the roster. Each of the last three is a thing a student
+    // can cause WITHOUT touching this control — end the fight, remove the type
+    // in the editor, remove the unit on the board — so the box closes itself on
+    // the frame it happens rather than waiting to be pressed.
+    if (side === '' || tok === '' || state.fight === null
+      || !fgnRulable(tok)
+      || !Object.prototype.hasOwnProperty.call(state.build.tokens, tok)) {
+      fgnShut(box);
+      return;
+    }
+    var n = fgnAmount(state, side, unitId, tok);
+    if (n === null) { fgnShut(box); return; }
+
+    fgnText(document.getElementById('fg-nudge-who'), fgnWho(state, side, unitId));
+    // The type's own name, on its own node, carrying the exemption channel: this
+    // is where a student's word reaches the page here, and an unmarked one
+    // reddens CI on a word the STUDENT chose rather than one the artifact says.
+    var tokNode = document.getElementById('fg-nudge-tok');
+    if (tokNode) {
+      fgnText(tokNode, labelFor(state, tok));
+      setData(tokNode, { lbl: tok });
+    }
+    fgnText(document.getElementById('fg-nudge-val'), String(n));
+
+    // The accessible names, written here rather than baked into the shell for
+    // ariaOn's stated reason one region up: a rename schedules no structural
+    // frame, so a name baked once would go on saying the old word. data-albl is
+    // the channel that keeps the type's name out of the copy harvest, exactly
+    // as it does on the board's steppers.
+    var less = document.getElementById('fg-nudge-less');
+    var more = document.getElementById('fg-nudge-more');
+    var owner = fgnWho(state, side, unitId) + ' ';
+    if (less) {
+      less.setAttribute('aria-label', 'Decrease ' + owner + labelFor(state, tok));
+      setData(less, { albl: tok });
+    }
+    if (more) {
+      more.setAttribute('aria-label', 'Increase ' + owner + labelFor(state, tok));
+      setData(more, { albl: tok });
+    }
+
+    var says = document.getElementById('fg-nudge-says');
+    var said = fgnBoundSaid(state, tok, n);
+    if (says) {
+      fgnText(says, said);
+      says.hidden = (said === '');
+    }
+
+    // The anchor is looked up AFTER the box is unhidden, because a hidden box
+    // measures zero and a position computed from a zero-width box would put it
+    // in the wrong place on the frame it opens.
+    box.hidden = false;
+    var anchor = fgnAnchor(side, unitId, tok);
+    // A reading that is no longer drawn — a shield that fell to zero and was
+    // hidden by [S06.11]'s own hide pass, or a team row a repaint has not put
+    // back — closes the box rather than leaving it floating over the page
+    // pointing at nothing.
+    if (anchor === null) { fgnShut(box); return; }
+    fgnPlace(box, anchor);
+  }
+
+  function syncResourceNudge(state) {
+    resourceNudge(state);
+  }
+
+  SYNC_HOOKS.push(syncResourceNudge);
+  // #endregion [S06.14] RENDER — THE RESOURCE NUDGE
+
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -23966,6 +24872,18 @@ App.render = (function () {
     // from the FIGHT apart from one drawn from the BUILD, and a dead marker
     // drawn from the stored flag apart from one drawn from the health.
     battlefield: battlefield,
+    // D-36. UNLIKE THE THREE ABOVE, THIS ONE HAS A REAL HANDLER CALLER, and it
+    // is exported for the reason picker(), editor() and fightBar() are rather
+    // than for the reason ledger() and battlefield() are: OPENING the nudge and
+    // DISMISSING it are page work that dispatch nothing, so no commit lands, no
+    // frame is scheduled and SYNC_HOOKS never runs. [S07.5] writes the three
+    // attributes and then asks for the surface to be painted onto them — the
+    // same two-call idiom pressAt uses for [S06.7] and [S06.11], and for the
+    // same measured reason: a press that changed an attribute and waited for
+    // the next frame leaves a student looking at a control that did nothing.
+    // It is ALSO what lets a row drive the surface, which is battlefield()'s
+    // stated reason, so the export serves both.
+    resourceNudge: resourceNudge,
     // Exported for exactly the reason picker(), editor(), share() and
     // fightBar() are, and to exactly one caller: [S07.6]'s handler, which
     // writes data-view onto #app and then asks for the two controls to be
@@ -27248,7 +28166,15 @@ App.interactions = (function () {
 
      PAGE WORK — handled here, never dispatched:
        data-fg="at"    start, or cancel, a change of what a declaration lands on
-     It reads and writes no state at all, and pressing it dispatches NOTHING:
+       data-fg="res"   open, or shut, D-36's nudge on the reading pressed
+     The second is the first one's shape exactly: three attributes on a node
+     [S06.14] reads, written here and read there, with a repaint asked for on
+     the spot. It reads and writes no STATE — the ruling itself is a dispatch,
+     one arm down — and the state is byte-identical across an open and a shut.
+     A half-made change and an open nudge are both a form's transient selection,
+     and [S06.7]'s fgSettle paragraph carries the argument for both.
+     The first, below, reads and writes no state at all, and pressing it
+     dispatches NOTHING:
      the state is byte-identical across it. It moves TWO attributes on the
      acting side's own declaration root and asks [S06.7] to paint the surface
      onto them, which is exactly what [S07.3] does for the editor's selection
@@ -27271,6 +28197,7 @@ App.interactions = (function () {
        data-fg="bf"           on the battlefield     -> declare (05-15's control)
        data-fg="advance"      on the round controls  -> advanceRound
        data-fg="reset"        on the round controls  -> resetFight
+       data-fg="nudge"        on D-36's nudge pair   -> one of four ± ops
        data-dc="alive"        on a unit card         -> setAlive
      NOT ONE OF THOSE NAMES IS IN UI_ACTS AND NONE EVER MAY BE: an entry there
      is a name this section handles ITSELF instead of dispatching, which is
@@ -27403,8 +28330,16 @@ App.interactions = (function () {
      is still standing where they can read it and try again, instead of being
      thrown away by the very press that failed.
 
-     TWO ROOTS AND TWO BINDERS, because the two surfaces are two static shell
-     elements and neither is inside the other. #fightbar and #board both outlive
+     THREE ROOTS AND THREE BINDERS AS OF D-36, and the third is the document
+     itself. The first two are below; the third carries D-36's two dismissal
+     conditions — a press elsewhere and Escape — and nothing else, because
+     "elsewhere" includes the top bar and both dialogs, which are outside the
+     two roots below. Its own paragraph at bindNudgeDismiss says what it costs
+     a student who never opens the control: one hidden-property read per press.
+
+     TWO ROOTS AND TWO BINDERS FOR THE SURFACES, because the two surfaces are
+     two static shell elements and neither is inside the other. #fightbar and
+     #board both outlive
      every rebuild — [S06.7] replaces the two declaration-root interiors inside
      the first and structure() replaces the two COLUMN interiors inside the
      second — so a listener bound any deeper would be thrown away by the first
@@ -27742,6 +28677,253 @@ App.interactions = (function () {
     }
   }
 
+  /* ===== D-36: A PRESS ON A RESOURCE READING ==============================
+
+     The developer, at the real artifact: "add the ability to directly click on
+     a resource to directly modify the value of that resource in the current
+     round". Three handlers below — one that OPENS the control on the reading
+     that was pressed, one that RULES from its two buttons, and one that
+     DISMISSES it.
+
+     THE OPEN IS PAGE WORK AND DISPATCHES NOTHING. It writes the three
+     attributes [S06.14] reads and asks for that surface to be painted onto
+     them, which is pressAt's arrangement one function up and for pressAt's
+     measured reason: a press that changed an attribute and waited for the next
+     frame leaves the pressed control looking unpressed, and in front of a room
+     that is a student pressing it twice.
+
+     THE RULE IS A DISPATCH AND NOTHING ELSE, through the ops [S05]'s hand-
+     ruling group exports and never through a second path. Which op is decided
+     by WHAT THE READING NAMES, off a table below — health, the shield, the pool
+     and a tally are four different numbers with four different writers, and a
+     handler that picked one by guessing at the id would be a fifth spelling of
+     a write. Every one of them lands a record in the round's `hand` list and is
+     ONE undoable commit, which is FIGHT-07's machinery doing exactly what it
+     was built for and what plan 05-10 listed as controls-missing.
+
+     A NUDGE THAT CANNOT MOVE IS NOT AN ERROR. All four nudges return a boolean
+     — nudgeFightHp's own paragraph says that return value was left open for a
+     surface, and this is the surface — so a − on a number already at its floor
+     comes back false, nothing commits, and the box's own sentence says what the
+     board keeps this number between. clearDeclarations returning false over an
+     empty list is the shipped precedent, and a panel raised mid-workshop is
+     exactly what a disabled button would have been avoiding.
+
+     THE OP IS DISPATCHED AND THE PAGE IS NOT TOUCHED AFTERWARDS, which is the
+     opposite of the two arms above and is correct rather than inconsistent: a
+     ruling COMMITS, a commit schedules a frame, and [S06.14] is on SYNC_HOOKS.
+     Asking for a repaint here would paint the same frame twice.
+
+     DISMISSAL IS "ELSEWHERE, OR ESCAPE", D-36's own two conditions, and it
+     needs a listener on the DOCUMENT because "elsewhere" includes everywhere
+     outside #fightbar — the board tab, the top bar, a dialog. Two listeners,
+     both through App.boot.wrap like every other listener this region binds.
+     THE ORDER OF THE TWO POINTERDOWN LISTENERS IS NOT RELIED ON: the document
+     handler asks whether the press landed inside the box or on a reading and
+     leaves it alone if it did, so it is correct whether it runs before or after
+     #fightbar's.
+
+     ESCAPE'S SHIPPED SEMANTICS ARE UNTOUCHED. [S07.1] and the dialogs give
+     Escape a field's revert-then-close meaning; there is no field anywhere in
+     this control — [S07.5]'s banner records that not one node in its roots is
+     one, and [C14.6] says why the value between the buttons is a reading — so
+     nothing here can be reverted and Escape means only "shut this". The handler
+     declines entirely while the box is closed, so it can never swallow an
+     Escape another surface was waiting for. */
+
+  // The four numbers a reading can name, and WHICH WRITER EACH ONE HAS. A table
+  // rather than a chain of ifs, for FIELD_OPS' own stated reason one section up:
+  // the mapping from what a control says to what an op is called is data, and a
+  // handler that computed it would be a second place the two could disagree.
+  //
+  // `hp` AND `shield` ARE UNIT-ONLY AND `ap` IS SIDE-ONLY, and that is not
+  // enforced here — [S05]'s writers enforce it, findUnit for the first two and
+  // the pool's own shape for the third, and a guard repeated in the page is a
+  // guard that can drift away from the one that matters. What this table
+  // decides is only which op the press is for.
+  var FG_RES_OPS = {
+    hp: { set: 'setUnitHp', nudge: 'nudgeFightHp' },
+    shield: { set: 'setFightShield', nudge: 'nudgeFightShield' },
+    ap: { set: 'setFightAp', nudge: 'nudgeFightAp' }
+  };
+
+  // Anything that is not one of the three the board is built on is a TALLY, at
+  // whichever scope the type was authored with — D-24's no-second-tier, read
+  // from the press end. hasOwnProperty rather than a bare lookup, because `tok`
+  // is read off an attribute and a bare lookup on a three-key literal answers
+  // for 'constructor' and for 'toString'.
+  function fgResOps(tok) {
+    if (Object.prototype.hasOwnProperty.call(FG_RES_OPS, tok)) {
+      return FG_RES_OPS[tok];
+    }
+    return { set: 'setFightTally', nudge: 'nudgeFightTally' };
+  }
+
+  // The box, by the id the shell writes. Null rather than a throw when it is
+  // absent, for fgSideRoot's stated reason: an error panel raised on a control
+  // that ships in every build is the one outcome worse than nothing happening.
+  function fgNudgeBox() {
+    if (typeof document === 'undefined') { return null; }
+    var box = document.getElementById('fg-nudge');
+    return box ? box : null;
+  }
+
+  function fgNudgeShut() {
+    var box = fgNudgeBox();
+    if (box === null) { return; }
+    if (String(box.dataset.fgTok || '') === '') { return; }
+    box.dataset.fgSide = '';
+    box.dataset.fgUnit = '';
+    box.dataset.fgTok = '';
+    App.render.resourceNudge(App.state.get());
+  }
+
+  /* IS A CHANGE OF TARGET HALF MADE ANYWHERE. Read off the two declaration
+     roots, which is where [S06.7] keeps it and [S07.5] moves it — the same two
+     attributes pressBf walks and [S06.11]'s bfLit reads. It answers ONE
+     question and it is the whole of what the next function needs to know.
+
+     hasOwnProperty is not needed here because the side names come from
+     FG_DECL_IDS' own key list rather than from an attribute, which is the one
+     difference between this walk and pressBf's. */
+  function fgAnyHalfMade() {
+    var sides = Object.keys(FG_DECL_IDS);
+    for (var i = 0; i < sides.length; i++) {
+      var root = fgSideRoot(sides[i]);
+      if (root === null) { continue; }
+      if (String(root.dataset.fgAct || '') !== ''
+        && String(root.dataset.fgBy || '') !== '') { return true; }
+    }
+    return false;
+  }
+
+  /* THE OPEN. Pressing the reading the box is already open on SHUTS it, which
+     is the same shape the action button and the change-target button both have
+     one function up — the control that starts something is the control that
+     takes it back — and it means a student who opened one by accident has a way
+     out that is neither an undo nor a hunt for empty page.
+
+     ==================================================================
+     WHILE A CHANGE OF TARGET IS HALF MADE, THE WHOLE BATTLEFIELD BELONGS
+     TO THE RETARGET FLOW — D-36's OWN SENTENCE, AND A REAL CLICK IS WHAT
+     FOUND IT.
+     ==================================================================
+     D-36 settles the hit test twice over: "the retarget flow's claim on
+     unit-shape clicks is UNCHANGED", and "a resource click and a unit-shape
+     click must not collide". Nesting alone satisfies the second and NOT the
+     first, and the browser checks measured the difference the moment they ran:
+     a lit shape is aimed at by clicking its MIDDLE, and its middle is a
+     reading. Rows 12b and 12c — shipped two plans ago, driving a real click at
+     the centre of a lit shape — went red, which is a gate doing exactly what a
+     gate is for.
+
+     SO THE SEPARATION IS IN TIME AS WELL AS IN SPACE, and each half is exact:
+       ARMED — every press anywhere on a battlefield shape, reading or not, is
+         the retarget flow's, and NOTHING opens the nudge. A lit shape
+         retargets; an unlit one declines quietly, which is the shipped
+         precedent [S07.5]'s banner requires of that surface by name. The claim
+         is unchanged, to the pixel.
+       AT REST — a press on a reading opens the nudge, and a press anywhere
+         else on the shape declines quietly exactly as it did before D-36.
+     A student is never in both states at once and the two never overlap.
+
+     THE TEAM RESOURCES ARE UNAFFECTED and are deliberately not covered by this:
+     they are not on the battlefield, the retarget flow has no claim on them,
+     and a student who armed a change and then wants to fix a pool reading
+     should not have to cancel the flow to do it. */
+  function pressRes(node) {
+    var box = fgNudgeBox();
+    if (box === null) { return; }
+    if (typeof node.closest === 'function') {
+      var shape = node.closest('[data-fg="bf"]');
+      if (shape !== null && fgAnyHalfMade()) { pressBf(shape); return; }
+    }
+    var side = String(node.dataset.fgSide || '');
+    var tok = String(node.dataset.fgTok || '');
+    if (side === '' || tok === '') { return; }
+    var unit = String(node.dataset.fgUnit || '');
+    if (String(box.dataset.fgSide || '') === side
+      && String(box.dataset.fgUnit || '') === unit
+      && String(box.dataset.fgTok || '') === tok) {
+      fgNudgeShut();
+      return;
+    }
+    box.dataset.fgSide = side;
+    box.dataset.fgUnit = unit;
+    box.dataset.fgTok = tok;
+    App.render.resourceNudge(App.state.get());
+  }
+
+  /* THE RULING. Every argument is read off the BOX rather than off the pressed
+     button, because the button is one of two static shell nodes shared by every
+     reading on the page — the whole reason it is static is that it is never
+     rebuilt, and a control that carried its own target would have to be.
+
+     THE PAYLOAD IS BUILT FIELD BY FIELD at the call site, in 03.1-05's
+     arrangement and this region's banner's rule: no second fire() payload key,
+     and no shared payload shape between two arms.
+
+     A STALE OR EMPTY BOX IS A DECLINED PRESS. The box can only be pressed while
+     it is open, so this is reachable only from a node that outlived its own
+     state, and a stale node is a press that does nothing rather than one that
+     raises a panel. */
+  function pressNudge(btn) {
+    var box = fgNudgeBox();
+    if (box === null) { return; }
+    var side = String(box.dataset.fgSide || '');
+    var tok = String(box.dataset.fgTok || '');
+    if (side === '' || tok === '') { return; }
+    var state = App.state.get();
+    if (state.fight === null) { return; }
+    var unitRaw = String(box.dataset.fgUnit || '');
+    var unitId = (unitRaw === '') ? null : unitRaw;
+    var step = (String(btn.dataset.fgStep || '') === '-1') ? -1 : 1;
+    var op = fgResOps(tok).nudge;
+    if (op === 'nudgeFightAp') {
+      App.ops.dispatch(op, { side: side, delta: step });
+      return;
+    }
+    if (op === 'nudgeFightTally') {
+      App.ops.dispatch(op, {
+        side: side, unitId: unitId, tokenId: tok, delta: step
+      });
+      return;
+    }
+    App.ops.dispatch(op, { side: side, unitId: unitId, delta: step });
+  }
+
+  /* DISMISSAL BY A PRESS ELSEWHERE. "Elsewhere" is everywhere that is neither
+     the box nor a reading: a press inside the box is the control being used,
+     and a press on a reading is pressRes' to answer — it opens the box on the
+     new reading or shuts it on the same one, and a dismiss racing that would
+     make every second press on a reading do nothing.
+
+     BOUND ON THE DOCUMENT AND NOT ON #app, deliberately. #fightbar is inside
+     #app, so a listener there would cover the fight and the board and would
+     still miss the two dialogs and the top bar's own controls — and it would
+     mean editing [S07.1], which this region's banner promises not to do. */
+  function onDocPress(e) {
+    if (!isPrimaryPress(e)) { return; }
+    var box = fgNudgeBox();
+    if (box === null || box.hidden === true) { return; }
+    var node = e.target;
+    if (node && typeof node.closest === 'function') {
+      if (node.closest('#fg-nudge') !== null) { return; }
+      var res = node.closest('[data-fg]');
+      if (res !== null && String(res.dataset.fg || '') === 'res') { return; }
+    }
+    fgNudgeShut();
+  }
+
+  // Escape, D-36's second dismissal. It declines while the box is shut, so it
+  // can never swallow an Escape a dialog or a field was waiting for.
+  function onDocKeyDown(e) {
+    if (e.key !== 'Escape') { return; }
+    var box = fgNudgeBox();
+    if (box === null || box.hidden === true) { return; }
+    fgNudgeShut();
+  }
+
   // The flag, read off STATE and not off the button's aria-pressed. The
   // renderer writes that attribute FROM this flag, so reading it back would be
   // asking the page what the state is through a copy the page made — the shape
@@ -27795,9 +28977,19 @@ App.interactions = (function () {
     if (kind === 'bf') { pressBf(btn); return; }
     if (kind === 'advance') { App.ops.dispatch('advanceRound', {}); return; }
     if (kind === 'reset') { App.ops.dispatch('resetFight', {}); return; }
+    // D-36's ruling arm. It sits with the state arms because it dispatches a
+    // real op, and it is BEFORE the page arms for the reason the banner gives:
+    // dispatch first, page work after.
+    if (kind === 'nudge') { pressNudge(btn); return; }
 
-    // Then the one page arm, and nothing below dispatches.
-    if (kind === 'at') { pressAt(btn); }
+    // Then the two page arms, and nothing below dispatches.
+    if (kind === 'at') { pressAt(btn); return; }
+    // D-36's opening arm. `res` is the ONE kind on this surface that resolves
+    // to an INNER node: a battlefield reading is a child of the shape's own
+    // control, so closest() hands this arm the line and hands `bf` the shape,
+    // and the two never see each other's presses. The team-resource reading is
+    // not nested at all and reaches here the ordinary way.
+    if (kind === 'res') { pressRes(btn); }
   }
 
   // Keyboard activation ONLY, and the guard is [S07.1]'s verbatim for its
@@ -27907,6 +29099,29 @@ App.interactions = (function () {
   }
 
   LATE_BINDERS.push(bindBoardFight);
+
+  // A THIRD binder, on the DOCUMENT, and it is D-36's two dismissal conditions
+  // and nothing else. It binds no press that ACTS: both handlers only ever shut
+  // a box that is already open, and both decline entirely while it is shut, so
+  // the cost to a student who never opens one is one hidden-property read per
+  // press. Every listener goes through App.boot.wrap, exactly as the two
+  // binders above, so a raw binding is visible by name and by arity to the
+  // check that reads the registrations back.
+  //
+  // ON THE DOCUMENT RATHER THAN ON #app, for the reason onDocPress' own
+  // paragraph gives: "elsewhere" includes the top bar and both dialogs, which
+  // are outside #app's own two roots, and widening #app's listener would mean
+  // editing [S07.1] — which this region's banner promises not to do.
+  function bindNudgeDismiss() {
+    if (typeof document === 'undefined') { return; }
+    if (typeof document.addEventListener !== 'function') { return; }
+    document.addEventListener('pointerdown',
+      App.boot.wrap('nudge dismiss press', onDocPress));
+    document.addEventListener('keydown',
+      App.boot.wrap('nudge dismiss keydown', onDocKeyDown));
+  }
+
+  LATE_BINDERS.push(bindNudgeDismiss);
 
   // THE ACTS THIS REGION CLAIMS: NONE. The paragraph at the head of this region
   // gives the whole argument and it is not repeated here — but the line itself

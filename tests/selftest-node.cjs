@@ -868,6 +868,23 @@ function makeStubDom() {
     // roots.
     'fight-state', 'fight-state-head', 'state-cats', 'state-mechs',
     'fight-input', 'fight-input-head',
+    // plan 05-D36 - the developer's tenth round: "add the ability to directly
+    // click on a resource to directly modify the value of that resource in the
+    // current round." EIGHT ids, and every one of them is a node the control
+    // must never rebuild: plan 05-10 MEASURED that a pointer press on a control
+    // whose own node is rebuilt drops the keyboard to <body>, and a nudge
+    // repaints on every press by construction. So the pair of buttons, the
+    // reading between them, the two halves of the heading and the bound
+    // sentence are all STATIC SHELL, and [S06.14] only ever writes text into
+    // them. A built-where-it-appears control would land one press of a rapid
+    // three.
+    //
+    // Same three-part rule as every group above: the id, this entry and the
+    // stub node arrive together, and section 5b fails the run in BOTH
+    // directions if one of the three is missing. It is not a <dialog>, so the
+    // harvest still walks four roots.
+    'fg-nudge', 'fg-nudge-lbl', 'fg-nudge-who', 'fg-nudge-tok',
+    'fg-nudge-less', 'fg-nudge-val', 'fg-nudge-more', 'fg-nudge-says',
     'ledger', 'ledger-head', 'ledger-list',
     // plan 05-12 - the view switch (D-27). THREE ids and no more: the switch
     // root and its two controls. Same three-part rule as every entry above and
@@ -1317,6 +1334,50 @@ function makeStubDom() {
   fightSaid.className = 'fg-said';
   fightSaid.hidden = true;
   fightbar.appendChild(fightSaid);
+
+  /* D-36's INLINE NUDGE, built here as the SHELL builds it — one control for
+     the whole surface, held static so it is never rebuilt under a pressing
+     finger. The two buttons carry the data-fg and the data-fg-step [S07.5]
+     reads and the data-k check 94b walks; the three attributes that say what
+     the box is OPEN ON are written by that region at the press and are absent
+     here, which is exactly the shut state [S06.14] reads as "nothing is open".
+
+     The two heading halves and the bound sentence are EMPTY here for the same
+     reason #fight-said is: this page is a hand-made stand-in rather than a
+     parser, and [S06.14] writes every one of them from state on every frame. */
+  const fgNudge = idNode('fg-nudge');
+  fgNudge.className = 'fgn';
+  fgNudge.hidden = true;
+  fightbar.appendChild(fgNudge);
+  const fgNudgeLbl = idNode('fg-nudge-lbl', 'p');
+  fgNudgeLbl.className = 'fgn-lbl';
+  fgNudge.appendChild(fgNudgeLbl);
+  const fgNudgeWho = idNode('fg-nudge-who', 'span');
+  fgNudgeWho.className = 'fgn-who';
+  fgNudgeLbl.appendChild(fgNudgeWho);
+  const fgNudgeTok = idNode('fg-nudge-tok', 'span');
+  fgNudgeTok.className = 'fgn-tok';
+  fgNudgeLbl.appendChild(fgNudgeTok);
+  const fgNudgeRow = createElement('div');
+  fgNudgeRow.className = 'fgn-row';
+  fgNudge.appendChild(fgNudgeRow);
+  const fgNudgeBtn = (id, step, k) => {
+    const b = idNode(id, 'button');
+    b.className = 'stp-btn fgn-btn';
+    b.dataset.fg = 'nudge';
+    b.dataset.fgStep = step;
+    b.dataset.k = k;
+    return b;
+  };
+  fgNudgeRow.appendChild(fgNudgeBtn('fg-nudge-less', '-1', 'fg/nudge/less'));
+  const fgNudgeVal = idNode('fg-nudge-val', 'span');
+  fgNudgeVal.className = 'fgn-val';
+  fgNudgeRow.appendChild(fgNudgeVal);
+  fgNudgeRow.appendChild(fgNudgeBtn('fg-nudge-more', '1', 'fg/nudge/more'));
+  const fgNudgeSays = idNode('fg-nudge-says', 'p');
+  fgNudgeSays.className = 'fgn-says';
+  fgNudgeSays.hidden = true;
+  fgNudge.appendChild(fgNudgeSays);
 
   const board = idNode('board');
   app.appendChild(board);
@@ -3879,28 +3940,57 @@ check(
    with an inline width fails that however many accesses there are, and a
    third --topbar- reading passes it — which is the right boundary, because the
    thing forbidden here is a FIGURE drawn with a length, not a measurement of
-   the chrome. */
+   the chrome.
+
+   AND THE COUNT WENT 2 -> 4 UNDER D-36, TURNED IN THE OPEN FOR THE SECOND
+   TIME. Plan 05-D36.
+
+   The allowlist widens by one prefix and the CLAIM does not move an inch,
+   because the row's own last sentence is the test and this passes it: an offset
+   that places a control beside the reading it edits is not a figure drawn with
+   a length. D-36's nudge opens "AT THAT SPOT" — the developer's own words — on
+   readings that sit inside a scroller [C14.1] bounds, so the box is
+   position:fixed and its two coordinates have to be measured off the anchor's
+   rect at render time. There is no stylesheet answer to "where is this
+   particular node right now".
+
+   --fgn-x AND --fgn-y ONLY, AND ON THE BOX RATHER THAN ON documentElement,
+   which is a NARROWER access than the two above it: the topbar pair is
+   published to the whole document and every sticky offset in the file reads it,
+   while these two are read by exactly one rule in [C14.6] on exactly one
+   element. Both are still custom properties rather than `left`/`top` longhands,
+   for the reason the topbar pair is: the stylesheet keeps the RULE and the
+   script supplies only the measurement.
+
+   WHAT WOULD STILL FAIL, so the boundary is not a formality: a token row drawn
+   with an inline width, a bar whose length is a percentage of a figure, an
+   opacity written per frame, ANY access that is not one of these four
+   setProperty publications. The strays list is printed in full on failure. */
 const styleAccesses = html.split('.style').length - 1;
 const styleSites = html.split('.style').slice(1).map(
   (tail) => tail.slice(0, 64).replace(/\s+/g, ' ')
 );
+const STYLE_OK = ['.setProperty(\'--topbar-', '.setProperty(\'--fgn-'];
 const styleStrays = styleSites.filter(
-  (site) => site.indexOf('.setProperty(\'--topbar-') !== 0
+  (site) => !STYLE_OK.some((ok) => site.indexOf(ok) === 0)
 );
 check(
-  '57. every inline style access in the whole artifact is the TOPBAR '
-    + 'MEASUREMENT and nothing else. A proportional bar, a shared scale and a '
-    + 'midpoint marker each need an inline length or a per-frame custom '
-    + 'property, so this is the cheapest available proof that none of the three '
-    + 'exists anywhere on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12 and '
-    + 'the row now reads each occurrence IN CONTEXT rather than counting them: '
-    + '--topbar-now is the bar\'s height and --topbar-foot is its bottom edge, '
-    + 'published from one measurement of one element, because a fixed panel is '
-    + 'placed against the viewport whether the bar has stuck or not. A bar '
+  '57. every inline style access in the whole artifact is a NAMED MEASUREMENT '
+    + 'PUBLISHED AS A CUSTOM PROPERTY and nothing else. A proportional bar, a '
+    + 'shared scale and a midpoint marker each need an inline length, so this '
+    + 'is the cheapest available proof that none of the three exists anywhere '
+    + 'on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12 AND 2 -> 4 UNDER '
+    + 'D-36, and the row reads each occurrence IN CONTEXT rather than counting '
+    + 'them: --topbar-now is the bar\'s height and --topbar-foot its bottom '
+    + 'edge, published from one measurement of one element because a fixed '
+    + 'panel is placed against the viewport whether the bar has stuck or not; '
+    + '--fgn-x and --fgn-y are where D-36\'s nudge sits, measured off the '
+    + 'reading it was opened on, because a control that must appear AT a '
+    + 'particular node has no stylesheet answer to where that node is. A bar '
     + 'drawn with an inline length fails this however many accesses there are',
-  styleAccesses === 2 && styleStrays.length === 0,
+  styleAccesses === 4 && styleStrays.length === 0,
   'occurrences: ' + styleAccesses + ' | sites: ' + JSON.stringify(styleSites)
-    + ' | not a --topbar- publication: ' + JSON.stringify(styleStrays)
+    + ' | not an allowed publication: ' + JSON.stringify(styleStrays)
 );
 
 A.state.restore(prjSaved);
