@@ -367,3 +367,33 @@ Verbatim:
 - **Codec**: bounds and round rules must round-trip. Stay v1 ONLY if the grammar extension is
   honestly backwards-decodable (an old code loads with defaults); otherwise bump to v2 with v1
   still decoded. Phase 4's version prefix exists for exactly this — no silent garbage either way.
+
+---
+
+## D-36 — Tenth round, 2026-09-01: click a resource to rule on it
+
+Verbatim:
+
+> add the ability to directly click on a resource to directly modify the value of that resource in
+> the current round
+
+### What this settles
+
+Resources on the fight tab become directly editable at the point where they are read. Clicking a
+resource reading — a unit's health, shield or status tally on the battlefield, or a side's team
+resource — opens a small inline control AT THAT SPOT to change the value in the current round.
+
+### Orchestrator interpretation (recorded, overridable)
+
+- The change is a HAND RULING: it flows through the shipped ruling ops (setUnitHp / nudgeFightHp /
+  setFightShield / the fight tally writers), lands in the round's ruling record (FIGHT-07's
+  by-hand event), and is one undoable commit per change — exactly the machinery wave 5 built and
+  plan 05-10 listed as controls-missing.
+- The inline control is a nudge pair (−/+) with the value between, in the shipped stepper idiom,
+  dismissed by clicking elsewhere or Escape (field-revert semantics untouched). Clamped by the
+  D-35 bounds like every other write.
+- This supersedes the D-27-era note that hand rulings live only on the board tab. The board tab's
+  paths remain; the fight tab gains the direct one.
+- The battlefield stays read-only for anything that is NOT a resource reading; the retarget flow's
+  claim on unit-shape clicks is unchanged — a resource click and a unit-shape click must not
+  collide (the resource tokens are children; hit-testing must separate them cleanly).
