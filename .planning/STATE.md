@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-35c — the round rules made operable (05-D35c)
-last_updated: "2026-09-01T06:00:00.000Z"
+stopped_at: Completed D-36 — click a resource on the fight tab to rule on it (05-D36)
+last_updated: "2026-09-01T16:00:00.000Z"
 last_activity: 2026-09-01
 progress:
   total_phases: 7
@@ -383,10 +383,48 @@ Gate: node **1327 / 0, exit 0**, **204 of 204** (no row added — 116 and 117 re
 region's MINIMUM contribution SMALLER (a board with no rules used to draw one empty row of token
 pills and now draws none), so the +10 measured on the shipped board is not a lower bound.
 `.planning/phases/05-fight-loop-playtest/05-D35c-SUMMARY.md`.
-Next: **05-11, the playtest** — the last thing in the phase, and it now carries five questions
+
+**D-36 — CLICK A RESOURCE TO RULE ON IT.** "add the ability to directly click on a resource to
+directly modify the value of that resource in the current round." Every resource reading on the
+fight tab is now a press target that opens one static `− value +` AT THAT SPOT, and every press
+through it is a hand ruling: through the shipped ops, into the round's `hand` record, one
+undoable commit, clamped by the type's own D-35 bounds, with no verdict anywhere.
+**Five ops were missing and were written** in plan 05-05's own group and under its banner —
+`nudgeFightShield` (the sibling `setFightShield`'s comment reserved BY NAME two phases ago, and
+this was the day it named), `setFightAp` / `nudgeFightAp`, and `setFightTally` /
+`nudgeFightTally`, the last pair reusing `tallyOwner` so "which record carries this number" is
+answered in ONE place for both slices. **The ruling record gained a side-scope shape** — `unit`
+is null for a pool or a side-scope tally — and `[S06.8]` gained `ldHandWho`, which says the
+faction's name where the others say a unit's rather than printing "null" at a student.
+`[S06.9]`'s by-hand marker covers a unit's tally rows now, reading the ids off the page's own
+`data-amt`; its paragraph saying a tally could never carry one is quoted and turned.
+**The control is STATIC SHELL and that is plan 05-10's measured finding, not tidiness**: a
+pointer press on a rebuilt node drops the keyboard to `<body>`, and a nudge repaints on every
+press — probe D put the rebuild back and three browser cells went red in all four columns.
+**Two defects were found by driving rather than by reading.** A real centre click on a LIT shape
+lands on a reading, so nesting alone kept "must not collide" and broke "the retarget flow's claim
+is unchanged" — cells 12b and 12c went red, and the separation is now in TIME as well as in
+space: while a change of target is half made the whole battlefield belongs to the flow. And a
+screenshot showed the fixed box not following a scroll, because a scroll commits nothing and
+schedules no frame; it is re-placed rather than dismissed.
+Gate: node **1327 → 1336 / 0, exit 0**, **204 → 207 of 207** (+118, +119, +120), stub-drift
+**145 → 153** (eight static nodes, both directions), browser checks **262 → 286 / 0 HEADLESS**
+(+cells 26 through 26f, four columns). `DIALOG_FLOOR` **138** and `FIGHT_FLOOR` **248** both
+unmoved. Check 57's inline-style allowlist turned **in the open, 2 → 4 accesses** (`--fgn-x` /
+`--fgn-y` beside the topbar pair), with the boundary re-argued from the row's own words.
+**Five mutation probes, every one of them red**, and the artifact byte-identical to the copy
+taken before the first.
+`deferred-items.md` items **17** (the battlefield's readings are a pointer affordance, not a
+keyboard one — the structural fix priced at ~20 assertions and a design question) and **18** (a
+reading hidden at zero cannot be clicked back up).
+`.planning/phases/05-fight-loop-playtest/05-D36-SUMMARY.md`.
+
+Next: **05-11, the playtest** — the last thing in the phase, and it now carries seven questions
 rather than two: the AP sweep, the +3-versus-refill fork (item 13), the round-rules placement
-(item 15), whether a decay needs attributing (item 16), and whether a two-line rule band reads
-as one rule on a projector once a student has invented a sixth token type.
+(item 15), whether a decay needs attributing (item 16), whether the battlefield's readings need
+a keyboard route (item 17), whether a shield ruled to zero needs a way back up (item 18), and
+whether a two-line rule band reads as one rule on a projector once a student has invented a
+sixth token type.
 Last activity: 2026-09-01
 
 Progress: [██████████] 100%
@@ -627,6 +665,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-01T06:00:00.000Z
-Stopped at: Completed D-35c (05-D35c) — the round rules made operable: the amount bound to its rule (160px -> 0px), the dangling half-row gone, an Add under the list and a Remove on every row, ten pills grouped into five columns under four words written once, and the symbolic reading given a column of its own. The op did not move. Node 1327/0 exit 0, 204 of 204, 145 shell ids; browser 262/0 headless (+25a, +25b2). Two probes found nothing and both became commits. Previously: D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
+Last session: 2026-09-01T16:00:00.000Z
+Stopped at: Completed D-36 (05-D36) — click a resource on the fight tab to rule on it: five hand-ruling writers added in [S05]'s own group (the shield nudge setFightShield reserved by name, the pool pair, the tally pair reusing tallyOwner), the ruling record given a side-scope shape with a null unit and [S06.8] the arm that names the faction for it, [S06.9]'s marker widened to a unit's tallies, [S06.14] a new render sub-region moving ONE STATIC control to whatever reading was pressed (05-10's focus finding, driven), [S07.5] the open/rule/dismiss arms plus three document listeners, [C14.6] the .fgn- rules at position:fixed with the offsets published as --fgn-x/--fgn-y. Two defects found by driving: a real centre click on a lit shape lands on a reading (cells 12b/12c red — the separation is now in time as well as in space) and the fixed box did not follow a scroll (found in a screenshot). Node 1336/0 exit 0, 207 of 207, 153 shell ids, DIALOG_FLOOR 138 and FIGHT_FLOOR 248 unmoved; browser 286/0 headless (+26 through 26f). Check 57's style allowlist turned in the open 2 -> 4. Five mutation probes, all red, artifact byte-identical after. Previously: D-35c (05-D35c) — the round rules made operable: the amount bound to its rule (160px -> 0px), the dangling half-row gone, an Add under the list and a Remove on every row, ten pills grouped into five columns under four words written once, and the symbolic reading given a column of its own. The op did not move. Node 1327/0 exit 0, 204 of 204, 145 shell ids; browser 262/0 headless (+25a, +25b2). Two probes found nothing and both became commits. Previously: D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
 Resume file: None
