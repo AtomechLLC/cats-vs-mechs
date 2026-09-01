@@ -15885,6 +15885,24 @@ const rrAddBtn = dom.byId['rr-add'];
 const rrRmWord = rrRemove(0).textContent;
 const rrRmName = rrRemove(0).getAttribute('aria-label');
 const rrAddWord = rrAddBtn.textContent;
+/* AND THE NAME IS ASSERTED TO CONTAIN THE ROW'S OWN READING rather than to
+   match a sentence typed here - row 111's technique a fourth time, and it is
+   what makes symRoundBits load-bearing. symRoundParts hands the picture its
+   prefix, its suffix and its removal flag; symRoundSaid hands this attribute
+   the same three. A row comparing this to a string written in this file would
+   go on passing while the two spellings drifted apart, which is exactly the
+   failure symSaid exists one layer down to prevent. */
+function rrReadTitle(slot) {
+  // Chained rather than written as a descendant selector, because this stub's
+  // querySelector reads ONE simple selector and a two-part one silently
+  // matches nothing - which is a green-over-nothing shape, and it was measured
+  // as one here: the first spelling of this reader returned '(no sym)' and the
+  // clause below read false on a page where both strings were correct.
+  const read = rrRow(slot).querySelector('.rr-read');
+  const sym = read ? read.querySelector('.sym') : null;
+  return sym ? sym.getAttribute('title') : '(no sym)';
+}
+const rrRmCarriesReading = rrRmName.indexOf(rrReadTitle(0)) !== -1;
 
 // A rule of the student's own, started by pressing the ADD button - the door
 // this block did not have. It arrives COMPLETE: a party off the exported
@@ -15918,6 +15936,7 @@ const rrDecayMarkOnShape = rrRow(2).querySelector('.rr-read')
 // The removal reaches the ACCESSIBLE NAME as a word, which is the one channel
 // a red mark cannot reach - symQty's own argument, arriving on a control.
 const rrDecayRmName = rrRemove(2).getAttribute('aria-label');
+const rrDecayRmCarriesReading = rrDecayRmName.indexOf(rrReadTitle(2)) !== -1;
 
 // The party, pressed after the amount: the token and the amount survive it,
 // which is the whole of "the rest of the rule comes off the record".
@@ -16003,7 +16022,13 @@ check(
     + 'hold; press a token and it names the type they invented; type "-1" into '
     + 'the real amount field and the reading gains D-30\'s red mark ON THE '
     + 'SHAPE and the Remove button\'s NAME gains the removal in words, which '
-    + 'is the one channel a red mark cannot reach; press a party and the token '
+    + 'is the one channel a red mark cannot reach. THAT NAME IS ASSERTED TO '
+    + 'CONTAIN THE ROW OWN READING rather than to match a sentence typed '
+    + 'into this file - row 111 technique a fourth time, and what makes '
+    + 'symRoundBits load-bearing: the picture and the sentence take their '
+    + 'prefix, their suffix and their removal flag from ONE place, and a '
+    + 'row checking this against a typed string would pass while the two '
+    + 'drifted apart. Then a party is pressed and the token '
     + 'and the amount they already wrote SURVIVE it. THE PARTY CHOOSER ANSWERS '
     + 'ONE QUESTION AND CARRIES ONE PILL PER ENTRY OF THE EXPORTED ALLOWLIST, '
     + 'and NO pill anywhere in the region carries an empty party - the clause '
@@ -16035,6 +16060,8 @@ check(
     && rrRmWord === 'Remove'
     && rrRmName.indexOf('Remove the round rule:') === 0
     && rrRmName.length > 'Remove the round rule:'.length + 8
+    && rrRmCarriesReading === true
+    && rrDecayRmCarriesReading === true
     && rrAddWord.indexOf('Add') !== -1
     && rrAdded === JSON.stringify({ who: 'cats', tok: 'hp', d: 1 })
     && rrShownAfterAdd === 3
@@ -16062,12 +16089,14 @@ check(
     + ' | party pills=' + rrWhoCount + ' of ' + A.data.ROUND_WHO_IDS.length
     + ', pills carrying an empty party=' + rrEmptyWhoPills
     + ' | remove says ' + JSON.stringify(rrRmWord) + ' named '
-    + JSON.stringify(rrRmName) + ' | add says ' + JSON.stringify(rrAddWord)
+    + JSON.stringify(rrRmName) + ' (carries the row reading='
+    + rrRmCarriesReading + ') | add says ' + JSON.stringify(rrAddWord)
     + ' | added=' + rrAdded + ' (' + rrShownAfterAdd + ' rows)'
     + ' -> token pressed -> ' + rrMade + ' -> typed -1 -> ' + rrDecay
     + ' saying ' + JSON.stringify(rrDecaySaying)
     + ' marks=' + rrDecayMarks + ' on a shape=' + rrDecayMarkOnShape
     + ' remove named ' + JSON.stringify(rrDecayRmName)
+    + ' (carries the reading=' + rrDecayRmCarriesReading + ')'
     + ' | party pressed -> ' + rrParty
     + ' | at the cap: ' + rrAtCap + ' rules, ' + rrCapShown + ' rows, add off='
     + rrCapAddOff + ', line=' + JSON.stringify(rrCapSaid)
