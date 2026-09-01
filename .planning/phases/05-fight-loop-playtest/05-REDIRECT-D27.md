@@ -327,3 +327,43 @@ field by field.
   (restores the action to how it was when selected). If nothing changed, it is inert but never
   disabled-without-reason — follow the shipped never-disable conventions outside the fight grid.
 - Escape's shipped semantics (field revert, then close) are untouched.
+
+---
+
+## D-35 — Ninth round, 2026-08-31: round rules as data, and token bounds
+
+Verbatim:
+
+> add a feature to configure what happens each round (default +3 action points, but also things
+> like -1 of a status effect token) Add a property for min and max of a token on a unit or side
+
+### What this settles
+
+1. **What happens each round is configurable data.** Advance applies a student-editable list of
+   round rules — each "who gets what": a side or its units, a token, a signed delta. The shipped
+   default is **+3 action points to each side**, per the developer's words. Status decay ("-1 of a
+   status token each round") is the named second use.
+2. **A token type gains min and max bounds**, at whichever scope it lives (unit or side). Bounds
+   are properties of the type — authored, and carried by the build code like every other authored
+   property (SHARE-08's spirit).
+
+### Orchestrator calls (recorded, overridable)
+
+- **Bounds clamp at write time** — the house convention (int() clamps; D-34 measured it) — on
+  EVERY write path: steppers, ops, round rules, and Advance's xf application. A bound is data the
+  recipient of a build code gets.
+- **Round rules live in the build slice** (they define how the fight behaves; a classmate loading
+  your code must get your rules), authored through named ops with the usual guards, capped
+  (MAX_ROUND_RULES, orchestrator default 8).
+- **The +3 fork, stated honestly:** today Advance REFILLS pools to full. "+3 capped at the side's
+  configured AP" is identical while AP is 3, and genuinely different at the candidate retune of 9
+  (+3/round meters a 9-pool over three rounds; refill-to-9 does not). The developer's words are
+  taken literally: the default rule is +3. The old refill semantic remains expressible (a rule of
+  +9 with max 9). **Playtest question: which one makes the 9v3 contested?** — this interacts
+  directly with the AP sweep.
+- **Shield stops being a hardcoded no-refill ruling and becomes data**: shield simply has no round
+  rule by default (and a max of its starting value). A student who wants Recharge-style regen
+  authors a +1 shield rule. The old ruling's comment is amended to say the rule moved into data.
+- **Codec**: bounds and round rules must round-trip. Stay v1 ONLY if the grammar extension is
+  honestly backwards-decodable (an old code loads with defaults); otherwise bump to v2 with v1
+  still decoded. Phase 4's version prefix exists for exactly this — no silent garbage either way.
