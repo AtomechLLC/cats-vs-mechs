@@ -882,6 +882,44 @@
   .pk-warn{margin:-14px 0 18px;font-size:18px;color:var(--ink-dim)}
   .pk-warn[hidden]{display:none}
 
+  /* D-35's range pair. THE HEAD LINE IS .ae-term-head's, COPIED RATHER THAN
+     INVENTED: D-32b put a legend and its note on ONE baseline-aligned line and
+     measured what the stacked pair cost, and this is the same two nodes with
+     the same relationship. The margin reset is on the note for the same reason
+     it is there — .pk-note ships with 16px below it, which is a gap between
+     GROUPS and not one inside a line. */
+  .pk-bounds-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin:0 0 8px}
+  .pk-bounds-head .pk-legend{margin:0}
+  .pk-bounds-head .pk-bounds-note{margin:0}
+
+  /* The two fields on one row, each with its word beside it. 18px is [C04]'s
+     projector floor and the word is permanent and visible — never an icon,
+     never revealed on hover (UX-02). The gap between the two is larger than the
+     gap inside one, so "Least 0" and "Most 99" read as two objects rather than
+     as four. */
+  .pk-bounds{display:flex;flex-wrap:wrap;align-items:center;gap:18px}
+  .pk-bound{display:flex;align-items:center;gap:8px}
+  .pk-bound-lbl{font-size:18px;color:var(--ink-dim)}
+
+  /* The chrome is .ae-amt's, which is .pk-name's, which is .err-detail's — so
+     there is ONE look for "type a number here" across this document and a
+     student who has used the action editor recognises this field. Its width is
+     3ch of tabular figures plus the padding, because MAX_ALLOC is two digits
+     and the maxlength above is three. */
+  .pk-bound-amt{
+    width:3.5ch;box-sizing:content-box;flex:0 0 auto;
+    background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
+    color:var(--ink);padding:6px 10px;font:inherit;font-size:18px;
+    font-variant-numeric:tabular-nums;text-align:right;
+    &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
+  }
+
+  /* The reading under the pair. It takes .pk-warn's dimmed treatment because it
+     is the same kind of thing — a factual line under the control it is about —
+     and only its margin differs, because .pk-warn's negative top is tuned to
+     sit against the button row above it and there is no button row here. */
+  .pk-bounds-said{margin:10px 0 0}
+
   /* ===================== [C08] BOOT — ERROR PANEL ===================== */
   .err-panel{position:fixed;right:18px;bottom:18px;max-width:520px;z-index:50;margin:0;
     background:var(--panel-2);display:flex;flex-direction:column;gap:8px}
@@ -4822,7 +4860,7 @@
      nested and carries (0,2,0); this list is (0,1,0); so it can never win
      over a state and is only ever the resting value. */
   .brd-btn, .unit-rm, .brd-add, .stp-btn, .stp-field, .err-btn,
-  .pk-sw, .pk-list-item, .pk-name,
+  .pk-sw, .pk-list-item, .pk-name, .pk-bound-amt,
   .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
   .sh-code, .sh-paste,
   .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn{
@@ -5050,7 +5088,7 @@
   @media (prefers-reduced-motion: reduce){
     html{scroll-behavior:auto}
     .brd-btn, .unit-rm, .brd-add, .stp-btn, .stp-field, .err-btn,
-    .pk-sw, .pk-list-item, .pk-name,
+    .pk-sw, .pk-list-item, .pk-name, .pk-bound-amt,
     .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
     .sh-code, .sh-paste,
     .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
@@ -5782,6 +5820,69 @@
   <div class="pk-group">
     <h3 class="pk-legend" id="tok-pick-name-label">Name</h3>
     <input class="pk-name" id="tok-pick-name" type="text" autocomplete="off" maxlength="24" aria-labelledby="tok-pick-name-label" data-k="pk/name">
+  </div>
+
+  <!-- D-35, THE AUTHORING HALF: THE RANGE. "Add a property for min and max of a
+       token on a unit or side" — the developer's second sentence, and this is
+       where a student writes it. Plan 05-D35a made it data on the type and
+       spent it at eleven write paths; nothing rendered a word about it until
+       here.
+
+       IT IS ABOVE THE APPEARANCE GROUPS AND BELOW THE NAME, and the order is
+       the dialog's own subject split rather than a preference: a name and a
+       range are RULES about the type, and the preview, the shape, the colour
+       and the emoji are marks on a projector. The dialog's note at the top says
+       as much about the second group; this keeps the first group together.
+
+       TWO FIELDS, NOT ONE, AND NEITHER IS ONE OF THE BOARD'S STEPPER FIELDS.
+       #tok-pick-name's comment gives the reason in full and it holds twice
+       over here: isField() keys on the stepper input's own class, and a node
+       wearing that class in this dialog would be read by a handler that knows
+       nothing about which end of a bound it is holding — it would dispatch
+       setTally against a token id it read off a data-amt this field does not
+       carry. They are told apart by their CLASS, exactly as #tok-pick-name and
+       .ae-amt are, and the class is in the stub page too.
+
+       BOTH ARE STATIC MARKUP, for the reason every other free-typed field in
+       this document is (D-19): the dialog rides SYNC_HOOKS and repaints on
+       every frame while it is open, and a number a student is halfway through
+       typing is exactly the text a rebuilt node throws away.
+
+       maxlength IS ERGONOMIC ONLY, which is the same sentence #tok-pick-name
+       carries: it stops a student typing a fourth digit and then being told
+       off. The guard is App.ops.setTokenBounds, which REFUSES a bound outside
+       [0, MAX_ALLOC] and a least above its most rather than clamping either —
+       because writing a different rule from the one the student typed is the
+       failure this whole file is built to avoid.
+
+       #tok-pick-bounds-said IS A READING AND NOT A REFUSAL, and it ships hidden
+       and empty for the reason every reserved line in this document does.
+       [S06.2] writes it from state on every repaint, so it says what the pair
+       IS — including when the pair is the 0-to-99 the board ships with, which
+       is a range a student authored nothing for and which would otherwise read
+       as an empty control. Its own [hidden] rule is .pk-warn's and the reason
+       is .pk-warn's.
+
+       Same three-part rule as every id in this document: the id, the KNOWN_IDS
+       entry and the stub node arrive together, and the run fails in BOTH
+       directions if one of the three is missing. No new <dialog>, so
+       DIALOG_ROOTS is untouched. -->
+  <div class="pk-group">
+    <div class="pk-bounds-head">
+      <h3 class="pk-legend" id="tok-pick-bounds-label">Range</h3>
+      <p class="pk-note pk-bounds-note">The least and the most of this type any one number on the board may hold.</p>
+    </div>
+    <div class="pk-bounds" role="group" aria-labelledby="tok-pick-bounds-label">
+      <span class="pk-bound">
+        <span class="pk-bound-lbl">Least</span>
+        <input class="pk-bound-amt" id="tok-pick-min" type="text" autocomplete="off" maxlength="3" aria-label="The least of this type a number on the board may hold" data-pk-bound="min" data-k="pk/min">
+      </span>
+      <span class="pk-bound">
+        <span class="pk-bound-lbl">Most</span>
+        <input class="pk-bound-amt" id="tok-pick-max" type="text" autocomplete="off" maxlength="3" aria-label="The most of this type a number on the board may hold" data-pk-bound="max" data-k="pk/max">
+      </span>
+    </div>
+    <p class="pk-warn pk-bounds-said" id="tok-pick-bounds-said" hidden></p>
   </div>
 
   <div class="pk-preview-line">
@@ -15329,7 +15430,15 @@ App.render = (function () {
     var vocab = state.build.tokens;
     return JSON.stringify([tokenId, Object.keys(vocab).map(function (id) {
       var rec = vocab[id];
-      return [id, rec.name, rec.shape, rec.color, rec.glyph, rec.scope];
+      // D-35: THE PAIR JOINS THE RECORD HERE OR THE DIALOG NEVER REPAINTS ON A
+      // BOUNDS EDIT. Every field this fingerprint leaves out is a field the
+      // surface cannot show moving — which is the defect syncPicker's own
+      // paragraph records about the selection marks and an undo, arriving on a
+      // second property. Read through the same defensive reader every other
+      // caller in this file spends, because a vocabulary reaches this function
+      // from a pasted build code as readily as from an op.
+      var b = App.ops.tokenBounds(vocab, id);
+      return [id, rec.name, rec.shape, rec.color, rec.glyph, rec.scope, b.min, b.max];
     }), namedByText(state, tokenId)]);
   }
 
@@ -15399,6 +15508,61 @@ App.render = (function () {
     return labelFor(state, tokenId) + ' is named by ' + names.join(', ') + '. '
       + 'Removing it will leave ' + (names.length === 1 ? 'that action' : 'those actions')
       + ' without a term.';
+  }
+
+  /* D-35: THE PAIR ON SCREEN, AND THE ONE RULE THIS FIELD SHARES WITH EVERY
+     OTHER FREE-TYPED FIELD IN THE DOCUMENT — it is NEVER WRITTEN WHILE IT
+     HOLDS FOCUS. That is setValue's rule (D-19) applied to a bound, and it is
+     the whole reason both fields are static markup: the dialog repaints on
+     every frame while it is open, and a student halfway through typing "30"
+     must not be handed "99" back after the "3".
+
+     dataset.was moves with the displayed value for showFieldValue's stated
+     reason: it is what an Escape puts back and what the commit compares
+     against, so left stale it would restore a bound state no longer holds. */
+  function showBound(id, n) {
+    var field = document.getElementById(id);
+    if (!field || field === document.activeElement) { return; }
+    field.value = String(n);
+    field.dataset.was = field.value;
+  }
+
+  /* WHAT THE PAIR MEANS, SAID ON THE SURFACE, and it is the region's sentence
+     rather than the op's for the division of labour every other reading on this
+     page keeps: App.ops.tokenBounds answers the numbers and this writes the
+     words around them.
+
+     THE SHIPPED PAIR READS AS WHAT IT IS. Every board starts with every type
+     bounded to 0 and MAX_ALLOC — which is exactly the pair int() has enforced
+     since Phase 1, and which is why plan 05-D35a's schema change moved no
+     number on any board. Without this line a student opening a type they have
+     authored nothing on would read two boxes of digits with no way to tell an
+     authored range from the one the artifact starts from, so the second branch
+     says which it is.
+
+     THE OTHER BRANCH SAYS THE ONE THING A STUDENT CANNOT SEE FROM THE PAIR:
+     bounds clamp at WRITE time and do not reach back. setTokenBounds' own
+     paragraph carries that decision at length; this is the half of it a
+     student standing in front of a tightened range needs.
+
+     ARITHMETIC AND FACTUAL, and neither branch says whether the range is a
+     range worth having. That ruling is the exercise, and it is the same line
+     namedByText below holds one control away.
+
+     IT NAMES NO TYPE, deliberately. The dialog's own heading two groups up
+     already says which type is open, and a student's word in here would need
+     an exemption channel to keep it out of PROJ-06's rendered-page scan —
+     which is a marker earned by a sentence that has to carry the word, and
+     this one does not. */
+  function boundsText(state, tokenId) {
+    var b = App.ops.tokenBounds(state.build.tokens, tokenId);
+    var said = 'Every place that writes a number of this type keeps it between '
+      + b.min + ' and ' + b.max + '.';
+    if (b.min === 0 && b.max === App.ops.MAX_ALLOC) {
+      return said + ' That is the range every board in this artifact starts from.';
+    }
+    return said + ' A number already on the board stays where it is until '
+      + 'something writes it again.';
   }
 
   // The one entry point, and the argument is deliberate: WHICH picker is open
@@ -15473,6 +15637,17 @@ App.render = (function () {
       // Written in the same pass as the three above and from the same state,
       // so the line and the button can never describe two different boards.
       setText('tok-pick-names', namedByText(state, id));
+
+      // D-35's pair, written in the SAME pass and from the SAME state as
+      // everything above it, for the reason that pass exists: two writes of one
+      // board on two different triggers is how a surface starts describing two
+      // boards. Both fields go through showBound so neither is written while
+      // the student is typing in it, and the sentence under them is re-derived
+      // rather than remembered, so an undo of a bounds edit moves it too.
+      var bounds = App.ops.tokenBounds(vocab, id);
+      showBound('tok-pick-min', bounds.min);
+      showBound('tok-pick-max', bounds.max);
+      setText('tok-pick-bounds-said', boundsText(state, id));
 
       fillGrid(document.getElementById('tok-pick-shapes'), id, 'shape',
         App.data.SHAPES, base.shape, base, function (v) { return SHAPE_NAMES[v] || v; });
@@ -23598,11 +23773,103 @@ App.interactions = (function () {
     el.dataset.was = el.value;
   }
 
+  /* ---- D-35: the range pair. The SAME four small functions the name field
+         above is made of, in the same order and for the same reasons, because
+         a bound is a second free-typed field on one dialog and two contracts
+         for "type something here and press Enter" is one more thing for a
+         student to learn. What differs is exactly two things, and both are
+         written down rather than left to be read out of the code:
+
+           1. IT PARSES BEFORE IT DISPATCHES, and the name field does not.
+              A name is text and the op takes it as typed; a bound is a whole
+              number, and Number()/parseInt() fail SILENTLY on '', '1e3',
+              '0x5', 'Infinity' and '5.5' — [S07.1]'s FIELD comment measures
+              all five. The regex here is that one with the sign arm removed:
+              a +5 on a NAME means nothing, and a +5 on a BOUND would mean
+              "raise the ceiling by five", which is an adjustment nobody asked
+              for and which would need a second op to express.
+           2. THE END IS READ OFF THE FIELD'S OWN data-pk-bound, never off the
+              dialog, for the reason commitName states at length about the
+              TYPE: every control in this picker moves the selection on
+              pointerdown, which the spec puts ahead of the focus change, so
+              the focusout that runs the commit arrives with the dialog's
+              attributes already pointing somewhere else. The end and the type
+              both travel with the pending text.
+
+         NOTHING HERE CLAMPS. App.ops.setTokenBounds refuses a bound outside
+         [0, MAX_ALLOC] and refuses a least above its most, and it refuses them
+         with sentences a student can read. A page that quietly cut 200 down to
+         99 would be writing a rule the student did not type, which is the one
+         failure the op's own paragraph says it exists to prevent — so the page
+         hands over what was typed and lets the refusal be heard. ---- */
+
+  function isBoundField(el) {
+    return !!el && !!el.classList && typeof el.classList.contains === 'function'
+      && el.classList.contains('pk-bound-amt');
+  }
+
+  // [S07.1]'s FIELD with the sign arm gone, and \d without the u flag for its
+  // stated reason: ASCII-only is what is wanted. {1,3} caps at 999 and the op
+  // then refuses anything above MAX_ALLOC by name.
+  var PK_BOUND = /^\d{1,3}$/;
+
+  function revertBound(el) {
+    if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
+  }
+
+  // `loud` is Enter, exactly as it is for the name field: an explicit request
+  // earns a readable refusal, and a student clicking away from a half-typed
+  // figure is not an error, so the recorded text goes back and no panel opens.
+  //
+  // The value-versus-was test is commitName's and carries its measured reason:
+  // without it, typing a bound, pressing Enter and then clicking away applies
+  // the same write twice.
+  function commitBound(el, loud) {
+    if (el.value === el.dataset.was) { return; }
+    var target = el.dataset.forTok;
+    // Nothing recorded means nothing may be spent — commitName's rule, and a
+    // bound with no type behind it goes back rather than being guessed at.
+    if (typeof target !== 'string' || target === '') { revertBound(el); return; }
+    var typed = String(el.value).trim();
+    if (!PK_BOUND.test(typed)) {
+      revertBound(el);
+      // The sentence is the PAGE's here and only here, because nothing has
+      // reached an op yet: the op's own refusals are about a NUMBER that is out
+      // of range or upside down, and this one is about text that is not a
+      // number at all. parseField's own sentence is the model for it.
+      if (loud) {
+        throw new Error('A range is written in whole numbers between 0 and '
+          + App.ops.MAX_ALLOC + ', and "' + String(el.value) + '" is not one.');
+      }
+      return;
+    }
+    var payload = { tokenId: target };
+    // One end per write, and the other left UNDEFINED on purpose: an end left
+    // out means "leave that end alone", which is the contract setTokenBounds
+    // states and what lets one router payload write either half.
+    payload[el.dataset.pkBound === 'min' ? 'min' : 'max'] = Number(typed);
+    try {
+      App.ops.dispatch('setTokenBounds', payload);
+    } catch (refused) {
+      revertBound(el);
+      if (loud) { throw refused; }
+      return;
+    }
+    // The baseline moves with the committed figure or both of them start
+    // lying — showFieldValue's rule, arriving on a third field.
+    el.dataset.was = el.value;
+  }
+
   // Two facts, recorded together, because they are only useful together: what
   // the text was when the student arrived, and which type they arrived on.
+  //
+  // D-35 GIVES THE SECOND FIELD THE SAME PAIR, and the two arms are written
+  // out rather than folded into one predicate: they record the same two
+  // datasets today, and a later change that gives one of them a third fact has
+  // to add it to one arm rather than to both surfaces at once.
   function onPickerFocusIn(e) {
     var el = e.target;
-    if (!isNameField(el)) { return; }
+    if (!isNameField(el) && !isBoundField(el)) { return; }
     el.dataset.was = el.value;
     var dlg = pickerDialog();
     el.dataset.forTok = (dlg === null) ? '' : pickedTok(dlg);
@@ -23610,6 +23877,7 @@ App.interactions = (function () {
 
   function onPickerFocusOut(e) {
     var el = e.target;
+    if (isBoundField(el)) { commitBound(el, false); return; }
     if (!isNameField(el)) { return; }
     commitName(el, false);
   }
@@ -23644,6 +23912,21 @@ App.interactions = (function () {
     }
 
     var el = e.target;
+
+    // D-35's pair, ahead of the name arm and never folded into it: the two
+    // fields commit through different functions, so a single arm reading
+    // "either field" would have to branch inside every key case rather than
+    // once here.
+    if (isBoundField(el)) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        commitBound(el, true);
+        return;
+      }
+      if (e.key === 'Escape') { revertBound(el); }
+      return;
+    }
+
     if (!isNameField(el)) { return; }
 
     if (e.key === 'Enter') {
@@ -23764,8 +24047,14 @@ App.interactions = (function () {
     // showModal() and close() and no close-request behaviour at all, so this
     // path cannot be driven without a browser. It is carried to the phase's
     // closing rehearsal as a numbered check.
+    //
+    // D-35 GIVES THE RANGE PAIR THE SAME TREATMENT, and it is the same
+    // decision rather than a second one: Escape inside a field a student is
+    // typing in puts the recorded figure back without taking the surface away
+    // underneath them, and Escape anywhere else in the picker still closes it.
     dlg.addEventListener('cancel', App.boot.wrap('picker close request', function (e) {
       var el = (typeof document === 'undefined') ? null : document.activeElement;
+      if (isBoundField(el)) { e.preventDefault(); revertBound(el); return; }
       if (!isNameField(el)) { return; }
       e.preventDefault();
       revertName(el);

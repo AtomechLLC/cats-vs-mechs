@@ -714,6 +714,25 @@ function makeStubDom() {
     'tok-pick-list', 'tok-pick-list-label',
     'tok-pick-name', 'tok-pick-name-label',
     'tok-pick-new-unit', 'tok-pick-new-side', 'tok-pick-remove',
+    // plan 05-D35b - D-35's authoring half on this dialog: the range a student
+    // writes on a token type. FOUR ids and no more - the group's legend, the
+    // two fields, and the line under them that says what the pair means.
+    //
+    // Both fields are STATIC in the shell and static here, which is the whole
+    // point of them: [S06.2] skips a field while it holds focus rather than
+    // rebuilding it, so a half-typed figure survives the per-frame repaint
+    // (D-19). Their CLASS is not decoration either - [S07.2] tells a bound
+    // field apart by .pk-bound-amt exactly as it tells the name field apart by
+    // .pk-name, and without it every keystroke, Enter, Escape and blur handler
+    // declines on its first line and a check driving them reads green over a
+    // field nothing is listening to.
+    //
+    // Same three-part rule as every entry above: the id, this entry and the
+    // stub node arrive together, and section 5b fails the run in BOTH
+    // directions if one of the three is missing. No new <dialog>, so
+    // DIALOG_ROOTS still walks four roots.
+    'tok-pick-bounds-label', 'tok-pick-min', 'tok-pick-max',
+    'tok-pick-bounds-said',
     // plan 03-05 — the reference band, full width below both columns. The
     // node is built a dozen lines below in the same change: this list and the
     // stub page disagreeing in EITHER direction fails the run at section 5b.
@@ -1465,6 +1484,39 @@ function makeStubDom() {
   nameField.className = 'pk-name';
   nameField.dataset.k = 'pk/name';
   nameGroup.appendChild(nameField);
+
+  // D-35's range pair, in the same shape and for the same reasons as the name
+  // field above: static, classed, and carrying the dataset spellings the shell
+  // carries. data-pk-bound is what [S07.2] reads to decide WHICH end a commit
+  // is writing, so a typo here is a green run over a field that writes the
+  // wrong half of the pair.
+  const boundsGroup = createElement('div');
+  picker.appendChild(boundsGroup);
+  boundsGroup.appendChild(idNode('tok-pick-bounds-label', 'h3'));
+  const boundsRow = createElement('div');
+  boundsRow.className = 'pk-bounds';
+  boundsGroup.appendChild(boundsRow);
+  [['tok-pick-min', 'min'], ['tok-pick-max', 'max']].forEach(([id, end]) => {
+    const wrap = createElement('span');
+    wrap.className = 'pk-bound';
+    const lbl = createElement('span');
+    lbl.className = 'pk-bound-lbl';
+    wrap.appendChild(lbl);
+    const f = idNode(id, 'input');
+    f.type = 'text';
+    f.className = 'pk-bound-amt';
+    f.dataset.pkBound = end;
+    f.dataset.k = 'pk/' + end;
+    wrap.appendChild(f);
+    boundsRow.appendChild(wrap);
+  });
+  // The reading under the pair. Empty and hidden here exactly as it ships in
+  // the shell, and [S06.2] writes it on every repaint - the same reservation
+  // #tok-pick-names above already ships under.
+  const boundsSaid = idNode('tok-pick-bounds-said', 'p');
+  boundsSaid.className = 'pk-warn pk-bounds-said';
+  boundsSaid.hidden = true;
+  boundsGroup.appendChild(boundsSaid);
 
   const previewLine = createElement('div');
   picker.appendChild(previewLine);
@@ -15325,6 +15377,180 @@ check(
     + ' | panel quiet=' + d35FightQuiet
 );
 
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+/* 115. D-35 PART TWO, THE FIRST SURFACE: THE RANGE ON THE TOKEN EDITOR, DRIVEN
+   THROUGH THE REAL FIELDS.
+
+   Part one shipped `min` and `max` as data and spent them at eleven write
+   paths, and check 114 above is explicit that it renders nothing. This is where
+   a student writes one. Four things are asserted and each of them is a
+   different way to ship this half-done:
+
+     1. THE SHIPPED PAIR READS AS WHAT IT IS. A board nobody has authored a
+        range on shows 0 and 99 and a sentence saying that is the range every
+        board starts from — because two boxes of digits with no sentence under
+        them cannot tell an authored range apart from the one the artifact
+        begins with, and the second branch of that sentence is what says which.
+     2. A BOUND COMMITS THROUGH THE REAL FIELD. Enter on the field writes the
+        op, the op moves the type, and the SENTENCE moves with it onto its
+        other branch — which is the clause that catches a field wired to an op
+        with the reading left describing the board before it.
+     3. A REFUSED BOUND IS HEARD, AND THE FIELD GOES BACK. Three refusals from
+        two different places on purpose: a least above its most and a ceiling
+        past MAX_ALLOC are [S05]'s, refused BY NAME with the type's own label
+        in the first; text that is not a number at all is the PAGE's, because
+        nothing has reached an op yet. All three put the recorded figure back
+        into the field and none of them moves the board.
+     4. A QUIET LEAVE IS NOT AN ERROR. A student clicking away from a
+        half-typed figure gets the recorded figure back and NO panel, which is
+        the name field's shipped contract one field over.
+
+   AND NOTHING IS CLAMPED ANYWHERE. 200 into the ceiling is REFUSED rather than
+   quietly cut to 99 — setTokenBounds' own paragraph says why at length, and a
+   page that cut it would be writing a rule the student did not type. That is
+   read as the board NOT MOVING, because a clamp and a refusal both leave a
+   field showing the old figure and only the board can tell them apart. */
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+const pkMin = dom.byId['tok-pick-min'];
+const pkMax = dom.byId['tok-pick-max'];
+const pkBoundSaid = dom.byId['tok-pick-bounds-said'];
+function bdSaid() { return pkBoundSaid ? pkBoundSaid.textContent : '(no node)'; }
+function bdKey(f, key) { f.dispatchEvent(dom.event('keydown', { key: key })); }
+function bdEnter(f, typed) {
+  f.focus();
+  f.value = typed;
+  bdKey(f, 'Enter');
+  A.state.flush();
+}
+function hpBounds() {
+  return A.ops.tokenBounds(A.state.get().build.tokens, 'hp');
+}
+function bdPair() { return [pkMin.value, pkMax.value].join('/'); }
+
+press(openBtn);
+release(openBtn);
+A.state.flush();
+
+const bdShippedPair = bdPair();
+const bdShippedSaid = bdSaid();
+const bdShippedHidden = pkBoundSaid.hidden;
+
+// 2. the ceiling, written through the field.
+bdEnter(pkMax, '4');
+const bdAfterPair = bdPair();
+const bdAfterState = hpBounds().max;
+const bdAfterSaid = bdSaid();
+const bdAfterQuiet = errPanel.hidden === true;
+// The clamp is at WRITE time, so the board's own numbers have not moved and
+// the NEXT write is the one that obeys — plan 05-D35a's decision, read here
+// from the surface that authored it.
+A.ops.setUnitMaxHp('cats', 'c1', 9);
+A.state.flush();
+const bdWriteObeys = A.state.get().build.cats.units[0].maxHp;
+
+// 3a. a least above its most — [S05]'s refusal, by name.
+pkMin.blur();
+A.state.flush();
+bdEnter(pkMin, '7');
+const bdUpsidePair = bdPair();
+const bdUpsideState = hpBounds().min;
+const bdUpsideSaid = String(errMessage.textContent || '');
+const bdUpsideNamed = bdUpsideSaid.indexOf(
+  A.render.labelFor(A.state.get(), 'hp')) !== -1;
+clearPanel();
+
+// 3b. a ceiling past MAX_ALLOC — refused, never cut.
+pkMax.blur();
+A.state.flush();
+bdEnter(pkMax, '200');
+const bdOverPair = bdPair();
+const bdOverState = hpBounds().max;
+const bdOverLoud = errPanel.hidden === false;
+clearPanel();
+
+// 3c. text that is not a number at all — the PAGE's own sentence, because
+// nothing has reached an op yet.
+pkMax.blur();
+A.state.flush();
+bdEnter(pkMax, 'abc');
+const bdJunkPair = bdPair();
+const bdJunkState = hpBounds().max;
+const bdJunkLoud = errPanel.hidden === false;
+clearPanel();
+
+// 4. the quiet leave.
+pkMax.blur();
+A.state.flush();
+pkMax.focus();
+pkMax.value = 'zzz';
+pkMax.dispatchEvent(dom.event('focusout'));
+A.state.flush();
+const bdQuietPair = bdPair();
+const bdQuietState = hpBounds().max;
+const bdQuietPanel = errPanel.hidden === true;
+
+const bdWords = harvestInto(dlg, [], '#tok-picker');
+const bdVerdicts = verdictHitsIn(bdWords);
+
+check(
+  '115. D-35 PART TWO, SURFACE ONE: A STUDENT WRITES A TOKEN TYPE\'S RANGE '
+    + 'THROUGH TWO REAL FIELDS ON THE TOKEN EDITOR, AND EVERY REFUSAL IS '
+    + 'HEARD. The shipped pair reads as WHAT IT IS — 0 and 99 with a sentence '
+    + 'saying that is the range every board in this artifact starts from — '
+    + 'because two boxes of digits and no sentence cannot tell an authored '
+    + 'range apart from the one the file begins with. Enter on the ceiling '
+    + 'field writes the op and the sentence MOVES ONTO ITS OTHER BRANCH, which '
+    + 'is the clause that catches a field wired to an op with the reading left '
+    + 'describing the board before it. THREE REFUSALS FROM TWO PLACES: a least '
+    + 'above its most is [S05]\'s and carries the type\'s own label; a ceiling '
+    + 'of 200 is [S05]\'s too and is REFUSED RATHER THAN CUT TO 99, read as '
+    + 'the board not moving because a clamp and a refusal leave the same field '
+    + 'showing the same figure; and text that is not a number at all is the '
+    + 'PAGE\'s sentence, because nothing has reached an op yet. A QUIET LEAVE '
+    + 'IS NOT AN ERROR — the recorded figure comes back and no panel opens, '
+    + 'which is the name field\'s shipped contract one field over. AND THE '
+    + 'CLAMP IS AT WRITE TIME: a health written AFTER the ceiling dropped to '
+    + 'four lands on four, which is the half of plan 05-D35a\'s decision a '
+    + 'student can actually see. The dialog harvest rides with it, because a '
+    + 'surface that has just grown a sentence about a cap is exactly where a '
+    + 'helpful judgement would be written',
+  bdShippedPair === '0/99'
+    && bdShippedHidden === false
+    && bdShippedSaid.indexOf('starts from') !== -1
+    && bdAfterPair === '0/4' && bdAfterState === 4
+    && bdAfterSaid.indexOf('starts from') === -1
+    && bdAfterSaid.indexOf('between 0 and 4') !== -1
+    && bdAfterQuiet === true
+    && bdWriteObeys === 4
+    && bdUpsidePair === '0/4' && bdUpsideState === 0 && bdUpsideNamed === true
+    && bdOverPair === '0/4' && bdOverState === 4 && bdOverLoud === true
+    && bdJunkPair === '0/4' && bdJunkState === 4 && bdJunkLoud === true
+    && bdQuietPair === '0/4' && bdQuietState === 4 && bdQuietPanel === true
+    && bdWords.length > 0 && bdVerdicts.length === 0,
+  'shipped=' + bdShippedPair + ' said=' + JSON.stringify(bdShippedSaid)
+    + ' | after Enter 4: ' + bdAfterPair + ' state=' + bdAfterState
+    + ' said=' + JSON.stringify(bdAfterSaid)
+    + ' | a health written afterwards lands on ' + bdWriteObeys
+    + ' | least 7: ' + bdUpsidePair + ' state=' + bdUpsideState
+    + ' named=' + bdUpsideNamed + ' panel says ' + JSON.stringify(bdUpsideSaid)
+    + ' | most 200: ' + bdOverPair + ' state=' + bdOverState + ' loud=' + bdOverLoud
+    + ' | not a number: ' + bdJunkPair + ' state=' + bdJunkState + ' loud=' + bdJunkLoud
+    + ' | quiet leave: ' + bdQuietPair + ' state=' + bdQuietState
+    + ' panel hidden=' + bdQuietPanel
+    + ' | harvest=' + bdWords.length + ' strings, verdict words: '
+    + (bdVerdicts.join(', ') || 'none')
+);
+
+pkMax.blur();
+if (dlg.open === true) { dlg.close(); }
 A.ops.resetToDefaults();
 A.state.invalidate({ structural: true });
 A.state.flush();
