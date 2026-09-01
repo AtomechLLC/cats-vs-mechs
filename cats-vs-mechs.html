@@ -23745,13 +23745,21 @@ App.render = (function () {
   function rrFillRows(state, list) {
     var root = document.getElementById('rr-list');
     if (!root) { return true; }
-    var shown = Math.min(list.length, App.data.MAX_ROUND_RULES);
     var whole = true;
     var rows = root.querySelectorAll('.rr-rule');
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
       var slot = Number(row.dataset.rrSlot);
-      var rule = (slot < shown) ? list[slot] : null;
+      /* THE RULE DECIDES WHETHER THE ROW IS THERE AND THERE IS NO COUNT IN
+         BETWEEN, which is what makes the dangling extra row unreachable rather
+         than merely not asked for. A `shown` variable stood here, and PROBE DE
+         is why it does not: set back to `list.length + 1` it changed NOTHING,
+         because slot === list.length reads undefined out of the list and the
+         next line hides the row whatever the count said. A variable that
+         cannot change the answer is a variable the next reader has to prove
+         cannot change the answer, and the cap is already the ROW COUNT of the
+         static markup, asserted against the constant in both pages. */
+      var rule = list[slot];
       // A slot inside the count whose record this notation cannot read draws
       // nothing rather than half a row — symRoundParts' own ruling, arriving
       // here as the condition on the whole row, because a row with choosers on

@@ -15966,6 +15966,20 @@ const rrAfterClear = rrList().length;
 const rrClearSaid = rrSaidNode.textContent;
 const rrClearHidden = rrSaidNode.hidden;
 const rrClearAddOn = rrAddBtn.disabled === false;
+/* AND THE ROW THAT WENT AWAY HOLDS NOTHING, which PROBE DI is why this exists.
+   The surplus rows are static markup, so hiding one leaves it holding the
+   reading and the chooser pills of whatever rule last stood in it - and
+   NOTHING ON THIS PAGE OR IN EITHER BROWSER COULD SEE THAT. `hidden` takes a
+   node out of the picture and out of the accessibility tree, so a board that
+   went from eight rules to three was carrying five rows of live buttons behind
+   an attribute and every reading in this repository reported clean. It was not
+   harmless: check 117 was PRESSING one of those stale pills to author its
+   rule, which is a drive through a control no student can reach. Emptied, and
+   asserted here, so a rewrite that stops emptying them reddens. */
+const rrGoneRow = rrRow(7);
+const rrGoneHidden = rrGoneRow.hidden;
+const rrGonePills = rrGoneRow.querySelectorAll('.rr-pill').length;
+const rrGoneRead = rrDeepText(rrGoneRow.querySelector('.rr-read'));
 
 // THE PARTITION, off the page.
 const rrActs = rrRoot.querySelectorAll('[data-act]').length;
@@ -16038,8 +16052,13 @@ check(
     + 'press on the disabled control writes NOTHING - a pointerdown reaches a '
     + 'disabled button in a browser and this listener is bound to pointerdown, '
     + 'so that guard is the artifact\'s and is driven rather than assumed. '
-    + 'Then the row\'s own Remove takes one back off and the button comes '
-    + 'back. THE PLACEMENT IS ASSERTED AND NOT ASSUMED: the fight\'s own block '
+    + 'Then the row\'s own Remove takes one back off, the button comes back, AND '
+    + 'THE ROW THAT WENT AWAY HOLDS NOTHING - PROBE DI: the surplus rows are '
+    + 'static markup, so hiding one leaves it holding the pills of whatever '
+    + 'rule last stood in it, invisible on screen and absent from the '
+    + 'accessibility tree, which is why nothing in this repository could see '
+    + 'that check 117 was pressing one of them to author its rule. The '
+    + 'button comes '    + 'back. THE PLACEMENT IS ASSERTED AND NOT ASSUMED: the fight\'s own block '
     + 'sits inside the round-STATE area and carries ZERO buttons and ZERO '
     + 'data-rr, because D-31 makes that area a reading of what IS and an '
     + 'editor in it would be that line crossed for a second feature. THE TWO '
@@ -16075,6 +16094,7 @@ check(
     && rrCapAddOff === true && rrPastCap === 8
     && rrAfterClear === 7 && rrClearHidden === true && rrClearSaid === ''
     && rrClearAddOn === true
+    && rrGoneHidden === true && rrGonePills === 0 && rrGoneRead === ''
     && rrActs === 0 && rrControls > 0
     && rrRootListeners >= 5 && rrRootRaw.length === 0
     && rrFightInState === true && rrFightControls === 0
@@ -16103,6 +16123,8 @@ check(
     + ', a press on the disabled add left ' + rrPastCap
     + ' | after Remove on row 7: ' + rrAfterClear + ' rules, line hidden='
     + rrClearHidden + ', add back on=' + rrClearAddOn
+    + ' | the row that went away: hidden=' + rrGoneHidden
+    + ' pills in it=' + rrGonePills + ' reading=' + JSON.stringify(rrGoneRead)
     + ' | #roundrules data-act=' + rrActs + ' data-rr=' + rrControls
     + ' listeners=' + rrRootListeners
     + ' bound outside the boundary: ' + (rrRootRaw.join(', ') || 'none')
