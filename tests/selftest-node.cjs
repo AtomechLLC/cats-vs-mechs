@@ -915,7 +915,13 @@ function makeStubDom() {
     // three-part rule as every entry above: the id, this entry and the stub
     // node arrive together, and section 5b fails the run in BOTH directions if
     // one of the three is missing.
-    'roundrules', 'rr-head', 'rr-list', 'rr-said'
+    //
+    // FOUR BECAME FIVE UNDER D-35c and the fifth is the ADD button. It is a
+    // singleton exactly as #rr-said is — there is one of it and the code that
+    // disables it says so in one lookup — which is the distinction the
+    // paragraph above draws: eight of a kind are addressed by a data attribute,
+    // one of a kind is addressed by its id.
+    'roundrules', 'rr-head', 'rr-list', 'rr-said', 'rr-add'
   ];
 
   const byId = Object.create(null);
@@ -1587,6 +1593,23 @@ function makeStubDom() {
   rrList.className = 'rr-list';
   rrList.setAttribute('role', 'group');
   roundRules.appendChild(rrList);
+  /* D-35c's COLUMN HEADER. It is markup and not a class on the first row, so
+     it is built here too — and it matters to the walk rather than only to the
+     eye: the hairline between two rules is written `.rr-rule + .rr-rule`, and
+     the header being a NON-.rr-rule sibling is what keeps the first rule from
+     drawing one. Nothing in this page has a stylesheet, but a stub whose child
+     order differs from the shell's is a stub the next structural check reads
+     the wrong answer off. */
+  const rrCols = createElement('div');
+  rrCols.className = 'rr-cols';
+  rrList.appendChild(rrCols);
+  ['The rule', 'Who it reaches', 'Which token', 'How much', ''].forEach((word) => {
+    const col = createElement('span');
+    col.className = 'rr-cell rr-col';
+    col.textContent = word;
+    rrCols.appendChild(col);
+  });
+
   [0, 1, 2, 3, 4, 5, 6, 7].forEach((slot) => {
     const row = createElement('div');
     row.className = 'rr-rule';
@@ -1594,22 +1617,55 @@ function makeStubDom() {
     row.hidden = true;
     ['rr-read', 'rr-whos', 'rr-toks'].forEach((cls) => {
       const box = createElement('div');
-      box.className = cls;
+      box.className = 'rr-cell ' + cls;
       row.appendChild(box);
     });
+    // The amount and the remove each sit in a CELL of their own, which is the
+    // shell's spelling and is load-bearing there: [C17] hangs the row's
+    // hairline and its column gap off the cells, and a control that WAS the
+    // grid item would carry both on its own box. Copied rather than flattened,
+    // for this block's own stated warning about spellings.
+    const amtCell = createElement('div');
+    amtCell.className = 'rr-cell rr-amt-cell';
     const amt = createElement('input');
     amt.type = 'text';
     amt.className = 'rr-amt';
     amt.dataset.rrSlot = String(slot);
     amt.dataset.k = 'rr/amt/' + slot;
-    row.appendChild(amt);
+    amtCell.appendChild(amt);
+    row.appendChild(amtCell);
+
+    const rmCell = createElement('div');
+    rmCell.className = 'rr-cell rr-rm-cell';
+    const rm = createElement('button');
+    rm.type = 'button';
+    rm.className = 'rr-rm';
+    rm.textContent = 'Remove';
+    rm.dataset.rr = 'remove';
+    rm.dataset.rrSlot = String(slot);
+    rm.dataset.k = 'rr/rm/' + slot;
+    rmCell.appendChild(rm);
+    row.appendChild(rmCell);
+
     rrList.appendChild(row);
   });
+
+  const rrFoot = createElement('div');
+  rrFoot.className = 'rr-foot';
+  roundRules.appendChild(rrFoot);
+
+  const rrAdd = idNode('rr-add', 'button');
+  rrAdd.type = 'button';
+  rrAdd.className = 'rr-add';
+  rrAdd.textContent = '+ Add a round rule';
+  rrAdd.dataset.rr = 'add';
+  rrAdd.dataset.k = 'rr/add';
+  rrFoot.appendChild(rrAdd);
 
   const rrSaid = idNode('rr-said', 'p');
   rrSaid.className = 'rr-said';
   rrSaid.hidden = true;
-  roundRules.appendChild(rrSaid);
+  rrFoot.appendChild(rrSaid);
 
   /* ---- plan 03.1-05's action editor, hand-made from the static markup ------
      Exactly the three members beyond a plain element the picker above has, and
@@ -15794,21 +15850,59 @@ function rrList() {
   return Array.isArray(r) ? r : [];
 }
 
-// The shipped board: two rules, so two filled rows plus one empty slot.
+// The shipped board: two rules, so two rows and NO empty slot. D-35c removed
+// the empty row - it drew a token strip with no party chooser, no amount and
+// no reading, which the developer's own screenshot of this block shows hanging
+// under two complete rules with nothing to say what it was.
 const rrShellRows = (html.match(/class="rr-rule"/g) || []).length;
 const rrStubRows = rrRows().length;
 const rrShownAtRest = rrShownRows();
 const rrFirstSaying = rrSaying(rrRow(0).querySelector('.rr-read'));
-const rrEmptyHasNoWho = rrRow(2).querySelector('.rr-whos').children.length;
-const rrEmptyHasToks = rrRow(2).querySelector('.rr-toks').children.length > 0;
-const rrEmptyAmtHidden = rrAmount(2).hidden;
 
-// A rule of the student's own, started by pressing a TOKEN on the empty slot.
+/* THE PARTY CHOOSER ANSWERS EXACTLY ONE QUESTION NOW, and both halves are
+   read. It carries one pill per entry of the exported allowlist and NOT ONE
+   MORE - the extra was "None", first in the strip, the same width and the same
+   shape as the four party words beside it, and the only way to take a rule
+   away. And no pill in the whole region carries an EMPTY party, which is the
+   clause that catches it coming back under another word: the removal is a
+   button now and the emptying value reaches the op from there. */
+function rrWhoPills(slot) {
+  return rrRow(slot).querySelector('.rr-whos').children;
+}
+const rrWhoCount = rrWhoPills(0).length;
+const rrEmptyWhoPills = rrRoot.querySelectorAll('[data-rr-who=""]').length;
+
+/* THE TWO CONTROLS THAT WERE NOT THERE. Both are read off the page rather than
+   trusted: a Remove wearing the shipped WORD on every row (D-33 P3-1's ruling,
+   made on .unit-rm, which is the only other control in this file that deletes
+   a student's work), and one Add under the list. The Remove's ACCESSIBLE NAME
+   is asserted to be strictly more specific than its visible text and to be
+   built from symRoundSaid - the same pieces the picture beside it draws -
+   because eight buttons reading "Remove" are eight identical announcements
+   otherwise. */
+function rrRemove(slot) { return rrRow(slot).querySelector('.rr-rm'); }
+const rrAddBtn = dom.byId['rr-add'];
+const rrRmWord = rrRemove(0).textContent;
+const rrRmName = rrRemove(0).getAttribute('aria-label');
+const rrAddWord = rrAddBtn.textContent;
+
+// A rule of the student's own, started by pressing the ADD button - the door
+// this block did not have. It arrives COMPLETE: a party off the exported
+// allowlist and the first type of the live vocabulary, because setRoundRule
+// refuses a rule naming no type and refuses a rule of zero, so "an empty row"
+// is not a thing this list can hold.
 const rrChill = A.ops.createTokenType({
   name: 'Chill', shape: 'dia', color: 'accent-2', glyph: '', scope: 'unit'
 });
 A.state.invalidate({ structural: true });
 A.state.flush();
+function rrPressAdd() { press(rrAddBtn); release(rrAddBtn); A.state.flush(); }
+rrPressAdd();
+const rrAdded = JSON.stringify(rrList()[2]);
+const rrShownAfterAdd = rrShownRows();
+
+// And it is a rule a student then EDITS, through the same two choosers and the
+// same field the shipped block already had.
 rrPressPill(2, 'rr/2/tok/' + rrChill);
 const rrMade = JSON.stringify(rrList()[2]);
 
@@ -15821,29 +15915,38 @@ const rrDecayMarks = rrRow(2).querySelector('.rr-read')
 const rrDecayMarkOnShape = rrRow(2).querySelector('.rr-read')
   .querySelectorAll('.sym-sign')
   .every((n) => String(n.parentNode.className || '').indexOf('tok') !== -1);
+// The removal reaches the ACCESSIBLE NAME as a word, which is the one channel
+// a red mark cannot reach - symQty's own argument, arriving on a control.
+const rrDecayRmName = rrRemove(2).getAttribute('aria-label');
 
 // The party, pressed after the amount: the token and the amount survive it,
 // which is the whole of "the rest of the rule comes off the record".
 rrPressPill(2, 'rr/2/who/catsEach');
 const rrParty = JSON.stringify(rrList()[2]);
 
-// The cap. Five more rules take the list to eight, the empty row goes, and the
-// line under the list says why.
-for (let i = 3; i < 8; i++) {
-  rrPressPill(i, 'rr/' + i + '/tok/hp');
-}
+// The cap, reached THROUGH THE ADD BUTTON. Five more presses take the list to
+// eight, at which point the button disables and the line beside it says why -
+// one frame, one control greying out and one sentence arriving next to it,
+// which is the pairing every other disabled control in this file ships.
+for (let i = 3; i < 8; i++) { rrPressAdd(); }
 const rrAtCap = rrList().length;
 const rrCapShown = rrShownRows();
 const rrCapSaid = rrSaidNode.textContent;
 const rrCapHidden = rrSaidNode.hidden;
+const rrCapAddOff = rrAddBtn.disabled;
+// AND THE DISABLED BUTTON IS INERT UNDER A REAL PRESS, not merely greyed:
+// this handler is bound to pointerdown, which a disabled <button> still
+// receives in a browser, so the guard is the artifact's and is driven here.
+rrPressAdd();
+const rrPastCap = rrList().length;
 
-// And back down: the emptying entry is the FIRST entry of the party chooser,
-// which is the same word in the same position the action editor's own clearing
-// entry occupies.
-rrPressPill(7, 'rr/7/who/');
+// And back down, through the row's own Remove.
+const rrRm7 = rrRemove(7);
+press(rrRm7); release(rrRm7); A.state.flush();
 const rrAfterClear = rrList().length;
 const rrClearSaid = rrSaidNode.textContent;
 const rrClearHidden = rrSaidNode.hidden;
+const rrClearAddOn = rrAddBtn.disabled === false;
 
 // THE PARTITION, off the page.
 const rrActs = rrRoot.querySelectorAll('[data-act]').length;
@@ -15864,7 +15967,7 @@ const rrFightControls = rrFightBox
   ? (rrFightBox.querySelectorAll('button').length
     + rrFightBox.querySelectorAll('[data-rr]').length) : -1;
 // The block is appended directly to the state area, so its own parent is the
-// reading — asked for that way rather than through contains(), which this stub
+// reading - asked for that way rather than through contains(), which this stub
 // does not implement and which would report true for the input area too if it
 // did and the block were ever moved one level up.
 const rrFightInState = rrFightBox !== null
@@ -15876,6 +15979,7 @@ while (rrList().length > 0) { A.ops.setRoundRule(0, A.ops.CLEAR_TERM, '', 0); }
 A.state.flush();
 const rrNoneLines = fgBar.querySelector('.fg-eachround')
   .querySelectorAll('.fg-rr-line').map((n) => n.textContent);
+const rrNoneShown = rrShownRows();
 
 const rrWords = harvestInto(dom.byId['app'], [], '#app');
 const rrVerdicts = verdictHitsIn(rrWords);
@@ -15883,20 +15987,39 @@ const rrQuiet = errPanel.hidden === true;
 
 check(
   '116. D-35 PART TWO, SURFACES TWO AND THREE: THE ROUND RULES ARE EDITED IN '
-    + 'THE BUILD VIEW AND READ BACK BY THE FIGHT IN THE SAME LANGUAGE. A '
-    + 'student presses a token on the empty slot and a rule appears; types '
-    + '"-1" into the real amount field and the reading gains D-30\'s red mark '
-    + 'ON THE SHAPE; presses a party and the token and the amount they already '
-    + 'wrote SURVIVE it; fills the list to App.data.MAX_ROUND_RULES, at which '
-    + 'point the empty row is gone and the line under the list says why; and '
-    + 'presses the FIRST entry of the party chooser to take one away, which is '
-    + 'the same word in the same position the action editor\'s clearing entry '
-    + 'occupies. THE PLACEMENT IS ASSERTED AND NOT ASSUMED: the fight\'s own '
-    + 'block sits inside the round-STATE area and carries ZERO buttons and '
-    + 'ZERO data-rr, because D-31 makes that area a reading of what IS and an '
+    + 'THE BUILD VIEW AND READ BACK BY THE FIGHT IN THE SAME LANGUAGE. TURNED '
+    + 'UNDER D-35c, WHICH GAVE THIS BLOCK THE TWO CONTROLS A STUDENT COULD NOT '
+    + 'FIND. What this row used to drive is what it used to accept: a rule was '
+    + 'STARTED by pressing a token on a half-drawn extra row that had no party '
+    + 'chooser, no amount and no reading on it, and TAKEN AWAY by pressing an '
+    + 'entry called "None" sitting first in the party strip in the same shape '
+    + 'as the four party words beside it. Both passed; neither was findable, '
+    + 'and the reading that settles it is that the developer looked at the '
+    + 'shipped block and asked for the round-rules UI again. So the drive is '
+    + 'now the one a student takes: press ADD and a COMPLETE rule appears - a '
+    + 'party off the exported allowlist and the first type of the live '
+    + 'vocabulary, because setRoundRule refuses a rule naming no type and '
+    + 'refuses a rule of zero, so "an empty row" is not a state this list can '
+    + 'hold; press a token and it names the type they invented; type "-1" into '
+    + 'the real amount field and the reading gains D-30\'s red mark ON THE '
+    + 'SHAPE and the Remove button\'s NAME gains the removal in words, which '
+    + 'is the one channel a red mark cannot reach; press a party and the token '
+    + 'and the amount they already wrote SURVIVE it. THE PARTY CHOOSER ANSWERS '
+    + 'ONE QUESTION AND CARRIES ONE PILL PER ENTRY OF THE EXPORTED ALLOWLIST, '
+    + 'and NO pill anywhere in the region carries an empty party - the clause '
+    + 'that catches the emptying entry coming back under another word. THE CAP '
+    + 'IS REACHED THROUGH THE BUTTON: at App.data.MAX_ROUND_RULES the add '
+    + 'DISABLES, the line beside it says why in the same frame, and a real '
+    + 'press on the disabled control writes NOTHING - a pointerdown reaches a '
+    + 'disabled button in a browser and this listener is bound to pointerdown, '
+    + 'so that guard is the artifact\'s and is driven rather than assumed. '
+    + 'Then the row\'s own Remove takes one back off and the button comes '
+    + 'back. THE PLACEMENT IS ASSERTED AND NOT ASSUMED: the fight\'s own block '
+    + 'sits inside the round-STATE area and carries ZERO buttons and ZERO '
+    + 'data-rr, because D-31 makes that area a reading of what IS and an '
     + 'editor in it would be that line crossed for a second feature. THE TWO '
     + 'READINGS ARE COMPARED TO EACH OTHER rather than each to a typed string '
-    + '— row 111\'s technique on a third pair — carrying the ACCESSIBLE NAME '
+    + '- row 111\'s technique on a third pair - carrying the ACCESSIBLE NAME '
     + 'as well as the text, because a symbolic reading\'s text is nearly empty '
     + 'by construction and two empty strings are equal to themselves. NOTHING '
     + 'IN THE REGION CARRIES data-act, which is mechanism and not style: this '
@@ -15906,37 +16029,51 @@ check(
     + 'and the row count is held to the constant in BOTH pages',
   rrShellRows === A.data.MAX_ROUND_RULES
     && rrStubRows === A.data.MAX_ROUND_RULES
-    && rrShownAtRest === 3
+    && rrShownAtRest === 2
     && rrFirstSaying.indexOf('each round') !== -1
-    && rrEmptyHasNoWho === 0 && rrEmptyHasToks === true
-    && rrEmptyAmtHidden === true
+    && rrWhoCount === A.data.ROUND_WHO_IDS.length && rrEmptyWhoPills === 0
+    && rrRmWord === 'Remove'
+    && rrRmName.indexOf('Remove the round rule:') === 0
+    && rrRmName.length > 'Remove the round rule:'.length + 8
+    && rrAddWord.indexOf('Add') !== -1
+    && rrAdded === JSON.stringify({ who: 'cats', tok: 'hp', d: 1 })
+    && rrShownAfterAdd === 3
     && rrMade === JSON.stringify({ who: 'cats', tok: rrChill, d: 1 })
     && rrDecay === JSON.stringify({ who: 'cats', tok: rrChill, d: -1 })
     && rrDecayMarks === 1 && rrDecayMarkOnShape === true
+    && rrDecayRmName.indexOf(A.render.SYM_TAKEN) !== -1
     && rrParty === JSON.stringify({ who: 'catsEach', tok: rrChill, d: -1 })
     && rrAtCap === 8 && rrCapShown === 8
     && rrCapHidden === false && rrCapSaid.indexOf('all 8') !== -1
+    && rrCapAddOff === true && rrPastCap === 8
     && rrAfterClear === 7 && rrClearHidden === true && rrClearSaid === ''
+    && rrClearAddOn === true
     && rrActs === 0 && rrControls > 0
     && rrRootListeners >= 5 && rrRootRaw.length === 0
     && rrFightInState === true && rrFightControls === 0
     && rrFightLines.length === 7 && rrPairEqual === true
     && rrNoneLines.length === 1
     && rrNoneLines[0].indexOf('Nothing') === 0
+    && rrNoneShown === 0
     && rrVerdicts.length === 0 && rrQuiet === true,
   'rows: shell=' + rrShellRows + ' stub=' + rrStubRows
     + ' (cap ' + A.data.MAX_ROUND_RULES + '), shown at rest=' + rrShownAtRest
     + ' | row 0 says ' + JSON.stringify(rrFirstSaying)
-    + ' | empty slot: party pills=' + rrEmptyHasNoWho
-    + ' token pills=' + rrEmptyHasToks + ' amount hidden=' + rrEmptyAmtHidden
-    + ' | made=' + rrMade + ' -> typed -1 -> ' + rrDecay
+    + ' | party pills=' + rrWhoCount + ' of ' + A.data.ROUND_WHO_IDS.length
+    + ', pills carrying an empty party=' + rrEmptyWhoPills
+    + ' | remove says ' + JSON.stringify(rrRmWord) + ' named '
+    + JSON.stringify(rrRmName) + ' | add says ' + JSON.stringify(rrAddWord)
+    + ' | added=' + rrAdded + ' (' + rrShownAfterAdd + ' rows)'
+    + ' -> token pressed -> ' + rrMade + ' -> typed -1 -> ' + rrDecay
     + ' saying ' + JSON.stringify(rrDecaySaying)
     + ' marks=' + rrDecayMarks + ' on a shape=' + rrDecayMarkOnShape
+    + ' remove named ' + JSON.stringify(rrDecayRmName)
     + ' | party pressed -> ' + rrParty
-    + ' | at the cap: ' + rrAtCap + ' rules, ' + rrCapShown + ' rows, line='
-    + JSON.stringify(rrCapSaid)
-    + ' | after clearing one: ' + rrAfterClear + ' rules, line hidden='
-    + rrClearHidden
+    + ' | at the cap: ' + rrAtCap + ' rules, ' + rrCapShown + ' rows, add off='
+    + rrCapAddOff + ', line=' + JSON.stringify(rrCapSaid)
+    + ', a press on the disabled add left ' + rrPastCap
+    + ' | after Remove on row 7: ' + rrAfterClear + ' rules, line hidden='
+    + rrClearHidden + ', add back on=' + rrClearAddOn
     + ' | #roundrules data-act=' + rrActs + ' data-rr=' + rrControls
     + ' listeners=' + rrRootListeners
     + ' bound outside the boundary: ' + (rrRootRaw.join(', ') || 'none')
@@ -15946,6 +16083,7 @@ check(
     + ' | fight says ' + JSON.stringify(rrFightLines)
     + ' | equal=' + rrPairEqual
     + ' | with no rules at all: ' + JSON.stringify(rrNoneLines)
+    + ', rows shown=' + rrNoneShown
     + ' | harvest=' + rrWords.length + ' strings, verdict words: '
     + (rrVerdicts.join(', ') || 'none') + ' | panel quiet=' + rrQuiet
 );
@@ -16024,7 +16162,22 @@ if (dlg.open === true) { dlg.close(); }
 A.ops.setTally('cats', 'c1', wtTok, 3);
 A.state.flush();
 
-// ---- 2. the decay rule, through the real pills and the real amount field.
+/* ---- 2. the decay rule, through the REAL ADD BUTTON and then the real pills
+        and the real amount field.
+
+        THIS STEP IS TURNED UNDER D-35c AND THE TURN IS THE POINT. What stood
+        here pressed a token pill on row 2 of a two-rule board — a row that was
+        HIDDEN, holding stale pills from an earlier paint, invisible on the page
+        and absent from the accessibility tree. It passed, because the stub does
+        not honour `hidden` in querySelector and the press happened to reach an
+        op that appends. That is this repository's own recurring failure exactly
+        — a drive through a control a student cannot see, green over a surface
+        nobody is looking at — and it is why rrFillRows now EMPTIES a hidden row
+        rather than only hiding it: reach for one of those pills today and this
+        row throws instead of passing. ---- */
+const wtAdd = dom.byId['rr-add'];
+press(wtAdd); release(wtAdd);
+A.state.flush();
 rrPressPill(2, 'rr/2/tok/' + wtTok);
 rrTypeAmount(2, '-1');
 rrPressPill(2, 'rr/2/who/catsEach');

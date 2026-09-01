@@ -4833,40 +4833,109 @@
   .rr-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
   .rr-note{margin:0;color:var(--ink-dim);font-size:16px;max-width:72ch}
 
-  /* 6px inside the list, exactly as .ae-term-list carries it, and for the
-     reason D-32b measured: the space between two rows of one list and the
-     space between a list and the thing above it are two different distances,
-     and one number for both is the flat run that pass replaced. */
-  .rr-list{display:flex;flex-direction:column;gap:6px}
-  .rr-rule{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:40px}
+  /* ==================================================================
+     D-35c — THE LIST IS A GRID, AND EVERY ROW IS ONE LINE OF ONE GRAMMAR.
+     ==================================================================
+     WHAT STOOD HERE AND WHAT IT LOOKED LIKE, because this reverses a rule
+     rather than adding one:
+
+       ".rr-list{display:flex;flex-direction:column;gap:6px}
+        .rr-rule{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+        .rr-whos{flex:0 0 auto}
+        .rr-toks{flex:1 1 auto;min-width:0}"
+
+     .rr-toks took ALL the slack, so on a 1198px list the token strip grew to
+     576px over 425px of pills and the amount field was pushed to the far
+     right — measured at x=1487 with the pills it belongs to ending at 1327.
+     The rule read as "pills ................. 3". That is EXACTLY the defect
+     D-33 P2-7 photographed on .ae-term-toks and fixed by dropping ONE WORD of
+     D-32's rule, and [C17] was written from D-32's spelling rather than from
+     the fixed one. Its whole paragraph is worth re-reading here: "flex-grow
+     decides what happens with SPARE space; the property that keeps the amount
+     on the line when the vocabulary is long is flex-SHRINK plus min-width:0."
+
+     A GRID AND NOT MERELY THAT ONE WORD, AND THE EXTRA IS PAID FOR BY THE
+     COLUMN WORDS. Left-packed flex rows already align with each other here,
+     because every row draws the same four party pills and the same token
+     vocabulary. What flex cannot do is put a WORD over a group: "Who it
+     reaches" has to sit above the party strip on every row at once, and the
+     only way a label written once stands over a group is if the group is a
+     column. So the list is the grid, .rr-cols is its header, and each row is
+     display:contents so its five cells ARE the grid items.
+
+     THE COLUMNS ARE max-content AND THE GRID IS justify-content:start, which
+     together are the anti-stranding rule said in grid: an `auto` track is
+     STRETCHED by the default `normal` justification, which is the same void
+     the flex-grow opened. Only the TOKEN column may shrink — minmax(0,
+     max-content) — because it is the only track whose width a student
+     changes, and when it does the pills wrap INSIDE their own column with the
+     amount and the remove staying exactly where they are. Measured on a
+     1198px list: the shipped five types leave the row one line; a sixth type
+     a student invents wraps that column to two and moves nothing else.
+
+     column-gap IS ZERO AND THE GAP IS PADDING ON THE CELLS, so the hairline
+     between two rows is CONTINUOUS. A gap would cut it into five segments
+     with four holes in it, which reads as five rules rather than one row. */
+  .rr-list{
+    display:grid;
+    grid-template-columns:
+      max-content            /* the reading — the row's own answer */
+      max-content            /* who it reaches — four entries, for ever */
+      minmax(0,max-content)  /* which token — the only track a student grows */
+      max-content            /* how much */
+      max-content;           /* remove */
+    justify-content:start;
+    /* STRETCH AND NOT center, AND THAT IS MEASURED RATHER THAN DEFAULT-BY-
+       ACCIDENT. Centred, each cell is only as tall as its own contents and is
+       floated to the middle of the row — so on a row whose token strip has
+       wrapped to two lines, the five cells' TOP EDGES sit at five different
+       heights and the hairline this block draws on them comes out as four
+       disconnected segments at three different y positions. Photographed at
+       1920x1080 with six token types before this line was written. Stretched,
+       every cell spans the row and the contents are centred INSIDE it by
+       .rr-cell's own align-items, which is the same picture with one line
+       instead of four pieces of one. */
+    align-items:stretch;
+    row-gap:6px;column-gap:0;
+  }
+  .rr-cols,.rr-rule{display:contents}
   .rr-rule[hidden]{display:none}
+
+  /* 6px INSIDE a group and 14px BETWEEN two — D-32b's measured rule that the
+     space inside a list and the space between two lists are two different
+     distances, arriving on the axis this surface got wrong. Ten pills at one
+     gap is the undifferentiated strip; two groups at two gaps, under two
+     words, is a grammar. */
+  .rr-cell{
+    display:flex;align-items:center;flex-wrap:wrap;gap:6px;
+    padding-inline-end:14px;min-width:0;
+  }
+  .rr-cols > .rr-cell:last-child,.rr-rule > .rr-cell:last-child{padding-inline-end:0}
+  .rr-rule > .rr-cell{min-height:40px}
+
+  /* The column words. Dimmed and under the note's own size, because they are
+     a header for controls that each carry their own visible word already —
+     [C07]'s 18px floor is a rule about a CONTROL'S LABEL and .ae-term-note,
+     .rr-note and .pk-warn all sit below it for the same reason. */
+  .rr-col{align-items:flex-end;font-size:16px;color:var(--ink-dim);line-height:1.2}
+
   /* .ae-term's own hairline, on the SECOND row onward so a single-rule list
      draws none, and taking 3px from the gap above and 3px from the gap below
-     so nothing grows. */
-  .rr-rule + .rr-rule{border-top:1px solid var(--line);padding-top:6px}
+     so nothing grows. It goes on the CELLS because the row itself has no box
+     to draw one on — display:contents — and the .rr-cols header is not a
+     .rr-rule, so the first rule row is still the one that draws none. */
+  .rr-rule + .rr-rule > .rr-cell{border-top:1px solid var(--line);padding-top:6px}
 
   /* The reading, in .ae-term-read's own geometry and at its own token size.
      The min-width is what gives the strip a left rule a student can scan down;
      D-32b measured 96 as the width of the widest reading plus the removal
      mark's overhang, and this surface draws the same readings. */
-  .rr-read{
-    display:flex;align-items:center;flex-wrap:wrap;gap:6px;
-    flex:0 0 auto;min-width:96px;
-  }
+  .rr-read{min-width:96px}
   /* THE OVERRIDE GOES ON .sym AND NOT ON THE BOX AROUND IT — [C14.5] sets
      --tok on .sym itself, so a value on an ancestor is shadowed by the
      descendant's own. That was measured once on the editor and is not
      re-measured here; it is the same declaration for the same reason. */
   .rr-read .sym{--tok:16px}
-
-  /* The two choosers. The party strip is four entries plus the one that empties
-     the rule and never grows, so it takes no slack; the token strip grows by
-     one entry per type a student invents, so it gets all of it — which is
-     exactly the split [C12] made between .ae-term-who and .ae-term-toks and for
-     exactly the same reason. */
-  .rr-whos,.rr-toks{display:flex;flex-wrap:wrap;gap:6px}
-  .rr-whos{flex:0 0 auto}
-  .rr-toks{flex:1 1 auto;min-width:0}
 
   /* THE PILL IS .ae-pill's, DOWN TO THE TICK'S GEOMETRY, and it is a second
      class rather than a second use of the first because .ae-pill is scoped to
@@ -4903,14 +4972,60 @@
     font-variant-numeric:tabular-nums;text-align:right;
     &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
-  .rr-amt[hidden]{display:none}
+  /* `.rr-amt[hidden]{display:none}` STOOD HERE AND IS DELETED RATHER THAN
+     LEFT, which is check 112's ruling on .ae-term-lbl applied to this
+     surface's own leftover: the field was hidden on the empty slot, D-35c has
+     no empty slot, and a rule for a state nothing can reach is a rule the next
+     reader has to work out is dead. */
 
-  /* The line under the list. It carries its own [hidden] rule for the reason
+  /* ==================================================================
+     D-35c — THE ADD AND THE REMOVE, WHICH THIS BLOCK SHIPPED WITHOUT.
+     ==================================================================
+     Both are the shipped board controls' values re-declared under this
+     region's own class, which is exactly the call [C17] already made about
+     .rr-pill and .ae-pill and is made here for a SECOND, sharper reason:
+     [S09.11] asserts `.brd-add` counts ZERO on the page during a fight,
+     because the roster's Add is setup-only and that row is what says so. This
+     region is put away by [C15] in the fight view rather than removed from the
+     document, so an add button wearing .brd-add would be a node that row
+     counts and a claim about the roster that stopped being about the roster.
+
+     THE ADD IS DASHED AND THE REMOVE IS NOT, and that is .brd-add's and
+     .unit-rm's own distinction kept rather than a new one: a dashed outline
+     around a control that CREATES something reads as the empty place the new
+     thing will go, and a control that TAKES something away is available
+     rather than inviting (D-06 plus UX-02) — quiet border, quiet ink,
+     --accent-2 reserved for hover and focus, opacity 1 at all times and never
+     revealed by pointing at anything. */
+  .rr-foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:14px 0 0}
+  .rr-add{
+    background:var(--panel);border:1px dashed var(--ink-faint);color:var(--ink);
+    border-radius:var(--radius);padding:10px 16px;min-height:44px;
+    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
+    &:disabled{opacity:.45;cursor:not-allowed}
+  }
+  .rr-rm{
+    background:transparent;border:1px solid var(--ink-faint);color:var(--ink-dim);
+    border-radius:10px;min-width:44px;min-height:32px;padding:0 10px;opacity:1;
+    font:inherit;font-size:17px;line-height:1;cursor:pointer;user-select:none;
+    white-space:nowrap;
+    &:hover{border-color:var(--state-hover-line-2);background-image:var(--state-hover-wash-2);color:var(--accent-2)}
+    &:focus{border-color:var(--accent-2);color:var(--accent-2)}
+  }
+
+  /* The line beside the add. It carries its own [hidden] rule for the reason
      .pk-warn, .prj-note and .ae-term each carry one: [hidden]{display:none} is
      a user-agent rule these margins would not have beaten on their own, and a
      later author rule giving this class a display would. Dimmed, because it
-     states a fact and nothing here is coloured to alarm anybody. */
-  .rr-said{margin:12px 0 0;font-size:18px;color:var(--ink-dim)}
+     states a fact and nothing here is coloured to alarm anybody.
+
+     D-35c MOVED IT FROM UNDER THE LIST TO BESIDE THE ADD, and the move is the
+     whole of what makes it readable: the one moment it has anything to say is
+     the moment the add button greys out, and a sentence a line and a half away
+     from the control it explains is a sentence read after the student has
+     already pressed. */
+  .rr-said{margin:0;font-size:18px;color:var(--ink-dim);max-width:52ch}
   .rr-said[hidden]{display:none}
 
   /* ==================================================================
@@ -4993,7 +5108,7 @@
   .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
   .sh-code, .sh-paste,
   .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
-  .rr-pill, .rr-amt{
+  .rr-pill, .rr-amt, .rr-add, .rr-rm{
     background-image:linear-gradient(transparent, transparent);
     transition:
       border-color var(--ramp) ease,
@@ -5222,7 +5337,7 @@
     .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
     .sh-code, .sh-paste,
     .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
-    .rr-pill, .rr-amt,
+    .rr-pill, .rr-amt, .rr-add, .rr-rm,
     .unit-card, .fg-area, .ld-now, .fg-row{transition:none}
     .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
     .pk[open]::backdrop, .ae[open]::backdrop,
@@ -5900,7 +6015,8 @@
        machinery.
 
        ==================================================================
-       EVERY ROW IS STATIC, AND SO IS THE AMOUNT FIELD INSIDE IT.
+       EVERY ROW IS STATIC, AND SO ARE THE AMOUNT FIELD AND THE REMOVE
+       BUTTON INSIDE IT.
        ==================================================================
        #act-edit's reserved term rows carry this reasoning in full and it is
        the same reasoning: this region repaints on every frame through
@@ -5910,6 +6026,18 @@
        rebuild on every repaint is the reading and the two chooser boxes,
        because a button carries no text of the student's own and the focus
        contract puts the keyboard back on the row's data-k.
+
+       D-35c ADDS A THIRD STATIC NODE PER ROW AND ITS REASON IS THE FOCUS
+       CONTRACT RATHER THAN TYPED TEXT. The remove button carries no text a
+       student typed — its visible word is "Remove" on every row — but it is
+       the control a student is standing on when they press it, and a node
+       rebuilt under a press is a node withPreservedFocus has to put the
+       keyboard back onto by key. Static costs nothing here and removes that
+       whole question. Its ACCESSIBLE NAME is rewritten on every repaint from
+       the rule the row holds, which is a write to an attribute of a node that
+       is not being replaced — the same shape rrShowAmount already uses, minus
+       the focus guard, because an aria-label is not text a student is midway
+       through typing.
 
        There are App.data.MAX_ROUND_RULES rows here because that is the cap,
        and the surplus is HIDDEN rather than removed. The count is asserted
@@ -5923,6 +6051,13 @@
        already makes for a unit's token row. Sixteen ids bought nothing here
        and every one of them is a KNOWN_IDS line and a hand-built stub node.
 
+       THE ONE id D-35c ADDS IS THE ADD BUTTON'S, and it is added rather than
+       reached for by class because it is a SINGLETON on this surface exactly
+       as #rr-said is: there is one of it, the code that disables it wants to
+       say so in one lookup, and a class query returning a list of one is a
+       list a later author has to remember is a list. The rule above is about
+       the EIGHT ROWS, which are eight of a kind, and it is untouched.
+
        Same three-part rule as every id in this document: the id, the
        KNOWN_IDS entry and the stub node arrive together, and the run fails in
        BOTH directions if one of the three is missing. It is not a <dialog>,
@@ -5932,57 +6067,97 @@
       <h2 class="rr-head" id="rr-head">Each round</h2>
       <p class="rr-note">What Advance does to the board after the declarations have landed, in the order it is written here. Each rule names who it reaches, which token type it changes, and by how much. Put a minus in front for a change downward.</p>
     </div>
+    <!-- D-35c: THE COLUMN WORDS ARE HERE, ONCE, AND NOT ON EVERY ROW. The note
+         above already says the grammar in a sentence — "who it reaches, which
+         token type it changes, and by how much" — and these four are that same
+         sentence cut into the four places a student presses. They are the
+         header of a grid whose columns every row sits in, which is the only
+         arrangement that lets a label written once stand OVER the group it
+         labels; a label per row would be [C12]'s own .ae-term-lbl defect back
+         again, eight times over instead of eight. The last column carries no
+         word because every control in it already says one. -->
     <div class="rr-list" id="rr-list" role="group" aria-labelledby="rr-head">
+      <div class="rr-cols">
+        <span class="rr-cell rr-col">The rule</span>
+        <span class="rr-cell rr-col">Who it reaches</span>
+        <span class="rr-cell rr-col">Which token</span>
+        <span class="rr-cell rr-col">How much</span>
+        <span class="rr-cell rr-col"></span>
+      </div>
       <div class="rr-rule" data-rr-slot="0" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="0" data-k="rr/amt/0">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="0" data-k="rr/amt/0"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="0" data-k="rr/rm/0">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="1" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="1" data-k="rr/amt/1">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="1" data-k="rr/amt/1"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="1" data-k="rr/rm/1">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="2" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="2" data-k="rr/amt/2">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="2" data-k="rr/amt/2"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="2" data-k="rr/rm/2">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="3" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="3" data-k="rr/amt/3">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="3" data-k="rr/amt/3"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="3" data-k="rr/rm/3">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="4" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="4" data-k="rr/amt/4">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="4" data-k="rr/amt/4"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="4" data-k="rr/rm/4">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="5" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="5" data-k="rr/amt/5">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="5" data-k="rr/amt/5"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="5" data-k="rr/rm/5">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="6" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="6" data-k="rr/amt/6">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="6" data-k="rr/amt/6"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="6" data-k="rr/rm/6">Remove</button></div>
       </div>
       <div class="rr-rule" data-rr-slot="7" hidden>
-        <div class="rr-read"></div>
-        <div class="rr-whos"></div>
-        <div class="rr-toks"></div>
-        <input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="7" data-k="rr/amt/7">
+        <div class="rr-cell rr-read"></div>
+        <div class="rr-cell rr-whos"></div>
+        <div class="rr-cell rr-toks"></div>
+        <div class="rr-cell rr-amt-cell"><input class="rr-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this rule changes each round" data-rr-slot="7" data-k="rr/amt/7"></div>
+        <div class="rr-cell rr-rm-cell"><button class="rr-rm" type="button" data-rr="remove" data-rr-slot="7" data-k="rr/rm/7">Remove</button></div>
       </div>
     </div>
-    <p class="rr-said" id="rr-said" hidden></p>
+    <!-- D-35c: THE TWO CONTROLS A STUDENT COULD NOT FIND. What shipped before
+         this had no add and no remove at all: a rule was started by pressing a
+         TOKEN on a half-drawn row with no party chooser on it, and taken away
+         by pressing an entry called "None" that sat first in the party strip
+         looking exactly like the four party words beside it. The developer
+         looked for this block and asked for it again, which is the reading
+         that settles whether that was discoverable.
+
+         Both wear the shipped word rather than a glyph — D-33 P3-1's ruling on
+         .unit-rm, made on the one control in this file that deletes a
+         student's work, and this is the second. The add is disabled at the cap
+         and the sentence beside it is what says why, which is the pair the
+         roster's own Add already ships. -->
+    <div class="rr-foot">
+      <button class="rr-add" type="button" id="rr-add" data-rr="add" data-k="rr/add">+ Add a round rule</button>
+      <p class="rr-said" id="rr-said" hidden></p>
+    </div>
   </section>
 
   <section class="card st-report" id="selftest-report" hidden>
@@ -23297,16 +23472,50 @@ App.render = (function () {
     return '';
   }
 
-  function symRoundParts(state, rule) {
+  /* D-35c: THE PIECES OF A ROUND RULE'S READING, TAKEN APART ONCE SO THAT THE
+     SENTENCE AND THE PICTURE CANNOT DISAGREE. symRoundParts draws the reading
+     and symRoundSaid writes the same reading as plain words for an accessible
+     name; the prefix, the suffix, the magnitude and the removal flag are read
+     out of ONE place so a change to any of them moves both. Splitting this off
+     is the same move symSaid is — that function exists because a tooltip and
+     an aria-label written twice are two things to keep in step — taken one
+     level up, where the two things to keep in step are a picture and a
+     sentence about it. */
+  function symRoundBits(state, rule) {
     if (rule === null || typeof rule !== 'object') { return null; }
     var who = symRoundWho(state, rule);
     if (who === '') { return null; }
     var d = Number.isInteger(rule.d) ? rule.d : 0;
     var n = Math.abs(d);
+    return { who: who, n: n, minus: d < 0, pre: String(n) + ' ', post: ' each round' };
+  }
+
+  function symRoundParts(state, rule) {
+    var bits = symRoundBits(state, rule);
+    if (bits === null) { return null; }
     return [
-      { said: who + ' ' },
-      { node: symQty(state, rule.tok, n, String(n) + ' ', ' each round', d < 0) }
+      { said: bits.who + ' ' },
+      { node: symQty(state, rule.tok, bits.n, bits.pre, bits.post, bits.minus) }
     ];
+  }
+
+  /* THE SAME RULE IN WORDS ALONE, for the one caller that needs a string and
+     cannot take nodes: [S06.13]'s remove button, whose accessible name has to
+     say WHICH rule it takes away when eight buttons on a page all read
+     "Remove". It is assembled from symRoundBits and symSaid rather than
+     re-typed, so the day the suffix stops being " each round" this moves with
+     the reading instead of quietly disagreeing with it — which is the failure
+     mode a hand-typed second spelling has and has silently.
+
+     IT CARRIES SYM_TAKEN ON A REMOVAL for the reason symQty does: inside a
+     role="img" the accessible name is the only channel a red mark cannot
+     reach, and this name is not inside one at all — so it is the only channel
+     it has. */
+  function symRoundSaid(state, rule) {
+    var bits = symRoundBits(state, rule);
+    if (bits === null) { return ''; }
+    return bits.who + ' — ' + (bits.minus ? SYM_TAKEN : '')
+      + symSaid(state, rule.tok, bits.pre, bits.post);
   }
 
   // #endregion [S06.12] RENDER — THE SYMBOLIC READING
@@ -23353,14 +23562,29 @@ App.render = (function () {
    * ===================================================================== */
   // #region [S06.13] RENDER — THE ROUND RULES
 
-  // The word on the entry that empties a slot. It is the FIRST entry of the
-  // PARTY chooser rather than of the token chooser, and the difference from
-  // [S06.5] is [S05]'s contract rather than a preference: setRoundRule takes
-  // CLEAR_TERM in the `who` position, so the control that clears is the control
-  // that names who. It is the same word in the same position — first chooser,
-  // first entry — which is what a student who has used the action editor has
-  // already learned.
-  var RR_NONE_WORD = 'None';
+  /* D-35c: THE WORD "None" IS GONE FROM THE PARTY CHOOSER AND THE REMOVAL HAS
+     A BUTTON OF ITS OWN. What stood here was:
+
+       "var RR_NONE_WORD = 'None';"
+
+     — the first entry of the party strip, the same width and the same shape as
+     the four party words beside it, and the ONLY way to take a rule away. The
+     argument for it was real and is worth keeping in view: setRoundRule takes
+     CLEAR_TERM in the `who` position, so the control that clears was made the
+     control that names who, in the same position [S06.5]'s clearing entry
+     occupies.
+
+     WHAT THAT ARGUMENT WAS ABOUT WAS THE OP, AND THE OP HAS NOT MOVED. The
+     press still dispatches setRoundRule with CLEAR_TERM in `who`; there is
+     still exactly ONE writer of this list. What changed is which control a
+     student presses to reach it, and the reading that settles it is that the
+     developer looked at the shipped block and asked where the add and the
+     remove were. A chooser entry that means "delete this row" is a chooser
+     entry a student presses expecting to CHOOSE something.
+
+     The party chooser now answers exactly one question and every entry in it
+     is an answer to that question, which is what makes a column of them
+     labellable by one word in the header. */
 
   // fgSay and ldSay's fragment idiom, a third time, and it is written out
   // rather than shared for the reason each of those two is written out: the
@@ -23420,17 +23644,19 @@ App.render = (function () {
     return b;
   }
 
-  // An empty slot gets NO party chooser at all rather than five dead buttons —
-  // fillWhoChoices' ruling one surface over, and for its reason: there is no
-  // rule for any of them to name yet, so pressing one could only do nothing.
-  // A student starts an empty slot by pressing a TOKEN, which is the same
-  // gesture that starts an empty term row in the action editor.
-  function rrFillWhos(box, state, slot, current, live) {
+  /* FOUR ENTRIES, AND EVERY ONE OF THEM NAMES A PARTY. D-35c takes the
+     emptying entry out (see above) and with it the `live` arm: there is no
+     half-drawn row left for a chooser to be half-drawn on, because a row
+     exists only when a rule does.
+
+     THE FIXED COUNT IS ALSO WHAT MAKES THE COLUMN A COLUMN. Every row draws
+     the same four, so the party track is max-content over identical content
+     and the word "Who it reaches" in the header sits over the same pixels on
+     every row — which is the property [C17]'s grid is built on and the reason
+     that track alone is never allowed to shrink. */
+  function rrFillWhos(box, state, slot, current) {
     if (!box) { return; }
     box.replaceChildren();
-    if (!live) { return; }
-    box.appendChild(rrPill(slot, 'who', 'rrWho', '', RR_NONE_WORD,
-      false, ''));
     App.data.ROUND_WHO_IDS.forEach(function (id) {
       var word = symRoundWho(state, { who: id });
       if (word === '') { return; }
@@ -23440,10 +23666,16 @@ App.render = (function () {
 
   // Drawn from the LIVE vocabulary, so a type a student invented is choosable
   // and a type they renamed shows its new name. It carries NO emptying entry,
-  // because emptying a slot lives in exactly one place and that place is the
-  // party chooser above — two controls for one write is how a cap and a
-  // dense-list rule stop agreeing, which is setRoundRule's own argument for
-  // having one writer.
+  // because emptying a slot lives in exactly one place and under D-35c that
+  // place is the row's own Remove button — two controls for one write is how a
+  // cap and a dense-list rule stop agreeing, which is setRoundRule's own
+  // argument for having one writer.
+  //
+  // IT IS THE ONE TRACK [C17] LETS SHRINK, and this is where the width a
+  // student controls enters the row: one pill per type they invent. When it
+  // outgrows its column the pills wrap INSIDE it and the amount beside them
+  // does not move, which is the whole reason that column and not the row is
+  // what gives.
   function rrFillToks(box, state, slot, current) {
     if (!box) { return; }
     box.replaceChildren();
@@ -23475,59 +23707,133 @@ App.render = (function () {
     return true;
   }
 
-  // The rows in use plus one empty slot, never past the cap — fillSlotRows'
-  // arithmetic, and the surplus is hidden rather than removed because the rows
-  // are static markup.
+  /* THE REMOVE BUTTON'S ACCESSIBLE NAME, WRITTEN FROM THE RULE ON EVERY
+     REPAINT. Eight buttons reading "Remove" is D-33 P3-1's pairing exactly as
+     .unit-rm ships it: the room reads a WORD rather than decoding a glyph, and
+     the accessible name is strictly MORE specific than the visible text, which
+     is the one case an aria-label on an already-labelled control is correct.
+
+     THE NAME IS THE ROW'S OWN READING AND NOT A SLOT NUMBER. "Remove round
+     rule 3" is a number that means nothing on a surface where the rules are
+     not numbered — [S06.2]'s own ruling about the line beside Remove, and it
+     holds here for the same reason. What a student needs to hear is WHICH rule
+     goes, so the name is symRoundSaid's sentence: the same words the picture
+     beside it draws, from the same pieces.
+
+     data-tsay CARRIES THE TYPE'S NAME for symBox's stated reason — the
+     student's fragment comes out of the gate's scan and the artifact's half
+     stays in it. The FACTION name inside `who` carries no marker, which is the
+     shipped treatment of a faction name on [S06.7]'s .fg-side-head, on
+     [S06.8]'s .ld-now-side and in symRoundWho's own recorded ruling. */
+  function rrShowRemove(btn, state, rule) {
+    if (!btn) { return; }
+    btn.setAttribute('aria-label', 'Remove the round rule: ' + symRoundSaid(state, rule));
+    if (symHas(state, rule.tok)) { setData(btn, { tsay: labelFor(state, rule.tok) }); }
+  }
+
+  /* ONE ROW PER RULE AND NO EMPTY SLOT — D-35c, and it is the half of this
+     surface a picture caught. What stood here drew `list.length + 1` rows, and
+     the extra one held a token strip with no party chooser, no amount and no
+     reading: a student looking at it saw a broken rule rather than an
+     invitation, and the developer's own screenshot of the shipped block is a
+     row of token pills hanging under two complete rules with nothing to say
+     what it was. Starting a rule is a BUTTON now, under the list, wearing the
+     word, and this function draws exactly the rules that exist.
+
+     The surplus is still hidden rather than removed, because the rows are
+     static markup and for every reason the markup's own banner gives. */
   function rrFillRows(state, list) {
     var root = document.getElementById('rr-list');
     if (!root) { return true; }
-    var cap = App.data.MAX_ROUND_RULES;
-    var shown = Math.min(list.length + 1, cap);
+    var shown = Math.min(list.length, App.data.MAX_ROUND_RULES);
     var whole = true;
     var rows = root.querySelectorAll('.rr-rule');
     for (var i = 0; i < rows.length; i++) {
       var row = rows[i];
       var slot = Number(row.dataset.rrSlot);
-      row.hidden = (slot >= shown);
-      if (slot >= shown) { continue; }
+      var rule = (slot < shown) ? list[slot] : null;
+      // A slot inside the count whose record this notation cannot read draws
+      // nothing rather than half a row — symRoundParts' own ruling, arriving
+      // here as the condition on the whole row, because a row with choosers on
+      // a rule nobody can read is a control over a thing with no name.
+      row.hidden = (rule === null || rule === undefined);
+      // A HIDDEN ROW IS EMPTIED AND NOT MERELY HIDDEN, which is a defect this
+      // plan found rather than one it made: the surplus rows kept the reading
+      // and the chooser pills of whatever rule last stood in them, so a board
+      // that went from eight rules to two was still holding six rows of live
+      // buttons behind a `hidden` attribute. Nothing on screen showed it and
+      // nothing in the accessibility tree reached it, so no reading in this
+      // file could see it either — and check 117 was pressing one of those
+      // stale pills to write a rule, which is a drive through a control a
+      // student cannot see. Emptied here, the row holds nothing at all and a
+      // drive that reaches for it fails loudly.
+      if (row.hidden) {
+        ['.rr-read', '.rr-whos', '.rr-toks'].forEach(function (sel) {
+          var box = row.querySelector(sel);
+          if (box) { box.replaceChildren(); }
+        });
+        var gone = row.querySelector('.rr-rm');
+        if (gone) { gone.setAttribute('aria-label', 'Remove this round rule'); }
+        continue;
+      }
 
-      var rule = list[slot];
       // Rebuilt whole on every repaint, which it may be because nothing in it
       // is focusable: it is a reading and not a control. The chooser boxes
-      // below are rebuilt for the same reason and the amount field beside them
-      // is NOT, which is the line D-19 draws through this whole surface.
+      // below are rebuilt for the same reason; the amount field and the remove
+      // button beside them are NOT, which is the line D-19 draws through this
+      // whole surface.
       var read = row.querySelector('.rr-read');
       if (read) {
         read.replaceChildren();
-        var parts = rule ? symRoundParts(state, rule) : null;
+        var parts = symRoundParts(state, rule);
         if (parts) { rrSay(read, parts); }
       }
-      rrFillWhos(row.querySelector('.rr-whos'), state, slot,
-        rule ? rule.who : '', !!rule);
-      rrFillToks(row.querySelector('.rr-toks'), state, slot,
-        rule ? rule.tok : '');
-      var amt = row.querySelector('.rr-amt');
-      if (amt) { amt.hidden = !rule; }
-      if (rule && !rrShowAmount(amt, rule)) { whole = false; }
+      rrFillWhos(row.querySelector('.rr-whos'), state, slot, rule.who);
+      rrFillToks(row.querySelector('.rr-toks'), state, slot, rule.tok);
+      rrShowRemove(row.querySelector('.rr-rm'), state, rule);
+      if (!rrShowAmount(row.querySelector('.rr-amt'), rule)) { whole = false; }
     }
     return whole;
   }
 
-  /* THE LINE UNDER THE LIST, AND IT SAYS EXACTLY ONE THING: that there is no
-     empty row because the list is full. Nothing to report is nothing on screen
-     — setText's rule, which this region spells for itself because setText is
-     [S06.2]'s private helper.
+  /* THE LINE BESIDE THE ADD, AND IT SAYS EXACTLY ONE THING: that the button
+     next to it is disabled because the list is full. Nothing to report is
+     nothing on screen — setText's rule, which this region spells for itself
+     because setText is [S06.2]'s private helper.
 
      IT DOES NOT COUNT THE RULES OUT LOUD the rest of the time. A permanent
      "two of eight written" is a figure a student has to read on every frame to
      learn nothing they cannot see by looking at the list, and this file's
      standing rule is that a reading which only ever states the obvious is
-     noise. The one moment the arithmetic is not visible is the moment the
-     empty row disappears, and that is the moment this line appears. */
+     noise.
+
+     D-35c GAVE IT SOMETHING TO BE BESIDE. Before this it appeared when the
+     EMPTY ROW disappeared, which is a thing vanishing explained by a sentence
+     arriving — two changes a student has to connect. It now appears in the
+     same frame the add button greys out and sits next to it, which is the
+     shipped pairing everywhere else in this file that disables a control: a
+     refusal a student can read where they are looking. */
   function rrSaidText(list) {
     if (list.length < App.data.MAX_ROUND_RULES) { return ''; }
     return 'This board is carrying all ' + App.data.MAX_ROUND_RULES
       + ' round rules it can hold. Take one away to write another.';
+  }
+
+  /* THE ADD BUTTON'S ONE STATE. It is disabled at the cap and at nothing else,
+     and the sentence above is what says why — UX-02's own rule about a
+     disabled control, and .brd-add's shipped shape at MAX_UNITS.
+
+     IT IS ALSO DISABLED WHEN THE BOARD HOLDS NO TOKEN TYPE AT ALL, which
+     cannot happen while five of them refuse removal but is written rather than
+     assumed: a new rule has to name a type, this is the one place that picks
+     one, and a press with nothing to pick would reach setRoundRule with an
+     empty id and put the styled error panel in front of a student on the one
+     press this whole surface exists for. */
+  function rrShowAdd(state, list) {
+    var add = document.getElementById('rr-add');
+    if (!add) { return; }
+    add.disabled = (list.length >= App.data.MAX_ROUND_RULES)
+      || Object.keys(state.build.tokens).length === 0;
   }
 
   // Everything this region draws comes out of the build slice and nothing else,
@@ -23557,6 +23863,7 @@ App.render = (function () {
     var whole = true;
     withPreservedFocus(root, function () {
       whole = rrFillRows(state, list);
+      rrShowAdd(state, list);
       var said = document.getElementById('rr-said');
       if (said) {
         var words = rrSaidText(list);
@@ -27820,12 +28127,27 @@ App.interactions = (function () {
    * ONE OP, AND EVERY PRESS AND EVERY KEYSTROKE GOES THROUGH IT.
    * ==================================================================
    * setRoundRule covers append, replace and remove — setActionCost's idiom,
-   * argument for argument — so there is no second spelling of a list edit here
-   * and no Remove button beside a row. Each press reads its SLOT off the
-   * pressed control and the REST of the rule off the live record, which is
-   * pressXf's arrangement one surface over: pressing a party keeps the token
-   * and the amount the student already wrote, and pressing a token keeps the
-   * party and the amount.
+   * argument for argument — so there is no second spelling of a list edit
+   * here. Each press reads its SLOT off the pressed control and the REST of the
+   * rule off the live record, which is pressXf's arrangement one surface over:
+   * pressing a party keeps the token and the amount the student already wrote,
+   * and pressing a token keeps the party and the amount.
+   *
+   * WHAT THIS PARAGRAPH USED TO SAY, KEPT IN VIEW BECAUSE D-35c TURNS IT:
+   * "...so there is no second spelling of a list edit here AND NO REMOVE
+   * BUTTON BESIDE A ROW." The first half is still true and is the important
+   * one; the second half was a conclusion drawn from it that does not follow.
+   * ONE OP is a claim about who writes the list. A control per door is a claim
+   * about what a student can find. The three doors — add, choose, remove —
+   * are three functions here and one op below, which is the arrangement the
+   * roster has shipped since Phase 2: Add Cat, the steppers, and Remove, all
+   * of them separate controls and all of them ops on one list.
+   *
+   * The cost of the old reading was measured by the developer looking at the
+   * shipped block and asking for the round-rules UI again. What they were
+   * looking at was a half-drawn row with no party chooser as the only way to
+   * ADD, and an entry called "None" sitting first in the party strip as the
+   * only way to REMOVE.
    * deps: App.ops, App.render, App.state
    * owner: plan 05-D35b
    * ==================================================================== */
@@ -27841,6 +28163,18 @@ App.interactions = (function () {
   var RULE_NEW_WHO = App.data.ROUND_WHO_IDS[0];
   var RULE_NEW_DELTA = 1;
 
+  /* THE TOKEN A NEW RULE ARRIVES WITH, D-35c, and it is read off the board
+     rather than named. `hp` is what the shipped vocabulary begins with, but a
+     board is a thing a student edits and the first key of the LIVE vocabulary
+     is the one type that is certainly there — which is the same reading
+     rrFillToks takes and therefore certainly a pill on the row that appears.
+     A board with no types at all cannot reach here, because rrShowAdd disables
+     the button on exactly that condition. */
+  function ruleNewTok() {
+    var ids = Object.keys(App.state.get().build.tokens);
+    return ids.length > 0 ? ids[0] : '';
+  }
+
   function rulesRoot() {
     if (typeof document === 'undefined') { return null; }
     return document.getElementById('roundrules');
@@ -27854,16 +28188,17 @@ App.interactions = (function () {
     return Array.isArray(build.rules) ? build.rules : [];
   }
 
-  /* THE PRESS. The slot comes off the control, the rest of the rule off the
-     record, and the emptying entry carries an empty party and means "take this
-     rule away" — mapped to App.ops.CLEAR_TERM HERE rather than spelled as a
-     second null anywhere, so the page and the op read one signal. pressXf's
-     three sentences, and they hold word for word one scope up.
+  /* THE PRESS ON A CHOOSER. The slot comes off the control and the rest of the
+     rule off the record: pressing a party keeps the token and the amount the
+     student already wrote, and pressing a token keeps the party and the
+     amount. pressXf's three sentences, and they hold word for word one scope
+     up.
 
-     A TOKEN PRESSED ON AN EMPTY SLOT STARTS A RULE, which is why the token
-     chooser is drawn for an empty row and the party chooser is not: there is
-     no rule for a party to name yet, and the gesture that starts one is the
-     same gesture that starts an empty term row in the action editor. */
+     D-35c TOOK THE REMOVAL OUT OF HERE, and what it removed was a branch:
+     `who === '' ? CLEAR_TERM : who`, reached only by an entry in the party
+     strip called "None". The party strip has four entries now and every one of
+     them names a party, so this function has one job. Removal and creation are
+     the two functions below, and all three still dispatch the one op. */
   function pressRule(btn) {
     var slot = Number(btn.dataset.rrSlot);
     var was = liveRules()[slot];
@@ -27873,26 +28208,72 @@ App.interactions = (function () {
       ? btn.dataset.rrTok : (was ? was.tok : '');
     App.ops.dispatch('setRoundRule', {
       index: slot,
-      who: (who === '') ? App.ops.CLEAR_TERM : who,
+      who: who,
       tokenId: tok,
       d: (was && Number.isInteger(was.d)) ? was.d : RULE_NEW_DELTA
     });
   }
 
-  /* THE FOCUS AFTER A REMOVAL, PLACED RATHER THAN LEFT. dropType's trap, one
-     region over and in the same words: the control the student pressed is the
-     one that disappears — a filled row's party chooser is gone the moment that
-     row becomes the empty slot — so withPreservedFocus has nothing to restore
-     to and the keyboard lands on <body>.
+  /* ADD, AND IT IS A WRITE AT THE END OF THE LIST — setRoundRule's own append
+     arm, which has been there since part one and had no control on it. The
+     index IS the length, which the op reads as an append and refuses one past;
+     the party is the first of the exported allowlist and the token the first
+     of the live vocabulary, so the row that appears is a COMPLETE rule a
+     student edits rather than a blank they have to finish before it means
+     anything.
 
-     THE TARGET IS THE SAME SLOT'S FIRST CONTROL, because that row is still
-     there: it is the empty slot now, and its token chooser is exactly the
-     control a student would reach for next. If the removal took the list below
-     that slot — which happens when the last rule goes — the row is hidden and
-     the search walks back to the last visible one. Nothing at all is a page
-     with no rules and no empty slot, which cannot happen while the cap is
-     above zero, and the guard is there anyway because a focus() on null is a
-     throw in front of a room. */
+     WHY A REAL RULE AND NOT AN EMPTY ONE: setRoundRule refuses a rule of zero
+     and refuses a rule naming no type, so "add an empty row" is not a state
+     this list can hold. That is part one's decision and it is a good one — a
+     stored row that does nothing is a line a student reads every round and
+     cannot act on — and the surface's job is to respect it rather than to
+     invent a page-only kind of row that the op would refuse to save. */
+  function addRule() {
+    App.ops.dispatch('setRoundRule', {
+      index: liveRules().length,
+      who: RULE_NEW_WHO,
+      tokenId: ruleNewTok(),
+      d: RULE_NEW_DELTA
+    });
+  }
+
+  /* REMOVE. CLEAR_TERM in the `who` position is the op's own spelling of "take
+     this rule away", mapped HERE rather than as a second null anywhere, so the
+     page and the op read one signal. That sentence is unchanged from the entry
+     this replaces; what changed is that the control saying it now wears the
+     word "Remove". */
+  function removeRule(btn) {
+    App.ops.dispatch('setRoundRule', {
+      index: Number(btn.dataset.rrSlot),
+      who: App.ops.CLEAR_TERM,
+      tokenId: '',
+      d: 0
+    });
+  }
+
+  /* THE FOCUS AFTER A ROW APPEARS OR DISAPPEARS, PLACED RATHER THAN LEFT.
+     dropType's trap, one region over and in the same words: the control the
+     student pressed can be the one that goes away — press Remove on the last
+     rule and that whole row is hidden on the next paint — so
+     withPreservedFocus has nothing to restore to and the keyboard lands on
+     <body>.
+
+     THE TARGET IS THE SAME SLOT'S FIRST CONTROL, and it serves both doors.
+     After a REMOVAL the row at that slot holds the rule that was under it, so
+     the keyboard lands on the list where the student was looking; if the
+     removal took the list below that slot — which happens when the last rule
+     goes — the row is hidden and the search walks BACK to the last visible
+     one. After an ADD the new row is at that slot and its party chooser is
+     exactly the control a student reaches for next.
+
+     A LIST WITH NO ROWS AT ALL IS REACHABLE NOW and it was not before, because
+     D-35c removed the empty slot: remove the only rule and there is nothing to
+     focus. The walk simply finds nothing and leaves the keyboard where it is,
+     which is the correct answer — the add button below the list is still on
+     screen, still focusable and one Tab away, and moving focus to it would be
+     the tool deciding a student wants to make another rule the instant they
+     deleted their last one. The guard against focus() on null was already here
+     and is what makes that a no-op rather than a throw in front of a room. */
   function placeRuleFocus(slot) {
     var root = rulesRoot();
     if (root === null) { return; }
@@ -27979,30 +28360,48 @@ App.interactions = (function () {
     el.dataset.was = el.value;
   }
 
+  /* ONE LISTENER, THREE CONTROLS, AND THE data-rr VALUE IS WHAT TELLS THEM
+     APART — not the class, and not a second listener each. `rule` is a
+     chooser, `add` starts one and `remove` takes one away; all three dispatch
+     setRoundRule and nothing else in this region dispatches at all. The
+     partition against [S07.1] is unchanged and is the attribute NAME rather
+     than its value: nothing here wears a data-act, so actTarget() returns null
+     on every press in this block whichever of the three it lands on. */
   function onRulesPress(e) {
     // [S07.1]'s rule, for its measured reason: without it a right-click on a
     // chooser writes the rule under the context menu.
     if (!isPrimaryPress(e)) { return; }
     var node = e.target;
     if (!node || typeof node.closest !== 'function') { return; }
-    var btn = node.closest('[data-rr="rule"]');
+    var btn = node.closest('[data-rr]');
     if (btn === null) { return; }
+    var kind = btn.dataset.rr;
+
+    // A disabled control is a control that does nothing, said here as well as
+    // by the attribute: a pointerdown on a disabled <button> raises no click,
+    // but this handler is bound to pointerdown itself and would run.
+    if (btn.disabled === true) { return; }
 
     // Dispatch FIRST and page work only after it has returned — the ordering
     // every press in this file keeps, for its stated reason: an op that refuses
     // throws out of here into [S08]'s listener boundary and the page work never
     // runs, which is what keeps a surface from marking a change state declined
     // to make.
-    var clearing = (btn.dataset.rrWho === '');
     var slot = Number(btn.dataset.rrSlot);
-    pressRule(btn);
+    if (kind === 'add') { slot = liveRules().length; addRule(); }
+    else if (kind === 'remove') { removeRule(btn); }
+    else if (kind === 'rule') { pressRule(btn); }
+    else { return; }
 
     // The commit has already asked for a frame; this paints the block onto the
     // press before it, for the reason picker(), editor(), share() and
     // fightBar() are each exported to their own handler — a pressed chooser
     // that looks unpressed for a frame is a student pressing it twice.
     App.render.roundRules(App.state.get());
-    if (clearing) { placeRuleFocus(slot); }
+    // Only the two doors that make a ROW appear or disappear place the
+    // keyboard; a chooser press leaves the pressed pill exactly where it is,
+    // which is what withPreservedFocus is for and what it already does.
+    if (kind !== 'rule') { placeRuleFocus(slot); }
   }
 
   function onRulesClick(e) {

@@ -2753,15 +2753,43 @@ for (const ch of ['chrome', 'msedge']) {
     });
     await pg.waitForTimeout(200);
 
-    /* ── 25b. THE ROUND-RULES BLOCK IN THE BUILD VIEW, AUTHORED BY REAL
-       CLICKS. Every visible row is ONE line — [C17] is [C12]'s dense terms
-       region on a page region and the whole reason that language exists is
-       that a three-line row twelve times over is a surface nobody can read —
-       and the block is wholly inside the viewport at both sizes.
+    /* -- 25b. THE ROUND-RULES BLOCK, AUTHORED FROM END TO END THROUGH THE
+       CONTROLS D-35c GAVE IT, AND MEASURED FOR THE FIVE THINGS A PICTURE
+       CAUGHT AND THIS CELL DID NOT.
+
+       WHAT THIS CELL USED TO DO AND WHY THAT WAS NOT ENOUGH. It clicked a
+       token pill on the empty slot, filled the amount, clicked a party, and
+       asserted the block was in the viewport with four rows of at most 56px
+       each. Every one of those passed on the shipped block, and the shipped
+       block: stranded the amount ~1200px right of the pills it belongs to,
+       carried a dangling half-row with no party chooser under the last rule,
+       offered no visible add and no visible remove at all, and put ten pills
+       of two different kinds in one undifferentiated strip. A ROW HEIGHT AND A
+       VIEWPORT RECTANGLE CANNOT SEE ANY OF THAT. Four measurements are added
+       and they are the four the eye made:
+
+         amtGap   - the amount's left edge against the token strip's right, so
+                    "the amount belongs to this rule" is a NUMBER. It read 160
+                    on the shipped block with the pills ending at 1327; the
+                    same reading is what D-33 P2-7 took on .ae-term-toks.
+         colsAligned - every header cell's left edge against the same column's
+                    left edge on a rule row. This is the whole of the grouping
+                    claim: a word written once stands over the group it labels
+                    only if the group is a COLUMN, and a header that has
+                    drifted off its column is a label for the wrong pills.
+         rowsVsRules - visible rows against rules in state. A dangling half-row
+                    is exactly this number being one too many.
+         addAndRemove - both controls FOUND, VISIBLE and wearing a WORD, which
+                    is D-33 P3-1's ruling and the thing whose absence sent the
+                    developer looking for this UI a second time.
+
+       THE CAP IS DRIVEN RATHER THAN DESCRIBED: add until the button greys, and
+       the sentence beside it must be on screen IN THE SAME FRAME - a disabled
+       control with its reason one scroll away is a control that reads broken.
+       Then five removes take the board back to the three rules cell 25c reads.
 
        AND THE REMOVAL MARK IS READ WHERE D-30 PUT IT: on the shape, not beside
-       it. That is the one thing neither node gate can see and the pictures
-       above it are what a human confirms. */
+       it. That is the one thing neither node gate can see. */
     const rrTok = await pg.evaluate(() => {
       const ids = Object.keys(App.state.get().build.tokens);
       const made = ids[ids.length - 1];
@@ -2775,6 +2803,12 @@ for (const ch of ['chrome', 'msedge']) {
       return made;
     });
     await pg.waitForTimeout(200);
+
+    // The rule is STARTED by the add button and not by a pill on a half-drawn
+    // row, because that row is gone and this is the door a student has.
+    await pg.click('#rr-add'); await pg.waitForTimeout(250);
+    const rrFresh = await pg.evaluate(() =>
+      JSON.stringify(App.state.get().build.rules[2]));
     await pg.click(`[data-k="rr/2/tok/${rrTok}"]`); await pg.waitForTimeout(250);
     await pg.fill('.rr-rule[data-rr-slot="2"] .rr-amt', '-1');
     await pg.press('.rr-rule[data-rr-slot="2"] .rr-amt', 'Enter');
@@ -2786,8 +2820,32 @@ for (const ch of ['chrome', 'msedge']) {
       if (!root) return null;
       const r = root.getBoundingClientRect();
       const rows = Array.from(root.querySelectorAll('.rr-rule'))
-        .filter((n) => n.offsetParent !== null || getComputedStyle(n).display !== 'none');
-      const heights = rows.map((n) => Math.round(n.getBoundingClientRect().height));
+        .filter((n) => getComputedStyle(n).display !== 'none');
+      const cellsOf = (n) => Array.from(n.querySelectorAll(':scope > .rr-cell'));
+      // A row is display:contents, so it HAS no box of its own - the band a
+      // student reads as "one rule" is the union of its cells. Measured that
+      // way rather than off the row, which reports 0 in every browser.
+      const bandOf = (n) => {
+        const bs = cellsOf(n).map((c) => c.getBoundingClientRect());
+        return {
+          top: Math.min(...bs.map((b) => b.top)),
+          bottom: Math.max(...bs.map((b) => b.bottom)),
+          h: Math.round(Math.max(...bs.map((b) => b.bottom))
+            - Math.min(...bs.map((b) => b.top)))
+        };
+      };
+      const heights = rows.map((n) => bandOf(n).h);
+      const row0 = rows[0];
+      const cols = Array.from(root.querySelectorAll('.rr-cols > .rr-cell'));
+      const colLefts = cols.map((c) => Math.round(c.getBoundingClientRect().left));
+      const cellLefts = cellsOf(row0)
+        .map((c) => Math.round(c.getBoundingClientRect().left));
+      const toks = row0.querySelector('.rr-toks').getBoundingClientRect();
+      const amt = row0.querySelector('.rr-amt').getBoundingClientRect();
+      const rm = row0.querySelector('.rr-rm');
+      const add = document.querySelector('#rr-add');
+      const addR = add.getBoundingClientRect();
+      const rmR = rm.getBoundingClientRect();
       const read = document.querySelector('.rr-rule[data-rr-slot="2"] .rr-read');
       const sign = read ? read.querySelector('.sym-sign') : null;
       const shape = sign ? sign.parentNode : null;
@@ -2795,18 +2853,33 @@ for (const ch of ['chrome', 'msedge']) {
       const shr = shape ? shape.getBoundingClientRect() : null;
       return {
         h: Math.round(r.height), w: Math.round(r.width),
-        left: Math.round(r.left), right: Math.round(r.right),
         inView: r.left >= 0 && r.right <= innerWidth + 1 && r.width > 0,
         rows: rows.length,
+        ruleCount: App.state.get().build.rules.length,
         tallest: heights.length ? Math.max(...heights) : -1,
-        signOnShape: !!shape && String(shape.className || '').split(' ').indexOf('tok') !== -1,
-        signColor: sign ? getComputedStyle(sign).color : '(none)',
-        // The CENTRE of the sign against the shape's left, which is cell 23d's
-        // own measurement and not a second one: [C14.5] gives the sign
+        // THE FIVE DEFECTS, AS NUMBERS.
+        amtGap: Math.round(amt.left - toks.right),
+        colLefts: colLefts,
+        cellLefts: cellLefts,
+        colsAligned: colLefts.length === cellLefts.length
+          && colLefts.every((x, i) => Math.abs(x - cellLefts[i]) <= 1),
+        colWords: cols.map((c) => c.textContent),
+        rmWord: rm.textContent,
+        rmNamed: (rm.getAttribute('aria-label') || ''),
+        rmPerRow: rows.every((n) => n.querySelectorAll('.rr-rm').length === 1),
+        rmShown: rmR.width > 0 && rmR.height > 0
+          && getComputedStyle(rm).visibility !== 'hidden',
+        addWord: add.textContent,
+        addShown: addR.width > 0 && addR.top >= 0 && addR.bottom <= innerHeight + 1,
+        addOff: add.disabled,
+        // The removal mark, D-30's geometry, on the live layout. The CENTRE of
+        // the sign against the shape's left, which is cell 23d's own
+        // measurement and not a second one: [C14.5] gives the sign
         // translate(-50%,-50%), so its LEFT edge sits half its width outside
         // the shape and a cell reading that would disagree with 23d about the
-        // same geometry by exactly half a glyph. Measured the wrong way first,
-        // -6px against 23d's 0, which is the reading this comment exists for.
+        // same geometry by exactly half a glyph.
+        signOnShape: !!shape && String(shape.className || '').split(' ').indexOf('tok') !== -1,
+        signColor: sign ? getComputedStyle(sign).color : '(none)',
         signOffLeft: sr && shr
           ? Math.round((sr.left + sr.width / 2) - shr.left) : -999,
         signOffTop: sr && shr
@@ -2822,23 +2895,117 @@ for (const ch of ['chrome', 'msedge']) {
       };
     });
     await pg.locator('#roundrules').screenshot({
-      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35b-rules-${ch}-${size.name}.png`)
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35c-rules-${ch}-${size.name}.png`)
     });
-    note(ch, size.name, 'D-35 round rules — height / rows / tallest row',
+    note(ch, size.name, 'D-35c round rules - height / rows / tallest band',
       rrBox ? `${rrBox.h}px, ${rrBox.rows} rows, tallest ${rrBox.tallest}px` : 'no node');
-    note(ch, size.name, 'D-35 the decay mark — parent / colour / offset',
+    note(ch, size.name, 'D-35c the amount against the pills it belongs to',
+      rrBox ? `${rrBox.amtGap}px` : 'no node');
+    note(ch, size.name, 'D-35c the column words over their columns',
+      rrBox ? `${rrBox.colsAligned} ${JSON.stringify(rrBox.colWords)}` : 'no node');
+    note(ch, size.name, 'D-35c the two controls - add / remove',
+      rrBox ? `${JSON.stringify(rrBox.addWord)} / ${JSON.stringify(rrBox.rmWord)}` : 'no node');
+    note(ch, size.name, 'D-35 the decay mark - parent / colour / offset',
       rrBox ? `${rrBox.signOnShape} ${rrBox.signColor} ${rrBox.signOffLeft}px/${rrBox.signOffTop}%` : 'no node');
     note(ch, size.name, 'D-35 the rule, authored by clicks',
       rrBox ? rrBox.rule : 'no node');
-    ok(`${tag}: 25b. D-35's round-rules block is authored BY REAL CLICKS — a token pressed on the empty slot starts a rule, "-1" typed into the real amount field turns it into a decay, and a party pressed afterwards keeps the token and the amount already written. Every visible row is ONE line — three written rules and the one empty slot the list always offers — and the block is wholly inside the viewport, which is [C17] being [C12]'s dense language on a page region rather than a stack of three-line bars. THE REMOVAL MARK IS ON THE SHAPE and not beside it — D-30's geometry, read off the live layout: the sign's parent is a .tok, its left is flush with the shape's left and its centre sits a quarter of the way down. The live chooser is said by an outline AND a tick, and the tick on an unpressed pill is hidden — the rule [C12] promised at three sites and implemented at one until D-32b`,
+    ok(`${tag}: 25b. D-35's round-rules block is authored BY REAL CLICKS THROUGH D-35c's OWN CONTROLS - the ADD button starts a COMPLETE rule, a token pill points it at a type the student invented, "-1" typed into the real amount field turns it into a decay, and a party pressed afterwards keeps the token and the amount already written. THE FOUR THINGS A ROW HEIGHT COULD NOT SEE ARE NUMBERS NOW. The amount sits BESIDE the pills it belongs to - measured as the gap between the token strip's right edge and the field's left, which read 160px on the block this replaces with the pills ending at 1327 - which is D-33 P2-7's own measurement arriving on the surface that inherited D-32's un-fixed spelling. Every column word sits over its own column, to the pixel, which is what makes ONE label in the header stand for a group on eight rows instead of eight labels on eight rows. The visible row count equals the RULE count, so there is no half-drawn row under the list pretending to be a broken rule. And both controls are FOUND, VISIBLE and wearing a WORD rather than a glyph - D-33 P3-1's ruling on .unit-rm, made on the one other control in this file that deletes a student's work. THE REMOVAL MARK IS ON THE SHAPE and not beside it - D-30's geometry, read off the live layout: the sign's parent is a .tok, its centre is flush with the shape's left and sits a quarter of the way down. The live chooser is said by an outline AND a tick, and the tick on an unpressed pill is hidden`,
       rrBox !== null && rrBox.inView === true
-      && rrBox.rows === 4 && rrBox.tallest > 0 && rrBox.tallest <= 56
+      && rrBox.rows === 3 && rrBox.ruleCount === 3
+      && rrBox.tallest > 0 && rrBox.tallest <= 96
+      && rrBox.amtGap >= 0 && rrBox.amtGap <= 24
+      && rrBox.colsAligned === true
+      && rrBox.colWords[1].indexOf('Who') === 0
+      && rrBox.rmWord === 'Remove' && rrBox.rmPerRow === true
+      && rrBox.rmShown === true
+      && rrBox.rmNamed.indexOf('Remove the round rule:') === 0
+      && rrBox.addWord.indexOf('Add') !== -1
+      && rrBox.addShown === true && rrBox.addOff === false
+      && rrFresh === JSON.stringify({ who: 'cats', tok: 'hp', d: 1 })
       && rrBox.signOnShape === true
       && rrBox.signOffLeft === 0 && rrBox.signOffTop === 25
       && rrBox.pillsOnRow2 > 5
       && rrBox.tickShown === 'visible/hidden'
       && rrBox.rule === JSON.stringify({ who: 'catsEach', tok: rrTok, d: -1 }),
-      rrBox);
+      { rrBox, rrFresh });
+
+    /* -- 25b2. THE CAP, DRIVEN TO AND THEN BACK OFF, THROUGH THE SAME TWO
+       CONTROLS. Five presses of the add take the list to App.data.MAX_ROUND_RULES
+       and the button greys; the sentence that says why must be on screen IN
+       THE SAME FRAME and beside it rather than a scroll away, which is the
+       whole reason D-35c moved that line out from under the list. A sixth
+       press writes nothing. Then five presses of the rows' own Remove take the
+       board back to the three rules cell 25c reads, which is also this cell's
+       proof that the remove is a control and not a decoration. */
+    for (let i = 0; i < 5; i++) {
+      await pg.click('#rr-add'); await pg.waitForTimeout(120);
+    }
+    // DRIVEN INTO VIEW BEFORE IT IS MEASURED, which is cell 25's own idiom and
+    // is here for a measured reason: each add appends a row ABOVE the foot, so
+    // the foot ends the drive ~47px lower than wherever the last click's
+    // scroll left it. Measured at 1920x1080 as the sentence's bottom sitting
+    // just past innerHeight with the add still on screen - the claim being
+    // made is that a student LOOKING AT THE ADD sees the sentence, not that
+    // the block never leaves a 1080px window.
+    await pg.locator('#rr-add').scrollIntoViewIfNeeded();
+    await pg.waitForTimeout(200);
+    const rrCap = await pg.evaluate(() => {
+      const add = document.querySelector('#rr-add');
+      const said = document.querySelector('#rr-said');
+      const ar = add.getBoundingClientRect();
+      const sr = said.getBoundingClientRect();
+      return {
+        addAt: [Math.round(ar.left), Math.round(ar.top), Math.round(ar.height)],
+        saidAt: [Math.round(sr.left), Math.round(sr.top), Math.round(sr.height)],
+        vh: innerHeight,
+        rules: App.state.get().build.rules.length,
+        rows: Array.from(document.querySelectorAll('#roundrules .rr-rule'))
+          .filter((n) => getComputedStyle(n).display !== 'none').length,
+        addOff: add.disabled,
+        saidShown: said.hidden === false && sr.width > 0
+          && getComputedStyle(said).display !== 'none',
+        said: said.textContent,
+        // Beside the control it explains, on screen with it, not under a list
+        // the student has to scroll past.
+        besideAdd: Math.abs(sr.top - ar.top) < ar.height + 8
+          && sr.top >= 0 && sr.bottom <= innerHeight + 1
+      };
+    });
+    await pg.locator('#roundrules').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d35c-cap-${ch}-${size.name}.png`)
+    });
+    // A press on the greyed control writes nothing. force:true because
+    // Playwright refuses to click a disabled button, and refusing to click it
+    // would be this cell asserting Playwright's own guard rather than the
+    // artifact's - and the artifact's is real, because this listener is bound
+    // to pointerdown, which a disabled button still receives.
+    await pg.click('#rr-add', { force: true }); await pg.waitForTimeout(200);
+    const rrPastCap = await pg.evaluate(() => App.state.get().build.rules.length);
+    for (let i = 7; i >= 3; i--) {
+      await pg.click(`[data-k="rr/rm/${i}"]`); await pg.waitForTimeout(120);
+    }
+    await pg.waitForTimeout(200);
+    const rrBack = await pg.evaluate(() => ({
+      rules: App.state.get().build.rules.length,
+      rows: Array.from(document.querySelectorAll('#roundrules .rr-rule'))
+        .filter((n) => getComputedStyle(n).display !== 'none').length,
+      addOff: document.querySelector('#rr-add').disabled,
+      saidHidden: document.querySelector('#rr-said').hidden,
+      rule2: JSON.stringify(App.state.get().build.rules[2])
+    }));
+    note(ch, size.name, 'D-35c the cap - rules / add off / sentence',
+      `${rrCap.rules} / ${rrCap.addOff} / ${JSON.stringify(rrCap.said).slice(0, 70)}`);
+    note(ch, size.name, 'D-35c back off the cap - rules / add off',
+      `${rrBack.rules} / ${rrBack.addOff}`);
+    ok(`${tag}: 25b2. THE CAP OF EIGHT IS REACHED THROUGH THE ADD BUTTON AND READ WHERE THE STUDENT IS LOOKING. At App.data.MAX_ROUND_RULES the control greys out and the sentence that says why is on screen BESIDE IT in the same frame - which is the pairing every disabled control in this file ships and the reason D-35c moved that line out from under the list, where it appeared as a thing arriving to explain a different thing vanishing. A forced press on the greyed control writes NOTHING, and that is the ARTIFACT's guard rather than Playwright's: this listener is bound to pointerdown, which a disabled button still receives. Then five presses of the rows' own Remove take the list back down, the add comes back on, the sentence goes away, and the rule the student authored is untouched - which is the removal proved as a control rather than as a decoration`,
+      rrCap.rules === 8 && rrCap.rows === 8 && rrCap.addOff === true
+      && rrCap.saidShown === true && rrCap.said.indexOf('all 8') !== -1
+      && rrCap.besideAdd === true
+      && rrPastCap === 8
+      && rrBack.rules === 3 && rrBack.rows === 3
+      && rrBack.addOff === false && rrBack.saidHidden === true
+      && rrBack.rule2 === JSON.stringify({ who: 'catsEach', tok: rrTok, d: -1 }),
+      { rrCap, rrPastCap, rrBack });
 
     /* ── 25c. THE FIGHT SAYS WHAT THE RULES ARE, AND THEN WHAT THEY DID.
        D-31's line, read off the live page: the "Each round" block is inside the
