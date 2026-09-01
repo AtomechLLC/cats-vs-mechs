@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-35 PART 1 of 2 — round rules as data and token min/max bounds (05-D35a)
-last_updated: "2026-09-01T00:00:00.000Z"
+stopped_at: Completed D-35 PART 2 of 2 — the three authoring surfaces (05-D35b)
+last_updated: "2026-09-01T02:00:00.000Z"
 last_activity: 2026-09-01
 progress:
   total_phases: 7
@@ -261,7 +261,7 @@ D-29's own scope) and P3-4 (one removal mark per term group rather than per glyp
 touches D-30's own spec) — the two findings D-33's audit refused to implement without the
 developer.
 
-**D-35 IS TWO DISPATCHES AND PART 1 IS DONE.** The developer asked for two things: "add a
+**D-35 IS TWO DISPATCHES AND BOTH ARE DONE.** The developer asked for two things: "add a
 feature to configure what happens each round (default +3 action points, but also things like
 -1 of a status effect token)" and "Add a property for min and max of a token on a unit or
 side". **Part 1 (05-D35a) is everything below the surface** — the schema, the ops, the clamp,
@@ -315,9 +315,57 @@ unmoved, `FIGHT_FLOOR` **132**/592, browser checks **242 / 0 HEADLESS** unmoved.
 its starting value" is not a type property, and the two readings that would satisfy it are both
 changes of kind).
 `.planning/phases/05-fight-loop-playtest/05-D35a-SUMMARY.md`.
-Next: **part 2 of D-35** — the bounds pair on the token editor, a round-rules list a student
-can read and edit, and the fight surface saying what a round rule did. `rulesNaming` is already
-exported for the removal warning.
+
+**Part 2 (05-D35b) — the three authoring surfaces.** A student can now write a token type's
+RANGE in the token editor, write WHAT HAPPENS AT THE END OF EVERY ROUND in a block beside the
+rosters, and — on Advance — watch the rule they wrote take a point off a type they invented, in
+the fight's own symbolic notation, on the surface that exists to say what moved. No op, no codec
+change and no default was touched.
+
+**The range** is two static fields on the token editor in `#tok-pick-name`'s own contract —
+Enter loud, Escape back, blur quiet, never written while focused (D-19) — and a sentence under
+them that says what the pair IS. **The shipped 0-to-99 reads as what it is**, because two boxes
+of digits cannot tell an authored range apart from the one the artifact begins with. Nothing on
+the page clamps: `setTokenBounds` refuses and the refusal is heard.
+
+**PLACEMENT, THE ORCHESTRATOR CALL, TAKEN AND RECORDED: the reading is in the fight and the
+editing is in the build.** D-31 makes the round-state area a reading of the board as it stands,
+so `[S06.7]` draws an "Each round" block there with **zero controls in it**, and `[S06.13]`
+draws the same rules with choosers in the build view beside the rosters. Both come out of ONE
+function — `[S06.12]`'s `symRoundParts` — and check 116 asserts the two readings **equal to each
+other** rather than each to a typed string. The declined alternative (editing inline in the state
+panel) is written into deferred-items **15** with the rehearsal question it leaves open.
+
+**Nothing in the new region carries `data-act`, and that is mechanism.** `#roundrules` is inside
+`#app`, so `[S07.1]`'s `actTarget` would resolve a `data-act` and hand it to `fire()`, which
+builds a payload `setRoundRule` does not take — the error panel on a student's first press. The
+controls carry `data-rr` and the amount field carries `.rr-amt` rather than `.stp-field`, and
+`[S07.7]` binds its own root, which is the view switch's `data-vw` precedent for the third time.
+
+**THE WHAT-CHANGED READING NEVER SAID A TALLY MOVED, and that was a defect rather than a gap.**
+A student who invented Rage and advanced a round watched the number move on the card and read
+"Nothing on this side changed" directly above it. `ldTallyLines` walks the UNION of both bags now
+— a tally of zero deletes its key, so the last point of a decay is the point that would otherwise
+draw nothing.
+
+`FIGHT_FLOOR` **132 → 248, re-derived by measurement**: four roster shapes driven against this
+artifact and the one before it, undressed and dressed, delta **116 / 119** in every column with
+the per-unit cost **unchanged** — and the smaller delta taken, because a move must be a lower
+bound on any board a student can build. `DIALOG_FLOOR` **stays at 138** against a measured 173,
+the third plan running to make that call: a tripwire for a surface going dark, not a ratchet.
+Gate: node **1327 / 0, exit 0**, **201 → 204** interaction rows (+115, +116, +117), stub-drift
+**136 → 144**, browser checks **242 → 254 / 0 HEADLESS** (+cells 25, 25b, 25c).
+Five probes red the right rows; one of them found a defect in a CHECK — the stub's `textContent`
+is a plain property, so 116's reading comparison was equal because both sides were empty.
+**One browser cell was turned before it shipped**: cell 25's first draft read the viewport
+rectangle alone, passed at both sizes, and photographed two fields cut in half by the dialog's
+sticky foot.
+`deferred-items.md` items **15** (where a student expects to edit a rule mid-fight) and **16**
+(the reading says a number moved and never which rule moved it).
+`.planning/phases/05-fight-loop-playtest/05-D35b-SUMMARY.md`.
+Next: **05-11, the playtest** — the last thing in the phase, and it now carries four questions
+rather than two: the AP sweep, the +3-versus-refill fork (item 13), the round-rules placement
+(item 15) and whether a decay needs attributing (item 16).
 Last activity: 2026-09-01
 
 Progress: [██████████] 100%
@@ -552,6 +600,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-01T00:00:00.000Z
-Stopped at: Completed D-35 PART 1 of 2 (05-D35a) — round rules as data and token min/max bounds, everything below the surface. Part 2 builds the authoring surfaces; the +3-versus-refill fork is preserved, driven at nine, and put to the 05-11 playtest as deferred item 13
+Last session: 2026-09-01T02:00:00.000Z
+Stopped at: Completed D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
 Resume file: None

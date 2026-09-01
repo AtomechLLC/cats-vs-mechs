@@ -581,3 +581,56 @@ changes of kind rather than of value:
 **Owner:** part two of D-35, or the developer, on the evidence of a room. The concrete question a
 playtest answers is whether anybody authoring a `+1 shield` rule then wants it to stop at the
 number the unit started with — which is the only case where the difference is visible at all.
+
+---
+
+## 15. WHERE A STUDENT EXPECTS TO EDIT A ROUND RULE MID-FIGHT
+
+**Found:** plan 05-D35b, placing D-35's authoring surface.
+
+D-35's second dispatch was given a placement choice and told to record the alternative. What
+shipped: **the reading is in the fight tab's round-STATE panel and the editing is in the build
+view**, as one block drawn from one notation ([S06.12]'s `symRoundParts`) by two surfaces.
+
+The alternative — editing inline in that state block — was declined on D-31's own line. D-31
+split `#fightbar` into "where the round stands" and "what you are about to do"; a list of eight
+editable rows is neither, it is authoring, and it belongs beside the rosters it acts on. The
+second reason is a room: an instructor stands in front of a projector in the fight view, and
+eight editable rows in that region are eight more things to mis-click while a board is live.
+
+**What a rehearsal has to answer, and this comment cannot.** A student who is three rounds into a
+fight, watching a decay rule do something they did not expect, has to switch to the build tab to
+change it. Is that switch a cost they notice? Does anyone look for the rule in the panel that is
+showing it to them and fail to find a control? Both readings are on screen and one of them is
+inert — which is exactly the shape that reads as a broken control if it reads wrong.
+
+**The cheap fix if the answer is "they look in the panel":** the state block gains one line
+saying where the rules are written, in the register `#fight-said` already uses. The expensive one
+is moving the editor, and it is expensive because it re-opens D-31.
+
+**Owner:** the 05-11 playtest.
+
+---
+
+## 16. THE WHAT-CHANGED READING SAYS A NUMBER MOVED AND NEVER WHICH RULE MOVED IT
+
+**Found:** plan 05-D35b, wiring the third surface.
+
+D-35's dispatch asked for "the ledger's round record and/or the what-changed reading" to show
+the round-rule deltas. What shipped is the second: `ldNowSide` walks the tally bags now, so a
+decay a student authored is visible as `Cat 1 — Rage 3 to 2` in the same notation and on the same
+surface every other change on that board is read in.
+
+**What it does not say is WHICH rule did it**, and that is deliberate on two grounds. The reading
+has never attributed a health change to an action either — FIGHT-15's design is a diff derived at
+render time, with no second structure claiming to be what happened, and [S06.8]'s own paragraph
+rules that a round card carries only the facts a diff CANNOT show. And attribution would need
+`advanceRound` to write a per-rule record, which is an ops change this dispatch was explicitly
+scoped out of: part one finished the ops and the codec.
+
+**What a room decides.** If a student cannot tell a decay apart from a damage transformation that
+happened to land on the same tally, the answer is a per-rule entry on the round record and a
+`ldRulesInto` beside `ldDidInto` — one plan, at the same level `hand` already sits at. If they
+can, because the "Each round" block above tells them what the rules are, nothing is owed.
+
+**Owner:** the 05-11 playtest.
