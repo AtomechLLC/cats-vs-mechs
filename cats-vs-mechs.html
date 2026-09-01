@@ -12428,12 +12428,26 @@ App.ops = (function () {
          applied to the board they wrote it about.
 
      A DEPARTED TOKEN IS THE ONE CASE THAT IS NOT SILENT ANYWHERE, and it is
-     closed at the AUTHORING end rather than here: removeTokenType refuses to
-     remove a type a round rule names, and [S04.3] refuses a code whose rule
-     names an ordinal the vocabulary does not hold. So by the time a rule
-     reaches this walk it names a type this board carries — and if a later
-     change breaks that, the hasOwnProperty test below skips it rather than
-     throwing halfway through a commit that has already moved the board. */
+     closed OUTSIDE this walk in three places rather than in it.
+
+     THIS PARAGRAPH SAID SOMETHING FALSE UNTIL PLAN 05-D35b AND THE CORRECTION
+     IS MADE IN THE OPEN, because the sentence it replaces is the kind a later
+     reader would have built on. What stood here was "removeTokenType refuses to
+     remove a type a round rule names". IT DOES NOT, and the plan that wrote
+     both this comment and that op recorded the opposite decision in its own
+     summary: the removal is ALLOWED and the rule is NOT rewritten, because a
+     rewritten rule is a silently changed rule, and refusing the removal would
+     have been a new behaviour class in a file where nothing else refuses one.
+
+     What actually closes it: ruleRoundRules refuses the next Advance BY NAME,
+     in the ruling pass and outside the commit, so the board and the undo stack
+     are exactly where they were; [S04.3] refuses a pasted code whose rule names
+     an ordinal the vocabulary does not hold; and [S06.2]'s line beside Remove
+     says what the removal will cost BEFORE it happens, which is what
+     App.ops.rulesNaming was exported for. So a rule CAN reach this walk naming
+     a type this board no longer carries — between the removal and the next
+     Advance — and the hasOwnProperty test below skips it rather than throwing
+     halfway through a commit that has already moved the board. */
   function applyRoundRules(g, build) {
     var vocab = build.tokens;
     var rules = Array.isArray(build.rules) ? build.rules : [];
@@ -15774,14 +15788,65 @@ App.render = (function () {
   // a removal, so it says something exactly when there is a removal to say it
   // about. It still DISABLES nothing — the button's own rule is untouched, and
   // a row holds the two apart.
+  /* D-35: AND WHICH ROUND RULES NAME IT, said in the same line and before the
+     same removal. actionsNaming and rulesNaming are the same read one scope
+     apart — plan 05-D35a exported the second FOR THIS SENTENCE and its own
+     comment says so — and the consequence a student needs is the same
+     consequence: something they wrote names this type, and taking the type away
+     leaves it naming nothing.
+
+     WHAT IT SAYS IS ARITHMETIC AND WHAT HAPPENS NEXT IS A FACT, not a warning
+     dressed as advice. The count comes from the read; the sentence after it is
+     what [S05] will actually do, which is refuse the NEXT Advance by name in
+     ruleRoundRules — outside the commit, with the board and the undo stack
+     exactly where they were. That is worth saying because it is the one
+     consequence of the two that a student cannot see by looking: an action left
+     without a term still sits in the list, while a rule left naming nothing
+     stops the round from advancing until they fix it.
+
+     IT DOES NOT NAME THE RULES. An action has a name a student typed and the
+     sentence above prints it; a round rule has a SLOT, and "round rule 3" is a
+     number that means nothing on a surface where the rules are not numbered.
+     The count is the honest reading of what rulesNaming hands back — it hands
+     the slot, the party and the id, and the surface that could use the slot is
+     the editor in the build view, not this dialog.
+
+     THE NOUN AGREES WITH THE COUNT, twice, for the reason the sentence above
+     does it once: one rule named on a projector under a plural reads as a
+     defect in the tool.
+
+     IT DISABLES NOTHING, which is this line's standing rule. Whether a rule
+     that names a departing type is a rule worth keeping is the student's
+     ruling, and adjudicating it is the exercise. */
+  function rulesNamingText(state, tokenId) {
+    var rules = App.ops.rulesNaming(state.build, tokenId);
+    if (rules.length === 0) { return ''; }
+    var one = (rules.length === 1);
+    return (one ? 'One round rule changes ' : rules.length + ' round rules change ')
+      + labelFor(state, tokenId) + '. Removing it will leave '
+      + (one ? 'that rule' : 'those rules') + ' naming a type this board no '
+      + 'longer holds, and the next Advance will say so and stop.';
+  }
+
   function namedByText(state, tokenId) {
     if (isShippedType(tokenId)) { return ''; }
+    var says = [];
     var naming = App.ops.actionsNaming(state.build, tokenId);
-    if (naming.length === 0) { return ''; }
-    var names = naming.map(function (rec) { return rec.name; });
-    return labelFor(state, tokenId) + ' is named by ' + names.join(', ') + '. '
-      + 'Removing it will leave ' + (names.length === 1 ? 'that action' : 'those actions')
-      + ' without a term.';
+    if (naming.length > 0) {
+      var names = naming.map(function (rec) { return rec.name; });
+      says.push(labelFor(state, tokenId) + ' is named by ' + names.join(', ') + '. '
+        + 'Removing it will leave ' + (names.length === 1 ? 'that action' : 'those actions')
+        + ' without a term.');
+    }
+    // Written as a SECOND SENTENCE rather than folded into the first, because
+    // the two consequences are different consequences and a student may be
+    // standing in front of either, both or neither. Joined here so the surface
+    // still writes ONE line — setText's emptiness-is-hiddenness rule works over
+    // the whole line, and two nodes would be two ways for this dialog to have a
+    // blank row in it.
+    var byRules = rulesNamingText(state, tokenId);
+    if (byRules !== '') { says.push(byRules); }
+    return says.join(' ');
   }
 
   /* D-35: THE PAIR ON SCREEN, AND THE ONE RULE THIS FIELD SHARES WITH EVERY
@@ -20764,6 +20829,77 @@ App.render = (function () {
     return null;
   }
 
+  /* ==================================================================
+     D-35: THE TALLIES JOIN THE WHAT-CHANGED READING, AND A ROUND RULE IS
+     WHY THEY HAD TO. Plan 05-D35b.
+     ==================================================================
+     WHAT THIS READING DID NOT SAY BEFORE, AND WHY IT MATTERED THE MOMENT
+     D-35 SHIPPED. ldNowSide walked the action-point pool, each unit's health,
+     each unit's shield and each unit's standing flag — the four numbers the
+     board had a stat line for — and said nothing at all about a TALLY. A
+     student who invented Rage and wrote an action that adds two of it advanced
+     the round, watched the number on the card move, and read "Nothing on this
+     side changed in round 1" directly above it.
+
+     That was a gap before this plan and it is a DEFECT after it, because
+     "-1 of a status effect token each round" is the developer's own second
+     example of what a round rule is for. A tool whose decay is invisible on
+     the one surface that exists to say what moved is a tool that dropped the
+     student's rule. So the bags are walked here, through the same symDelta
+     every other line on this surface goes through.
+
+     THE UNION OF BOTH BAGS, never one of them, and this is the sparse-storage
+     rule arriving in a reader: a tally of zero DELETES ITS KEY and an empty
+     bag deletes itself, so a decay that takes the last point of Rage off a
+     unit leaves a bag with no Rage key in it at all. Walking only the live bag
+     would make exactly the last point of a decay — the one a student is
+     watching for — the one point that draws nothing.
+
+     BOTH ENDS AND NEVER A DIFFERENCE, which is symDelta's own rule and this
+     region's "two numbers and no adjective". And the reading does not say
+     WHICH rule or WHICH action moved the number, because this reading has
+     never said that about health either: it is a diff of the board, derived at
+     render time, and FIGHT-15's design is that there is no second structure
+     claiming to be what happened. What a round rule IS lives on [S06.7]'s
+     "Each round" block; what it DID is the number moving here. */
+  function ldBagAt(bag, tok) {
+    if (bag === null || typeof bag !== 'object') { return 0; }
+    if (!Object.prototype.hasOwnProperty.call(bag, tok)) { return 0; }
+    return Number.isInteger(bag[tok]) ? bag[tok] : 0;
+  }
+
+  function ldBagKeys(wasBag, nowBag) {
+    var out = [];
+    [wasBag, nowBag].forEach(function (bag) {
+      if (bag === null || typeof bag !== 'object') { return; }
+      Object.keys(bag).forEach(function (tok) {
+        if (out.indexOf(tok) === -1) { out.push(tok); }
+      });
+    });
+    return out;
+  }
+
+  // `who` is the empty string for a SIDE's own bag and a unit's name for a
+  // unit's, which is the shape the two callers below already have for health
+  // and for the pool: the pool line names nobody because a pool belongs to the
+  // column it is drawn in, and a unit line names the unit.
+  function ldTallyLines(body, state, wasBag, nowBag, who) {
+    var said = 0;
+    ldBagKeys(wasBag, nowBag).forEach(function (tok) {
+      var from = ldBagAt(wasBag, tok);
+      var to = ldBagAt(nowBag, tok);
+      if (from === to) { return; }
+      var lead = (who === '') ? [] : [{ said: who + ' ' }];
+      var pre = (who === '') ? '' : (who + ' — ');
+      body.appendChild(ldLine('ld-now-line', lead.concat([
+        { node: symDelta(state, tok, from, to, pre,
+          ' ' + from + ' to ' + to + '.') }
+      ])));
+      said++;
+    });
+    return said;
+  }
+
   function ldNowSide(body, state, side, prev) {
     var was = prev.was ? prev.was[side] : null;
     var live = state.fight[side];
@@ -20779,6 +20915,9 @@ App.render = (function () {
         was.ap, live.ap, '', ' ' + was.ap + ' to ' + live.ap + '.') }]));
       said++;
     }
+    // The side's own bags, beside the side's own pool, because a type a
+    // student made at side scope is the same kind of thing the pool is.
+    said += ldTallyLines(body, state, was.tally, live.tally, '');
     live.units.forEach(function (u) {
       var before = ldUnitIn(was.units, u.id);
       if (before === null) { return; }
@@ -20795,6 +20934,10 @@ App.render = (function () {
             ' ' + before.shield + ' to ' + u.shield + '.') }]));
         said++;
       }
+      // The unit's bags, after its two shipped numbers and BEFORE the
+      // standing flag: a flag is the summary of a unit's round and reads last
+      // for the same reason it was written last before this change.
+      said += ldTallyLines(body, state, before.tally, u.tally, uName);
       if (before.alive !== u.alive) {
         body.appendChild(ldLine('ld-now-line', [{ said: ldUnitName(state, u.id) + ' — '
           + (u.alive ? 'standing again.' : 'no longer standing.') }]));

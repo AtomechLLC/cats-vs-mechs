@@ -15898,6 +15898,221 @@ A.state.invalidate({ structural: true });
 A.state.flush();
 clearPanel();
 
+/* 117. D-35, END TO END, AS A STUDENT ACTUALLY DOES IT — and it is one row on
+   purpose, because the three surfaces this plan built are three halves of one
+   act and a row per surface would assert that each of them works while nobody
+   walks the path between them.
+
+   The path, in order, every step through a real control:
+     1. Make a type, name it, and give it a CEILING through the two real
+        fields — then try to give it a floor above that ceiling and hear the
+        refusal.
+     2. Write "-1 of it, on each of that side's units, every round" through the
+        real pills and the real amount field.
+     3. Start the fight and advance twice WITHOUT DECLARING ANYTHING, so the
+        only thing that can move a number is the rule.
+     4. READ THE DECAY IN THE LEDGER. This is the clause the whole dispatch is
+        for: "a student who authored -1 Rage each round must be able to SEE it
+        happen on Advance." Before this plan the what-changed reading walked the
+        pool, health, shield and the standing flag and said nothing about a
+        tally at all — so a decay moved a number on the card and the reading
+        directly above it said nothing on this side changed.
+     5. Reopen the editor on that type and read the line beside Remove, which
+        must now NAME THE ROUND RULE as well as any action.
+     6. Take the type away and advance, and hear [S05] refuse the round BY
+        NAME — the other half of ACT-07 one scope up, and the consequence the
+        line in step 5 is about.
+
+   AND THE POOL RULE RIDES ALONG UNASKED. Nothing is declared, so both pools
+   are untouched by any action and the +3 the board ships with is the only
+   thing that can move them — which makes the pool line in the same reading a
+   second, independent witness that a round rule ran. */
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+// ---- 1. a type, named and bounded through the real dialog.
+press(openBtn);
+release(openBtn);
+A.state.flush();
+press(pkNewUnit);
+release(pkNewUnit);
+A.state.flush();
+const wtTok = dlg.dataset.tok;
+pkName.focus();
+pkName.value = 'Chill';
+pkName.dispatchEvent(dom.event('keydown', { key: 'Enter' }));
+A.state.flush();
+pkName.blur();
+A.state.flush();
+bdEnter(pkMax, '3');
+const wtCeiling = A.ops.tokenBounds(A.state.get().build.tokens, wtTok).max;
+// A floor above that ceiling: refused, never clamped, and heard.
+pkMin.blur();
+A.state.flush();
+bdEnter(pkMin, '9');
+const wtRefusedLoud = errPanel.hidden === false;
+const wtRefusedSaid = String(errMessage.textContent || '');
+const wtFloorHeld = A.ops.tokenBounds(A.state.get().build.tokens, wtTok).min;
+const wtFieldBack = pkMin.value;
+clearPanel();
+pkMin.blur();
+A.state.flush();
+if (dlg.open === true) { dlg.close(); }
+
+// Three points of it on the first cat. The stepper path is check 102's ground
+// and re-driving it here would be that row's claim borrowed rather than this
+// one's made.
+A.ops.setTally('cats', 'c1', wtTok, 3);
+A.state.flush();
+
+// ---- 2. the decay rule, through the real pills and the real amount field.
+rrPressPill(2, 'rr/2/tok/' + wtTok);
+rrTypeAmount(2, '-1');
+rrPressPill(2, 'rr/2/who/catsEach');
+const wtRule = JSON.stringify(A.state.get().build.rules[2]);
+
+// ---- 3. two rounds, nothing declared.
+fgPress(fgStart);
+A.state.flush();
+function wtChill() {
+  return ldBagOf(A.state.get().fight.cats.units[0].tally, wtTok);
+}
+function ldBagOf(bag, tok) {
+  if (bag === null || typeof bag !== 'object') { return 0; }
+  return Object.prototype.hasOwnProperty.call(bag, tok) ? bag[tok] : 0;
+}
+function wtNowSaid() {
+  const body = fgLedgerRoot.querySelector('.ld-now-body');
+  if (!body) { return ['(no reading)']; }
+  return body.querySelectorAll('.ld-now-line').map((n) => rrSaying(n));
+}
+const wtChill0 = wtChill();
+const wtPool0 = A.state.get().fight.cats.ap;
+fgAdvancePress();
+A.state.flush();
+const wtChill1 = wtChill();
+const wtPool1 = A.state.get().fight.cats.ap;
+const wtSaid1 = wtNowSaid();
+fgAdvancePress();
+A.state.flush();
+const wtChill2 = wtChill();
+const wtSaid2 = wtNowSaid();
+
+// ---- 4. the decay is IN the reading, by the type's own name, at both ends.
+const wtName = A.render.labelFor(A.state.get(), wtTok);
+// The tooltip a unit's line carries is "<unit> — <type> <from> to <to>." —
+// the unit name is the PREFIX symDelta was handed and the type name is what
+// labelFor answers in the middle of it, so the fragment matched here starts at
+// the TYPE. Measured while writing this row: a matcher that put an em dash
+// after the type name found nothing and the row reddened on a reading that was
+// perfectly correct.
+//
+// AND THE UNIT MUST BE NAMED AHEAD OF THE READING, asserted as text before the
+// arrow rather than as a re-typed "Cat 1": a pool line is the arrow and
+// nothing else, so a unit line that had lost its name would read exactly like
+// one and this clause is what tells them apart.
+function wtLineFor(said, from, to) {
+  return said.filter((line) =>
+    line.indexOf(wtName + ' ' + from + ' to ' + to + '.') !== -1
+    && line.indexOf('→') > 0).length;
+}
+const wtDecaySaid1 = wtLineFor(wtSaid1, 3, 2);
+const wtDecaySaid2 = wtLineFor(wtSaid2, 2, 1);
+// TWO of them, and the figure is 2 rather than 1 because the reading walks
+// BOTH sides and the shipped board gives each of them the same +3. A row
+// expecting one would have been green over a reading that had lost a side.
+const wtPoolSaid1 = wtSaid1.filter((line) =>
+  line.indexOf('3 to 6.') !== -1).length;
+
+// ---- 5. the line beside Remove, naming the round rule.
+press(openBtn);
+release(openBtn);
+A.state.flush();
+const wtRow = pkRowFor(wtTok);
+press(wtRow);
+release(wtRow);
+A.state.flush();
+const wtWarn = pkNames.textContent;
+const wtWarnShown = pkNames.hidden === false;
+
+// ---- 6. the removal, and the refusal it costs the next Advance.
+press(pkRemove);
+release(pkRemove);
+A.state.flush();
+if (dlg.open === true) { dlg.close(); }
+clearPanel();
+const wtGone = Object.prototype.hasOwnProperty.call(
+  A.state.get().build.tokens, wtTok) === false;
+const wtRuleKept = JSON.stringify(A.state.get().build.rules[2]) === wtRule;
+const wtRoundBefore = A.state.get().fight.round;
+fgAdvancePress();
+A.state.flush();
+const wtRefusedAdvance = String(errMessage.textContent || '');
+const wtRoundHeld = A.state.get().fight.round === wtRoundBefore;
+
+const wtWords = harvestInto(dom.byId['app'], [], '#app');
+const wtVerdicts = verdictHitsIn(wtWords);
+
+check(
+  '117. D-35 END TO END, THROUGH REAL CONTROLS, IN THE ORDER A STUDENT DOES '
+    + 'IT. A type is made and named in the editor and given a CEILING through '
+    + 'the real field; a floor above that ceiling is REFUSED and heard, the '
+    + 'field goes back and the board does not move. A rule saying "one less of '
+    + 'it on each of that side\'s units, every round" is written through the '
+    + 'real pills and the real amount field. The fight is started and advanced '
+    + 'TWICE WITH NOTHING DECLARED, so the only thing that can move a number '
+    + 'is the rule — and the decay is READ BACK OFF THE LEDGER by the type\'s '
+    + 'own name at both ends, 3 to 2 and then 2 to 1. THAT CLAUSE IS THE WHOLE '
+    + 'DISPATCH: before this plan the what-changed reading walked the pool, '
+    + 'health, shield and the standing flag and said nothing about a tally, so '
+    + 'a decay moved a number on the card while the reading above it said '
+    + 'nothing on this side had changed. The pool\'s own +3 rides along as a '
+    + 'second, independent witness in the same reading. Then the editor is '
+    + 'reopened on that type and the line beside Remove NAMES THE ROUND RULE, '
+    + 'which is what App.ops.rulesNaming was exported for; the type is taken '
+    + 'away, the rule is NOT rewritten, and the next Advance is refused BY '
+    + 'NAME with the round exactly where it was — ACT-07\'s treatment one '
+    + 'scope up, and the consequence that line is about',
+  wtCeiling === 3
+    && wtRefusedLoud === true && wtFloorHeld === 0 && wtFieldBack === '0'
+    && wtRefusedSaid.indexOf('Chill') !== -1
+    && wtRule === JSON.stringify({ who: 'catsEach', tok: wtTok, d: -1 })
+    && wtChill0 === 3 && wtChill1 === 2 && wtChill2 === 1
+    && wtPool0 === 3 && wtPool1 === 6
+    && wtDecaySaid1 === 1 && wtDecaySaid2 === 1 && wtPoolSaid1 === 2
+    && wtWarnShown === true
+    && wtWarn.indexOf('One round rule changes Chill') !== -1
+    && wtWarn.indexOf('the next Advance will say so') !== -1
+    && wtGone === true && wtRuleKept === true
+    && wtRefusedAdvance.indexOf('A round rule changes') !== -1
+    && wtRefusedAdvance.indexOf(wtTok) !== -1
+    && wtRoundHeld === true
+    && wtVerdicts.length === 0,
+  'ceiling=' + wtCeiling + ' | a floor of 9 above it: loud=' + wtRefusedLoud
+    + ' floor held at ' + wtFloorHeld + ', field back to ' + JSON.stringify(wtFieldBack)
+    + ', panel says ' + JSON.stringify(wtRefusedSaid)
+    + ' | rule=' + wtRule
+    + ' | Chill on c1: ' + wtChill0 + ' -> ' + wtChill1 + ' -> ' + wtChill2
+    + ' | pool: ' + wtPool0 + ' -> ' + wtPool1
+    + ' | reading after round 1: ' + JSON.stringify(wtSaid1)
+    + ' | reading after round 2: ' + JSON.stringify(wtSaid2)
+    + ' | the line beside Remove: ' + JSON.stringify(wtWarn)
+    + ' shown=' + wtWarnShown
+    + ' | type gone=' + wtGone + ' rule kept=' + wtRuleKept
+    + ' | the next Advance says ' + JSON.stringify(wtRefusedAdvance)
+    + ' round held=' + wtRoundHeld
+    + ' | harvest=' + wtWords.length + ' strings, verdict words: '
+    + (wtVerdicts.join(', ') || 'none')
+);
+
+A.ops.endFight();
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore
