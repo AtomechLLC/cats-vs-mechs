@@ -892,3 +892,52 @@ trade: 6.5px of mark hanging into a 6px gap, with nothing crossing it.
 
 **Owner:** pass G, with P3-2 and P3-3, since all three are D-30's notation and the developer has
 already been asked to rule on that group.
+
+---
+
+## D-39 P2-3's `.rr-pill` HALF — the round-rules controls are still 3px under the floor
+
+**Raised 2026-09-02 by plan 05-D39a.** D-39 P2-3 is right and its stated cost is wrong.
+
+**The finding holds.** `.rr-pill-name` runs **15px** and `.rr-check` ran **13px**, against `.brd-btn`
+18, `.vw-btn` 18, `.unit-rm` 18, `.fg-act` 18 and `.fgu-alive` 18. `[C07]`'s banner sets the rule
+— *"a real, permanently visible text label at the 18px minimum, never an icon"* — and the
+round-rules grid, which carries up to ten controls per rule across up to eight rules, is the one
+authoring surface below it. Projector legibility is this artifact's stated bar.
+
+**The audit's "GATE: None — font sizes only" does not survive 1366.** Driven in real Chrome and
+real Edge, `#rr-list` with the five shipped types:
+
+| `.rr-pill` | list width | columns | slack | row heights |
+|---|---|---|---|---|
+| **15px** (shipped) | 1284 | 123 449 523 90 82 | **17** | 41, 48 — one line |
+| **18px** (asked) | 1284 | 123 505 484 90 82 | **0** | 82, 89 — **two lines** |
+
+Browser cell **25a** asserts *"two rules, ONE LINE EACH"* at the shipped vocabulary, in both
+engines at 1366, and its binding clause is the **slack** — its own banner says so: *"a track with
+no free space cannot claim any... the SLACK is what catches the track."* At 18px there is none.
+There were 17px of room and "Who it reaches" alone wants 56 more.
+
+**And the width is not recoverable.** Three reclamations were driven on the live page —
+`.rr-cell` `padding-inline-end` 14→8, `.rr-read` `min-width` 96→0, `.rr-pill` `padding` 8→6 — and
+**all three together** left `slack: 0` and the rows at 82 and 89. The columns redistribute; the
+grid is already over-constrained and the token track is the only one permitted to shrink. This is
+not a padding problem.
+
+**The three admissible answers,** none taken here because each decides what this surface *is*:
+1. drop a column — "The rule" reading is also drawn in the fight view's own `.fg-eachround` block,
+   so the authoring grid may not need to repeat it;
+2. shorten the party words — "Cats, each unit" is the longest and it is four controls wide;
+3. let 1366 wrap to two lines and turn cell **25a** openly to assert the wrapped shape, which
+   `align-items:start` (landed this pass) already makes read correctly.
+
+**Answer 3 is nearly free now** and is the one to look at first: the only thing standing between it
+and green is a cell that was written when one line was achievable.
+
+**What DID land this pass:** `[C07]`'s `.pk-sw` went **13px → 18px** (with `min-width` 66 → 84) and
+cost nothing at either viewport, and `.rr-check` went 13px → 14px to match `.pk-check` and
+`.ae-check`. The `.rr-check` containment also landed and is unaffected — it was re-driven at 15px
+and the row stays one line with 17px to spare.
+
+**Owner:** a pass that can turn cell 25a, or the 05-11 playtest if the room says the round-rules
+words are unreadable from the back.

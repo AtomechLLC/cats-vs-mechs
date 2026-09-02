@@ -5544,18 +5544,48 @@
      class is a rule two surfaces have to agree about forever. The values are
      the same values; the marks are the same marks; the live one is said by an
      outline AND a tick, never by colour alone ([C07]'s three-times rule). */
-  /* D-39 P2-3 — 18px. Measured against the file's own floor: .rr-pill-name
-     ran 15px and .rr-check 13px while .brd-btn, .vw-btn, .unit-rm, .fg-act
-     and .fgu-alive all run 18. [C07]'s banner states the rule — "a real,
-     permanently visible text label at the 18px minimum, never an icon" —
-     and the round-rules grid, which carries up to ten controls per rule and
-     up to eight rules, was the one surface below it. Projector legibility
-     is this artifact's stated bar.
+  /* ==================================================================
+     D-39 P2-3 ASKED FOR 18px HERE AND THE 1366 MEASUREMENT REFUSED IT.
+     Plan 05-D39a — TRIED, MEASURED, REVERTED, RECORDED.
+     ==================================================================
+     THE FINDING IS RIGHT. .rr-pill-name runs 15px and .rr-check ran 13px
+     while .brd-btn, .vw-btn, .unit-rm, .fg-act and .fgu-alive all run 18,
+     and [C07]'s banner sets the floor — "a real, permanently visible text
+     label at the 18px minimum, never an icon". This grid carries up to ten
+     controls per rule and up to eight rules and is the one authoring
+     surface under that floor. Projector legibility is the stated bar.
 
-     THE ROW GROWS AND THAT IS THE TRADE, taken with a picture: at 18px the
-     pills are wider, so the token column wraps a rule sooner. P2-4's
-     align-items:start above is what makes a wrapped row still read as one
-     row, which is why the audit says to do the two together. */
+     IT STILL COSTS A BROWSER CELL AT THE VIEWPORT A WORKSHOP LAPTOP RUNS,
+     and the audit's "GATE: None — font sizes only" does not survive
+     contact with 1366. Driven in real Chrome and real Edge, #rr-list at
+     1366 with the five shipped types:
+
+       .rr-pill   list width   columns                     slack  row heights
+       15px       1284         123 449 523 90 82           17     41, 48
+       18px       1284         123 505 484 90 82            0     82, 89
+
+     Every row is TWO LINES at 18px, and cell 25a asserts one line at the
+     shipped vocabulary in both engines — with the SLACK as its binding
+     clause, because a track with no free space cannot be caught stretching.
+     There were 17px of room and "Who it reaches" alone wants 56 more.
+
+     AND THE WIDTH CANNOT BE FOUND ELSEWHERE. Three reclamations were driven
+     on the live page: .rr-cell's padding-inline-end 14 to 8, .rr-read's
+     min-width 96 to 0, and the pill's own padding 8 to 6. ALL THREE
+     TOGETHER left slack at 0 and the rows at 82 and 89 — the columns simply
+     redistribute, because the grid is already over-constrained and the
+     token track is the only one allowed to shrink. This is not a padding
+     problem.
+
+     SO IT NEEDS AN ANSWER THIS PASS IS NOT ENTITLED TO MAKE — a column
+     dropped, a party word shortened, or 1366 accepting two lines and cell
+     25a turned to say so. All three are decisions about what this surface
+     IS. See deferred-items.md, D-39 P2-3's .rr-pill half.
+
+     WHAT DID LAND: [C07]'s .pk-sw went 13px to 18px and cost nothing, and
+     .rr-check went 13px to 14px to match .pk-check and .ae-check. The tick
+     containment above is unaffected — it was driven at 15px and the row
+     stays one line with 17px to spare. */
   .rr-pill{
     position:relative;
     display:flex;align-items:center;gap:6px;
@@ -5563,7 +5593,7 @@
     background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
     border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
     border-radius:9px;color:var(--ink);
-    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
+    font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
