@@ -3608,7 +3608,54 @@ for (const ch of ['chrome', 'msedge']) {
        vocabulary it wraps INSIDE its own column with nothing else moving. One
        line on the board a student opens; a wrapped chooser and a bound amount
        on the board they build. Both are measured, in that order, and neither
-       is claimed of the other. */
+       is claimed of the other.
+
+       ==================================================================
+       TURNED IN THE OPEN UNDER D-39 P2-3. Plan 05-D39d. THE ONE-LINE
+       CLAUSE IS GONE AT 1366 AND THE PROBE-DC CLAUSE MOVED TO 1920.
+       ==================================================================
+       .rr-pill went 15px to 18px, which is [C07]'s own floor arriving on
+       the one authoring surface that was under it. At 1366 that costs the
+       one-line row on the FRESH board, and the measurement that decided it
+       is the one Pass A did not take: what one line at 1366 costs in TOKEN
+       TYPES rather than in font size. Driven four times, both engines,
+       every figure identical in the two engines to the pixel:
+
+         board                    15px                18px
+         five shipped types       slack 17, ONE line  slack 0, two lines
+         + ONE student type       slack 0, TWO lines  slack 0, two lines
+         + a second               slack 0, two lines  --
+
+       The 18px board and the six-type board are the SAME BOARD -- card
+       535, page 3289, the Add at 3169, in both engines at both sizes. So
+       the property this cell asserted was never a property of the surface;
+       it was a property of the surface before the workshop starts, and one
+       press of "New type on each unit" ended it at 15px too.
+
+       SO WHAT THIS CELL ASSERTS NOW DEPENDS ON THE COLUMN, AND THAT IS THE
+       HONEST SHAPE RATHER THAN THE WEAK ONE. PROBE DC's whole finding is
+       that slack is the reading that catches a stretched token track and
+       that a row with no free space cannot be caught. At 18px the 1366 row
+       has no free space FOR LEGITIMATE REASONS, so the probe's
+       discriminator is not weakened there -- it is ABSENT, and a cell that
+       kept the clause anyway would be asserting something the geometry
+       cannot answer. At 1920 there are 177px of slack at 18px with five
+       types and 96px with six, so the probe's binding lives there and is
+       asserted there in full. PROBE DC was re-run against this turn.
+
+       AT 1366 WHAT IS ASSERTED IS THE WRAPPED SHAPE, and it is not
+       nothing: the four column words still stand over the four cells they
+       name to within a pixel, the amount still sits against the pills
+       rather than being carried to the far right, one Remove per row, and
+       the band is bounded so a row that grew a THIRD line still fails.
+       That bound is re-derived rather than kept -- 56px was the one-line
+       band and 96 is the two-line one, measured at 89 plus [C17]'s own
+       separator padding.
+
+       ANSWER 2 IS STILL OPEN. Shortening "Cats, each unit" recovers about
+       120px and buys the one-line row back at 1366 on the fresh board. It
+       is a rendered string on four controls and it is the developer's
+       vocabulary. deferred-items.md carries it. */
     const rrFirst = await pg.evaluate(() => {
       const root = document.querySelector('#roundrules');
       if (!root) return null;
@@ -3648,7 +3695,10 @@ for (const ch of ['chrome', 'msedge']) {
         colWords: cols.map((c) => c.textContent),
         addWord: add.textContent, addOff: add.disabled,
         rmWord: rm.textContent,
-        rmPerRow: rows.every((n) => n.querySelectorAll('.rr-rm').length === 1)
+        rmPerRow: rows.every((n) => n.querySelectorAll('.rr-rm').length === 1),
+        // [C07]'s floor, read off the control rather than off the stylesheet,
+        // because that number is what D-39 P2-3 is about.
+        pillFont: getComputedStyle(row0.querySelector('.rr-pill')).fontSize
       };
     });
     await pg.locator('#roundrules').screenshot({
@@ -3656,18 +3706,25 @@ for (const ch of ['chrome', 'msedge']) {
     });
     note(ch, size.name, 'D-35c the shipped board - rows / tallest / slack / amount gap',
       rrFirst ? `${rrFirst.rows} rows, ${rrFirst.tallest}px, slack ${rrFirst.slack}px, gap ${rrFirst.amtGap}px` : 'no node');
-    ok(`${tag}: 25a. THE ROUND-RULES BLOCK AS A STUDENT FIRST OPENS IT: two rules, ONE LINE EACH, four column words standing over the four groups they name, and the amount sitting against the pills it belongs to. THIS IS THE CELL THAT CAN SEE THE DEFECT AND 25b IS NOT - PROBE DC. The block this replaces let the token strip take every spare pixel of the row and pushed the amount to the far right; put that stretch back and cell 25b, which measures after a sixth type has been invented and the row is over-constrained, passes in all four columns, because a track with no free space cannot claim any. So the binding is measured HERE, on the shipped vocabulary, where there is spare room for a stretched track to stretch into - and the spare room is ASSERTED rather than assumed, because it is the clause doing the work: in a grid the amount is the next COLUMN, so a stretched track carries it along and the gap between them stays 0px while the pair drifts right together. The gap is kept because it names the original defect and catches a spacer put back between the two; the SLACK is what catches the track, and under PROBE DC it read 0 where it reads 80. Every row is ONE LINE at the shipped vocabulary; past it the token strip wraps inside its own column and nothing else on the row moves, which is 25b's reading and is deliberately not claimed here`,
+    note(ch, size.name, 'D-39 P2-3 the pill at the floor / where PROBE DC binds',
+      `${rrFirst ? rrFirst.pillFont : '?'} / `
+      + `${size.width >= 1600 ? 'this column, on slack' : 'the 1920 column'}`);
+    ok(`${tag}: 25a. THE ROUND-RULES BLOCK AS A STUDENT FIRST OPENS IT: two rules, ONE LINE EACH, four column words standing over the four groups they name, and the amount sitting against the pills it belongs to. THIS IS THE CELL THAT CAN SEE THE DEFECT AND 25b IS NOT - PROBE DC. The block this replaces let the token strip take every spare pixel of the row and pushed the amount to the far right; put that stretch back and cell 25b, which measures after a sixth type has been invented and the row is over-constrained, passes in all four columns, because a track with no free space cannot claim any. So the binding is measured HERE, on the shipped vocabulary, where there is spare room for a stretched track to stretch into - and the spare room is ASSERTED rather than assumed, because it is the clause doing the work: in a grid the amount is the next COLUMN, so a stretched track carries it along and the gap between them stays 0px while the pair drifts right together. The gap is kept because it names the original defect and catches a spacer put back between the two; the SLACK is what catches the track, and under PROBE DC it read 0 where it reads 80. TURNED IN THE OPEN UNDER D-39 P2-3: this cell required ONE LINE at both widths, and .rr-pill went 15px to 18px, which is [C07]'s own floor arriving on the one authoring surface that was under it. The measurement that decided it is the one Pass A did not take -- what one line at 1366 costs in TOKEN TYPES rather than in font size. It costs ONE. Driven four times in both engines, every figure identical to the pixel: the five shipped types give slack 17 and one line at 15px and slack 0 with two lines at 18px; ONE student type gives slack 0 and TWO LINES AT 15px TOO, and from there the two font sizes are the same board to the pixel -- card 535, page 3289, the Add at 3169. So the property this cell asserted was never a property of the surface. It was a property of the surface before the workshop starts, and one press of "New type on each unit" ended it at either size. WHAT THIS CELL ASSERTS NOW DEPENDS ON THE COLUMN, and that is the honest shape rather than the weak one: PROBE DC's finding is that slack is the reading that catches a stretched token track and that a row with no free space cannot be caught, so at 1366 and 18px the discriminator is not weakened but ABSENT, and it is asserted at 1920 where 177px of slack remain. At 1366 what is asserted is the wrapped shape and it is not nothing -- the column words still stand over their cells to within a pixel, the amount still sits against its pills instead of being carried right, one Remove per row, and the band is bounded at 96 so a row that grew a THIRD line still fails`,
       rrFirst !== null
       && rrFirst.rows === 2 && rrFirst.ruleCount === 2 && rrFirst.types === 5
-      && rrFirst.slack > 0
+      // PROBE DC's binding clause, at the width that still has slack for a
+      // stretched track to be caught stretching into. See the turn above.
+      && (size.width >= 1600 ? rrFirst.slack > 0 : rrFirst.slack === 0)
       && rrFirst.amtGap >= 0 && rrFirst.amtGap <= 24
-      && rrFirst.tallest > 0 && rrFirst.tallest <= 56
+      && rrFirst.tallest > 0
+      && rrFirst.tallest <= (size.width >= 1600 ? 56 : 96)
       && rrFirst.colsAligned === true
       && rrFirst.colWords[1].indexOf('Who') === 0
       && rrFirst.colWords[2].indexOf('Which') === 0
       && rrFirst.colWords[3].indexOf('How') === 0
       && rrFirst.addWord.indexOf('Add') !== -1 && rrFirst.addOff === false
-      && rrFirst.rmWord === 'Remove' && rrFirst.rmPerRow === true,
+      && rrFirst.rmWord === 'Remove' && rrFirst.rmPerRow === true
+      && rrFirst.pillFont === '18px',
       rrFirst);
 
     /* ── 25. THE RANGE PAIR ON THE TOKEN EDITOR. Two fields and their words on

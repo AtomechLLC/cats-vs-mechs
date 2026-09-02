@@ -6076,7 +6076,58 @@
      WHAT DID LAND: [C07]'s .pk-sw went 13px to 18px and cost nothing, and
      .rr-check went 13px to 14px to match .pk-check and .ae-check. The tick
      containment above is unaffected — it was driven at 15px and the row
-     stays one line with 17px to spare. */
+     stays one line with 17px to spare.
+
+     ==================================================================
+     AND THE ANSWER, WHICH IS NONE OF THE THREE — D-39 P2-3. Plan
+     05-D39d. 15px TO 18px, TAKEN.
+     ==================================================================
+     Pass A's table is exact and Pass A's question was the wrong one. It
+     asked what one-line-at-1366 costs in font size. The question that
+     settles it is what one-line-at-1366 costs in TOKEN TYPES — and the
+     answer is one. Driven at 1366x768 in real Chrome AND real Edge, two
+     rules, the same drive four times, every figure identical in the two
+     engines to the pixel:
+
+       board                        .rr-pill 15px          .rr-pill 18px
+       the five shipped types       slack 17, ONE line     slack 0, two lines
+                                    card 372               card 535
+       + ONE student type           slack 0, TWO lines     slack 0, two lines
+                                    card 535               card 535
+       + a second student type      slack 0, two lines     —
+
+     THE 18px BOARD AND THE SIX-TYPE BOARD ARE THE SAME BOARD. Card 535,
+     page 3289, the Add control at 3169 — the same three numbers, in both
+     engines, at both font sizes. So 18px does not create a shape this file
+     does not already have; it arrives at that shape ONE TOKEN TYPE EARLY,
+     and from the sixth type on it is free.
+
+     WHICH MAKES THE PROPERTY BEING PROTECTED THE THING TO LOOK AT. "Every
+     row is one line at 1366" holds for the five types the board ships with
+     and stops holding the moment a student authors their first — which is
+     the exercise this artifact exists for. It was never a property of the
+     surface; it was a property of the surface before the workshop starts.
+     Weighed against it: ten controls per rule, up to eight rules, on the
+     newest authoring surface in the file, three pixels under a floor
+     [C07]'s own banner sets and every other surface keeps, on the one
+     bar this project states as its own ("legible from twenty feet").
+
+     AT 1920 NOTHING WRAPS AT ALL, at either size, at five, six or seven
+     types — slack 177 at the worst measured. This is a 1366 trade only.
+
+     ANSWER 2 IS STILL OPEN AND IS NOT MINE. Shortening "Cats, each unit"
+     would recover about 120px and buy one line back at 1366 on the fresh
+     board. It is a rendered string on four controls and it is the
+     developer's vocabulary, not a layout dial. Recorded in
+     deferred-items.md rather than taken.
+
+     CELL 25a IS TURNED IN THE OPEN AND THE TURN IS WRITTEN THERE. Its
+     binding clause was `slack > 0`, which PROBE DC established as the one
+     reading that catches a stretched token track — and an over-constrained
+     row has no slack for legitimate reasons, so at 1366 that discriminator
+     is gone. It survives at 1920, where 177px of slack remains, and the
+     cell now branches on the width and says which column carries the
+     probe. */
   .rr-pill{
     position:relative;
     display:flex;align-items:center;gap:6px;
@@ -6084,7 +6135,7 @@
     background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
     border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
     border-radius:9px;color:var(--ink);
-    font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
