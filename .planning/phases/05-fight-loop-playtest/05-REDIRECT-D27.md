@@ -427,3 +427,35 @@ modifies it — the D-36 nudge idiom, now inside a surface with room to breathe.
   as its heading, and renders values in the D-29 symbolic language with the scanned tooltips.
 - The dead marker toggle joins the popup as one of the unit's values (its board-tab control
   remains).
+
+---
+
+## D-38 — Twelfth round, 2026-09-01: the how-to leaves the simulator
+
+Verbatim, with a screenshot of the Actions editor attached:
+
+> this part a the bottom looks cluttery - if you want a how-to-tab, do it separately from the
+> simualtor
+
+### What this settles
+
+Instructional prose leaves the working surfaces. The explainer paragraphs sitting inside the
+editors and panels — "Every action on a side lives in one list…", the Cost / Needs / Changes
+explainer sentences, the round-rules "What Advance does to the board…" paragraph, and their kin —
+do not belong on the simulator. If the artifact wants a how-to, it is its OWN tab, beside The
+board and The fight.
+
+### Orchestrator interpretation (recorded, overridable)
+
+- **A third tab, "How this works",** collects the displaced instructional prose, organised by
+  surface. The teaching text is part of the workshop's value — it moves, it does not die.
+- **What stays on the surfaces:** READINGS (the admission line, refusal sentences, the mid-fight
+  build notice, cap sentences) — those state facts about the current board and are load-bearing.
+  What moves: text that EXPLAINS HOW TO USE a surface or WHAT A CONCEPT IS, independent of the
+  current board's state. The one-line hint idiom (a short label like "Spent when the action is
+  used") may survive as a scanned tooltip on the term-list headings per the D-29 language, at the
+  executor's judgement per site — recorded per site either way.
+- **The screenshot also shows two apparent DEFECTS to reproduce and fix or explain:** the Side
+  chooser pills render EMPTY (no Cats/Mechs words), and a second panel ("Emoji" + "Done" — the
+  token appearance editor's foot) is visible beneath the Actions dialog. Neither is clutter; both
+  look wrong. Reproduce this exact state first.
