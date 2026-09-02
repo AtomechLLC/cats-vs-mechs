@@ -1745,9 +1745,12 @@ function makeStubDom() {
   rrHeadLine.className = 'rr-head-line';
   roundRules.appendChild(rrHeadLine);
   rrHeadLine.appendChild(idNode('rr-head', 'h2'));
-  const rrNote = createElement('p');
-  rrNote.className = 'rr-note';
-  rrHeadLine.appendChild(rrNote);
+  // .rr-note LEFT UNDER D-38 (site 1) AND SO DOES THE NODE THAT STOOD IN FOR IT.
+  // The paragraph is on the how-to tab and the heading carries a one-line
+  // tooltip in its place. A stub node for a class the shell no longer has is
+  // the id gate's own failure direction arriving through a class name, where
+  // nothing is checking: it would be this page testing markup that has already
+  // shipped out.
 
   const rrList = idNode('rr-list');
   rrList.className = 'rr-list';
@@ -2046,14 +2049,42 @@ function makeStubDom() {
   // App.ops.MAX_ACTION_COST / App.data.MAX_ACTION_REQ / App.data.MAX_ACTION_XF
   // rather than to each other. D-32 moved all three from their old counts in
   // the same change the constants moved.
+  /* D-38's THREE TERM LEGENDS, AND THIS PAGE NOW BUILDS THEM WITH THEIR
+     TOOLTIPS. D-38 moved the three explainer sentences off the rows and onto
+     the legends as title attributes, which is the idiom that decision names by
+     example. Layer A reads a title in the document and always did; what it
+     could NOT do is read one on a stub that never built the node, and D-29's
+     recorded lesson is the wave-1 lesson in its attribute edition — a word that
+     leaves textContent leaves a scanner that only reads textContent. So the
+     heads are built here, with the word AND the sentence, and LABEL_ATTRS picks
+     the title up exactly as it does on the fight surface. Four strings became
+     six in the dialog harvest and DIALOG_FLOOR's note records the arithmetic.
+
+     The Override head is NOT built: it belongs to the proposal pane, which this
+     page builds separately and which has its own floor. Said out loud rather
+     than left as an absence — that legend's tooltip is Layer A's alone, and it
+     is the one site of the eleven where that is true. */
+  function aeTermHead(word, say) {
+    const head = createElement('div');
+    head.className = 'ae-term-head';
+    const legend = createElement('h3');
+    legend.className = 'ae-legend';
+    legend.textContent = word;
+    legend.setAttribute('title', say);
+    head.appendChild(legend);
+    aeTerms.appendChild(head);
+  }
+  aeTermHead('Cost', 'Spent when the action is used.');
   aeTermRow('act-edit-cost-0', 'cost', 0, false);
   aeTermRow('act-edit-cost-1', 'cost', 1, false);
   aeTermRow('act-edit-cost-2', 'cost', 2, false);
   aeTermRow('act-edit-cost-3', 'cost', 3, false);
+  aeTermHead('Needs', 'Must be there for the action to be used. It is not spent.');
   aeTermRow('act-edit-req-0', 'req', 0, false);
   aeTermRow('act-edit-req-1', 'req', 1, false);
   aeTermRow('act-edit-req-2', 'req', 2, false);
   aeTermRow('act-edit-req-3', 'req', 3, false);
+  aeTermHead('Changes', 'What the action changes, and by how much. Put a minus in front for a change downward.');
   aeTermRow('act-edit-xf-0', 'xf', 0, true);
   aeTermRow('act-edit-xf-1', 'xf', 1, true);
   aeTermRow('act-edit-xf-2', 'xf', 2, true);
@@ -6373,6 +6404,31 @@ check(
 // 132 to 248, and the difference between the two is the whole reason both notes
 // are worth reading: that constant is a measured roster-INDEPENDENT base and
 // this one is a hand-set bound seven below a total nobody re-derives.
+//
+// PLAN 05-D38 IS THE FIRST TO TAKE PROSE OFF THESE DIALOGS ON PURPOSE, AND THE
+// MEASUREMENT WENT THE OTHER WAY. It was expected to move this number DOWN —
+// D-38 displaces the picker's concept paragraph, the action editor's opening
+// explainer, the proposal pane's how-to sentences, both share notes and the
+// range pair's one-liner. The measured total went 173 -> 179, UP by six, and
+// the arithmetic is worth having written down because the surprise is the whole
+// lesson of this constant:
+//
+//   the six paragraphs that LEFT were static markup, and this page is a
+//     hand-made stand-in rather than a parser, so every one of them was
+//     already worth ZERO here. Layer A read them in the document and still
+//     reads them, on the how-to tab.
+//   the four sentences that became TOOLTIPS on their headings could have been
+//     worth zero too, for the same reason — and that is the state D-29's own
+//     note calls the wave-1 lesson in its attribute edition. So this page now
+//     BUILDS the three term heads, with the word and the title, and LABEL_ATTRS
+//     picks each title up: three legends and three tooltips, +6.
+//
+// SO THE NUMBER STAYS AT 138, and that is a decision rather than an oversight.
+// 179 - 138 = 41, which is more headroom than the seven this note's arithmetic
+// asks for — but the alternative is a ratchet, and a ratchet here would redden
+// the next plan that legitimately takes a sentence off a dialog. The direction
+// this constant may move without an argument is DOWN; moving it up needs the
+// paragraph above, and moving it down needs one too. Neither is owed today.
 const DIALOG_FLOOR = 138;
 
 // The floor for a harvest of the PICKER ALONE, which check 47g takes because it
@@ -6513,6 +6569,104 @@ check(
     + ' | shell fragments=' + howtoShellLeaves
     + ' | a paragraph nests an element=' + howtoNested
     + ' | ' + (howtoHits.length === 0 ? 'clean' : howtoHits.join(' | '))
+);
+
+/* 128. D-38's DISPLACEMENT — THE WORKING SURFACES CARRY READINGS AND NOTHING
+   ELSE, AND EVERY SENTENCE THAT LEFT IS SOMEWHERE.
+
+   D-38's rule, in its own words: what STAYS is a reading — "the admission line,
+   refusal sentences, the mid-fight build notice, cap sentences", which state
+   facts about the current board and are load-bearing where they stand. What
+   MOVES is "text that EXPLAINS HOW TO USE a surface or WHAT A CONCEPT IS,
+   independent of the current board's state". Eleven sites were ruled on and
+   each one is recorded at its own site in the markup with the reason.
+
+   THE ROW ASSERTS ALL THREE OUTCOMES, because any one of them alone is green
+   over the mistake next door:
+
+     MOVED   the sentence is gone from the working surfaces. A displacement
+             that copied rather than moved leaves the clutter exactly where the
+             developer found it and adds a tab.
+     TOOLTIP the sentence is on a title attribute AND is not element text. D-38
+             allows the one-line hint to survive on a heading "per the D-29
+             language"; a hint that stayed as a paragraph AND gained a tooltip
+             would say it twice.
+     STAYS   the reading is still element text on its surface. This is the half
+             a tidy displacement loses: "Nothing here is applied" and "It
+             replaces the board, and one Ctrl+Z brings yours back" are the two
+             sentences a student most needs at the control, and both sit in
+             paragraphs that were mostly how-to.
+
+   IT READS THE MARKUP WITH THE COMMENTS CUT OUT, and that is not a detail: the
+   eleven site decisions are written AT their sites and several of them QUOTE
+   the sentence they moved, so a search over the raw file would find every one
+   of them still there and report a displacement that never happened. Titles
+   are lifted into their own bucket for the same reason in reverse. */
+const dsBodyAt = html.indexOf('<body>');
+const dsBody = html.slice(dsBodyAt, html.indexOf('<script>', dsBodyAt))
+  .replace(/<!--[\s\S]*?-->/g, '');
+const dsHowtoAt = dsBody.indexOf('<section class="ht" id="howto"');
+const dsHowto = dsHowtoAt === -1
+  ? '' : dsBody.slice(dsHowtoAt, dsBody.indexOf('</section>', dsHowtoAt));
+const dsWorking = (dsBody.slice(0, dsHowtoAt) + dsBody.slice(dsHowtoAt + dsHowto.length))
+  .replace(/ title="[^"]*"/g, '');
+const dsTitles = (dsBody.match(/ title="[^"]*"/g) || []).join(' | ');
+
+const DS_MOVED = [
+  'What Advance does to the board after the declarations have landed',
+  'The shape and the colour carry the meaning on their own',
+  'Every action on a side lives in one list',
+  'What your rule says would happen',
+  'Copy this and paste it into the course thread',
+  'Paste a classmate’s code and press Load',
+  'Paste a classmate\'s code and press Load'
+];
+const DS_TOOLTIP = [
+  'The least and the most of this type any one number on the board may hold.',
+  'Spent when the action is used.',
+  'Must be there for the action to be used. It is not spent.',
+  'What the action changes, and by how much. Put a minus in front for a change downward.',
+  'Add a line your rule did not state.',
+  'What Advance does to the board each round, after the declarations have landed.'
+];
+const DS_STAYS = [
+  'Nothing here is applied.',
+  'It replaces the board, and one Ctrl+Z brings yours back.',
+  'Nothing here has been applied.',
+  'No fight is running.',
+  'This puts both rosters, both action lists and every token type back to the Workshop 16 defaults.',
+  'The allocation board renders here.'
+];
+const dsStillThere = DS_MOVED.filter((t) => dsWorking.indexOf(t) !== -1);
+const dsNotTooltipped = DS_TOOLTIP.filter((t) => dsTitles.indexOf(t) === -1);
+const dsSaidTwice = DS_TOOLTIP.filter((t) => dsWorking.indexOf(t) !== -1);
+const dsReadingsGone = DS_STAYS.filter((t) => dsWorking.indexOf(t) === -1);
+check(
+  '128. D-38 — THE WORKING SURFACES CARRY READINGS AND NOTHING ELSE, AND EVERY '
+    + 'SENTENCE THAT LEFT IS SOMEWHERE. Eleven sites were ruled on against D-38\'s '
+    + 'own test — a READING states a fact about the board in front of the student '
+    + 'and stays; text that explains HOW TO USE a surface or WHAT A CONCEPT IS is '
+    + 'true of every board and moves. All three outcomes are asserted together, '
+    + 'because each alone is green over the mistake beside it: a MOVED sentence '
+    + 'must be gone from the working surfaces (a displacement that copied leaves '
+    + 'the clutter and adds a tab); a TOOLTIP sentence must be on a title AND not '
+    + 'element text (D-38 allows the one-line hint to survive on a heading, not to '
+    + 'be said twice); and a READING must still be element text where its control '
+    + 'is — which is the half a tidy displacement loses, because "Nothing here is '
+    + 'applied" and "It replaces the board, and one Ctrl+Z brings yours back" were '
+    + 'both sentences inside paragraphs that were mostly how-to. THE COMMENTS ARE '
+    + 'CUT OUT FIRST and that is not a detail: every site decision is recorded AT '
+    + 'its site and several QUOTE the sentence they moved, so a search over the raw '
+    + 'file would find all eleven still present and report a displacement that '
+    + 'never happened',
+  dsBody.length > 0 && dsHowto.length > 0
+    && dsStillThere.length === 0 && dsNotTooltipped.length === 0
+    && dsSaidTwice.length === 0 && dsReadingsGone.length === 0,
+  'still on a working surface: ' + (dsStillThere.join(' / ') || 'none')
+    + ' | not on any tooltip: ' + (dsNotTooltipped.join(' / ') || 'none')
+    + ' | said twice: ' + (dsSaidTwice.join(' / ') || 'none')
+    + ' | readings that went missing: ' + (dsReadingsGone.join(' / ') || 'none')
+    + ' | markup ' + dsBody.length + ' chars, how-to ' + dsHowto.length + ' chars'
 );
 
 /* --- 92. LAYER C READS THE PAGE A SECOND TIME, WITH A FIGHT RUNNING ----------

@@ -558,6 +558,65 @@ for (const ch of ['chrome', 'msedge']) {
       && htBack.pressed === 'false',
       { ht, htBack });
 
+    /* ── 29. D-38's DISPLACEMENT, ON THE SURFACE THE DEVELOPER WAS LOOKING AT. ───────────
+       "this part a the bottom looks cluttery" — said about the Actions editor, with a
+       screenshot. This is that surface after the displacement, driven open the way a
+       student does it and read for three things a node gate cannot see:
+
+         NOT ONE EXPLAINER PARAGRAPH on the author pane. The four-line opening note and
+         the three term sentences are on the how-to tab; the proposal pane keeps exactly
+         one .ae-note, and it is the READING "Nothing here is applied."
+
+         THE THREE HINTS ARE ON THEIR HEADINGS AND ARE REACHABLE. A tooltip that is not
+         on the node a hand travels to is a tooltip nobody finds, so the title is read off
+         the legend itself and its text is compared against the sentence that left.
+
+         THE BOX GOT SHORTER. D-33 P1-3 measured this pane at scrollHeight 1087 against
+         clientHeight 726 and called it the severe half. The prose leaving is worth real
+         pixels and the number is recorded rather than assumed. */
+    await pg.click('[data-k="act"]'); await pg.waitForTimeout(350);
+    const ae = await pg.evaluate(() => {
+      const dlg = document.querySelector('#act-edit');
+      const author = document.querySelector('#act-edit-pane-author');
+      const body = author.querySelector('.ae-body');
+      const legends = [...author.querySelectorAll('.ae-legend')]
+        .map((h) => ({ word: h.textContent, say: h.getAttribute('title') || '' }));
+      return {
+        open: dlg.open,
+        authorNotes: author.querySelectorAll('.ae-note').length,
+        termNotes: dlg.querySelectorAll('.ae-term-note').length,
+        proposeNotes: document.querySelectorAll('#act-edit-propose .ae-note').length,
+        proposeSaid: (document.querySelector('#act-edit-propose .ae-note') || {}).textContent,
+        legends: legends,
+        sides: [...document.querySelectorAll('.ae-side .ae-side-name')].map((n) => n.textContent),
+        bodyScroll: body.scrollHeight, bodyClient: body.clientHeight,
+        over: body.scrollHeight - body.clientHeight,
+        dlgH: Math.round(dlg.getBoundingClientRect().height),
+        vh: window.innerHeight
+      };
+    });
+    await pg.locator('#act-edit-pane-author').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d38-actions-${ch}-${size.name}.png`)
+    });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    const wantSay = {
+      Cost: 'Spent when the action is used.',
+      Needs: 'Must be there for the action to be used. It is not spent.',
+      Changes: 'What the action changes, and by how much. Put a minus in front for a change downward.'
+    };
+    const legendsRight = ['Cost', 'Needs', 'Changes'].every((w) =>
+      ae.legends.some((l) => l.word === w && l.say === wantSay[w]));
+    note(ch, size.name, 'D-38 the Actions editor — notes / body over',
+      `${ae.authorNotes} explainer paragraph(s), body ${ae.bodyScroll} over ${ae.bodyClient} (${ae.over}px hidden)`);
+    ok(`${tag}: 29. D-38's DISPLACEMENT ON THE SURFACE THE DEVELOPER WAS LOOKING AT. "this part a the bottom looks cluttery", said about this pane with a screenshot: the author pane now carries NOT ONE explainer paragraph, the three term sentences are tooltips ON THEIR OWN HEADINGS with the exact text that left, and the proposal pane keeps exactly one .ae-note — the READING "Nothing here is applied", which is a fact about what that pane does to the board and stays where a student reads it. The tooltip is read off the LEGEND rather than off the group, because a hint on a node no hand travels to is a hint nobody finds. And the box is measured: D-33 P1-3 recorded this pane at scrollHeight 1087 against clientHeight 726 and called it the severe half of that finding, so the prose leaving is worth real pixels and the number is printed rather than assumed`,
+      ae.open === true
+      && ae.authorNotes === 0 && ae.termNotes === 0
+      && ae.proposeNotes === 1 && ae.proposeSaid === 'Nothing here is applied.'
+      && legendsRight === true
+      && ae.sides.join('/') === 'Cats/Mechs'
+      && ae.over >= 0,
+      ae);
+
     await startFight(pg);
     const bViews = await box(pg, '#views');
     const bBand = await box(pg, '.fg-band');

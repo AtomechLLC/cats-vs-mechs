@@ -793,7 +793,13 @@
   }
   .pk::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
   .pk-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
-  .pk-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
+  /* .pk-note IS GONE UNDER D-38 AND THE TOMBSTONE IS THE POINT. Both of its
+     uses were displaced: the shape-and-colour paragraph to the how-to tab, and
+     the range pair's one-liner onto its own heading as a tooltip. The rule is
+     deleted rather than kept "in case", which is D-33c's recorded trap read
+     the other way round: a rule that never applies is invisible to both gates,
+     so the only safe number of them is zero. .sh-note and .ae-note are the two
+     survivors of this family and both still ship above. */
   .pk-group{margin:0 0 18px}
   /* UX-02 again: a permanent visible label at the 18px minimum, never an icon
      and never a title= tooltip. */
@@ -939,7 +945,10 @@
      GROUPS and not one inside a line. */
   .pk-bounds-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px;margin:0 0 8px}
   .pk-bounds-head .pk-legend{margin:0}
-  .pk-bounds-head .pk-bounds-note{margin:0}
+  /* THE SECOND HALF OF THIS HEAD LINE LEFT UNDER D-38 (site 3): the note is a
+     tooltip on the legend now, so the flex row holds one child. The wrapper
+     stays because the margin below it is this group's spacing and moving that
+     onto the legend would be a second place to state one gap. */
 
   /* The two fields on one row, each with its word beside it. 18px is [C04]'s
      projector floor and the word is permanent and visible — never an icon,
@@ -1406,7 +1415,11 @@
      viewport it becomes the two stacked blocks it used to be. */
   .ae-term-head{display:flex;flex-wrap:wrap;align-items:baseline;gap:10px}
   .ae-term-head .ae-legend{margin:0}
-  .ae-term-head .ae-term-note{margin:0}
+  /* THE NOTE THIS LINE WAS BUILT AROUND LEFT UNDER D-38 (sites 5-7 and 9).
+     D-32b put a legend and its note on one baseline; the note is a tooltip on
+     the legend now and the row holds one child. The wrapper and its flex stay:
+     four heads share this rule and a legend that sat directly in .ae-term-list
+     would take that column's 6px gap as its own spacing. */
   .ae-term{display:flex;align-items:center;flex-wrap:wrap;gap:8px;min-height:40px}
   .ae-term[hidden]{display:none}
   /* D-32 PART 2 — WHERE THE WORD "Spends" USED TO SIT, THE TERM NOW READS
@@ -1476,7 +1489,10 @@
      list draws none. The 6px the list already puts between rows becomes
      3 above the rule and 3 below it, so nothing grows. */
   .ae-term + .ae-term{border-top:1px solid var(--line);padding-top:6px}
-  .ae-term-note{margin:-6px 0 2px;color:var(--ink-dim);font-size:15px;max-width:60ch}
+  /* .ae-term-note IS GONE UNDER D-38. All four of its uses — Cost, Needs,
+     Changes and Override — are tooltips on their own headings now, which is the
+     idiom D-38 names by example. Deleted rather than kept, for the reason the
+     .pk-note tombstone gives in full. */
 
   /* The two choosers are one shape said twice, which is deliberate: a party and
      a token type are both a CHOICE FROM AN ALLOWLIST, and [C07]'s swatch grid
@@ -5237,7 +5253,10 @@
      legend and buy nothing, and the words are unchanged. */
   .rr-head-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin:0 0 12px}
   .rr-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
-  .rr-note{margin:0;color:var(--ink-dim);font-size:16px;max-width:72ch}
+  /* .rr-note IS GONE UNDER D-38 (site 1). Its paragraph is named in that
+     decision verbatim and is in the how-to tab's round-rules card; the heading
+     beside it kept a one-line tooltip. .rr-head-line still carries the heading
+     and is left as a flex row for the reason .ae-term-head is. */
 
   /* ==================================================================
      D-35c — THE LIST IS A GRID, AND EVERY ROW IS ONE LINE OF ONE GRAMMAR.
@@ -5321,8 +5340,10 @@
 
   /* The column words. Dimmed and under the note's own size, because they are
      a header for controls that each carry their own visible word already —
-     [C07]'s 18px floor is a rule about a CONTROL'S LABEL and .ae-term-note,
-     .rr-note and .pk-warn all sit below it for the same reason. */
+     [C07]'s 18px floor is a rule about a CONTROL'S LABEL and .pk-warn sits
+     below it for the same reason. (.ae-term-note and .rr-note were the other
+     two examples this sentence gave and both left under D-38, whose displaced
+     text is now on the how-to tab at that tab's own 17px floor.) */
   .rr-col{align-items:flex-end;font-size:16px;color:var(--ink-dim);line-height:1.2}
 
   /* .ae-term's own hairline, on the SECOND row onward so a single-rule list
@@ -6718,8 +6739,17 @@
        so DIALOG_ROOTS is untouched. -->
   <section id="roundrules" aria-labelledby="rr-head">
     <div class="rr-head-line">
-      <h2 class="rr-head" id="rr-head">Each round</h2>
-      <p class="rr-note">What Advance does to the board after the declarations have landed, in the order it is written here. Each rule names who it reaches, which token type it changes, and by how much. Put a minus in front for a change downward.</p>
+      <h2 class="rr-head" id="rr-head" title="What Advance does to the board each round, after the declarations have landed.">Each round</h2>
+      <!-- D-38 SITE 1 — THE EXPLAINER MOVED, THE HEADING KEPT A ONE-LINE HINT.
+           "What Advance does to the board after the declarations have landed,
+           in the order it is written here..." is named in D-38 verbatim as prose
+           that does not belong on the simulator. It is in the how-to tab now, in
+           the round-rules card, word for word.
+
+           THE HINT ON THE HEADING IS D-38's OWN ALLOWANCE, taken here because
+           this block is the one authoring surface whose NAME does not say what
+           it writes: "Each round" is when, not what. One line, on the heading,
+           on D-29's tooltip channel, and read by Layer A in the document. -->
     </div>
     <!-- D-35c: THE COLUMN WORDS ARE HERE, ONCE, AND NOT ON EVERY ROW. The note
          above already says the grammar in a sentence — "who it reaches, which
@@ -6969,7 +6999,11 @@
   <div class="pk-head">
     <div class="eyebrow">Token types</div>
     <h2 class="pk-title" id="tok-pick-title"></h2>
-    <p class="pk-note">The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+    <!-- D-38 SITE 2 — MOVED WHOLE, NO HINT LEFT BEHIND. This paragraph explains
+         WHAT A TOKEN IS, which is true of every board and of none in particular,
+         so it is the how-to tab's by D-38's own test. Nothing replaces it here:
+         the three grids below carry their own legends (Shape, Colour, Emoji) and
+         a hint on any one of them would say less than the legend already does. -->
   </div>
 
   <div class="pk-body">
@@ -7068,8 +7102,13 @@
        DIALOG_ROOTS is untouched. -->
   <div class="pk-group">
     <div class="pk-bounds-head">
-      <h3 class="pk-legend" id="tok-pick-bounds-label">Range</h3>
-      <p class="pk-note pk-bounds-note">The least and the most of this type any one number on the board may hold.</p>
+      <!-- D-38 SITE 3 — THE ONE-LINE HINT BECAME A TOOLTIP ON ITS HEADING.
+           "Range" is a word two fields wide and it does not say WHOSE range or
+           of WHAT, so the sentence has to stay within reach of the pair rather
+           than moving to the tab alone — which is exactly the case D-38 writes
+           the tooltip allowance for. The full version is in the how-to tab's
+           Tokens card as well; this is the reach-of-the-control copy. -->
+      <h3 class="pk-legend" id="tok-pick-bounds-label" title="The least and the most of this type any one number on the board may hold.">Range</h3>
     </div>
     <div class="pk-bounds" role="group" aria-labelledby="tok-pick-bounds-label">
       <span class="pk-bound">
@@ -7181,7 +7220,12 @@
     <div class="ae-head">
       <div class="eyebrow">Actions</div>
       <h2 class="ae-title" id="act-edit-title"></h2>
-      <p class="ae-note">Every action on a side lives in one list — the three the board ships with and the ones you write. There is no second tier: an action you make is the same kind of thing as one that was already here.</p>
+      <!-- D-38 SITE 4 — MOVED WHOLE, AND THIS IS THE PARAGRAPH THE DEVELOPER
+           WAS LOOKING AT. Four lines of prose above the Side chooser, on the
+           surface whose foot they called cluttery, saying something that is true
+           of every board this artifact will ever draw. It is in the how-to tab's
+           Actions card, word for word. Nothing replaces it: the eyebrow above
+           says "Actions" and the legend below says "Every action on this side". -->
     </div>
 
     <div class="ae-body">
@@ -7303,8 +7347,16 @@
     <div class="ae-terms" id="act-edit-terms">
       <div class="ae-term-list">
         <div class="ae-term-head">
-          <h3 class="ae-legend">Cost</h3>
-          <p class="ae-note ae-term-note">Spent when the action is used.</p>
+          <!-- D-38 SITES 5, 6 and 7 — THE THREE TERM HINTS BECAME TOOLTIPS ON
+               THEIR OWN HEADINGS, which is the idiom D-38 names by example: "a
+               short label like 'Spent when the action is used' may survive as a
+               scanned tooltip on the term-list headings per the D-29 language".
+               Taken here rather than moved outright because Cost, Needs and
+               Changes are three words a student has to tell apart WHILE they
+               author, and the difference between the first two is the whole of
+               the second's sentence. All three are in the how-to tab's Actions
+               card in full as well. Layer A reads a title in the document. -->
+          <h3 class="ae-legend" title="Spent when the action is used.">Cost</h3>
         </div>
         <div class="ae-term" id="act-edit-cost-0" hidden>
           <div class="ae-term-read"></div>
@@ -7330,8 +7382,7 @@
 
       <div class="ae-term-list">
         <div class="ae-term-head">
-          <h3 class="ae-legend">Needs</h3>
-          <p class="ae-note ae-term-note">Must be there for the action to be used. It is not spent.</p>
+          <h3 class="ae-legend" title="Must be there for the action to be used. It is not spent.">Needs</h3>
         </div>
         <div class="ae-term" id="act-edit-req-0" hidden>
           <div class="ae-term-read"></div>
@@ -7357,8 +7408,7 @@
 
       <div class="ae-term-list">
         <div class="ae-term-head">
-          <h3 class="ae-legend">Changes</h3>
-          <p class="ae-note ae-term-note">What the action changes, and by how much. Put a minus in front for a change downward.</p>
+          <h3 class="ae-legend" title="What the action changes, and by how much. Put a minus in front for a change downward.">Changes</h3>
         </div>
         <div class="ae-term" id="act-edit-xf-0" hidden>
           <div class="ae-term-read"></div>
@@ -7490,7 +7540,15 @@
     <div class="ae-head">
       <div class="eyebrow">Proposal</div>
       <h2 class="ae-title" id="act-prop-title"></h2>
-      <p class="ae-note">What your rule says would happen. Change any number in it, or add a line your rule did not state. Nothing here is applied.</p>
+      <!-- D-38 SITE 8 — SPLIT, AND THE SPLIT IS THE WHOLE OF THE STAYS-VS-MOVES
+           RULE IN ONE PARAGRAPH. "What your rule says would happen. Change any
+           number in it, or add a line your rule did not state" is how-to: it
+           tells a student what to press and is true of every board. It is in the
+           how-to tab's Actions card. "Nothing here is applied" is a READING —
+           a fact about what this pane does to the board, load-bearing enough
+           that two numbered checks hold the absence it names — so it stays,
+           where a student reads it before they change a number. -->
+      <p class="ae-note">Nothing here is applied.</p>
     </div>
 
     <div class="ae-body">
@@ -7545,8 +7603,12 @@
         <input class="ae-prop-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this change is" data-ap-slot="3" data-k="ap/amt/3">
       </div>
 
-      <h3 class="ae-legend">Override</h3>
-      <p class="ae-note ae-term-note">Add a line your rule did not state.</p>
+      <!-- D-38 SITE 9 — A TOOLTIP, for sites 5-7's reason and one more of its
+           own: "Override" is the only word on this pane that names something a
+           student can do that their rule did not say, and a heading that reads
+           as a warning without saying what it overrides is worse than no
+           heading. In the how-to tab as well. -->
+      <h3 class="ae-legend" title="Add a line your rule did not state.">Override</h3>
       <!-- The override row carries .ae-prop-over and NOT .ae-prop-row, which
            is load-bearing rather than tidy: [S06.5] selects the transformation
            rows by that one class and this row is not one of them. -->
@@ -7619,7 +7681,12 @@
   <section class="sh-pane" id="share-pane-copy">
     <div class="eyebrow">Share</div>
     <h2 class="sh-title" id="share-title">Build code</h2>
-    <p class="sh-note">Copy this and paste it into the course thread. It is the whole of your build — both rosters, both action lists and every token type you made.</p>
+    <!-- D-38 SITE 10 — MOVED WHOLE. Both sentences are how-to: what to press,
+         and what the code contains, neither of which is a fact about the board
+         in front of the student. The how-to tab's Sharing card carries them,
+         and carries the round rules in the list of what a code holds, which
+         this sentence had never been updated to mention. The length reading
+         below and D-18's over-budget line are readings and both stay. -->
 
     <!-- .err-detail's job, one phase early and one surface across: a monospace,
          selectable box that exists so its contents can be pasted into the
@@ -7681,7 +7748,13 @@
   <section class="sh-pane" id="sh-load" hidden>
     <div class="eyebrow">Load</div>
     <h2 class="sh-title" id="sh-load-label">Paste a build code</h2>
-    <p class="sh-note">Paste a classmate's code and press Load. It replaces the board, and one Ctrl+Z brings yours back.</p>
+    <!-- D-38 SITE 11 — SPLIT, on site 8's test. "Paste a classmate's code and
+         press Load" is how-to and is on the tab. "It replaces the board, and one
+         Ctrl+Z brings yours back" is a CONSEQUENCE of the control directly below
+         it — D-17's no-confirmation ruling rests on the student knowing it, and
+         this is the one place in the artifact where a press throws away
+         everything they have built. It stays exactly where the press is. -->
+    <p class="sh-note">It replaces the board, and one Ctrl+Z brings yours back.</p>
 
     <!-- STATIC, and never written by [S06.6], for the original reason: this
          holds text a student typed or pasted, and a node rebuilt or overwritten
