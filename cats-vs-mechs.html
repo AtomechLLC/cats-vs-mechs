@@ -6942,11 +6942,37 @@
     </div>
 
     <div class="ae-body">
+    <!-- D-38's FIRST DEFECT, AND THE FIX IS THE FOUR WORDS THAT ARE NOW HERE.
+         The developer's screenshot shows this chooser with TWO EMPTY PILLS —
+         an outline, a tick, and no faction word in either. It was reproduced
+         on the shipped file (plan 05-D38, probe F): on a cold page these two
+         spans are EMPTY, because the only thing that has ever written a word
+         into them is [S06.5]'s per-frame paint, and that paint has FOUR early
+         returns above the line that writes it — no #act-edit, a side that is
+         neither word, an action id naming nothing on that side, and the
+         fingerprint gate. Any frame in which the dialog is VISIBLE and none of
+         those four has been cleared draws exactly the screenshot: a labelled
+         empty box, which is the rule [S06.7] argues at length for and P2-11
+         applied to a tally reading at zero.
+
+         SO THE WORDS SHIP IN THE DOCUMENT AND THE LIVE READ STAYS. This is
+         additive rather than a swap: [S06.5] still writes state.build[side].name
+         over the top on every repaint, so the day a rename op exists the pill
+         still follows it on the frame it lands. What changes is that the RESTING
+         value is the artifact's own word instead of nothing, so there is no
+         state in which this control is wordless. Layer A now reads both words in
+         the document, which is where every other static legend in this dialog is
+         already read.
+
+         IT IS THE ARTIFACT'S WORD AND CARRIES NO EXEMPTION MARKER, for the
+         reason [S06.5] gives about the same two strings: no op in this file
+         renames a faction. The day one exists is the day both need the marker,
+         and it is the same day the markup here needs one too. -->
     <div class="ae-group">
       <h3 class="ae-legend" id="act-edit-sides-label">Side</h3>
       <div class="ae-row" role="group" aria-labelledby="act-edit-sides-label">
-        <button class="ae-side" type="button" id="act-edit-side-cats" data-act="selectActionSide" data-ed-side="cats" data-k="ae/side/cats"><span class="ae-side-name"></span><span class="ae-check">✓</span></button>
-        <button class="ae-side" type="button" id="act-edit-side-mechs" data-act="selectActionSide" data-ed-side="mechs" data-k="ae/side/mechs"><span class="ae-side-name"></span><span class="ae-check">✓</span></button>
+        <button class="ae-side" type="button" id="act-edit-side-cats" data-act="selectActionSide" data-ed-side="cats" data-k="ae/side/cats"><span class="ae-side-name">Cats</span><span class="ae-check">✓</span></button>
+        <button class="ae-side" type="button" id="act-edit-side-mechs" data-act="selectActionSide" data-ed-side="mechs" data-k="ae/side/mechs"><span class="ae-side-name">Mechs</span><span class="ae-check">✓</span></button>
       </div>
     </div>
 
@@ -18709,6 +18735,17 @@ App.render = (function () {
       // the same treatment [S06.1] gives the faction head it paints on the
       // board, and the day a rename op exists is the day both need the marker,
       // not one of them.
+      //
+      // D-38: THIS WRITE IS NO LONGER THE ONLY THING THAT PUTS A WORD IN THESE
+      // PILLS, and the change is in the SHELL rather than here. The developer's
+      // screenshot showed both pills empty, and it was reproduced: the paint
+      // below is guarded by four early returns, and until one frame clears all
+      // four the spans hold whatever the markup shipped — which was nothing. So
+      // the markup now ships "Cats" and "Mechs" as the RESTING value and this
+      // line still writes the live one over the top. Nothing here changes; the
+      // reason it is written down here is that a reader of this loop would
+      // otherwise conclude the words come from exactly one place, which is the
+      // conclusion that made the defect possible.
       SIDE_IDS.forEach(function (each) {
         var btn = document.getElementById('act-edit-side-' + each);
         if (!btn) { return; }

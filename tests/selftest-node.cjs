@@ -1843,10 +1843,19 @@ function makeStubDom() {
 
   // The side chooser. Two static buttons, each holding a name node [S06.5]
   // writes on every repaint and a tick the class hides until the side is live.
+  //
+  // D-38 PUT A RESTING WORD IN EACH NAME NODE AND THIS PAGE CARRIES IT, which
+  // is the three-part rule applied to TEXT rather than to an id: the shell
+  // ships "Cats" and "Mechs" in the markup, so a stub that shipped them empty
+  // would be a page on which check 118 below could not tell a wordless pill
+  // from a painted one. The word is written here in the same breath as the
+  // class and the dataset, for the reason every builder in this function gives
+  // about its own spellings — a stub that differs from the shell is a stub the
+  // next check reads the wrong answer off.
   const sideGroup = createElement('div');
   authorPane.appendChild(sideGroup);
   sideGroup.appendChild(idNode('act-edit-sides-label', 'h3'));
-  [['act-edit-side-cats', 'cats'], ['act-edit-side-mechs', 'mechs']].forEach(([id, side]) => {
+  [['act-edit-side-cats', 'cats', 'Cats'], ['act-edit-side-mechs', 'mechs', 'Mechs']].forEach(([id, side, word]) => {
     const b = idNode(id, 'button');
     b.className = 'ae-side';
     b.dataset.act = 'selectActionSide';
@@ -1854,6 +1863,7 @@ function makeStubDom() {
     b.dataset.k = 'ae/side/' + side;
     const nameNode = createElement('span');
     nameNode.className = 'ae-side-name';
+    nameNode.textContent = word;
     b.appendChild(nameNode);
     const tick = createElement('span');
     tick.className = 'ae-check';
@@ -2243,6 +2253,18 @@ function makeStubDom() {
 }
 
 const dom = makeStubDom();
+
+/* --- D-38's RESTING READING, TAKEN BEFORE THE ARTIFACT HAS RUN ---------------
+   The two side pills' words are read HERE and nowhere else, because here is the
+   only moment on this page at which nothing has painted anything. Read after the
+   artifact boots they would be the paint's answer, and the paint is exactly the
+   thing check 118 is not willing to take on trust — the defect it exists for is
+   a dialog VISIBLE with no completed paint. Kept as a plain object so the row
+   below reads the same two strings whatever has happened to the page since. */
+const restingSideWords = {
+  cats: String((dom.byId['act-edit-side-cats'].querySelector('.ae-side-name') || {}).textContent || ''),
+  mechs: String((dom.byId['act-edit-side-mechs'].querySelector('.ae-side-name') || {}).textContent || '')
+};
 
 // --- 5b. the stub-drift gate ---------------------------------------------------
 // KNOWN_IDS used to be a promise: "this list must grow when the static shell
@@ -4841,6 +4863,65 @@ check(
     + ' action=' + JSON.stringify(aeColdPick)
     + ' claimed=' + (A.interactions.UI_ACTS.indexOf('openActionEditor') !== -1)
     + ' handled=' + (A.interactions.UI_HANDLED.indexOf('openActionEditor') !== -1)
+);
+
+/* 123. D-38's FIRST DEFECT — THE SIDE CHOOSER'S TWO WORDS ARE IN THE DOCUMENT,
+   NOT ONLY IN A PAINT.
+
+   THE DEFECT, REPRODUCED BEFORE IT WAS FIXED. The developer's screenshot of the
+   Actions editor shows the Side chooser as two EMPTY pills — an outline, a tick,
+   and no faction word in either. Driven on the shipped file (plan 05-D38, probe
+   F, real Chrome, file://): on a cold page `#act-edit-side-cats .ae-side-name`
+   reads `""`, and forcing the dialog visible without a completed paint renders
+   the screenshot exactly. The words existed in one place only — [S06.5]'s
+   per-frame write — and that write sits under FOUR early returns.
+
+   THE ROW READS BOTH ENDS, because either alone is green over the defect:
+
+     the RESTING text, captured at makeStubDom() time before the artifact has
+     run at all. This is the half that would have caught it: read after a boot,
+     the pills say "Cats" and "Mechs" on the shipped file too, which is why
+     twenty-two rendered changes went past without a row noticing.
+
+     the SHELL SOURCE, so the stub cannot be the only page carrying the words.
+     The stub-drift gate is bidirectional about IDS and says nothing about text;
+     this is that gate's argument applied to the two strings a wordless control
+     would lose.
+
+   AND THE LIVE WRITE IS ASSERTED STILL LIVE, third, because the fix is additive
+   and a fix that quietly deleted the per-frame read would be a pill that stops
+   following the build slice the day a rename op exists. The editor is open on
+   the Cats at this point in the file, so both pills are read off the page after
+   a real paint as well. */
+const aeSideWordCats = aeSideCats.querySelector('.ae-side-name');
+const aeSideWordMechs = aeSideMechs.querySelector('.ae-side-name');
+const aeShellSideCats = /id="act-edit-side-cats"[^>]*><span class="ae-side-name">Cats<\/span>/.test(html);
+const aeShellSideMechs = /id="act-edit-side-mechs"[^>]*><span class="ae-side-name">Mechs<\/span>/.test(html);
+check(
+  '123. D-38 — THE SIDE CHOOSER SAYS "Cats" AND "Mechs" IN THE DOCUMENT AND NOT '
+    + 'ONLY IN A PAINT. The developer photographed this control with two EMPTY '
+    + 'pills and it was reproduced on the shipped file: the words lived in one '
+    + 'place, [S06.5]\'s per-frame write, and that write has four early returns '
+    + 'above it — so any frame in which the dialog is VISIBLE before one of them '
+    + 'is cleared drew a labelled empty box, which is the exact rule [S06.7] '
+    + 'argues for and P2-11 applied to a tally at zero. The RESTING text is read '
+    + 'at stub-build time, before the artifact has run, because that is the only '
+    + 'moment nothing has painted — a reading taken after boot says "Cats" on the '
+    + 'BROKEN file too, and that is why no row caught this. The shell source is '
+    + 'read beside it so the stub cannot be the only page carrying the words. And '
+    + 'the LIVE write is asserted still live, because the fix is additive and one '
+    + 'that deleted the build-slice read would be a pill that stops following a '
+    + 'rename the day a rename op exists',
+  restingSideWords.cats === 'Cats' && restingSideWords.mechs === 'Mechs'
+    && aeShellSideCats === true && aeShellSideMechs === true
+    && aeSideWordCats !== null && aeSideWordMechs !== null
+    && aeSideWordCats.textContent === 'Cats'
+    && aeSideWordMechs.textContent === 'Mechs',
+  'resting=' + JSON.stringify(restingSideWords)
+    + ' | in the shell markup: cats=' + aeShellSideCats + ' mechs=' + aeShellSideMechs
+    + ' | after a real paint: '
+    + JSON.stringify(aeSideWordCats === null ? null : aeSideWordCats.textContent)
+    + '/' + JSON.stringify(aeSideWordMechs === null ? null : aeSideWordMechs.textContent)
 );
 
 /* 67b. A row press selects that action; the other side button moves the editor

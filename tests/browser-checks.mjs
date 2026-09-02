@@ -275,6 +275,75 @@ for (const ch of ['chrome', 'msedge']) {
       tabAtRest === 'build' && tabOnFight === 'fight' && tabOnBuild === 'build',
       { tabAtRest, tabOnFight, tabOnBuild });
 
+    /* ── 27. D-38's FIRST DEFECT, REPRODUCED AND THEN REFUSED. ────────────────────────────
+       The developer's screenshot of the Actions editor shows the Side chooser as TWO EMPTY
+       PILLS — an outline, a tick, and no faction word in either. Probe F reproduced it on
+       the shipped file: the words lived in ONE place, [S06.5]'s per-frame write, and that
+       write sits under four early returns, so the spans ship EMPTY and stay empty until a
+       frame clears all four. Forcing the dialog visible without a completed paint drew the
+       screenshot exactly, at every viewport tried.
+
+       THE CELL DRIVES THAT EXACT STATE rather than a state near it. The editor has not been
+       opened on this page, so nothing has painted it; showModal() is called directly, which
+       is the one way to make the box VISIBLE with the paint skipped — this file's own
+       recorded lesson, four times over, is that showModal SCHEDULES NOTHING. If the words
+       were still only in the paint this reads two empty strings, which is what the fix
+       makes impossible.
+
+       AND THEN THE ORDINARY PATH IS DRIVEN TOO, because a fix that put words in the markup
+       and broke the live read would pass the first half and ship a pill that stops following
+       the build slice. Both halves, one cell, in the order a defect and its fix belong. */
+    const coldPills = await pg.evaluate(() => {
+      const g = s => (document.querySelector(s) || { textContent: null }).textContent;
+      return {
+        before: {
+          cats: g('#act-edit-side-cats .ae-side-name'),
+          mechs: g('#act-edit-side-mechs .ae-side-name')
+        },
+        everPainted: (document.querySelector('#act-edit').dataset.edSig || '').length > 0
+      };
+    });
+    await pg.evaluate(() => { const d = document.querySelector('#act-edit'); if (!d.open) d.showModal(); });
+    await pg.waitForTimeout(250);
+    const coldVisible = await pg.evaluate(() => {
+      const g = s => (document.querySelector(s) || { textContent: null }).textContent;
+      const w = s => { const n = document.querySelector(s); return n ? Math.round(n.getBoundingClientRect().width) : -1; };
+      return {
+        open: document.querySelector('#act-edit').open,
+        cats: g('#act-edit-side-cats .ae-side-name'),
+        mechs: g('#act-edit-side-mechs .ae-side-name'),
+        catsW: w('#act-edit-side-cats .ae-side-name'),
+        mechsW: w('#act-edit-side-mechs .ae-side-name')
+      };
+    });
+    await pg.locator('#act-edit-pane-author').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d38-cold-pills-${ch}-${size.name}.png`)
+    });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.click('[data-k="act"]'); await pg.waitForTimeout(300);
+    const paintedPills = await pg.evaluate(() => {
+      const g = s => (document.querySelector(s) || { textContent: null }).textContent;
+      return {
+        open: document.querySelector('#act-edit').open,
+        cats: g('#act-edit-side-cats .ae-side-name'),
+        mechs: g('#act-edit-side-mechs .ae-side-name'),
+        live: App.state.get().build.cats.name + '/' + App.state.get().build.mechs.name
+      };
+    });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    note(ch, size.name, 'D-38 side pills cold / painted',
+      `${JSON.stringify(coldVisible.cats)}+${JSON.stringify(coldVisible.mechs)} / ${JSON.stringify(paintedPills.cats)}+${JSON.stringify(paintedPills.mechs)}`);
+    ok(`${tag}: 27. D-38's FIRST DEFECT — THE SIDE CHOOSER IS NEVER A PAIR OF WORDLESS PILLS. The developer photographed this control empty and it was reproduced on the shipped file: the two words existed only in [S06.5]'s per-frame write, under four early returns, so the shell shipped two empty spans and any frame that made the dialog VISIBLE before a paint completed drew a labelled empty box. This drives that state on purpose — the editor has never been opened on this page and showModal() SCHEDULES NOTHING, which is this file's own lesson learned four times — and requires the words anyway, with a non-zero drawn width so a rule that hid them would be caught too. Then the ORDINARY path is driven and the words are compared against the LIVE faction names, because a fix that put them in the markup and dropped the build-slice read would be a pill that quietly stops following state`,
+      coldPills.everPainted === false
+      && coldPills.before.cats === 'Cats' && coldPills.before.mechs === 'Mechs'
+      && coldVisible.open === true
+      && coldVisible.cats === 'Cats' && coldVisible.mechs === 'Mechs'
+      && coldVisible.catsW > 0 && coldVisible.mechsW > 0
+      && paintedPills.open === true
+      && paintedPills.cats === 'Cats' && paintedPills.mechs === 'Mechs'
+      && paintedPills.live === 'Cats/Mechs',
+      { coldPills, coldVisible, paintedPills });
+
     await startFight(pg);
     const bViews = await box(pg, '#views');
     const bBand = await box(pg, '.fg-band');
