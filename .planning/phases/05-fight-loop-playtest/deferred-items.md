@@ -1002,3 +1002,56 @@ instance of it in the file — the panel is a failure surface, not a workshop on
 Photographed at `d39b/w1920-chrome-err-panel.png`.
 
 **Owner:** any pass that touches `[C08]` or `[C16]`.
+
+---
+
+## D-39 P1-6's TWO REMAINING ITEMS — naming the restore point, and the inert-looking control
+
+**Raised 2026-09-02 by plan 05-D39c,** which took the finding's first item (the receipt) and
+left the other two.
+
+The audit asks for three things of "Put this action back how it was". The first landed: after the
+press, `#act-edit-said` states what came back and where the recovery is, and a press with nothing
+to put back says so in its own sentence. The other two did not, and each was priced:
+
+**Item 2 — "say the restore point on or beside the control while the editor is open."** This is a
+PERMANENT string on a surface that already carries a 278px label saying what the press does. It
+moves `DIALOG_FLOOR` (138) and `SUITE_FLOOR` (1186) — unlike the receipt, which ships hidden and
+empty and costs the harvest nothing until it says something. It is also a second sentence about
+the same press standing beside the first, which is what D-39 P1-2 is a finding about one surface
+over. The receipt answers the same question at the moment a student has it.
+
+**Item 3 — "when the snapshot equals the current record, make it inert-looking rather than
+disabled."** A new visual state on a control that check 113b reads at five moments for never being
+disabled. The pass answered the same need with WORDS instead — the inert press now prints "This
+action is already the way it was when you selected it. Nothing was put back." — which is the
+channel this artifact already uses for "the press moved nothing" everywhere else (`.fgn-says`,
+`.fgu-says`, the bound sentences). A greyed-looking control and a sentence are two answers to one
+question, and the sentence is the one the rest of the file gives.
+
+**Owner:** the 05-11 playtest. Both are questions about what a room needs on that surface at the
+moment of the press, and the receipt is now on screen to be judged against.
+
+---
+
+## D-39 P1-4's PROBE DP IS GREEN AT 1920 — the clamp defect is not reachable at that height
+
+**Raised 2026-09-02 by plan 05-D39c.**
+
+PROBE DP put the shipped two-arm clamp back into `fgBoxAt` and browser cell 26i reddened at
+**1366x768 in both engines and stayed green at 1920x1080 in both.** That is the geometry being
+honest rather than the cell being weak: the defect needs a box taller than the room on BOTH sides
+of its shape, and at 1080 with the shipped 9v3 roster the box is 349px against roughly 470 above
+and 530 below at the cell's own scroll positions. It becomes reachable at 1080 only with enough
+student-authored unit-scope types to push the box past ~470px, which is about four.
+
+**What it costs:** a regression in that arithmetic would be caught at 768 and not at 1080. Both
+sizes run in both engines on every gate, so nothing is unwatched — but a later plan that narrows
+the cell to one viewport would silently lose it.
+
+**The fix, if a pass wants the belt:** author two extra unit-scope types in 26i's own setup before
+the scrolled drives, which puts the box past the 1080 threshold too. It was not done here because
+the cell would then be building a board no other cell in the file builds, and the note beside it
+prints the arm counts a reader can check.
+
+**Owner:** any pass that touches cell 26i.
