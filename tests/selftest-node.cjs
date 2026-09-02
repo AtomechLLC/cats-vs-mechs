@@ -11327,6 +11327,131 @@ check(
     + ' | routing attributes inside=' + htControls + ' buttons=' + htButtons
 );
 
+/* 127b. THE COLUMN'S ACTION CARDS HAVE A HEADING, IT IS ONE PER COLUMN, AND IT
+   IS A LABEL RATHER THAN A CONTROL.
+
+   ==================================================================
+   D-39 P3-7. Plan 05-D39d.
+   ==================================================================
+   The audit: "The board's action list has no heading. After '+ Add Cat' the
+   Slash / Hairball / Screech cards begin with nothing naming them. D-38 moved
+   the explainer; a two-word heading would be a label, not an explainer."
+   Measured at 1920 before this row existed: the Add control at y=2164 and the
+   first card at y=2233, with nothing between them and nothing over the three.
+
+   FOUR CLAUSES, AND EACH IS A WAY THIS COULD GO WRONG RATHER THAN A RESTATEMENT
+   OF THE FIX. It is present on BOTH columns, because a heading on one is a
+   difference between two lists that are the same kind of thing. It appears
+   EXACTLY ONCE per column, because the builder pushes it inside the same test
+   that decides whether any card is and a stray second push would be invisible
+   in a screenshot of the top of the column. It comes BEFORE the first card and
+   AFTER the Add, which is the whole of where it means anything — the same node
+   at the foot of the column would name the cards above it and read as a label
+   for whatever comes next. And it carries NO ROUTING ATTRIBUTE, which is
+   check 56b's standing rule for everything structure() builds into a column: a
+   data-act here would be resolved by actTarget() and handed to fire(), and a
+   data-k would enter the focus-restore space the whole board shares.
+
+   THE WORD IS READ OFF THE EXPORT AND NEVER TYPED HERE, in check 107c's manner,
+   so a row that agreed with a hard-coded copy while the artifact said something
+   else cannot exist.
+
+   AND THE EMPTY CASE IS DRIVEN rather than reasoned about: with every action
+   removed from a side there is nothing to head, so there must be no heading —
+   a label over an empty list is a label for nothing, and it would also put a
+   word into the Layer C harvest of a column that has nothing to say. */
+const refHeadWord = A.render.REF_HEAD_WORD;
+const refHeadIn = (colId) => {
+  const col = dom.byId[colId];
+  if (!col) { return null; }
+  const heads = col.querySelectorAll('.ref-head');
+  // `children` and not `childNodes`: this stub models the first and not the
+  // second, which is a difference a browser would have hidden.
+  const kids = Array.from(col.children || []);
+  const firstCard = kids.filter((n) => String(n.className || '')
+    .indexOf('ref-card') !== -1)[0] || null;
+  const addBtn = kids.filter((n) => String(n.className || '')
+    .indexOf('brd-add') !== -1)[0] || null;
+  return {
+    count: heads.length,
+    word: heads.length ? heads[0].textContent : '',
+    tag: heads.length ? String(heads[0].tagName || '').toLowerCase() : '',
+    beforeFirstCard: (heads.length && firstCard !== null)
+      ? kids.indexOf(heads[0]) < kids.indexOf(firstCard) : false,
+    afterAdd: (heads.length && addBtn !== null)
+      ? kids.indexOf(heads[0]) > kids.indexOf(addBtn) : false,
+    routed: heads.length
+      ? (heads[0].querySelectorAll('[data-act]').length
+        + heads[0].querySelectorAll('[data-k]').length
+        + (heads[0].dataset && heads[0].dataset.act ? 1 : 0)
+        + (heads[0].dataset && heads[0].dataset.k ? 1 : 0)) : 0,
+    cards: col.querySelectorAll('.ref-card').length
+  };
+};
+const refHeadCats = refHeadIn('col-cats');
+const refHeadMechs = refHeadIn('col-mechs');
+/* THE EMPTY CASE IS NOT DRIVEN, AND FINDING OUT WHY IS WORTH THE LINES.
+   The first draft of this row removed every action from a side through the
+   shipped op and asserted that the heading went with them. removeAction
+   REFUSES: "Slash is one of the six actions the board ships with, so it cannot
+   be removed. You can rename it instead." So refActions cannot return an empty
+   list for any board a student can reach — the six are compiled defaults and
+   the codec carries only what was authored on top of them.
+
+   THE GUARD IN THE BUILDER IS KEPT ANYWAY and this paragraph is its
+   justification rather than a row that cannot fail. It costs one comparison,
+   it states the rule a reader needs ("a heading over an empty list is a label
+   for nothing"), and the day this file grows a way to empty a side it is
+   already correct. A row driving it would have to build a state no op can
+   produce, which is a row asserting that the harness can construct something
+   rather than that the artifact does the right thing with it. */
+const refHeadRemoval = (function () {
+  try {
+    A.ops.removeAction('cats', A.state.get().build.cats.actions[0].id);
+    return 'REMOVED';
+  } catch (e) { return String(e && e.message ? e.message : e); }
+}());
+check(
+  '127b. D-39 P3-7 — THE COLUMN\'S ACTION CARDS HAVE A HEADING, ONE PER COLUMN, '
+    + 'AND IT IS A LABEL AND NOT A CONTROL. The audit: "the board\'s action list '
+    + 'has no heading — after + Add Cat the Slash / Hairball / Screech cards '
+    + 'begin with nothing naming them", measured at the Add control on y=2164 '
+    + 'and the first card on y=2233 with nothing between them. FOUR CLAUSES, '
+    + 'each a way this goes wrong rather than a restatement of the fix: it is on '
+    + 'BOTH columns, because a heading on one is a difference between two lists '
+    + 'that are the same kind of thing; it appears EXACTLY ONCE, because the '
+    + 'builder pushes it inside the same test that decides whether any card is '
+    + 'and a stray second would be invisible in a picture of the column top; it '
+    + 'comes AFTER the Add and BEFORE the first card, which is the whole of '
+    + 'where it means anything, since the same node at the foot would read as a '
+    + 'label for whatever came next; and it carries NO ROUTING ATTRIBUTE, which '
+    + 'is check 56b\'s standing rule for everything structure() builds into a '
+    + 'column. THE WORD IS READ OFF THE EXPORT and never typed in this row. AND '
+    + 'THE EMPTY CASE IS NOT DRIVEN AND THE ROW SAYS WHY RATHER THAN QUIETLY '
+    + 'DROPPING IT: the first draft removed every action from a side to assert '
+    + 'the heading went with them, and removeAction REFUSES — the six the board '
+    + 'ships with cannot be removed, only renamed, so refActions cannot return '
+    + 'an empty list for any board a student can reach. That refusal is read '
+    + 'back here as a fact about the artifact. The guard in the builder is kept '
+    + 'anyway, because it costs one comparison and states the rule a reader '
+    + 'needs, and a row driving it would have to build a state no op can '
+    + 'produce',
+  typeof refHeadWord === 'string' && refHeadWord.length > 0
+    && refHeadCats !== null && refHeadMechs !== null
+    && refHeadCats.count === 1 && refHeadMechs.count === 1
+    && refHeadCats.word === refHeadWord && refHeadMechs.word === refHeadWord
+    && refHeadCats.tag === 'h3'
+    && refHeadCats.beforeFirstCard === true && refHeadCats.afterAdd === true
+    && refHeadMechs.beforeFirstCard === true && refHeadMechs.afterAdd === true
+    && refHeadCats.routed === 0 && refHeadMechs.routed === 0
+    && refHeadCats.cards > 0
+    && refHeadRemoval.indexOf('cannot be removed') !== -1,
+  'the word=' + JSON.stringify(refHeadWord)
+    + ' | cats=' + JSON.stringify(refHeadCats)
+    + ' | mechs=' + JSON.stringify(refHeadMechs)
+    + ' | emptying a side: ' + refHeadRemoval
+);
+
 /* 125b. EVERY COMMENT IN THE STYLESHEET CLOSES WHERE IT OPENED, AND THE RULE
    AFTER IT SURVIVES THE PARSER.
 

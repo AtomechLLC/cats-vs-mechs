@@ -1409,6 +1409,20 @@
      on half a sentence would read as a ruling. */
   .ref-beats{margin:0;font-size:24px;font-weight:700;color:var(--ink)}
 
+  /* D-39 P3-7's HEADING OVER THE COLUMN'S ACTION CARDS. It takes
+     .brd-col-head's own weight and colour rather than .eyebrow's, for the
+     reason [C10] and [C11] both state about themselves and [C03] restates
+     at 15px: nothing at or below 14px may carry information, and a heading
+     naming what three cards are IS information. 18px is the floor UX-02
+     sets for a label and this is one; the cards' own action names run 24px
+     and stay the loudest thing in the group, which is what keeps a heading
+     from out-shouting the thing it heads. The margin is the gap the column
+     already puts between its children, taken off the top so the heading
+     sits with the cards rather than floating between them and the Add. */
+  .ref-head{
+    margin:6px 0 -4px;font-size:18px;font-weight:700;color:var(--ink-dim);
+  }
+
   /* The column cards. The chrome is .unit-card's, deliberately: an action card
      and a unit card sit in the same column one above the other, and two panel
      treatments a few pixels apart would read as a difference that means
@@ -17495,6 +17509,11 @@ App.render = (function () {
   // old field". The six the board ships with carry no transformation list and
   // the derivation falls back to that field for them, so their cards read
   // exactly what they always read.
+  /* ONE CONSTANT FOR ONE WORD, in DC_SAID's manner: the heading is
+     rendered on both columns and a second literal is a second thing to
+     keep in step. Read by [S09] rather than typed there. */
+  var REF_HEAD_WORD = 'Actions';
+
   function refCard(action, side) {
     var card = el('article', 'ref-card');
 
@@ -17561,7 +17580,38 @@ App.render = (function () {
            a re-layout. It is asserted by starting a fight and reading the cards
            back, in [S09.9] and in the interaction gate, rather than left
            resting on this paragraph. --- */
-    refActions(state, side).forEach(function (action) {
+    /* D-39 P3-7 — THE CARDS GET A HEADING, AND IT IS A LABEL RATHER THAN
+       AN EXPLAINER. Plan 05-D39d.
+
+       The audit: "The board's action list has no heading. After '+ Add
+       Cat' the Slash / Hairball / Screech cards begin with nothing naming
+       them. D-38 moved the explainer; a two-word heading would be a
+       label, not an explainer." Measured at 1920 on the shipped file: the
+       Add control at y=2164 and the first card at y=2233, with nothing in
+       between and nothing above the three of them.
+
+       ONE WORD AND NOT TWO, and the difference is the exemption channel.
+       "Cats actions" would put a word the STUDENT typed into a heading,
+       which is one more place ALLOC-10's channel has to reach — the same
+       argument D-39 P1-6's receipt made about naming an action. The
+       column's own head three feet up already says whose side this is.
+
+       IT IS BUILT ONLY WHEN THERE IS SOMETHING TO NAME. A heading over an
+       empty list is a label for nothing, and refActions can legitimately
+       return none — a student may remove every action on a side. So the
+       node is pushed inside the same test that decides whether any card
+       is, which also keeps it out of the Layer C harvest on a board that
+       has no cards to head.
+
+       IT IS NOT A CONTROL AND CARRIES NO ROUTING ATTRIBUTE, which is the
+       standing rule for everything structure() builds into a column: a
+       data-act here would be resolved by actTarget() and a data-k would
+       enter the focus-restore space the whole board shares. */
+    var refList = refActions(state, side);
+    if (refList.length > 0) {
+      parts.push(text('h3', 'ref-head', REF_HEAD_WORD));
+    }
+    refList.forEach(function (action) {
       parts.push(refCard(action, side));
     });
 
@@ -27728,6 +27778,12 @@ App.render = (function () {
     // moves with it; type it into a row and the day it changes the gate is
     // green over a reading that stopped saying anything.
     SYM_TAKEN: SYM_TAKEN,
+    // D-39 P3-7, exported to the same standard and for the same reason as
+    // the two above: check 127b asserts the word this heading actually
+    // carries rather than a re-typed copy of it, so renaming it here moves
+    // the row with it and typing it into the row makes the gate green over
+    // a heading that has stopped saying anything.
+    REF_HEAD_WORD: REF_HEAD_WORD,
     MAX_UNITS: MAX_UNITS
   });
 })();
