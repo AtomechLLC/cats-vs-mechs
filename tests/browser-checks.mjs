@@ -4675,6 +4675,155 @@ for (const ch of ['chrome', 'msedge']) {
       && kbBack.focusK === 'fg/bf/cats/c4',
       { onShape, kbOpen, hpBefore, afterEnter, afterUp, afterDown, walk, kbBack });
 
+    // ── 26i. D-39 P1-4. WHERE THE BOX LANDS, ON EVERY UNIT, AND ON THE SCROLL POSITION
+    //        THE AUDIT'S OWN MEASUREMENT WAS TAKEN AT. ──────────────────────────────────
+    // The audit read the placement of all twelve and reported "never placed below a unit,
+    // never flipped, never clamped". Two of those three are wrong and the measurement that
+    // corrects them is in this cell: the box IS placed below when there is room (the mechs at
+    // 1920 take that arm on the shipped board) and it IS clamped. What the audit found and
+    // did not name is what the CLAMP did when neither side had room — Math.max(8, ...) pulled
+    // the box back down ONTO the shape whose numbers it was showing, which is the one thing
+    // [C14.7]'s own banner says this must never do.
+    //
+    // TWO PASSES, AND THE SECOND IS THE ONE THAT USED TO FAIL. The first walks every shape at
+    // the resting scroll position. The second scrolls the PAGE so one shape sits 300px and
+    // then 400px down the viewport — a student's own scroll, and the exact positions at which
+    // the shipped arithmetic measured 8→475 over a shape at 300→365. Nothing here presses a
+    // control that is off screen: each shape is brought into view first, which is what a
+    // student's own scroll does before their finger arrives.
+    const d39Geom = async (side, unit) => pg.evaluate(([s, u]) => {
+      const a = document.querySelector('[data-fg="bf"][data-fg-side="' + s + '"][data-fg-val="' + u + '"]');
+      const box = document.getElementById('fg-unit');
+      if (!a || !box || box.hidden) { return null; }
+      const br = box.getBoundingClientRect(), ar = a.getBoundingClientRect();
+      const hits = (r) => !(br.right <= r.left || br.left >= r.right
+        || br.bottom <= r.top || br.top >= r.bottom);
+      const alive = box.querySelector('.fgu-alive');
+      const arr = alive ? alive.getBoundingClientRect() : null;
+      const shapes = Array.from(document.querySelectorAll('[data-fg="bf"]'));
+      return {
+        head: (document.getElementById('fg-unit-head').textContent || '').trim(),
+        inView: br.top >= 0 && br.left >= 0
+          && br.bottom <= innerHeight && br.right <= innerWidth,
+        coversAnchor: hits(ar),
+        below: br.top >= ar.bottom - 1,
+        // THE AUDIT'S OWN DISTINCTION, ASSERTED RATHER THAN ASSUMED. It measured
+        // the "Mark dead" row 81px below the fold and said why that was fatal:
+        // "#fg-unit-rows does not scroll to compensate because its own
+        // clientHeight === scrollHeight — the overflow is the PAGE's, not the
+        // container's." A page-overflowing fixed box has nothing that can bring
+        // the row back. So the clause is not "the control is on screen at rest"
+        // — the bound makes the list scroll on purpose, which is what [C14.7]
+        // built it for — it is that the overflow BELONGS TO A CONTAINER THAT
+        // SCROLLS and one scroll of it brings the control wholly into view,
+        // inside the list's own box and inside the window.
+        markAtRest: arr !== null && arr.top >= 0 && arr.bottom <= innerHeight,
+        markReachable: (function () {
+          if (alive === null) { return false; }
+          const rr = document.getElementById('fg-unit-rows');
+          const was = rr.scrollTop;
+          rr.scrollTop = rr.scrollHeight;
+          const r2 = alive.getBoundingClientRect();
+          const lr = rr.getBoundingClientRect();
+          const ok = r2.top >= 0 && r2.bottom <= innerHeight
+            && r2.top >= lr.top - 1 && r2.bottom <= lr.bottom + 1;
+          rr.scrollTop = was;
+          return ok;
+        })(),
+        bounded: box.style.getPropertyValue('--fgu-h') !== '',
+        rowsScroll: (function () {
+          const rr = document.getElementById('fg-unit-rows');
+          return rr.scrollHeight > rr.clientHeight;
+        })(),
+        marked: shapes.filter((n) => n.classList.contains('bf-unit--open'))
+          .map((n) => n.dataset.fgSide + '/' + n.dataset.fgVal),
+        expanded: shapes.filter((n) => n.getAttribute('aria-expanded') === 'true')
+          .map((n) => n.dataset.fgSide + '/' + n.dataset.fgVal),
+        unset: shapes.filter((n) => n.getAttribute('aria-expanded') === null).length
+      };
+    }, [side, unit]);
+
+    const d39Shapes = await pg.evaluate(() => Array.from(
+      document.querySelectorAll('[data-fg="bf"]')
+    ).map((n) => [n.dataset.fgSide, n.dataset.fgVal]));
+    const d39Walk = [];
+    for (const [side, unit] of d39Shapes) {
+      const sel = `[data-fg="bf"][data-fg-side="${side}"][data-fg-val="${unit}"]`;
+      const node = await pg.$(sel);
+      if (node === null) { d39Walk.push({ side, unit, missing: true }); continue; }
+      await node.scrollIntoViewIfNeeded();
+      await pg.waitForTimeout(120);
+      await node.click();
+      await pg.waitForTimeout(220);
+      const g = await d39Geom(side, unit);
+      d39Walk.push(Object.assign({ side, unit }, g || { missing: true }));
+      // Conditional, for the reason PROBE DL wrote down: a cleanup step that assumes the
+      // state the cell is testing for can take the whole run down with a TimeoutError
+      // instead of reporting a red cell.
+      const close = await pg.$('#fg-unit .fgu-close');
+      if (close !== null) { await close.click(); await pg.waitForTimeout(140); }
+    }
+
+    // THE SCROLL POSITIONS, AND THEY ARE FRACTIONS OF THE WINDOW RATHER THAN PIXELS so the
+    // same three drives exercise the same three cases in a 768-tall column and a 1080-tall
+    // one. High in the window there is room BELOW and the box takes it; low in the window
+    // there is not and it flips ABOVE; the middle is where the shipped arithmetic had neither
+    // and resolved it by covering the shape. Driven on the first cat, which is the shape the
+    // D-39c measurement was taken on.
+    const d39Scrolled = [];
+    for (const frac of [0.28, 0.45, 0.80]) {
+      const put = await pg.evaluate((f) => {
+        const n = document.querySelector('[data-fg="bf"][data-fg-side="cats"][data-fg-val="c1"]');
+        if (!n) { return false; }
+        scrollBy(0, Math.round(n.getBoundingClientRect().top - Math.round(innerHeight * f)));
+        return true;
+      }, frac);
+      const want = frac;
+      if (!put) { d39Scrolled.push({ want, missing: true }); continue; }
+      await pg.waitForTimeout(200);
+      const vis = await pg.evaluate(() => {
+        const r = document.querySelector('[data-fg="bf"][data-fg-side="cats"][data-fg-val="c1"]')
+          .getBoundingClientRect();
+        return { top: Math.round(r.top), on: r.top >= 0 && r.bottom <= innerHeight };
+      });
+      if (!vis.on) { d39Scrolled.push({ want, offScreen: vis }); continue; }
+      await pg.evaluate(() => {
+        const n = document.querySelector('[data-fg="bf"][data-fg-side="cats"][data-fg-val="c1"]');
+        const r = n.getBoundingClientRect();
+        n.dispatchEvent(new MouseEvent('click', { bubbles: true,
+          clientX: r.left + r.width / 2, clientY: r.top + r.height / 2 }));
+      });
+      await pg.waitForTimeout(240);
+      d39Scrolled.push(Object.assign({ want, shapeTop: vis.top },
+        await d39Geom('cats', 'c1') || { missing: true }));
+      const close2 = await pg.$('#fg-unit .fgu-close');
+      if (close2 !== null) { await close2.click(); await pg.waitForTimeout(140); }
+    }
+    await pg.evaluate(() => scrollTo(0, 0));
+    await pg.waitForTimeout(200);
+
+    const d39All = d39Walk.concat(d39Scrolled);
+    const d39ScrolledBelow = d39Scrolled.filter((g) => g.below === true).length;
+    const d39ScrolledAbove = d39Scrolled.filter((g) => g.below === false).length;
+    const d39Bad = d39All.filter((g) => g.missing === true || g.offScreen
+      || g.inView !== true || g.coversAnchor !== false || g.markReachable !== true
+      || g.marked.length !== 1 || g.expanded.length !== 1
+      || g.marked[0] !== (g.side || 'cats') + '/' + (g.unit || 'c1')
+      || g.expanded[0] !== g.marked[0] || g.unset !== 0);
+    const d39Below = d39Walk.filter((g) => g.below === true).length;
+    note(ch, size.name, 'D-39 P1-4 popups placed below', String(d39Below)
+      + ' of ' + d39Walk.length + ' at rest, ' + d39ScrolledBelow + ' of '
+      + d39Scrolled.length + ' scrolled');
+    ok(`${tag}: 26i. D-39 P1-4 — THE POPUP IS WHOLLY ON SCREEN AND NEVER ON THE SHAPE IT IS ABOUT, FOR EVERY UNIT AND AT THE SCROLL POSITION WHERE THAT USED TO BE FALSE. The audit read all twelve and reported "never placed below a unit, never flipped, never clamped". All three are wrong and this cell is the correction: it IS clamped, it IS flipped, and it IS placed below when there is room. The resting battlefield sits low enough at both sizes that the below arm is taken 0 of 12 times there — which is what the audit saw and read as an absence of the rule rather than as the rule choosing — so BOTH ARMS ARE DRIVEN DIRECTLY at three scroll positions expressed as fractions of the window, and each must be reached at least once. What the audit measured and did not name is what the clamp DID when neither side of a shape had room for a 467-tall box: Math.max(8, r.top - h - 6) pulled it back down ONTO the shape whose numbers it was showing. Reproduced before the fix at 1366x768 with one student-authored unit type, the page scrolled so Cat 1 sat 300px down: shape 300-365, popup 8-475, covering its own shape and eight others. [C14.7]'s own banner calls that the one thing this must never do. So the room is measured first and the box is BOUNDED to it, and the row list — which already scrolls on itself — is what gives. FOUR CLAUSES PER UNIT, and none of them is a pixel budget: the box is wholly inside the viewport, it does not intersect its own shape, the "Mark dead" row at the foot of the box is REACHABLE — and that clause is the audit's own distinction rather than a softening of it: the audit measured that row 81px below the fold and said why it was fatal, "#fg-unit-rows does not scroll to compensate because its own clientHeight === scrollHeight, the overflow is the PAGE's, not the container's". A fixed box overflowing the page has nothing that can bring it back. The bound moves that overflow into the list [C14.7] gave a scroll for, so what is asserted is that one scroll of THAT container puts the control wholly inside both its own box and the window, and the mark says which shape it is about on both channels with EXACTLY ONE shape wearing it. THE TWO SCROLLED DRIVES ARE THE CELL: they are the positions at which the shipped arithmetic failed, and they are pressed at the shape's real centre after a real page scroll. AND D-37'S ONE DELIBERATE TRADE IS KEPT — a box hard against the top of the viewport may still cover #topbar, which is z-index 20 and drawn under it; [C14.7] reasoned that on a picture and this cell does not re-decide it`,
+      d39Bad.length === 0 && d39Walk.length === 12 && d39Scrolled.length === 3
+      && d39ScrolledBelow >= 1 && d39ScrolledAbove >= 1,
+      { bad: d39Bad.slice(0, 3), below: d39Below,
+        scrolledBelow: d39ScrolledBelow, scrolledAbove: d39ScrolledAbove,
+        walked: d39Walk.length,
+        scrolled: d39Scrolled.map((s) => ({ want: s.want, shapeTop: s.shapeTop,
+          coversAnchor: s.coversAnchor, inView: s.inView, bounded: s.bounded,
+          rowsScroll: s.rowsScroll })) });
+
     await endFight(pg);
     await pg.evaluate(() => {
       App.ops.resetToDefaults();

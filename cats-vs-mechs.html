@@ -4473,6 +4473,42 @@
   .bf-pick{font-size:18px;color:var(--ink-dim)}
   .bf-pick[hidden]{display:none}
 
+  /* ==================================================================
+     D-39 P1-4: THE SHAPE THE POPUP IS ABOUT IS MARKED WHILE IT IS OPEN.
+     Plan 05-D39c.
+     ==================================================================
+     THE AUDIT PHOTOGRAPHED THE ABSENCE: a box headed "Cat 9" resting on
+     the cards for Cat 3 and Cat 6, with no tail, no anchor line and
+     nothing at all joining the heading to the shape it came from. "A box
+     that opens on top of three other units and names a fourth is the tool
+     telling a student the wrong thing about which numbers they are about
+     to change."
+
+     IT IS --state-on-line / --state-on-fill AND IT IS NOT AN OUTLINE, and
+     that second half is [C00]'s own note read back rather than a taste.
+     --state-on-line and --state-focus are BOTH var(--accent); a click
+     leaves the keyboard on the shape it pressed; so an outline in that
+     channel on THIS element would be a mark a student cannot tell from
+     their own focus ring. .bf-unit--lit gets to keep its outline because
+     it is on --accent-2 and collides with nothing. The border-and-fill
+     pair is the document's other spelling of "this one" -- .fg-act--on,
+     .ae-item--on, .pk-sw--on and .rr-pill--on are all exactly these two
+     declarations -- so the mark arrives in a language the student has
+     already met four times and leaves the focus channel alone.
+
+     IT IS LAST OF THE THREE MODIFIERS ON PURPOSE. --dead and --open have
+     equal specificity and both set border-color, and a dead unit with its
+     popup open should read as the one being pointed at: the dim ink, the
+     marker token and the artifact's own sentence all still say dead.
+
+     AND IT NEVER COLLIDES WITH --lit. A lit shape is a half-made
+     retarget, and a press on a lit shape moves the target and does not
+     open the popup ([S07.5], and check 120 drives both moments); arming
+     the retarget is a press outside [data-fg] and shuts the box. The two
+     states are mutually exclusive at the surface, which is why this rule
+     does not have to arbitrate against that one. */
+  .bf-unit--open{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+
   /* ===================== [C14.5] THE SYMBOLIC READING ===================== */
   /* The `.sym-` rules [S06.12] paints with — D-29, the developer at the real
      artifact with the D-28 ledger lane on screen, verbatim:
@@ -4898,6 +4934,22 @@
        its reason: a box that inherited `auto` would sit wherever static flow
        left it, which on a fixed element is a position nothing computed. */
     left:var(--fgu-x, 8px);top:var(--fgu-y, 8px);
+    /* AND THE THIRD FIGURE, ADDED BY D-39 P1-4: the room [S06.14]'s fgBoxAt
+       found on whichever side it placed the box. The fallback is `none`
+       because an unplaced box has no room to be bounded to, and because the
+       node gate's stub DOM has no viewport to measure one from.
+
+       THE BOUND LANDS ON THE BOX AND THE ROW LIST IS WHAT GIVES, which is
+       flex doing the arrangement rather than a second declaration saying it:
+       .fgu-top is not a scroll container so its automatic minimum size is its
+       content and the heading and the way out never shrink, while .fgu-rows
+       carries overflow:auto, whose automatic minimum size is zero -- so it is
+       the one child that can shrink, and it already scrolls on itself for the
+       reason [C14.7]'s banner gives about a ten-row roster.
+
+       max-height AND NOT height, so a box with room to spare is still the
+       size of what is in it. This bounds; it does not stretch. */
+    max-height:var(--fgu-h, none);
     display:flex;flex-direction:column;gap:8px;
     padding:12px 14px;width:320px;max-width:calc(100vw - 16px);
     background:var(--panel);border:1px solid var(--state-focus);
@@ -26145,6 +26197,83 @@ App.render = (function () {
      access and would redden the run. It did, on the first drive of this
      change — 7 occurrences where 6 were expected, with a sentence of this
      paragraph printed back as one of the sites. */
+  /* ==================================================================
+     D-39 P1-4: THE CLAMP USED TO RESOLVE A NO-FIT BY COVERING THE VERY
+     SHAPE THE BOX IS ABOUT, AND A PICTURE IS WHAT FOUND IT. Plan 05-D39c.
+     ==================================================================
+     WHAT STOOD HERE, kept verbatim because an arithmetic that is replaced
+     should leave its own shape behind:
+
+       var y = r.bottom + 6;
+       if (vh > 0 && h > 0 && y + h > vh - 8) { y = Math.max(8, r.top - h - 6); }
+
+     Two arms and one clamp. It reads as "below it, or above it when there
+     is no room, clamped into the viewport" -- and it is that, right up to
+     the moment NEITHER side has room, which is where the Math.max stops
+     being a clamp and becomes a third placement nobody chose. Measured at
+     1366x768, one student-authored unit-scope type on the board (box 467
+     tall), the page scrolled so Cat 1's shape sits 300px down the
+     viewport:
+
+       shape        popup        covers its own shape?
+       300 - 365    8 - 475      YES, and eight other units with it
+       400 - 465    8 - 475      YES
+
+     r.top - h - 6 is -173, the Math.max pulls it to 8, and 8 + 467 lands
+     110px past the top of the shape whose numbers the box is showing.
+     [C14.7]'s own banner says that is the one thing this must not do:
+     "covering the unit whose numbers it is showing is a defect". It was
+     right about the fix it rejected and never asked whether the clamp it
+     kept could reach the same place. It can.
+
+     SO THE ROOM IS MEASURED FIRST AND THE BOX IS BOUNDED TO IT. Four arms
+     in one order, and the first two are the shipped two unchanged:
+
+       1. it fits BELOW          -> below, which is D-36's preference and
+                                    stays the preference
+       2. it fits ABOVE          -> above, which is the shipped flip
+       3. neither, more room
+          below                  -> below, bounded to that room
+       4. neither, more room
+          above                  -> hard against the top, bounded to that
+                                    room, which is where the flip already
+                                    put it
+
+     The bound is what makes 3 and 4 honest: the box stops at the edge of
+     the room instead of overhanging it, so it can neither run past the
+     fold nor reach back over its own shape. THE CALLER APPLIES IT AND
+     THIS FUNCTION ONLY MEASURES IT, because only one of the two boxes has
+     somewhere to put what it cuts off -- [C14.7]'s row list scrolls on
+     itself and [C14.6]'s nudge holds three lines and no scroller.
+
+     IT IS IDEMPOTENT, WHICH IS THE PROPERTY THE BOUND COULD HAVE COST.
+     This runs on every commit and on every scroll and it measures the
+     box's CURRENT height, so a bound published on one frame is the height
+     read on the next. Walked: arm 3 publishes `under`, the next frame
+     measures h = under, `h <= under` is true, arm 1 returns the same y and
+     the same bound. Arm 4 publishes `over`, the next frame measures
+     h = over, arm 2 returns r.top - over - 6, which is 8 again, and the
+     same bound. Both are fixed points. Arms 1 and 2 publish a bound the
+     box is already under, so they change nothing at all. The publisher
+     drops the bound before it measures, so a box arriving from a DIFFERENT
+     anchor is measured at its natural height and not at the last shape's
+     room.
+
+     AND THE BOUND HAS A FLOOR OF ONE ROW. A window with less than that on
+     either side of the shape is shorter than the control itself, and a box
+     bounded to nothing is a box with nothing in it -- worse than one that
+     overhangs. 120px is the heading, the way out and one value row, which
+     is the smallest this box can be and still be the control.
+
+     WHAT D-37 DECIDED AND THIS KEEPS: [C14.7] records one deliberate trade
+     -- at 1366x768 the rightmost mech's popup reaches up over #topbar,
+     which sits at z-index 20 and is drawn under it -- reasoned there on a
+     picture, because the alternative lands the box ON its own shape. Arm 4
+     IS that trade, unchanged: it still goes hard against the top of the
+     viewport and it still may cover the bar. What it no longer does is
+     come back down over the shape. */
+  var FG_BOX_FLOOR = 120;
+
   function fgBoxAt(box, anchor) {
     if (!anchor || typeof anchor.getBoundingClientRect !== 'function') { return null; }
     if (typeof window === 'undefined') { return null; }
@@ -26155,11 +26284,38 @@ App.render = (function () {
     var vh = window.innerHeight || 0;
     var x = r.left;
     if (vw > 0 && w > 0) { x = Math.max(8, Math.min(x, vw - w - 8)); }
-    var y = r.bottom + 6;
-    if (vh > 0 && h > 0 && y + h > vh - 8) { y = Math.max(8, r.top - h - 6); }
-    return { x: Math.round(x), y: Math.round(y) };
+    // No layout to read is the node gate's stub DOM, and a bound measured
+    // there would be a figure with no viewport behind it. Null is "do not
+    // bound this", which is what the publisher writes out as `none`.
+    if (vh <= 0 || h <= 0) {
+      return { x: Math.round(x), y: Math.round(r.bottom + 6), max: null };
+    }
+    var under = vh - 8 - (r.bottom + 6);
+    var over = r.top - 6 - 8;
+    var y;
+    var room;
+    if (h <= under) { y = r.bottom + 6; room = under; }
+    else if (h <= over) { y = r.top - h - 6; room = over; }
+    else if (under >= over) { y = r.bottom + 6; room = under; }
+    else { y = 8; room = over; }
+    return {
+      x: Math.round(x), y: Math.round(y),
+      max: Math.round(Math.max(FG_BOX_FLOOR, room))
+    };
   }
 
+  /* THE THIRD FIGURE IS MEASURED FOR THIS BOX TOO AND DELIBERATELY NOT
+     PUBLISHED. A bound is only honest on a box that has somewhere to put what
+     it cuts off, and this one has nowhere: [C14.6] is a label, a pair of
+     buttons and a bound sentence with no scroller anywhere in it, so a
+     max-height here would CLIP three lines rather than scroll them. It does
+     not need one either, and that is measured rather than assumed -- the box
+     is about 120px tall, so the two shipped arms cover it at every viewport
+     this artifact targets: it fits below unless the reading sits within about
+     134px of the foot of the window, and a reading that low leaves more than
+     600px above it. Arms 3 and 4 are unreachable for this box. The day that
+     stops being true, [C14.6] gains a scroller first and the publication
+     second, in that order. */
   function fgnPlace(box, anchor) {
     var at = fgBoxAt(box, anchor);
     if (at === null) { return; }
@@ -26612,6 +26768,58 @@ App.render = (function () {
     return null;
   }
 
+  /* ==================================================================
+     D-39 P1-4: THE SHAPE IS MARKED FOR AS LONG AS THE BOX IS ABOUT IT.
+     Plan 05-D39c.
+     ==================================================================
+     The audit's third item, and the one thing in that finding that no
+     placement arithmetic can answer. A box 320 wide and up to 467 tall,
+     anchored to one shape in a three-row grid on a 768px window, will cover
+     some of the shapes above or below it whichever side it takes -- that is
+     geometry, and the room's own laptop is where it bites. What the room
+     needs is not a box that covers nothing; it is to be able to see WHICH
+     shape the box is about. Measured before this pass: nothing. The shape
+     carried no class, no attribute and no mark of any kind while its own
+     numbers were on screen.
+
+     TWO CHANNELS, WHICH IS [C07]'s STANDING RULE AND NOT A NEW ONE:
+       the CLASS, which draws the border and the fill [C14.3] reasons about;
+       and aria-expanded on the shape, which is what a <button> that opens a
+         box is supposed to carry and which this surface has never had.
+
+     THE THIRD CHANNEL -- THE WORDS -- IS ALREADY ON SCREEN AND IS NOT
+     RESTATED HERE. .bf-unit--dead and .bf-unit--lit each append a real text
+     node because the state they mark is a fact ABOUT THE UNIT that a reader
+     must be told. This is not that: it is a pointer from a transient box back
+     to its own anchor, and the box itself prints the unit's name in
+     #fg-unit-head at 20px. A second copy of that name on the shape would be
+     one more string per frame saying what the heading says, which is D-39
+     P1-2's own finding one surface over.
+
+     EVERY SHAPE IS WALKED AND NOT JUST THE ONE, because the mark has to LEAVE
+     -- a shape still wearing it after the box moved to its neighbour is two
+     units claiming to be the one on screen. dcClass and the attribute test
+     both write only on a change, which is dcMark's rule and the reason it
+     gives.
+
+     GUARDED FOR THE STUB, like every other browser-only read in this region:
+     the node gate's DOM has querySelectorAll and this runs there, which is
+     what lets the mark be asserted without a browser. */
+  function fguMark(anchor) {
+    if (typeof document === 'undefined') { return; }
+    if (typeof document.querySelectorAll !== 'function') { return; }
+    var all = document.querySelectorAll('[data-fg="bf"]');
+    for (var i = 0; i < all.length; i++) {
+      var node = all[i];
+      var on = (anchor !== null && node === anchor);
+      dcClass(node, 'bf-unit--open', on);
+      var want = on ? 'true' : 'false';
+      if (node.getAttribute('aria-expanded') !== want) {
+        node.setAttribute('aria-expanded', want);
+      }
+    }
+  }
+
   /* Emptied AND hidden together, which is dcStandingLine's rule and the reason
      it gives: "hidden" and "empty" say the same thing about a node, so no later
      check has to work out which of the two it means. The two attributes go too
@@ -26632,6 +26840,11 @@ App.render = (function () {
     box.hidden = true;
     box.dataset.fgSide = '';
     box.dataset.fgUnit = '';
+    // The mark goes with the rows and for the same reason they do: a shape
+    // still wearing it over a shut box is the page saying something is open
+    // that is not. Taken BEFORE the document guard below, because it carries
+    // its own.
+    fguMark(null);
     if (typeof document === 'undefined') { return; }
     var head = document.getElementById('fg-unit-head');
     if (head) { fgnText(head, ''); }
@@ -26642,11 +26855,33 @@ App.render = (function () {
     }
   }
 
+  /* THE BOUND COMES OFF BEFORE THE MEASUREMENT AND GOES BACK AFTER IT, and
+     that ordering is the whole of why this is four lines rather than three.
+     fgBoxAt reads the box's CURRENT height, and the height it would be looking
+     at is the one THIS function published on the last frame -- so a popup
+     moving from a shape with 200px of room to one with 600px would be measured
+     at 200 and placed as a short box forever. Dropped first, the measurement is
+     always of the box at its natural size; the reads that follow are a
+     getBoundingClientRect and an offsetHeight, and both flush the style change
+     before they answer.
+
+     A NULL PLACEMENT LEAVES THE BOUND OFF, which is right rather than merely
+     convenient: fgBoxAt returns null when there is no anchor and no window, and
+     a box that has not been placed has no room to be bounded to.
+
+     THIS IS THE THIRD --fgu- PUBLICATION AND CHECK 57 IS WHERE IT IS PRICED.
+     That row counts inline-style accesses IN CONTEXT and the count goes 6 -> 8,
+     because the drop and the publication are two accesses to one property and
+     neither of them replaces a line that was there. Turned in the open, and the
+     row's own reading was widened to say which property and why it is written
+     twice rather than left describing two pairs. */
   function fguPlace(box, anchor) {
+    box.style.setProperty('--fgu-h', 'none');
     var at = fgBoxAt(box, anchor);
     if (at === null) { return; }
     box.style.setProperty('--fgu-x', at.x + 'px');
     box.style.setProperty('--fgu-y', at.y + 'px');
+    box.style.setProperty('--fgu-h', (at.max === null) ? 'none' : (at.max + 'px'));
   }
 
   function unitPopup(state) {
@@ -26705,6 +26940,10 @@ App.render = (function () {
     // same one that made the nudge close when a zero reading was hidden.
     if (anchor === null) { fguShut(box); return; }
     fguPlace(box, anchor);
+    // D-39 P1-4. AFTER the placement rather than before it, so a frame that
+    // ends in a shut box through the arm above never leaves a mark standing
+    // on a shape whose popup is not there.
+    fguMark(anchor);
   }
 
   function syncUnitPopup(state) {

@@ -2589,6 +2589,35 @@ check(
    same NARROW access the --fgn- pair is: read by exactly one rule in [C14.7],
    on exactly one element.
 
+   AND THE COUNT WENT 6 -> 8 UNDER D-39 P1-4, TURNED IN THE OPEN FOR THE FOURTH
+   TIME. Plan 05-D39c.
+
+   The allowlist does not widen at all this time -- the prefix is already
+   `--fgu-` -- and the CLAIM does not move for the reason it has not moved three
+   times before: this row's own last sentence is the test, and a HEIGHT BOUND
+   measured off the room a shape leaves in the viewport is not a figure drawn
+   with a length. The audit measured what the shipped clamp did when neither
+   side of a shape had room for the box: it resolved the no-fit by pulling the
+   box down ONTO the very shape whose numbers it was showing. So [S06.14]'s
+   fgBoxAt measures the room it placed into and [S06.15] bounds the box to it,
+   which the stylesheet cannot answer for the same reason it cannot answer the
+   two offsets -- there is no stylesheet answer to how much room is left above a
+   particular node right now.
+
+   --fgu-h, AND IT IS WRITTEN TWICE FROM ONE FUNCTION, which is the only thing
+   in this row that is not a plain extra publication. fguPlace DROPS the bound
+   before it measures and publishes the new one after -- because fgBoxAt reads
+   the box's CURRENT height, and the height it would otherwise be reading is the
+   bound this same function wrote on the last frame, against a DIFFERENT shape.
+   Two accesses, one property, one function, and the ordering is the whole of
+   why the second one is correct.
+
+   THE NUDGE DOES NOT GET ONE AND THAT ABSENCE IS WHY THIS IS EIGHT AND NOT
+   NINE. [C14.6] has no scroller in it, so a bound there would clip three lines
+   rather than scroll them; [C14.7]'s row list already scrolls on itself.
+   fgBoxAt measures the figure for both callers and only the caller that can
+   honour it publishes it.
+
    THE ARITHMETIC BEHIND ALL FOUR OF THE NON-TOPBAR ACCESSES IS ONE FUNCTION,
    AND THAT IS WHY THIS IS SIX RATHER THAN A SECOND COPY OF A CLAMP. [S06.14]'s
    fgBoxAt computes "below it, or above it when there is no room, clamped into
@@ -2625,8 +2654,8 @@ check(
     + 'shared scale and a midpoint marker each need an inline length, so this '
     + 'is the cheapest available proof that none of the three exists anywhere '
     + 'on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12, 2 -> 4 UNDER '
-    + 'D-36 AND 4 -> 6 UNDER D-37, and the row reads each occurrence IN '
-    + 'CONTEXT rather than counting '
+    + 'D-36, 4 -> 6 UNDER D-37 AND 6 -> 8 UNDER D-39 P1-4, and the row reads '
+    + 'each occurrence IN CONTEXT rather than counting '
     + 'them: --topbar-now is the bar\'s height and --topbar-foot its bottom '
     + 'edge, published from one measurement of one element because a fixed '
     + 'panel is placed against the viewport whether the bar has stuck or not; '
@@ -2635,11 +2664,21 @@ check(
     + 'unit popup sits, measured off the SHAPE it was opened on — because a '
     + 'control that must appear AT a '
     + 'particular node has no stylesheet answer to where that node is. THE '
-    + 'CLAMP BEHIND BOTH PAIRS IS ONE FUNCTION and only the two publications '
-    + 'are duplicated, because a shared publisher taking the prefix as an '
-    + 'argument would hold the count at four and defeat this reading. A bar '
+    + 'SEVENTH AND EIGHTH ARE ONE PROPERTY WRITTEN TWICE BY ONE FUNCTION: '
+    + '--fgu-h is the room fgBoxAt found on the side it placed the popup into, '
+    + 'and fguPlace DROPS it before it measures and publishes it after, because '
+    + 'the height fgBoxAt reads would otherwise be the bound this same function '
+    + 'wrote on the previous frame against a different shape. D-39 P1-4 is why '
+    + 'there is a bound at all: with neither side of a shape holding the box, '
+    + 'the shipped clamp pulled it down ONTO the shape whose numbers it was '
+    + 'showing. THE NUDGE GETS NO BOUND AND THAT IS WHY THIS IS EIGHT AND NOT '
+    + 'NINE \u2014 [C14.6] has no scroller and would CLIP what a bound cut off. '
+    + 'THE ARITHMETIC BEHIND ALL SIX NON-TOPBAR ACCESSES IS STILL ONE FUNCTION '
+    + 'and only the publications are duplicated, because a shared publisher '
+    + 'taking the prefix as an argument would hold the count down and defeat '
+    + 'this reading. A bar '
     + 'drawn with an inline length fails this however many accesses there are',
-  styleAccesses === 6 && styleStrays.length === 0,
+  styleAccesses === 8 && styleStrays.length === 0,
   'occurrences: ' + styleAccesses + ' | sites: ' + JSON.stringify(styleSites)
     + ' | not an allowed publication: ' + JSON.stringify(styleStrays)
 );
@@ -16197,6 +16236,28 @@ const d37Open = () => ({
   toks: d37Rows().map((r) => String(r.dataset.fguTok || '')),
   x: d37Box.style.getPropertyValue('--fgu-x')
 });
+/* D-39 P1-4's mark, read off EVERY shape on the page rather than off the one
+   this drive pressed. A reader that asked only "is the shape I pressed
+   marked?" would be green over a page that marked all twelve, which is the
+   failure this mark exists to prevent: two units both claiming to be the one
+   whose numbers are on screen. So the marked ids are COLLECTED, both channels
+   are collected separately — a class that stopped agreeing with the attribute
+   is [C07]'s two channels drifting apart — and the row compares the lists. */
+const d39OpenMark = () => {
+  const shapes = fgBar.querySelectorAll('[data-fg="bf"]');
+  return {
+    total: shapes.length,
+    byClass: shapes
+      .filter((n) => String(n.className || '').split(' ').indexOf('bf-unit--open') !== -1)
+      .map((n) => String(n.dataset.fgSide || '') + '/' + String(n.dataset.fgVal || '')),
+    byAria: shapes
+      .filter((n) => n.getAttribute('aria-expanded') === 'true')
+      .map((n) => String(n.dataset.fgSide || '') + '/' + String(n.dataset.fgVal || '')),
+    notFalse: shapes
+      .filter((n) => n.getAttribute('aria-expanded') !== 'true'
+        && n.getAttribute('aria-expanded') !== 'false').length
+  };
+};
 
 /* 118. THE THREE KEY SPACES, AND THE BATTLEFIELD'S READINGS ARE READINGS AGAIN.
    94b's reading taken again on a page that has LOST one key per rulable
@@ -16424,6 +16485,69 @@ check(
     + ' | after Close=' + JSON.stringify(d37AfterClose)
     + ' | lit while armed=' + d37ArmedLit
     + ' | after the press on a lit shape=' + JSON.stringify(d37Armed)
+    + ' | panel hidden=' + errPanel.hidden
+);
+
+/* 120b. D-39 P1-4 — THE SHAPE THE BOX IS ABOUT IS MARKED, AND ONLY THAT ONE.
+   The audit photographed a popup headed "Cat 9" resting on the cards for Cat 3
+   and Cat 6 with nothing on screen joining the heading to its own shape, and
+   measured the absence directly: no class, no attribute, no mark of any kind on
+   any shape while its numbers were open. This row is the mark, driven through
+   the same four moments row 120 already reaches — so it EXTENDS that drive
+   rather than repeating it — plus the one moment that row does not have, which
+   is the box MOVING from one unit to another. That is where a mark that is
+   written but never taken off shows up, and it is the reason the reader
+   collects every marked id on the page instead of asking about one shape. */
+d37PressShape('cats', 'c1');
+const d39MarkOnC1 = Object.assign({ head: dom.byId['fg-unit-head'].textContent },
+  d39OpenMark());
+d37PressShape('cats', 'c5');
+const d39MarkMoved = Object.assign({ head: dom.byId['fg-unit-head'].textContent },
+  d39OpenMark());
+fgPress(dom.byId['fg-unit-close']);
+const d39MarkShut = Object.assign({ shut: d37Box.hidden === true }, d39OpenMark());
+check(
+  '120b. D-39 P1-4 — THE SHAPE THE POPUP IS ABOUT IS MARKED WHILE IT IS OPEN, '
+    + 'ON TWO CHANNELS, AND EXACTLY ONE SHAPE WEARS IT. The audit\'s third '
+    + 'item and the half of that finding no placement arithmetic can answer: a '
+    + '320-wide box up to 467 tall, anchored to one shape in a three-row grid '
+    + 'on a 768px window, WILL cover some of the shapes above or below it '
+    + 'whichever side it takes — that is geometry, and the room\'s own laptop '
+    + 'is where it bites. What a room needs is not a box that covers nothing; '
+    + 'it is to be able to see which shape the box is about. Measured before '
+    + 'this pass: nothing at all, on any of the twelve. THE READER COLLECTS '
+    + 'EVERY MARKED ID ON THE PAGE rather than asking about the one this drive '
+    + 'pressed, because a reader of the second kind is green over a page that '
+    + 'marks all twelve — which is the exact defect the mark exists to '
+    + 'prevent, two units both claiming to be the one on screen. BOTH CHANNELS '
+    + 'ARE COLLECTED SEPARATELY AND COMPARED TO EACH OTHER, which is [C07]\'s '
+    + 'never-in-colour-alone rule read as an assertion: the class draws the '
+    + 'border and the fill and the aria-expanded is what a screen reader gets, '
+    + 'and a change that wrote one and not the other would leave the mark '
+    + 'saying "this one" in pixels only. THE THIRD CHANNEL — the WORDS — is '
+    + 'the popup\'s own heading, which names the unit at 20px, and it is '
+    + 'asserted to be the unit the mark is on rather than restated as a second '
+    + 'text node on the shape. AND EVERY SHAPE CARRIES THE ATTRIBUTE IN ONE '
+    + 'STATE OR THE OTHER, because a button that opens a box and says nothing '
+    + 'about whether it is open is the gap this closes. Driven at the moment '
+    + 'the box MOVES between two units, which row 120 does not reach and which '
+    + 'is where a mark that is written but never taken off would stand',
+  d39MarkOnC1.total === 12
+    && d39MarkOnC1.byClass.length === 1 && d39MarkOnC1.byClass[0] === 'cats/c1'
+    && d39MarkOnC1.byAria.length === 1 && d39MarkOnC1.byAria[0] === 'cats/c1'
+    && d39MarkOnC1.head === 'Cat 1'
+    && d39MarkOnC1.notFalse === 0
+    && d39MarkMoved.byClass.length === 1 && d39MarkMoved.byClass[0] === 'cats/c5'
+    && d39MarkMoved.byAria.length === 1 && d39MarkMoved.byAria[0] === 'cats/c5'
+    && d39MarkMoved.head === 'Cat 5'
+    && d39MarkMoved.notFalse === 0
+    && d39MarkShut.shut === true
+    && d39MarkShut.byClass.length === 0 && d39MarkShut.byAria.length === 0
+    && d39MarkShut.notFalse === 0
+    && errPanel.hidden === true,
+  'open on c1=' + JSON.stringify(d39MarkOnC1)
+    + ' | moved to c5=' + JSON.stringify(d39MarkMoved)
+    + ' | after the Close=' + JSON.stringify(d39MarkShut)
     + ' | panel hidden=' + errPanel.hidden
 );
 
