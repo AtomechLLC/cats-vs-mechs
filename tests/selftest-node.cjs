@@ -10883,6 +10883,144 @@ check(
     + ' build byte-identical=' + accBuildSurvived
 );
 
+/* ==========================================================================
+   102b. D-39 P1-2 — THREE READINGS OF ONE POOL, AND THEY ARE ONE READING.
+   Plan 05-D39b.
+   ==========================================================================
+   Row 102's accAgree clause holds the topbar and the state card together —
+   D-33 P1-1's fix, and it has held. D-39 found a THIRD reading one region
+   over that it does not reach: [S06.9]'s live block in #strip, which
+   computed its own figure from apSpent and printed it in a different
+   vocabulary. Measured at 1920 with three Cats declared and the sidebar
+   open, all three on screen at once:
+
+     #pool-cats  Cats · Action points · 3 of 3 spoken for · 0 left to spend
+     .fg-res           Action points · 3 of 3 spoken for · 0 left to spend
+     .dc-live          Action points: 0 of 3 spent so far.
+
+   Neither figure was wrong. Both were true of different questions. A
+   student cannot tell "spoken for" from "spent" when both are against one
+   pool and only one of them moves as they click, and the instructor's line
+   for this tab is "watch the pool".
+
+   THIS ROW IS accAgree WIDENED FROM A PAIR TO A TRIPLE, and it is written
+   as a widening rather than as a new row because the property is one
+   property: every surface that renders the action-point pool renders
+   [S06.7]'s fgPoolWords. It is read at FOUR MOMENTS, not one, because a
+   surface that agrees at rest and freezes while the other two move is the
+   exact shape D-33 P1-1 was written about.
+
+   THE THREE ARE COMPARED TO EACH OTHER AND NEVER TO A STRING TYPED HERE —
+   row 111's technique, and here it is the whole point: a row that matched
+   all three against a literal would go green on the day somebody changed
+   the sentence in one place and this file in the same commit, which is
+   the drift it exists to catch. The comparison is a CONTAINMENT for the
+   same reason accAgree's is: the bar leads with the faction's name and the
+   strip leads with the type's, and what has to be identical is the FIGURE
+   AND THE WORDS, not the frame around them.
+
+   AND IT IS FLOORED ON THE STRIP HAVING PAINTED AT ALL. A walk that found
+   no .dc-live box would find no disagreement, spotlessly — which is the
+   shape row 97 already floors itself against one region over. */
+function accStripAp(side) {
+  const box = dom.byId['strip'].querySelectorAll('.dc-live-side')
+    .filter((n) => n.dataset.dcLive === side)[0] || null;
+  if (box === null) { return ''; }
+  const line = box.querySelectorAll('.dc-live-read')
+    .filter((n) => fgLeaves(n).join(' ').indexOf('spoken for') !== -1)[0] || null;
+  return line === null ? '' : fgLeaves(line).join(' ');
+}
+/* THE TWO FRAGMENTS, READ OFF THE CARD'S OWN SPANS rather than sliced out of
+   its joined text. fgPoolWords hands back exactly two strings and the card is
+   the surface that renders them in their own nodes, so this reads what that
+   function produced instead of re-deriving it — which is the same rule the
+   artifact keeps and the reason row 111's technique is used here at all.
+
+   IT IS TWO FRAGMENTS AND NOT ONE JOINED CORE, and that was measured: the bar
+   separates them with whitespace and the strip with a comma, so a single
+   containment over "N of M spoken for K left to spend" fails on punctuation
+   while every figure and every word agrees. What has to be identical is the
+   two READINGS, not the frame either surface puts around them. */
+function accPoolParts(side) {
+  const res = fgOne(fgStateRootOf(side), '.fg-res');
+  if (res === null) { return null; }
+  const sp = fgOne(res, '.fg-res-spoke');
+  const lf = fgOne(res, '.fg-res-left');
+  if (sp === null || lf === null) { return null; }
+  return { spoke: String(sp.textContent || ''), left: String(lf.textContent || '') };
+}
+function accThree(side) {
+  const parts = accPoolParts(side);
+  const strip = accStripAp(side);
+  const bar = accPool(side).replace(/\s+/g, ' ');
+  const stripFlat = strip.replace(/\s+/g, ' ');
+  const core = parts === null ? '' : parts.spoke + ' | ' + parts.left;
+  return {
+    core: core,
+    bar: accPool(side),
+    strip: strip,
+    agree: parts !== null && parts.spoke !== '' && parts.left !== '' && strip !== ''
+      && bar.indexOf(parts.spoke) !== -1 && bar.indexOf(parts.left) !== -1
+      && stripFlat.indexOf(parts.spoke) !== -1 && stripFlat.indexOf(parts.left) !== -1
+  };
+}
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+fgPress(fgStart);
+A.state.flush();
+const accTriIdle = accThree('cats');
+const accTriIdleMechs = accThree('mechs');
+fgDeclare('cats', fgCatsAct, 'c1');
+const accTriOne = accThree('cats');
+fgDeclare('cats', fgCatsAct, 'c2');
+const accTriTwo = accThree('cats');
+fgAdvancePress();
+A.state.flush();
+const accTriResolved = accThree('cats');
+const accTriMoved = accTriOne.core !== accTriIdle.core
+  && accTriTwo.core !== accTriOne.core;
+// The strip's own leaf must not carry the retired vocabulary any more. This
+// is the "one pool, one word" half, and it is a scan rather than a name:
+// a later plan reintroducing "spent" on this surface reddens here.
+const accStripWords = fgLeaves(dom.byId['strip']).join(' ');
+const accNoSpentWord = accStripWords.indexOf('spent so far') === -1;
+check(
+  '102b. D-39 P1-2 — THE POOL IS ONE READING ON THREE SURFACES, AND IT IS '
+    + 'ASSERTED AT FOUR MOMENTS. D-33 P1-1 reconciled the topbar and the state '
+    + 'card; the audit then photographed a THIRD reading in #strip giving a '
+    + 'different figure for the same pool in a different vocabulary — "0 of 3 '
+    + 'spent so far" beside two byte-identical "3 of 3 spoken for" lines, all '
+    + 'three on one screen. Both figures were true of different questions, '
+    + 'which is exactly why a student cannot read them side by side. All three '
+    + 'now render [S06.7]\'s fgPoolWords through fgPoolReading, and this row '
+    + 'compares them TO EACH OTHER rather than to a string typed here, at rest '
+    + 'and after each of two declarations and after the Advance that resolves '
+    + 'them — because a surface that agrees at rest and freezes while the other '
+    + 'two move is the shape D-33 P1-1 was written about. Floored on the strip '
+    + 'having painted, because a walk that found no live box would find no '
+    + 'disagreement spotlessly. AND THE RETIRED WORD IS SCANNED FOR RATHER '
+    + 'THAN ASSUMED GONE: "spent so far" may not appear anywhere in #strip',
+  accTriIdle.agree === true && accTriIdleMechs.agree === true
+    && accTriOne.agree === true && accTriTwo.agree === true
+    && accTriResolved.agree === true
+    && accTriMoved === true
+    && accTriIdle.strip !== '' && accNoSpentWord === true
+    && errPanel.hidden === true,
+  'idle cats: core=' + JSON.stringify(accTriIdle.core)
+    + ' bar=' + JSON.stringify(accTriIdle.bar)
+    + ' strip=' + JSON.stringify(accTriIdle.strip)
+    + ' | idle mechs agree=' + accTriIdleMechs.agree
+    + ' | one declared: core=' + JSON.stringify(accTriOne.core)
+    + ' agree=' + accTriOne.agree
+    + ' | two declared: core=' + JSON.stringify(accTriTwo.core)
+    + ' agree=' + accTriTwo.agree
+    + ' | resolved: core=' + JSON.stringify(accTriResolved.core)
+    + ' agree=' + accTriResolved.agree
+    + ' | the figure moved across the three moments=' + accTriMoved
+    + ' | "spent so far" absent from #strip=' + accNoSpentWord
+);
+
 A.ops.resetToDefaults();
 A.state.flush();
 clearPanel();

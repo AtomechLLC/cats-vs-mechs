@@ -1349,6 +1349,113 @@ for (const ch of ['chrome', 'msedge']) {
       && inBuild.colCards === 6 && inBuild.onScreen === 6,
       { coversTop, coversScrolled, bothServed, afterClose, afterReopen, inBuild });
 
+    /* ── 10g. D-39 P1-2 — THREE READINGS OF ONE POOL, ON ONE SCREEN, AND
+       THEY ARE ONE READING. Plan 05-D39b. This is the pixel half of node
+       row 102b.
+       ==================================================================
+       The audit's measurement, at 1920, three Cats declared, this panel
+       open — all three visible at the same instant:
+
+         #pool-cats  (topbar,     y=197) 3 of 3 spoken for · 0 left to spend
+         .fg-res     (state card, y=939) 3 of 3 spoken for · 0 left to spend
+         #strip      (sidebar)          Action points: 0 of 3 spent so far.
+
+       Row 102b asserts the three agree; it cannot assert they are on
+       screen TOGETHER, and being on screen together is the whole of the
+       finding — a student who has to scroll between two readings never
+       compares them. So this cell reads each one's box and requires all
+       three to have a real rectangle at the same moment, and THEN
+       requires the figures and the words to match.
+
+       THE DECLARATION IS UNDONE AGAIN before cell 11 runs, by pressing
+       the same button a second time, which is the re-press-to-undo path
+       [S07.5] already owns. Cell 11 reads an IDLE team reading as its
+       baseline and a declaration left standing here would move it. */
+    /* THE PANEL IS OPENED IF IT IS NOT ALREADY, rather than pressed
+       blind. 10f above ends by pressing the toggle after a trip through
+       the build view, and whether that press opens or closes depends on
+       what the trip left behind — a first draft pressed it unconditionally
+       and read three 0x0 boxes off a panel it had just shut. */
+    await pg.evaluate(() => {
+      if (document.querySelector('#app').dataset.proj !== '1') {
+        document.querySelector('#proj-toggle').click();
+      }
+    });
+    await pg.waitForTimeout(300);
+    const d39Pool = () => pg.evaluate(() => {
+      const box = (n) => {
+        if (!n) { return null; }
+        const r = n.getBoundingClientRect();
+        return {
+          w: Math.round(r.width), h: Math.round(r.height), y: Math.round(r.top),
+          inView: r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight + 1
+        };
+      };
+      const flat = (n) => n ? n.textContent.replace(/\s+/g, ' ').trim() : null;
+      const bar = document.querySelector('#pool-cats');
+      const res = document.querySelector('#state-cats .fg-res');
+      const spoke = res ? res.querySelector('.fg-res-spoke') : null;
+      const left = res ? res.querySelector('.fg-res-left') : null;
+      const stripLine = Array.from(
+        document.querySelectorAll('#strip [data-dc-live="cats"] .dc-live-read')
+      ).filter((n) => /spoken for/.test(n.textContent))[0] || null;
+      return {
+        barSays: flat(bar), cardSays: flat(res), stripSays: flat(stripLine),
+        spoke: spoke ? spoke.textContent : '', left: left ? left.textContent : '',
+        boxes: { bar: box(bar), card: box(res), strip: box(stripLine) }
+      };
+    });
+    const poolIdle = await d39Pool();
+    await pg.click('#decl-cats [data-fg="act"][data-fg-by="c1"]:not([disabled])');
+    await pg.waitForTimeout(300);
+    const poolOne = await d39Pool();
+    await pg.click('#decl-cats [data-fg="act"][data-fg-by="c2"]:not([disabled])');
+    await pg.waitForTimeout(300);
+    const poolTwo = await d39Pool();
+    const poolAgrees = (p) => p.spoke !== '' && p.left !== ''
+      && p.barSays !== null && p.stripSays !== null
+      && p.barSays.indexOf(p.spoke) !== -1 && p.barSays.indexOf(p.left) !== -1
+      && p.stripSays.indexOf(p.spoke) !== -1 && p.stripSays.indexOf(p.left) !== -1;
+    const poolAllBoxed = (p) => ['bar', 'card', 'strip']
+      .every((k) => p.boxes[k] !== null && p.boxes[k].w > 0 && p.boxes[k].h > 0);
+    // put the board back the way cell 11 expects to find it
+    await pg.click('#decl-cats [data-fg="act"][data-fg-by="c2"][aria-pressed="true"]');
+    await pg.waitForTimeout(250);
+    await pg.click('#decl-cats [data-fg="act"][data-fg-by="c1"][aria-pressed="true"]');
+    await pg.waitForTimeout(250);
+    const poolBack = await d39Pool();
+    /* AND THE PANEL GOES BACK THE WAY 10f LEFT IT, which is CLOSED. This is
+       not tidiness either: with it open, .fg-band takes 374px of
+       padding-right ([C15]), the lane loses ~330px of width and the picker
+       rows wrap — and cell 6b's 24-a-side last row went from 40px to 77px
+       and 12px past the fold. Measured, both engines, at 1366 only. A cell
+       that changes a layout-wide flag owns putting it back. */
+    await pg.evaluate(() => {
+      if (document.querySelector('#app').dataset.proj === '1') {
+        document.querySelector('#proj-toggle').click();
+      }
+    });
+    await pg.waitForTimeout(250);
+    const poolPanelBack = await pg.evaluate(() =>
+      document.querySelector('#app').dataset.proj || '');
+    note(ch, size.name, 'D-39 P1-2 the three readings, one declared',
+      `${poolOne.barSays} || ${poolOne.cardSays} || ${poolOne.stripSays}`);
+    note(ch, size.name, 'D-39 P1-2 all three boxed at once / figure moved',
+      `${poolAllBoxed(poolOne)} / ${poolIdle.spoke} -> ${poolOne.spoke} -> ${poolTwo.spoke}`);
+    note(ch, size.name, 'D-39 P1-2 the three boxes, bar / card / strip',
+      ['bar', 'card', 'strip'].map((k) => {
+        const b = poolOne.boxes[k];
+        return b ? `${k}:${b.w}x${b.h}@${b.y}${b.inView ? '' : ' (off)'}` : `${k}:none`;
+      }).join(' '));
+    ok(`${tag}: 10g. D-39 P1-2 — THE ACTION-POINT POOL IS ONE READING ON THREE SURFACES AND ALL THREE HAVE A REAL BOX AT THE SAME MOMENT. The audit photographed the topbar and the state card printing "3 of 3 spoken for · 0 left to spend" byte-identically 742px apart while the sidebar 400px away printed "0 of 3 spent so far" about the same pool — two words, two numbers, one glance, on the tab whose instructor line is "watch the pool". Both figures were true of different questions, which is exactly why a student cannot read them side by side. All three go through [S06.7]'s fgPoolWords now, and this cell asserts what node row 102b cannot: that the three are SIMULTANEOUSLY VISIBLE, so the comparison a student makes is a comparison this gate has made. Read at three moments — idle, one declared, two declared — because a surface that agrees at rest and freezes while the others move is the shape D-33 P1-1 was written about; and the declarations are undone again by re-pressing, so cell 11 finds the board it expects`,
+      poolAgrees(poolIdle) && poolAgrees(poolOne) && poolAgrees(poolTwo)
+      && poolAllBoxed(poolIdle) && poolAllBoxed(poolOne) && poolAllBoxed(poolTwo)
+      && poolIdle.spoke !== poolOne.spoke && poolOne.spoke !== poolTwo.spoke
+      && poolBack.spoke === poolIdle.spoke
+      && poolPanelBack === ''
+      && poolOne.stripSays.indexOf('spent so far') === -1,
+      { poolIdle, poolOne, poolTwo, poolBack, poolPanelBack });
+
     // ── 11. A FULL ROUND BY REAL CLICKS. One untargeted declaration, one target-directed
     // one, each in a SINGLE press; the team resources read before and after each; Advance;
     // the round and the ledger read back.

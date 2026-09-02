@@ -21216,6 +21216,62 @@ App.render = (function () {
     };
   }
 
+  /* ==================================================================
+     D-39 P1-2 — THE THIRD SITE. Plan 05-D39b.
+     ==================================================================
+     D-33 P1-1 reconciled TWO readings of one pool by making them share a
+     SENTENCE. The audit found a third, one region over, disagreeing:
+
+       #pool-cats  (topbar,     y=197) 3 of 3 spoken for · 0 left to spend
+       .fg-res     (state card, y=939) 3 of 3 spoken for · 0 left to spend
+       #strip      (sidebar,    y=???) Action points: 0 of 3 spent so far.
+
+     — all three on one screen, at 1920, with three Cats declared. The
+     first two byte-identical 742px apart; the third giving a DIFFERENT
+     FIGURE for the same pool in the vocabulary D-27 built the round loop
+     to distinguish. Neither figure was wrong. "Spoken for" is what this
+     round's standing declarations have claimed and "spent" is what the
+     fight has taken out of the build so far, and on round one those are
+     3 and 0 — but a student cannot tell two words apart when both are on
+     screen against one pool and only one of them moves as they click.
+
+     THE FIX IS D-33b's, TAKEN AGAIN RATHER THAN INVENTED: one source
+     function, all three sites, and a row that asserts the three
+     renderings equal. What is shared is the SENTENCE and not the input,
+     which is the distinction D-33b's own banner draws twenty lines up —
+     "computed from the same slices, so they cannot disagree" was a claim
+     about the INPUTS, and two arithmetics over one slice is exactly how
+     the first two came apart.
+
+     THIS FUNCTION RE-WALKS AND fgFillPool DOES NOT, and that difference
+     is written down rather than left as an inconsistency. fgFillPool is
+     called from INSIDE fightBar's per-side loop and is handed the `spoke`
+     map that loop already built, because the same walk has to feed the
+     reading a student watches AND the arithmetic that disables a button —
+     D-33b's decision, unchanged. [S06.9] paints on its own hook and has
+     no such loop to sit inside, so it asks for the reading by name. Same
+     function, same slice, same frame; and the equality is ASSERTED rather
+     than assumed, in the node suite and in the browser gate, because an
+     assumption is precisely what the last two passes each found untrue.
+
+     WHAT WAS GIVEN UP, SAID OUT LOUD — the same sentence D-33b wrote when
+     it took this reading off the topbar, now arriving at the last
+     surface that carried it. apSpent's "0 of 3 spent so far" is no longer
+     rendered anywhere. apSpent ITSELF IS UNTOUCHED: it is still in
+     [S02], still floored, still exercised by the suite, and still the
+     answer to "what has this fight taken out of the build" for whatever
+     surface asks it next. What is removed is a second WORD for one pool
+     standing beside the first, which is D-39 P1-2's own third
+     instruction: "One pool, one word." */
+  function fgPoolReading(state, side) {
+    var live = state.fight && state.fight[side];
+    var build = state.build && state.build[side];
+    if (!live || !build || !Array.isArray(build.actions)) { return null; }
+    var spoke = App.model.spokenForPools(build.actions, state.fight.decl,
+      side, state.build.tokens);
+    return fgPoolWords(live.ap, App.model.pooledAt(spoke, 'ap'));
+  }
+
   /* D-36 MAKES THE ROW A CONTROL, and the change is three attributes and a tag
      name. The developer: "add the ability to directly click on a resource to
      directly modify the value of that resource in the current round" — a side's
@@ -23773,7 +23829,9 @@ App.render = (function () {
 
       var standing = App.model.aliveCount(state.fight[side]);
       var roster = state.fight[side].units.length;
-      var spent = App.model.apSpent(state.build[side], state.fight[side]);
+      // D-39 P1-2 — the pool's words come from [S06.7]'s one function now.
+      // The banner below this loop's second line has the whole argument.
+      var pool = fgPoolReading(state, side);
       var lines = box.querySelectorAll('.dc-live-read');
       var who = box.querySelector('.dc-live-who');
       if (who) { who.textContent = state.build[side].name; }
@@ -23825,9 +23883,38 @@ App.render = (function () {
 
          apSpent ITSELF IS UNTOUCHED and still floored in the model.
          This is a change to what is displayed and to nothing else. */
+      /* ==============================================================
+         D-39 P1-2 — AND THAT ANSWER DID NOT HOLD. Plan 05-D39b.
+         ==============================================================
+         The paragraph above removed the word "left" from this line so it
+         would stop colliding with the bar's. D-39 measured the result on
+         one screen at 1920, three Cats declared, the sidebar open:
+
+           #pool-cats  Cats · Action points · 3 of 3 spoken for ·
+                                              0 left to spend
+           .fg-res           Action points · 3 of 3 spoken for ·
+                                              0 left to spend
+           .dc-live          Action points: 0 of 3 spent so far.
+
+         The collision moved into the FIGURE. Two words for one pool, two
+         numbers, one glance — and the instructor's line for this tab is
+         "watch the pool". The word was changed and the defect was not.
+
+         SO THE THIRD SITE JOINS THE OTHER TWO, through fgPoolReading,
+         which is fgPoolWords over the one spokenForPools walk. Node row
+         102b and browser cell 10g assert the three renderings EQUAL,
+         which is the property that has now come apart twice and is the
+         only thing that stops it a third time.
+
+         What is given up is apSpent's last rendered site, and
+         fgPoolReading's own banner says so at length. The derivation is
+         untouched. */
       if (lines[1]) {
         var tail = lines[1].querySelector('.dc-tail');
-        if (tail) { tail.textContent = ': ' + spent + ' of ' + state.build[side].ap + ' spent so far.'; }
+        if (tail) {
+          tail.textContent = (pool === null) ? ''
+            : ': ' + pool.spoke + ', ' + pool.left + '.';
+        }
       }
       if (lines[2]) {
         // THE THIRD ARGUMENT, PASSED. This is the whole of D-22's mechanical
