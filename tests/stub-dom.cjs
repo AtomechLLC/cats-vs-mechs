@@ -115,7 +115,7 @@ function makeStubDom() {
     //
     // It is here because without it the whole of P1-1 is unreachable from
     // this page: [S07.2] finds the channel by id, a missing node makes
-    // sayRefusal a no-op, and every row driving a refused bound would pass
+    // saySaidLine a no-op, and every row driving a refused bound would pass
     // over a dialog that still said nothing. Same three-part rule as every
     // entry above, in BOTH directions.
     'tok-pick-said',

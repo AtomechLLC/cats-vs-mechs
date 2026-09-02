@@ -3756,6 +3756,117 @@ for (const ch of ['chrome', 'msedge']) {
         unmoved: { picker: d39PickerUnmoved, editor: d39EditorUnmoved,
           page: d39PageUnmoved, rules: d39RulesBefore + '->' + d39RulesAfter } });
 
+    /* -- 25e. D-39 P1-6 — "PUT THIS ACTION BACK HOW IT WAS" LEAVES A RECEIPT.
+       The audit's own journey, and it is driven here rather than described: a
+       new action, a name typed into the real field, terms authored through the
+       real pills, and then the press. Measured before this pass:
+
+         before:  name "Pounce EDITED", cost 3 terms, +4 req, +4 xf
+         after:   name "New action",    cost 1 term,   req [],  xf []
+
+       "All twelve terms gone. No confirmation, no preview of what will be lost,
+       and NO SAID LINE AFTERWARDS stating what came back."
+
+       THE BEHAVIOUR IS D-34'S AND STAYS. The snapshot is taken when the action
+       is SELECTED and creating one selects it, so a whole session's authoring
+       is what "the way it was" means, and D-17 is why there is no modal in
+       front of it: the test is whether a mis-press is recoverable, and one
+       Ctrl+Z is the answer. Node row 113 asserts that and asserts the sentence
+       string. WHAT ONLY A BROWSER CAN SAY is that the sentence has a REAL BOX
+       in the sticky foot and takes a ROW OF ITS OWN rather than sharing one
+       with Done — which is exactly what Pass B's first draft of .ae-said got
+       wrong, because a flex item breaks the line on its hypothetical main size
+       and a 100% basis clamped at 60ch is a 480px item that fits beside a
+       button. So the receipt's box is read against the footer's, and the
+       control's box is read beside it. */
+    /* BRACKETED, AND THE FIRST DRAFT OF THIS CELL IS WHY. It opened with
+       App.ops.resetToDefaults() to get a known board, which threw away the
+       token vocabulary cells 25a and 25b had authored — and the round-rules
+       cell 200 lines below then died with a page error rather than reddening,
+       because it went on pressing a type that no longer existed. PROBE DL's
+       rule, arriving from the other end: a cell that changes state owns putting
+       it back, and a cell that assumes a board it did not build owns saying so.
+       So the whole state is recorded and handed back, and nothing here is
+       compared against a name typed into this file. */
+    const d39RcSaved = await pg.evaluate(() => JSON.stringify(App.state.get()));
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    const d39Receipt = async () => pg.evaluate(() => {
+      const said = document.getElementById('act-edit-said');
+      const cancel = document.getElementById('act-edit-cancel');
+      const foot = cancel.parentElement;
+      const sr = said.getBoundingClientRect(), cr = cancel.getBoundingClientRect();
+      const fr = foot.getBoundingClientRect();
+      const dlg = document.getElementById('act-edit');
+      const rec = App.state.get().build[dlg.dataset.edSide].actions
+        .find((a) => a.id === dlg.dataset.edPick);
+      return {
+        hidden: said.hidden,
+        text: said.hidden ? '' : said.textContent,
+        onScreen: sr.width > 0 && sr.height > 0
+          && sr.top >= 0 && sr.bottom <= innerHeight
+          && sr.left >= 0 && sr.right <= innerWidth,
+        // A ROW OF ITS OWN: the sentence's vertical band and the control's do
+        // not overlap. Read as boxes rather than as a wrap count, because a
+        // sentence that shares a line is exactly what a wrap count cannot see.
+        ownRow: sr.height === 0 || (sr.top >= cr.bottom - 1 || sr.bottom <= cr.top + 1),
+        insideFoot: sr.height === 0
+          || (sr.top >= fr.top - 1 && sr.bottom <= fr.bottom + 1),
+        dialogOpen: dlg.open === true,
+        panelShut: document.getElementById('err-panel').hidden === true,
+        name: rec ? rec.name : null,
+        terms: rec ? (rec.cost.length + rec.req.length + rec.xf.length) : null
+      };
+    });
+    const d39RcAtRest = await d39Receipt();
+    const d39RcName = d39RcAtRest.name;
+    // THE INERT PRESS FIRST, because nothing has been edited yet and the two
+    // answers must not be the same sentence.
+    await pg.click('#act-edit-cancel'); await pg.waitForTimeout(250);
+    const d39RcInert = await d39Receipt();
+    // Then a real edit through the real field, committed with a real Enter.
+    await d39TypeInto('#act-edit-name', 'Pounce EDITED', 'Enter');
+    await pg.click('#act-edit-cancel'); await pg.waitForTimeout(300);
+    const d39RcBack = await d39Receipt();
+    // AND Ctrl+Z IS STILL THE RECOVERY, which is what makes D-17's ruling
+    // apply to this press rather than merely be convenient. The keyboard is
+    // taken off the field first, because the undo shortcut declines while a
+    // free-text surface holds it.
+    await pg.click('#act-edit-side-cats'); await pg.waitForTimeout(150);
+    await pg.keyboard.press('Control+z'); await pg.waitForTimeout(300);
+    const d39RcUndone = await d39Receipt();
+    // And the line LEAVES when the student goes back into a field.
+    await pg.click('#act-edit-name'); await pg.waitForTimeout(200);
+    const d39RcDropped = await d39Receipt();
+    await pg.evaluate((saved) => {
+      const d = document.getElementById('act-edit');
+      if (d && d.open) { d.close(); }
+      App.state.restore(saved);
+      App.state.invalidate({ structural: true });
+      if (App.render.flush) App.render.flush();
+    }, d39RcSaved);
+    await pg.waitForTimeout(250);
+    const d39RcPutBack = await pg.evaluate(() => JSON.stringify(App.state.get()));
+    note(ch, size.name, 'D-39 P1-6 the receipt', d39RcBack.text);
+    ok(`${tag}: 25e. D-39 P1-6 — THE CANCEL STEP LEAVES A RECEIPT, IN ITS OWN ROW OF THE STICKY FOOT, AND IT SAYS SOMETHING DIFFERENT WHEN THERE WAS NOTHING TO PUT BACK. The audit authored twelve terms through this dialog, pressed the 278px control between Proposal and Done, and watched all twelve go with "no confirmation, no preview of what will be lost, and no said line afterwards stating what came back". The behaviour is D-34's recorded semantic and is correct — the snapshot is taken when an action is SELECTED and creating one selects it — so the fix is a RECEIPT and not a gate: D-17's test is whether a mis-press is recoverable, one Ctrl+Z is the answer, and that is driven here rather than asserted. WHAT ONLY A BROWSER CAN SAY is the half node row 113 cannot reach: the sentence has a real box, it is wholly on screen, it sits INSIDE the sticky foot, and it takes A ROW OF ITS OWN rather than sharing one with Done. That last clause is not a style preference — Pass B's first draft of this line carried the 60ch measure every said line in the document has, and a flex item breaks on its hypothetical main size, so a 100% basis clamped at 60ch is a 480px item that fits comfortably beside a button and the sentence silently stopped being a line. AND THE TWO ANSWERS ARE COMPARED TO EACH OTHER: a press with nothing to put back must not print the sentence a press that put twelve terms back prints, because "nothing happened" and "everything came back" are the same picture from a chair. Then the line LEAVES on the next focusin, which is dropLoadSaid's rule — a sentence about a press stops being true once the student moves past it. THE WHOLE STATE IS RECORDED AND HANDED BACK and the handing back is read here too, because the first draft of this cell called resetToDefaults to get a known board and killed a cell 200 lines below it with a page error instead of a red — the round-rules block went on pressing a type this cell had just thrown away. Nothing here is compared against a name typed into this file either: the action's own name is read at rest and asserted to come back`,
+      d39RcAtRest.hidden === true && d39RcAtRest.text === ''
+      && d39RcInert.hidden === false && d39RcInert.onScreen === true
+      && d39RcInert.ownRow === true && d39RcInert.insideFoot === true
+      && d39RcInert.text.indexOf('Nothing was put back') !== -1
+      && d39RcBack.hidden === false && d39RcBack.onScreen === true
+      && d39RcBack.ownRow === true && d39RcBack.insideFoot === true
+      && d39RcBack.text.indexOf('back to the name and the') !== -1
+      && d39RcBack.text.indexOf('Ctrl+Z') !== -1
+      && d39RcBack.text !== d39RcInert.text
+      && typeof d39RcName === 'string' && d39RcName !== ''
+      && d39RcName !== 'Pounce EDITED'
+      && d39RcBack.name === d39RcName
+      && d39RcUndone.name === 'Pounce EDITED'
+      && d39RcDropped.hidden === true && d39RcDropped.text === ''
+      && d39RcBack.dialogOpen === true && d39RcBack.panelShut === true
+      && d39RcPutBack === d39RcSaved,
+      { d39RcAtRest, d39RcInert, d39RcBack, d39RcUndone, d39RcDropped,
+        putBack: d39RcPutBack === d39RcSaved });
+
     /* -- 25b. THE ROUND-RULES BLOCK, AUTHORED FROM END TO END THROUGH THE
        CONTROLS D-35c GAVE IT, AND MEASURED FOR THE FIVE THINGS A PICTURE
        CAUGHT AND THIS CELL DID NOT.

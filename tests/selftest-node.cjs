@@ -14819,11 +14819,29 @@ const cxFilled = [aeRecordOf('slash').cost.length, aeRecordOf('slash').req.lengt
 
 const cxDepthBefore = A.state.undoDepth();
 const cxCommitsBefore = commits();
+/* D-39 P1-6's receipt, read off the surface's own said line at the two moments
+   this drive already reaches. THE LINE IS READ BEFORE THE PRESS TOO, because a
+   channel that ships holding a sentence is a channel Layer C harvests on every
+   page and every floor above it — Pass B's whole reason for shipping the four
+   hidden and EMPTY — and a receipt that was already standing would satisfy an
+   after-the-press read by having been there all along. */
+const cxSaidNode = dom.byId['act-edit-said'];
+const cxSaidRead = () => ({
+  hidden: cxSaidNode.hidden === true, text: cxSaidNode.textContent
+});
+const cxSaidBefore = cxSaidRead();
 aePress(cxCancel);
+const cxSaidAfter = cxSaidRead();
 cxWatch();
 const cxBack = JSON.stringify(aeRecordOf('slash'));
 const cxEntries = A.state.undoDepth() - cxDepthBefore;
 const cxCommitted = commits() - cxCommitsBefore;
+// The count the receipt claims, derived HERE off the snapshot the drive is
+// restoring to rather than typed in — a row carrying its own copy of a number
+// the page also computes is a row asserting that this file agrees with itself,
+// which is check 102's rule and 103f's.
+const cxWasRec = JSON.parse(cxWas);
+const cxWasTerms = cxWasRec.cost.length + cxWasRec.req.length + cxWasRec.xf.length;
 
 // 113b's half, taken HERE because the board is in the one state that makes it
 // meaningful — the record already equals the snapshot, so a second press has
@@ -14831,6 +14849,7 @@ const cxCommitted = commits() - cxCommitsBefore;
 const cxInertDepth = A.state.undoDepth();
 const cxInertCommits = commits();
 aePress(cxCancel);
+const cxSaidInert = cxSaidRead();
 cxWatch();
 const cxInertEntries = A.state.undoDepth() - cxInertDepth;
 const cxInertCommitted = commits() - cxInertCommits;
@@ -14863,7 +14882,26 @@ check(
     + 'between. THE STACK IS EMPTIED FIRST because at UNDO_LIMIT a delta of one '
     + 'reads as zero. AND THE MIS-PRESS IS RECOVERABLE: one Ctrl+Z brings every '
     + 'modification back, which is what makes D-17\'s no-confirmation ruling '
-    + 'apply to this press rather than merely be convenient',
+    + 'apply to this press rather than merely be convenient. AND UNDER D-39 '
+    + 'P1-6 THE PRESS LEAVES A RECEIPT, which is the clause this row did not '
+    + 'have and the whole of that finding: the audit authored TWELVE terms '
+    + 'through this same dialog, pressed this same control, watched all twelve '
+    + 'go, and recorded "no confirmation, no preview of what will be lost, and '
+    + 'NO SAID LINE AFTERWARDS stating what came back". The behaviour is D-34\'s '
+    + 'recorded semantic and is correct; the silence was the defect. So the '
+    + 'surface\'s own said line — the channel D-39 P1-1 built and this pass '
+    + 'renamed for what it carries — states WHAT CAME BACK, counted off the '
+    + 'snapshot rather than described, and WHERE THE RECOVERY IS. THE COUNT IS '
+    + 'DERIVED FROM THE SNAPSHOT IN THIS ROW rather than typed here, which is '
+    + 'check 102\'s rule: a row carrying its own copy of a number the page also '
+    + 'computes asserts that this file agrees with itself. THE LINE IS READ '
+    + 'BEFORE THE PRESS AND MUST BE HIDDEN AND EMPTY THERE, because a channel '
+    + 'that ships holding a sentence is one every Layer C floor above it pays '
+    + 'for, and a receipt that was already standing would satisfy an '
+    + 'after-the-press read by having been there the whole time. THERE IS '
+    + 'STILL NO CONFIRMATION IN FRONT OF THE PRESS — D-17 stands, because the '
+    + 'test it sets is whether a mis-press is recoverable and the clause above '
+    + 'is that answer',
   cxRow !== undefined
     && cxWas === cxShipped
     && cxFilled === '4/4/4'
@@ -14873,8 +14911,16 @@ check(
     && cxUndone === cxMade
     && cxSnapAtSelect[0] === 'cats' && cxSnapAtSelect[1] === 'slash'
     && cxSnapAtSelect[2] === cxWas
+    && cxSaidBefore.hidden === true && cxSaidBefore.text === ''
+    && cxSaidAfter.hidden === false
+    && cxSaidAfter.text === 'This action is back to the name and the '
+      + cxWasTerms + ' terms it had when you selected it. One Ctrl+Z takes '
+      + 'that back.'
     && errPanel.hidden === true,
-  'record at selection=' + cxWas
+  'the said line before the press=' + JSON.stringify(cxSaidBefore)
+    + ' | after it=' + JSON.stringify(cxSaidAfter)
+    + ' | terms in the snapshot=' + cxWasTerms
+    + ' | record at selection=' + cxWas
     + ' | shipped=' + cxShipped
     + ' | lists after the edits=' + cxFilled
     + ' | after the cancel=' + cxBack
@@ -14899,13 +14945,25 @@ check(
     + 'control greyed out for a state a student cannot see the shape of teaches '
     + 'them nothing, which is the convention every surface outside the fight '
     + 'declaration grid keeps. A cancel step that disabled itself when clean '
-    + 'would pass the inert clause spotlessly',
+    + 'would pass the inert clause spotlessly. AND THE INERT PRESS SAYS SO, '
+    + 'under D-39 P1-6, WITH ITS OWN SENTENCE AND NOT THE OTHER ONE: "nothing '
+    + 'happened" and "everything came back" are the same picture from a chair, '
+    + 'and a control that answers both the same way teaches a student to stop '
+    + 'reading it. The three clauses above are untouched by it — inert means no '
+    + 'board movement, no commit and no undo entry, and a said line is none of '
+    + 'those three — which is why this is a widening of the row rather than an '
+    + 'exception to it',
   cxInertEntries === 0 && cxInertCommitted === 0
     && cxInertBoard === cxWas
     && cxDisabled.length === 5
     && cxDisabled.every((d) => d === false)
+    && cxSaidInert.hidden === false
+    && cxSaidInert.text === 'This action is already the way it was when you '
+      + 'selected it. Nothing was put back.'
+    && cxSaidInert.text !== cxSaidAfter.text
     && errPanel.hidden === true,
-  'undo entries from the inert press=' + cxInertEntries
+  'the said line after the inert press=' + JSON.stringify(cxSaidInert)
+    + ' | undo entries from the inert press=' + cxInertEntries
     + ' commits=' + cxInertCommitted
     + ' | board after it=' + cxInertBoard
     + ' | disabled at the five moments=' + JSON.stringify(cxDisabled)
@@ -15357,7 +15415,7 @@ const bdWriteObeys = A.state.get().build.cats.units[0].maxHp;
    The three still come from two different places on purpose, and the
    distinction survives the move: the first two are [S05]'s own
    sentences, arriving through refuseLoudly, and the third is the PAGE's,
-   arriving through sayRefusal because nothing has reached an op yet. */
+   arriving through saySaidLine because nothing has reached an op yet. */
 const bdSaidNode = dom.byId['tok-pick-said'];
 function bdRefusal() {
   return bdSaidNode.hidden === false ? String(bdSaidNode.textContent || '') : '';

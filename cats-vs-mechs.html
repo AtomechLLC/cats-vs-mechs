@@ -27528,14 +27528,49 @@ App.interactions = (function () {
       && err.message !== '';
   }
 
-  function sayRefusal(node, words) {
+  /* ==================================================================
+     D-39 P1-6: THE PAIR IS NAMED FOR THE CHANNEL AND NOT FOR ITS FIRST
+     CALLER. Plan 05-D39c.
+     ==================================================================
+     These two were sayRefusal and dropRefusal, and P1-1 was right to write
+     them that way — every caller it had was a refusal. P1-6 gives the
+     action editor's line a second thing to carry, and a function called
+     sayRefusal printing "This action is back to the name and the four
+     terms it had when you selected it." would be a name that lies about
+     what the channel is for.
+
+     WHAT DOES NOT CHANGE IS THE REGISTER. A said line is where a surface
+     says WHAT HAPPENED, factually, after a press it did not take in
+     silence — and it is never where the tool says what a student should
+     think about it. Both kinds are arithmetic: "9 is above 4", "back to
+     the four terms it had". refuseLoudly keeps its own name, because that
+     function is about a refusal specifically and about the line between a
+     refusal and a defect.
+
+     AND THE DROP RULE IS THE SAME FOR BOTH. dropLoadSaid's sentence —
+     "a sentence about a paste stops being true the moment the text it was
+     about changes" — is as true of a receipt as of a refusal: a student
+     who goes back into a field has moved past the press the line is
+     about. So the focusin handlers each surface already has drop this
+     without knowing which of the two they are dropping, which is the whole
+     value of there being one pair.
+
+     THE NAMES ARE saySaidLine AND dropSaidLine AND NOT saySaid / dropSaid,
+     WHICH IS A COLLISION AND NOT A PREFERENCE. [S07] is ONE IIFE — the same
+     fact [S06]'s seventh spelling of a two-element side list turns on — and
+     the share region already owns a zero-argument dropSaid() with nine call
+     sites. A second `function dropSaid` here would be a REDECLARATION of that
+     binding rather than a second function: the two names would be one
+     variable, the share surface's own drop would start taking a node it does
+     not want, and nothing in either gate would have to notice. */
+  function saySaidLine(node, words) {
     if (!node || typeof words !== 'string' || words === '') { return false; }
     node.textContent = words;
     node.hidden = false;
     return true;
   }
 
-  function dropRefusal(node) {
+  function dropSaidLine(node) {
     if (!node) { return; }
     node.textContent = '';
     node.hidden = true;
@@ -27549,7 +27584,7 @@ App.interactions = (function () {
      render, so a caller cannot accidentally continue past a defect. */
   function refuseLoudly(node, err) {
     if (!isRefusal(err)) { throw err; }
-    sayRefusal(node, err.message);
+    saySaidLine(node, err.message);
   }
 
   /* ---- the numeric field (ALLOC-03, D-14 through D-17) ---- */
@@ -27742,7 +27777,7 @@ App.interactions = (function () {
       revertField(el);
       // D-39 P1-1. The sentence is the PAGE's here, because nothing has
       // reached an op yet — commitBound's own note about the same split.
-      if (loud) { sayRefusal(said, parsed.why); }
+      if (loud) { saySaidLine(said, parsed.why); }
       return;
     }
     // The board is the one of the six surfaces whose apply path does NOT
@@ -27753,7 +27788,7 @@ App.interactions = (function () {
     // .pk-note tombstone records. If a later plan gives a board op a real
     // refusal, it wraps it here in the shape the other five already use.
     applyField(el, parsed);
-    dropRefusal(said);
+    dropSaidLine(said);
     el.dataset.was = el.value;
   }
 
@@ -27979,7 +28014,7 @@ App.interactions = (function () {
     // D-39 P1-1 — a refusal about the last thing typed here stops being true
     // the moment the student comes back to type again. dropLoadSaid's rule,
     // stated there in full and applied at all four surfaces.
-    dropRefusal(fieldSaidNode(el));
+    dropSaidLine(fieldSaidNode(el));
     if (typeof el.select === 'function') { el.select(); }
   }
 
@@ -28402,7 +28437,7 @@ App.interactions = (function () {
       if (loud) { refuseLoudly(pickerSaid(), refused); }
       return;
     }
-    dropRefusal(pickerSaid());
+    dropSaidLine(pickerSaid());
     // The baseline moves with the committed text or both of them start lying —
     // the rule showFieldValue states, applied to text.
     el.dataset.was = el.value;
@@ -28476,7 +28511,7 @@ App.interactions = (function () {
       // already the page's own and already in this register; all that
       // changes is the channel it reaches a student through.
       if (loud) {
-        sayRefusal(pickerSaid(),
+        saySaidLine(pickerSaid(),
           'A range is written in whole numbers between 0 and '
           + App.ops.MAX_ALLOC + ', and "' + String(el.value) + '" is not one.');
       }
@@ -28497,7 +28532,7 @@ App.interactions = (function () {
       if (loud) { refuseLoudly(pickerSaid(), refused); }
       return;
     }
-    dropRefusal(pickerSaid());
+    dropSaidLine(pickerSaid());
     // The baseline moves with the committed figure or both of them start
     // lying — showFieldValue's rule, arriving on a third field.
     el.dataset.was = el.value;
@@ -28516,7 +28551,7 @@ App.interactions = (function () {
     el.dataset.was = el.value;
     // D-39 P1-1 — dropLoadSaid's rule, applied here: a refusal about the
     // last thing typed stops being true when the student comes back to type.
-    dropRefusal(pickerSaid());
+    dropSaidLine(pickerSaid());
     var dlg = pickerDialog();
     el.dataset.forTok = (dlg === null) ? '' : pickedTok(dlg);
   }
@@ -29101,7 +29136,7 @@ App.interactions = (function () {
       if (loud) { refuseLoudly(editorSaid(), refused); }
       return;
     }
-    dropRefusal(editorSaid());
+    dropSaidLine(editorSaid());
     // The baseline moves with the committed text or both of them start lying —
     // the rule showFieldValue states, applied to text.
     el.dataset.was = el.value;
@@ -29311,7 +29346,7 @@ App.interactions = (function () {
       revertAmount(el);
       // D-39 P1-1. The sentence is the PAGE's, because nothing has reached an
       // op yet — commitBound's own note about the same split.
-      if (loud) { sayRefusal(editorSaid(), parsed.why); }
+      if (loud) { saySaidLine(editorSaid(), parsed.why); }
       return;
     }
     try {
@@ -29323,7 +29358,7 @@ App.interactions = (function () {
       if (loud) { refuseLoudly(editorSaid(), refused); }
       return;
     }
-    dropRefusal(editorSaid());
+    dropSaidLine(editorSaid());
     // The baseline moves with the COMMITTED figure, which is not always the
     // typed one. Read the banner above.
     showAmountValue(el, side, target);
@@ -29380,6 +29415,87 @@ App.interactions = (function () {
     return false;
   }
 
+  /* ==================================================================
+     D-39 P1-6: THE PRESS LEAVES A RECEIPT. Plan 05-D39c.
+     ==================================================================
+     The audit's journey, all through shipped controls: New action, named it,
+     authored TWELVE terms through the dense editor, opened and closed the
+     Proposal, renamed it and cleared one cost term, pressed the control.
+
+       before:  name "Pounce EDITED", cost [t1x1, shieldx1, hpx1], +4 req, +4 xf
+       after:   name "New action",    cost [apx1],                  req [], xf []
+
+     "All twelve terms gone. No confirmation, no preview of what will be lost,
+     and NO SAID LINE AFTERWARDS stating what came back."
+
+     THE BEHAVIOUR IS CORRECT AND IT IS THE PRESENTATION THAT IS THE DEFECT,
+     which is the audit's own reading and D-34's recorded semantic: the
+     snapshot is taken when the action is SELECTED and creating an action
+     selects it, so a session's whole authoring is what "the way it was" means.
+     THERE IS STILL NO CONFIRMATION IN FRONT OF THIS PRESS. D-17's test is
+     whether a mis-press is recoverable and one Ctrl+Z is the answer; a modal
+     here would be D-17 overruled for a press that is already reversible, which
+     removeAction and dropType both decline for the same reason.
+
+     SO THE FIX IS A RECEIPT AND NOT A GATE, and it goes on the channel
+     [S07.1] already owns for this surface. Two sentences and both are facts:
+     WHAT CAME BACK, counted off the snapshot rather than described, and WHERE
+     THE RECOVERY IS — which is the how-to tab's own sentence about this
+     control moved to the moment it is needed rather than left on a tab a
+     student in the middle of authoring is not reading.
+
+     IT NAMES NO ACTION AND NO TYPE, and that is deliberate rather than terse.
+     The dialog's own list and heading name the action four inches away, and a
+     student's word on this line would be one more place ALLOC-10's exemption
+     channel has to reach for nothing gained.
+
+     THE INERT PRESS GETS ITS OWN SENTENCE, because "nothing happened" and
+     "everything came back" look identical from a chair. Check 113b's clause is
+     untouched by it: inert means no board movement, no commit and no undo
+     entry, and a said line is none of those three.
+
+     THE COMPARISON IS MADE BEFORE THE DISPATCH because afterwards there is
+     nothing left to compare — the op's whole job is to make the two equal. */
+  var AE_BACK_ONE = 'This action is back to the name and the 1 term it had '
+    + 'when you selected it. One Ctrl+Z takes that back.';
+  var AE_BACK_MANY_A = 'This action is back to the name and the ';
+  var AE_BACK_MANY_B = ' terms it had when you selected it. One Ctrl+Z takes '
+    + 'that back.';
+  var AE_BACK_NONE = 'This action is already the way it was when you selected '
+    + 'it. Nothing was put back.';
+
+  // The terms a record carries, counted across the three lists the editor
+  // authors and the op writes. Defensive on every one of them, because a
+  // snapshot is a value that came off the page and [S05]'s own admission rule
+  // for it is field by field.
+  function aeTermCount(rec) {
+    var n = 0;
+    ['cost', 'req', 'xf'].forEach(function (key) {
+      if (Array.isArray(rec[key])) { n += rec[key].length; }
+    });
+    return n;
+  }
+
+  // The record the editor is showing, off the LIVE build. liveTerms one region
+  // down reads the same three lines to answer a narrower question; this is the
+  // whole record, because the receipt is about the whole record and a third
+  // spelling of the walk would be the drift [S06]'s own comments keep refusing.
+  function liveActionRecord(side, actionId) {
+    var found = App.state.get().build[side].actions.find(function (a) {
+      return a.id === actionId;
+    });
+    return (found === undefined) ? null : found;
+  }
+
+  function aeRestoreSaid(live, was) {
+    if (live !== null && JSON.stringify(live) === JSON.stringify(was)) {
+      return AE_BACK_NONE;
+    }
+    var n = aeTermCount(was);
+    if (n === 1) { return AE_BACK_ONE; }
+    return AE_BACK_MANY_A + n + AE_BACK_MANY_B;
+  }
+
   function restoreSelected(dlg) {
     var side = pickedSide(dlg);
     var id = pickedAct(dlg);
@@ -29388,12 +29504,18 @@ App.interactions = (function () {
     // surface knowing exactly what it is showing, and blanking the memo then
     // would buy a full repaint for nothing.
     if (endPendingEdit()) { App.render.editorStale(); }
+    // D-39 P1-6. Read BEFORE the dispatch, which is the only moment the two
+    // can still differ, and read off the LIVE record rather than off the
+    // fields — the fields are what a half-made edit has just been taken out
+    // of, and the receipt is about the record.
+    var said = aeRestoreSaid(liveActionRecord(side, id), snapRec);
     // Dispatch, and page work only after dispatch has returned — the ordering
     // makeAction and dropAction both keep, for their stated reason: an op that
     // refuses throws out of here into [S08]'s boundary and the page work never
     // runs, which is what keeps this surface from acting on a change state
     // declined to make.
     App.ops.dispatch('restoreAction', { side: side, actionId: id, was: snapRec });
+    saySaidLine(editorSaid(), said);
     var btn = (typeof document === 'undefined')
       ? null : document.getElementById('act-edit-cancel');
     if (btn && typeof btn.focus === 'function') { btn.focus(); }
@@ -29468,7 +29590,7 @@ App.interactions = (function () {
     // D-39 P1-1 — dropLoadSaid's rule, taken above the two arms because it is
     // the same job for both fields: a refusal about the last thing typed here
     // stops being true the moment the student comes back to type again.
-    dropRefusal(editorSaid());
+    dropSaidLine(editorSaid());
     if (isAmountField(el)) { rememberAmountTarget(el); return; }
     el.dataset.was = el.value;
     var dlg = editorDialog();
@@ -32712,7 +32834,7 @@ App.interactions = (function () {
     if (!parsed.ok) {
       revertRuleAmount(el);
       // D-39 P1-1. The sentence is the PAGE's — nothing has reached an op.
-      if (loud) { sayRefusal(rulesSaid(), parsed.why); }
+      if (loud) { saySaidLine(rulesSaid(), parsed.why); }
       return;
     }
     try {
@@ -32730,7 +32852,7 @@ App.interactions = (function () {
       if (loud) { refuseLoudly(rulesSaid(), refused); }
       return;
     }
-    dropRefusal(rulesSaid());
+    dropSaidLine(rulesSaid());
     // The baseline moves with the committed text or both of them start lying.
     el.dataset.was = el.value;
   }
@@ -32793,7 +32915,7 @@ App.interactions = (function () {
     if (!isRuleAmount(el)) { return; }
     el.dataset.was = el.value;
     // D-39 P1-1 — dropLoadSaid's rule, at the fourth surface.
-    dropRefusal(rulesSaid());
+    dropSaidLine(rulesSaid());
   }
 
   function onRulesFocusOut(e) {
