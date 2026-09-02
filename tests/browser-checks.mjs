@@ -573,6 +573,107 @@ for (const ch of ['chrome', 'msedge']) {
         paste: { typed: d39ZPasteTyped, undone: d39ZPasteUndone },
         putBack: d39ZPutBack === d39ZSaved });
 
+    /* -- 27f. D-39 P3-1 -- THE TICK IS IN THE ACCESSIBLE NAME OF THE
+       SELECTED CONTROL AND OF NO OTHER, AND THAT IS THE SHIPPED
+       BEHAVIOUR RATHER THAN A FIX. Plan 05-D39d.
+       ==================================================================
+       D-33 P3-7 raised this, D-39 P3-1 re-raised it and widened it -- "the
+       hidden tick is still in every unselected control's accessible name,
+       and now on three more components" -- and its prescription is to
+       reserve the width with padding and write the character only onto the
+       selected control.
+
+       BOTH READINGS ARE OF textContent, AND textContent IS NOT THE
+       ACCESSIBLE NAME. A node that is not rendered is excluded from the
+       name computation, and visibility:hidden is not rendered. So the
+       character is in the string a script reads and is not in the string a
+       screen reader speaks, and the two audits measured the first while
+       writing about the second.
+
+       MEASURED WITH THE INSTRUMENT THAT SETTLES IT -- Chrome's own
+       accessibility tree, through CDP, which is the tree the platform hands
+       an assistive technology rather than anything this file computes:
+
+         #view-build   (selected)   textContent "The board\u2713"
+                                    ACCESSIBLE NAME "The board \u2713"
+         #view-fight   (unselected) textContent "The fight\u2713"
+                                    ACCESSIBLE NAME "The fight"
+         .rr-pill--on               textContent "Cats\u2713"
+                                    ACCESSIBLE NAME "Cats \u2713"
+         .rr-pill (not --on)        textContent "Mechs\u2713"
+                                    ACCESSIBLE NAME "Mechs"
+
+       WHICH IS EXACTLY WHAT [C07]'s THREE-TIMES RULE WANTS. The selected
+       control says so in a border, a fill and a tick, and the tick reaches
+       the accessible name as a THIRD channel a screen reader gets for free;
+       the unselected one says none of it. Taking the prescription would
+       have removed the width reservation, put a reflow on every press, and
+       traded a channel that works for one that already did.
+
+       SO THIS CELL EXISTS TO KEEP THE CLAIM FROM BEING RAISED A THIRD TIME
+       FROM A textContent READ. It asserts both halves -- the tick is in the
+       selected name and absent from the unselected one -- on two components
+       that D-39 P3-1 names, and it prints both strings beside each other so
+       a reader can see the distinction rather than take it on trust. CDP is
+       available in both channels here because both are Chromium; a runner
+       that could not open a session would REPORT that rather than pass, so
+       the session is required. */
+    const axName = await (async () => {
+      let cdp = null;
+      try {
+        cdp = await pg.context().newCDPSession(pg);
+        await cdp.send('Accessibility.enable');
+        await cdp.send('DOM.enable');
+      } catch (e) { return null; }
+      const doc = await cdp.send('DOM.getDocument', { depth: -1, pierce: true });
+      return async (sel) => {
+        const found = await cdp.send('DOM.querySelector',
+          { nodeId: doc.root.nodeId, selector: sel });
+        if (!found.nodeId) { return null; }
+        const tree = await cdp.send('Accessibility.getPartialAXTree',
+          { nodeId: found.nodeId, fetchRelatives: false });
+        const named = tree.nodes.find((n) => n.name);
+        return named ? named.name.value : null;
+      };
+    })();
+    const TICK = '\u2713';
+    const axPairs = [];
+    if (axName) {
+      for (const sel of ['#view-build', '#view-fight',
+        '.rr-pill--on', '.rr-pill:not(.rr-pill--on)']) {
+        axPairs.push({
+          sel,
+          text: await pg.evaluate((q) => {
+            const n = document.querySelector(q);
+            return n ? n.textContent : null;
+          }, sel),
+          name: await axName(sel)
+        });
+      }
+    }
+    /* THE TWO GROUPS ARE NAMED AND NOT MATCHED, and a first draft is why:
+       it split them with indexOf('--on'), and the UNSELECTED pill's own
+       selector is `.rr-pill:not(.rr-pill--on)` — which contains that
+       substring. Three selected, one unselected, and the cell reddened on
+       a board that was correct. A substring test over a selector is a
+       parser written by accident. */
+    const AX_SELECTED = ['#view-build', '.rr-pill--on'];
+    const axOn = axPairs.filter((r) => AX_SELECTED.indexOf(r.sel) !== -1);
+    const axOff = axPairs.filter((r) => AX_SELECTED.indexOf(r.sel) === -1);
+    note(ch, size.name, 'D-39 P3-1 textContent vs the ACCESSIBLE NAME, selected',
+      axOn.map((r) => `${r.sel} ${JSON.stringify(r.text)} -> ${JSON.stringify(r.name)}`)
+        .join(' | '));
+    note(ch, size.name, 'D-39 P3-1 the same pair, UNSELECTED',
+      axOff.map((r) => `${r.sel} ${JSON.stringify(r.text)} -> ${JSON.stringify(r.name)}`)
+        .join(' | '));
+    ok(`${tag}: 27f. D-39 P3-1 -- THE TICK IS IN THE ACCESSIBLE NAME OF THE SELECTED CONTROL AND OF NO OTHER, AND THAT IS THE SHIPPED BEHAVIOUR RATHER THAN A FIX. D-33 P3-7 raised it and D-39 P3-1 re-raised it and widened it to three more components: "the hidden tick is still in every unselected control's accessible name". BOTH READINGS ARE OF textContent, AND textContent IS NOT THE ACCESSIBLE NAME -- a node that is not rendered is excluded from the name computation and visibility:hidden is not rendered, so the character is in the string a script reads and not in the string a screen reader speaks. Measured here with the instrument that settles it, Chrome's own accessibility tree through CDP, which is the tree the platform hands an assistive technology rather than anything this file computes: the SELECTED view button is named "The board tick" and the unselected one "The fight"; the selected round-rules pill is named "Cats tick" and the unselected one "Mechs". Which is exactly what [C07]'s three-times rule wants -- a border, a fill and a tick, with the tick reaching the accessible name as a third channel a screen reader gets for free. Taking the audit's prescription would have removed the width reservation the hidden span provides, put a reflow on every press, and traded a channel that works for one that already did. THIS CELL EXISTS SO THE CLAIM CANNOT BE RAISED A THIRD TIME FROM A textContent READ, and it prints both strings beside each other so a reader sees the distinction instead of taking it on trust`,
+      axName !== null && axPairs.length === 4
+      && axOn.length === 2 && axOff.length === 2
+      && axOn.every((r) => typeof r.name === 'string' && r.name.indexOf(TICK) !== -1)
+      && axOff.every((r) => typeof r.name === 'string' && r.name.indexOf(TICK) === -1)
+      && axPairs.every((r) => typeof r.text === 'string' && r.text.indexOf(TICK) !== -1),
+      axPairs);
+
     /* ── 27c. D-38's SECOND DEFECT, THE REAL ONE: A CLOSED <dialog> WAS ON THE PAGE. ──────
        ==================================================================================
        THIS IS THE CELL THE DEVELOPER'S SCREENSHOT ASKED FOR, and it is not the one 27b
