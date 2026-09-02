@@ -921,6 +921,14 @@ function makeStubDom() {
     // this builder is the whole of that boundary, and check 103 reads the
     // attribute back off the page it drives.
     'views', 'view-build', 'view-fight',
+    // plan 05-D38 - D-38's third view and the region it reaches. THREE ids for
+    // a whole tab, because the six cards inside #howto are plain <div>s under
+    // one heading and none of them is ever queried for. #howto's own words are
+    // built below, WITH THEIR TEXT, which is the decision the shell comment on
+    // that region carries in full: static markup is empty on this hand-made
+    // page, and a tab of prose about a fight that Layer C never reads is the
+    // wave-1 lesson waiting to happen.
+    'view-howto', 'howto', 'howto-head',
     // plan 05-D28 - D-28's projection toggle. ONE id and no more, and the
     // reason there is not a second is the decision the shell comment carries in
     // full: the sidebar this control opens IS #strip, the node that already
@@ -1282,8 +1290,15 @@ function makeStubDom() {
   // attribute rather than through a typo.
   views.setAttribute('aria-label', 'Which screen, and the projection');
   app.appendChild(views);
+  // AMENDED AGAIN BY PLAN 05-D38, WHICH ADDED THE THIRD VIEW. The order here is
+  // the shell's order and that matters to more than the eye: [C15]'s P3-9
+  // paragraph is an argument about which controls a cursor travels to, and it
+  // is an argument about the LAST control in the row. A stub that built the
+  // three in a different order would be a page every position claim reads the
+  // wrong answer off.
   [['view-build', 'build', 'vw-btn vw-on', 'true'],
-    ['view-fight', 'fight', 'vw-btn', 'false']].forEach(([id, vw, cls, pressed]) => {
+    ['view-fight', 'fight', 'vw-btn', 'false'],
+    ['view-howto', 'howto', 'vw-btn', 'false']].forEach(([id, vw, cls, pressed]) => {
     const b = idNode(id, 'button');
     b.className = cls;
     b.type = 'button';
@@ -1811,6 +1826,69 @@ function makeStubDom() {
   rrSaid.className = 'rr-said';
   rrSaid.hidden = true;
   rrFoot.appendChild(rrSaid);
+
+  /* ---- plan 05-D38's how-to tab. It lives INSIDE #app in the shell, after
+     #roundrules, so it is built here in that order for the reason the round
+     rules above are: #app's child order here is the appendChild order.
+
+     IT IS NOT A <dialog> and takes no DIALOG_ROOTS entry.
+
+     THIS IS THE ONE REGION ON THIS PAGE WHOSE STATIC TEXT IS NOT EMPTY, AND
+     THAT IS A DELIBERATE EXCEPTION TO A RULE THIS FILE STATES FOUR TIMES.
+     DIALOG_FLOOR's note, SHARE_FLOOR's note and the picker's title all say the
+     same thing: "this page is a hand-made stand-in rather than a parser, so
+     static text is empty here", and Layer A reads those words in the document
+     instead. That answer is right for a title and a legend. It is WRONG for a
+     tab that is nothing BUT prose, and prose about a FIGHT — which is exactly
+     where a comparative word writes itself. Layer A's list is eighteen words;
+     the rendered list is forty-eight. Leaving this region to Layer A alone
+     would put the artifact's largest single block of prose behind its smallest
+     word list, and the wave-1 lesson is that a surface the walk never reaches
+     reports clean forever.
+
+     SO THE WORDS ARE EXTRACTED FROM THE SHELL RATHER THAN RE-TYPED HERE, and
+     the alternative was measured before it was rejected: twenty paragraphs
+     hand-copied into this builder is twenty strings that go stale silently the
+     first time somebody edits one of them in the artifact, and a scanner
+     reading last week's prose is a scanner reading nothing. The extraction is
+     ONE region, by its own markers, for THREE tag names, and it is deliberately
+     not a parser for anything else — it fails LOUD if the slice comes back
+     empty, because a region that harvested nothing is the failure this whole
+     exception exists to prevent.
+
+     ONE LEAF PER STRING, WHICH IS WHAT THE WALK READS. The shell carries no
+     inline element inside any paragraph in this region ([C18] states the rule
+     and check 126 counts it), so every string here is one leaf in both pages. ---- */
+  const howto = idNode('howto', 'section');
+  howto.className = 'ht';
+  howto.setAttribute('aria-labelledby', 'howto-head');
+  app.appendChild(howto);
+  const htAt = html.indexOf('<section class="ht" id="howto"');
+  const htSlice = htAt === -1 ? '' : html.slice(htAt, html.indexOf('</section>', htAt));
+  const htStrings = [];
+  const htRe = /<(h2|h3|p|div)\b([^>]*)>([^<]*)<\/\1>/g;
+  let htM;
+  while ((htM = htRe.exec(htSlice)) !== null) {
+    const text = htM[3]
+      .replace(/&amp;/g, '&').replace(/&mdash;/g, '—')
+      .replace(/&lt;/g, '<').replace(/&gt;/g, '>').replace(/&#39;/g, "'");
+    if (text.trim() === '') { continue; }
+    htStrings.push({ tag: htM[1], attrs: htM[2], text: text });
+  }
+  if (htStrings.length < 20) {
+    fail('the how-to tab\'s words could not be read out of the shell: '
+      + htStrings.length + ' string(s) found. Check 126 harvests this region,'
+      + '\n       and a region that harvests nothing reports clean forever.');
+  }
+  htStrings.forEach((item) => {
+    const isHead = item.attrs.indexOf('id="howto-head"') !== -1;
+    const node = isHead ? idNode('howto-head', 'h2') : createElement(item.tag);
+    node.textContent = item.text;
+    howto.appendChild(node);
+  });
+  if (!byId['howto-head']) {
+    fail('the how-to tab\'s heading id was not found in the shell slice.');
+  }
 
   /* ---- plan 03.1-05's action editor, hand-made from the static markup ------
      Exactly the three members beyond a plain element the picker above has, and
@@ -5891,9 +5969,94 @@ check(
     + 'NO INERTNESS: all twelve second presses land here, and before soleDialog() '
     + 'every one of them left two dialogs open. Driven through the REAL openers '
     + 'rather than showModal(), so a dialog whose opener was unregistered opens '
-    + 'nothing and trips the floor instead of passing on nothing',
+    + 'nothing and trips the floor instead of passing on nothing. AND THE '
+    + 'PHOTOGRAPH ITSELF IS NOT THIS ROW\'S DEFECT — check 127 below is. The '
+    + 'second panel the developer saw was a CLOSED dialog sitting in normal flow, '
+    + 'not a second open one, and this row was written before that was found. It '
+    + 'stays because what it asserts is true and was held by nothing: two open '
+    + 'modals were one keyboard route away from being reachable, and are now one '
+    + 'rule away from being impossible',
   soleLanded.length === 12 && soleLanded.every((x) => x === true),
   soleWorst.join(' | ')
+);
+
+/* 127. D-38's SECOND DEFECT, THE REAL ONE — A CLOSED <dialog> WAS STILL ON THE
+   PAGE, AND IT IS WHAT THE DEVELOPER PHOTOGRAPHED.
+
+   THE FINDING. Measured on the shipped file in real Chrome from file:// (plan
+   05-D38, probe DLG-FLOW), board tab, nothing pressed:
+
+     #tok-picker  display grid  660 x 728  at document y 3067
+     #act-edit    display grid 1040 x 716  at document y 3067
+     #share       display none    0 x 0
+     #reset-ask   display none    0 x 0
+
+   Two of the four dialogs were parked in normal document flow at the foot of
+   every page this artifact has ever drawn, adding 728px of dead height. Open
+   the Actions dialog and scroll down and the token picker's sticky foot —
+   "Emoji" and "Done" — is on screen underneath it, dimmed by that dialog's own
+   76% backdrop. That is the screenshot, and it was reproduced pixel for pixel
+   before the rule below was written.
+
+   THE MECHANISM IS CASCADE ORIGIN, NOT SPECIFICITY. `dialog:not([open])
+   {display:none}` is a USER-AGENT rule, and an author declaration beats a
+   user-agent one at every specificity. D-33 P1-3 gave .pk and .ae
+   `display:grid` for their three-block frame, and the closed state stopped
+   applying to both in that change. [C04] writes the identical trap down about
+   [hidden]; this is that paragraph arriving on the attribute a dialog IS.
+
+   WHY .sh AND .rs WERE CLEAN is the whole reason this row is DERIVED rather
+   than spelled: they were clean by accident, because neither block happened to
+   declare a display. A row naming the two that were broken would go green today
+   and stay green the day the share surface gains a grid. So the class list is
+   read out of the shell's own <dialog> tags and every one of them must carry a
+   guard, whether it needs one yet or not.
+
+   THIS PAGE CANNOT SEE THE DEFECT AND THE ROW SAYS SO RATHER THAN IMPLYING IT.
+   There is no stylesheet here and no layout engine, so "a closed dialog occupies
+   no space" is a claim only a browser can make; cell 27c makes it, in two
+   browsers at two sizes, and this row asserts the RULE that produces it. */
+const dlgTags = [];
+const dlgRe = /<dialog class="([A-Za-z0-9_-]+)"[^>]*id="([A-Za-z0-9_-]+)"/g;
+let dlgM;
+while ((dlgM = dlgRe.exec(html)) !== null) {
+  dlgTags.push({ cls: dlgM[1], id: dlgM[2] });
+}
+const dlgGuardMissing = dlgTags.filter((d) =>
+  !new RegExp('\\.' + d.cls + ':not\\(\\[open\\]\\)').test(html));
+const dlgGuardRule = (html.match(/^[^\r\n]*:not\(\[open\]\)\{display:none\}[^\r\n]*$/m) || [''])[0];
+// Which blocks actually DECLARE a display today, so the record names the two
+// that were broken rather than leaving a reader to work it out.
+const dlgDeclaresDisplay = dlgTags.filter((d) => {
+  const at = html.indexOf('\n  .' + d.cls + '{');
+  if (at === -1) { return false; }
+  return /display:/.test(html.slice(at, html.indexOf('}', at)));
+}).map((d) => d.cls);
+check(
+  '127. D-38 — A CLOSED <dialog> OCCUPIES NO SPACE, AND THIS IS THE RULE THE '
+    + 'DEVELOPER PHOTOGRAPHED THE ABSENCE OF. Measured on the shipped file in '
+    + 'real Chrome from file://, board tab, nothing pressed: #tok-picker was '
+    + 'display:grid at 660x728 and #act-edit at 1040x716, both parked in NORMAL '
+    + 'DOCUMENT FLOW at the foot of the page, 728px of dead height. Open the '
+    + 'Actions dialog, scroll down, and the token picker\'s sticky foot — "Emoji" '
+    + 'and "Done" — is on screen underneath it through that dialog\'s own 76% '
+    + 'backdrop. THE MECHANISM IS CASCADE ORIGIN AND NOT SPECIFICITY: '
+    + 'dialog:not([open]){display:none} is a USER-AGENT rule and an author '
+    + 'declaration beats one at every specificity, so D-33 P1-3\'s three-block '
+    + 'frame switched the closed state off for both dialogs in the change that '
+    + 'gave them their grid. [C04] writes the same trap down about [hidden]. THE '
+    + 'CLASS LIST IS DERIVED FROM THE SHELL\'S OWN <dialog> TAGS and every one '
+    + 'must carry a guard, needed or not — .sh and .rs were clean BY ACCIDENT, '
+    + 'because neither block happened to declare a display, and a row naming '
+    + 'today\'s two offenders would go green the day the share surface gains a '
+    + 'grid. This page has no stylesheet and no layout engine, so it asserts the '
+    + 'RULE; cell 27c asserts the pixels, in two browsers at two sizes',
+  dlgTags.length === 4 && dlgGuardMissing.length === 0
+    && dlgGuardRule.indexOf('display:none') !== -1,
+  'dialogs in the shell: ' + dlgTags.map((d) => '.' + d.cls + '/#' + d.id).join(', ')
+    + ' | declaring a display today: ' + (dlgDeclaresDisplay.join(', ') || 'none')
+    + ' | guard missing for: ' + (dlgGuardMissing.map((d) => '.' + d.cls).join(', ') || 'none')
+    + ' | the rule: ' + JSON.stringify(dlgGuardRule.trim())
 );
 
 // Open, let the frame land, read, close. openDialogs() is a function because
@@ -6273,6 +6436,83 @@ check(
       + ' rendered strings (' + renderedText.length + ' from #app, '
       + dialogText.length + ' from the dialogs)'
     : renderedHits.join(' | ')
+);
+
+/* --- 126. D-38's HOW-TO TAB, HARVESTED UNDER A FLOOR OF ITS OWN --------------
+
+   THE WAVE-1 LESSON, IN THE ONE PLACE IT WOULD COST THE MOST. A surface the
+   walk never reaches reports clean forever, and D-38 has just moved the
+   artifact's LARGEST single block of prose onto a new surface — prose about a
+   FIGHT, which is exactly where "wins", "beats" and "better" write themselves.
+
+   IT IS ALREADY INSIDE #app AND THE ROW STILL EXISTS. Check 48 above scans
+   #howto today, because #howto is a descendant of #app and the walk reads every
+   leaf under it — the #app harvest went from 187 to 219 strings in the commit
+   that added the tab, and every one of those 32 is scanned by the 48-word
+   rendered list. So why a second row: because "it is inside #app" is a fact
+   about the CURRENT child order and not a promise. A tab moved out to a sibling
+   of #app, or hidden behind an ancestor the walk declines to enter, would take
+   thirty-two strings out of the scan and reduce check 48's total by a number
+   nobody is reading. THIS row reads the region by name, under its own floor, so
+   the departure is a red run rather than a smaller number in a log line.
+
+   THE FLOOR IS 24 AGAINST A MEASURED 32, which is DIALOG_FLOOR's arithmetic —
+   comfortably below the total, well above the zero a walk pointed at the wrong
+   node reports. It is a TRIPWIRE FOR THE TAB GOING DARK and not a ratchet on a
+   growing one: a later plan that legitimately takes a card off this tab must
+   not redden a row about something else. Six cards, four to six strings each.
+
+   AND THE LEAF COUNT IS THE CLAUSE THAT CATCHES THE CONTENT MODEL. [C18] states
+   the rule that no paragraph in this region nests an element, and the reason is
+   this walk: a <p> holding a <b> is not a leaf, so its sentence would leave the
+   scan while the emphasised words stayed in it — a hole shaped exactly like a
+   pass. Every string harvested here is compared against the count of <p>, <h2>,
+   <h3> and eyebrow fragments the shell carries, so the two cannot drift. */
+const HOWTO_FLOOR = 24;
+const howtoText = harvestInto(dom.byId['howto'], [], '#howto');
+const howtoHits = verdictHitsIn(howtoText).concat(relationshipHitsIn(howtoText));
+const howtoInApp = (function (node) {
+  let n = node;
+  while (n) { if (n === dom.byId['app']) { return true; } n = n.parentNode; }
+  return false;
+})(dom.byId['howto']);
+const howtoShellAt = html.indexOf('<section class="ht" id="howto"');
+const howtoShellSlice = howtoShellAt === -1
+  ? '' : html.slice(howtoShellAt, html.indexOf('</section>', howtoShellAt));
+const howtoShellLeaves = (howtoShellSlice.match(/<(h2|h3|p|div)\b[^>]*>[^<]+<\/\1>/g) || []).length;
+const howtoNested = /<p\b[^>]*>[^<]*</.test(
+  howtoShellSlice.replace(/<p\b[^>]*>[^<]*<\/p>/g, '')
+);
+console.log('scan: ' + howtoText.length + ' rendered strings read from #howto '
+  + '(Layer C, floor ' + HOWTO_FLOOR + ')');
+check(
+  '126. D-38 — THE HOW-TO TAB IS READ BY LAYER C, UNDER A FLOOR OF ITS OWN, AND '
+    + 'NOT ONE OF ITS WORDS JUDGES A BUILD. D-38 moves the artifact\'s largest '
+    + 'single block of prose onto a new surface, and it is prose about a FIGHT — '
+    + 'the one subject on which a comparative word writes itself. Check 48 above '
+    + 'already scans it, because #howto sits inside #app and the #app harvest '
+    + 'went 187 to 219 in the commit that added the tab; this row exists because '
+    + '"it is inside #app" is a fact about the child order and not a promise, and '
+    + 'a tab moved to a sibling of #app would leave the scan as a smaller number '
+    + 'in a log line nobody reads. So the region is read BY NAME, its containment '
+    + 'is WALKED rather than assumed, and its own leaves are floored — 24 against '
+    + 'a measured 32, DIALOG_FLOOR\'s arithmetic, a tripwire for the tab going '
+    + 'dark rather than a ratchet on a growing one. AND THE LEAF COUNT CATCHES '
+    + 'THE CONTENT MODEL: a paragraph holding an inline element is not a leaf, so '
+    + 'its sentence would leave this walk while the emphasised words stayed in '
+    + 'it. [C18] states that no paragraph here nests an element and this counts '
+    + 'the shell\'s fragments against the harvest to say so',
+  howtoInApp === true
+    && howtoShellSlice.length > 0
+    && howtoText.length > HOWTO_FLOOR
+    && howtoShellLeaves === howtoText.length
+    && howtoNested === false
+    && howtoHits.length === 0,
+  'inside #app=' + howtoInApp
+    + ' | harvested=' + howtoText.length + ' (floor ' + HOWTO_FLOOR + ')'
+    + ' | shell fragments=' + howtoShellLeaves
+    + ' | a paragraph nests an element=' + howtoNested
+    + ' | ' + (howtoHits.length === 0 ? 'clean' : howtoHits.join(' | '))
 );
 
 /* --- 92. LAYER C READS THE PAGE A SECOND TIME, WITH A FIGHT RUNNING ----------
@@ -12111,13 +12351,15 @@ clearPanel();
 const vwRoot = dom.byId['views'];
 const vwBuildBtn = dom.byId['view-build'];
 const vwFightBtn = dom.byId['view-fight'];
+const vwHowtoBtn = dom.byId['view-howto'];
 const vwRefband = dom.byId['refband'];
 
 function vwRead() {
   return {
     view: String(fgApp.dataset.view || ''),
     build: vwBuildBtn.getAttribute('aria-pressed') + ' ' + vwBuildBtn.className,
-    fight: vwFightBtn.getAttribute('aria-pressed') + ' ' + vwFightBtn.className
+    fight: vwFightBtn.getAttribute('aria-pressed') + ' ' + vwFightBtn.className,
+    howto: vwHowtoBtn.getAttribute('aria-pressed') + ' ' + vwHowtoBtn.className
   };
 }
 function vwSaysOn(entry) {
@@ -12132,6 +12374,24 @@ const vwAtRest = vwRead();
 fgPress(vwFightBtn);
 const vwOnFight = vwRead();
 const vwStateMid = JSON.stringify(A.state.get());
+/* TURNED IN THE OPEN BY PLAN 05-D38, AND THE OLD CLAIM IS WRITTEN OUT RATHER
+   THAN EDITED AWAY. This row asserted `vwPrivate === 2` and drove TWO controls,
+   because there were two views. D-38 — "if you want a how-to-tab, do it
+   separately from the simualtor" — makes it three. The recorded RED is the run
+   on the commit that added the third control: this row alone went red, 211 of
+   212, on the count and on nothing else, which is the count doing exactly the
+   job it was written for. It is a FLOOR ON A SWITCH THAT HAS CONTROLS, so it
+   moves with the switch; what it must never become is `>= 1`, which is the
+   spelling that stops noticing a control that shipped out.
+
+   THE THIRD PRESS IS DRIVEN AND NOT ASSUMED, and it goes in the middle: the
+   sequence is fight, how-to, board, so the how-to press is read arriving from
+   one view and leaving to another. A third control appended to the end of a
+   drive that already finished on the board would have been a press whose only
+   witness was itself. */
+fgPress(vwHowtoBtn);
+const vwOnHowto = vwRead();
+const vwStateHowto = JSON.stringify(A.state.get());
 fgPress(vwBuildBtn);
 const vwOnBuild = vwRead();
 const vwStateNow = JSON.stringify(A.state.get());
@@ -12143,32 +12403,133 @@ const vwActsInside = vwRoot.querySelectorAll('[data-act]').length
 const vwPrivate = vwRoot.querySelectorAll('[data-vw]').length;
 check(
   '103. THE SWITCH MOVES THE PAGE AND MOVES NOTHING ELSE. Each control is '
-    + 'pressed in turn and four things are read back: #app\'s data-view, both '
-    + 'controls\' aria-pressed, both controls\' class, and the WHOLE state '
+    + 'pressed in turn and four things are read back: #app\'s data-view, every '
+    + 'control\'s aria-pressed, every control\'s class, and the WHOLE state '
     + 'serialised before and after. The state must be byte-identical across '
-    + 'both presses, and that clause is the row — checks 72 and 73\'s shape, '
+    + 'all three presses, and that clause is the row — checks 72 and 73\'s shape, '
     + 'because a row that read only the attribute would be green over a switch '
     + 'that also wrote into a slice, and a view that lived in state would ride '
-    + 'in a build code and step under undo. Neither control carries a data-act, '
+    + 'in a build code and step under undo. No control carries a data-act, '
     + 'read off the page too: one would be routed into App.ops.dispatch by '
-    + '[S07.1] whatever this region intended. Floored on the two private '
+    + '[S07.1] whatever this region intended. Floored on the private '
     + 'controls being found, because a switch with no controls at all passes '
-    + 'spotlessly',
+    + 'spotlessly. TURNED IN THE OPEN BY D-38, WHICH MADE THE SWITCH THREE '
+    + 'CONTROLS WIDE: the floor read 2 and the drive pressed two, and the '
+    + 'recorded RED is the run on the commit that added the how-to tab — this '
+    + 'row alone, 211 of 212, on the count and on nothing else, which is the '
+    + 'count doing the job it was written for. EXACTLY ONE CONTROL IS ON AT ANY '
+    + 'MOMENT and the other two are off, which the two-view spelling could '
+    + 'state by naming both and this one has to state as a rule: a switch that '
+    + 'lit two tabs at once would have passed the old row\'s shape',
   vwAtRest.view === 'build'
     && vwOnFight.view === 'fight'
-    && vwSaysOn(vwOnFight.fight) && vwSaysOff(vwOnFight.build)
+    && vwSaysOn(vwOnFight.fight)
+    && vwSaysOff(vwOnFight.build) && vwSaysOff(vwOnFight.howto)
+    && vwOnHowto.view === 'howto'
+    && vwSaysOn(vwOnHowto.howto)
+    && vwSaysOff(vwOnHowto.build) && vwSaysOff(vwOnHowto.fight)
     && vwOnBuild.view === 'build'
-    && vwSaysOn(vwOnBuild.build) && vwSaysOff(vwOnBuild.fight)
-    && vwStateWas === vwStateMid && vwStateWas === vwStateNow
-    && vwActsInside === 0 && vwPrivate === 2,
+    && vwSaysOn(vwOnBuild.build)
+    && vwSaysOff(vwOnBuild.fight) && vwSaysOff(vwOnBuild.howto)
+    && vwStateWas === vwStateMid && vwStateWas === vwStateHowto
+    && vwStateWas === vwStateNow
+    && vwActsInside === 0 && vwPrivate === 3,
   'at rest=' + JSON.stringify(vwAtRest)
     + ' | after pressing the fight=' + JSON.stringify(vwOnFight)
+    + ' | after pressing the how-to=' + JSON.stringify(vwOnHowto)
     + ' | after pressing the board=' + JSON.stringify(vwOnBuild)
     + ' | state byte-identical across press one=' + (vwStateWas === vwStateMid)
-    + ' and across press two=' + (vwStateWas === vwStateNow)
+    + ', press two=' + (vwStateWas === vwStateHowto)
+    + ' and press three=' + (vwStateWas === vwStateNow)
     + ' | state length=' + vwStateWas.length
     + ' | data-act under #views=' + vwActsInside
     + ' | data-vw controls=' + vwPrivate
+);
+
+/* 125. D-38's THIRD VIEW — WHAT IT PUTS AWAY, AND WHAT IT CANNOT DO.
+
+   THE STRUCTURE HALF IS WALKED. #howto is a descendant of #app and a SIBLING of
+   #board and #fightbar rather than a child of either, which is what makes it a
+   view and not a panel inside one. Read off the page rather than off the markup
+   comment, because the comment is where the intention lives and the tree is
+   where the behaviour does.
+
+   THE STYLESHEET HALF IS 103b's TECHNIQUE ON A SECOND BLOCK, and it is the half
+   this page structurally cannot see any other way: there is no layout engine
+   here, so "the board goes away on the how-to tab" is a CSS claim and the only
+   thing a gate with no browser can do about it is read the rule by name. [C18]
+   must carry all six rules — the region's own default, the one that shows it,
+   and the four that put the working surfaces and the projection toggle away.
+
+   AND [C15] IS READ FOR BEING UNTOUCHED. Every `#app[data-view="..."]` rule
+   that shipped before this plan is byte-identical after it, and that is a
+   decision rather than laziness: several rows in this file read those rule
+   bodies BY NAME off the stylesheet, and rewriting the pair of them into a
+   tidier `:not()` form would have turned green rows red for a change none of
+   them is about. So the third view states what IT puts away, in its own block.
+   The two rules 103b reads are asserted STILL PRESENT here, from the other end.
+
+   NOTHING IN #howto IS A CONTROL, and that is the clause with teeth. This
+   region is inside #app, so a data-act anywhere in it would be resolved by
+   actTarget() and handed to fire() — the exact mechanism [S07.7]'s round-rules
+   block states about itself — and a data-k would enter the focus-restore space
+   the whole board shares. A tab of prose has no business owning either. Zero
+   buttons, zero data-act, zero data-k, zero of the four private routing words. */
+const htNode = dom.byId['howto'];
+const htUp = vwAncestorsOf(htNode);
+const htInApp = htUp.indexOf(fgApp) !== -1;
+const htInBoard = htUp.indexOf(fgBoard) !== -1;
+const htInBand = htUp.indexOf(dom.byId['fightbar']) !== -1;
+const htCssAt = html.indexOf('[C18] HOW THIS WORKS');
+const htCssText = htCssAt === -1 ? '' : html.slice(htCssAt, html.indexOf('</style>', htCssAt));
+const HT_RULES = [
+  '#howto{display:none}',
+  '#app[data-view="howto"] #howto{',
+  '#app[data-view="howto"] #board{display:none}',
+  '#app[data-view="howto"] .fg-band{display:none}',
+  '#app[data-view="howto"] #roundrules{display:none}',
+  '#app[data-view="howto"] #proj-toggle{display:none}'
+];
+const htRulesMissing = HT_RULES.filter((r) => htCssText.indexOf(r) === -1);
+const htKept = ['#app[data-view="fight"] #strip{display:none}',
+  '#app[data-view="build"] .fg-band{display:none}'].filter((r) => html.indexOf(r) === -1);
+const htControls = htNode.querySelectorAll('[data-act]').length
+  + htNode.querySelectorAll('[data-k]').length
+  + htNode.querySelectorAll('[data-vw]').length
+  + htNode.querySelectorAll('[data-fg]').length
+  + htNode.querySelectorAll('[data-rr]').length
+  + htNode.querySelectorAll('[data-dc]').length;
+const htButtons = htNode.querySelectorAll('button').length;
+check(
+  '125. D-38 — THE HOW-TO TAB IS A VIEW, IT PUTS THE WORKING SURFACES AWAY, AND '
+    + 'IT CANNOT PRESS ANYTHING. The structure is WALKED: #howto is inside #app '
+    + 'and is a SIBLING of #board and #fightbar rather than a child of either, '
+    + 'which is what makes it a third view instead of a panel inside one. The '
+    + 'stylesheet half is 103b\'s technique on a second block, and it is the half '
+    + 'this page cannot see any other way — there is no layout engine here, so '
+    + '"the board goes away on the how-to tab" is a CSS claim and reading the '
+    + 'rule by name is the whole of what a gate with no browser can do about it. '
+    + 'All six [C18] rules are required: the region\'s own default, the one that '
+    + 'shows it, and the four that put #board, the fight band, the round rules '
+    + 'and the projection toggle away. AND [C15] IS READ FOR BEING UNTOUCHED, '
+    + 'from the other end: two rules that shipped before this plan and that other '
+    + 'rows read BY NAME are asserted still present, because the tidy rewrite of '
+    + 'them into a `:not()` form would have turned green rows red for a change '
+    + 'none of them is about. NOTHING IN HERE IS A CONTROL: this region is inside '
+    + '#app, so a data-act in it would be resolved by actTarget() and handed to '
+    + 'fire(), and a data-k would enter the focus-restore space the whole board '
+    + 'shares. A tab of prose owns neither, and no button at all',
+  htNode !== null && htInApp === true
+    && htInBoard === false && htInBand === false
+    && htCssText.length > 0 && htRulesMissing.length === 0
+    && htKept.length === 0
+    && htControls === 0 && htButtons === 0,
+  'inside #app=' + htInApp + ' inside #board=' + htInBoard
+    + ' inside the band=' + htInBand
+    + ' | [C18] slice=' + htCssText.length + ' chars'
+    + ' | rules missing: ' + (htRulesMissing.join(' , ') || 'none')
+    + ' | [C15] rules that went missing: ' + (htKept.join(' , ') || 'none')
+    + ' | routing attributes inside=' + htControls + ' buttons=' + htButtons
 );
 
 /* 103b. PROJ-05 AND REF-03, READ OFF THE DOM AND OFF THE MARKUP RATHER THAN OFF

@@ -411,6 +411,153 @@ for (const ch of ['chrome', 'msedge']) {
       && clickAllBlocked && clickAlwaysOne && sendAlwaysSecond,
       { clickPairs, sendPairs });
 
+    /* ── 27c. D-38's SECOND DEFECT, THE REAL ONE: A CLOSED <dialog> WAS ON THE PAGE. ──────
+       ==================================================================================
+       THIS IS THE CELL THE DEVELOPER'S SCREENSHOT ASKED FOR, and it is not the one 27b
+       makes. Measured on the shipped file before the rule existed (plan 05-D38, probe
+       DLG-FLOW), board tab, nothing pressed:
+
+         #tok-picker  display grid  660 x 728  at document y 3067
+         #act-edit    display grid 1040 x 716  at document y 3067
+         #share       display none    0 x 0
+         #reset-ask   display none    0 x 0
+
+       Two of the four dialogs sat in NORMAL DOCUMENT FLOW at the foot of every page,
+       adding 728px of dead height. Open the Actions dialog, scroll down, and the token
+       picker's sticky foot — "Emoji" and "Done" — is on screen underneath it through that
+       dialog's own 76% backdrop. That is the photograph. `dialog:not([open])` is a
+       USER-AGENT rule and an author declaration beats one at every specificity, so D-33
+       P1-3's three-block frame switched the closed state off for both in the change that
+       gave them their grid.
+
+       NOTHING WITHOUT A LAYOUT ENGINE COULD SEE IT, which is why it survived twenty-two
+       rendered changes: the node gate has no stylesheet, both Layer scans read TEXT, and
+       the text was correct the whole time. Check 127 asserts the rule; this asserts the
+       pixels, and it drives the photographed sequence rather than a state near it. */
+    const closedBoxes = () => pg.evaluate(() => [...document.querySelectorAll('dialog')].map((d) => {
+      const r = d.getBoundingClientRect();
+      return { id: d.id, open: d.open, display: getComputedStyle(d).display,
+        w: Math.round(r.width), h: Math.round(r.height) };
+    }));
+    await shutAll(); await pg.waitForTimeout(120);
+    await pg.evaluate(() => window.scrollTo(0, 0)); await pg.waitForTimeout(120);
+    const allShut = await closedBoxes();
+    const docShut = await pg.evaluate(() => document.documentElement.scrollHeight);
+    // Each dialog opened in turn: the one open has a box, the other three have none.
+    const oneAtATime = [];
+    for (const [id, sel] of OPENERS) {
+      await shutAll(); await pg.waitForTimeout(80);
+      await pg.click(sel); await pg.waitForTimeout(200);
+      const boxes = await closedBoxes();
+      oneAtATime.push({
+        opened: id,
+        openBox: boxes.filter((d) => d.id === id)[0],
+        othersDrawn: boxes.filter((d) => d.id !== id && (d.h > 0 || d.display !== 'none')).map((d) => d.id)
+      });
+    }
+    // THE PHOTOGRAPHED SEQUENCE: Actions open, scrolled to the foot of the page.
+    await shutAll(); await pg.waitForTimeout(80);
+    await pg.click('[data-k="act"]'); await pg.waitForTimeout(250);
+    await pg.evaluate(() => window.scrollTo(0, document.documentElement.scrollHeight));
+    await pg.waitForTimeout(250);
+    const shot = await pg.evaluate(() => {
+      const seen = (s) => { const n = document.querySelector(s); const r = n.getBoundingClientRect();
+        return { h: Math.round(r.height), onScreen: r.height > 0 && r.bottom > 0 && r.top < window.innerHeight }; };
+      return { done: seen('#tok-pick-done'), emoji: seen('#tok-pick-glyphs-label'),
+        picker: seen('#tok-picker'), actOpen: document.querySelector('#act-edit').open };
+    });
+    await pg.screenshot({ path: path.join(process.env.SHOT_DIR || tmpdir(), `d38-closed-dialog-${ch}-${size.name}.png`) });
+    await shutAll();
+    await pg.evaluate(() => window.scrollTo(0, 0)); await pg.waitForTimeout(150);
+    const docBack = await pg.evaluate(() => document.documentElement.scrollHeight);
+    note(ch, size.name, 'D-38 closed dialogs — drawn / page height',
+      `${allShut.filter((d) => d.h > 0).length} of 4 drawn, ${docShut}px`);
+    ok(`${tag}: 27c. D-38's SECOND DEFECT, THE REAL ONE — A CLOSED <dialog> OCCUPIES NO SPACE AND PAINTS NOTHING. This is what the developer photographed: on the shipped file #tok-picker was display:grid at 660x728 and #act-edit at 1040x716, BOTH IN NORMAL DOCUMENT FLOW at the foot of every page, and opening the Actions dialog and scrolling down put the token picker's sticky foot — "Emoji" and "Done" — on screen underneath it through that dialog's own 76% backdrop. dialog:not([open]) is a USER-AGENT rule and an author declaration beats one at every specificity, so D-33 P1-3's three-block frame switched the closed state off in the change that gave those two their grid. NOTHING WITHOUT A LAYOUT ENGINE COULD SEE IT — the node gate has no stylesheet and both Layer scans read TEXT, and the text was right the whole time. So: all four closed and none of them drawn; each opened in turn with the other three still not drawn; and THE PHOTOGRAPHED SEQUENCE DRIVEN, Actions open and scrolled to the foot, with the picker's Done and Emoji laid out at zero height and off screen. The page height is read before and after as the same number, because 728px of dead scroll is the half of this a student feels without seeing`,
+      allShut.length === 4
+      && allShut.every((d) => d.open === false && d.display === 'none' && d.h === 0 && d.w === 0)
+      && oneAtATime.length === 4
+      && oneAtATime.every((r) => r.openBox.open === true && r.openBox.h > 0 && r.othersDrawn.length === 0)
+      && shot.actOpen === true
+      && shot.picker.h === 0 && shot.done.h === 0 && shot.emoji.h === 0
+      && shot.done.onScreen === false && shot.emoji.onScreen === false
+      && docShut === docBack,
+      { allShut, oneAtATime, shot, docShut, docBack });
+
+    /* ── 28. D-38's THIRD TAB, IN A REAL BROWSER. ────────────────────────────────────────
+       "if you want a how-to-tab, do it separately from the simualtor" — so this is the
+       claim no gate without a layout engine can make: pressing the third control puts the
+       board, the fight band, the round rules and the projection toggle AWAY and brings a
+       rack of prose cards up in their place, and pressing the board control brings all four
+       back. Check 125 reads the six [C18] rules by name; this is whether they apply.
+
+       AND IT IS READ FOR BEING READABLE, not only for being present. The region is entirely
+       information, so [C10] and [C11]'s standing rule — nothing at or below 14px may carry
+       information — binds every line of it; the cards must not spill past the viewport at
+       either size; and the measure is capped so a card is a column rather than one wide
+       slab. The picture is taken because twenty-two consecutive rendered changes in this
+       phase had a defect only a picture showed. */
+    await pg.click('#view-howto'); await pg.waitForTimeout(300);
+    const ht = await pg.evaluate(() => {
+      const seen = (s) => { const n = document.querySelector(s); return n ? getComputedStyle(n).display : 'absent'; };
+      const n = document.querySelector('#howto');
+      const r = n.getBoundingClientRect();
+      const cards = [...document.querySelectorAll('#howto .ht-card')];
+      const paras = [...document.querySelectorAll('#howto .ht-card p')];
+      return {
+        view: document.querySelector('#app').dataset.view,
+        pressed: document.querySelector('#view-howto').getAttribute('aria-pressed'),
+        on: document.querySelector('#view-howto').className.indexOf('vw-on') !== -1,
+        buildOn: document.querySelector('#view-build').className.indexOf('vw-on') !== -1,
+        display: getComputedStyle(n).display,
+        top: Math.round(r.top), left: Math.round(r.left),
+        width: Math.round(r.width), height: Math.round(r.height),
+        right: Math.round(r.right), vw: window.innerWidth,
+        board: seen('#board'), band: seen('.fg-band'),
+        rules: seen('#roundrules'), toggle: seen('#proj-toggle'),
+        cards: cards.length,
+        narrowest: cards.length ? Math.min(...cards.map(c => Math.round(c.getBoundingClientRect().width))) : 0,
+        widestCard: cards.length ? Math.max(...cards.map(c => Math.round(c.getBoundingClientRect().width))) : 0,
+        spill: cards.some(c => Math.round(c.getBoundingClientRect().right) > window.innerWidth),
+        paras: paras.length,
+        smallest: paras.length ? Math.min(...paras.map(p => parseFloat(getComputedStyle(p).fontSize))) : 0,
+        widestLine: paras.length ? Math.max(...paras.map(p => Math.round(p.getBoundingClientRect().width))) : 0,
+        heads: [...document.querySelectorAll('#howto .ht-card-head')].map(h => h.textContent),
+        emptyLeaves: [...document.querySelectorAll('#howto p, #howto h2, #howto h3')]
+          .filter(p => p.textContent.trim() === '').length,
+        nested: [...document.querySelectorAll('#howto p')].filter(p => p.children.length > 0).length
+      };
+    });
+    await pg.locator('#howto').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d38-howto-${ch}-${size.name}.png`)
+    });
+    await pg.click('#view-build'); await pg.waitForTimeout(300);
+    const htBack = await pg.evaluate(() => {
+      const seen = (s) => { const n = document.querySelector(s); return n ? getComputedStyle(n).display : 'absent'; };
+      return {
+        view: document.querySelector('#app').dataset.view,
+        howto: seen('#howto'), board: seen('#board'), rules: seen('#roundrules'),
+        pressed: document.querySelector('#view-howto').getAttribute('aria-pressed')
+      };
+    });
+    note(ch, size.name, 'D-38 how-to — cards / narrowest / smallest type',
+      `${ht.cards} cards, ${ht.narrowest}px, ${ht.smallest}px`);
+    note(ch, size.name, 'D-38 how-to — widest line', `${ht.widestLine}px`);
+    ok(`${tag}: 28. D-38's HOW-TO TAB IS A REAL THIRD VIEW AND IT IS READABLE. Pressing the third control writes the view, lights that control and puts the other two out, and the four working surfaces — the board, the fight band, the round rules and the projection toggle — are all display:none WITH A LAYOUT ENGINE PRESENT, which is the claim check 125 can only make by reading the rules by name. Six cards come up in their place with a head and prose in each, and every one of them is asserted for being READABLE rather than merely present: nothing at or below 14px, because [C10] and [C11] both state that rule about themselves and this region is entirely information; no card spilling past the viewport at either size; the measure capped so a card is a column and not a slab; and NO EMPTY LEAF and NO PARAGRAPH NESTING AN ELEMENT, which is [C18]'s content-model rule read from the browser end — a nested paragraph loses its sentence from the Layer C walk. Then the board control brings all four surfaces back and puts the tab away, because a view that can be entered and not left is a page a student is stuck on`,
+      ht.view === 'howto' && ht.pressed === 'true' && ht.on === true && ht.buildOn === false
+      && ht.display !== 'none' && ht.height > 200 && ht.width > 400
+      && ht.right <= ht.vw
+      && ht.board === 'none' && ht.band === 'none'
+      && ht.rules === 'none' && ht.toggle === 'none'
+      && ht.cards === 6 && ht.paras >= 18
+      && ht.narrowest >= 300 && ht.spill === false
+      && ht.smallest > 14 && ht.widestLine <= 900
+      && ht.emptyLeaves === 0 && ht.nested === 0
+      && ht.heads.join('|') === 'The board|Tokens|Actions|Sharing|The fight|The round rules'
+      && htBack.view === 'build' && htBack.howto === 'none'
+      && htBack.board !== 'none' && htBack.rules !== 'none'
+      && htBack.pressed === 'false',
+      { ht, htBack });
+
     await startFight(pg);
     const bViews = await box(pg, '#views');
     const bBand = await box(pg, '.fg-band');
@@ -2007,9 +2154,31 @@ for (const ch of ['chrome', 'msedge']) {
        overflow-y:auto — which computes overflow-x to auto as well, so the lane
        card is a real clipping box on the one surface where a reading sits hard
        against its left edge. [C14.5] pads .sym for exactly this and the number
-       that says the padding is enough is here rather than in the comment. */
+       that says the padding is enough is here rather than in the comment.
+
+       ==================================================================
+       TURNED IN THE OPEN BY PLAN 05-D38, AND THE OLD READING WAS ONLY
+       POSSIBLE BECAUSE OF A DEFECT.
+       ==================================================================
+       This walk measured geometry on EVERY .sym-sign in the document, and 128
+       of them answered: 90 in the lane, 36 in the picker, and TWO with no
+       surface open that could be showing them. Those two are the action
+       editor's term readings, and they had real rects because a closed <dialog>
+       was sitting in normal document flow — which is D-38's second defect and
+       is check 127's subject. With the closed state restored they have no boxes
+       at all, and the recorded RED is the run on the commit that restored it:
+       this cell, 8 of 8 combinations, on badGeom and nothing else.
+
+       SO THE WALK NOW SKIPS A MARK WITH NO BOX AND SAYS WHY IT IS ALLOWED TO.
+       A mark that is not drawn has no geometry to be right or wrong about, so
+       asserting D-30's anchor on one is asserting arithmetic on zeroes. But
+       "skip what has no box" is exactly the shape of a cell going quietly
+       blind, so the skipped ones are COUNTED and every one of them must be
+       inside a CLOSED dialog. A mark that lost its box for any other reason
+       reddens this cell instead of leaving it. */
     const marks = await pg.evaluate(() => {
-      const out = { total: 0, offShape: 0, badGeom: 0, colours: {}, clipped: 0, lane: 0, picker: 0, worstLeft: 999 };
+      const out = { total: 0, offShape: 0, badGeom: 0, colours: {}, clipped: 0,
+        lane: 0, picker: 0, worstLeft: 999, undrawn: 0, undrawnLoose: 0 };
       document.querySelectorAll('.sym-sign').forEach((s) => {
         out.total++;
         if (s.closest('#ledger')) out.lane++;
@@ -2018,6 +2187,13 @@ for (const ch of ['chrome', 'msedge']) {
         if (!p || !p.classList.contains('tok')) { out.offShape++; return; }
         const sr = s.getBoundingClientRect();
         const pr = p.getBoundingClientRect();
+        // Not drawn: no geometry to judge. Allowed ONLY inside a closed dialog.
+        if (pr.width === 0 && pr.height === 0) {
+          out.undrawn++;
+          const d = s.closest('dialog');
+          if (!d || d.open === true) { out.undrawnLoose++; }
+          return;
+        }
         const dx = (sr.left + sr.width / 2) - pr.left;
         const dy = pr.height > 0 ? ((sr.top + sr.height / 2) - pr.top) / pr.height : -1;
         if (Math.abs(dx) > 0.5 || Math.abs(dy - 0.25) > 0.01) out.badGeom++;
@@ -2039,10 +2215,11 @@ for (const ch of ['chrome', 'msedge']) {
       return out;
     });
     note(ch, size.name, 'D-30: every mark on the page',
-      `${marks.total} marks (${marks.lane} lane, ${marks.picker} picker), ${marks.offShape} off a shape, ${marks.badGeom} off the geometry, ${marks.clipped} clipped, closest to a clipping edge ${marks.worstLeft}px, colours ${JSON.stringify(marks.colours)}`);
-    ok(`${tag}: 21c. every removal mark on the page — lane and picker alike — sits on a shape at D-30's exact anchor, in ONE colour, and none of them is clipped by the box that scrolls it`,
+      `${marks.total} marks (${marks.lane} lane, ${marks.picker} picker, ${marks.undrawn} undrawn), ${marks.offShape} off a shape, ${marks.badGeom} off the geometry, ${marks.clipped} clipped, closest to a clipping edge ${marks.worstLeft}px, colours ${JSON.stringify(marks.colours)}`);
+    ok(`${tag}: 21c. every removal mark that is DRAWN — lane and picker alike — sits on a shape at D-30's exact anchor, in ONE colour, and none of them is clipped by the box that scrolls it; and every mark that is NOT drawn is inside a closed dialog. TURNED IN THE OPEN BY D-38: this walk used to measure geometry on all 128 marks in the document, and the two it found outside the lane and the picker had rects only because a closed <dialog> was sitting in normal document flow — check 127's defect. A mark with no box has no geometry to be right or wrong about, so it is skipped; and because "skip what has no box" is the shape of a cell going quietly blind, the skipped ones are COUNTED and each must be inside a dialog that is shut. A mark that lost its box for any other reason reddens this cell rather than leaving it`,
       marks.total > 0 && marks.lane > 0 && marks.picker > 0
       && marks.offShape === 0 && marks.badGeom === 0 && marks.clipped === 0
+      && marks.undrawnLoose === 0
       && Object.keys(marks.colours).length === 1, marks);
 
     /* ── 21d. THE RED COMES OUT OF [C00] AND IS NOT A HEX SOMEBODY TYPED, and
@@ -3052,6 +3229,22 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.waitForTimeout(250);
     await pg.click('[data-k="rr/2/who/catsEach"]'); await pg.waitForTimeout(250);
 
+    /* THE SCROLL IS MADE DETERMINISTIC BEFORE THE READING, AND D-38 IS WHY.
+       `addShown` below asks whether the add control is wholly inside the
+       viewport, and until this line it asked that at whatever scroll the last
+       pg.click happened to leave the page at — which is a reading of the
+       previous press, not of this surface. It survived because the page had a
+       fixed height. D-38 restored the closed state on two <dialog>s that had
+       been sitting in normal flow (check 127), the document got 728px shorter,
+       every inherited scroll position moved, and this cell went red in all
+       eight combinations on `addShown` alone. The claim it is making — the
+       control can be brought wholly into view, which is cell 6b's idiom on a
+       different control — is the one worth making and the one that does not
+       depend on what a cell above did. */
+    await pg.evaluate(() => document.querySelector('#rr-add')
+      .scrollIntoView({ block: 'center' }));
+    await pg.waitForTimeout(200);
+
     const rrBox = await pg.evaluate(() => {
       const root = document.querySelector('#roundrules');
       if (!root) return null;
@@ -3177,14 +3370,27 @@ for (const ch of ['chrome', 'msedge']) {
     for (let i = 0; i < 5; i++) {
       await pg.click('#rr-add'); await pg.waitForTimeout(120);
     }
-    // DRIVEN INTO VIEW BEFORE IT IS MEASURED, which is cell 25's own idiom and
-    // is here for a measured reason: each add appends a row ABOVE the foot, so
-    // the foot ends the drive ~47px lower than wherever the last click's
-    // scroll left it. Measured at 1920x1080 as the sentence's bottom sitting
-    // just past innerHeight with the add still on screen - the claim being
-    // made is that a student LOOKING AT THE ADD sees the sentence, not that
-    // the block never leaves a 1080px window.
-    await pg.locator('#rr-add').scrollIntoViewIfNeeded();
+    /* DRIVEN INTO VIEW BEFORE IT IS MEASURED, which is cell 25's own idiom and
+       is here for a measured reason: each add appends a row ABOVE the foot, so
+       the foot ends the drive ~47px lower than wherever the last click's scroll
+       left it. Measured at 1920x1080 as the sentence's bottom sitting just past
+       innerHeight with the add still on screen - the claim being made is that a
+       student LOOKING AT THE ADD sees the sentence, not that the block never
+       leaves a 1080px window.
+
+       TURNED IN THE OPEN BY PLAN 05-D38, AND THE OLD SPELLING WAS PROPPED UP BY
+       A DEFECT. This read `#rr-add` with scrollIntoViewIfNeeded(), which does
+       NOTHING when the add is already inside the window — and it was, with the
+       sentence's last 4px hanging over the fold. It passed anyway because the
+       page had 728px of phantom scroll under it: two <dialog>s parked in normal
+       document flow while closed, which is check 127's defect. Restoring their
+       closed state took that scroll away and this cell went red in all four
+       combinations on `saidAt` alone. So the FOOT is scrolled to the end of the
+       window instead — both controls are in it, and the browser clamps at the
+       document's own bottom, which is where the foot is. Same claim, no longer
+       resting on a defect two regions away. */
+    await pg.evaluate(() => document.querySelector('.rr-foot')
+      .scrollIntoView({ block: 'end' }));
     await pg.waitForTimeout(200);
     const rrCap = await pg.evaluate(() => {
       const add = document.querySelector('#rr-add');

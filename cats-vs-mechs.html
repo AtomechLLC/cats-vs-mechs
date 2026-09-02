@@ -721,6 +721,55 @@
      THE PADDING STAYS ON THE DIALOG, so the scrollbar the body now carries sits
      24px in from the edge rather than against the border radius. That is a
      deliberate look rather than an accident of the shorthand. */
+  /* ==================================================================
+     D-38's SECOND DEFECT — A CLOSED <dialog> WAS STILL ON THE PAGE.
+     ==================================================================
+     THIS IS THE RULE THE DEVELOPER PHOTOGRAPHED THE ABSENCE OF. Their
+     screenshot of the Actions editor shows a second panel underneath it —
+     "Emoji" and "Done", which is this dialog's foot — and it is not two modals
+     stacked. It is #tok-picker sitting in NORMAL DOCUMENT FLOW while closed,
+     660 x 728 of it, and #act-edit doing the same, 1040 x 716, both of them
+     parked at the bottom of every page this artifact has ever drawn.
+
+     THE MECHANISM IS ONE LINE OF CASCADE AND IT IS WORTH SPELLING OUT.
+     `dialog:not([open]) { display: none }` is a USER-AGENT rule. An AUTHOR
+     declaration beats a user-agent one at every specificity — that is the
+     cascade origin order, not a specificity contest — so the moment D-33 P1-3
+     gave .pk and .ae `display:grid` for their three-block frame, the closed
+     state stopped applying to both. [C04] already writes the same trap down
+     about a different attribute: "[hidden]{display:none} is a user-agent rule,
+     and an author rule beats it". This is that paragraph, arriving on the one
+     attribute a dialog is defined by.
+
+     MEASURED BEFORE AND AFTER, on the shipped file in real Chrome from file://
+     (plan 05-D38, probe DLG-FLOW). Closed, on the board tab, nothing pressed:
+
+       #tok-picker  display grid  660 x 728  at document y 3067
+       #act-edit    display grid 1040 x 716  at document y 3067
+       #share       display none    0 x 0
+       #reset-ask   display none    0 x 0
+
+     The last two are clean because .sh and .rs never declared a display. That
+     is the whole difference between the pair that was broken and the pair that
+     was not, and it is why this rule names ALL FOUR rather than the two that
+     needed it: a rule that covered only today's offenders would be a rule the
+     next dialog to gain a `display` slips past. Check 127 derives the class
+     list from the shell's own <dialog> tags and requires an entry for each.
+
+     WHY IT IS HERE AND NOT IN [C16]. [C16] is the one block that deliberately
+     reaches across every region, and this looks like a candidate for it — but
+     [C16] is about MOTION AND SCROLL and its banner says so. This is a rule
+     about the dialog idiom, and [C07] is where that idiom is stated: [C12],
+     [C13] and [C14] each say in their own banners that they borrow this
+     block's shape. So the rule that keeps a dialog closed lives with the rule
+     that gives it its box.
+
+     THE SELECTORS CARRY THE CLASS AS WELL AS THE ATTRIBUTE, and that is not
+     tidiness either. A bare `dialog:not([open])` is (0,0,1) and .pk is (0,1,0),
+     so the bare form loses to the very declaration it is written to undo. Each
+     of these is (0,2,1) and beats its own block. */
+  .pk:not([open]), .ae:not([open]), .sh:not([open]), .rs:not([open]){display:none}
+
   .pk{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
@@ -5402,6 +5451,86 @@
   .fg-rr-line:last-child{margin-bottom:0}
   .fg-rr-line .sym{--tok:16px}
 
+  /* ===================== [C18] HOW THIS WORKS ===================== */
+  /* D-38's third view. Every class here carries the .ht- prefix, which is the
+     same fake scoping [C07] explains for .pk-, [C10] repeats for .prj- and
+     [C12] repeats for .ae-: a single stylesheet has no real scope, so the
+     prefix is the scope and a rule two regions depend on is a rule neither of
+     them can change.
+
+     [C11] IS THE LAYOUT ANALOG AND THIS BORROWS ITS SHAPE RATHER THAN ITS
+     RULES. The reference band is the other region in this file that is a rack
+     of read-only cards, and .ref-card is where the panel-plus-hairline-plus-
+     radius treatment for one is already settled. It is RESTATED under this
+     prefix rather than borrowed, for [C13]'s reason about .rs- and [C14]'s
+     about its four. NO NEW HEX: --panel, --line, --ink, --ink-dim and --radius
+     are [C00]'s, read straight, which is [C07]'s standing rule.
+
+     THE PROSE FLOOR IS 17px AND THE HEADINGS ARE 20px, which is [C11]'s scale
+     and not a new one. [C10] and [C11] both state the same standing rule about
+     themselves — nothing at or below 14px may carry information — and this is a
+     region that is ENTIRELY information, so the floor binds every line of it.
+     The eyebrow is the shipped .eyebrow at its shipped size, and it is the one
+     node in here that carries no information a reader needs.
+
+     THE MEASURE IS CAPPED AT 62ch. A card of prose stretched across a 1600px
+     board is a line a reader loses their place in, and the cap is what makes
+     the grid below a rack of readable columns rather than one wide slab.
+
+     THE SWITCH'S OWN RULES ARE ADDED HERE AND [C15]'S ARE NOT EDITED. Every
+     existing `#app[data-view="..."]` rule is byte-identical after this plan —
+     several gate rows read those rule bodies BY NAME off the stylesheet, and a
+     tidier rewrite of them into `:not()` form would have turned six green rows
+     red for a change none of them is about. So the third view states what IT
+     puts away, in its own block, and the two that were already there are
+     untouched. #board is named whole rather than .brd-col: #strip and .ref-sb
+     live inside it and a view that is not the fight has nothing to say with
+     either. */
+  #howto{display:none}
+  #app[data-view="howto"] #howto{display:grid;gap:18px}
+  #app[data-view="howto"] #board{display:none}
+  #app[data-view="howto"] .fg-band{display:none}
+  #app[data-view="howto"] #roundrules{display:none}
+  #app[data-view="howto"] #proj-toggle{display:none}
+
+  .ht-head{display:grid;gap:6px}
+  .ht-title{margin:0;font-size:26px;line-height:1.25;letter-spacing:-.3px;color:var(--ink)}
+  .ht-lede{margin:0;font-size:18px;line-height:1.5;color:var(--ink-dim);max-width:76ch}
+
+  /* auto-fit rather than a fixed column count, for [C12]'s reason about the
+     term lists: a laptop is the case this file designs for, and a rack that
+     wraps needs no second rule at a second width. */
+  /* align-items is left at its initial `stretch` DELIBERATELY, and it was
+     changed to `start` and back again with a picture of each. `start` gives
+     every card its natural height, which puts a 200px hole under the two short
+     cards in a row whose third is long — six cards in three columns, and the
+     rack reads as three ragged pairs. Stretched, the row is a row. The dead
+     space moves INSIDE the card, where a panel edge accounts for it.
+
+     THE CARD THEN NEEDS align-content, and that is the part that is not
+     obvious: a stretched grid item whose own rows are auto-sized distributes
+     the extra height across those rows, so the paragraphs inside a short card
+     drift apart until they line up with nothing. `start` keeps the gap at 10px
+     and puts the slack at the bottom. */
+  .ht-grid{
+    display:grid;gap:16px;
+    grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));
+  }
+  .ht-card{
+    background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
+    padding:16px 18px;display:grid;gap:10px;align-content:start;
+  }
+  .ht-card-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
+  .ht-card p{margin:0;font-size:17px;line-height:1.5;color:var(--ink-dim);max-width:62ch}
+  /* THE THREE TERM LINES, AND WHY THEY ARE THREE PARAGRAPHS RATHER THAN ONE
+     WITH <b> IN IT. Not a look: the Layer C walk harvests LEAF nodes, so a <p>
+     holding an inline element stops being one and only the emphasised words
+     are read -- the rest of the sentence would leave the only scanner that can
+     see it, which is the wave-1 lesson arriving through a content model. So
+     NOTHING IN THIS REGION NESTS AN ELEMENT INSIDE A PARAGRAPH, and check 126
+     counts the leaves to say so. The indent is what the emphasis was for. */
+  .ht-term{padding-inline-start:14px;border-inline-start:2px solid var(--line)}
+
   /* ===================== [C16] MOTION AND SCROLL ===================== */
   /* The two document-wide layers D-33 PASS A adds, and the ONLY block in
      this stylesheet that deliberately reaches across every region rather
@@ -6064,6 +6193,24 @@
   <div class="vw-switch" id="views" role="group" aria-label="Which screen, and the projection">
     <button class="vw-btn vw-on" type="button" id="view-build" data-k="vw/build" data-vw="build" aria-pressed="true"><span class="vw-name">The board</span><span class="vw-check">✓</span></button>
     <button class="vw-btn" type="button" id="view-fight" data-k="vw/fight" data-vw="fight" aria-pressed="false"><span class="vw-name">The fight</span><span class="vw-check">✓</span></button>
+    <!-- D-38's THIRD VIEW. "if you want a how-to-tab, do it separately from the
+         simualtor" — so the instructional prose gets a tab of its own beside
+         the two working ones, and #howto below carries it.
+
+         IT IS THIRD AND THE PROJECTION TOGGLE STAYS LAST, which is the whole of
+         what [C15]'s P3-9 paragraph measured: "a third control appended to the
+         END of a left-aligned row cannot move the two before it". This is a
+         FOURTH control appended before that one, so view-build and view-fight
+         are byte-identical where they were and the toggle moves right once, in
+         every view it appears in — a static change, not one that happens under
+         a cursor. The toggle's own appear/disappear rule is untouched.
+
+         Same three-part rule as every id in this shell: the id, the KNOWN_IDS
+         entry and the stub node arrive together, and tests/selftest-node.cjs
+         fails the run in BOTH directions if one of the three is missing. It
+         carries data-vw and no data-act, exactly as its two siblings do and for
+         [S06.10]'s stated reason. -->
+    <button class="vw-btn" type="button" id="view-howto" data-k="vw/howto" data-vw="howto" aria-pressed="false"><span class="vw-name">How this works</span><span class="vw-check">✓</span></button>
     <button class="pv-btn" type="button" id="proj-toggle" data-k="pv/proj" data-pv="strip" aria-pressed="false" aria-expanded="false" aria-controls="strip"><span class="pv-name">Projection and reference</span><span class="pv-check">✓</span></button>
   </div>
 
@@ -6664,6 +6811,102 @@
     <div class="rr-foot">
       <button class="rr-add" type="button" id="rr-add" data-rr="add" data-k="rr/add">+ Add a round rule</button>
       <p class="rr-said" id="rr-said" hidden></p>
+    </div>
+  </section>
+
+  <!-- ============ THE HOW-THIS-WORKS TAB, D-38 =========================
+       The developer, at the real artifact, with a screenshot of the Actions
+       editor attached: "this part a the bottom looks cluttery - if you want a
+       how-to-tab, do it separately from the simualtor".
+
+       SO THE INSTRUCTIONAL PROSE LEAVES THE WORKING SURFACES AND ARRIVES HERE,
+       ORGANISED BY SURFACE. It is not deleted: the teaching text is part of
+       what the workshop is for, and a student who wants to know what "Needs"
+       means still has somewhere to read it. What STAYS on a surface is a
+       READING — a sentence about the board as it is right now, which is
+       load-bearing where it stands. What MOVED is every sentence that explains
+       HOW TO USE a surface or WHAT A CONCEPT IS, which is true whatever the
+       board holds and is therefore just as true here.
+
+       IT IS A THIRD VIEW AND NOT A DIALOG, and the two reasons are the fight
+       region's own. A dialog would need a DIALOG_ROOTS entry, an opener, a
+       close-request answer and a focus trap; and a student reading how the
+       fight works while the fight is covered by the thing explaining it is the
+       arrangement D-27 threw out. It is a sibling of #board and #fightbar under
+       the same switch, so [C18]'s rules put the other two away exactly as
+       [C15]'s rules already put the board away for the fight.
+
+       EVERY WORD IN HERE IS STATIC MARKUP, AND THAT IS A DECISION WITH A COST
+       ATTACHED. Nothing in this region depends on state, so a render region for
+       it would be a per-frame pass recomputing a constant — which is the ruling
+       [S06.10]'s own banner already makes about the switch's labels. The cost
+       is that Layer C, which reads what the page RENDERS, sees static text as
+       empty on the gate's hand-made stub. The wave-1 lesson is that a surface
+       the walk never reaches reports clean forever, and a whole tab of prose
+       about a FIGHT is exactly where a comparative word writes itself. So the
+       gate's stub builds this region WITH ITS WORDS, check 126 harvests it
+       under a floor of its own, and the three word lists that scan the fight
+       scan this. Written down here because the alternative — leaning on Layer
+       A, which does read every one of these words in the document — is exactly
+       the reasoning that would leave the next such region unscanned.
+
+       NO id PER CARD. The cards are plain <div>s under one <section> with one
+       heading, so this tab spends THREE ids and not nine: #howto, its heading,
+       and the control in #views that reaches it. -->
+  <section class="ht" id="howto" aria-labelledby="howto-head">
+    <div class="ht-head">
+      <div class="eyebrow">How this works</div>
+      <h2 class="ht-title" id="howto-head">The tool does the bookkeeping. You are the rules engine.</h2>
+      <p class="ht-lede">It adds up what you have allocated, spends what you declare, applies the changes your actions state, and keeps a record of every round. It never rules on how a fight goes — you and the room do that, out loud, at the table. Everything on this tab used to sit on the working surfaces themselves.</p>
+    </div>
+
+    <div class="ht-grid">
+      <div class="ht-card">
+        <h3 class="ht-card-head">The board</h3>
+        <p>Each side has a roster of units and a pool of action points. Every number a unit holds is drawn as tokens, one token per point, so a row of three is three of them and the room can count it from the back.</p>
+        <p>Use the − and + beside a row to change a number, or type into the field between them and press Enter. Add and Remove change the roster, and Ctrl+Z takes back the last thirty changes.</p>
+        <p>The projection in the middle column reads your allocation back to you: total health a side, damage a round, and roughly how many turns one side would take to wipe the other at the damage it is holding. It reads the numbers you put in. It is not a report on the fight.</p>
+      </div>
+
+      <div class="ht-card">
+        <h3 class="ht-card-head">Tokens</h3>
+        <p>A token type is a shape, a colour and an optional emoji. Health, action points, shield and the damage marker ship with the board, and the Tokens button makes types of your own.</p>
+        <p>The shape and the colour carry the meaning on their own. The emoji is decoration on top of them, so a token still reads correctly on a projector that has never heard of that emoji.</p>
+        <p>A type lives either on a unit or on a side, and that is fixed when you make it. A type may also carry the least and the most of it any one number on the board may hold; every write stops at those two numbers instead of going past them.</p>
+      </div>
+
+      <div class="ht-card">
+        <h3 class="ht-card-head">Actions</h3>
+        <p>Every action on a side lives in one list — the three the board ships with and the ones you write. There is no second tier: an action you make is the same kind of thing as one that was already here.</p>
+        <p>An action is a name and up to four terms of each of three kinds.</p>
+        <p class="ht-term">Cost — spent when the action is used.</p>
+        <p class="ht-term">Needs — must be there for the action to be used. It is not spent.</p>
+        <p class="ht-term">Changes — what the action changes, and by how much. Put a minus in front for a change downward. A change also says whether it lands on the unit acting or on its target.</p>
+        <p>The Proposal pane restates your rule with the board's real numbers beside it. Change any number in it, or add a line your rule did not state. Nothing there is applied.</p>
+        <p>The control reading "Put this action back how it was" returns the action to the state it was in when you selected it, in one step Ctrl+Z can take back.</p>
+      </div>
+
+      <div class="ht-card">
+        <h3 class="ht-card-head">Sharing</h3>
+        <p>Copy your build code and paste it into the course thread. It is the whole of your build — both rosters, both action lists, every token type you made and every round rule you wrote.</p>
+        <p>Paste a classmate's code into the Load pane and press Load. It replaces the board, and one Ctrl+Z brings yours back.</p>
+        <p>The code also rides in this page's address bar as you work, so a reload or a bookmark comes back to the board you left.</p>
+      </div>
+
+      <div class="ht-card">
+        <h3 class="ht-card-head">The fight</h3>
+        <p>Start the fight from the bar at the top. The fight takes its own tab: the rounds already played run along a lane above, then the state of the board as it stands, then the row of actions each unit can declare.</p>
+        <p>Press an action under a unit to declare it. Press it again to take that declaration back, or press a different one to replace it. An action that names a target aims at the standing enemy with the least health, and the change-target control lights the other side's shapes so you can pick another. An action whose cost or requirements the board cannot meet is switched off until it can.</p>
+        <p>The resources above the picker deplete as you declare, so what this round has spoken for is readable before you commit to it.</p>
+        <p>Advance resolves the round: it spends what the declarations named, applies the changes they state, and splits damage into the shield first and then health. It does not rule on who is standing. Press a unit on the field to open its values and rule on them by hand.</p>
+      </div>
+
+      <div class="ht-card">
+        <h3 class="ht-card-head">The round rules</h3>
+        <p>What Advance does to the board after the declarations have landed, in the order it is written here. Each rule names who it reaches, which token type it changes, and by how much. Put a minus in front for a change downward.</p>
+        <p>The board ships with one rule: three action points to each side, every round. Add a rule to make a status token drain away, to put a shield back up, or to hand a side something it did not start with.</p>
+        <p>The rules are part of your build, so a classmate loading your code gets them too. An edit made while a fight is running lands at the next round and not before — which is true of every build edit, and the fight says so while one is running.</p>
+      </div>
     </div>
   </section>
 
@@ -23265,6 +23508,15 @@ App.render = (function () {
 
   var VIEW_BUILD = 'build';
   var VIEW_FIGHT = 'fight';
+  /* D-38's third view. It joins the two above as a WORD and nothing else — this
+     region's whole job is unchanged by it, because every one of the three
+     things the banner says it does was already written to be about "the
+     attribute" rather than about "one of two". The two edges below still name
+     the fight and the board explicitly, and that is correct rather than an
+     oversight: a fight starting takes the student to the fight from wherever
+     they were, including from here, and a fight ending puts them on the board.
+     Nothing about the how-to tab is a fight edge. */
+  var VIEW_HOWTO = 'howto';
 
   // add / remove and never classList.toggle, which is dcClass's shipped idiom
   // one region up and is also the only one the stub DOM models.
@@ -23306,14 +23558,20 @@ App.render = (function () {
       app.dataset.viewFg = '';
     }
 
-    // Whatever the attribute now says, it is one of exactly two words. A page
+    // Whatever the attribute now says, it is one of exactly THREE words — two
+    // until D-38 gave the displaced instructional prose a tab of its own. A page
     // that arrived carrying anything else — a hand-edited attribute, a stale
     // spelling from an older build of this file — reads as the board, because
-    // the board is the view that is true before anybody has done anything.
-    var now = app.dataset.view === VIEW_FIGHT ? VIEW_FIGHT : VIEW_BUILD;
+    // the board is the view that is true before anybody has done anything. The
+    // fall-through is what makes a stale link safe, so it is written as an
+    // allowlist of the words that ARE views rather than as a test against the
+    // one that is not.
+    var said = app.dataset.view;
+    var now = (said === VIEW_FIGHT || said === VIEW_HOWTO) ? said : VIEW_BUILD;
     app.dataset.view = now;
     vwPaint('view-build', now === VIEW_BUILD);
     vwPaint('view-fight', now === VIEW_FIGHT);
+    vwPaint('view-howto', now === VIEW_HOWTO);
 
     // D-28's toggle, normalised and repainted on exactly the same terms as the
     // two above: RE-DECIDED from the attribute every frame rather than toggled
@@ -30539,12 +30797,20 @@ App.interactions = (function () {
     var btn = node.closest('[data-vw]');
     if (btn === null) { return; }
     var want = String(btn.dataset.vw || '');
-    // Exactly two words are accepted, and an unrecognised one declines quietly
-    // rather than writing itself onto #app. clearDeclarations returning false
-    // over an empty list is the shipped precedent for a press that has nothing
-    // to do: an error panel raised in the middle of a workshop is exactly what
-    // that would have been avoiding.
-    if (want !== 'build' && want !== 'fight') { return; }
+    // Exactly THREE words are accepted — two until D-38's how-to tab — and an
+    // unrecognised one declines quietly rather than writing itself onto #app.
+    // clearDeclarations returning false over an empty list is the shipped
+    // precedent for a press that has nothing to do: an error panel raised in the
+    // middle of a workshop is exactly what that would have been avoiding.
+    //
+    // The list is spelled out here rather than read off [S06.10]'s three
+    // constants, and the reason is the one this region's banner gives about
+    // UI_ACTS: this is the SENDER and that is the PAINTER, and a sender that
+    // imported the painter's vocabulary would be one region reaching into
+    // another for a value that has to be checked against the PAGE either way.
+    // Check 103 presses all three real controls and reads the attribute back,
+    // which is what keeps the two lists in step.
+    if (want !== 'build' && want !== 'fight' && want !== 'howto') { return; }
 
     var app = document.getElementById('app');
     if (!app) { return; }
