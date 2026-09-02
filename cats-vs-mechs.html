@@ -2574,7 +2574,41 @@
      spare and the 1180px breakpoint derived from it holds unchanged. Moving the
      bar instead would have taken width off the ledger AND moved the breakpoint,
      which is two dials and a media query for a defect that is one number. */
-  .fg-sides{display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start}
+  /* ==================================================================
+     THE TWO SIDES' ROWS SIT ON ONE LINE — D-39 P2-10. Plan 05-D39d.
+     ==================================================================
+     Measured on the shipped file at both viewports: the Cats team-resource
+     line at y=953 and the Mechs one at y=878, 75px apart, because each
+     column packs under its own battlefield and the Cats field is three
+     rows of nine shapes to the Mechs' one row of three. D-27's instruction
+     is "show both sides at the same time in columns"; the columns were
+     there and the rows were not.
+
+     THE AUDIT ASKS FOR SUBGRID OR A MAX-HEIGHT BATTLEFIELD AND THIS IS
+     THE SECOND. Subgrid needs this to be a grid, and the flex basis on
+     .fg-side below is the number [C14.1]'s own sweep derived against a
+     measured 679px of content and a 1180px breakpoint — turning it into a
+     grid would re-open every one of those figures for a defect that is one
+     declaration. `stretch` makes the two columns the height of the taller
+     and .fg-field takes the slack, so everything under the battlefield —
+     the resource line and the picker rows below it — starts on the same y
+     on both sides.
+
+     THE SLACK GOES TO THE FIELD AND NOT TO THE COLUMN, and that is the
+     half `stretch` alone does not do: driven with the alignment changed
+     and nothing else, the two .fg-side boxes came out equal at 360 and 360
+     and the resource lines stayed at 953 and 878, because the field kept
+     sizing to its own content and the extra height fell off the bottom.
+
+     MEASURED AFTER, both viewports: 953 / 953 and 1006 / 1006, and the
+     PAGE HEIGHT DOES NOT MOVE — 2115 at 1920 and 2168 at 1366, the same
+     numbers as before. This costs nothing.
+
+     AND THE INPUT AREA WAS NEVER MISALIGNED. The audit says "the same
+     happens to the picker rows below"; it does not. Both .fg-rows in the
+     input area start at y=1256 on the shipped file, because that area's
+     two columns open with one heading each. Only the state area drifted. */
+  .fg-sides{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
   .fg-side{flex:1 1 320px;min-width:0}
 
   /* The reading on the bar. tabular-nums for the reason [C03] uses it on the
@@ -3004,7 +3038,12 @@
 
      THE RULE ITSELF IS TWO PARAGRAPHS DOWN, beside the dial it replaces, so the
      measurement and the number stay in one place. */
-  .fg-field{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start}
+  /* flex:1 1 auto IS D-39 P2-10's OTHER HALF — see .fg-sides above. The
+     battlefield is the block whose height differs between the two sides,
+     so it is the block that takes the slack when the shorter column is
+     stretched to match the taller. Everything under it then starts on the
+     same line on both sides. */
+  .fg-field{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;flex:1 1 auto}
 
   /* THE TEAM RESOURCES, ABOVE THE PICKER — the addendum's own words. One row
      per resource: the label, then the figures. The label is the student's word
@@ -3225,6 +3264,16 @@
      size as every other sentence on this surface rather than at a caption
      size. */
   .fg-lands{margin:0;font-size:18px;line-height:1.4;color:var(--ink-dim)}
+  /* D-39 P2-11: the reading and the control that changes it, as ONE flex
+     item on .fg-row's wrapping line. nowrap INSIDE it is the whole point —
+     the pair is what must not be split; the sentence's own words may still
+     wrap within it, which is why the wrap is on the container and not on
+     the text. baseline, because that is .fg-row's own alignment and a pair
+     that aligned differently from the row it sits in would read as a box
+     rather than as two more things on the line. */
+  .fg-lands-pair{
+    display:flex;align-items:baseline;flex-wrap:nowrap;gap:8px;
+  }
 
   /* THE ONE THING IN THIS REGION THAT GROWS WITHOUT A BOUND IS THE PAIR OF
      SIDES, AND IT IS BOUNDED HERE FOR THE REASON [C14] BOUNDS THE LEDGER, in
@@ -21646,8 +21695,31 @@ App.render = (function () {
             ? FIGHT_NOBODY_WORD
             : fgUnitName(state, held.entry.at)) + '.'
         }]);
-        row.appendChild(line);
-        row.appendChild(fgAtBtn(state, side, unit, half));
+        /* D-39 P2-11's SECOND HALF — THE READING AND ITS CONTROL WRAP AS
+           ONE THING. Plan 05-D39d.
+
+           Measured on the shipped file at both viewports, one declaration
+           standing: this row is 95px against its eight neighbours' 40, and
+           the two nodes are on different lines — at 1920 "Lands on Mech 1."
+           at x=687 on the first and "Change target" at x=191 on the second,
+           496px apart with eight other controls between them. The audit:
+           "the declared row's Change target button wraps to a second line,
+           400px from the Lands on Mech 1. sentence it belongs to."
+
+           .fg-row is a wrapping flex line, so the sentence and the button
+           are two independent items and the line breaks wherever it runs
+           out. A PAIR is one item, so it breaks in front of BOTH or behind
+           both and never between them — which is the audit's own second
+           option ("or stack them as a pair") and is the one that survives a
+           row whose action count a student changes.
+
+           IT DOES NOT COST THE ROW ITS HEIGHT and does not try to: the row
+           is two lines at this width either way. What it buys is that the
+           second line opens with the sentence the button is about. */
+        var pair = el('div', 'fg-lands-pair');
+        pair.appendChild(line);
+        pair.appendChild(fgAtBtn(state, side, unit, half));
+        row.appendChild(pair);
         /* D-33 P1-7: THE FEEDBACK IS AT THE PRESS. The audit measured the
            distance: "Change target" was pressed at y=1029 and the three lit
            shapes rendered at y=660-800 — above the press and 300px away, in a

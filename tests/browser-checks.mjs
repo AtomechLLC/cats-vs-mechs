@@ -1860,6 +1860,107 @@ for (const ch of ['chrome', 'msedge']) {
       && poolOne.stripSays.indexOf('spent so far') === -1,
       { poolIdle, poolOne, poolTwo, poolBack, poolPanelBack });
 
+    /* ── 10i. D-39 P2-10 AND P2-11 — THE TWO SIDES' ROWS SIT ON ONE
+       LINE, AND THE RETARGET READING KEEPS ITS OWN CONTROL. Plan
+       05-D39d.
+       ==================================================================
+       P2-10, measured on the shipped file at BOTH viewports: the Cats
+       team-resource line at y=953 and the Mechs one at y=878, 75px apart,
+       because each column packs under its own battlefield and the Cats
+       field is three rows of nine shapes to the Mechs' one row of three.
+       D-27's instruction is "show both sides at the same time in
+       columns"; the columns were there and the rows were not.
+
+       ITS SECOND SENTENCE IS FALSE AND THIS CELL SAYS SO. The audit adds
+       "the same happens to the picker rows below". It does not: both
+       .fg-rows in the INPUT area open at y=1256 on the shipped file,
+       because that area's two columns carry one heading each and nothing
+       that differs. Only the state area drifted, and both areas are read
+       here so the correction is a measurement rather than a sentence.
+
+       P2-11's SCROLL HALF IS ALREADY SHIPPED and this is the third audit
+       claim of that shape. It says scrollIntoView on the first lit node
+       "did not" land; it landed under D-33 P1-7, plan 05-D33b, guarded
+       three ways with its own paragraph. Not asserted here — cell 12
+       already drives the arming — and recorded so it is not raised again.
+
+       WHAT P2-11 DID LEAVE is the row: 95px against its eight neighbours'
+       40, with "Lands on Mech 1." on the first line and "Change target"
+       on the second, 496px apart at 1920 with eight other controls
+       between them. .fg-row is a wrapping flex line and the two were
+       independent items, so the break fell between them. They are one
+       item now — the audit's own second option — so the line breaks in
+       front of both or behind both and never between.
+
+       THE HEIGHT IS PRINTED AND NOT ASSERTED DOWN. The row is two lines
+       at this width either way; what is asserted is that the sentence and
+       its button share a line and sit within a gap of each other. */
+    const d39Pair = async () => {
+      await pg.evaluate(() => {
+        const a = document.querySelector('#decl-cats [data-fg="act"]:not([disabled])');
+        if (a) { a.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }
+      });
+      await pg.waitForTimeout(300);
+      return pg.evaluate(() => {
+        const box = (n) => {
+          if (!n) { return null; }
+          const r = n.getBoundingClientRect();
+          return { x: Math.round(r.x), y: Math.round(r.y), w: Math.round(r.width) };
+        };
+        const at = document.querySelector('#decl-cats [data-fg="at"]');
+        const lands = document.querySelector('#decl-cats .fg-lands');
+        const row = at ? at.closest('.fg-row') : null;
+        const sameLine = (a, b2) => {
+          if (!a || !b2) { return false; }
+          const ra = a.getBoundingClientRect();
+          const rb = b2.getBoundingClientRect();
+          return ra.top < rb.bottom && rb.top < ra.bottom;
+        };
+        return {
+          landsBox: box(lands), atBox: box(at),
+          onOneLine: sameLine(lands, at),
+          gap: (lands && at)
+            ? Math.round(at.getBoundingClientRect().left
+              - lands.getBoundingClientRect().right) : null,
+          paired: !!(lands && at && lands.parentElement === at.parentElement
+            && lands.parentElement.className.indexOf('fg-lands-pair') !== -1),
+          rowH: row ? Math.round(row.getBoundingClientRect().height) : null
+        };
+      });
+    };
+    const d39Rows = () => pg.evaluate(() => {
+      const ytop = (n) => Math.round(n.getBoundingClientRect().top);
+      const areas = Array.from(document.querySelectorAll('.fg-sides'));
+      return areas.map((a) => Array.from(a.children).map((side) => {
+        const res = side.querySelector('.fg-res');
+        const rows = side.querySelector('.fg-rows');
+        const mark = res || rows;
+        return mark ? ytop(mark) : null;
+      }));
+    });
+    const pairRead = await d39Pair();
+    const rowTops = await d39Rows();
+    // put the declaration back, so cell 10h and cell 11 find the board they expect
+    await pg.evaluate(() => {
+      const a = document.querySelector('#decl-cats [data-fg="act"][aria-pressed="true"]');
+      if (a) { a.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }
+    });
+    await pg.waitForTimeout(250);
+    const areaAligned = rowTops.map((pairY) => pairY.length === 2
+      && pairY[0] !== null && pairY[1] !== null
+      && Math.abs(pairY[0] - pairY[1]) <= 1);
+    note(ch, size.name, 'D-39 P2-10 the two sides, state area / input area',
+      rowTops.map((pairY) => pairY.join(' vs ')).join('  |  '));
+    note(ch, size.name, 'D-39 P2-11 the reading and its control',
+      `${JSON.stringify(pairRead.landsBox)} ${JSON.stringify(pairRead.atBox)}`
+      + ` one line=${pairRead.onOneLine} gap=${pairRead.gap} row=${pairRead.rowH}px`);
+    ok(`${tag}: 10i. D-39 P2-10 AND P2-11 — THE TWO SIDES' ROWS OPEN ON ONE LINE, AND THE RETARGET READING KEEPS ITS OWN CONTROL BESIDE IT. P2-10 measured the Cats team-resource line at y=953 and the Mechs one at y=878 at both viewports, 75px apart, because each column packs under its own battlefield and the Cats field is three rows of nine shapes to the Mechs' one row of three — the columns D-27 asked for, with the rows not lining up inside them. Fixed by stretching the two columns and letting the FIELD take the slack, which is the half the alignment alone does not do: driven with align-items changed and nothing else, the columns came out equal and the resource lines stayed 953 and 878, because the field kept sizing to its content. Subgrid was declined and the reason is in the stylesheet — it needs this to be a grid, and .fg-side's basis is the number [C14.1]'s own sweep derived against a measured 679px and a 1180px breakpoint. THE AUDIT'S SECOND SENTENCE IS FALSE AND THIS CELL MEASURES IT: "the same happens to the picker rows below" — it does not, both .fg-rows in the INPUT area open at the same y on the shipped file, and both areas are read here so the correction is a measurement. P2-11's SCROLL HALF WAS ALREADY SHIPPED, under D-33 P1-7 in plan 05-D33b, guarded three ways with its own paragraph — the third audit claim of that shape this pass has found. What P2-11 did leave is the row: 95px against its eight neighbours' 40, with the sentence on the first line and its button on the second, 496px apart at 1920 with eight controls between them. They are ONE flex item now, so the wrapping line breaks in front of both or behind both and never between, and the height is PRINTED rather than asserted down because the row is two lines at this width either way`,
+      pairRead.paired === true && pairRead.onOneLine === true
+      && pairRead.gap !== null && pairRead.gap >= 0 && pairRead.gap <= 24
+      && pairRead.landsBox !== null && pairRead.atBox !== null
+      && rowTops.length === 2 && areaAligned.every((v) => v === true),
+      { pairRead, rowTops, areaAligned });
+
     /* ── 10h. D-39 P2-5 — THE MID-FIGHT BUILD NOTICE IS PRINTED ONCE,
        ON WHICHEVER TAB THE STEPPERS IT DESCRIBES ARE ON. Plan 05-D39d.
        ==================================================================
