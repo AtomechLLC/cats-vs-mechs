@@ -24025,6 +24025,32 @@ App.render = (function () {
     node.hidden = !on;
   }
 
+  /* ONE SENTENCE, TWO NODES, EXACTLY ONE SPEAKING — D-39 P2-5. Plan
+     05-D39d. The argument is in dcFight's block below, where the premise
+     that expired is written down beside the paragraph that stated it.
+
+     THE VIEW ARRIVES AS AN ARGUMENT AND IS NOT READ OFF #app HERE. This
+     region does not own that word; [S06.10] does, and it hands it over on
+     the one frame it can be sure of it. A second read of the attribute
+     would be a second derivation of a reading two surfaces render — which
+     is the whole of P1-2, one region over, and the reason fgPoolReading
+     exists.
+
+     IT IS TOTAL RATHER THAN CONDITIONAL: every call decides BOTH nodes,
+     including the not-running case, where both are emptied. dcSaidFill
+     declines a missing node, so this is safe on the frame after dcRest
+     has taken the board's copy away and safe on a page that has never
+     started a fight. */
+  function dcSaidOwn(state, view) {
+    if (typeof document === 'undefined') { return; }
+    var running = !!state && state.fight !== null;
+    var onFight = running && view === VIEW_FIGHT;
+    dcSaidFill(document.getElementById('fight-said'), onFight);
+    var board = document.getElementById('board');
+    dcSaidFill(board ? board.querySelector('.dc-said--board') : null,
+      running && !onFight);
+  }
+
   /* PROJ-05, AND IT IS RECONCILED RATHER THAN CHOSEN, because two project
      documents disagree about it and both are right about something.
 
@@ -24359,18 +24385,59 @@ App.render = (function () {
        instances never needed a teardown because the columns rebuild;
        this one does, and dcRest takes it.
 
-       #fight-said IS THE FIGHT VIEW'S INSTANCE AND IS UNCHANGED. It is
-       on #fightbar, which the build view undisplays, so the two are
-       never on one screen — one note per surface, and neither surface
-       says it twice. */
-    dcSaidFill(document.getElementById('fight-said'), true);
+       #fight-said IS THE FIGHT VIEW'S INSTANCE. It is on #fightbar,
+       which the build view undisplays, so the two are never on one
+       screen — one note per surface, and neither surface says it twice.
+
+       ==================================================================
+       THE PARAGRAPH ABOVE EXPIRED AND NOTHING SAID SO — D-39 P2-5.
+       Plan 05-D39d.
+       ==================================================================
+       It was true when D-33 P2-13 wrote it and D-38's third tab took it
+       away without touching it. The fight view undisplays the roster
+       COLUMNS (`#app[data-view="fight"] .brd-col`, [C15]) and leaves
+       #board itself displayed as a grid — which is what this note hangs
+       off, at `grid-column: 1 / -1`, precisely so it spans both columns
+       rather than sitting in one. So the fight view shows both.
+
+       Measured on the shipped file at 1920x1080 and at 1366x768, real
+       Chrome, a fight running, the fight tab on: #fight-said at y=1828,
+       display:block, visibility:visible; .dc-said--board at y=1938, the
+       same. 110px apart, 51 identical words, exactly the defect D-33
+       P2-13 removed from the board one tab over.
+
+       ONE OWNER, CHOSEN BY THE VIEW, WHICH IS WHAT "ONE PER SURFACE"
+       ALWAYS MEANT. The audit says the fight surface's own copy is the
+       one that belongs there, and the reason is stronger than
+       precedence: the sentence is ABOUT the steppers, and the fight view
+       is the one view where none of them is on screen. So the board's
+       copy says it wherever the board's steppers are, and #fightbar's
+       says it on the tab where they are not.
+
+       IT IS THE VIEW AND NOT `state.fight`, and it has to be: a student
+       may press "The board" mid-fight and stand in front of the live
+       steppers, which is the whole state this notice exists for. So the
+       word arrives from [S06.10], which is the region that decides views,
+       and dcSaidOwn below is CALLED FROM THERE rather than from this
+       hook — a view press runs no sync, so a fill made here would be
+       stale across every tab press. The howto tab takes the board's
+       branch and both nodes are under a hidden root there, which is what
+       it was before this change and is not made worse by it.
+
+       THIS FUNCTION STILL BUILDS THE NODE, because building is a
+       structural fact about #board and dcRest is what takes it away. What
+       moved out is only the decision about which of the two SPEAKS.
+
+       AND THE SILENT ONE IS EMPTIED RATHER THAN MERELY HIDDEN, because
+       dcSaidFill's own rule is that hidden and empty are one decision —
+       so a Layer C harvest of the fight page finds ONE instance of this
+       sentence and not two. */
     var note = board.querySelector('.dc-said--board');
     if (!note) {
       note = dcSaidNode();
       note.classList.add('dc-said--board');
       board.insertBefore(note, board.firstChild);
     }
-    dcSaidFill(note, true);
 
     var lines = board.querySelectorAll('.dc-line');
     for (var i = 0; i < lines.length; i++) { dcFillStanding(state, lines[i]); }
@@ -24611,6 +24678,31 @@ App.render = (function () {
     var open = app.dataset.proj === '1';
     app.dataset.proj = open ? '1' : '';
     pvPaint('proj-toggle', open);
+
+    /* THE ONE PLACE THAT KNOWS WHICH VIEW IS ON, HANDING THAT WORD TO
+       THE ONE REGION THAT NEEDS IT — D-39 P2-5. Plan 05-D39d.
+
+       [S06.9] owns the mid-fight build notice and its two nodes. It does
+       NOT own the answer to "which of them shows", because that answer
+       is a view and this is the region that decides views. So the word
+       is passed rather than re-derived: P1-2 was a finding about one
+       reading computed twice, and this is the same shape one region over.
+
+       IT IS CALLED FROM HERE AND NOT FROM [S06.9]'s OWN HOOK, and that
+       is REQUIRED rather than tidy. A view press is page work — [S07.6]
+       dispatches no op, commits no state and runs no sync — so it calls
+       exactly this function and nothing else. A fill left in
+       syncBoardFight would therefore be right on every commit and STALE
+       across every tab press, which is a defect a student reaches by
+       pressing "The board" during a fight: measured before this line was
+       written, #fightbar's copy stayed filled and #board's stayed empty
+       on the board tab, so the notice about the steppers was absent from
+       the one tab the steppers are on.
+
+       viewSwitch is also a SYNC_HOOK, so a commit reaches it too, after
+       [S06.9] has created or removed the node. Both orders are covered by
+       one call site. */
+    dcSaidOwn(state, now);
   }
 
   SYNC_HOOKS.push(viewSwitch);

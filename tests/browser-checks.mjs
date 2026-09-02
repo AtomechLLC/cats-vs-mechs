@@ -1677,6 +1677,91 @@ for (const ch of ['chrome', 'msedge']) {
       && poolOne.stripSays.indexOf('spent so far') === -1,
       { poolIdle, poolOne, poolTwo, poolBack, poolPanelBack });
 
+    /* ── 10h. D-39 P2-5 — THE MID-FIGHT BUILD NOTICE IS PRINTED ONCE,
+       ON WHICHEVER TAB THE STEPPERS IT DESCRIBES ARE ON. Plan 05-D39d.
+       ==================================================================
+       The audit measured, at 1920 with a fight running: #fight-said at
+       y=1992 and .dc-said--board at y=2103, both visible, 111px apart,
+       carrying the same 51 words. D-33 P2-13 de-duplicated this sentence
+       on the BOARD and left a paragraph in the artifact saying the two
+       surviving instances "are never on one screen" because #fightbar is
+       undisplayed in the build view. That was true when it was written.
+       D-38's third tab expired it without touching it: the fight view
+       undisplays the roster COLUMNS and leaves #board itself displayed,
+       and .dc-said--board spans it at grid-column 1 / -1 precisely so it
+       sits above both columns rather than in one of them.
+
+       WHY THIS IS A BROWSER CELL AND NOT A NODE ROW. The stub has no
+       stylesheet, so "both are on one screen" is a layout claim — the
+       same reason row 92b gives about the projection panel. A node row
+       can see two filled nodes; only a browser can see that the fight
+       view leaves both of them with a real box.
+
+       AND IT DRIVES ALL THREE TABS, because the fix is a VIEW decision
+       and a fix that only handled the tab the fight opens on would be
+       exactly as broken for a student who presses "The board" mid-fight
+       to reach the steppers the sentence is about. That press runs no
+       sync — [S07.6] dispatches no op — so a fill made in [S06.9]'s own
+       hook would be stale there. Measured on the first draft of this fix:
+       #fightbar's copy stayed filled and #board's stayed empty on the
+       board tab, so the notice about the steppers was absent from the one
+       tab the steppers are on. It is [S06.10] that fills them now.
+
+       THE COUNT IS OVER NODES THAT ACTUALLY SAY IT, not over nodes that
+       exist: dcSaidFill's rule is that hidden and empty are one decision,
+       so a silent instance is an EMPTY instance and a Layer C harvest of
+       either page finds one sentence and not two. Both are asserted —
+       the count of sayers, and that the sayer has a real box on the tab
+       that owns it. */
+    const d39Notice = () => pg.evaluate(() => {
+      const box = (n) => {
+        const r = n.getBoundingClientRect();
+        return { w: Math.round(r.width), h: Math.round(r.height) };
+      };
+      const all = Array.from(document.querySelectorAll('#fight-said, .dc-said'));
+      const says = (n) => n.textContent.indexOf('steppers on the board') !== -1;
+      const sayers = all.filter(says);
+      return {
+        view: document.querySelector('#app').dataset.view || '',
+        count: sayers.length,
+        who: sayers.map((n) => n.id || n.className).join(' '),
+        boxed: sayers.filter((n) => box(n).w > 0 && box(n).h > 0).length,
+        empties: all.filter((n) => !says(n)).length
+      };
+    });
+    const goTab = async (want) => {
+      await pg.evaluate((w) => {
+        const b = document.querySelector(`.vw-btn[data-vw="${w}"]`);
+        if (b) { b.click(); }
+      }, want);
+      await pg.waitForTimeout(300);
+    };
+    const noteFight = await d39Notice();
+    await goTab('build');
+    const noteBoard = await d39Notice();
+    await goTab('howto');
+    const noteHowto = await d39Notice();
+    // AND THE VIEW GOES BACK TO THE FIGHT, which is where cell 10g left it
+    // and where cell 11's declarations have to be pressed. A cell that
+    // changes a page-wide flag owns putting it back — 10g's own closing
+    // paragraph, at a second flag.
+    await goTab('fight');
+    const noteBack = await d39Notice();
+    note(ch, size.name, 'D-39 P2-5 sayers per tab, fight / board / howto',
+      `${noteFight.count}:${noteFight.who} | ${noteBoard.count}:${noteBoard.who}`
+      + ` | ${noteHowto.count}:${noteHowto.who}`);
+    note(ch, size.name, 'D-39 P2-5 the fight tab sayer is boxed / view came back',
+      `${noteFight.boxed} of ${noteFight.count} / ${noteBack.view}`);
+    ok(`${tag}: 10h. D-39 P2-5 — THE MID-FIGHT BUILD NOTICE IS SAID ONCE, BY THE SURFACE WHOSE TAB IS ON. The audit measured the same 51 words at y=1992 and again at y=2103 with a fight running, both visible, 111px apart — D-33 P2-13's defect re-created one tab over, because that fix left a paragraph in the artifact reasoning that #fightbar and #board are never on one screen and D-38's third tab expired the reasoning without touching it. THE FIGHT VIEW LEAVES #board DISPLAYED: it undisplays the roster COLUMNS, and this note spans the grid at 1 / -1 on purpose so it sits above both of them. So the owner is chosen by the VIEW and all three tabs are driven here, because the sentence is ABOUT the steppers and the fight tab is the one tab none of them is on. The board tab is the clause that matters most and is the one a first draft got wrong: a view press runs no sync, so a fill made in [S06.9]'s own hook is correct on every commit and stale across every tab press. Counted over nodes that SAY it rather than nodes that exist, because hidden and empty are one decision here and a silent instance is an empty one — which is also what keeps the Layer C harvest of either page down to one`,
+      noteFight.count === 1 && noteBoard.count === 1 && noteHowto.count === 1
+      && noteBack.count === 1
+      && noteFight.who === 'fight-said'
+      && noteBoard.who.indexOf('dc-said--board') !== -1
+      && noteHowto.who.indexOf('dc-said--board') !== -1
+      && noteFight.boxed === 1 && noteBoard.boxed === 1
+      && noteBack.view === 'fight' && noteBack.who === 'fight-said',
+      { noteFight, noteBoard, noteHowto, noteBack });
+
     // ── 11. A FULL ROUND BY REAL CLICKS. One untargeted declaration, one target-directed
     // one, each in a SINGLE press; the team resources read before and after each; Advance;
     // the round and the ledger read back.
