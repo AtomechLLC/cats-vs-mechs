@@ -941,3 +941,64 @@ and the row stays one line with 17px to spare.
 
 **Owner:** a pass that can turn cell 25a, or the 05-11 playtest if the room says the round-rules
 words are unreadable from the back.
+
+---
+
+## D-39 P1-2's SECOND HALF — "9 of 9 still standing" is printed twice, 106px apart
+
+**Raised 2026-09-02 by plan 05-D39b.** P1-2's pool half landed; this is the other duplicate the
+audit names in the same finding and it is deliberately not touched.
+
+**What was measured**, 1920, a fight running, the sidebar open, all three readings on one screen:
+
+| element | reads |
+|---|---|
+| `#state-cats .fg-standing` (state card) | `9 of 9 still standing` |
+| `#strip .dc-live-read` (sidebar) | `9 of 9 still standing.` |
+
+**It is a DUPLICATION and not a CONTRADICTION**, which is why it is a different problem from the
+pool. Both readings come from `App.model.aliveCount` over the same slice in the same frame and they
+agree to the character; a student reading them side by side learns nothing false. The pool
+readings disagreed in *figure* and in *vocabulary*, and that is the whole of what this pass was
+sent to fix — "one pool truth", in the plan's own words.
+
+**Why it is not simply deleted.** The sidebar's block is `[S06.9]`'s "The fight as it stands", and
+the standing count is the first of its three lines; the state card's is `[S06.7]`'s `fgFillStanding`
+and is the heading of the side's own column. Each is the opening reading of its own region, and a
+region that opened with a turns-to-wipe figure and no roster count would be a projection about a
+side it had not named the size of. Removing either is a decision about what one of those two
+regions IS, which is the kind of decision D-39's own P1-2 item 2 poses ("either the topbar keeps
+the round number and one compact figure per side while the state card keeps the sentence, or the
+reverse") and leaves to the developer.
+
+**The three admissible answers:**
+1. drop it from `#strip` and let the sidebar open on its pool line, on the ground that the state
+   card is 400px away and always rendered;
+2. drop it from the state card and let the column open on its team resources, on the ground that
+   the battlefield below it already draws one shape per standing unit;
+3. leave both, on the ground that they agree and each opens its own region.
+
+**Owner:** the pass that owns `[C15]`'s content, or the 05-11 playtest — this is a question about
+what a room reads, and node row 102b's technique (compare the two renderings to each other) is
+already in the file for whichever survives.
+
+---
+
+## D-39 P1-3's SIDE-EFFECT — `.err-detail` is the last unstyled scrollbar in the artifact
+
+**Raised 2026-09-02 by plan 05-D39b,** found on a screenshot taken with `--hide-scrollbars`
+removed from headless Chrome's default args.
+
+`[C16]`'s scrollbar treatment names nine boxes and, after this pass, ten. `.err-detail` — the
+read-only textarea in `[C08]`'s error panel that carries the stack trace — is not one of them, so
+Chrome draws it in its light default: a white bar down the right of a dark panel. It is the exact
+shape of the defect D-33 Pass C found on `.pk-body` and `.ae-body` and fixed, one region over.
+
+It is **out of scope for this pass** by the rule this project keeps: only auto-fix what the
+current task's own changes caused, and this predates the task. It is also the lowest-stakes
+instance of it in the file — the panel is a failure surface, not a workshop one.
+
+**The fix is one selector**, appended to `[C16]`'s three lists with `--fade-cover:var(--panel)`.
+Photographed at `d39b/w1920-chrome-err-panel.png`.
+
+**Owner:** any pass that touches `[C08]` or `[C16]`.
