@@ -671,6 +671,44 @@ name row, which is a **design** question the developer should answer rather than
 **Owner:** the 05-11 playtest, or a plan the developer asks for. It is written down here rather
 than half-done in 05-D36, whose scope was the control.
 
+### CLOSED BY D-37 — plan 05-D37, AND NOT BY THE FIX THIS ENTRY PRICED
+
+**Closed 2026-09-01.** The resolution is **a different control**, not the twenty-assertion
+restructure priced above — and this entry is closed by NAMING that rather than by implying the
+priced fix was taken.
+
+The developer, one round after D-36: *"click on a unit then click on the popup window to modify
+the values associated with it."* D-37's own interpretation says what that does to this entry:
+*"the popup resolves D-36's own two deferred items (17: the popup is a true keyboard surface with
+real buttons; 18: a value at zero is present and clickable in the popup)."*
+
+**Why the content-model problem simply stops existing.** This entry's whole mechanism was that a
+`.bf-line` is a `<div>` inside `.bf-unit`, which is a `<button>`, and `<button>`'s content model
+allows neither an interactive descendant nor a `tabindex` one. D-37 removes the reading's press
+target from the shape entirely — `bfBuildUnit` no longer writes a routing attribute on a line —
+and puts every one of a unit's values in `#fg-unit`, whose rows are real
+`<button class="stp-btn fgu-btn">` inside a plain `<div>`. There is no nesting left to constrain.
+
+**The route, driven end to end in both suites.** Check 122 in `tests/selftest-node.cjs`; browser
+cell 26h in real Chrome and real Edge at 1920x1080 and 1366x768, with a REAL Tab rather than a
+stand-in for one:
+
+```
+the keyboard on the shape          BUTTON  data-k="fg/bf/cats/c4"
+Enter                              popup open on c4, focus on fg/u/cats/c4/hp/less
+Enter                              health 3 -> 2, one hand ruling
+ArrowUp / ArrowDown                3, then 2 — the KEY decides the sign, not the button
+Tab, Tab, Tab                      fg/u/cats/c4/hp/more, shield/less, shield/more
+Escape                             box shut and emptied, focus back on fg/bf/cats/c4
+```
+
+**What the priced fix would have cost and no longer has to.** Lifting `.bf-lines` out of the shape
+button would have moved about twenty assertions and — the reason it was a DESIGN question rather
+than an executor's — would have shrunk the retarget flow's click target from the whole plate to
+the name row. D-37 leaves the plate whole: the shape is still one control, and it now has two jobs
+separated in TIME (at rest it opens the popup; while a change of target is half made it retargets,
+which is the developer's own parenthesis).
+
 ---
 
 ## 18. A RESOURCE READING THAT IS HIDDEN AT ZERO CANNOT BE CLICKED BACK UP
@@ -696,3 +734,31 @@ build stepper — which edits the **allocation**, not the fight — or an undo.
    control from the one the developer asked for.
 
 **Owner:** the 05-11 playtest.
+
+### CLOSED BY D-37 — plan 05-D37, AND IT IS ANSWER 3
+
+**Closed 2026-09-01.** This entry wrote out three admissible answers and said each was a design
+decision. The developer made it, by asking for the third one in as many words: *"click on a unit
+then click on the popup window to modify the values associated with it."* D-37's interpretation
+confirms the reading — *"18: a value at zero is present and clickable in the popup"*.
+
+**Answers 1 and 2 are NOT taken, and the difference matters.** The battlefield's hide pass is
+untouched: `[S06.11]` still takes a line away at zero for every type but health, and D-33 P2-11's
+rule that a line which STAYS at zero must SAY zero still governs health alone. Nothing about what
+the battlefield draws has changed. What changed is that the battlefield is no longer where a
+unit's numbers are ruled on — `[S06.15]`'s popup walks `bfTokenIds` WHOLE and draws every value
+the unit holds whatever the number is, in D-21's own count form for a zero.
+
+**Driven, in both suites, on the exact value this entry is about.** Check 121 in
+`tests/selftest-node.cjs` drives the FIGHT shield to zero and reads the popup back; browser cell
+26g does the same in real Chrome and real Edge at both viewports and confirms the other half by
+LAYOUT — that the battlefield's shield line really is gone:
+
+```
+the shield line on the shape       hidden=true, height=0px
+the popup's shield row             present, "Cat 1 Shield, 0.", the count form with one token
+its + button                       present, and one press writes {unit:c1, tok:shield, 0 -> 1}
+```
+
+So a student running a Recharge house rule puts a shield back from the fight tab, which is exactly
+what this entry said they could not do.
