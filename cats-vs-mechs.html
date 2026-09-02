@@ -26124,6 +26124,53 @@ App.interactions = (function () {
     return e.button === undefined || e.button === 0;
   }
 
+  /* ONE DIALOG AT A TIME — D-38's SECOND DEFECT, ANSWERED BY CONSTRUCTION.
+     ====================================================================
+     The developer's screenshot of the Actions editor shows a SECOND panel
+     underneath it — "Emoji" and "Done", which is the token-appearance picker's
+     foot, read through #act-edit's own 76%-opaque backdrop. Two modal dialogs
+     stacked in the top layer look exactly like that.
+
+     WHAT WAS MEASURED FIRST, AND IT IS THE HONEST HALF. Plan 05-D38 drove all
+     TWELVE ordered pairs of the four openers — Tokens, Actions, Share, Reset —
+     as real clicks in real Chrome from file://, at 1366x768. Every second press
+     was BLOCKED: a modal dialog makes the rest of the document inert, the top
+     bar is outside the dialog, and the click never reaches the button. So the
+     photographed state could NOT be reached through the shipped controls, and
+     saying so is part of the record rather than a reason to do nothing.
+
+     WHY THE GUARD SHIPS ANYWAY, and it is not belt-and-braces for its own sake.
+     Inertness is the ONLY thing standing between this file and two stacked
+     modals. Nothing in [S07] says "one at a time" — each of the four openers
+     tests its OWN dialog's .open and knows nothing about the other three — so
+     the property is held by a browser behaviour rather than by this file, and
+     a property nothing here states is a property nothing here can keep. Two
+     ways it goes: any opener reached by a route that is not a press on an inert
+     top bar (a keyboard shortcut, a control moved INSIDE a dialog, a future
+     surface opened with show() instead of showModal(), a headless driver), and
+     it is gone with no row anywhere reddening. This makes it a rule of this
+     file, on the page, where check 124 can read it back.
+
+     IT CLOSES RATHER THAN REFUSING, and that is the shipped register: D-17 says
+     this artifact does not put a confirmation in front of a student, and a
+     press on Actions that did nothing because something else was open would be
+     the button that "visibly does nothing" openActionEditor's own comment
+     refuses. The last press wins, which is what a press means everywhere else
+     on this page.
+
+     IT WALKS THE DOCUMENT RATHER THAN A LIST OF FOUR IDS. A list is a fifth
+     place to remember a dialog exists, and the one thing this file knows about
+     the next dialog is that somebody will forget to add it to something. */
+  function soleDialog(keep) {
+    if (typeof document === 'undefined') { return; }
+    if (typeof document.querySelectorAll !== 'function') { return; }
+    var all = document.querySelectorAll('dialog');
+    Array.prototype.forEach.call(all, function (d) {
+      if (d === keep) { return; }
+      if (d.open === true && typeof d.close === 'function') { d.close(); }
+    });
+  }
+
   // pointerdown, not click, and this is the whole of ALLOC-07's count half. A
   // click fires only when the down and the up land on the same element, so any
   // rebuild between them silently eats it — an intermittent UNDERcount, which
@@ -26452,6 +26499,8 @@ App.interactions = (function () {
     var id = (dlg.open === true) ? pickedTok(dlg) : '';
     if (id === '') { id = FIRST_TOK; }
     showType(dlg, id);
+    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
+    soleDialog(dlg);
     if (dlg.open !== true) { dlg.showModal(); }
   };
 
@@ -27166,6 +27215,8 @@ App.interactions = (function () {
     // honestly has nothing on it, and the per-frame hook picks the surface up
     // the moment the side holds something again.
     if (id !== '') { showAction(dlg, side, id); }
+    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
+    soleDialog(dlg);
     if (dlg.open !== true) { dlg.showModal(); }
   };
 
@@ -28195,6 +28246,8 @@ App.interactions = (function () {
     if (SH_PANES.indexOf(pane) === -1) { pane = SH_PANES[0]; }
 
     showPane(dlg, pane);
+    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
+    soleDialog(dlg);
     if (dlg.open !== true) { dlg.showModal(); }
   };
 
@@ -28205,6 +28258,8 @@ App.interactions = (function () {
   UI_HANDLERS.openResetAsk = function () {
     var dlg = resetDialog();
     if (dlg === null) { return; }
+    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
+    soleDialog(dlg);
     if (dlg.open !== true) { dlg.showModal(); }
   };
 

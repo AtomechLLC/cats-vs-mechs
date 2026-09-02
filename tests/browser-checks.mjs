@@ -344,6 +344,73 @@ for (const ch of ['chrome', 'msedge']) {
       && paintedPills.live === 'Cats/Mechs',
       { coldPills, coldVisible, paintedPills });
 
+    /* ── 27b. D-38's SECOND DEFECT — TWO DIALOGS AT ONCE, MEASURED BOTH WAYS. ─────────────
+       The developer's screenshot shows the token picker's foot ("Emoji", "Done") visible
+       UNDERNEATH the Actions dialog. Two stacked modals read exactly like that through
+       #act-edit's 76%-opaque backdrop.
+
+       THE FIRST HALF IS THE MEASUREMENT AND IT IS THE HONEST ONE: all twelve ordered pairs
+       of the four openers are driven as REAL CLICKS, and every second press is expected to
+       be BLOCKED — a modal makes the rest of the document inert, the top bar is outside the
+       dialog, so the click never reaches the button. That is what makes the photographed
+       state unreachable through the shipped controls, and it is asserted rather than
+       assumed, because the day it stops being true is the day the guard below is the only
+       thing left.
+
+       THE SECOND HALF IS THE GUARD. A press is DISPATCHED on the second opener instead of
+       clicked — which stands in for every route that is not an inert-blocked click: a
+       keyboard shortcut, an opener moved inside a dialog, a future surface opened with
+       show(). Before soleDialog() that left two dialogs open; it must now leave one, and it
+       must be the SECOND one, because the last press wins is what a press means everywhere
+       else on this page. */
+    const OPENERS = [
+      ['tok-picker', '[data-k="tok"]'],
+      ['act-edit', '[data-k="act"]'],
+      ['share', '[data-k="sh"]'],
+      ['reset-ask', '[data-k="rs"]']
+    ];
+    const openIds = () => pg.evaluate(() =>
+      [...document.querySelectorAll('dialog')].filter(d => d.open).map(d => d.id));
+    const shutAll = () => pg.evaluate(() =>
+      [...document.querySelectorAll('dialog')].forEach(d => { if (d.open) d.close(); }));
+    const clickPairs = [];
+    const sendPairs = [];
+    for (const [firstId, firstSel] of OPENERS) {
+      for (const [secondId, secondSel] of OPENERS) {
+        if (firstId === secondId) continue;
+        await shutAll(); await pg.waitForTimeout(80);
+        await pg.click(firstSel); await pg.waitForTimeout(150);
+        let blocked = false;
+        try { await pg.click(secondSel, { timeout: 800 }); } catch { blocked = true; }
+        await pg.waitForTimeout(120);
+        const afterClick = await openIds();
+        clickPairs.push(`${firstId}->${secondId}:${blocked ? 'blocked' : 'LANDED'}=${afterClick.join('+') || 'none'}`);
+        // The dispatched press: the same delegated pointerdown the button routes through,
+        // reaching the handler by a path inertness does not close.
+        await pg.evaluate((s) => {
+          const n = document.querySelector(s);
+          n.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, button: 0 }));
+        }, secondSel);
+        await pg.waitForTimeout(200);
+        const afterSend = await openIds();
+        sendPairs.push(`${firstId}->${secondId}=${afterSend.join('+') || 'none'}`);
+      }
+    }
+    await shutAll(); await pg.waitForTimeout(120);
+    const clickAllBlocked = clickPairs.every((s) => s.indexOf(':blocked=') !== -1);
+    const clickAlwaysOne = clickPairs.every((s) => s.split('=')[1].indexOf('+') === -1
+      && s.split('=')[1] !== 'none');
+    const sendAlwaysSecond = sendPairs.every((s) => {
+      const want = s.split('->')[1].split('=')[0];
+      return s.split('=')[1] === want;
+    });
+    note(ch, size.name, 'D-38 dialog pairs — clicked / dispatched',
+      `${clickPairs.filter(s => s.indexOf(':blocked') !== -1).length}/12 blocked, ${sendPairs.filter((s) => s.split('=')[1].indexOf('+') === -1).length}/12 single`);
+    ok(`${tag}: 27b. D-38's SECOND DEFECT — ONE DIALOG AT A TIME, MEASURED BOTH WAYS. The developer photographed the token picker's foot visible UNDER the Actions dialog, which is what two stacked modals look like through a 76% backdrop. All twelve ordered pairs of the four openers are driven as REAL CLICKS and every second press is BLOCKED, because a modal makes the top bar inert — that is what made the photographed state unreachable through the shipped controls, and it is asserted rather than assumed, since the day it stops holding is the day the guard is all that is left. Then a press is DISPATCHED on the second opener, standing in for every route inertness does not close — a keyboard shortcut, an opener moved inside a dialog, a surface opened with show() — and exactly one dialog is open afterwards and it is the SECOND, because the last press wins is what a press means everywhere else on this page`,
+      clickPairs.length === 12 && sendPairs.length === 12
+      && clickAllBlocked && clickAlwaysOne && sendAlwaysSecond,
+      { clickPairs, sendPairs });
+
     await startFight(pg);
     const bViews = await box(pg, '#views');
     const bBand = await box(pg, '.fg-band');

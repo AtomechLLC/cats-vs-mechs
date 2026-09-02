@@ -5815,6 +5815,87 @@ check(
     + ' | named here but not built: ' + (rootsNotBuilt.join(', ') || 'none')
 );
 
+/* 124. D-38's SECOND DEFECT — ONE DIALOG AT A TIME, AS A RULE OF THIS FILE.
+
+   THE PHOTOGRAPH. The developer's screenshot of the Actions editor shows a
+   second panel underneath it — "Emoji" and "Done", the token-appearance
+   picker's foot — read through #act-edit's own 76%-opaque backdrop. Two modal
+   dialogs stacked in the top layer look exactly like that.
+
+   WHAT WAS MEASURED, AND IT IS THE HONEST HALF OF THIS ROW. Plan 05-D38 drove
+   all TWELVE ordered pairs of the four openers as real clicks in real Chrome
+   from file:// at 1366x768 (probe D). Every second press was BLOCKED — a modal
+   makes the rest of the document inert, the top bar is outside the dialog, and
+   the click never lands. The photographed state was NOT reachable through the
+   shipped controls, and that is recorded rather than quietly fixed away.
+
+   WHY THE ROW EXISTS ANYWAY. Inertness was the ONLY thing holding the property.
+   Nothing in [S07] said "one at a time": each opener tested its own dialog's
+   .open and knew nothing about the other three. A property held by a browser
+   behaviour and stated nowhere in this file is a property this file cannot
+   keep — and THIS PAGE IS THE PROOF, because it models .open, showModal() and
+   close() and models NO INERTNESS AT ALL. So the twelve pairs really do land
+   here, every one of them, and before soleDialog() this row would have read two
+   open dialogs on all twelve. It is the one place the defect is reproducible.
+
+   THE PAIRS ARE DRIVEN THROUGH THE REAL OPENERS, never by showModal(), for
+   openDialogs' own stated reason one comment down: a dialog whose opener was
+   unregistered would open nothing and pass this row spotlessly. So the count of
+   pairs that actually OPENED something is floored beside the claim. */
+const soleOpeners = [
+  ['tok-picker', 'openTokenPicker'],
+  ['act-edit', 'openActionEditor'],
+  ['share', 'openShare'],
+  ['reset-ask', 'openResetAsk']
+];
+const soleOpenNow = () => soleOpeners
+  .map(([id]) => id).filter((id) => dom.byId[id] && dom.byId[id].open === true);
+const soleWorst = [];
+const soleLanded = [];
+soleOpeners.forEach(([firstId, firstAct]) => {
+  soleOpeners.forEach(([secondId, secondAct]) => {
+    if (firstId === secondId) { return; }
+    soleOpeners.forEach(([id]) => {
+      const d = dom.byId[id];
+      if (d && d.open === true && typeof d.close === 'function') { d.close(); }
+    });
+    A.state.flush();
+    const a = stub.querySelector('[data-act="' + firstAct + '"]');
+    const b = stub.querySelector('[data-act="' + secondAct + '"]');
+    if (a === null || b === null) { return; }
+    press(a); release(a); A.state.flush();
+    press(b); release(b); A.state.flush();
+    const now = soleOpenNow();
+    soleWorst.push(firstId + '->' + secondId + '=' + (now.join('+') || 'none'));
+    soleLanded.push(now.length === 1 && now[0] === secondId);
+  });
+});
+soleOpeners.forEach(([id]) => {
+  const d = dom.byId[id];
+  if (d && d.open === true && typeof d.close === 'function') { d.close(); }
+});
+A.state.flush();
+check(
+  '124. D-38 — ONE DIALOG AT A TIME, AND IT IS A RULE OF THIS FILE RATHER THAN '
+    + 'A BEHAVIOUR OF THE BROWSER. The developer photographed the token '
+    + 'picker\'s foot visible UNDERNEATH the Actions dialog, which is what two '
+    + 'stacked modals look like through a 76% backdrop. Driven as real clicks in '
+    + 'real Chrome the state is unreachable — a modal makes the top bar inert and '
+    + 'all twelve second presses were BLOCKED — and that measurement is recorded '
+    + 'rather than being the answer, because inertness was the ONLY thing holding '
+    + 'the property: not one line of [S07] said it, each opener tested its own '
+    + 'dialog\'s .open and knew nothing about the other three, and a property this '
+    + 'file does not state is one it cannot keep through a keyboard route, a '
+    + 'control moved inside a dialog, or a surface opened with show(). THIS PAGE '
+    + 'IS WHERE IT IS REPRODUCIBLE, because it models .open and close() and models '
+    + 'NO INERTNESS: all twelve second presses land here, and before soleDialog() '
+    + 'every one of them left two dialogs open. Driven through the REAL openers '
+    + 'rather than showModal(), so a dialog whose opener was unregistered opens '
+    + 'nothing and trips the floor instead of passing on nothing',
+  soleLanded.length === 12 && soleLanded.every((x) => x === true),
+  soleWorst.join(' | ')
+);
+
 // Open, let the frame land, read, close. openDialogs() is a function because
 // check 47d below drives the identical pass a second time under a renamed type.
 function openDialogs() {
