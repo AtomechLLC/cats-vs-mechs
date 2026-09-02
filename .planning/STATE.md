@@ -3,8 +3,8 @@ gsd_state_version: 1.0
 milestone: v1.0
 milestone_name: milestone
 status: verifying
-stopped_at: Completed D-37 — the unit popup (05-D37)
-last_updated: "2026-09-01T17:10:00.000Z"
+stopped_at: Completed D-38 — the how-to leaves the simulator (05-D38)
+last_updated: "2026-09-01T22:40:00.000Z"
 last_activity: 2026-09-01
 progress:
   total_phases: 7
@@ -462,6 +462,77 @@ retarget flow keeps its whole plate), 18 by its own answer 3 (answers 1 and 2 ex
 taken — the battlefield's hide pass is untouched).
 `.planning/phases/05-fight-loop-playtest/05-D37-SUMMARY.md`.
 
+**D-38 — THE HOW-TO LEAVES THE SIMULATOR, AND THE TWO DEFECTS IN THE SCREENSHOT ARE BOTH
+REAL.** "this part a the bottom looks cluttery - if you want a how-to-tab, do it separately
+from the simualtor."
+
+**A THIRD TAB.** `#howto` is a view beside The board and The fight, holding six cards of
+displaced prose organised by surface — the board, tokens, actions, sharing, the fight, the
+round rules. Not a dialog: no `DIALOG_ROOTS` entry, no opener, no close-request answer, no
+focus trap, and a student reading how the fight works is not made to cover the fight with
+the thing explaining it. `[C18]` carries six rules and **`[C15]` is byte-identical**, because
+several rows read those rule bodies by name and a tidier `:not()` rewrite would have turned
+green rows red for a change none of them is about.
+
+**HOW THE HARVEST REACHES IT WAS DECIDED CONSCIOUSLY.** The gate stub BUILDS `#howto` with
+its words, extracted from the shell rather than re-typed — a deliberate exception to the
+"static text is empty here" rule this file states four times, because the alternative leaves
+the artifact's largest block of prose, about a FIGHT, behind its smallest word list. The
+`#app` harvest went **187 → 219**; row 126 reads the region by name under **HOWTO_FLOOR 24**
+against a measured 32. And **no paragraph in the region nests an inline element** — the walk
+reads LEAVES, so a `<p>` holding a `<b>` keeps the emphasis and loses the sentence. `[C18]`
+states it and row 126 counts the shell's fragments against the harvest.
+
+**ELEVEN DISPLACEMENT SITES, EACH RULED AND RECORDED AT THE SITE.** Five moved whole (the
+round-rules explainer, the picker's shape-and-colour paragraph, the action editor's opening
+note, the share pane's copy note, "Paste a classmate's code and press Load"); six became
+tooltips on their own headings, which is D-38's named allowance on D-29's channel (Cost,
+Needs, Changes, Override, Range, and a one-liner on `#rr-head`); two were SPLIT so the
+reading stays at its control — "Nothing here is applied." and "It replaces the board, and
+one Ctrl+Z brings yours back." Four dead CSS rules removed with their reason, D-33c's trap
+read the other way round. The Actions editor now carries **zero** explainer paragraphs and
+its body no longer scrolls at 1920 at all: **825 over 779 before, 803 over 803 after**.
+
+**DEFECT (a) — THE EMPTY SIDE PILLS — REPRODUCED AND FIXED.** On a cold page both
+`.ae-side-name` spans read `""`: the words existed only in `[S06.5]`'s per-frame write, and
+that write has **four early returns** above it, so any frame in which the dialog is VISIBLE
+before one is cleared draws a labelled empty box. Twenty-two rendered changes went past
+because a reading taken after boot says "Cats" on the broken file too. The words now ship in
+the DOCUMENT as the resting value and the live read is untouched. Row 123 takes the resting
+reading at `makeStubDom()` time, before the artifact has run.
+
+**DEFECT (b) — THE SECOND PANEL — REPRODUCED, AND IT IS NOT TWO OPEN MODALS.** It is a
+CLOSED `<dialog>` in normal document flow. Measured on the shipped file, board tab, nothing
+pressed: `#tok-picker` **display:grid, 660x728** and `#act-edit` **display:grid, 1040x716**,
+both at document y 3067, 728px of dead page height. Open the Actions dialog, scroll to the
+foot, and the picker's sticky foot — "Emoji" and "Done" — is on screen underneath it through
+that dialog's own 76% backdrop. **The mechanism is cascade ORIGIN, not specificity:**
+`dialog:not([open]){display:none}` is a user-agent rule and an author declaration beats one
+at every specificity, so D-33 P1-3's three-block frame repealed the closed state in the
+change that gave those two their grid. `.sh` and `.rs` were clean BY ACCIDENT, so the guard
+names all four and row 127 derives the class list from the shell's own `<dialog>` tags.
+
+**AND THE READING THAT LOOKED RIGHT IS BOUNDED HONESTLY.** All twelve ordered pairs of the
+four openers were driven as real clicks: **every second press BLOCKED** by inertness, so two
+open modals were never reachable through the shipped controls. `soleDialog()` ships anyway,
+because inertness was the ONLY thing holding a property not one line of `[S07]` stated.
+
+**TWO BROWSER CELLS WERE PROPPED UP BY DEFECT (b)** and are turned in the open with recorded
+reds: 21c was measuring D-30's anchor on two marks inside a closed dialog (8 of 8 red on
+`badGeom`), and 25b2's scroll relied on the 728px of phantom page (4 of 4 red on `saidAt`).
+25b was turned in the same change for the same class of reason.
+
+**Row 103 turned in the open**: it floored the switch at two `data-vw` controls and drove
+two. Recorded RED **211 of 212**, on the count and nothing else.
+
+Gate: node **1336/0 exit 0** (unmoved — no op, no state key, no codec change), **216 of 216**
+(+123, 124, 125, 126, 127, 128), **160 shell ids** (+`view-howto`, `howto`, `howto-head`),
+`DIALOG_FLOOR` **138 — measured 179, and the arithmetic of why it did not move is written
+into its note**, `HOWTO_FLOOR` **24 new**, `FIGHT_FLOOR` **248 unmoved**; browser checks
+**314/0 HEADLESS** (+27, 27b, 27c, 28, 29) in chrome and msedge at 1920x1080 and 1366x768.
+Six mutation probes, every one of them red, artifact restored from scratchpad copies.
+`.planning/phases/05-fight-loop-playtest/05-D38-SUMMARY.md`.
+
 Next: **05-11, the playtest** — the last thing in the phase, and it now carries five questions
 rather than seven: the AP sweep, the +3-versus-refill fork (item 13), the round-rules placement
 (item 15), whether a decay needs attributing (item 16), and whether a two-line rule band reads as
@@ -708,6 +779,6 @@ Items acknowledged and carried forward from previous milestone close:
 
 ## Session Continuity
 
-Last session: 2026-09-01T17:10:00.000Z
-Stopped at: Completed D-37 (05-D37) — the unit popup: clicking a unit on the battlefield at rest opens [S06.15]'s #fg-unit for that unit, holding every value it has (health, shield, every unit-scope tally INCLUDING the ones at zero, and the dead marker) in D-29 symbols with scanned tooltips, each ruled through the shipped ops into the round's hand record. D-36's per-reading nudge ON THE BATTLEFIELD is removed on D-37's own instruction, with every paragraph that argued it rewritten in place; the team-resource click is untouched. A fixed box in the shell and NOT a <dialog> (a modal is centred and has no elsewhere; a sibling of #app is outside the fight harvest) — so row 92c drives it open before harvesting. The rows are BUILT, so the focus contract is a fingerprint of the side, the unit and the token LIST; probe G restored the rebuild and four browser cells went red on the node-identity clause alone. The shape has two jobs separated in TIME: at rest it opens the popup, armed it retargets. D-00d driven: hp to zero leaves the unit standing. Deferred items 17 and 18 CLOSED with the resolution named. Node 1336/0 exit 0 (unmoved — no op, no state key, no codec change), 210 of 210, 157 shell ids, DIALOG_FLOOR 138 and FIGHT_FLOOR 248 unmoved; browser 294/0 headless. Check 57's allowlist turned in the open 4 -> 6. Six mutation probes, all red, artifact byte-identical after. Previously: D-36 (05-D36) — click a resource on the fight tab to rule on it: five hand-ruling writers added in [S05]'s own group (the shield nudge setFightShield reserved by name, the pool pair, the tally pair reusing tallyOwner), the ruling record given a side-scope shape with a null unit and [S06.8] the arm that names the faction for it, [S06.9]'s marker widened to a unit's tallies, [S06.14] a new render sub-region moving ONE STATIC control to whatever reading was pressed (05-10's focus finding, driven), [S07.5] the open/rule/dismiss arms plus three document listeners, [C14.6] the .fgn- rules at position:fixed with the offsets published as --fgn-x/--fgn-y. Two defects found by driving: a real centre click on a lit shape lands on a reading (cells 12b/12c red — the separation is now in time as well as in space) and the fixed box did not follow a scroll (found in a screenshot). Node 1336/0 exit 0, 207 of 207, 153 shell ids, DIALOG_FLOOR 138 and FIGHT_FLOOR 248 unmoved; browser 286/0 headless (+26 through 26f). Check 57's style allowlist turned in the open 2 -> 4. Five mutation probes, all red, artifact byte-identical after. Previously: D-35c (05-D35c) — the round rules made operable: the amount bound to its rule (160px -> 0px), the dangling half-row gone, an Add under the list and a Remove on every row, ten pills grouped into five columns under four words written once, and the symbolic reading given a column of its own. The op did not move. Node 1327/0 exit 0, 204 of 204, 145 shell ids; browser 262/0 headless (+25a, +25b2). Two probes found nothing and both became commits. Previously: D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
+Last session: 2026-09-01T22:40:00.000Z
+Stopped at: Completed D-38 (05-D38) — the how-to leaves the simulator: a third "How this works" tab beside The board and The fight, holding six cards of displaced prose organised by surface, built into the gate stub WITH ITS WORDS so Layer C reads it under HOWTO_FLOOR 24 (measured 32) rather than being left to Layer A alone. Eleven displacement sites ruled and recorded at the site: five moved whole, six became tooltips on their headings per D-38's named allowance on D-29's channel, two split so the reading stays at its control. BOTH SCREENSHOT DEFECTS REPRODUCED ON THE SHIPPED FILE AND FIXED: the Side chooser's pills were EMPTY because the words lived only in a per-frame write with four early returns above it (they ship in the document now, the live read untouched); and the second panel was a CLOSED <dialog> in normal document flow — .pk and .ae carried display:grid, which beats the user-agent dialog:not([open]) at every specificity, so both sat 660x728 and 1040x716 at document y 3067 on every page, 728px of dead height, with the picker's "Emoji"/"Done" foot showing through the Actions dialog's backdrop. Twelve opener pairs driven as real clicks: every second press blocked by inertness, so two open modals were never reachable — soleDialog() ships anyway because inertness was the only thing holding it. Cells 21c and 25b2 were propped up by that defect and are turned in the open with recorded reds; row 103 turned 2 -> 3 data-vw controls. Node 1336/0 exit 0, 216 of 216, 160 shell ids, DIALOG_FLOOR 138 (measured 179, arithmetic in its note), FIGHT_FLOOR 248 unmoved; browser 314/0 headless. Six mutation probes, all red. Previously: Completed D-37 (05-D37) — the unit popup: clicking a unit on the battlefield at rest opens [S06.15]'s #fg-unit for that unit, holding every value it has (health, shield, every unit-scope tally INCLUDING the ones at zero, and the dead marker) in D-29 symbols with scanned tooltips, each ruled through the shipped ops into the round's hand record. D-36's per-reading nudge ON THE BATTLEFIELD is removed on D-37's own instruction, with every paragraph that argued it rewritten in place; the team-resource click is untouched. A fixed box in the shell and NOT a <dialog> (a modal is centred and has no elsewhere; a sibling of #app is outside the fight harvest) — so row 92c drives it open before harvesting. The rows are BUILT, so the focus contract is a fingerprint of the side, the unit and the token LIST; probe G restored the rebuild and four browser cells went red on the node-identity clause alone. The shape has two jobs separated in TIME: at rest it opens the popup, armed it retargets. D-00d driven: hp to zero leaves the unit standing. Deferred items 17 and 18 CLOSED with the resolution named. Node 1336/0 exit 0 (unmoved — no op, no state key, no codec change), 210 of 210, 157 shell ids, DIALOG_FLOOR 138 and FIGHT_FLOOR 248 unmoved; browser 294/0 headless. Check 57's allowlist turned in the open 4 -> 6. Six mutation probes, all red, artifact byte-identical after. Previously: D-36 (05-D36) — click a resource on the fight tab to rule on it: five hand-ruling writers added in [S05]'s own group (the shield nudge setFightShield reserved by name, the pool pair, the tally pair reusing tallyOwner), the ruling record given a side-scope shape with a null unit and [S06.8] the arm that names the faction for it, [S06.9]'s marker widened to a unit's tallies, [S06.14] a new render sub-region moving ONE STATIC control to whatever reading was pressed (05-10's focus finding, driven), [S07.5] the open/rule/dismiss arms plus three document listeners, [C14.6] the .fgn- rules at position:fixed with the offsets published as --fgn-x/--fgn-y. Two defects found by driving: a real centre click on a lit shape lands on a reading (cells 12b/12c red — the separation is now in time as well as in space) and the fixed box did not follow a scroll (found in a screenshot). Node 1336/0 exit 0, 207 of 207, 153 shell ids, DIALOG_FLOOR 138 and FIGHT_FLOOR 248 unmoved; browser 286/0 headless (+26 through 26f). Check 57's style allowlist turned in the open 2 -> 4. Five mutation probes, all red, artifact byte-identical after. Previously: D-35c (05-D35c) — the round rules made operable: the amount bound to its rule (160px -> 0px), the dangling half-row gone, an Add under the list and a Remove on every row, ten pills grouped into five columns under four words written once, and the symbolic reading given a column of its own. The op did not move. Node 1327/0 exit 0, 204 of 204, 145 shell ids; browser 262/0 headless (+25a, +25b2). Two probes found nothing and both became commits. Previously: D-35 PART 2 of 2 (05-D35b) — the range on the token editor, the round rules as an editable list in the build view, the fight's "Each round" reading with no control in it, and the what-changed reading walking the tally bags so a decay is visible on Advance. FIGHT_FLOOR re-derived 132 -> 248. Both D-35 dispatches are done; the phase's remaining work is 05-11, the playtest
 Resume file: None
