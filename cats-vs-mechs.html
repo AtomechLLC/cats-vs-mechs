@@ -4428,18 +4428,35 @@
   .fgn-says{margin:0;font-size:18px;line-height:1.3;color:var(--ink-dim)}
   .fgn-says[hidden]{display:none}
 
-  /* THE READING AS A PRESS TARGET. Two surfaces carry one, and they are
-     styled by ONE rule because they are one affordance — [C07]'s consistency
-     rule, and the same argument .fg-res and .bf-line would each make alone.
+  /* THE READING AS A PRESS TARGET.
+
+     ==================================================================
+     IT USED TO NAME TWO SURFACES AND IT NAMES ONE NOW — D-37, TURNED IN
+     THE OPEN RATHER THAN QUIETLY REPOINTED.
+     ==================================================================
+     The rule as D-36 shipped it was `.bf-line[data-fg="res"],
+     .fg-res[data-fg="res"]`, and its own paragraph argued the pairing:
+     "Two surfaces carry one, and they are styled by ONE rule because they are
+     one affordance." That argument was correct and its PREMISE has been
+     withdrawn. D-37 — "click on a unit then click on the popup window to
+     modify the values associated with it" — retires the battlefield's
+     per-reading press: the readings on a shape return to being readings, the
+     shape's own click opens [C14.7]'s popup, and the nudge lives inside it.
+     So .bf-line carries no data-fg, the first half of that selector would
+     match nothing, and a selector kept for a node that no longer exists is
+     the dead rule [C12]'s banner refuses.
+
+     THE BATTLEFIELD LOSES NO AFFORDANCE BY IT. .bf-unit is a <button> and has
+     carried cursor:pointer and the same --state-hover-wash since plan 05-15 —
+     so what a student hovers is now the whole shape rather than one line in
+     it, which is a LARGER target for the same feedback, and the pointer and
+     the wash are the two channels this rule was giving a line.
 
      THE HOVER IS THE WHOLE AFFORDANCE AND IT IS NOT COLOUR ALONE: the cursor
      changes, which is a channel a colourblind reader has, and the wash is
      [C00]'s own --state-hover-wash so this surface says "pressable" in the
-     language every other control on the page says it in. A reading that is not
-     hovered looks exactly as it did before D-36, which is deliberate — the
-     battlefield is a READING first and the developer asked for an edit to be
-     available on it, not for it to become a form. */
-  .bf-line[data-fg="res"], .fg-res[data-fg="res"]{
+     language every other control on the page says it in. */
+  .fg-res[data-fg="res"]{
     cursor:pointer;border-radius:8px;
     &:hover{background-image:var(--state-hover-wash)}
   }
@@ -4453,6 +4470,189 @@
      and silently drop the row through UX-02's floor. So the reset is folded
      into .fg-res itself, where there is one declaration of each property and
      nothing to lose a cascade against. */
+
+  /* ===================== [C14.7] THE UNIT POPUP ===================== */
+  /* The `.fgu-` rules [S06.15] paints with — D-37, the developer at the real
+     artifact: "click on a unit then click on the popup window to modify the
+     values associated with it".
+
+     THE THREE DOCUMENT-WIDE PROHIBITIONS [C14] STATES ARE KEPT AND RESTATED,
+     for the reason [C14.1] through [C14.6] each restate them: no
+     reference-function-with-a-URI construct, no namespaced markup or element
+     constructor, and no new hex. Every colour below is a [C00] token or a
+     color-mix() of one, and every SHAPE in here is [C05]'s own .tok built by
+     the shipped makeToken — this block draws none.
+
+     ===================================================================
+     IT IS [C14.6]'s BOX ONE SIZE UP, AND THAT IS DELIBERATE.
+     ===================================================================
+     position:fixed for [C14.6]'s own measured reason, restated because the
+     cost is what makes it stick: the shapes this opens on sit inside
+     .fg-sides, which [C14.1] bounds with a scroller, so an absolute box would
+     be CLIPPED by the very container the unit lives in. A fixed box is placed
+     against the viewport and clipped by nothing, and [S06.15] recomputes its
+     two coordinates from the shape's own rect on every frame it is open.
+
+     z-index 40 — THE SAME BAND AS THE NUDGE AND FOR THE SAME THREE
+     NEIGHBOURS. #topbar is 20, #strip's sidebar is 30, .err-panel is 50. Above
+     the sidebar, because a popup opened while the projection is showing must
+     not disappear behind it; below the error panel, because a panel reporting
+     a refusal must never be covered by the control that caused it. IT CANNOT
+     COLLIDE WITH #fg-nudge AT THE SAME z-index, because the two are never open
+     at once: opening either one is a press "elsewhere" for the other, and
+     [S07.5]'s document handler shuts it.
+
+     AND IT MAY COVER THE STICKY BAR, WHICH WAS MEASURED AND KEPT RATHER THAN
+     FIXED. A shape near the bottom of the viewport has no room underneath, so
+     [S06.14]'s fgBoxAt flips the box ABOVE it and clamps the top into the
+     viewport — and at 1366x768 the rightmost mech's popup then reaches up over
+     #topbar, which sits at z-index 20 and is therefore drawn under it. The
+     obvious fix is to clamp the top to the bar's measured foot instead of to
+     8px, and it was rejected on a picture: pushed down by the bar's height,
+     the box lands ON the very shape it was opened on, which is the one thing a
+     popup must not do. Covering a sticky bar for as long as a transient is
+     open is ordinary popup behaviour and one press dismisses it; covering the
+     unit whose numbers it is showing is a defect. The trade is written here so
+     the next reader does not re-derive it.
+
+     IT IS WIDER AND IT SCROLLS ON ITSELF, which is the one thing that differs
+     and it arrives with a measurement rather than a preference. A unit carries
+     two shipped values plus every unit-scope type the student authored plus the
+     dead marker — at the shipped board that is three rows, and a student who
+     has authored six types has ten. Ten rows at 44px plus their labels is
+     taller than a 768px viewport, so the ROW LIST takes the scroll, on itself,
+     which is [C12]'s action list, [C14]'s ledger list and [C14.1]'s sides
+     arriving for the fourth time and by the same rule: the scroll goes on the
+     element that overflows and never on an ancestor of it.
+
+     ===================================================================
+     THE NUDGE PAIR IS THE SHIPPED STEPPER'S IDIOM AND NOT A THIRD ONE.
+     ===================================================================
+     .fgu-btn INHERITS [C06]'s .stp-btn geometry exactly as [C14.6]'s .fgn-btn
+     does — 44x44 is WCAG 2.5.5 Target Size (Enhanced, AAA) and the markup
+     wears both classes — and what this block adds is only the fill, because
+     the box sits on --panel and the button's own --panel-2 would read as a
+     hole in it. The value between them is a READING and not a field, for
+     [C14.6]'s stated reason and [S07.5]'s banner rule: not one node in either
+     of that region's roots is a field, and a field in here would put Escape's
+     revert-then-close semantics in a fight with D-37's dismissal rule.
+
+     ===================================================================
+     NOTHING IN HERE IS EVER DISABLED, AND THAT ABSENCE IS THE REQUIREMENT.
+     ===================================================================
+     The D-27 overrule is scoped to the declaration grid's action buttons and
+     this surface is outside it. A − on a number already at its floor is a
+     press that declines quietly and says what the board keeps the number
+     between; the dead toggle is never disabled in either direction, which is
+     [S06.9]'s own ruling — a toggle disabled because the tool thinks a unit is
+     obviously dead is the tool adjudicating, and adjudication is the students'.
+     There is no :disabled rule below. */
+  .fgu{
+    position:fixed;z-index:40;
+    /* The two offsets [S06.15] publishes, with [C14.6]'s own fallback and for
+       its reason: a box that inherited `auto` would sit wherever static flow
+       left it, which on a fixed element is a position nothing computed. */
+    left:var(--fgu-x, 8px);top:var(--fgu-y, 8px);
+    display:flex;flex-direction:column;gap:8px;
+    padding:12px 14px;width:320px;max-width:calc(100vw - 16px);
+    background:var(--panel);border:1px solid var(--state-focus);
+    border-radius:12px;
+    box-shadow:0 10px 28px color-mix(in srgb, var(--bg) 70%, transparent);
+  }
+  .fgu[hidden]{display:none}
+  .fgu-top{display:flex;align-items:baseline;justify-content:space-between;gap:12px}
+  /* The unit's name, at UX-02's 18px floor and above it: the box is moved
+     around the page, so a list of numbers with no name on it would be a
+     control a student has to remember the provenance of. */
+  .fgu-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
+  /* .pv-close's shape, restated rather than borrowed — [C13]'s rule about .rs-
+     and [C14]'s about its prefixes. 18px is UX-02's floor on a control. */
+  .fgu-close{
+    background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:999px;padding:4px 14px;min-height:32px;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;user-select:none;
+    flex:0 0 auto;
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
+  }
+  /* THE SCROLL IS ON THE LIST AND NOT ON THE BOX, so the heading and the way
+     out stay put while a long roster of authored types scrolls under them.
+     The bound is the viewport rather than a flat figure, because this box is
+     placed against the viewport and a fixed height would be wrong at one of
+     the two sizes the browser cells drive. */
+  .fgu-rows{
+    display:flex;flex-direction:column;gap:8px;
+    max-height:min(52vh, 100vh - 220px);overflow:auto;
+  }
+  /* ONE VALUE. The label and the reading on the first line, the pair of
+     buttons on it too, and the bound sentence under all of them when there is
+     one — a grid rather than a flex row so every row's − lands in the same
+     column whatever its label is called, which is what makes a column of them
+     scannable at a glance on a projector. */
+  .fgu-row{
+    display:grid;grid-template-columns:1fr auto auto auto;
+    align-items:center;gap:8px;
+    padding:6px 8px;border:1px solid var(--line);border-radius:10px;
+    background:var(--bg-2);
+  }
+  /* The type's own name. 18px is UX-02's floor and this is a label a student
+     reads off a projector beside a symbol. */
+  .fgu-lbl{font-size:18px;font-weight:700;color:var(--ink)}
+  /* Where [S06.12]'s symbolic reading goes. A minimum rather than a fixed
+     width, for .stp-field's stated reason one prefix over: the row must not
+     reflow while a held − steps the count through 11, 10, 9 — and a minimum
+     because a compacted reading and a repeated one are different widths and
+     the count form is the narrower of the two. */
+  /* CENTRED IN ITS CELL, AND A PICTURE IS WHAT DECIDED THAT. Left-aligned, a
+     one-token reading sat hard against the − with the + a hand's width away,
+     so the pair did not read as a pair — a defect no assertion in either suite
+     could have seen, and the phase's own lesson about which frame is worth
+     photographing. Centred, the − and the + sit either side of the quantity
+     the way [C06]'s stepper does, and the + still lines up straight down the
+     column because the grid decides that and not the content. */
+  .fgu-val{
+    min-width:96px;display:flex;align-items:center;justify-content:center;
+    font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  /* Geometry inherited from [C06]'s .stp-btn, which the markup also wears.
+     This rule exists for [C14.6]'s one reason only: the box sits on --panel
+     rather than on the page, so the button's own --panel-2 fill would read as
+     a hole in it. */
+  .fgu-btn{background:var(--bg-2)}
+  /* THE BOUND, SAID WHEN THE NUMBER IS SITTING ON ONE. .fgn-says' treatment
+     rather than a third: it is the same sentence from the same function, and a
+     student who learned it on a team resource reads it here unchanged. It
+     spans the whole row because it is about the row and not about one cell. */
+  .fgu-says{
+    grid-column:1 / -1;margin:0;
+    font-size:18px;line-height:1.3;color:var(--ink-dim);
+  }
+  .fgu-says[hidden]{display:none}
+  /* THE DEAD MARKER'S TOGGLE, and it takes .dc-alive's treatment because it IS
+     .dc-alive's control on a second surface — same op, same two words, same
+     tick as a real node. [C07]'s standing rule: the state is said in the class,
+     in the accessible name and in the word, never in colour alone. */
+  .fgu-alive{
+    background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
+    border-radius:999px;padding:6px 14px;min-height:44px;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;user-select:none;
+    display:inline-flex;align-items:center;gap:6px;
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
+  }
+  .fgu-alive--on{
+    border-color:var(--ink);color:var(--ink);
+    background-color:color-mix(in srgb, var(--ink) 12%, var(--panel));
+  }
+  /* The tick is a REAL NODE and not a pseudo-element, so a screen reader and
+     the rendered-page walk both reach it — overPill's arrangement, which
+     .dc-alive keeps and this keeps for the same reason. It is hidden by
+     VISIBILITY rather than by display so the button does not change width when
+     the state changes, which is .dc-check's own shipped choice. */
+  .fgu-alive .dc-check{visibility:hidden}
+  .fgu-alive--on .dc-check{visibility:visible}
+  /* The dead row spans its buttons the way a value row spans its pair, so the
+     toggle sits in the same column the + does and the column reads straight
+     down. */
+  .fgu-row--dead .fgu-alive{grid-column:2 / -1;justify-self:end}
 
   /* ===================== [C15] THE VIEW SWITCH ===================== */
   /* The switch between the board and the fight, plan 05-12, plus D-28's
@@ -6155,6 +6355,90 @@
                 data-fg="nudge" data-fg-step="1" data-k="fg/nudge/more">+</button>
       </div>
       <p class="fgn-says" id="fg-nudge-says" hidden></p>
+    </div>
+
+    <!-- D-37's UNIT POPUP. The developer, at the real artifact: "click on a
+         unit then click on the popup window to modify the values associated
+         with it". [S06.15] fills it and places it; [S07.5] opens it from a
+         battlefield shape, routes its presses and dismisses it.
+
+         IT SUPERSEDES D-36's PER-READING NUDGE ON THE BATTLEFIELD, OPENLY.
+         D-36 made every reading on a unit shape its own press target;
+         D-37's own interpretation retires that: "the readings there return
+         to being readings, the unit shape's click opens the popup, and the
+         nudge lives inside it." So .bf-line carries no data-fg any more and
+         this is where a unit's numbers are ruled on. THE TEAM-RESOURCE
+         DIRECT CLICK STAYS EXACTLY AS D-36 BUILT IT — it is not on the
+         battlefield, the retarget flow has no claim on it, and #fg-nudge
+         above is untouched.
+
+         WHY THIS IS A FIXED BOX IN THE SHELL AND NOT A <dialog>, WHICH IS
+         THE ONE STRUCTURAL CHOICE THIS FEATURE HAD TO MAKE. [S06.5]'s four
+         dialogs are the file's other popup idiom and they were considered
+         and declined, for three reasons that are each a requirement of
+         D-37 rather than a taste:
+           1. "POSITIONING NEAR THE UNIT". A showModal() dialog is centred
+              in the viewport by the user agent and has no anchor concept at
+              all; placing one at a shape would mean overriding its position
+              anyway, which is this box with extra machinery.
+           2. "CLICK-ELSEWHERE DISMISS". A modal dialog has no elsewhere —
+              the backdrop swallows every press outside it and light
+              dismissal is not something showModal() offers. #fg-nudge's
+              document-level pointerdown handler already implements exactly
+              the dismissal D-37 asks for and it is reused verbatim.
+           3. THE HARVEST. A <dialog> in this shell is a SIBLING of #app, so
+              its words are outside Layer C's fight scan and need a
+              DIALOG_ROOTS entry and an opener to be read at all. This box
+              is inside #fightbar, which is inside #app, so every word it
+              renders is scanned by the fight harvest with a fight running —
+              and the gate DRIVES IT OPEN before taking that harvest, because
+              a surface the walk never reaches reports clean forever.
+         The nudge box one node up made the same three calls for the same
+         three reasons one plan ago; this follows it rather than inventing a
+         second answer.
+
+         THE ROWS ARE BUILT AND THE FRAME IS SHELL, and the division is plan
+         05-10's MEASUREMENT rather than a preference: "a POINTER press on
+         any control whose own node is REBUILT drops the keyboard to
+         <body>". A unit carries a different number of values on every
+         board, so the rows cannot be static markup — but they are built
+         ONCE per unit and per token list and only their VALUES are written
+         per frame, so a rapid -−− lands three presses on the same three
+         nodes. [S06.15] carries the fingerprint that makes that true.
+
+         NO data-act ANYWHERE IN IT, for the reason #fg-nudge's own comment
+         gives: #fightbar is inside #app and [S07.1] routes any node
+         carrying one straight into App.ops.dispatch. Every control in here
+         carries data-fg, the fight's own private spelling.
+
+         Same three-part rule as every region above: the id, the KNOWN_IDS
+         entry and the stub node arrive together, and the run fails in both
+         directions if one of the three is missing. Four ids here, four of
+         each. -->
+    <div class="fgu" id="fg-unit" hidden>
+      <div class="fgu-top">
+        <!-- THE HEADING IS THE UNIT'S NAME — D-37, in as many words. It
+             carries NO exemption marker, which is [S06.11]'s shipped ruling
+             restated rather than re-decided: no op in this file renames a
+             unit, so it is a word the ARTIFACT says and it belongs in the
+             harvest. The day a unit-rename op exists is the day this node
+             and the board's both need the marker, not one of them. -->
+        <p class="fgu-head" id="fg-unit-head"></p>
+        <!-- A REAL, TEXT-LABELLED WAY OUT, in .pv-close's register and for
+             D-33 P2-12's reason: Escape and a press elsewhere both shut this
+             box, and neither is visible. UX-02 — a permanent text label at
+             the 18px floor, never an icon alone. It is also the last stop of
+             the keyboard's round trip through the popup. -->
+        <button class="fgu-close" type="button" id="fg-unit-close"
+                data-fg="uclose" data-k="fg/u/close">Close</button>
+      </div>
+      <!-- EMPTY HERE AND BUILT BY [S06.15]. One row per value the unit
+           holds, in [S06.11]'s own bfTokenIds order, INCLUDING THE ONES
+           SITTING AT ZERO — which is deferred item 18, closed: the
+           battlefield's hide pass takes a zero reading off the shape, and a
+           reading that is not drawn cannot be pressed. In here every value
+           is present whatever it holds. -->
+      <div class="fgu-rows" id="fg-unit-rows"></div>
     </div>
   </section>
 
@@ -23345,53 +23629,43 @@ App.render = (function () {
       var line = el('div', 'bf-line');
       setData(line, { bfAmt: tok });
       /* ==============================================================
-         D-36: THE READING IS THE PRESS TARGET, AND IT SEPARATES FROM
-         THE SHAPE'S OWN PRESS BY NESTING.
+         D-37 TAKES THE PRESS OFF THIS LINE. THE READING IS A READING
+         AGAIN, AND THE SUPERSESSION IS RECORDED RATHER THAN ERASED.
          ==============================================================
-         The developer: "add the ability to directly click on a resource
-         to directly modify the value of that resource in the current
-         round", with the hit-testing settled in the same breath — "the
-         retarget flow's claim on unit-shape clicks is unchanged … the
-         resource tokens are children; hit-testing must separate them
-         cleanly."
+         D-36 made this line a press target — `data-fg="res"`, a
+         data-fg-side, a data-fg-unit, a data-fg-tok and an fgnKey — and
+         the paragraph that stood here argued the hit test at length:
+         closest() returns the NEAREST ancestor carrying a data-fg, so a
+         press inside the line resolved to `res` and a press on the
+         shape's name walked past it to the shape's own `bf`.
 
-         THE MECHANISM IS closest() AND NOTHING ELSE. [S07.5]'s delegated
-         listener resolves a press with node.closest('[data-fg]'), which
-         returns the NEAREST ancestor carrying one — so a press that
-         lands anywhere inside this line resolves to `res` and a press on
-         the shape's name, its padding or either of its two sentences
-         walks past this node and resolves to the shape's own `bf`. The
-         two are disjoint by construction rather than by an ordering
-         rule, and the gate drives both directions on an ARMED board,
-         which is the only state in which they could be confused.
+         THAT MECHANISM WORKED AND ITS PREMISE HAS BEEN WITHDRAWN, which
+         is the 03.1-04 register rather than a bug report. The developer,
+         one round later: "click on a unit then click on the popup window
+         to modify the values associated with it" — and D-37's own
+         interpretation says what that costs this line by name: "This
+         supersedes D-36's per-reading nudge ON THE BATTLEFIELD — the
+         readings there return to being readings, the unit shape's click
+         opens the popup, and the nudge lives inside it. The
+         team-resource direct click stays as D-36 built it."
 
-         IT IS A div AND NOT A button, WHICH IS A CONSTRAINT AND NOT A
-         PREFERENCE. This line is inside .bf-unit, which IS a button —
-         [S06.11]'s banner and [C14.4]'s both argue why the shape is the
-         control — and <button>'s content model allows neither an
-         interactive descendant nor a descendant carrying tabindex. So
-         the battlefield's readings are a POINTER affordance: the mouse
-         separates them cleanly and the keyboard reaches the shape. The
-         team-resource rows one region up are not inside anything and ARE
-         real buttons, so the keyboard route to this control exists —
-         and once the box is open, both of its buttons are ordinary
-         focusable controls. What is missing is a keyboard route to a
-         UNIT's reading specifically, and the fix is structural (lift
-         .bf-lines out of the shape button, which moves twenty
-         assertions): it is written down as a deferred item rather than
-         half-done here.
+         SO THE FOUR ATTRIBUTES AND THE KEY ARE GONE FROM HERE and the
+         line is exactly the node plan 05-15 built. [S06.15] is where a
+         unit's numbers are ruled on now, and [S07.5]'s pressBf opens it.
+         fgnRulable and fgnKey are NOT deleted — the team-resource rows
+         [S06.7] draws still carry both, and #fg-nudge is untouched.
 
-         `dead` IS NOT PRESSABLE. [S06.14]'s fgnRulable says why: it is a
-         flag's 0-or-1, not a quantity, and it already has its own
-         control on the board tab. An unmarked line simply carries no
-         data-fg, so closest() walks straight past it to the shape — a
-         press on the dead marker retargets, exactly as it did before. */
-      if (fgnRulable(tok)) {
-        setData(line, {
-          fg: 'res', fgSide: side, fgUnit: unit.id, fgTok: tok,
-          k: fgnKey(side, unit.id, tok)
-        });
-      }
+         AND IT CLOSES THE TWO THINGS D-36 WROTE DOWN RATHER THAN HALF-
+         DOING. The paragraph here used to end by naming them: a
+         battlefield reading is a div inside a <button>, whose content
+         model allows neither an interactive descendant nor a tabindex
+         one, so there was no KEYBOARD route to a unit's numbers
+         (deferred item 17); and [S06.11]'s hide pass takes a line away
+         at zero, so a shield ruled to nothing stopped being a press
+         target (deferred item 18). The popup answers both without
+         restructuring this shape: its rows are real <button>s in a plain
+         container, and it lists every value the unit holds whatever the
+         number is. */
       // THE LABEL CARRIES THE TOKEN-NAME EXEMPTION CHANNEL. This is where a
       // renamed type enters the Layer C harvest, and an unmarked one reddens CI
       // on the student's own word. The literal is written here as well as by
@@ -24689,9 +24963,30 @@ App.render = (function () {
      is a no-op there, which is correct — a position is a thing only a real
      viewport has — and the value, the label and the sentence are all written
      before it runs, so everything the gate reads is already on the page. */
-  function fgnPlace(box, anchor) {
-    if (typeof anchor.getBoundingClientRect !== 'function') { return; }
-    if (typeof window === 'undefined') { return; }
+  /* THE ARITHMETIC, LIFTED OUT UNDER D-37 SO TWO BOXES CANNOT DRIFT APART.
+     [S06.15]'s popup is placed against a battlefield SHAPE by exactly the same
+     rules this was written for a reading, and a second copy of "below it, or
+     above it when there is no room, clamped into the viewport on both axes" is
+     the shape of defect this file spends its comments refusing. So the geometry
+     is here, once, and each caller publishes it under its own property names.
+
+     IT RETURNS A PAIR AND PUBLISHES NOTHING, deliberately: check 57 reads every
+     inline-style access in the document IN CONTEXT and requires each one to be
+     a setProperty of an allowlisted custom property spelled as a LITERAL. A
+     shared publisher taking the prefix as an argument would pass a count and
+     defeat the reading, which is the whole value of that row. Two literal pairs
+     and one piece of arithmetic is the arrangement that keeps both honest.
+
+     AND THE ACCESSOR IS DESCRIBED HERE RATHER THAN SPELLED, which is [C14.4]'s
+     and refCard's shipped rule and which exists for exactly this case: the
+     check on this code is a scan of the SOURCE for the very token a helpful
+     comment would write out, so a comment that named it would be counted as an
+     access and would redden the run. It did, on the first drive of this
+     change — 7 occurrences where 6 were expected, with a sentence of this
+     paragraph printed back as one of the sites. */
+  function fgBoxAt(box, anchor) {
+    if (!anchor || typeof anchor.getBoundingClientRect !== 'function') { return null; }
+    if (typeof window === 'undefined') { return null; }
     var r = anchor.getBoundingClientRect();
     var w = box.offsetWidth || 0;
     var h = box.offsetHeight || 0;
@@ -24701,8 +24996,14 @@ App.render = (function () {
     if (vw > 0 && w > 0) { x = Math.max(8, Math.min(x, vw - w - 8)); }
     var y = r.bottom + 6;
     if (vh > 0 && h > 0 && y + h > vh - 8) { y = Math.max(8, r.top - h - 6); }
-    box.style.setProperty('--fgn-x', Math.round(x) + 'px');
-    box.style.setProperty('--fgn-y', Math.round(y) + 'px');
+    return { x: Math.round(x), y: Math.round(y) };
+  }
+
+  function fgnPlace(box, anchor) {
+    var at = fgBoxAt(box, anchor);
+    if (at === null) { return; }
+    box.style.setProperty('--fgn-x', at.x + 'px');
+    box.style.setProperty('--fgn-y', at.y + 'px');
   }
 
   // Emptied AND hidden together, which is dcStandingLine's rule and the reason
@@ -24805,6 +25106,453 @@ App.render = (function () {
   SYNC_HOOKS.push(syncResourceNudge);
   // #endregion [S06.14] RENDER — THE RESOURCE NUDGE
 
+  /* ===================== [S06.15] RENDER — THE UNIT POPUP ==============
+   * D-37, the developer at the real artifact: "click on a unit then click on
+   * the popup window to modify the values associated with it". This region
+   * draws that popup.
+   *
+   * A SUB-REGION FOR THE MECHANICAL REASON EVERY OTHER ONE IS: it reconciles
+   * through SYNC_HOOKS, SYNC_HOOKS is a closure variable of this IIFE, and it
+   * paints a page region no other sub-region touches. It changes NOTHING in
+   * [S06.1] through [S06.14] except ONE deletion in [S06.11]'s bfBuildUnit —
+   * the four attributes D-36 put on a .bf-line — and that deletion is D-37's
+   * own instruction, quoted at the site.
+   *
+   * ===================================================================
+   * WHAT THIS SUPERSEDES, SAID BEFORE ANYTHING ELSE.
+   * ===================================================================
+   * D-36 put a nudge on every reading, including a unit's readings on the
+   * battlefield. D-37 takes the battlefield half back: "the readings there
+   * return to being readings, the unit shape's click opens the popup, and the
+   * nudge lives inside it. The team-resource direct click stays as D-36 built
+   * it." So [S06.14] and #fg-nudge are UNTOUCHED and still serve the two
+   * numbers a side holds; this region serves every number a UNIT holds.
+   *
+   * IT IS RECORDED AS A SUPERSESSION AND NOT AS A BUG IN D-36, which is D-37's
+   * own framing: the popup RESOLVES D-36's two written-down limitations rather
+   * than papering over them.
+   *   DEFERRED 17 — the battlefield's readings were a POINTER affordance
+   *   because a .bf-line is a div inside a <button> and <button>'s content
+   *   model allows neither an interactive descendant nor a tabindex one. The
+   *   rows below are real <button>s inside a plain <div>, so the whole surface
+   *   is keyboard-operable: Tab reaches the shape, Enter opens this, Tab walks
+   *   the values, Enter and the arrows nudge, Escape shuts it and hands the
+   *   focus back to the shape.
+   *   DEFERRED 18 — a reading hidden at zero could not be pressed back up,
+   *   because [S06.11]'s hide pass takes a line away at zero for every type but
+   *   health. fguRows walks bfTokenIds WHOLE and draws every value the unit
+   *   holds whatever the number is, so a shield ruled to nothing is still a row
+   *   with a + on it. It is the third of the three answers deferred item 18
+   *   wrote out — "give the box a way to reach the whole unit rather than one
+   *   reading" — and the developer chose it by asking for it.
+   *
+   * ===================================================================
+   * WHAT IS OPEN LIVES ON THE BOX, IN [S06.14]'s ARRANGEMENT.
+   * ===================================================================
+   * TWO ATTRIBUTES on #fg-unit itself — the side and the unit id. [S07.5]
+   * writes them and this region only reads them, which is fgHalfMade's and
+   * [S06.14]'s shape exactly: one writer, one reader, and a render tier that
+   * never authors a value another region owns. [S09.3] pins the `ui` key set,
+   * so there is nowhere legitimate for this in state; [S05] OPS' banner says
+   * that layer never reads or writes the page.
+   *
+   * THERE IS NO THIRD ATTRIBUTE FOR "WHICH ROW". Every row is on screen at
+   * once and each carries its own token id, so nothing is selected and there is
+   * nothing for a selection to live in.
+   *
+   * ===================================================================
+   * BUILD ONCE PER UNIT, WRITE EVERY FRAME — AND HERE THAT IS THE FOCUS
+   * CONTRACT RATHER THAN A PERFORMANCE ONE.
+   * ===================================================================
+   * Plan 05-10 MEASURED the failure: "a POINTER press on any control whose own
+   * node is REBUILT drops the keyboard to <body>", because withPreservedFocus
+   * restores focus during pointerdown and the browser's own focus-on-mousedown
+   * then targets a node the rebuild has detached. A nudge repaints on EVERY
+   * press by construction, so a rapid −−− on a rebuilt control lands ONE of
+   * three. [S06.14] answered it by being static shell; this region cannot,
+   * because a unit carries a different number of values on every board.
+   *
+   * SO IT ANSWERS IT WITH A FINGERPRINT, which is [S06.11]'s data-bf-up and
+   * [S06.7]'s data-fg-sig arriving for a third surface. The rows are rebuilt
+   * only when the SIDE, the UNIT or the TOKEN LIST changes — never when a
+   * number does — so the three presses of a fast −−− land on the same three
+   * nodes. JSON.stringify of an ARRAY rather than a joined string, for
+   * pickerSig's stated reason: a delimiter is a character a student can type,
+   * and a joined fingerprint can be made to report "nothing changed" for a
+   * change.
+   *
+   * WHAT IS WRITTEN EVERY FRAME is the heading, each row's label, each row's
+   * symbolic reading, each row's bound sentence, the two accessible names on
+   * every pair, the dead toggle's three channels, and the position.
+   *
+   * ===================================================================
+   * THE VALUES ARE D-29's SYMBOLS AND THE PROSE IS ON THE TOOLTIP.
+   * ===================================================================
+   * symQty is CALLED and nothing is re-derived — [S06] is one function scope
+   * and [S06.12] is the one place in this file that decides what a quantity
+   * looks like. That buys the whole of [S06.11]'s and [S06.12]'s list at once:
+   * a student-authored type appears here with their shape, their colour, their
+   * glyph and their name; compaction is COMPACT_AT and no second threshold; a
+   * zero is drawn in D-21's own count form rather than as an empty box; the
+   * tooltip is written to `title` AND `aria-label` from one variable so a
+   * screen reader gets the sentence a mouse gets; and data-tsay hands the
+   * student's fragment to the gate so the ARTIFACT's half of every sentence
+   * stays in the scan and the student's half never reddens CI.
+   *
+   * THE ROW STILL CARRIES A VISIBLE TEXT LABEL BESIDE THE SYMBOL, which is
+   * UX-02 and is not negotiable: "nothing conveyed by hover alone". The
+   * tooltip is the DESCRIPTION of a reading that is permanently on screen,
+   * which is exactly the admissibility argument [S06.12]'s banner makes.
+   *
+   * ===================================================================
+   * THE DEAD MARKER IS A VALUE OF THE UNIT AND ITS CONTROL IS [S06.9]'s.
+   * ===================================================================
+   * D-37: "The dead marker toggle joins the popup as one of the unit's values
+   * (its board-tab control remains)." So the last row carries a toggle, and it
+   * says the state in DC_ALIVE_WORDS — [S06.9]'s own pair, READ rather than
+   * reinvented, so this artifact says one state in one set of words. D-33 P3-2
+   * settled that wording and this inherits the settlement whole: THE ACT WHEN
+   * UNPRESSED ("Mark dead") AND THE STATE WHEN PRESSED ("Marked dead"), with
+   * aria-pressed, the class and the word all written from the SAME reading so
+   * they cannot contradict each other.
+   *
+   * AND IT IS DRAWN FROM THE STORED FLAG AND NEVER FROM hp === 0 — D-00d, the
+   * file's oldest ruling, in both directions: a unit at zero health nobody
+   * ruled draws as standing, and a unit at full health somebody ruled draws as
+   * marked. bfAmount('dead') is the one reader and it is called rather than
+   * restated.
+   *
+   * NOTHING IN HERE IS EVER DISABLED. Not a nudge at its bound, not the toggle
+   * on a unit already marked. The D-27 overrule is scoped to the declaration
+   * grid's action buttons and this surface is outside it; a press that cannot
+   * move a number declines quietly and the row says what the board keeps that
+   * number between.
+   *
+   * ===================================================================
+   * WHAT THIS SURFACE MAY NEVER SAY.
+   * ===================================================================
+   * It prices nothing, compares nothing, totals nothing and recommends
+   * nothing. There is no figure about the unit as a whole, no comparison with
+   * any other unit and no word about whether a number is a good one. Every
+   * string it draws is a unit name, a type's name, a count, the two shipped
+   * dead-marker words, the bound sentence [S06.14] already ships, and the word
+   * on the way out.
+   *
+   * deps: App.model, App.ops, [S06.1]'s labelFor / withPreservedFocus,
+   *       [S06.7]'s fgUnitName, [S06.9]'s DC_ALIVE_WORDS / dcClass,
+   *       [S06.11]'s bfTokenIds / bfAmount, [S06.12]'s symQty,
+   *       [S06.14]'s fgnRulable / fgnBoundSaid / fgnText / fgBoxAt
+   * owner: plan 05-D37
+   * ===================================================================== */
+  // #region [S06.15] RENDER — THE UNIT POPUP
+
+  /* The key every control in the popup carries, spelled ONCE so this region and
+     [S07.5] cannot each invent one — [S06.14]'s fgnKey paragraph and [S07.5]'s
+     `fg/bf/` banner both fix a spelling for exactly this reason.
+
+     IT CANNOT COLLIDE WITH ANY OTHER SPACE ON THE PAGE, and check 94b reads
+     every key back for uniqueness rather than taking it on trust. `fg/u/` and
+     `fg/res/` and `fg/bf/` differ at the SECOND segment; the static Close
+     carries `fg/u/close`, which is three segments where every per-value key is
+     five or six, so no token id and no unit id can make one produce the other.
+     AND ONLY ONE UNIT'S ROWS ARE EVER ON THE PAGE, because there is one popup:
+     two units cannot both draw a `fg/u/.../hp/less`. */
+  function fguKey(side, unitId, tok, tail) {
+    return 'fg/u/' + side + '/' + unitId + '/' + tok
+      + (tail === undefined ? '' : '/' + tail);
+  }
+
+  /* THE FINGERPRINT THAT DECIDES A REBUILD, and it is deliberately narrow: the
+     side, the unit and the LIST of value ids. A number is not in it, which is
+     the whole point — a nudge must not rebuild the button it was pressed on.
+     JSON.stringify of an array rather than a joined string, for bfRosterSig's
+     and pickerSig's stated reason. */
+  function fguSig(side, unitId, tokens) {
+    return JSON.stringify([side, unitId, tokens]);
+  }
+
+  /* ONE VALUE'S ROW, BUILT ONCE. Every value node is EMPTY here and written by
+     the pass beneath it — [S06.3]'s division, which [S06.11] and [S06.14] both
+     keep — and the two buttons are the only nodes in this region a student's
+     finger can land on, which is why nothing below ever replaces them.
+
+     THE PAIR IS THE SHIPPED STEPPER AND NOT A SECOND IDIOM. It wears .stp-btn
+     as well as .fgu-btn, which is the same move .fgn-btn and .fg-btn each
+     make: the geometry, the hover and the active state are [C06]'s and are
+     deliberately not restated.
+
+     data-fg-tok RIDES ON THE BUTTON and not on the row, because [S07.5]
+     resolves a press with closest('[data-fg]') and reads the pressed node's own
+     attributes — a handler that walked up to the row for the token id would be
+     a second way to answer a question the button can answer itself. */
+  function fguValueRow(state, side, unit, tok) {
+    var row = el('div', 'fgu-row');
+    setData(row, { fguTok: tok });
+
+    var lbl = text('span', 'fgu-lbl', labelFor(state, tok));
+    setData(lbl, { lbl: tok });
+    row.appendChild(lbl);
+
+    row.appendChild(fguStep(side, unit.id, tok, -1, '−', 'less'));
+    row.appendChild(el('span', 'fgu-val'));
+    row.appendChild(fguStep(side, unit.id, tok, 1, '+', 'more'));
+
+    var says = text('p', 'fgu-says', '');
+    says.hidden = true;
+    row.appendChild(says);
+    return row;
+  }
+
+  // One button of a pair. It carries data-fg and NEVER data-act, which is
+  // [S06.7]'s and [S06.9]'s shared safety boundary: [S07.1]'s delegated
+  // listener routes any node carrying a data-act straight into
+  // App.ops.dispatch, so a control here wearing one would fire an op with a
+  // payload nothing on this surface meant to send.
+  function fguStep(side, unitId, tok, step, glyph, tail) {
+    var btn = text('button', 'stp-btn fgu-btn', glyph);
+    btn.type = 'button';
+    setData(btn, {
+      fg: 'unudge', fgStep: String(step), fgTok: tok,
+      k: fguKey(side, unitId, tok, tail)
+    });
+    return btn;
+  }
+
+  /* THE DEAD MARKER'S ROW. The label, the toggle and the marker's own symbol —
+     three channels for one state, which is [C07]'s standing rule and
+     dcStandingLine's own arrangement one surface over.
+
+     THE TICK IS A REAL NODE and not a pseudo-element, so a screen reader and
+     the rendered-page walk both reach it. overPill's precedent, .dc-alive's
+     practice, and the reason [C14.7] hides it by visibility rather than by
+     display: the button must not change width when the state changes. */
+  function fguDeadRow(state, side, unit) {
+    var row = el('div', 'fgu-row fgu-row--dead');
+    setData(row, { fguTok: 'dead' });
+
+    var lbl = text('span', 'fgu-lbl', labelFor(state, 'dead'));
+    setData(lbl, { lbl: 'dead' });
+    row.appendChild(lbl);
+
+    row.appendChild(el('span', 'fgu-val'));
+
+    var btn = el('button', 'fgu-alive');
+    btn.type = 'button';
+    setData(btn, { fg: 'ualive', k: fguKey(side, unit.id, 'dead') });
+    btn.setAttribute('aria-pressed', 'false');
+    btn.appendChild(text('span', 'fgu-alive-t', DC_ALIVE_WORDS.off));
+    btn.appendChild(text('span', 'dc-check', '✓'));
+    row.appendChild(btn);
+    return row;
+  }
+
+  /* THE WHOLE LIST, BUILT. bfTokenIds is CALLED and not restated, so the popup
+     holds exactly the values the battlefield draws for the same unit, in the
+     same order, decided in one place — the two shipped durability types, then
+     every type the student SCOPED TO A UNIT read off the record, then the dead
+     marker last because it is a fact about the unit rather than a quantity on
+     it. A second list here would be a second answer to "what does a unit
+     hold", and the two would drift the first time a student authored a type. */
+  function fguBuild(state, rows, side, unit, tokens) {
+    rows.replaceChildren();
+    tokens.forEach(function (tok) {
+      rows.appendChild(fgnRulable(tok)
+        ? fguValueRow(state, side, unit, tok)
+        : fguDeadRow(state, side, unit));
+    });
+  }
+
+  /* ONE FRAME'S WRITE. Nothing structural happens in here and no node is
+     created except the symbolic reading itself, which is built fresh for
+     symQty's own stated reason: "THE ROW IS ALWAYS FRESHLY BUILT AND EMPTY
+     when this is called", which is what makes syncRow's animate flag read
+     false and what keeps a reading from replaying a pop it did not earn.
+
+     THE READING IS REPLACED AND THE BUTTONS ARE NOT, which is the whole focus
+     contract of this region in one line: .fgu-val is a span with no press on
+     it, and the two controls beside it are never touched. */
+  function fguFill(state, rows, side, unit, tokens) {
+    var who = fgUnitName(state, unit.id);
+    tokens.forEach(function (tok) {
+      var row = rows.querySelector('.fgu-row[data-fgu-tok="' + tok + '"]');
+      if (!row) { return; }
+      var n = bfAmount(unit, tok);
+
+      var lbl = row.querySelector('.fgu-lbl');
+      if (lbl) { fgnText(lbl, labelFor(state, tok)); }
+
+      // The symbolic reading, with the prose on the tooltip. The sentence is
+      // the artifact's words, the student's word, the artifact's words —
+      // symSaid's own fragment shape — and data-tsay is what keeps the
+      // collapse honest when the gate reads the attribute back.
+      var val = row.querySelector('.fgu-val');
+      if (val) {
+        val.replaceChildren();
+        val.appendChild(symQty(state, tok, n, who + ' ', ', ' + n + '.'));
+      }
+
+      if (tok === 'dead') {
+        // Three channels from ONE reading, which is what makes them unable to
+        // contradict each other rather than merely unlikely to — D-33 P3-2's
+        // finding, inherited whole.
+        var dead = (n === 1);
+        var btn = row.querySelector('.fgu-alive');
+        if (btn) {
+          btn.setAttribute('aria-pressed', dead ? 'true' : 'false');
+          dcClass(btn, 'fgu-alive--on', dead);
+          fgnText(btn.querySelector('.fgu-alive-t'),
+            dead ? DC_ALIVE_WORDS.on : DC_ALIVE_WORDS.off);
+          btn.setAttribute('aria-label',
+            (dead ? DC_ALIVE_WORDS.on : DC_ALIVE_WORDS.off) + ' ' + who);
+        }
+        return;
+      }
+
+      // The two accessible names, written per frame rather than baked in, for
+      // [S06.14]'s stated reason: a rename schedules no structural frame, so a
+      // name baked once would go on saying the old word. data-albl keeps the
+      // type's name out of the copy harvest exactly as it does on the board's
+      // steppers and on the nudge's pair.
+      var pair = row.querySelectorAll('.fgu-btn');
+      for (var i = 0; i < pair.length; i++) {
+        var btn2 = pair[i];
+        var down = (String(btn2.dataset.fgStep || '') === '-1');
+        btn2.setAttribute('aria-label',
+          (down ? 'Decrease ' : 'Increase ') + who + ' ' + labelFor(state, tok));
+        setData(btn2, { albl: tok });
+      }
+
+      // The bound, said only when the number is sitting on one — fgnBoundSaid
+      // is CALLED and not restated, so a student who met that sentence on a
+      // team resource meets the same sentence here. It names no type, because
+      // the row's own label two cells left already says which value this is.
+      var says = row.querySelector('.fgu-says');
+      if (says) {
+        var said = fgnBoundSaid(state, tok, n);
+        fgnText(says, said);
+        says.hidden = (said === '');
+      }
+    });
+  }
+
+  // The shape the popup is anchored to, found by walking and comparing rather
+  // than by building a selector out of two attribute values — fgNudgeAnchor's
+  // recorded reason, one section over: a built selector is a caller string
+  // interpolated into CSS, which is keyed()'s CSS.escape hazard, avoided here
+  // by not building one.
+  function fguAnchor(side, unitId) {
+    if (typeof document === 'undefined') { return null; }
+    if (typeof document.querySelectorAll !== 'function') { return null; }
+    var all = document.querySelectorAll('[data-fg="bf"]');
+    for (var i = 0; i < all.length; i++) {
+      if (String(all[i].dataset.fgSide || '') === side
+        && String(all[i].dataset.fgVal || '') === unitId) { return all[i]; }
+    }
+    return null;
+  }
+
+  /* Emptied AND hidden together, which is dcStandingLine's rule and the reason
+     it gives: "hidden" and "empty" say the same thing about a node, so no later
+     check has to work out which of the two it means. The two attributes go too
+     — they are what "open" means, and a box left holding a stale unit would be
+     a press away from ruling on somebody nobody pointed at.
+
+     THE ROWS ARE THROWN AWAY AND THE FINGERPRINT WITH THEM, which costs
+     nothing and buys two things. A shut popup holding the last unit's rows
+     would keep that unit's name, its type names and its bound sentences ON THE
+     PAGE — read by Layer C's harvest, counted by every floor over it, and
+     available to a rendered-page walk as words about a unit nobody has open.
+     And the fingerprint must go with the nodes it describes: a stale
+     data-fgu-up over an empty container would make the next open skip its own
+     build and paint into nothing. Row 104e reads the region's text back before
+     and after and requires it to be identical, which is what makes this an
+     assertion rather than a habit. */
+  function fguShut(box) {
+    box.hidden = true;
+    box.dataset.fgSide = '';
+    box.dataset.fgUnit = '';
+    if (typeof document === 'undefined') { return; }
+    var head = document.getElementById('fg-unit-head');
+    if (head) { fgnText(head, ''); }
+    var rows = document.getElementById('fg-unit-rows');
+    if (rows && rows.children.length > 0) {
+      rows.replaceChildren();
+      rows.dataset.fguUp = '';
+    }
+  }
+
+  function fguPlace(box, anchor) {
+    var at = fgBoxAt(box, anchor);
+    if (at === null) { return; }
+    box.style.setProperty('--fgu-x', at.x + 'px');
+    box.style.setProperty('--fgu-y', at.y + 'px');
+  }
+
+  function unitPopup(state) {
+    if (typeof document === 'undefined') { return; }
+    var box = document.getElementById('fg-unit');
+    if (!box) { return; }
+
+    var side = String(box.dataset.fgSide || '');
+    var unitId = String(box.dataset.fgUnit || '');
+
+    // Every reason to be shut, in one place: nothing is open, no fight is
+    // running any more, or the side named is not a side this board has. Each is
+    // a thing a student can cause WITHOUT touching this control, so the box
+    // closes itself on the frame it happens rather than waiting to be pressed.
+    if (side === '' || unitId === '' || state.fight === null
+      || !Object.prototype.hasOwnProperty.call(state.fight, side)) {
+      fguShut(box);
+      return;
+    }
+    var unit = null;
+    var live = state.fight[side].units;
+    for (var i = 0; i < live.length; i++) {
+      if (live[i].id === unitId) { unit = live[i]; break; }
+    }
+    // A unit that has left the roster mid-fight — removeUnit is live during a
+    // fight — closes the box instead of offering to rule on a record that is
+    // no longer there.
+    if (unit === null) { fguShut(box); return; }
+
+    var rows = document.getElementById('fg-unit-rows');
+    if (!rows) { return; }
+    var tokens = bfTokenIds(state);
+    var sig = fguSig(side, unitId, tokens);
+    /* THE REBUILD IS WRAPPED IN withPreservedFocus AND THE PER-FRAME WRITE IS
+       NOT, which is [S06.1]'s division and [S06.11]'s practice exactly. Only
+       the rebuild destroys nodes, and it happens on a change of unit or of the
+       token list — never on a nudge, which is the property the whole region is
+       arranged around. */
+    if (rows.dataset.fguUp !== sig) {
+      withPreservedFocus(rows, function () {
+        fguBuild(state, rows, side, unit, tokens);
+      });
+      rows.dataset.fguUp = sig;
+    }
+
+    fgnText(document.getElementById('fg-unit-head'), fgUnitName(state, unitId));
+    fguFill(state, rows, side, unit, tokens);
+
+    // The anchor is looked up AFTER the box is unhidden, because a hidden box
+    // measures zero and a position computed from a zero-width box would put it
+    // in the wrong place on the frame it opens.
+    box.hidden = false;
+    var anchor = fguAnchor(side, unitId);
+    // A shape that is no longer drawn closes the box rather than leaving it
+    // floating over the page pointing at nothing — [S06.14]'s ruling, and the
+    // same one that made the nudge close when a zero reading was hidden.
+    if (anchor === null) { fguShut(box); return; }
+    fguPlace(box, anchor);
+  }
+
+  function syncUnitPopup(state) {
+    unitPopup(state);
+  }
+
+  SYNC_HOOKS.push(syncUnitPopup);
+  // #endregion [S06.15] RENDER — THE UNIT POPUP
+
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -24884,6 +25632,16 @@ App.render = (function () {
     // It is ALSO what lets a row drive the surface, which is battlefield()'s
     // stated reason, so the export serves both.
     resourceNudge: resourceNudge,
+    // D-37, and it is exported for resourceNudge's reason exactly rather than
+    // for battlefield()'s: OPENING the popup and DISMISSING it are page work
+    // that dispatch nothing, so no commit lands, no frame is scheduled and
+    // SYNC_HOOKS never runs. [S07.5] writes the two attributes and then asks
+    // for the surface to be painted onto them — the same two-call idiom pressAt
+    // and pressRes each use, and for the same measured reason: a press that
+    // changed an attribute and waited for the next frame leaves a student
+    // looking at a control that did nothing. It is ALSO what lets a row drive
+    // the surface, so the one export serves both.
+    unitPopup: unitPopup,
     // Exported for exactly the reason picker(), editor(), share() and
     // fightBar() are, and to exactly one caller: [S07.6]'s handler, which
     // writes data-view onto #app and then asks for the two controls to be
@@ -28165,8 +28923,15 @@ App.interactions = (function () {
      make a refused op stop refusing is to move it quietly into UI_ACTS.
 
      PAGE WORK — handled here, never dispatched:
-       data-fg="at"    start, or cancel, a change of what a declaration lands on
-       data-fg="res"   open, or shut, D-36's nudge on the reading pressed
+       data-fg="at"     start, or cancel, a change of what a declaration lands on
+       data-fg="res"    open, or shut, D-36's nudge on the reading pressed
+       data-fg="uclose" shut D-37's unit popup
+     AND ONE CONTROL WITH TWO JOBS, WHICH IS D-37's AND IS LISTED IN BOTH
+     PLACES RATHER THAN IN THE CONVENIENT ONE:
+       data-fg="bf"     AT REST, page work — open or shut the unit popup.
+                        ARMED, a real op — complete the change of target.
+     pressBf's own paragraph carries the argument; a half-made retarget owns
+     the whole battlefield and a student is never in both states at once.
      The second is the first one's shape exactly: three attributes on a node
      [S06.14] reads, written here and read there, with a repaint asked for on
      the spot. It reads and writes no STATE — the ruling itself is a dispatch,
@@ -28194,10 +28959,12 @@ App.interactions = (function () {
      STATE WORK — real ops, dispatched, and deliberately ABSENT from UI_ACTS:
        data-act="startFight"  on #fight-start        -> startFight
        data-fg="act"          on a picker row        -> declare OR clearDeclaration
-       data-fg="bf"           on the battlefield     -> declare (05-15's control)
+       data-fg="bf"           on the battlefield     -> declare, WHILE ARMED
        data-fg="advance"      on the round controls  -> advanceRound
        data-fg="reset"        on the round controls  -> resetFight
        data-fg="nudge"        on D-36's nudge pair   -> one of four ± ops
+       data-fg="unudge"       on a popup value's ±   -> one of three ± ops
+       data-fg="ualive"       on the popup's toggle  -> setAlive
        data-dc="alive"        on a unit card         -> setAlive
      NOT ONE OF THOSE NAMES IS IN UI_ACTS AND NONE EVER MAY BE: an entry there
      is a name this section handles ITSELF instead of dispatching, which is
@@ -28660,6 +29427,47 @@ App.interactions = (function () {
     var state = App.state.get();
     if (state.fight === null) { return; }
 
+    /* ==================================================================
+       D-37: AT REST, A PRESS ON A SHAPE OPENS THAT UNIT'S POPUP. ARMED,
+       THE WHOLE BATTLEFIELD IS STILL THE RETARGET FLOW'S.
+       ==================================================================
+       The developer: "click on a unit then click on the popup window to
+       modify the values associated with it" — and D-37 settles the
+       collision in the same breath: "Clicking a unit on the battlefield
+       (AT REST — a half-made retarget still owns the battlefield) opens
+       a popup for THAT unit".
+
+       SO THE SEPARATION IS IN TIME, AND IT IS THE SEPARATION D-36
+       MEASURED ITS WAY TO rather than a new one. That plan started with
+       a spatial split — a reading was a press target nested inside the
+       shape — and a real centre click found it: "a lit shape is aimed at
+       by clicking its MIDDLE, and its middle is a reading", and two
+       shipped browser cells went red. The answer was fgAnyHalfMade, and
+       D-37 keeps the answer and deletes the nesting: there is nothing
+       inside a shape to press any more, so the ONLY question left is
+       which of the shape's two jobs a press is for, and the state of the
+       retarget flow answers it.
+
+         AT REST — the popup opens. Nothing is declared and nothing is
+           dispatched; this is page work.
+         ARMED — the loop below runs exactly as it did. A lit shape
+           retargets; an unlit one falls out of the loop and DECLINES
+           QUIETLY, which is clearDeclarations' shipped precedent and
+           this region's banner requirement on that surface. Nothing
+           opens.
+       A student is never in both states at once.
+
+       IT IS fgAnyHalfMade AND NOT "a flow that may point HERE",
+       deliberately. A change half made on the pressed unit's OWN side
+       cannot complete on this shape — fgMayPoint declines it — and the
+       press could therefore be argued to be free. It is not taken: D-37
+       says a half-made retarget owns the battlefield, and a student who
+       armed a change and then had a popup open under their hand on one
+       of the two columns would be reading the surface as broken. The
+       flow is cancelled by pressing its own control, which is where it
+       was started. */
+    if (!fgAnyHalfMade()) { pressUnit(btn); return; }
+
     var sides = Object.keys(FG_DECL_IDS);
     for (var i = 0; i < sides.length; i++) {
       var side = sides[i];
@@ -28889,14 +29697,26 @@ App.interactions = (function () {
      THE TEAM RESOURCES ARE UNAFFECTED and are deliberately not covered by this:
      they are not on the battlefield, the retarget flow has no claim on them,
      and a student who armed a change and then wants to fix a pool reading
-     should not have to cancel the flow to do it. */
+     should not have to cancel the flow to do it.
+
+     ==================================================================
+     AND AS OF D-37 THE TEAM RESOURCES ARE THE ONLY THING THIS ARM SERVES.
+     ==================================================================
+     The two paragraphs above are kept whole because they are the RECORD of a
+     defect a real click found, and the answer they arrived at — fgAnyHalfMade
+     — is still in the file and still load-bearing; it moved one function up,
+     into pressBf, where D-37 puts the battlefield's press. What left this
+     function is the DELEGATION: it used to begin by asking whether the pressed
+     reading was inside a shape and handing the press to pressBf if a change
+     was half made. Nothing carrying data-fg="res" is inside a [data-fg="bf"]
+     any more — [S06.11]'s own comment records the deletion and D-37's
+     instruction for it — so that branch could only ever be dead code inside a
+     handler, which bindResetAsk's ruling refuses. The rule it enforced is not
+     lost: pressBf enforces it now, for every press on a shape rather than only
+     for a press that landed on a reading, which is strictly wider. */
   function pressRes(node) {
     var box = fgNudgeBox();
     if (box === null) { return; }
-    if (typeof node.closest === 'function') {
-      var shape = node.closest('[data-fg="bf"]');
-      if (shape !== null && fgAnyHalfMade()) { pressBf(shape); return; }
-    }
     var side = String(node.dataset.fgSide || '');
     var tok = String(node.dataset.fgTok || '');
     if (side === '' || tok === '') { return; }
@@ -28966,6 +29786,237 @@ App.interactions = (function () {
     App.ops.dispatch(op, { side: side, unitId: unitId, delta: step });
   }
 
+  /* ===== D-37: A PRESS ON A UNIT ==========================================
+
+     The developer, at the real artifact: "click on a unit then click on the
+     popup window to modify the values associated with it". Five handlers
+     below — one that OPENS the popup on the shape that was pressed, one that
+     RULES from a value's pair, one that toggles the DEAD marker, one that
+     shuts it, and one that lets the ARROWS do what the pair does.
+
+     THE OPEN IS PAGE WORK AND DISPATCHES NOTHING, in pressRes' and pressAt's
+     arrangement: it writes the two attributes [S06.15] reads and asks for that
+     surface to be painted onto them, because a press that changed an attribute
+     and waited for the next frame leaves a student looking at a control that
+     did nothing — in front of a room, that is a student pressing it twice.
+
+     EVERY RULING IS A DISPATCH AND NOTHING ELSE, through the ops [S05]'s
+     hand-ruling group exports and never through a second path. Which op a
+     value takes is decided by fgResOps — the SAME table pressNudge reads, and
+     that is the point of it being a table: a unit's health, its shield and a
+     tally of a type the student invented are three numbers with three writers,
+     and a second copy of that mapping in here would be a fifth spelling of a
+     write. Every one lands a record in the round's `hand` list and is ONE
+     undoable commit, which is FIGHT-07's machinery doing what it was built for.
+
+     A NUDGE THAT CANNOT MOVE IS NOT AN ERROR — nudgeFightHp's boolean return,
+     the row's own bound sentence, and no panel. clearDeclarations returning
+     false over an empty list is the shipped precedent.
+
+     NOTHING HERE WRITES `alive`, AND THE ONE CONTROL THAT DOES SAYS SO. D-00d
+     is the file's oldest ruling: a unit ruled to zero health STAYS STANDING
+     until a student says otherwise. Driving hp to 0 through this popup leaves
+     the flag exactly where it was, and the dead toggle is the only thing in
+     here that touches it — which is the same op, the same words and the same
+     three channels as [S06.9]'s control on the board tab, because D-37 says
+     that control remains and two spellings of one write would drift. */
+
+  // The popup, by the id the shell writes. Null rather than a throw when it is
+  // absent, for fgSideRoot's and fgNudgeBox's stated reason: an error panel
+  // raised on a control that ships in every build is the one outcome worse
+  // than nothing happening.
+  function fgUnitBox() {
+    if (typeof document === 'undefined') { return null; }
+    var box = document.getElementById('fg-unit');
+    return box ? box : null;
+  }
+
+  /* THE SHAPE THE POPUP CAME FROM, found by walking and comparing rather than
+     by building a selector — fgNudgeAnchor's recorded reason, held for a
+     second control: a built selector would put a second copy of a key spelling
+     in a different IIFE, and it would interpolate a caller string into CSS,
+     which is keyed()'s CSS.escape hazard. Comparing two attributes the box
+     already holds against the two each shape carries needs no key at all.
+
+     IT IS LOOKED UP FRESH rather than remembered in a variable, because the
+     battlefield is REBUILT whenever the roster moves and a remembered node
+     reference would be a detached one by the time this runs. */
+  function fgUnitShape(box) {
+    if (typeof document === 'undefined') { return null; }
+    if (typeof document.querySelectorAll !== 'function') { return null; }
+    var side = String(box.dataset.fgSide || '');
+    var unit = String(box.dataset.fgUnit || '');
+    var all = document.querySelectorAll('[data-fg="bf"]');
+    for (var i = 0; i < all.length; i++) {
+      if (String(all[i].dataset.fgSide || '') === side
+        && String(all[i].dataset.fgVal || '') === unit) { return all[i]; }
+    }
+    return null;
+  }
+
+  /* SHUT, AND HAND THE KEYBOARD BACK TO THE SHAPE IT CAME FROM.
+
+     THIS IS THE HALF THAT MAKES THE KEYBOARD ROUTE A ROUTE and it is what
+     deferred item 17 was waiting for. A student who tabbed to a unit shape,
+     opened this with Enter and pressed Escape lands back ON THAT SHAPE rather
+     than on <body>, which is where focus falls when a focused node is hidden.
+     Unlike D-36's nudge, the return target here is a real <button> on every
+     board — the shape has been one since plan 05-15 — so the return always
+     lands somewhere focus can live.
+
+     THE SHAPE IS LOOKED UP BEFORE THE ATTRIBUTES ARE CLEARED, because clearing
+     them is what makes it unfindable. */
+  function fgUnitShut() {
+    var box = fgUnitBox();
+    if (box === null) { return; }
+    if (String(box.dataset.fgUnit || '') === '') { return; }
+    var back = fgUnitShape(box);
+    box.dataset.fgSide = '';
+    box.dataset.fgUnit = '';
+    App.render.unitPopup(App.state.get());
+    fgFocus(back);
+  }
+
+  /* THE OPEN. Pressing the shape the popup is already open on SHUTS it, which
+     is pressRes', pressAct's and pressAt's shared shape — the control that
+     starts something is the control that takes it back — and it means a
+     student who opened one by accident has a way out that is neither an undo
+     nor a hunt for empty page. There is a text-labelled Close in the box too,
+     for the students who never learn either.
+
+     OPENING ONE SHUTS THE OTHER, AND IT COSTS NO LINE HERE. A press on a shape
+     is a press "elsewhere" as far as D-36's nudge is concerned, so the
+     document handler below has already shut it by the time this runs — and
+     the converse holds for a press on a team resource. The two boxes sit at
+     the same z-index and can never be open at once, which is what makes that
+     shared band safe. */
+  function pressUnit(btn) {
+    var box = fgUnitBox();
+    if (box === null) { return; }
+    var side = String(btn.dataset.fgSide || '');
+    var unit = String(btn.dataset.fgVal || '');
+    if (side === '' || unit === '') { return; }
+    if (String(box.dataset.fgSide || '') === side
+      && String(box.dataset.fgUnit || '') === unit) {
+      fgUnitShut();
+      return;
+    }
+    box.dataset.fgSide = side;
+    box.dataset.fgUnit = unit;
+    App.render.unitPopup(App.state.get());
+    /* AND THE KEYBOARD GOES INTO THE POPUP THAT JUST APPEARED, which is the
+       half that makes the round trip work: this box is a child of #fightbar
+       near its end, so a student who opened it from a shape hundreds of nodes
+       earlier in document order would otherwise have to Tab past everything
+       between the two. The first control in the rows is where it lands — the
+       first value's −, not the Close, because the values are what the popup is
+       for and a Tab from there reaches the Close in a few presses either way.
+
+       IT COSTS THE POINTER PATH NOTHING. This runs during pointerdown and the
+       browser's own default focus-on-mousedown then targets whatever was under
+       the cursor, so a mouse open ends with focus on the shape, exactly as it
+       did before this line. Plan 05-10 measured that sequence in full. */
+    var rows = document.getElementById('fg-unit-rows');
+    fgFocus(rows === null ? null : rows.querySelector('[data-fg="unudge"]'));
+  }
+
+  /* ONE VALUE'S RULING. The side and the unit are read off the BOX and the
+     token id off the pressed BUTTON, and the split is deliberate: the box is
+     the one node that knows which unit is open, and the button is the one node
+     that knows which of the unit's values it sits beside. A handler that
+     walked up to the row for the token id would be a second way to answer a
+     question the button answers itself.
+
+     THE PAYLOAD IS BUILT FIELD BY FIELD at the call site, in 03.1-05's
+     arrangement and this region's banner's rule: no second fire() payload key,
+     and no shared payload shape between two arms.
+
+     `ap` CANNOT REACH THIS. A pool is a number the SIDE holds and no unit
+     carries one, so bfTokenIds never lists it and no row draws it — and if a
+     stale attribute ever named it, setFightAp's own shape refuses a unit and
+     the refusal is [S05]'s to raise rather than a guard repeated here. */
+  function fgUnitRule(tok, step) {
+    var box = fgUnitBox();
+    if (box === null) { return; }
+    var side = String(box.dataset.fgSide || '');
+    var unitId = String(box.dataset.fgUnit || '');
+    if (side === '' || unitId === '' || tok === '') { return; }
+    var state = App.state.get();
+    if (state.fight === null) { return; }
+    var op = fgResOps(tok).nudge;
+    if (op === 'nudgeFightTally') {
+      App.ops.dispatch(op, {
+        side: side, unitId: unitId, tokenId: tok, delta: step
+      });
+      return;
+    }
+    App.ops.dispatch(op, { side: side, unitId: unitId, delta: step });
+  }
+
+  function pressUnitNudge(btn) {
+    var step = (String(btn.dataset.fgStep || '') === '-1') ? -1 : 1;
+    fgUnitRule(String(btn.dataset.fgTok || ''), step);
+  }
+
+  /* THE DEAD MARKER, FROM THE POPUP. It is pressAlive's body with the side and
+     the unit read off the box instead of off the button, and it dispatches the
+     SAME op — D-37 keeps the board tab's control ("its board-tab control
+     remains"), so this is a second CONTROL for one write and never a second
+     write. The flag is read off STATE and not off aria-pressed, because the
+     renderer writes that attribute FROM the flag and reading it back would be
+     asking the page what the state is through a copy the page made. */
+  function pressUnitAlive() {
+    var box = fgUnitBox();
+    if (box === null) { return; }
+    var side = String(box.dataset.fgSide || '');
+    var unitId = String(box.dataset.fgUnit || '');
+    if (!Object.prototype.hasOwnProperty.call(FG_DECL_IDS, side)) { return; }
+    if (unitId === '') { return; }
+    var state = App.state.get();
+    if (state.fight === null) { return; }
+    var alive = fgAliveOn(state, side, unitId);
+    if (alive === null) { return; }
+    App.ops.dispatch('setAlive', { side: side, unitId: unitId, value: !alive });
+  }
+
+  /* THE ARROWS, AND WHY THEY EXIST AT ALL. D-37 asks for a popup a keyboard
+     can operate, and Enter on a focused button already does that — this adds
+     the direction keys because a ± pair is the one control on this page a
+     student expects them on, and because reaching the + from the − is a Tab
+     the arrows make unnecessary.
+
+     THE KEY DECIDES THE SIGN AND THE BUTTON DOES NOT. Up and Right raise, Down
+     and Left lower, whichever of the pair holds the focus — which is what
+     makes them useful rather than a second spelling of Enter. Both axes,
+     because a row reads left-to-right and a column of rows reads top-to-bottom
+     and a student will reach for either.
+
+     preventDefault BECAUSE THE PAGE WOULD OTHERWISE SCROLL under a control
+     that is placed against the viewport, which is the one thing that would
+     make this feel broken. It is called only when the press has been claimed —
+     an arrow anywhere else in #fightbar is untouched, and there is no field on
+     this surface for one to be typing in ([S07.5]'s banner records that).
+
+     A HELD ARROW RAMPS AND THAT IS THE SAME BARGAIN THE POINTER MAKES. Auto-
+     repeat sends a keydown per repeat and each is one commit — but every op
+     this reaches carries setUnitHp's own label, so a run inside COALESCE_MS is
+     ONE undo entry (UX-01, D-10: forty Ctrl+Z for one held button is a chore,
+     not a recovery). It is exactly what three rapid clicks on the − already
+     do. HOLD_ACTS is untouched and could not fire here anyway: [S07.1]'s ramp
+     reads btn.dataset.act and no control in this region has one. */
+  function fgUnitArrow(e) {
+    if (e.key !== 'ArrowUp' && e.key !== 'ArrowDown'
+      && e.key !== 'ArrowLeft' && e.key !== 'ArrowRight') { return false; }
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return false; }
+    var btn = node.closest('[data-fg="unudge"]');
+    if (btn === null) { return false; }
+    e.preventDefault();
+    var up = (e.key === 'ArrowUp' || e.key === 'ArrowRight');
+    fgUnitRule(String(btn.dataset.fgTok || ''), up ? 1 : -1);
+    return true;
+  }
+
   /* DISMISSAL BY A PRESS ELSEWHERE. "Elsewhere" is everywhere that is neither
      the box nor a reading: a press inside the box is the control being used,
      and a press on a reading is pressRes' to answer — it opens the box on the
@@ -28978,6 +30029,11 @@ App.interactions = (function () {
      mean editing [S07.1], which this region's banner promises not to do. */
   function onDocPress(e) {
     if (!isPrimaryPress(e)) { return; }
+    onDocPressNudge(e);
+    onDocPressUnit(e);
+  }
+
+  function onDocPressNudge(e) {
     var box = fgNudgeBox();
     if (box === null || box.hidden === true) { return; }
     var node = e.target;
@@ -28989,13 +30045,39 @@ App.interactions = (function () {
     fgNudgeShut();
   }
 
-  // Escape, D-36's second dismissal. It declines while the box is shut, so it
-  // can never swallow an Escape a dialog or a field was waiting for.
+  /* D-37's HALF OF THE SAME RULE, AND ITS "ELSEWHERE" IS ONE NAME WIDER.
+     A press inside the popup is the control being used, and a press on a
+     battlefield SHAPE is pressBf's to answer — it opens the popup on the new
+     unit or shuts it on the same one, and a dismiss racing that would make
+     every second press on a unit do nothing. Everything else shuts it,
+     including a press on a team resource, which is correct: that press opens
+     D-36's nudge and the two boxes must never be up together.
+
+     THE ORDER OF THE TWO ARMS IS NOT RELIED ON. Each asks whether the press
+     was its own and leaves it alone if it was, so either can run first — the
+     same property the single handler had against #fightbar's own listener. */
+  function onDocPressUnit(e) {
+    var box = fgUnitBox();
+    if (box === null || box.hidden === true) { return; }
+    var node = e.target;
+    if (node && typeof node.closest === 'function') {
+      if (node.closest('#fg-unit') !== null) { return; }
+      var bf = node.closest('[data-fg]');
+      if (bf !== null && String(bf.dataset.fg || '') === 'bf') { return; }
+    }
+    fgUnitShut();
+  }
+
+  // Escape, D-36's second dismissal and D-37's. It declines while both boxes
+  // are shut, so it can never swallow an Escape a dialog or a field was
+  // waiting for. Both are asked because both can be open — never at the same
+  // time, but the handler does not need to know that to be correct.
   function onDocKeyDown(e) {
     if (e.key !== 'Escape') { return; }
-    var box = fgNudgeBox();
-    if (box === null || box.hidden === true) { return; }
-    fgNudgeShut();
+    var nudge = fgNudgeBox();
+    if (nudge !== null && nudge.hidden !== true) { fgNudgeShut(); }
+    var unit = fgUnitBox();
+    if (unit !== null && unit.hidden !== true) { fgUnitShut(); }
   }
 
   /* THE BOX FOLLOWS A SCROLL, AND A SCREENSHOT IS WHAT FOUND THIS. The
@@ -29022,9 +30104,24 @@ App.interactions = (function () {
      one is one hidden-property read per scroll event, which is the same bargain
      the two dismissal handlers make. */
   function onDocScroll() {
+    var state = null;
     var box = fgNudgeBox();
-    if (box === null || box.hidden === true) { return; }
-    App.render.resourceNudge(App.state.get());
+    if (box !== null && box.hidden !== true) {
+      state = App.state.get();
+      App.render.resourceNudge(state);
+    }
+    /* D-37's popup follows a scroll for the identical reason and by the
+       identical mechanism, and it is the same choice made a second time:
+       RE-PLACED RATHER THAN DISMISSED. It is placed against a battlefield
+       SHAPE, and the shapes sit inside .fg-sides — the very scroller [C14.1]
+       bounds — so it is the case this listener was written for. A popup that
+       vanished because a student scrolled to read the row below it is one they
+       learn not to trust. */
+    var unit = fgUnitBox();
+    if (unit !== null && unit.hidden !== true) {
+      if (state === null) { state = App.state.get(); }
+      App.render.unitPopup(state);
+    }
   }
 
   // The flag, read off STATE and not off the button's aria-pressed. The
@@ -29084,9 +30181,19 @@ App.interactions = (function () {
     // real op, and it is BEFORE the page arms for the reason the banner gives:
     // dispatch first, page work after.
     if (kind === 'nudge') { pressNudge(btn); return; }
+    // D-37's two ruling arms, with the nudge arm and for its reason: they
+    // dispatch real ops, so they sit with the state arms and BEFORE the page
+    // arms — dispatch first, page work after. A refused op throws out of this
+    // handler into [S08]'s boundary and no page work runs behind it.
+    if (kind === 'unudge') { pressUnitNudge(btn); return; }
+    if (kind === 'ualive') { pressUnitAlive(); return; }
 
-    // Then the two page arms, and nothing below dispatches.
+    // Then the three page arms, and nothing below dispatches.
     if (kind === 'at') { pressAt(btn); return; }
+    // D-37's way out. `bf` is the arm that OPENS the popup and it is a state
+    // arm above, because at rest it is page work and armed it declares — one
+    // control with two jobs, which is pressBf's own paragraph.
+    if (kind === 'uclose') { fgUnitShut(); return; }
     // D-36's opening arm. `res` is the ONE kind on this surface that resolves
     // to an INNER node: a battlefield reading is a child of the shape's own
     // control, so closest() hands this arm the line and hands `bf` the shape,
@@ -29154,6 +30261,11 @@ App.interactions = (function () {
      is this region's two private attributes, so a held Space inside any field
      anywhere still types spaces. */
   function onFightKeyDown(e) {
+    // D-37's arrows, first, because they CLAIM a press rather than suppressing
+    // one — fgUnitArrow returns true only when the key landed on a value's
+    // pair inside the popup, and every other key press falls straight through
+    // to the suppression below exactly as it did.
+    if (fgUnitArrow(e)) { return; }
     if (e.repeat !== true) { return; }
     if (e.key !== 'Enter' && e.key !== ' ') { return; }
     var node = e.target;
