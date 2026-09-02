@@ -8354,7 +8354,23 @@ check(
    soleDialog would otherwise close it again. */
 shPress(shareOpener);
 const shReopened = shareDlg.open;
-const shFocusOnOpen = stub.activeElement !== shareOpener;
+/* G-02.1-E's PLACEMENT IS NOT ASSERTED HERE, AND THE REASON IS A PROBE RESULT
+   RATHER THAN AN OVERSIGHT. Two spellings were written and measured:
+
+     "activeElement is no longer the opener" -- PROBE DU took the placement out
+       of openSole entirely and this row STAYED GREEN, because <body> is not the
+       opener either and <body> is the exact state the clause exists to catch;
+     "activeElement is inside the dialog"    -- red on the shipped file, and
+       measured why: this stub focuses the pressed control AFTER the handler
+       returns, which is the browser's own focus-on-mousedown reproduced, and it
+       is the very race the placement defers a frame to lose. There is no frame
+       to defer to here, so the synchronous fall-through is overwritten before
+       this line can read it.
+
+   So the placement is BROWSER CELL 27d's, where there is a real event order, a
+   real selector engine for `:not([disabled])` and a real Tab. What this row
+   keeps is what it can honestly say: both surfaces are driven OPEN, and each
+   hands the keyboard back to the control that opened it. */
 shPress(shareToLoad);
 const paneAfterToLoad = [shareDlg.dataset.shPane, sharePaneCopy.hidden, sharePaneLoad.hidden];
 shPress(shareBackBtn);
@@ -8385,20 +8401,21 @@ check(
     + 'which is the exact asymmetry a never-run hand-back would show. Both are '
     + 'driven on OPEN surfaces now, each re-opened through its own shipped '
     + 'topbar control, and the reset after the share rather than before it '
-    + 'because soleDialog would otherwise shut it again. AND THE PLACEMENT '
-    + 'ITSELF IS READ: the keyboard is NOT on the opener once the dialog is '
-    + 'up, which is G-02.1-E\'s own measurement — both dialogs opened on '
-    + '<body> in real Chrome and real Edge, and Phase 2 wrote that down as '
-    + 'probably its own test pane. It was not the test pane',
+    + 'because soleDialog would otherwise shut it again. THE PLACEMENT ITSELF '
+    + 'IS DELIBERATELY NOT ASSERTED HERE and browser cell 27d owns it: PROBE DU '
+    + 'showed the cheap spelling of that clause could not fail, because <body> '
+    + 'is not the opener either; and the honest spelling reddens on the shipped '
+    + 'file, because this stub focuses the pressed control AFTER the handler '
+    + 'returns, which is the browser\'s own focus-on-mousedown reproduced and '
+    + 'is the exact race the placement defers a frame to lose. There is no '
+    + 'frame here to defer to',
   shReopened === true && rsReopened === true
-    && shFocusOnOpen === true
     && JSON.stringify(paneAfterToLoad) === JSON.stringify(['load', true, false])
     && JSON.stringify(paneAfterBack) === JSON.stringify(['copy', false, true])
     && JSON.stringify(shClosedOn) === JSON.stringify([false, true])
     && JSON.stringify(rsClosedOn) === JSON.stringify([false, true])
     && errPanel.hidden === true,
   'share re-opened=' + shReopened + ' reset re-opened=' + rsReopened
-    + ' | the keyboard left the opener on open=' + shFocusOnOpen
     + ' | after "paste a build code"=' + JSON.stringify(paneAfterToLoad)
     + ' after back=' + JSON.stringify(paneAfterBack)
     + ' | share [open, focus back]=' + JSON.stringify(shClosedOn)
