@@ -942,6 +942,44 @@ and the row stays one line with 17px to spare.
 **Owner:** a pass that can turn cell 25a, or the 05-11 playtest if the room says the round-rules
 words are unreadable from the back.
 
+### CLOSED BY PLAN 05-D39d, AND BY NONE OF THE THREE ANSWERS ABOVE
+
+**2026-09-02.** The table above is exact and the question it asks is the wrong one. It asks what
+one-line-at-1366 costs in **font size**. The question that settles it is what one-line-at-1366 costs
+in **token types**, and the answer is one.
+
+Driven four times at 1366x768, real Chrome and real Edge, two rules, every figure identical in the
+two engines to the pixel:
+
+| board | `.rr-pill` 15px | `.rr-pill` 18px |
+|---|---|---|
+| the five shipped types | slack 17, **ONE line**, card 372 | slack 0, two lines, card 535 |
+| **+ ONE student type** | slack 0, **TWO lines**, card 535 | slack 0, two lines, card 535 |
+| + a second student type | slack 0, two lines | — |
+
+**The 18px board and the six-type board are the same board** — card 535, page 3289, the Add control
+at 3169, in both engines at both font sizes. So 18px does not create a shape this file does not
+already have; it arrives at that shape **one token type early**, and from the sixth type on it is
+free. At 1920 nothing wraps at all, at either size, at five, six or seven types (slack 96 at the
+worst measured).
+
+Which makes the property being protected the thing to look at. "Every row is one line at 1366" holds
+for the five types the board ships with and stops holding the moment a student authors their first —
+which is the exercise this artifact exists for. It was never a property of the surface; it was a
+property of the surface *before the workshop starts*.
+
+**What landed:** `.rr-pill` 15px → 18px. Cell **25a** turned in the open and it now branches on the
+width, which is the honest shape rather than the weak one — PROBE DC's finding is that `slack` is the
+reading that catches a stretched token track and that a row with no free space cannot be caught, so
+at 1366/18px the discriminator is **absent** rather than weakened. It is asserted at 1920, where 177
+px of slack remain, and PROBE DC was re-run and reddens there in both engines. At 1366 the wrapped
+shape is asserted instead: columns aligned to a pixel, the amount still against its pills, one Remove
+per row, and the band bounded at 96 so a **third** line still fails.
+
+**ANSWER 2 IS STILL OPEN AND IS NOT A LAYOUT DIAL.** Shortening "Cats, each unit" recovers about
+120 px and buys the one-line row back at 1366 on the fresh board. It is a rendered string on four
+controls and it is the developer's vocabulary. **Owner:** the developer, or the 05-11 playtest.
+
 ---
 
 ## D-39 P1-2's SECOND HALF — "9 of 9 still standing" is printed twice, 106px apart
@@ -982,6 +1020,18 @@ reverse") and leaves to the developer.
 what a room reads, and node row 102b's technique (compare the two renderings to each other) is
 already in the file for whichever survives.
 
+### SWEPT BY PLAN 05-D39d AND LEFT STANDING — answer 3, with one figure that changed
+
+**2026-09-02.** Re-read and left, because none of the three answers has become cheaper and one of them
+has become *less* attractive. What changed is D-39 P2-10, landed this pass: the two sides' rows now
+open on the same line, so the state card's two standing counts — "9 of 9 still standing" and "3 of 3
+still standing" — sit **side by side at the same y** instead of 75 px apart. That is a comparison a
+room can make at a glance, and it is the reading D-27 asked those columns for. Removing the state
+card's copy (answer 2) would take that away to fix a duplication that is not a contradiction.
+
+Answer 1 (drop it from `#strip`) is still admissible and still a decision about what that region is.
+Answer 3 (leave both) is what ships, and it now has a reason rather than only an absence of one.
+
 ---
 
 ## D-39 P1-3's SIDE-EFFECT — `.err-detail` is the last unstyled scrollbar in the artifact
@@ -1002,6 +1052,29 @@ instance of it in the file — the panel is a failure surface, not a workshop on
 Photographed at `d39b/w1920-chrome-err-panel.png`.
 
 **Owner:** any pass that touches `[C08]` or `[C16]`.
+
+### CLOSED BY PLAN 05-D39d — this pass touches both
+
+**2026-09-02.** `.err-detail` joins `[C16]`'s three lists with `--fade-cover:var(--panel)`, exactly as
+priced. Two things came with it that were not in the pricing:
+
+1. **`[C08]`'s rule went from the `background` shorthand to `background-color`.** That is Pass B's own
+   recorded rule about `[C16]`, and PROBE DN measured what the shorthand costs — the cue silently goes
+   to zero layers with nothing on screen to say so. Order alone would have saved it here, because
+   `[C16]` is later in the sheet at equal specificity; it is written the safe way anyway, because
+   "later in the sheet" is a property of the file and not of the rule.
+2. **The cell that reads it back had to be told what its own runner cannot see.** A first draft
+   asserted the **gutter**, on P1-3's argument that a gutter is the only proof a bar is drawn. That is
+   true of a runner that drops `--hide-scrollbars`, and `tests/browser-checks.mjs` **does not drop
+   it** — line 81 launches with Playwright's defaults. The gutter read **2 px**, which is the
+   textarea's own two borders and is exactly the "no scrollbar takes any width" figure the D-39 audit
+   reported and Pass B explained. Cell 25d asserts `scrollbar-width: thin`, a thumb colour that is not
+   the initial `auto`, the four-layer cue and a box that genuinely overflows. **The pixel half was
+   taken out of band** at 1400x900 with the flag removed: 12 px of gutter and a dark bar, photographed
+   at `d39d/after-errpanel.png`.
+
+**A note for whoever drops `--hide-scrollbars` from line 81:** the gutter clause belongs back in cell
+25d that day, and the paragraph at the read says so.
 
 ---
 
@@ -1055,3 +1128,96 @@ the cell would then be building a board no other cell in the file builds, and th
 prints the arm counts a reader can check.
 
 **Owner:** any pass that touches cell 26i.
+
+### SWEPT BY PLAN 05-D39d AND LEFT, for the reason Pass C gave and one more
+
+**2026-09-02.** Re-read against the instruction to close what is genuinely cheap. It is not cheap in
+the sense that matters: the fix is not the two lines of setup, it is that **cell 26i would then be
+the only cell in the file building a four-student-type board**, and every other clause in that cell
+(the arm counts, the bound, the mark, the reachability of "Mark dead") would be measured against
+geometry no other cell shares. A cell whose setup is unique is a cell whose red run nobody else can
+reproduce.
+
+The asymmetry is also not unwatched: both sizes run in both engines on every gate, so the regression
+is caught at 768 in four columns. What the entry actually guards against is a **later** plan
+narrowing the cell to one viewport, and the honest protection for that is this paragraph rather than
+a board nothing else builds.
+
+**Owner:** unchanged — any pass that touches cell 26i, and now with a reason to leave it alone.
+
+---
+
+## D-39 P2-14's HEIGHT HALF — the top bar still grows 37px when a fight starts
+
+**Raised 2026-09-02 by plan 05-D39d,** which took the finding's horizontal half and priced this one.
+
+**What landed.** The cluster used to open at x=159 on the board and x=487 in a fight — 328 px of
+void arriving on one press, under an `h1` and a view switch that do not move. One declaration did it:
+`.brd-cluster` is content-sized on the board so its `justify-content` has no slack to spend, and
+`.fg-read`'s `flex:0 0 100%` makes it full-width in a fight, where `flex-end` pushed 1278 px of tools
+to the end of 1600. Both rows open at the bar's own edge now, at both viewports, in both engines.
+
+**What did not, and the number that decided it.** The audit also asks that the round/pool row be
+reserved permanently "so the bar does not change height on `startFight`". Measured: `#topbar` is
+**64 px on the board and 101 px in a fight**, at both viewports.
+
+Reserving it spends **37 px of a sticky bar on every frame of the build phase** — the phase a student
+spends most of the workshop in — to smooth a transition that happens **once per fight, at the same
+instant the whole viewport changes tabs**. Everything else on screen is being replaced at that
+moment; the bar's height is the least of what moves. And this file has two open entries about the
+above-the-fold budget at 768 (items 2 and 9 above), which is the budget the reservation would spend.
+
+**The three admissible answers:**
+1. leave it, on the ground that the growth is paid at a tab change and the reservation is paid always;
+2. reserve it, on the ground that a sticky bar that changes height is a sticky bar a room notices —
+   which is a claim only a rehearsal can settle;
+3. reserve it **only in the fight and howto views**, which is a third `data-view` rule and buys
+   nothing, because the board view is the only one where the row is absent.
+
+**Owner:** the 05-11 playtest. Browser cell 9b **prints** the 64-to-101 figure rather than judging it,
+so whoever takes this can read what it cost and what it saved without re-driving anything.
+
+---
+
+## D-39 P3-7's FOUR DIALOG ORIGINS — untouched by this pass, and the reason is a measurement it did not take
+
+**Raised 2026-09-02 by plan 05-D39d.**
+
+The audit's fourth P3-7 bullet: "Four dialogs, four vertical origins: `#tok-picker` y=20 h=1040,
+`#act-edit` y=55 h=971, `#share` y=387 h=306, `#reset-ask` y=392 h=296."
+
+**It is not obviously a defect and this pass did not have the measurement that would decide.** The
+same bullet records that D-33 P2-5's *flicker* is fixed — the two share panes now differ by 2 px of y
+and 5 px of height, against 48 and 102 before — which is the case where two origins were a defect,
+because the same surface moved under a student's eye. Four *different* dialogs opening at four
+heights is what `place-items:center` on four boxes of four heights produces, and centring is the
+shipped behaviour of every one of them.
+
+**What would settle it** is a picture of the two authoring dialogs opened in sequence at 768, where
+the 1040 and the 971 both exceed the viewport and the clamp is doing the work — not a table of four
+numbers taken at 1080. This pass photographed neither.
+
+**Owner:** the 05-11 playtest, or any pass that opens two dialogs in a row at 768 and reads the
+result back.
+
+---
+
+## D-39 P3-6 AND P2-15, P3-2, P3-3 — the four this pass was told not to touch, restated so the list is in one place
+
+**Raised 2026-09-02 by plan 05-D39d.**
+
+**P2-15** (the proposal pane is the only prose pricing surface), **P3-2** (the removal badge is larger
+than the token it marks; the picker's tokens run at half the document scale) and **P3-3** (a +1 rule
+and a −1 rule differ by a ~4 px mark) are the three the audit itself flags as **developer decisions**
+and reserves for its pass G. They are untouched here by instruction. Pass A added two more to that
+pass's list: `.ae-prop-pill--on`'s outline with no tick rule to show, and P2-2's `.ae-pill` half with
+browser cells 23 and 23c priced.
+
+**P3-6** — every cost/needs row leaving 305 px empty at its tail, the three term lists having three
+right edges, and `None` being chip 1 on cost/needs and chip **3** on changes — is **not** flagged as a
+developer decision by the audit and is untouched here anyway. It is D-32's density on the action
+editor, which is the same surface and the same geometry pass G already owns twice over, and a pass
+that moved the tail void without the badge decision would be restyling those rows a second time.
+Pass A's own sequencing argument, at the surface it was written about.
+
+**Owner:** pass G, after the developer rules on the three.
