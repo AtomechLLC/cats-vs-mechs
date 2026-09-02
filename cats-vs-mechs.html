@@ -7775,8 +7775,35 @@
        heading, so this tab spends THREE ids and not nine: #howto, its heading,
        and the control in #views that reaches it. -->
   <section class="ht" id="howto" aria-labelledby="howto-head">
+    <!-- D-39 P2-13's SECOND HALF — THE EYEBROW IS GONE, AND IT WAS THE ONE
+         EYEBROW IN THIS FILE THAT NAMED ITS OWN SWITCH. Plan 05-D39d.
+
+         The audit: "the eyebrow 'HOW THIS WORKS' repeats the tab label 'How
+         this works' 50px above it. Drop the eyebrow — the tab is the label,
+         and it is the only view whose heading block repeats its own switch
+         button."
+
+         VERIFIED BEFORE IT WAS TAKEN, because a claim of the form "the only
+         one" is the shape this pass has already corrected twice. There are
+         nine .eyebrow nodes in this document. Eight of them label DIALOGS —
+         Token types, Actions, Proposal, Share, Load, Reset, the self-test
+         report and the error panel — and a dialog's eyebrow is the only name
+         on screen for the surface it opens. This was the ninth and the only
+         one on a VIEW, 50px under a .vw-btn reading the same four words.
+
+         THE ACCESSIBLE NAME DOES NOT MOVE. #howto is labelled by
+         #howto-head, which is the h2 below and not this node, so a screen
+         reader announced the same section before this deletion and after it.
+         What went is a duplicate for the room.
+
+         THE OTHER HALF OF P2-13 IS STILL DEFERRED and this is not it. That
+         half asks for align-items:start on .ht-grid against 1,095px of empty
+         card; D-38 tried it, photographed both, and reverted, and Pass A took
+         both pictures again rather than trust either party — under `start`
+         the void does not go, it MOVES, out of the panels where a border
+         accounts for it and into the gaps between them where nothing does.
+         deferred-items.md carries both sets of measurements. -->
     <div class="ht-head">
-      <div class="eyebrow">How this works</div>
       <h2 class="ht-title" id="howto-head">The tool does the bookkeeping. You are the rules engine.</h2>
       <p class="ht-lede">It adds up what you have allocated, spends what you declare, applies the changes your actions state, and keeps a record of every round. It never rules on how a fight goes — you and the room do that, out loud, at the table. Everything on this tab used to sit on the working surfaces themselves.</p>
     </div>
