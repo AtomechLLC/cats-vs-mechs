@@ -5672,7 +5672,25 @@
   .ae-item, .ae-side, .ae-pill, .ae-prop-pill, .ae-name, .ae-amt,
   .sh-code, .sh-paste,
   .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
-  .rr-pill, .rr-amt, .rr-add, .rr-rm{
+  .rr-pill, .rr-amt, .rr-add, .rr-rm,
+  /* D-39 P2-7 — FOUR CONTROLS AUTHORED AFTER THIS LIST AND NEVER ADDED TO
+     IT. Measured on the live elements: .fgu-close computed
+     `transition-duration:0s, transition-property:all` while .fg-act beside
+     it computed 0.12s on seven properties. Every control D-36 and D-37
+     added hover-SNAPPED while everything around it ramped.
+
+     .fg-res[data-fg="res"] IS THE ONE SPECIFICITY EXCEPTION IN THIS LIST
+     AND IT IS SAFE, checked rather than assumed. The banner above says
+     this list is (0,1,0) and can never win over a nested :hover at
+     (0,2,0). This entry is (0,1,0)+(0,0,1)... an attribute, so (0,2,0) —
+     but ITS OWN hover is nested inside the same selector in [C14.6] and
+     therefore expands to .fg-res[data-fg="res"]:hover at (0,3,0), which
+     still outranks it by a full class. The invariant the banner protects
+     — resting value here, state value there — holds. It is written with
+     the attribute rather than as a bare .fg-res because the bare class
+     also matches the READINGS, which are not pressable and have no hover
+     to ramp. */
+  .fg-res[data-fg="res"], .fgu-close, .fgu-alive, .pv-close{
     background-image:linear-gradient(transparent, transparent);
     transition:
       border-color var(--ramp) ease,
@@ -5902,6 +5920,11 @@
     .sh-code, .sh-paste,
     .fg-act, .fg-at, .bf-unit, .dc-alive, .vw-btn, .pv-btn,
     .rr-pill, .rr-amt, .rr-add, .rr-rm,
+    /* D-39 P2-7's four, named here too — the audit's own prescription is
+       "add the four class names to the existing selector list AND to the
+       prefers-reduced-motion guard's copy of it", and a ramp added in one
+       place is a ramp this guard does not take off. */
+    .fg-res[data-fg="res"], .fgu-close, .fgu-alive, .pv-close,
     .unit-card, .fg-area, .ld-now, .fg-row{transition:none}
     .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
     .pk[open]::backdrop, .ae[open]::backdrop,
