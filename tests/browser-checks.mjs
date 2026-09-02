@@ -3187,23 +3187,39 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.waitForTimeout(200);
 
     // ═════════════════════════════════════════════════════════════════════════════════════
-    // 26. D-36 — CLICK A RESOURCE TO RULE ON IT.
+    // 26. D-36's NUDGE, AND D-37's UNIT POPUP THAT SUPERSEDES HALF OF IT.
     // ═════════════════════════════════════════════════════════════════════════════════════
-    // The developer, at the real artifact: "add the ability to directly click on a resource
-    // to directly modify the value of that resource in the current round."
+    // D-36: "add the ability to directly click on a resource to directly modify the value of
+    // that resource in the current round." D-37, one round later: "click on a unit then click
+    // on the popup window to modify the values associated with it."
     //
-    // THIS BLOCK IS HERE AND NOT IN THE NODE GATE FOR THREE REASONS THAT ARE EACH A CLASS OF
+    // THE SECOND SENTENCE TAKES HALF OF THE FIRST BACK, AND THESE CELLS RECORD THE TURN.
+    // D-37's interpretation: "This supersedes D-36's per-reading nudge ON THE BATTLEFIELD —
+    // the readings there return to being readings, the unit shape's click opens the popup, and
+    // the nudge lives inside it. The team-resource direct click stays as D-36 built it." So
+    // 26, 26b, 26c, 26e and 26f are TURNED — each was written about a claim that has changed,
+    // each went RED against the artifact before it was rewritten, and each now asserts the new
+    // contract. 26d is untouched: it drives the team-resource keyboard route, which D-37
+    // leaves alone. 26g and 26h are the popup's own.
+    //
+    // THE RECORDED RED, on the commit that removed data-fg from .bf-line and before any cell
+    // here was rewritten: every `resSel(..., 'c1', 'hp')` click timed out, because the selector
+    // names a node the artifact no longer builds. That timeout IS the reading.
+    //
+    // THIS BLOCK IS HERE AND NOT IN THE NODE GATE FOR FOUR REASONS THAT ARE EACH A CLASS OF
     // CLAIM THE STUB DOM STRUCTURALLY CANNOT REACH:
     //   - THE FOCUS CASE. Plan 05-10 MEASURED that a pointer press on a control whose node is
     //     rebuilt drops the keyboard to <body>. A nudge repaints on every press, so a rapid
     //     −−− is the exact shape that failure takes — and only a real browser, with a real
-    //     default focus-on-mousedown, can tell three presses landing from one landing.
-    //   - THE HIT TEST. closest() separates a reading from the shape it sits inside, and
-    //     Playwright clicks the CENTRE of an element. That is what caught the collision: rows
-    //     12b and 12c above went red the first time this feature ran, because the centre of a
-    //     lit shape IS a reading. No stub can click a centre.
-    //   - THE PLACEMENT. The box is position:fixed with its offsets measured off the anchor's
-    //     rect, and the stub has no layout at all.
+    //     default focus-on-mousedown, can tell three presses landing from one landing. Under
+    //     D-37 the case moves INSIDE the popup, whose rows are built rather than shell.
+    //   - THE HIT TEST. Playwright clicks the CENTRE of an element, which is how D-36's
+    //     nesting collision was found in the first place. D-37 removes the nesting, and the
+    //     centre click is what says the shape now answers for its whole area.
+    //   - THE PLACEMENT. Both boxes are position:fixed with their offsets measured off an
+    //     anchor's rect, and the stub has no layout at all. D-37 adds the edge case: a popup
+    //     opened on the LEFTMOST cat and on the RIGHTMOST mech must still be wholly on screen.
+    //   - THE KEYBOARD. Tab order and a real default focus are browser behaviour.
     const d36 = await pg.evaluate(() => {
       const tok = App.ops.createTokenType({
         name: 'Chill', shape: 'tri', color: 'violet', glyph: '', scope: 'unit'
@@ -3212,6 +3228,7 @@ for (const ch of ['chrome', 'msedge']) {
         name: 'Rage', shape: 'hex', color: 'coral', glyph: '', scope: 'side'
       });
       App.ops.setTokenBounds(tok, { min: 0, max: 3 });
+      App.ops.setTokenBounds(side, { min: 0, max: 3 });
       App.ops.setTokenBounds('hp', { min: 0, max: 4 });
       // Four health on the one cat the block drives, so three presses of the −
       // have somewhere to go before the floor and two more have nowhere.
@@ -3226,7 +3243,7 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.click('#view-fight'); await pg.waitForTimeout(200);
     await startFight(pg);
 
-    // What the box says about itself, read whole, so one helper serves every cell below.
+    // What D-36's box says about itself, read whole, so one helper serves every cell below.
     const nudge = () => pg.evaluate(() => {
       const box = document.querySelector('#fg-nudge');
       if (!box) return null;
@@ -3258,13 +3275,54 @@ for (const ch of ['chrome', 'msedge']) {
     });
     const resSel = (side, unit, tok) => '#state-' + side + ' [data-fg="res"]'
       + '[data-fg-unit="' + unit + '"][data-fg-tok="' + tok + '"]';
+    // D-37's shape, and its popup. The shape is the control now — there is nothing inside it
+    // to aim at — so a plain selector on the shape is what a student's click is.
+    const bfSel = (side, unit) => '#state-' + side + ' [data-fg="bf"][data-fg-val="' + unit + '"]';
+    const popup = () => pg.evaluate(() => {
+      const box = document.querySelector('#fg-unit');
+      if (!box) return null;
+      const r = box.hidden ? null : box.getBoundingClientRect();
+      const rows = Array.from(box.querySelectorAll('.fgu-row'));
+      return {
+        shut: box.hidden === true,
+        side: box.dataset.fgSide || '', unit: box.dataset.fgUnit || '',
+        head: (document.querySelector('#fg-unit-head') || {}).textContent,
+        // Every row read whole: which value it is, the word beside it, the SYMBOLIC reading's
+        // tooltip (D-29 puts the prose there), the bound sentence when there is one, and
+        // whether it really drew a token rather than an empty box.
+        rows: rows.map((row) => {
+          const sym = row.querySelector('.sym');
+          const says = row.querySelector('.fgu-says');
+          return {
+            tok: row.dataset.fguTok || '',
+            lbl: (row.querySelector('.fgu-lbl') || {}).textContent,
+            said: sym ? sym.getAttribute('title') : null,
+            aria: sym ? sym.getAttribute('aria-label') : null,
+            tsay: sym ? (sym.dataset.tsay || '') : null,
+            toks: row.querySelectorAll('.tok').length,
+            says: says ? (says.hidden ? '' : says.textContent) : null,
+            steps: row.querySelectorAll('[data-fg="unudge"]').length,
+            alive: !!row.querySelector('[data-fg="ualive"]')
+          };
+        }),
+        onScreen: r === null ? null
+          : (r.left >= 0 && r.top >= 0 && r.right <= window.innerWidth && r.bottom <= window.innerHeight),
+        topmost: r === null ? null
+          : String((document.elementFromPoint(Math.round((r.left + r.right) / 2),
+            Math.round(r.top + 8)) || {}).className || ''),
+        disabled: Array.from(box.querySelectorAll('button')).filter((b) => b.disabled).length,
+        focus: document.activeElement ? (document.activeElement.dataset.k || '') : ''
+      };
+    });
+    const stepSel = (side, unit, tok, tail) =>
+      '#fg-unit [data-k="fg/u/' + side + '/' + unit + '/' + tok + '/' + tail + '"]';
 
-    // ── 26. EVERY READING CLASS OPENS ITS OWN CONTROL, AT ITS OWN READING. ────────────────
+    // ── 26. THE TWO READING CLASSES D-37 LEAVES AS CONTROLS, EACH AT ITS OWN SPOT. ────────
+    // TURNED: this cell drove five readings in four classes and drives the two that are still
+    // readings-as-controls. The other three moved into the popup and 26g drives them there, so
+    // nothing this cell used to assert has stopped being asserted anywhere.
     const opened = {};
     for (const [label, sel] of [
-      ['health', resSel('cats', 'c1', 'hp')],
-      ['shield', resSel('cats', 'c1', 'shield')],
-      ['tally', resSel('cats', 'c1', d36.tok)],
       ['pool', resSel('cats', '', 'ap')],
       ['side tally', resSel('cats', '', d36.side)]
     ]) {
@@ -3279,107 +3337,110 @@ for (const ch of ['chrome', 'msedge']) {
         //
         // BELOW THE READING **OR** ABOVE IT, because a reading near the bottom of the
         // viewport has no room underneath and [S06.14] flips the box rather than opening it
-        // half off screen. Both are "at that spot"; a row that accepted only the first would
-        // be red on the last team-resource row at 1080 and would be measuring the viewport
-        // rather than the placement.
+        // half off screen.
         return Math.abs(b.left - a.left) <= 24
           && (Math.abs(b.top - a.bottom) <= 24 || Math.abs(a.top - b.bottom) <= 24);
       }, sel);
       opened[label] = Object.assign({ anchored }, n);
       await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
     }
-    note(ch, size.name, 'D-36 the four reading classes',
-      Object.keys(opened).map((k) => k + ':' + opened[k].val).join(' '));
-    ok(`${tag}: 26. D-36 — EVERY CLASS OF RESOURCE READING ON THE FIGHT TAB OPENS A NUDGE AT ITS OWN SPOT. A unit's HEALTH and its SHIELD on the battlefield, a tally of a type the STUDENT invented on the same unit, the side's POOL, and a side-scope tally of a second invented type — five readings, four classes, one control. Each one names the owner and the type it was opened on, shows the number that is really on the board, is placed within a hand's width of the reading rather than in a corner, is fully on screen, and is the topmost thing at its own coordinates. THE ACCESSIBLE NAME IS READ TOO, and so is the exemption channel beside it: a name that says the student's word and a gate that cannot see it are the two halves of the wave-1 lesson, and a row reading only one of them passes over either failure`,
-      ['health', 'shield', 'tally', 'pool', 'side tally'].every((k) => {
+    // AND THE BATTLEFIELD'S READINGS ARE READINGS AGAIN, counted on the live page. This is the
+    // supersession itself, measured rather than described: the lines are still drawn, and not
+    // one of them carries a routing attribute.
+    const bfLines = await pg.evaluate(() => {
+      const all = Array.from(document.querySelectorAll('#state-cats .bf-line, #state-mechs .bf-line'));
+      return { n: all.length, pressable: all.filter((n) => n.dataset.fg !== undefined).length };
+    });
+    note(ch, size.name, 'D-37 battlefield lines / pressable', `${bfLines.n} / ${bfLines.pressable}`);
+    ok(`${tag}: 26. D-37 — THE TEAM RESOURCES ARE STILL DIRECT CONTROLS AND THE BATTLEFIELD'S READINGS ARE READINGS AGAIN. This cell is D-36's, turned: it drove five readings in four classes, and D-37 moves three of them into the popup — "the readings there return to being readings, the unit shape's click opens the popup, and the nudge lives inside it. The team-resource direct click stays as D-36 built it." So the side's POOL and a side-scope tally of a type the STUDENT invented each open the nudge at their own spot, name the faction and the type, show the number that is really on the board, sit within a hand's width of the reading rather than in a corner, are fully on screen and are the topmost thing at their own coordinates — and the battlefield's lines are COUNTED on the live page with NONE of them carrying a routing attribute, which is the supersession measured rather than described. THE ACCESSIBLE NAME IS READ TOO, and so is the exemption channel beside it: a name that says the student's word and a gate that cannot see it are the two halves of the wave-1 lesson`,
+      ['pool', 'side tally'].every((k) => {
         const n = opened[k];
         return n && n.shut === false && n.anchored === true && n.onScreen === true
           && /fgn/.test(n.topmost) && String(n.val) !== '' && String(n.who) !== ''
           && String(n.type) !== '' && String(n.aria).indexOf('Decrease ') === 0
           && String(n.aria).indexOf(n.type) !== -1 && n.exempt === n.tok;
       })
-      && opened.health.val === '4' && opened.shield.val === '2'
-      && opened.tally.val === '2' && opened.pool.val === '3'
-      && opened['side tally'].val === '2'
-      && opened.health.unit === 'c1' && opened.pool.unit === ''
-      && opened.pool.who === 'Cats' && opened.tally.type === 'Chill'
-      && opened['side tally'].type === 'Rage',
-      opened);
+      && opened.pool.val === '3' && opened['side tally'].val === '2'
+      && opened.pool.unit === '' && opened.pool.who === 'Cats'
+      && opened['side tally'].type === 'Rage'
+      && bfLines.n > 0 && bfLines.pressable === 0,
+      { opened, bfLines });
 
-    // ── 26b. THE FOCUS CASE, DRIVEN. ─────────────────────────────────────────────────────
-    // Three real clicks on the − in a row. Plan 05-10's finding is the whole reason this
-    // cell exists: a control rebuilt under the pointer loses focus to <body> and the second
-    // and third presses land on nothing. Read as the NUMBER (three steps, not one), the
-    // RECORD (three entries in the round's by-hand list, not one) and the FOCUS (still on
-    // the button, not on the body).
-    await pg.click(resSel('cats', 'c1', 'hp')); await pg.waitForTimeout(220);
+    // ── 26b. THE FOCUS CASE, DRIVEN — NOW INSIDE THE POPUP. ──────────────────────────────
+    // TURNED, and the turn makes the cell HARDER rather than easier. D-36 answered plan
+    // 05-10's measured defect by making its two buttons static shell; the popup CANNOT do
+    // that, because a unit carries a different number of values on every board. It answers it
+    // with a fingerprint instead — the rows are keyed on the side, the unit and the token LIST
+    // and never on a number — so this cell is the only thing in the repository that can say
+    // whether that answer works under a real pointer.
+    await pg.click(bfSel('cats', 'c1')); await pg.waitForTimeout(250);
     const hpWas = await pg.evaluate(() => App.state.get().fight.cats.units[0].hp);
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(110);
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(110);
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(220);
-    const rapid = await pg.evaluate(() => ({
+    // The node identity is taken BEFORE the run and compared after it, which is the direct
+    // reading of "nothing was rebuilt" rather than an inference from the count.
+    await pg.evaluate((s) => { window.__d37btn = document.querySelector(s); },
+      stepSel('cats', 'c1', 'hp', 'less'));
+    await pg.click(stepSel('cats', 'c1', 'hp', 'less')); await pg.waitForTimeout(110);
+    await pg.click(stepSel('cats', 'c1', 'hp', 'less')); await pg.waitForTimeout(110);
+    await pg.click(stepSel('cats', 'c1', 'hp', 'less')); await pg.waitForTimeout(220);
+    const rapid = await pg.evaluate((s) => ({
       hp: App.state.get().fight.cats.units[0].hp,
       alive: App.state.get().fight.cats.units[0].alive,
       standing: App.state.get().fight.cats.units.filter((u) => u.alive).length,
       hand: (App.state.get().fight.hand || []).filter((h) => h.tok === 'hp').length,
-      focus: document.activeElement ? document.activeElement.id : null,
-      val: (document.querySelector('#fg-nudge-val') || {}).textContent
-    }));
-    await pg.locator('#fg-nudge').screenshot({
-      path: path.join(process.env.SHOT_DIR || tmpdir(), `d36-nudge-${ch}-${size.name}.png`)
+      focus: document.activeElement ? (document.activeElement.dataset.k || '') : '',
+      same: window.__d37btn === document.querySelector(s),
+      said: (document.querySelector('#fg-unit .fgu-row[data-fgu-tok="hp"] .sym') || {})
+        .getAttribute ? document.querySelector('#fg-unit .fgu-row[data-fgu-tok="hp"] .sym').getAttribute('title') : null
+    }), stepSel('cats', 'c1', 'hp', 'less'));
+    await pg.locator('#fg-unit').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d37-popup-${ch}-${size.name}.png`)
     });
-    note(ch, size.name, 'D-36 three rapid presses', `${hpWas} -> ${rapid.hp}, ${rapid.hand} rulings`);
-    ok(`${tag}: 26b. THREE RAPID PRESSES OF THE MINUS LAND THREE RULINGS, AND THE THIRD IS THE ONE THAT MATTERS. Plan 05-10 measured that a pointer press on a control whose own node is REBUILT drops the keyboard to <body> — and this control repaints on every press by construction, so presses two and three would land on nothing. That is why the pair of buttons is static shell and why only the value between them is written per frame. Read three ways because one would not settle it: the health falls by exactly three, the round's by-hand list holds exactly three health rulings, and the keyboard is still on the button rather than on the body. AND EVERY UNIT IS STILL STANDING, which is where D-00d starts: nothing a student presses here writes the flag, and 26c takes the same cat all the way to zero and reads it again`,
+    note(ch, size.name, 'D-37 three rapid presses', `${hpWas} -> ${rapid.hp}, ${rapid.hand} rulings`);
+    ok(`${tag}: 26b. THREE RAPID PRESSES OF A VALUE'S MINUS LAND THREE RULINGS, AND THE SECOND AND THIRD ARE THE ONES THAT MATTER. Plan 05-10 measured that a pointer press on a control whose own node is REBUILT drops the keyboard to <body> — and this control repaints on every press by construction, so presses two and three would land on nothing. D-36 answered that by making its pair static shell; a popup CANNOT, because a unit carries a different number of values on every board, so [S06.15] answers it with a fingerprint of the side, the unit and the token LIST — never a number — and this cell is the only thing in the repository that can say whether that works under a real pointer. Read four ways because fewer would not settle it: the health falls by exactly three, the round's by-hand list holds exactly three health rulings, the keyboard is still on the button rather than on the body, AND THE BUTTON IS THE SAME NODE OBJECT it was before the run. AND EVERY UNIT IS STILL STANDING, which is where D-00d starts: nothing a student presses here writes the flag, and 26c takes the same cat all the way to zero and reads it again`,
       hpWas === 4 && rapid.hp === 1 && rapid.hand === 3
-      && rapid.focus === 'fg-nudge-less'
+      && rapid.focus === 'fg/u/cats/c1/hp/less' && rapid.same === true
       && rapid.alive === true && rapid.standing === 9
-      && rapid.val === String(rapid.hp),
+      && rapid.said === 'Cat 1 Health, 1.',
       { hpWas, rapid });
 
     // ── 26c. THE BOUND CLAMPS, THE READING SAYS SO, AND UNDO KEEPS ITS SHIPPED SHAPE. ────
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(150);
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(250);
-    const clamped = await pg.evaluate(() => ({
-      hp: App.state.get().fight.cats.units[0].hp,
-      alive: App.state.get().fight.cats.units[0].alive,
-      hand: (App.state.get().fight.hand || []).filter((h) => h.tok === 'hp').length,
-      says: (document.querySelector('#fg-nudge-says') || {}).textContent,
-      shown: (document.querySelector('#fg-nudge-says') || {}).hidden === false,
-      val: (document.querySelector('#fg-nudge-val') || {}).textContent,
-      panel: document.querySelector('#err-panel').hidden
-    }));
-    // THE PICTURE OF THE REFUSAL, and it is taken HERE rather than one cell up on purpose:
-    // this is the state a student is actually in when they press a − and nothing moves, and
-    // "twenty consecutive rendered changes had a defect only pictures showed" is this phase's
-    // own lesson about which frame is worth photographing.
-    await pg.locator('#fg-nudge').screenshot({
-      path: path.join(process.env.SHOT_DIR || tmpdir(), `d36-clamped-${ch}-${size.name}.png`)
+    await pg.click(stepSel('cats', 'c1', 'hp', 'less')); await pg.waitForTimeout(180);
+    const clamped = await pg.evaluate(() => {
+      const row = document.querySelector('#fg-unit .fgu-row[data-fgu-tok="hp"]');
+      const says = row.querySelector('.fgu-says');
+      return {
+        hp: App.state.get().fight.cats.units[0].hp,
+        alive: App.state.get().fight.cats.units[0].alive,
+        standing: App.state.get().fight.cats.units.filter((u) => u.alive).length,
+        hand: (App.state.get().fight.hand || []).filter((h) => h.tok === 'hp').length,
+        says: says.textContent,
+        shown: says.hidden === false,
+        said: row.querySelector('.sym').getAttribute('title'),
+        panel: document.querySelector('#err-panel').hidden
+      };
+    });
+    // THE PICTURE OF THE REFUSAL, taken in the state a student is actually in when they press
+    // a − and nothing moves. "Twenty-one consecutive rendered changes had a defect only
+    // pictures showed" is this phase's own lesson about which frame is worth photographing.
+    await pg.locator('#fg-unit').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d37-clamped-${ch}-${size.name}.png`)
     });
     // AND THE WHOLE VIEWPORT AROUND IT, because a box that reads perfectly on its own and
-    // covers the reading it edits is a defect only a wider frame can show.
-    //
-    // A VIEWPORT SHOT AND NOT A LOCATOR SHOT, and the difference is a FINDING rather than a
-    // preference. A locator screenshot scrolls its region into view before capturing — and
-    // this box is position:fixed, so the first draft of this line photographed the panel in
-    // its new position with the box still at its old coordinates, sitting over the very card
-    // it was opened on. The page was right and the picture was wrong; but the picture was
-    // right about a real defect one step away, because a SCROLL commits nothing and schedules
-    // no frame. [S07.5] gained a capture-phase scroll listener that re-places the box, and
-    // the cell below drives it.
+    // covers the unit it was opened on is a defect only a wider frame can show.
     await pg.screenshot({
-      path: path.join(process.env.SHOT_DIR || tmpdir(), `d36-inplace-${ch}-${size.name}.png`)
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d37-inplace-${ch}-${size.name}.png`)
     });
-    // THE SCROLL ITSELF, DRIVEN. The box is measured against its anchor, the page is scrolled
-    // by a real wheel, and the box is measured again: it has to have MOVED, and it has to
-    // still be beside the reading it edits. A control that stayed put would read as belonging
-    // to whatever it landed on.
+    // THE SCROLL, DRIVEN. The popup is measured against its shape on a rendered frame, and a
+    // scroll commits nothing and schedules no frame — so without the capture-phase listener
+    // [S07.5] gained under D-36 it would stay at coordinates the page had moved out from
+    // under. RE-PLACED RATHER THAN DISMISSED, for D-36's recorded reason: these shapes sit in
+    // a column a student scrolls through while reading the board.
     const followed = await pg.evaluate(async () => {
-      const anchor = () => document.querySelector('#fg-nudge').getBoundingClientRect();
       const read = () => {
-        const a = document.querySelector('#state-cats [data-fg="res"][data-fg-unit="c1"][data-fg-tok="hp"]')
+        const a = document.querySelector('#state-cats [data-fg="bf"][data-fg-val="c1"]')
           .getBoundingClientRect();
-        const b = anchor();
-        return { gap: Math.round(Math.abs(b.top - a.bottom)), top: Math.round(b.top) };
+        const b = document.querySelector('#fg-unit').getBoundingClientRect();
+        return { gap: Math.round(Math.min(Math.abs(b.top - a.bottom), Math.abs(a.top - b.bottom))), top: Math.round(b.top) };
       };
       const before = read();
       window.scrollBy(0, 120);
@@ -3390,14 +3451,11 @@ for (const ch of ['chrome', 'msedge']) {
       return { before, after };
     });
     await pg.waitForTimeout(200);
-    // UNDO, AND THE SHIPPED COALESCING RULE IS WHAT IS ASSERTED RATHER THAN "one press, one
+    // UNDO, AND THE SHIPPED COALESCING RULE IS WHAT IS ASSERTED rather than "one press, one
     // Ctrl+Z". nudgeFightHp's label carries the side and the unit and is IDENTICAL to
-    // setUnitHp's, deliberately, so that a run of presses inside COALESCE_MS (500 ms) is ONE
-    // undo entry — UX-01 and D-10, and the reason the ops' own comment gives: forty Ctrl+Z
-    // for one held button is not a recovery, it is a chore. So the first Ctrl+Z takes back
-    // the whole rapid run, and a press made AFTER the window is its own entry and comes back
-    // on its own. Both halves are driven, because a row asserting only the first would be
-    // green over a control that had stopped coalescing at all.
+    // setUnitHp's, deliberately, so a run of presses inside COALESCE_MS (500 ms) is ONE undo
+    // entry — UX-01 and D-10, and the ops' own reason: forty Ctrl+Z for one held button is not
+    // a recovery, it is a chore.
     const undone = await pg.evaluate(() => {
       const before = App.state.get().fight.cats.units[0].hp;
       App.ops.undo();
@@ -3405,7 +3463,7 @@ for (const ch of ['chrome', 'msedge']) {
       return { before, afterRun: App.state.get().fight.cats.units[0].hp };
     });
     await pg.waitForTimeout(700);   // past COALESCE_MS, so the next press is its own entry
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(250);
+    await pg.click(stepSel('cats', 'c1', 'hp', 'less')); await pg.waitForTimeout(250);
     const alone = await pg.evaluate(() => {
       const before = App.state.get().fight.cats.units[0].hp;
       App.ops.undo();
@@ -3413,28 +3471,30 @@ for (const ch of ['chrome', 'msedge']) {
       return { before, after: App.state.get().fight.cats.units[0].hp };
     });
     await pg.waitForTimeout(200);
-    note(ch, size.name, 'D-36 the bound, said', clamped.says);
-    ok(`${tag}: 26c. PRESSING PAST A D-35 BOUND CLAMPS, SAYS WHY, AND RAISES NOTHING. The health type is bounded to 0-4 on this board, so the fifth press of the − has nowhere to go: the number stops at the floor, NO further ruling is recorded — "a number went from one value to another" is false of a press that moved nothing — and the box's own line states what the board keeps this number between. IT IS ARITHMETIC AND FACTUAL AND IT NAMES NO TYPE: boundsText's register one dialog over, and never "you cannot", never "too low", never a judgement about a number a student chose. THE ERROR PANEL STAYS SHUT, which is the clause that matters most in a room: a refusal that raised a panel mid-workshop is exactly what a disabled button would have been avoiding, and the nudge ops' boolean return is what makes the quiet decline possible. AND THE UNIT IS STILL STANDING AT ZERO — D-00d again, at the other end of the same press. THE BOX THEN FOLLOWS A REAL SCROLL, which a screenshot found and no assertion had: the placement is measured off the anchor's rect on a rendered frame, and a scroll commits nothing and schedules no frame, so the box would have stayed at coordinates the page had moved out from under. It is RE-PLACED rather than dismissed, because these readings sit in a column a student scrolls through while reading the board. THEN UNDO IN ITS SHIPPED SHAPE, both halves: the rapid run is ONE Ctrl+Z because these ops share setUnitHp's label inside COALESCE_MS (UX-01, D-10 — forty steps for one held button is a chore, not a recovery), and a press made after the window comes back on its own`,
-      clamped.hp === 0 && clamped.alive === true && clamped.hand === 4
-      && clamped.shown === true
+    note(ch, size.name, 'D-37 the bound, said', clamped.says);
+    ok(`${tag}: 26c. PRESSING PAST A D-35 BOUND INSIDE THE POPUP CLAMPS, SAYS WHY, AND RAISES NOTHING. The health type is bounded to 0-4 on this board, so the fourth press of the − has nowhere to go: the number stops at the floor, NO further ruling is recorded — "a number went from one value to another" is false of a press that moved nothing — and the ROW's own line states what the board keeps this number between. IT IS THE SAME SENTENCE THE TEAM-RESOURCE NUDGE SAYS, from the same function, so a student who met it on a pool meets it unchanged here. IT IS ARITHMETIC AND FACTUAL AND IT NAMES NO TYPE: never "you cannot", never "too low", never a judgement about a number a student chose. THE ERROR PANEL STAYS SHUT, which is the clause that matters most in a room. AND THE UNIT IS STILL STANDING AT ZERO — D-00d again, at the other end of the same press, with the survivor count unmoved. THE BOX THEN FOLLOWS A REAL SCROLL, which a screenshot found under D-36 and which this box inherits: the placement is measured off the shape's rect on a rendered frame, and a scroll commits nothing and schedules no frame. THEN UNDO IN ITS SHIPPED SHAPE, both halves: the rapid run is ONE Ctrl+Z because these ops share setUnitHp's label inside COALESCE_MS, and a press made after the window comes back on its own`,
+      clamped.hp === 0 && clamped.alive === true && clamped.standing === 9
+      && clamped.hand === 4 && clamped.shown === true
       && clamped.says === 'This board keeps this number between 0 and 4.'
-      && clamped.val === '0' && clamped.panel === true
+      && clamped.said === 'Cat 1 Health, 0.' && clamped.panel === true
       && followed.before.gap <= 24 && followed.after.gap <= 24
       && followed.before.top !== followed.after.top
       && undone.before === 0 && undone.afterRun === 4
       && alone.before === 3 && alone.after === 4,
       { clamped, followed, undone, alone });
 
-    // ── 26d. DISMISSAL, BOTH WAYS, AND THE KEYBOARD ROUND TRIP. ──────────────────────────
+    // ── 26d. DISMISSAL, BOTH WAYS, AND THE TEAM-RESOURCE KEYBOARD ROUND TRIP. ────────────
+    // UNTOUCHED BY D-37. This is D-36's own path and D-37 leaves it exactly as it was.
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.click(resSel('cats', '', 'ap')); await pg.waitForTimeout(220);
+    const byOpen = await nudge();
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
     const byEsc = await nudge();
-    await pg.click(resSel('cats', 'c1', 'hp')); await pg.waitForTimeout(200);
+    await pg.click(resSel('cats', '', 'ap')); await pg.waitForTimeout(200);
     await pg.click('#fight-head'); await pg.waitForTimeout(220);
     const byElsewhere = await nudge();
     // The keyboard route: Tab is not driven — focus is placed on the row the way a Tab would
-    // leave it — and then the whole trip is real key presses. The team-resource row is a real
-    // <button> and can be one; the battlefield's readings are inside a control already and
-    // cannot, which is written down at the site and deferred rather than half-done.
+    // leave it — and then the whole trip is real key presses.
     await pg.evaluate((s) => document.querySelector(s).focus(), resSel('cats', '', 'ap'));
     await pg.keyboard.press('Enter'); await pg.waitForTimeout(250);
     const kbdOpen = await nudge();
@@ -3448,28 +3508,31 @@ for (const ch of ['chrome', 'msedge']) {
       shut: document.querySelector('#fg-nudge').hidden,
       focusK: document.activeElement ? (document.activeElement.dataset.k || '') : ''
     }));
-    ok(`${tag}: 26d. IT DISMISSES ON A PRESS ELSEWHERE AND ON ESCAPE, AND THE KEYBOARD MAKES A ROUND TRIP. Both of D-36's two conditions, driven: Escape shuts it, and a press on a heading that is neither the box nor a reading shuts it — the second needs a listener on the DOCUMENT, because "elsewhere" includes the top bar and both dialogs. Then the keyboard route end to end on the surface that has one: focus lands on the team-resource row as a Tab would leave it, Enter opens the control AND PUTS THE KEYBOARD INTO IT rather than three hundred nodes back in document order, Enter on the − writes a real ruling with a null unit because a pool belongs to the side, and Escape shuts the box AND HANDS THE FOCUS BACK to the row it came from. A control the keyboard can enter and not leave is a trap; this row is what says it is not one`,
-      byEsc.shut === true && byElsewhere.shut === true
+    ok(`${tag}: 26d. THE TEAM-RESOURCE NUDGE DISMISSES ON A PRESS ELSEWHERE AND ON ESCAPE, AND THE KEYBOARD MAKES A ROUND TRIP. Both of D-36's two conditions, driven on the half of that feature D-37 leaves standing: Escape shuts it, and a press on a heading that is neither the box nor a reading shuts it — the second needs a listener on the DOCUMENT, because "elsewhere" includes the top bar and both dialogs. Then the keyboard route end to end: focus lands on the team-resource row as a Tab would leave it, Enter opens the control AND PUTS THE KEYBOARD INTO IT rather than three hundred nodes back in document order, Enter on the − writes a real ruling with a null unit because a pool belongs to the side, and Escape shuts the box AND HANDS THE FOCUS BACK to the row it came from. A control the keyboard can enter and not leave is a trap; this cell is what says it is not one`,
+      byOpen.shut === false && byEsc.shut === true && byElsewhere.shut === true
       && kbdOpen.shut === false && kbdOpen.focus === 'fg-nudge-less'
       && kbdOpen.tok === 'ap' && kbdOpen.unit === ''
       && kbdRuled.ap === 2 && kbdRuled.hand === 1
       && kbdBack.shut === true && kbdBack.focusK === 'fg/res/cats/side/ap',
-      { byEsc, byElsewhere, kbdOpen, kbdRuled, kbdBack });
+      { byOpen, byEsc, byElsewhere, kbdOpen, kbdRuled, kbdBack });
 
-    // ── 26e. THE TWO CLAIMS ON A BATTLEFIELD SHAPE, SEPARATED IN SPACE AND IN TIME. ───────
+    // ── 26e. THE SHAPE'S TWO JOBS, SEPARATED IN TIME. ────────────────────────────────────
+    // TURNED. D-36 separated a reading from the shape it sat inside by nesting, and a real
+    // centre click found the flaw — the centre of a lit shape IS a reading. D-37 removes the
+    // nesting, so a centre click on a shape is unambiguous, and what is left is the half that
+    // was always load-bearing: a half-made retarget owns the whole battlefield.
     const atRest = await pg.evaluate(() => ({
       at: App.state.get().fight.decl.length,
       lit: document.querySelectorAll('.bf-unit--lit').length
     }));
-    await pg.click(resSel('cats', 'c2', 'hp')); await pg.waitForTimeout(220);
-    const restReading = await nudge();
-    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
-    // A press on the shape's NAME at rest: it is not a reading, so it reaches the shape's own
-    // arm, which declines quietly with no flow open. Nothing opens and nothing commits.
-    await pg.click('#state-cats [data-fg="bf"][data-fg-val="c2"] .bf-name');
-    await pg.waitForTimeout(220);
-    const restShape = await nudge();
-    // Then ARMED. Every press anywhere on a shape is the retarget flow's, reading or not.
+    await pg.click(bfSel('cats', 'c2')); await pg.waitForTimeout(250);
+    const restShape = await popup();
+    // The box's own text-labelled way out, pressed — UX-02: Escape and a press elsewhere are
+    // both invisible, and a student who knows neither still needs one.
+    await pg.click('#fg-unit-close'); await pg.waitForTimeout(200);
+    const d37AfterClose = await popup();
+    // Then ARMED. Every press anywhere on a shape is the retarget flow's, and the click lands
+    // at the shape's CENTRE, which is exactly the pixel that caught D-36's collision.
     const mechAct = await pg.evaluate(() => {
       const a = App.state.get().build.mechs.actions[0];
       App.ops.dispatch('declare', { side: 'mechs', actionId: a.id, by: 'm1', at: 'c1' });
@@ -3480,35 +3543,36 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.click('#decl-mechs [data-fg="at"][data-fg-by="m1"]'); await pg.waitForTimeout(250);
     const armedLit = await pg.evaluate(() => document.querySelectorAll('#state-cats .bf-unit--lit').length);
     await pg.locator('#fight-state').screenshot({
-      path: path.join(process.env.SHOT_DIR || tmpdir(), `d36-armed-${ch}-${size.name}.png`)
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d37-armed-${ch}-${size.name}.png`)
     });
-    // The press lands on the READING of a lit shape — the exact spot Playwright's own centre
-    // click found, and the exact spot a student aims at.
-    await pg.click(resSel('cats', 'c3', 'hp')); await pg.waitForTimeout(250);
+    await pg.click(bfSel('cats', 'c3')); await pg.waitForTimeout(250);
     const armedPress = await pg.evaluate(() => ({
       at: (App.state.get().fight.decl.filter((d) => d.by === 'm1')[0] || {}).at,
-      nudgeShut: document.querySelector('#fg-nudge').hidden,
+      popupShut: document.querySelector('#fg-unit').hidden,
       lit: document.querySelectorAll('#state-cats .bf-unit--lit').length
     }));
-    ok(`${tag}: 26e. THE RETARGET FLOW'S CLAIM ON A SHAPE IS UNCHANGED, AND THE READINGS SEPARATE FROM IT CLEANLY — D-36's own two sentences, driven from both sides. AT REST a press on a reading opens the nudge and a press on the shape's NAME opens nothing at all, which is [S07.5]'s quiet decline with no flow open. ARMED, every press anywhere on a lit shape is the flow's: the press below lands on the HEALTH READING of a lit shape — the exact pixel Playwright's centre click found and the exact pixel a student aims at — and it MOVES THE TARGET, puts the lights out, and does not open the nudge. Nesting alone satisfies "must not collide" and fails "the claim is unchanged"; the separation is in TIME as well as in space, and rows 12b and 12c above went red the first time this feature ran without it`,
-      atRest.lit === 0 && restReading.shut === false && restReading.unit === 'c2'
-      && restShape.shut === true
-      && armedLit === 9 && armedPress.at === 'c3' && armedPress.nudgeShut === true
+    ok(`${tag}: 26e. AT REST A CENTRE CLICK ON A UNIT OPENS ITS POPUP; ARMED, THE WHOLE BATTLEFIELD IS STILL THE RETARGET FLOW'S — D-37's own parenthesis, driven from both sides. "Clicking a unit on the battlefield (AT REST — a half-made retarget still owns the battlefield) opens a popup for THAT unit." So at rest the shape opens the popup on ITSELF and declares nothing, and the box's own text-labelled Close shuts it. ARMED, the opposing roster lights and the press below lands at the CENTRE of a lit shape — the exact pixel Playwright's click found under D-36 and the exact pixel a student aims at — and it MOVES THE TARGET, puts the lights out, and DOES NOT OPEN THE POPUP. D-36 needed the separation to be in time AND in space because a reading was nested inside the control; D-37 deletes the nesting, so time is all that is left and this cell is what says it is enough`,
+      atRest.lit === 0 && restShape.shut === false && restShape.unit === 'c2'
+      && restShape.side === 'cats' && d37AfterClose.shut === true
+      && armedLit === 9 && armedPress.at === 'c3' && armedPress.popupShut === true
       && armedPress.lit === 0,
-      { atRest, restReading, restShape, armedLit, armedPress, mechAct });
+      { atRest, restShape, d37AfterClose, armedLit, armedPress, mechAct });
 
     // ── 26f. THE RULING REACHES THE LEDGER, AND A SIDE-SCOPE ONE NAMES THE FACTION. ───────
-    // THREE FRESH RULINGS THROUGH THE REAL CONTROL, one per scope the record can carry: a
-    // unit's health, a tally of a type the student invented, and the side's pool. They are
-    // made HERE rather than inherited from the cells above because 26c's undo took its own
-    // run back off the round's list — which is undo working, and is why a row that assumed
-    // the earlier presses were still recorded would be asserting the wrong thing.
-    for (const sel of [resSel('cats', 'c1', 'hp'), resSel('cats', 'c1', d36.tok),
-      resSel('cats', '', 'ap')]) {
-      await pg.click(sel); await pg.waitForTimeout(200);
-      await pg.click('#fg-nudge-less'); await pg.waitForTimeout(200);
+    // TURNED only in HOW the three rulings are made: two of them now go through the popup,
+    // because that is where a unit's numbers live. What is asserted about the ledger is
+    // unchanged, which is the point — D-37 moved a control and not a record.
+    for (const [openSel, pressSel] of [
+      [bfSel('cats', 'c1'), stepSel('cats', 'c1', 'hp', 'less')],
+      [bfSel('cats', 'c1'), stepSel('cats', 'c1', d36.tok, 'less')]
+    ]) {
+      await pg.click(openSel); await pg.waitForTimeout(220);
+      await pg.click(pressSel); await pg.waitForTimeout(200);
       await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
     }
+    await pg.click(resSel('cats', '', 'ap')); await pg.waitForTimeout(200);
+    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(200);
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
     const beforeAdvance = await pg.evaluate(() => (App.state.get().fight.hand || []).length);
     await pg.click('[data-k="fg/advance"]');
     await pg.waitForTimeout(400);
@@ -3528,9 +3592,10 @@ for (const ch of ['chrome', 'msedge']) {
     // The board tab's by-hand marker, on a TALLY row — the widening D-36 made to a list whose
     // own comment said a tally could never carry one. Read on the BOARD, through the real view
     // control, and read on a ruling made in the CURRENT round: advanceRound moved the round's
-    // list into `past` above, so a fresh ruling is made here for the marker to answer about.
-    await pg.click(resSel('cats', 'c1', d36.tok)); await pg.waitForTimeout(200);
-    await pg.click('#fg-nudge-less'); await pg.waitForTimeout(250);
+    // list into `past` above, so a fresh ruling is made here for the marker to answer about —
+    // and it is made THROUGH THE POPUP, which is D-37's path to the same record.
+    await pg.click(bfSel('cats', 'c1')); await pg.waitForTimeout(220);
+    await pg.click(stepSel('cats', 'c1', d36.tok, 'less')); await pg.waitForTimeout(250);
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
     await pg.click('#view-build'); await pg.waitForTimeout(300);
     const d36Marks = await pg.evaluate(() =>
@@ -3538,8 +3603,8 @@ for (const ch of ['chrome', 'msedge']) {
         .filter((n) => n.hidden === false)
         .map((n) => n.dataset.dcUnit + '/' + n.dataset.dcHand));
     await pg.click('#view-fight'); await pg.waitForTimeout(200);
-    note(ch, size.name, 'D-36 by-hand lines in the ledger', String(ledger.n));
-    ok(`${tag}: 26f. EVERY RULING MADE THROUGH THIS CONTROL IS IN THE ROUND'S OWN RECORD AND THE LEDGER READS IT BACK — FIGHT-07 and FIGHT-08's machinery, which plan 05-10 listed as controls-missing and this is the control. The advanced round's "Set by hand this round" list holds one line per press, drawn in D-29's symbols with the words on the tooltip, and the POOL's line names the FACTION where the others name a unit — a pool belongs to the column it is drawn in and to no unit, so the record carries a null there and [S06.8] gained the arm that says so rather than printing the word "null" at a student. AND THE BOARD TAB'S BY-HAND MARKER NOW COVERS A TALLY, which is the widening [S06.9]'s own paragraph refused until the day a hand op could write one: it named that condition, D-36 met it, and the marker is read off the live page rather than off the comment. THE MARKER SET IS ASSERTED WHOLE AND NOT SEARCHED, which is the stronger reading and catches the second half for free: exactly ONE mark is showing on the whole board, on the tally ruled in the CURRENT round — the health ruled in the round that just resolved is correctly NOT marked, because advanceRound moved that list into the past and the marker answers for this round and no other`,
+    note(ch, size.name, 'D-37 by-hand lines in the ledger', String(ledger.n));
+    ok(`${tag}: 26f. EVERY RULING MADE THROUGH EITHER CONTROL IS IN THE ROUND'S OWN RECORD AND THE LEDGER READS IT BACK — FIGHT-07 and FIGHT-08's machinery, which plan 05-10 listed as controls-missing. D-37 MOVED A CONTROL AND NOT A RECORD, which is what this cell is for: two of the three rulings below are now made in the popup and one on a team resource, and the reading the ledger gives is unchanged. The advanced round's "Set by hand this round" list holds one line per press, drawn in D-29's symbols with the words on the tooltip, and the POOL's line names the FACTION where the others name a unit — a pool belongs to the column it is drawn in and to no unit, so the record carries a null there and [S06.8] has the arm that says so rather than printing the word "null" at a student. AND THE BOARD TAB'S BY-HAND MARKER COVERS A TALLY RULED FROM THE POPUP: the marker set is asserted WHOLE and not searched, so exactly ONE mark is showing on the whole board, on the tally ruled in the CURRENT round — the health ruled in the round that just resolved is correctly NOT marked`,
       beforeAdvance === 4 && ledger.n === 4
       && ledger.sub.filter((s) => String(s).indexOf('Set by hand') === 0).length === 1
       && ledger.said.filter((s) => s.indexOf('Cats ') === 0).length === 2
@@ -3549,6 +3614,155 @@ for (const ch of ['chrome', 'msedge']) {
       && ledger.said.some((s) => s.indexOf('Chill set by hand, 2 to 1.') !== -1)
       && d36Marks.length === 1 && d36Marks[0] === 'c1/' + d36.tok,
       { beforeAdvance, ledger, d36Marks });
+
+    // ── 26g. WHAT THE POPUP HOLDS, AND WHERE IT SITS — INCLUDING AT THE EDGES. ───────────
+    // D-37: the popup shows "every value associated with it: health, shield, every status
+    // tally INCLUDING THE ZERO-HIDDEN ONES, and the dead marker". The zero case is deferred
+    // item 18, and it is the reason this cell drives the shield to nothing FIRST: at zero,
+    // [S06.11]'s hide pass takes the shield's line off the battlefield entirely, and under
+    // D-36 that value stopped being reachable at all.
+    await pg.evaluate(() => {
+      App.ops.dispatch('setFightShield', { side: 'cats', unitId: 'c1', value: 0 });
+      App.state.invalidate(); if (App.render.flush) App.render.flush();
+    });
+    await pg.waitForTimeout(200);
+    const bfHidden = await pg.evaluate(() => {
+      const line = document.querySelector('#state-cats [data-fg="bf"][data-fg-val="c1"] .bf-line[data-bf-amt="shield"]');
+      return line === null ? null : { hidden: line.hidden, box: line.getBoundingClientRect().height };
+    });
+    await pg.click(bfSel('cats', 'c1')); await pg.waitForTimeout(250);
+    const held = await popup();
+    await pg.click(stepSel('cats', 'c1', 'shield', 'more')); await pg.waitForTimeout(250);
+    const zeroRuled = await pg.evaluate(() => ({
+      shield: App.state.get().fight.cats.units[0].shield,
+      said: document.querySelector('#fg-unit .fgu-row[data-fgu-tok="shield"] .sym').getAttribute('title'),
+      rec: (App.state.get().fight.hand || []).slice(-1)[0]
+    }));
+    // THE DEAD MARKER, AND ITS THREE CHANNELS — [S06.9]'s own two words, read off the page
+    // rather than spelled here so a cell that agreed with a hard-coded copy while the artifact
+    // said something else cannot exist.
+    const deadRead = () => pg.evaluate(() => {
+      const b = document.querySelector('#fg-unit [data-fg="ualive"]');
+      return {
+        pressed: b.getAttribute('aria-pressed'),
+        on: b.className.indexOf('fgu-alive--on') !== -1,
+        word: b.querySelector('.fgu-alive-t').textContent,
+        tick: getComputedStyle(b.querySelector('.dc-check')).visibility,
+        said: document.querySelector('#fg-unit .fgu-row[data-fgu-tok="dead"] .sym').getAttribute('title'),
+        alive: App.state.get().fight.cats.units[0].alive,
+        standing: App.state.get().fight.cats.units.filter((u) => u.alive).length
+      };
+    });
+    const standing = await deadRead();
+    await pg.click('#fg-unit [data-fg="ualive"]'); await pg.waitForTimeout(250);
+    const marked = await deadRead();
+    await pg.click('#fg-unit [data-fg="ualive"]'); await pg.waitForTimeout(250);
+    const unmarked = await deadRead();
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
+    // THE EDGES. The leftmost cat and the rightmost mech, which are the two shapes whose
+    // popup has the least room beside it — a box that opened half off screen would be a
+    // control a student cannot finish using, and there is no stylesheet answer to it.
+    const edges = {};
+    for (const [label, sel] of [
+      ['leftmost cat', bfSel('cats', 'c1')],
+      ['rightmost mech', bfSel('mechs', 'm3')]
+    ]) {
+      await pg.click(sel); await pg.waitForTimeout(250);
+      const p = await popup();
+      const near = await pg.evaluate((s) => {
+        const a = document.querySelector(s).getBoundingClientRect();
+        const b = document.querySelector('#fg-unit').getBoundingClientRect();
+        // "positioning near the unit" — measured. Vertically it is below the shape or above
+        // it, within the 6px gap plus a little; horizontally it is clamped into the viewport,
+        // so at an edge it may not line up with the shape's left at all AND THAT IS THE
+        // REQUIREMENT: on screen wins over aligned.
+        return {
+          gap: Math.round(Math.min(Math.abs(b.top - a.bottom), Math.abs(a.top - b.bottom))),
+          dx: Math.round(b.left - a.left)
+        };
+      }, sel);
+      edges[label] = Object.assign({ near }, p);
+      await pg.screenshot({
+        path: path.join(process.env.SHOT_DIR || tmpdir(),
+          `d37-edge-${label.split(' ')[0]}-${ch}-${size.name}.png`)
+      });
+      await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
+    }
+    note(ch, size.name, 'D-37 the popup rows', held.rows.map((r) => r.tok + ':' + r.toks).join(' '));
+    ok(`${tag}: 26g. THE POPUP HOLDS EVERY VALUE THE UNIT HAS — INCLUDING ONE AT ZERO THE BATTLEFIELD NO LONGER DRAWS — AND IT STAYS ON SCREEN AT BOTH EDGES. DEFERRED ITEM 18 IS CLOSED HERE AND THE MEASUREMENT IS BOTH HALVES: the shield is driven to ZERO, its line on the battlefield is confirmed HIDDEN WITH ZERO HEIGHT by real layout — which is exactly why it stopped being reachable under D-36 — and the popup still draws it, still says zero in D-21's own count form, and its + still writes a real ruling into the round's record. EVERY ROW IS A REAL D-29 SYMBOL with the prose on a tooltip equal to its accessible name and the student's fragment declared on data-tsay, and the type the STUDENT invented appears with the name they gave it. THE DEAD TOGGLE STATES WHAT IS AND WHAT IT DOES — D-33 P3-2's ruling: the ACT when unpressed, the STATE when pressed, with aria-pressed, the class, the word and a REAL TICK whose computed visibility is read, all moving together, and the marker's own symbol with them. NOTHING IN THE BOX IS EVER DISABLED. AND THE PLACEMENT AT THE EDGES: the leftmost cat and the rightmost mech both open a popup that is WHOLLY ON SCREEN and beside its own unit — on screen wins over aligned, which is what the clamp is for and what a stylesheet cannot answer`,
+      held.shut === false && held.head === 'Cat 1'
+      && held.rows.map((r) => r.tok).join(',') === ['hp', 'shield', d36.tok, 'dead'].join(',')
+      && held.rows.every((r) => r.said !== null && r.said === r.aria && r.tsay !== ''
+        && r.toks > 0)
+      && held.rows.filter((r) => r.steps === 2).length === 3
+      && held.rows.filter((r) => r.alive).length === 1
+      && held.disabled === 0 && held.onScreen === true && /fgu/.test(held.topmost)
+      && bfHidden !== null && bfHidden.hidden === true && bfHidden.box === 0
+      && held.rows[1].said === 'Cat 1 Shield, 0.'
+      && held.rows[2].lbl === 'Chill'
+      && zeroRuled.shield === 1 && zeroRuled.said === 'Cat 1 Shield, 1.'
+      && zeroRuled.rec.tok === 'shield' && zeroRuled.rec.unit === 'c1'
+      && standing.pressed === 'false' && standing.word === 'Mark dead'
+      && standing.tick === 'hidden' && standing.alive === true
+      && standing.said === 'Cat 1 Dead marker, 0.'
+      && marked.pressed === 'true' && marked.on === true
+      && marked.word === 'Marked dead' && marked.tick === 'visible'
+      && marked.alive === false && marked.said === 'Cat 1 Dead marker, 1.'
+      && marked.standing === 8
+      && unmarked.pressed === 'false' && unmarked.word === 'Mark dead'
+      && unmarked.alive === true && unmarked.standing === 9
+      && ['leftmost cat', 'rightmost mech'].every((k) => edges[k].shut === false
+        && edges[k].onScreen === true && edges[k].near.gap <= 24),
+      { held, bfHidden, zeroRuled, standing, marked, unmarked, edges });
+
+    // ── 26h. THE POPUP'S KEYBOARD ROUND TRIP, END TO END, WITH A REAL TAB. ───────────────
+    // DEFERRED ITEM 17 IS CLOSED BY THIS CELL. D-36 wrote down that a unit's numbers had no
+    // keyboard route from the fight tab at all, because a battlefield reading is a div inside
+    // the shape's own <button> and that content model allows neither an interactive descendant
+    // nor a tabindex one. The popup's rows are real buttons in a plain container, so the trip
+    // is ordinary focus — and unlike 26d, THE TAB IS DRIVEN rather than stood in for, because
+    // the claim being made is about tab ORDER and not only about focus placement.
+    await pg.evaluate(() => document.querySelector('#state-cats [data-fg="bf"][data-fg-val="c4"]').focus());
+    await pg.waitForTimeout(120);
+    const onShape = await pg.evaluate(() => ({
+      k: document.activeElement.dataset.k || '',
+      tag: document.activeElement.tagName
+    }));
+    await pg.keyboard.press('Enter'); await pg.waitForTimeout(280);
+    const kbOpen = await popup();
+    const hpBefore = await pg.evaluate(() => App.state.get().fight.cats.units[3].hp);
+    await pg.keyboard.press('Enter'); await pg.waitForTimeout(250);
+    const afterEnter = await pg.evaluate(() => App.state.get().fight.cats.units[3].hp);
+    // THE ARROWS, on the same button: the KEY decides the sign and the button does not.
+    await pg.keyboard.press('ArrowUp'); await pg.waitForTimeout(250);
+    const afterUp = await pg.evaluate(() => App.state.get().fight.cats.units[3].hp);
+    await pg.keyboard.press('ArrowDown'); await pg.waitForTimeout(250);
+    const afterDown = await pg.evaluate(() => App.state.get().fight.cats.units[3].hp);
+    // A REAL TAB THROUGH THE VALUES. Three presses walk +, then the next row's − and +, which
+    // is what says the rows are in the tab order in the order they are drawn.
+    const walk = [];
+    for (let i = 0; i < 3; i++) {
+      await pg.keyboard.press('Tab'); await pg.waitForTimeout(120);
+      walk.push(await pg.evaluate(() => document.activeElement.dataset.k || document.activeElement.id || ''));
+    }
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(280);
+    const kbBack = await pg.evaluate(() => ({
+      shut: document.querySelector('#fg-unit').hidden,
+      rows: document.querySelectorAll('#fg-unit .fgu-row').length,
+      focusK: document.activeElement ? (document.activeElement.dataset.k || '') : ''
+    }));
+    note(ch, size.name, 'D-37 the tab walk', walk.join(' '));
+    ok(`${tag}: 26h. THE POPUP IS A TRUE KEYBOARD SURFACE, AND THE TAB IS DRIVEN RATHER THAN STOOD IN FOR. DEFERRED ITEM 17 IS CLOSED HERE: D-36 recorded that a unit's numbers had NO keyboard route from the fight tab at all, and the reason was a content model rather than a choice — a battlefield reading is a div inside the shape's own <button>. D-37's rows are real buttons in a plain container. So the whole trip is ordinary focus and every step is a real key press: the keyboard is on the SHAPE and the shape is a BUTTON, Enter opens the popup AND PUTS THE KEYBOARD INTO IT rather than at the end of #fightbar, Enter on the − writes a real ruling, ArrowUp raises and ArrowDown lowers ON THE SAME BUTTON because the KEY decides the sign, three real Tabs walk the values in the order they are drawn, and Escape shuts the box, EMPTIES IT and HANDS THE FOCUS BACK TO THE SHAPE. A control the keyboard can enter and not leave is a trap, and the last clause is what says this is not one`,
+      onShape.k === 'fg/bf/cats/c4' && onShape.tag === 'BUTTON'
+      && kbOpen.shut === false && kbOpen.unit === 'c4'
+      && kbOpen.focus === 'fg/u/cats/c4/hp/less'
+      && hpBefore === 3 && afterEnter === 2 && afterUp === 3 && afterDown === 2
+      && walk[0] === 'fg/u/cats/c4/hp/more'
+      && walk[1] === 'fg/u/cats/c4/shield/less'
+      && walk[2] === 'fg/u/cats/c4/shield/more'
+      && kbBack.shut === true && kbBack.rows === 0
+      && kbBack.focusK === 'fg/bf/cats/c4',
+      { onShape, kbOpen, hpBefore, afterEnter, afterUp, afterDown, walk, kbBack });
 
     await endFight(pg);
     await pg.evaluate(() => {

@@ -885,6 +885,29 @@ function makeStubDom() {
     // harvest still walks four roots.
     'fg-nudge', 'fg-nudge-lbl', 'fg-nudge-who', 'fg-nudge-tok',
     'fg-nudge-less', 'fg-nudge-val', 'fg-nudge-more', 'fg-nudge-says',
+    // plan 05-D37 - the developer's eleventh round: "click on a unit then
+    // click on the popup window to modify the values associated with it."
+    // FOUR ids and no more, and the number is small on purpose: the FRAME is
+    // shell and the ROWS are built, because a unit carries a different number
+    // of values on every board and static markup cannot hold a list whose
+    // length is a student's decision.
+    //
+    // THE ROWS ARE STILL NEVER REBUILT UNDER A PRESSING FINGER, which is the
+    // property plan 05-10's measurement demands and the reason #fg-nudge is
+    // eight static nodes: [S06.15] carries a fingerprint of the side, the unit
+    // and the token LIST, so a nudge — which changes a NUMBER — rebuilds
+    // nothing and a rapid --- lands three presses on the same three nodes.
+    //
+    // Same three-part rule as every group above: the id, this entry and the
+    // stub node arrive together, and section 5b fails the run in BOTH
+    // directions if one of the three is missing. It is NOT a <dialog> and
+    // takes no DIALOG_ROOTS entry - [C14.7]'s banner gives the three reasons
+    // that were weighed and the harvest one is the one this file cares about:
+    // the box is inside #fightbar, which is inside #app, so every word it
+    // renders is read by the fight harvest. Row 92c DRIVES IT OPEN before
+    // taking that harvest, because a surface the walk never reaches reports
+    // clean forever.
+    'fg-unit', 'fg-unit-head', 'fg-unit-close', 'fg-unit-rows',
     'ledger', 'ledger-head', 'ledger-list',
     // plan 05-12 - the view switch (D-27). THREE ids and no more: the switch
     // root and its two controls. Same three-part rule as every entry above and
@@ -1413,6 +1436,32 @@ function makeStubDom() {
   fgNudgeSays.className = 'fgn-says';
   fgNudgeSays.hidden = true;
   fgNudge.appendChild(fgNudgeSays);
+
+  /* D-37's UNIT POPUP, built here as the SHELL builds it. The frame and the
+     way out are static; #fg-unit-rows is EMPTY, exactly as it is in the shell,
+     because [S06.15] builds one row per value the open unit holds and a unit
+     carries a different number of them on every board. The two attributes that
+     say WHICH unit is open are written by [S07.5] at the press and are absent
+     here, which is the shut state [S06.15] reads as "nothing is open". */
+  const fgUnit = idNode('fg-unit');
+  fgUnit.className = 'fgu';
+  fgUnit.hidden = true;
+  fightbar.appendChild(fgUnit);
+  const fgUnitTop = createElement('div');
+  fgUnitTop.className = 'fgu-top';
+  fgUnit.appendChild(fgUnitTop);
+  const fgUnitHead = idNode('fg-unit-head', 'p');
+  fgUnitHead.className = 'fgu-head';
+  fgUnitTop.appendChild(fgUnitHead);
+  const fgUnitClose = idNode('fg-unit-close', 'button');
+  fgUnitClose.className = 'fgu-close';
+  fgUnitClose.dataset.fg = 'uclose';
+  fgUnitClose.dataset.k = 'fg/u/close';
+  fgUnitClose.textContent = 'Close';
+  fgUnitTop.appendChild(fgUnitClose);
+  const fgUnitRows = idNode('fg-unit-rows');
+  fgUnitRows.className = 'fgu-rows';
+  fgUnit.appendChild(fgUnitRows);
 
   const board = idNode('board');
   app.appendChild(board);
@@ -3997,15 +4046,49 @@ check(
    for the reason the topbar pair is: the stylesheet keeps the RULE and the
    script supplies only the measurement.
 
+   AND THE COUNT WENT 4 -> 6 UNDER D-37, TURNED IN THE OPEN FOR THE THIRD TIME.
+   Plan 05-D37.
+
+   The allowlist widens by one prefix and the CLAIM does not move an inch, for
+   the reason it did not move under D-36: this row's own last sentence is the
+   test, and an offset that places a popup beside the unit it edits is not a
+   figure drawn with a length. D-37's popup opens on a battlefield SHAPE, the
+   shapes sit inside the scroller [C14.1] bounds, so the box is position:fixed
+   and its two coordinates have to be measured off the shape's rect at render
+   time. There is no stylesheet answer to "where is this particular node right
+   now" and there was none for the nudge either.
+
+   --fgu-x AND --fgu-y, ON THE BOX RATHER THAN ON documentElement, which is the
+   same NARROW access the --fgn- pair is: read by exactly one rule in [C14.7],
+   on exactly one element.
+
+   THE ARITHMETIC BEHIND ALL FOUR OF THE NON-TOPBAR ACCESSES IS ONE FUNCTION,
+   AND THAT IS WHY THIS IS SIX RATHER THAN A SECOND COPY OF A CLAMP. [S06.14]'s
+   fgBoxAt computes "below it, or above it when there is no room, clamped into
+   the viewport on both axes" once and returns a pair; fgnPlace and fguPlace
+   each publish it under their own names. A shared publisher taking the prefix
+   as an ARGUMENT would have kept the count at four and defeated this row's
+   in-context reading, which is the whole value of it — so the duplication that
+   remains is two pairs of literals and nothing else.
+
    WHAT WOULD STILL FAIL, so the boundary is not a formality: a token row drawn
    with an inline width, a bar whose length is a percentage of a figure, an
-   opacity written per frame, ANY access that is not one of these four
-   setProperty publications. The strays list is printed in full on failure. */
+   opacity written per frame, ANY access that is not one of these six
+   setProperty publications. The strays list is printed in full on failure.
+
+   AND THE SCAN READS COMMENTS TOO, WHICH IS NOT A FLAW IN IT. The first drive
+   of D-37 came back at SEVEN, and the seventh site was a sentence in the
+   artifact explaining this very row — the accessor written out in prose inside
+   a comment. That is [C14.4]'s and refCard's shipped rule arriving from the
+   other side: a check that scans the source for a token is a check a helpful
+   comment can trip, so the artifact DESCRIBES the accessor rather than
+   spelling it. The row was right and the comment was rewritten. */
 const styleAccesses = html.split('.style').length - 1;
 const styleSites = html.split('.style').slice(1).map(
   (tail) => tail.slice(0, 64).replace(/\s+/g, ' ')
 );
-const STYLE_OK = ['.setProperty(\'--topbar-', '.setProperty(\'--fgn-'];
+const STYLE_OK = ['.setProperty(\'--topbar-', '.setProperty(\'--fgn-',
+  '.setProperty(\'--fgu-'];
 const styleStrays = styleSites.filter(
   (site) => !STYLE_OK.some((ok) => site.indexOf(ok) === 0)
 );
@@ -4014,16 +4097,22 @@ check(
     + 'PUBLISHED AS A CUSTOM PROPERTY and nothing else. A proportional bar, a '
     + 'shared scale and a midpoint marker each need an inline length, so this '
     + 'is the cheapest available proof that none of the three exists anywhere '
-    + 'on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12 AND 2 -> 4 UNDER '
-    + 'D-36, and the row reads each occurrence IN CONTEXT rather than counting '
+    + 'on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12, 2 -> 4 UNDER '
+    + 'D-36 AND 4 -> 6 UNDER D-37, and the row reads each occurrence IN '
+    + 'CONTEXT rather than counting '
     + 'them: --topbar-now is the bar\'s height and --topbar-foot its bottom '
     + 'edge, published from one measurement of one element because a fixed '
     + 'panel is placed against the viewport whether the bar has stuck or not; '
     + '--fgn-x and --fgn-y are where D-36\'s nudge sits, measured off the '
-    + 'reading it was opened on, because a control that must appear AT a '
-    + 'particular node has no stylesheet answer to where that node is. A bar '
+    + 'reading it was opened on, and --fgu-x and --fgu-y are where D-37\'s '
+    + 'unit popup sits, measured off the SHAPE it was opened on — because a '
+    + 'control that must appear AT a '
+    + 'particular node has no stylesheet answer to where that node is. THE '
+    + 'CLAMP BEHIND BOTH PAIRS IS ONE FUNCTION and only the two publications '
+    + 'are duplicated, because a shared publisher taking the prefix as an '
+    + 'argument would hold the count at four and defeat this reading. A bar '
     + 'drawn with an inline length fails this however many accesses there are',
-  styleAccesses === 4 && styleStrays.length === 0,
+  styleAccesses === 6 && styleStrays.length === 0,
   'occurrences: ' + styleAccesses + ' | sites: ' + JSON.stringify(styleSites)
     + ' | not an allowed publication: ' + JSON.stringify(styleStrays)
 );
@@ -6324,6 +6413,69 @@ A.state.flush();
 const fightProjShut = String(dom.byId['app'].dataset.proj || '') === ''
   && dom.byId['proj-toggle'].getAttribute('aria-expanded') === 'false';
 
+/* --- THE SAME PAGE WITH D-37's UNIT POPUP OPEN, harvested a third time and
+   scanned again (plan 05-D37). Row 92c below is what this is for.
+
+   THE WAVE-1 LESSON, FOR THE THIRD TIME IN THIS BLOCK: a surface the walk
+   never reaches reports clean forever. The popup is EMPTY AND HIDDEN at rest —
+   [S06.15] throws its rows away on every shut — so a harvest taken over the
+   default fight page reads not one word of it. Every string it renders would
+   therefore be outside every scan in this repository unless something DRIVES
+   IT OPEN, which is exactly the state check 47c and probe AS each measured
+   from a different direction.
+
+   THIS IS ALSO WHERE [C14.7]'s "NOT A <dialog>" DECISION IS PAID FOR. The
+   file's other popup idiom is a <dialog> that is a SIBLING of #app, and a
+   fourth one would have needed a DIALOG_ROOTS entry, an opener to drive and a
+   floor of its own. This box is inside #fightbar, which is inside #app, so its
+   words land in THIS harvest and are held to the same floor and the same three
+   word lists as the rest of the fight page.
+
+   THE BATTLEFIELD IS PUT AT REST FIRST, and that is not tidying: a half-made
+   retarget owns the whole battlefield, so a press on a shape while the change
+   made above is still standing would move a target instead of opening
+   anything, and this drive would then harvest a shut box and pass on nothing.
+   The change is cancelled through the SAME control that armed it. */
+const fightAtCancel = dom.byId['decl-cats'].querySelectorAll('[data-fg="at"]')
+  .filter((b) => b.dataset.fgBy === fightCatIds[fightCatIds.length - 1])[0] || null;
+if (fightAtCancel !== null) { press(fightAtCancel); release(fightAtCancel); }
+A.state.invalidate();
+A.state.flush();
+const fightPopShape = dom.byId['state-cats'].querySelectorAll('[data-fg="bf"]')
+  .filter((n) => String(n.dataset.fgVal || '') === fightCatIds[0])[0] || null;
+if (fightPopShape !== null) { press(fightPopShape); release(fightPopShape); }
+A.state.invalidate();
+A.state.flush();
+const fightPopOpen = dom.byId['fg-unit'].hidden === false
+  && String(dom.byId['fg-unit'].dataset.fgUnit || '') === fightCatIds[0];
+const fightPopRows = dom.byId['fg-unit-rows'].children.length;
+const fightPopText = harvestInto(dom.byId['app'], [], '#app');
+const fightPopHits = verdictHitsIn(fightPopText).concat(relationshipHitsIn(fightPopText));
+// The popup's OWN leaves, so a floor cannot be cleared by the rest of the page
+// while this box renders nothing — [S06.4]'s and 92b's own reasoning.
+const fightPopOwn = harvestInto(dom.byId['fg-unit'], [], '#app');
+const fightPopInAll = fightPopOwn
+  .filter((e) => fightPopText.some((o) => o.s === e.s)).length;
+/* THE EXEMPTION CHANNEL, MEASURED IN BOTH DIRECTIONS ON A FIFTH SURFACE. The
+   student's INVENTED type and their RENAMED one are both drawn in this box —
+   once as a row label on data-lbl, once inside a tooltip declared on
+   data-tsay — and NEITHER word may appear in the harvest. A row reading only
+   the second half would be green over a popup that was never painted, which is
+   the fourth-green-row failure this phase keeps finding. */
+function fightPopLabelsSaying(word) {
+  return dom.byId['fg-unit'].querySelectorAll('.fgu-lbl')
+    .filter((l) => l.textContent === word).length;
+}
+const fightPopAuthored = fightPopLabelsSaying('Zeal');
+const fightPopRenamed = fightPopLabelsSaying('Ward');
+const fightPopAuthoredSeen = fightPopText.filter((e) => e.s.indexOf('Zeal') !== -1).length;
+const fightPopRenamedSeen = fightPopText.filter((e) => e.s.indexOf('Ward') !== -1).length;
+dom.document._listeners.keydown.forEach((fn) => fn(dom.event('keydown', { key: 'Escape' })));
+A.state.flush();
+const fightPopShut = dom.byId['fg-unit'].hidden === true
+  && dom.byId['fg-unit-rows'].children.length === 0;
+
+
 A.ops.endFight();
 A.state.invalidate();
 A.state.flush();
@@ -7018,6 +7170,54 @@ check(
     + ' and a second press shut it=' + fightProjShut
     + ' | the projection renders ' + fightStripText.length + ' leaves, of which '
     + fightStripInOpen + ' are in the open harvest'
+);
+
+console.log('scan: ' + fightPopText.length + ' rendered strings read from #app WITH '
+  + 'A FIGHT RUNNING AND D-37\'s UNIT POPUP OPEN (Layer C, floor '
+  + FIGHT_FLOOR + ')');
+
+check(
+  '92c. AND THE SAME PAGE WITH D-37\'s UNIT POPUP OPEN, harvested and scanned '
+    + 'a THIRD time. The popup is empty and hidden at rest — its rows are '
+    + 'thrown away on every shut — so a walk over the default fight page reads '
+    + 'not one word of it, and the wave-1 lesson is that a surface the walk '
+    + 'never reaches reports clean forever. So the battlefield is put AT REST '
+    + 'through the same control that armed it (a half-made retarget owns the '
+    + 'whole battlefield and a press would otherwise move a target instead of '
+    + 'opening anything), a unit is pressed, and every string [S06.15] renders '
+    + 'is scanned in the state a student actually reads it in. THIS IS WHERE '
+    + '[C14.7]\'s "not a <dialog>" DECISION IS PAID FOR: the box lives inside '
+    + '#fightbar, which is inside #app, so it is held to this floor and these '
+    + 'three word lists rather than needing a harvest root, an opener and a '
+    + 'floor of its own. Floored on the popup\'s OWN leaves being FOUND and on '
+    + 'every one of them being present in the harvest, because a walk over a '
+    + 'box that was never painted finds nothing to judge spotlessly. AND THE '
+    + 'EXEMPTION CHANNEL IS READ IN BOTH DIRECTIONS ON A FIFTH SURFACE: a type '
+    + 'the student INVENTED and one they RENAMED are both drawn in here — as a '
+    + 'row label on data-lbl and inside a tooltip declared on data-tsay — and '
+    + 'NEITHER word reaches the scan, while both are counted on the page. THE '
+    + 'SHUT IS READ TOO, because a box that cannot be closed leaves its words '
+    + 'on the page for every harvest below this one',
+  fightPopHits.length === 0
+    && fightPopOpen === true && fightPopRows === 4
+    && fightPopText.length > FIGHT_FLOOR
+    && fightPopText.length > fightText.length
+    && fightPopOwn.length > 0 && fightPopInAll === fightPopOwn.length
+    && fightPopAuthored > 0 && fightPopRenamed > 0
+    && fightPopAuthoredSeen === 0 && fightPopRenamedSeen === 0
+    && fightPopShut === true,
+  (fightPopHits.length === 0 ? '' : fightPopHits.join(' | ') + ' | ')
+    + 'harvested ' + fightPopText.length + ' strings with the popup OPEN'
+    + ' against ' + fightText.length + ' with it shut (floor ' + FIGHT_FLOOR + ')'
+    + ' | the popup opened on ' + fightCatIds[0] + '=' + fightPopOpen
+    + ' with ' + fightPopRows + ' value rows'
+    + ' | it renders ' + fightPopOwn.length + ' leaves, of which '
+    + fightPopInAll + ' are in the harvest'
+    + ' | the INVENTED type is drawn on ' + fightPopAuthored + ' labels and '
+    + 'harvested ' + fightPopAuthoredSeen + ' times; the RENAMED one is drawn '
+    + 'on ' + fightPopRenamed + ' labels and harvested '
+    + fightPopRenamedSeen + ' times'
+    + ' | Escape shut it and emptied it=' + fightPopShut
 );
 
 /* --- 47d. THE CONTROL FOR THE EXEMPTION, because an exemption nothing exercises
@@ -12579,51 +12779,114 @@ check(
     + ' | the other performer still stands=' + JSON.stringify(fgRtOtherStands)
 );
 
-/* 104e. THE TWO PRESSES THAT HAVE NOTHING TO DO, and both DECLINE QUIETLY
-   rather than raising a panel: a battlefield press with no change half made,
-   and a battlefield press on a unit of the acting side's own roster, which the
-   one-line predicate in [S07.5] refuses today and which one edit would allow.
-   AND THE ACTION PRESS WINS OVER A HALF-MADE CHANGE — D-27's "re-click of the
-   declared action cancels, target and all" — so the same press that clears the
-   declaration clears the change with it. */
+/* 104e. THE TWO PRESSES THAT HAVE NOTHING TO DECLARE, and neither raises a
+   panel: a battlefield press with no change half made, and a battlefield press
+   on a unit of the acting side's own roster, which the one-line predicate in
+   [S07.5] refuses today and which one edit would allow. AND THE ACTION PRESS
+   WINS OVER A HALF-MADE CHANGE — D-27's "re-click of the declared action
+   cancels, target and all" — so the same press that clears the declaration
+   clears the change with it.
+
+   ==========================================================================
+   THE FIRST CLAUSE IS TURNED IN THE OPEN UNDER D-37, AND THE ROW IT BECOMES
+   IS STRICTLY STRONGER THAN THE ONE IT REPLACES. Plan 05-D37.
+   ==========================================================================
+   THE RECORDED RED, taken on the commit where [S07.5] grew its D-37 arm and
+   before this row was rewritten:
+
+     FAIL 104e ... at rest: state moved=false page moved=true
+
+   The clause was "a battlefield press at rest moves neither the state nor the
+   RENDERED TEXT of the region", and it was written when a press at rest had
+   nothing at all to do. D-37 gives it something: "click on a unit then click
+   on the popup window to modify the values associated with it" — and the
+   popup is inside #fightbar, so filling it is precisely a change to this
+   region's rendered text.
+
+   WHAT THE ROW ASSERTS NOW. The STATE half is kept whole and is the half that
+   mattered: opening a popup is page work, it dispatches nothing, and the
+   serialised state must be byte-identical across the press — which is check
+   103's ruling about a page preference never reaching a slice, arriving on a
+   third surface. What replaces the text half is the OPPOSITE claim, driven:
+   the page MUST move, the box must be open ON THE UNIT PRESSED, and a second
+   press on the same unit must shut it and put the region's text back exactly
+   as it was. A row that only said "nothing happened" could never have told a
+   popup that opened from one that did not.
+
+   AND THE QUIET DECLINE IS STILL HERE, on the press that still has nothing to
+   do: a press on the ACTING side's own unit while a change is half made. A
+   half-made retarget owns the whole battlefield — D-37's own parenthesis —
+   so that press neither retargets nor opens anything, and the row reads both. */
 A.ops.resetToDefaults();
 A.state.flush();
 fgPress(fgStart);
 fgDeclare('cats', fgAtCatsAct, 'c1');
+const fgUnitBoxNode = dom.byId['fg-unit'];
+const fgUnitOpenOn = () => (fgUnitBoxNode.hidden === true) ? ''
+  : String(fgUnitBoxNode.dataset.fgSide || '') + '/'
+    + String(fgUnitBoxNode.dataset.fgUnit || '');
 const fgRestState = JSON.stringify(A.state.get());
 const fgRestPage = fgLeaves(fgBar).join('|');
 fgPressBf('mechs', 'm2');
 const fgRestStillState = JSON.stringify(A.state.get());
 const fgRestStillPage = fgLeaves(fgBar).join('|');
+const fgRestOpened = fgUnitOpenOn();
+// The same unit again SHUTS it — pressRes', pressAct's and pressAt's shared
+// shape, and the reason the region gives: the control that starts something is
+// the control that takes it back.
+fgPressBf('mechs', 'm2');
+const fgRestClosed = fgUnitOpenOn();
+const fgRestBackPage = fgLeaves(fgBar).join('|');
+const fgRestBackState = JSON.stringify(A.state.get());
 // half made, and then a press on the ACTING side's own unit
 fgPress(fgAtBtnOf('cats', 'c1'));
 fgPressBf('cats', 'c3');
 const fgOwnSideKept = fgDeclOf('cats', 'c1');
 const fgOwnSideHalf = fgHalfOf('cats');
+const fgOwnSidePopup = fgUnitOpenOn();
 // and the action press, while the change is still half made
 fgPress(fgActBtnOf('cats', 'c1', fgAtCatsAct));
 const fgActWinsHalf = fgHalfOf('cats');
 const fgActWinsDecl = fgDeclOf('cats', 'c1');
 check(
-  '104e. A PRESS THAT HAS NOTHING TO DO DECLINES QUIETLY, and an action press '
-    + 'wins over a change that is half made. A battlefield press at rest moves '
-    + 'neither the state nor the rendered text of the region and leaves the '
-    + 'error panel shut; a battlefield press on the ACTING side\'s own unit is '
-    + 'refused by the one-line predicate that says which side this flow may '
-    + 'pick from, leaving the declaration and the half-made change exactly '
-    + 'where they were; and a press on the declared action clears the '
+  '104e. A BATTLEFIELD PRESS AT REST OPENS THAT UNIT\'S POPUP AND COMMITS '
+    + 'NOTHING — D-37, and this row is the turn of the clause that used to say '
+    + 'the press did nothing at all. "click on a unit then click on the popup '
+    + 'window to modify the values associated with it": so the STATE must be '
+    + 'byte-identical across the press, because opening a popup is page work '
+    + 'and a page preference in a slice would ride in a build code and step '
+    + 'under undo; and the PAGE must move, on the unit that was pressed, '
+    + 'because a row that only said "nothing happened" cannot tell a popup '
+    + 'that opened from one that did not. Pressing the SAME unit again shuts '
+    + 'it and puts the region\'s rendered text back exactly as it was, which '
+    + 'is the control that starts something being the control that takes it '
+    + 'back. THE QUIET DECLINE SURVIVES ON THE PRESS THAT STILL HAS NOTHING TO '
+    + 'DO: a press on the ACTING side\'s own unit while a change is half made '
+    + 'is refused by the one-line predicate that says which side this flow may '
+    + 'pick from — it leaves the declaration and the half-made change exactly '
+    + 'where they were AND OPENS NOTHING, because a half-made retarget owns '
+    + 'the whole battlefield. And a press on the declared action clears the '
     + 'declaration AND the half-made change together, which is D-27\'s '
     + '"re-click of the declared action cancels, target and all"',
-  fgRestState === fgRestStillState && fgRestPage === fgRestStillPage
+  fgRestState === fgRestStillState && fgRestPage !== fgRestStillPage
+    && fgRestOpened === 'mechs/m2'
+    && fgRestClosed === '' && fgRestBackPage === fgRestPage
+    && fgRestBackState === fgRestState
     && fgOwnSideKept !== null && fgOwnSideKept.at !== 'c3'
     && fgOwnSideHalf === fgAtCatsAct + '/c1'
+    && fgOwnSidePopup === ''
     && fgActWinsDecl === null && fgActWinsHalf === '/'
     && errPanel.hidden === true,
   'at rest: state moved=' + (fgRestState !== fgRestStillState)
     + ' page moved=' + (fgRestPage !== fgRestStillPage)
+    + ' popup open on=' + JSON.stringify(fgRestOpened)
+    + ' | after a second press: open on=' + JSON.stringify(fgRestClosed)
+    + ' page back=' + (fgRestBackPage === fgRestPage)
+    + ' state back=' + (fgRestBackState === fgRestState)
     + ' | a press on the acting side\'s own unit left the record '
     + JSON.stringify(fgOwnSideKept)
     + ' and the half-made change ' + JSON.stringify(fgOwnSideHalf)
+    + ' and the popup ' + JSON.stringify(fgOwnSidePopup)
     + ' | the action press left the record '
     + JSON.stringify(fgActWinsDecl) + ' and the half-made change '
     + JSON.stringify(fgActWinsHalf)
@@ -13247,15 +13510,29 @@ const bfRtDepthNow = A.state.undoDepth();
 fgPress(fgUndoBtn);
 const bfRtUndone = JSON.stringify(fgDeclOf('cats', 'c1'));
 const bfRtOther = fgDeclOf('cats', 'c2');
-// and a press at rest
+/* AND A PRESS AT REST, WHOSE CLAUSE IS TURNED IN THE OPEN UNDER D-37 exactly
+   as 104e's twin is, and for the same reason and against the same recorded
+   RED: this row said the press "MOVES NOTHING AND OPENS NOTHING", and D-37
+   gives it something to open. The STATE half is kept whole and is the half
+   that mattered — a popup is page work and must not reach a slice — and the
+   text half is inverted into the assertion that it DID open, on the unit
+   pressed. THE BOX IS SHUT AGAIN BEFORE THE ROW ENDS, because every reading
+   below this point is taken on a page this drive is responsible for leaving
+   the way it found it. */
 const bfRestState = JSON.stringify(A.state.get());
 const bfRestPage = fgLeaves(fgBar).join('|');
 bfPressUnit('mechs', 'm2');
 const bfRestStateNow = JSON.stringify(A.state.get());
 const bfRestPageNow = fgLeaves(fgBar).join('|');
+const bfRestPopup = dom.byId['fg-unit'].hidden === true ? ''
+  : String(dom.byId['fg-unit'].dataset.fgSide || '') + '/'
+    + String(dom.byId['fg-unit'].dataset.fgUnit || '');
+fgPress(dom.byId['fg-unit-close']);
+const bfRestPageBack = fgLeaves(fgBar).join('|');
 check(
   '106g. A PRESS ON A LIT BATTLEFIELD SHAPE MOVES ONLY WHAT THE DECLARATION '
-    + 'POINTS AT, AND A PRESS AT REST MOVES NOTHING AND OPENS NOTHING. The '
+    + 'POINTS AT, AND A PRESS AT REST OPENS THAT UNIT\'S POPUP AND COMMITS '
+    + 'NOTHING. The '
     + 'side, the action and the performer all stand, the declaration list does '
     + 'not grow because [S05] replaces a performer\'s record in place, the two '
     + 'half-made attributes are cleared by the same press, and ONE press of the '
@@ -13264,7 +13541,12 @@ check(
     + 'RATHER THAN ON THE STUB PLAN 05-14 BUILT TO THE KEY CONTRACT: both rows '
     + 'stay, because theirs assert the arm and this asserts the sender, and a '
     + 'plan that broke the spelling between them reddens here while they stay '
-    + 'green',
+    + 'green. THE AT-REST CLAUSE IS TURNED UNDER D-37 — it used to say the '
+    + 'press did nothing at all, and "click on a unit then click on the popup '
+    + 'window" gives it a job: the serialised state must be byte-identical '
+    + 'across the press, because opening a popup is page work; the region\'s '
+    + 'rendered text must MOVE, and the box must be open on the unit pressed; '
+    + 'and the box\'s own Close must put the text back',
   bfRtPressed !== null
     && bfRtMoved !== null && bfRtMoved.at === 'm3'
     && bfRtMoved.act === fgAtCatsAct && bfRtMoved.by === 'c1'
@@ -13272,7 +13554,8 @@ check(
     && bfRtLenNow === bfRtLenWas && bfRtHalfAfter === '/'
     && bfRtDepthNow === bfRtDepthWas + 1
     && bfRtUndone === bfRtFirst && bfRtOther !== null
-    && bfRestState === bfRestStateNow && bfRestPage === bfRestPageNow
+    && bfRestState === bfRestStateNow && bfRestPage !== bfRestPageNow
+    && bfRestPopup === 'mechs/m2' && bfRestPageBack === bfRestPage
     && errPanel.hidden === true,
   'the control pressed carries data-k='
     + JSON.stringify(bfRtPressed === null ? null : bfRtPressed.dataset.k)
@@ -13284,6 +13567,8 @@ check(
     + ' | one undo left ' + bfRtUndone
     + ' | at rest: state moved=' + (bfRestState !== bfRestStateNow)
     + ' page moved=' + (bfRestPage !== bfRestPageNow)
+    + ' popup open on=' + JSON.stringify(bfRestPopup)
+    + ' page back after Close=' + (bfRestPageBack === bfRestPage)
     + ' | error panel hidden=' + errPanel.hidden
 );
 
@@ -16505,18 +16790,42 @@ A.state.invalidate({ structural: true });
 A.state.flush();
 clearPanel();
 
-/* --- 118-120. D-36, THE CONTROL AND ITS TWO CLAIMS ON THE PAGE ---------------
-   The developer, at the real artifact: "add the ability to directly click on a
-   resource to directly modify the value of that resource in the current round."
+/* --- 118-122. D-36's CONTROL, AND D-37's POPUP THAT SUPERSEDES HALF OF IT ----
+   D-36, the developer at the real artifact: "add the ability to directly click
+   on a resource to directly modify the value of that resource in the current
+   round." D-37, one round later: "click on a unit then click on the popup
+   window to modify the values associated with it."
+
+   THE SECOND SENTENCE TAKES HALF OF THE FIRST ONE BACK, AND THESE ROWS ARE
+   WHERE THAT IS RECORDED. D-37's own interpretation says it in as many words:
+   "This supersedes D-36's per-reading nudge ON THE BATTLEFIELD — the readings
+   there return to being readings, the unit shape's click opens the popup, and
+   the nudge lives inside it. The team-resource direct click stays as D-36
+   built it." So rows 118, 119 and 120 are TURNED rather than deleted or
+   quietly repointed — each was written about a claim that has changed, each
+   was recorded RED against the artifact before it was rewritten, and the
+   turned row asserts the NEW contract. Rows 121 and 122 are the popup's own.
+
+   THE RECORDED RED, taken on the commit that removed data-fg from .bf-line and
+   before any row below was rewritten:
+
+     FAIL 118 ... readings=3 | battlefield keys=12 | duplicate keys=[] ...
+                  (the row requires a reading on c1's health, shield and tally;
+                   all three are gone from the battlefield)
+     119 and 120 did not report at all — the run died at
+     `TypeError: Cannot read properties of null (reading 'dispatchEvent')`,
+     which is d36Read('cats','c1','hp') returning null and a press being sent
+     to it. A row that presses a control that no longer exists cannot fail
+     politely, and that crash IS the reading: the per-reading path is gone.
 
    WHAT IS DRIVEN HERE AND WHAT IS DRIVEN IN A BROWSER, said once so neither
    file is asked for the other's claim. The PLACEMENT, the rapid-press focus
-   case and the centre-of-a-lit-shape hit test all need a layout engine and a
-   real default focus-on-mousedown; they live in tests/browser-checks.mjs, cells
-   26 to 26f, and they are the reason that file exists. What lives HERE is
-   everything a stub page can hold to account: the key spelling and its
-   uniqueness, the partition between what this surface handles and what it
-   dispatches, the never-disable rule, and the press paths themselves. */
+   case, the edge-of-viewport clamp and the real centre click all need a layout
+   engine and a real default focus-on-mousedown; they live in
+   tests/browser-checks.mjs, cells 26 to 26h. What lives HERE is everything a
+   stub page can hold to account: the key spellings and their uniqueness, the
+   partition between what this surface handles and what it dispatches, the
+   never-disable rule, the contents of the popup, and the press paths. */
 
 const d36Tok = A.ops.createTokenType({
   name: 'Chill', shape: 'tri', color: 'violet', glyph: '', scope: 'unit'
@@ -16525,6 +16834,10 @@ const d36Side = A.ops.createTokenType({
   name: 'Rage', shape: 'hex', color: 'coral', glyph: '', scope: 'side'
 });
 A.ops.setTokenBounds(d36Tok, { min: 0, max: 3 });
+// The health type is bounded on this board so the refusal reading below is a
+// short, deterministic sentence rather than one carrying MAX_ALLOC — and so
+// that a unit can be driven to its floor in three presses.
+A.ops.setTokenBounds('hp', { min: 0, max: 4 });
 A.ops.setTally('cats', 'c1', d36Tok, 2);
 A.ops.setTally('cats', null, d36Side, 2);
 A.ops.setUnitShield('cats', 'c1', 2);
@@ -16550,207 +16863,535 @@ const d36Open = () => ({
   x: d36Box.style.getPropertyValue('--fgn-x')
 });
 
-/* 118. THE READINGS ARE CONTROLS, AND THE KEY SPACE STAYS DISJOINT.
-   94b's reading taken again on a page that just grew one key per rulable
-   reading per unit per side plus one per team resource — and the disjointness
-   is PROBED rather than asserted, because "cannot collide by construction" is
-   the sentence every collision in this repository was shipped under. */
+/* D-37's OWN READERS. The popup is one box holding one unit's rows, so every
+   reading below is taken through the box rather than through a selector built
+   from a key — which is [S07.5]'s fgNudgeAnchor's rule read from the test
+   side: a key spelled here would be a second copy of one the artifact owns. */
+const d37Box = dom.byId['fg-unit'];
+const d37RowsRoot = dom.byId['fg-unit-rows'];
+const d37Shape = (side, unitId) => fgStateRootOf(side)
+  .querySelectorAll('[data-fg="bf"]')
+  .filter((n) => String(n.dataset.fgVal || '') === unitId)[0] || null;
+const d37PressShape = (side, unitId) => {
+  const s = d37Shape(side, unitId);
+  if (s !== null) { fgPress(s); }
+  return s;
+};
+const d37Rows = () => d37RowsRoot.children;
+const d37Row = (tok) => d37Rows()
+  .filter((r) => String(r.dataset.fguTok || '') === tok)[0] || null;
+const d37First = (node, sel) => (node === null ? null
+  : (node.querySelectorAll(sel)[0] || null));
+// The value is SYMBOLIC under D-29, so the words live on the tooltip that
+// [S06.12] writes from the same call — read there rather than off a token row
+// that carries no text at all.
+const d37Said = (tok) => {
+  const sym = d37First(d37Row(tok), '.sym');
+  return sym === null ? null : sym.getAttribute('title');
+};
+const d37Says = (tok) => {
+  const p = d37First(d37Row(tok), '.fgu-says');
+  return (p !== null && p.hidden === false) ? p.textContent : '';
+};
+const d37Step = (tok, step) => {
+  const row = d37Row(tok);
+  if (row === null) { return null; }
+  return row.querySelectorAll('[data-fg="unudge"]')
+    .filter((b) => String(b.dataset.fgStep || '') === String(step))[0] || null;
+};
+const d37Open = () => ({
+  shut: d37Box.hidden === true,
+  side: String(d37Box.dataset.fgSide || ''),
+  unit: String(d37Box.dataset.fgUnit || ''),
+  head: dom.byId['fg-unit-head'].textContent,
+  toks: d37Rows().map((r) => String(r.dataset.fguTok || '')),
+  x: d37Box.style.getPropertyValue('--fgu-x')
+});
+
+/* 118. THE THREE KEY SPACES, AND THE BATTLEFIELD'S READINGS ARE READINGS AGAIN.
+   94b's reading taken again on a page that has LOST one key per rulable
+   reading per unit per side and GAINED one pair per value of the one unit a
+   popup is open on — and the disjointness is PROBED rather than asserted,
+   because "cannot collide by construction" is the sentence every collision in
+   this repository was shipped under. */
+const d37LineNodes = fgBar.querySelectorAll('.bf-line');
+const d37LinesPressable = d37LineNodes
+  .filter((n) => n.dataset.fg !== undefined).length;
 const d36Keys = d36Readings().map((n) => String(n.dataset.k || ''));
+const d36InsideShape = d36Readings()
+  .filter((n) => n.closest('[data-fg="bf"]') !== null).length;
 const d36BfKeys = fgBar.querySelectorAll('[data-fg="bf"]').map((n) => String(n.dataset.k || ''));
+// The popup is opened here because its keys only exist while it is open, which
+// is the whole shape of this feature: one box, one unit's rows at a time.
+d37PressShape('cats', 'c1');
+const d37Keys = d37Box.querySelectorAll('[data-k]').map((n) => String(n.dataset.k || ''));
 const d36AllKeys = [];
 (function walk(n) {
   if (n.dataset && n.dataset.k !== undefined) { d36AllKeys.push(String(n.dataset.k)); }
   n.children.forEach(walk);
 })(dom.byId['app']);
 const d36Dupes = d36AllKeys.filter((k, i) => d36AllKeys.indexOf(k) !== i);
-// THE COLLISION PROBE. `fg/res/{side}/{unit}/{tok}` and `fg/bf/{side}/{unit}`
-// differ at the SECOND segment, so no assignment of unit ids and token ids can
-// make one produce the other — but the way to know that is to try. Every
-// battlefield key is re-spelled with the resource prefix's segment count and
-// looked for in the live key set, and the two sets are intersected outright.
-const d36Crossed = d36BfKeys.filter((k) => d36Keys.indexOf(k) !== -1);
+// THE COLLISION PROBE, WIDENED TO THREE SPACES. `fg/res/…`, `fg/bf/…` and
+// `fg/u/…` differ at the SECOND segment, so no assignment of unit ids and
+// token ids can make one produce another — but the way to know that is to try.
+// Every pair of the three sets is intersected outright.
+const d37Crossed = d36BfKeys.filter((k) => d36Keys.indexOf(k) !== -1)
+  .concat(d36BfKeys.filter((k) => d37Keys.indexOf(k) !== -1))
+  .concat(d36Keys.filter((k) => d37Keys.indexOf(k) !== -1));
 const d36Shaped = d36Keys.filter((k) => k.indexOf('fg/res/') !== 0
   || k.split('/').length !== 5);
+const d37Shaped = d37Keys.filter((k) => k.indexOf('fg/u/') !== 0);
 const d36LedgerKeys = fgLedgerRoot.querySelectorAll('[data-fg="res"]').length;
+const d37LedgerKeys = fgLedgerRoot.querySelectorAll('[data-fg]')
+  .filter((n) => ['unudge', 'ualive', 'uclose'].indexOf(String(n.dataset.fg)) !== -1).length;
 const d36NoAct = d36Readings().filter((n) => n.dataset.act !== undefined).length
+  + d37Box.querySelectorAll('[data-act]').length
   + [dom.byId['fg-nudge-less'], dom.byId['fg-nudge-more']]
     .filter((n) => n.dataset.act !== undefined).length;
 const d36Disabled = d36Readings().filter((n) => n.disabled === true).length
+  + d37Box.querySelectorAll('button').filter((n) => n.disabled === true).length
   + [dom.byId['fg-nudge-less'], dom.byId['fg-nudge-more']]
     .filter((n) => n.disabled === true).length;
 const d36UiActs = A.interactions.UI_ACTS || [];
 check(
-  '118. D-36 — EVERY RESOURCE READING ON THE FIGHT TAB IS A CONTROL, AND ITS '
-    + 'KEY SPACE CANNOT REACH THE BATTLEFIELD\'S. Each reading carries the one '
-    + 'spelling [S06.14] owns — fg/res/{side}/{unit-or-side}/{token} — every '
-    + 'data-k on the whole page is still unique with them painted, and the two '
-    + 'spaces are INTERSECTED OUTRIGHT rather than argued about, because '
-    + '"cannot collide by construction" is the sentence every collision in this '
-    + 'repository shipped under. The unit slot holds the literal `side` for a '
-    + 'number the side holds, which is a word this file wrote and never a '
-    + 'student\'s. NO READING IS INSIDE THE LEDGER, which is check 94\'s own '
-    + 'rule about a past round\'s row carrying a key that could steal a focus '
-    + 'restore. NOT ONE OF THEM CARRIES data-act — #fightbar is inside #app and '
-    + '[S07.1] routes any data-act straight into App.ops.dispatch, so one here '
-    + 'would fire an op with a payload nothing meant to send — and neither '
-    + 'private name this feature adds is in UI_ACTS, which is the table that '
-    + 'turns a dispatched op into page work. AND NOTHING IS EVER DISABLED: the '
-    + 'D-27 overrule is scoped to the declaration grid and this surface is '
-    + 'outside it',
-  d36Keys.length > 0 && d36Dupes.length === 0 && d36Crossed.length === 0
-    && d36Shaped.length === 0 && d36LedgerKeys === 0
+  '118. D-37 — THE BATTLEFIELD\'S READINGS ARE READINGS AGAIN, THE TEAM '
+    + 'RESOURCES ARE STILL CONTROLS, AND THE THREE KEY SPACES CANNOT REACH '
+    + 'EACH OTHER. This row is D-36\'s, TURNED: it used to require a press '
+    + 'target on every reading of every unit and it requires the opposite of '
+    + 'the battlefield half now, because "the readings there return to being '
+    + 'readings, the unit shape\'s click opens the popup". So the lines on a '
+    + 'shape are counted and NONE of them may carry a routing attribute, and '
+    + 'no [data-fg="res"] anywhere on the page may sit inside a shape — which '
+    + 'is the collision D-36 spent a browser run finding, removed at the root '
+    + 'rather than arbitrated. The team-resource rows keep the one spelling '
+    + '[S06.14] owns, fg/res/{side}/side/{token}, and the popup adds fg/u/… '
+    + 'while it is open. Every data-k on the whole page is unique with all '
+    + 'three painted and the three spaces are INTERSECTED PAIRWISE rather than '
+    + 'argued about. NO CONTROL OF EITHER FEATURE IS INSIDE THE LEDGER, which '
+    + 'is check 94\'s rule about a past round\'s row carrying a key that could '
+    + 'steal a focus restore. NOT ONE CARRIES data-act — #fightbar is inside '
+    + '#app and [S07.1] routes any data-act straight into App.ops.dispatch — '
+    + 'and none of the five private names is in UI_ACTS, which is the table '
+    + 'that turns a dispatched op into page work. AND NOTHING IS EVER '
+    + 'DISABLED: the D-27 overrule is scoped to the declaration grid and both '
+    + 'these surfaces are outside it',
+  d37LineNodes.length > 0 && d37LinesPressable === 0
+    && d36Keys.length > 0 && d36InsideShape === 0
+    && d37Keys.length > 0
+    && d36Dupes.length === 0 && d37Crossed.length === 0
+    && d36Shaped.length === 0 && d37Shaped.length === 0
+    && d36LedgerKeys === 0 && d37LedgerKeys === 0
     && d36NoAct === 0 && d36Disabled === 0
     && d36UiActs.indexOf('res') === -1 && d36UiActs.indexOf('nudge') === -1
-    && d36Read('cats', 'c1', 'hp') !== null
-    && d36Read('cats', 'c1', 'shield') !== null
-    && d36Read('cats', 'c1', d36Tok) !== null
+    && d36UiActs.indexOf('unudge') === -1 && d36UiActs.indexOf('ualive') === -1
+    && d36UiActs.indexOf('uclose') === -1
+    && d36Read('cats', 'c1', 'hp') === null
+    && d36Read('cats', 'c1', 'shield') === null
+    && d36Read('cats', 'c1', d36Tok) === null
     && d36Read('cats', '', 'ap') !== null
     && d36Read('cats', '', d36Side) !== null
-    && d36Read('cats', 'c1', 'dead') === null
-    && d36Keys.indexOf('fg/res/cats/side/ap') !== -1,
-  'readings=' + d36Keys.length + ' | battlefield keys=' + d36BfKeys.length
+    && d36Keys.indexOf('fg/res/cats/side/ap') !== -1
+    && d37Keys.indexOf('fg/u/cats/c1/hp/less') !== -1
+    && d37Keys.indexOf('fg/u/cats/c1/dead') !== -1
+    && d37Keys.indexOf('fg/u/close') !== -1,
+  'battlefield lines=' + d37LineNodes.length
+    + ' of which pressable=' + d37LinesPressable
+    + ' | team readings=' + d36Keys.length
+    + ' of which inside a shape=' + d36InsideShape
+    + ' | battlefield keys=' + d36BfKeys.length
+    + ' | popup keys=' + d37Keys.length
     + ' | duplicate keys on the page=' + JSON.stringify(d36Dupes)
-    + ' | keys in BOTH spaces=' + JSON.stringify(d36Crossed)
-    + ' | wrongly shaped=' + JSON.stringify(d36Shaped)
-    + ' | readings inside #ledger=' + d36LedgerKeys
+    + ' | keys in two spaces at once=' + JSON.stringify(d37Crossed)
+    + ' | wrongly shaped=' + JSON.stringify(d36Shaped.concat(d37Shaped))
+    + ' | controls inside #ledger=' + (d36LedgerKeys + d37LedgerKeys)
     + ' | carrying data-act=' + d36NoAct + ' | disabled=' + d36Disabled
 );
+fgPress(dom.byId['fg-unit-close']);
 
-/* 119. THE PRESS PATHS, DRIVEN ON THE REAL CONTROLS. */
-fgPress(d36Read('cats', 'c1', 'hp'));
-const d36OnHp = d36Open();
-fgPress(dom.byId['fg-nudge-less']);
-const d36AfterLess = Object.assign({ hp: A.state.get().fight.cats.units[0].hp },
-  d36Open());
-// The same reading again SHUTS it — the control that starts something is the
-// control that takes it back, which is the action button's and the
-// change-target button's shape one region up.
-fgPress(d36Read('cats', 'c1', 'hp'));
-const d36Toggled = d36Open();
-// A team resource: the unit slot is empty and the record carries a null.
+/* 119. D-36's PRESS PATHS, ON THE HALF OF THE FEATURE D-37 LEAVES STANDING.
+   THE ROW IS TURNED AND NOT NARROWED BY ACCIDENT: it used to drive four
+   reading classes and it drives the two that are still readings-as-controls —
+   the side's pool and a side-scope tally of a type the student invented. The
+   other two classes moved into the popup and row 121 drives them there, so
+   nothing this row used to assert has stopped being asserted anywhere. */
 fgPress(d36Read('cats', '', 'ap'));
+const d36OnPool = d36Open();
 fgPress(dom.byId['fg-nudge-more']);
-const d36Pool = {
+const d36Pool = Object.assign({
   ap: A.state.get().fight.cats.ap,
   rec: A.state.get().fight.hand[A.state.get().fight.hand.length - 1]
-};
-// A student's own type at unit scope, at its own authored ceiling.
-fgPress(d36Read('cats', 'c1', d36Tok));
+}, d36Open());
+// The same reading again SHUTS it — the control that starts something is the
+// control that takes it back.
+fgPress(d36Read('cats', '', 'ap'));
+const d36Toggled = d36Open();
+// A student's own type at SIDE scope, driven to its own ceiling and stopped.
+A.ops.setTokenBounds(d36Side, { min: 0, max: 3 });
+A.state.flush();
+fgPress(d36Read('cats', '', d36Side));
 fgPress(dom.byId['fg-nudge-more']);
 const d36TallyUp = Object.assign(
-  { n: A.state.get().fight.cats.units[0].tally[d36Tok] }, d36Open());
+  { n: A.state.get().fight.cats.tally[d36Side] }, d36Open());
 fgPress(dom.byId['fg-nudge-more']);
 const d36TallyClamped = Object.assign(
-  { n: A.state.get().fight.cats.units[0].tally[d36Tok],
-    rulings: A.state.get().fight.hand.filter((h) => h.tok === d36Tok).length },
+  { n: A.state.get().fight.cats.tally[d36Side],
+    rulings: A.state.get().fight.hand.filter((h) => h.tok === d36Side).length },
   d36Open());
 // ESCAPE, on the document, and a press ELSEWHERE — D-36's two dismissals.
 dom.document._listeners.keydown.forEach((fn) => fn(dom.event('keydown', { key: 'Escape' })));
 A.state.flush();
 const d36ByEsc = d36Open();
-fgPress(d36Read('cats', '', d36Side));
+fgPress(d36Read('cats', '', 'ap'));
 const d36Reopened = d36Open();
 fgPress(dom.byId['fight-head']);
 const d36ByElsewhere = d36Open();
 check(
-  '119. D-36 — A PRESS ON A READING OPENS THE CONTROL, ITS BUTTONS RULE, AND '
-    + 'EITHER DISMISSAL SHUTS IT. Driven on the artifact\'s own controls, at '
-    + 'every scope the record can carry. The box names the owner and the type '
-    + 'it was opened on and shows the number that is really on the board; the − '
-    + 'writes a real hand ruling through [S05]; pressing the SAME reading again '
-    + 'shuts it, which is the action button\'s own shape one region up. A team '
-    + 'resource leaves the unit slot EMPTY and the record carries a NULL there, '
-    + 'because a pool belongs to the side and to no unit. A tally of a type the '
-    + 'student invented rises to its authored ceiling AND STOPS, recording '
-    + 'nothing for the press that moved nothing and saying what the board keeps '
-    + 'the number between — arithmetic and factual, naming no type, and with no '
-    + 'error panel anywhere near it. Then Escape shuts it and a press on a '
+  '119. D-36 — A PRESS ON A TEAM RESOURCE OPENS THE NUDGE, ITS BUTTONS RULE, '
+    + 'AND EITHER DISMISSAL SHUTS IT. D-37 leaves this path exactly as D-36 '
+    + 'built it — "the team-resource direct click stays as D-36 built it" — '
+    + 'and this row is that sentence, driven. The box names the FACTION and '
+    + 'the type it was opened on and shows the number that is really on the '
+    + 'board; the + writes a real hand ruling through [S05] and the record '
+    + 'carries a NULL unit, because a pool belongs to the side and to no unit; '
+    + 'pressing the SAME reading again shuts it. A side-scope tally of a type '
+    + 'the student invented rises to its authored ceiling AND STOPS, recording '
+    + 'nothing for the press that moved nothing and saying what the board '
+    + 'keeps the number between — arithmetic and factual, naming no type, with '
+    + 'no error panel anywhere near it. Then Escape shuts it and a press on a '
     + 'heading that is neither the box nor a reading shuts it, which is what '
-    + 'the listener on the DOCUMENT is for: "elsewhere" includes the top bar '
-    + 'and both dialogs. AND THE PLACEMENT IS PUBLISHED AS A CUSTOM PROPERTY '
-    + 'rather than as an inline length, which is check 57\'s widened allowlist '
-    + 'read from the other end — the value is written here even with no layout '
-    + 'engine behind it',
-  d36OnHp.shut === false && d36OnHp.who === 'Cat 1' && d36OnHp.type === 'Health'
-    && d36OnHp.val === '3' && d36OnHp.unit === 'c1'
-    && d36AfterLess.hp === 2 && d36AfterLess.val === '2'
+    + 'the listener on the DOCUMENT is for. AND THE PLACEMENT IS PUBLISHED AS '
+    + 'A CUSTOM PROPERTY rather than as an inline length, which is check 57\'s '
+    + 'widened allowlist read from the other end',
+  d36OnPool.shut === false && d36OnPool.who === 'Cats'
+    && d36OnPool.type === 'Action points' && d36OnPool.val === '3'
+    && d36OnPool.unit === ''
+    && d36Pool.ap === 4 && d36Pool.val === '4'
+    && d36Pool.rec.unit === null && d36Pool.rec.tok === 'ap'
     && d36Toggled.shut === true
-    && d36Pool.ap === 4 && d36Pool.rec.unit === null && d36Pool.rec.tok === 'ap'
-    && d36TallyUp.n === 3 && d36TallyUp.type === 'Chill' && d36TallyUp.val === '3'
+    && d36TallyUp.n === 3 && d36TallyUp.type === 'Rage' && d36TallyUp.val === '3'
     && d36TallyClamped.n === 3 && d36TallyClamped.rulings === 1
     && d36TallyClamped.says === 'This board keeps this number between 0 and 3.'
     && d36ByEsc.shut === true
-    && d36Reopened.shut === false && d36Reopened.type === 'Rage'
+    && d36Reopened.shut === false && d36Reopened.tok === 'ap'
     && d36ByElsewhere.shut === true
     && d36Box.style.getPropertyValue('--fgn-x') !== ''
     && errPanel.hidden === true,
-  'opened on health=' + JSON.stringify(d36OnHp)
-    + ' | after the minus=' + JSON.stringify(d36AfterLess)
+  'opened on the pool=' + JSON.stringify(d36OnPool)
+    + ' | after the plus=' + JSON.stringify(d36Pool)
     + ' | pressing it again=' + JSON.stringify(d36Toggled)
-    + ' | the pool=' + JSON.stringify(d36Pool)
-    + ' | the tally at its ceiling=' + JSON.stringify(d36TallyClamped)
+    + ' | the side tally at its ceiling=' + JSON.stringify(d36TallyClamped)
     + ' | by Escape=' + JSON.stringify(d36ByEsc)
     + ' | by a press elsewhere=' + JSON.stringify(d36ByElsewhere)
     + ' | panel hidden=' + errPanel.hidden
 );
 
-/* 120. THE TWO CLAIMS ON A BATTLEFIELD SHAPE, SEPARATED. The browser cells
-   drive this with a real centre click; what this row can hold to account is the
-   ROUTING, which is where the separation actually lives. */
-const d36Shape = fgStateRootOf('cats')
-  .querySelectorAll('[data-fg="bf"]').filter((n) => n.dataset.fgVal === 'c2')[0];
-const d36Line = d36Read('cats', 'c2', 'hp');
-const d36Nested = d36Line !== null && d36Line.closest('[data-fg]') === d36Line
-  && d36Line.closest('[data-fg="bf"]') === d36Shape;
-// AT REST: the reading opens the nudge and the shape opens nothing.
-fgPress(d36Line);
-const d36RestReading = d36Open();
-dom.document._listeners.keydown.forEach((fn) => fn(dom.event('keydown', { key: 'Escape' })));
-A.state.flush();
-fgPress(d36Shape);
-const d36RestShape = Object.assign({ decls: A.state.get().fight.decl.length }, d36Open());
-// ARMED: every press anywhere on a shape belongs to the retarget flow. The
-// action is one that NEEDS a target, read through the shipped derivation for
-// fgMechsAct's own stated reason — a declaration that pointed at nobody draws
-// no change-target control, and this row would then press a null.
+/* 120. THE SHAPE'S TWO JOBS, SEPARATED IN TIME. The row is D-36's, turned: it
+   used to read the reading-versus-shape separation in SPACE and the armed
+   delegation in time, and there is nothing nested to separate any more. What
+   is left is the half that was always the load-bearing one — a half-made
+   retarget owns the whole battlefield — now stated over the WHOLE shape rather
+   than over the readings on it, which is strictly wider. */
+const d37RestShape = d37PressShape('cats', 'c2');
+const d37AtRest = Object.assign({ decls: A.state.get().fight.decl.length }, d37Open());
+fgPress(dom.byId['fg-unit-close']);
+const d37AfterClose = d37Open();
+// ARMED. The action is one that NEEDS a target, read through the shipped
+// derivation for fgMechsAct's own stated reason: a declaration that pointed at
+// nobody draws no change-target control and this row would then press a null.
 fgDeclare('mechs', fgMechsAct, 'm1');
 fgPress(fgAtBtnOf('mechs', 'm1'));
-const d36ArmedLit = fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
+const d37ArmedLit = fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
   .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length;
-fgPress(d36Read('cats', 'c3', 'hp'));
-const d36Armed = Object.assign({
+d37PressShape('cats', 'c3');
+const d37Armed = Object.assign({
   at: (A.state.get().fight.decl.filter((d) => d.by === 'm1')[0] || {}).at,
   lit: fgStateRootOf('cats').querySelectorAll('[data-fg="bf"]')
     .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length
-}, d36Open());
+}, d37Open());
 check(
-  '120. D-36 — THE RETARGET FLOW\'S CLAIM ON A SHAPE IS UNCHANGED AND THE '
-    + 'READINGS SEPARATE FROM IT CLEANLY, which is D-36\'s own pair of '
-    + 'sentences and neither of them alone. THE MECHANISM IS READ OFF THE PAGE '
-    + 'FIRST: the reading is a DESCENDANT of the shape and closest(\'[data-fg]\') '
-    + 'from it returns the reading rather than the shape, which is the whole of '
-    + 'how the two are told apart. AT REST a press on the reading opens the '
-    + 'control and a press on the shape opens nothing and declares nothing — '
-    + '[S07.5]\'s quiet decline with no flow open. ARMED, the opposing roster '
-    + 'lights and a press on the READING of a lit shape moves the target, puts '
-    + 'the lights out and does NOT open the control: nesting alone satisfies '
-    + '"must not collide" and fails "the claim is unchanged", so the separation '
-    + 'is in TIME as well as in space. The browser checks found that with a '
-    + 'real centre click and two shipped cells went red over it',
-  d36Nested === true
-    && d36RestReading.shut === false && d36RestReading.unit === 'c2'
-    && d36RestShape.shut === true && d36RestShape.decls === 0
-    && d36ArmedLit === 9
-    && d36Armed.at === 'c3' && d36Armed.shut === true && d36Armed.lit === 0
+  '120. D-37 — AT REST A PRESS ON A UNIT OPENS ITS POPUP; ARMED, THE WHOLE '
+    + 'BATTLEFIELD IS STILL THE RETARGET FLOW\'S. This row is D-36\'s, turned. '
+    + 'That plan separated a reading from the shape it sat inside by NESTING '
+    + 'and a real centre click found the flaw — "a lit shape is aimed at by '
+    + 'clicking its MIDDLE, and its middle is a reading" — so the separation '
+    + 'was made to be in TIME as well as in space. D-37 removes the nesting '
+    + 'outright and the time half is all that is left, which is exactly what '
+    + 'the developer wrote down: "Clicking a unit on the battlefield (AT REST '
+    + '— a half-made retarget still owns the battlefield) opens a popup". So: '
+    + 'AT REST the shape opens the popup on ITSELF and declares nothing, and '
+    + 'the Close in the box shuts it. ARMED, the opposing roster lights and a '
+    + 'press on a lit shape MOVES THE TARGET, puts the lights out, and DOES '
+    + 'NOT OPEN THE POPUP. A student is never in both states at once, and the '
+    + 'row reads the popup in every one of the four moments',
+  d37RestShape !== null
+    && d37AtRest.shut === false && d37AtRest.unit === 'c2'
+    && d37AtRest.side === 'cats' && d37AtRest.decls === 0
+    && d37AfterClose.shut === true
+    && d37ArmedLit === 9
+    && d37Armed.at === 'c3' && d37Armed.shut === true && d37Armed.lit === 0
     && errPanel.hidden === true,
-  'the reading is nested and resolves to itself=' + d36Nested
-    + ' | at rest, the reading=' + JSON.stringify(d36RestReading)
-    + ' | at rest, the shape=' + JSON.stringify(d36RestShape)
-    + ' | lit while armed=' + d36ArmedLit
-    + ' | after the press on a lit shape\'s reading=' + JSON.stringify(d36Armed)
+  'at rest, the shape=' + JSON.stringify(d37AtRest)
+    + ' | after Close=' + JSON.stringify(d37AfterClose)
+    + ' | lit while armed=' + d37ArmedLit
+    + ' | after the press on a lit shape=' + JSON.stringify(d37Armed)
     + ' | panel hidden=' + errPanel.hidden
 );
 
+/* 121. WHAT THE POPUP HOLDS, AND WHAT PRESSING IT DOES. D-37: the popup shows
+   "every value associated with it: health, shield, every status tally
+   INCLUDING THE ZERO-HIDDEN ONES, and the dead marker", each in D-29's
+   symbolic language with the scanned tooltips, each editable through the
+   shipped ruling ops. */
+// THE FIGHT SLICE AND NOT THE BUILD ONE, which is FIGHT-10's division and a
+// correction this drive needed: setUnitShield writes the ALLOCATION, and a
+// fight already running reads its own copy — so the first draft of this row
+// set the build to zero, read 2 off the popup and was right to fail.
+A.ops.setFightShield('cats', 'c1', 0);   // the value deferred item 18 is about
+A.state.flush();
+d37PressShape('cats', 'c1');
+const d37Held = d37Open();
+const d37Zero = {
+  row: d37Row('shield') !== null,
+  said: d37Said('shield'),
+  plus: d37Step('shield', 1) !== null
+};
+fgPress(d37Step('shield', 1));
+const d37ZeroRuled = {
+  shield: A.state.get().fight.cats.units[0].shield,
+  said: d37Said('shield'),
+  rec: A.state.get().fight.hand[A.state.get().fight.hand.length - 1]
+};
+// THE HEALTH, ALL THE WAY DOWN, AND THE UNIT IS STILL STANDING AT THE BOTTOM —
+// D-00d, the file's oldest ruling, driven through the newest control.
+const d37HpWas = A.state.get().fight.cats.units[0].hp;
+fgPress(d37Step('hp', -1));
+fgPress(d37Step('hp', -1));
+fgPress(d37Step('hp', -1));
+const d37Floor = {
+  hp: A.state.get().fight.cats.units[0].hp,
+  alive: A.state.get().fight.cats.units[0].alive,
+  standing: A.state.get().fight.cats.units.filter((u) => u.alive).length,
+  said: d37Said('hp'),
+  says: d37Says('hp'),
+  hand: A.state.get().fight.hand.filter((h) => h.tok === 'hp').length
+};
+fgPress(d37Step('hp', -1));
+const d37Clamped = {
+  hp: A.state.get().fight.cats.units[0].hp,
+  hand: A.state.get().fight.hand.filter((h) => h.tok === 'hp').length,
+  says: d37Says('hp'),
+  panel: errPanel.hidden
+};
+// The student's own type, at unit scope, in the same box.
+fgPress(d37Step(d36Tok, -1));
+const d37Tally = {
+  n: A.state.get().fight.cats.units[0].tally[d36Tok],
+  said: d37Said(d36Tok),
+  rec: A.state.get().fight.hand[A.state.get().fight.hand.length - 1]
+};
+// THE DEAD MARKER, AND ITS THREE CHANNELS. The words are [S06.9]'s own pair,
+// read off the artifact rather than spelled here, so a row that agreed with a
+// hard-coded copy while the artifact said something else cannot exist.
+const d37DeadBtn = () => d37First(d37Row('dead'), '.fgu-alive');
+const d37DeadRead = () => ({
+  pressed: d37DeadBtn().getAttribute('aria-pressed'),
+  on: String(d37DeadBtn().className || '').indexOf('fgu-alive--on') !== -1,
+  word: d37First(d37DeadBtn(), '.fgu-alive-t').textContent,
+  said: d37Said('dead'),
+  alive: A.state.get().fight.cats.units[0].alive
+});
+const d37Standing = d37DeadRead();
+fgPress(d37DeadBtn());
+const d37Marked = d37DeadRead();
+fgPress(d37DeadBtn());
+const d37Unmarked = d37DeadRead();
+// EVERY VALUE'S READING IS A REAL SYMBOL WITH A NAME ON BOTH CHANNELS — D-29's
+// admissibility argument, read on a fourth surface: title and aria-label from
+// one variable, and the student's fragment declared on data-tsay so the gate
+// reads the artifact's half and skips theirs.
+const d37Syms = d37Box.querySelectorAll('.sym');
+const d37SymBad = d37Syms.filter((n) =>
+  n.getAttribute('role') !== 'img'
+  || typeof n.getAttribute('title') !== 'string'
+  || n.getAttribute('title') === ''
+  || n.getAttribute('aria-label') !== n.getAttribute('title')).length;
+const d37Tsay = d37Syms.filter((n) => String(n.dataset.tsay || '') !== '').length;
+const d37Albl = d37Box.querySelectorAll('[data-fg="unudge"]')
+  .filter((n) => String(n.dataset.albl || '') !== ''
+    && String(n.getAttribute('aria-label') || '').indexOf('crease ') !== -1).length;
+check(
+  '121. D-37 — THE POPUP HOLDS EVERY VALUE THE UNIT HAS, INCLUDING THE ONES AT '
+    + 'ZERO, AND EVERY ONE OF THEM RULES THROUGH THE SHIPPED OPS. The '
+    + 'developer asked for a window showing "every value associated with it", '
+    + 'and the row reads the list off the page: health, the shield, the type '
+    + 'the STUDENT invented at unit scope, and the dead marker, in [S06.11]\'s '
+    + 'own bfTokenIds order because that function is CALLED rather than '
+    + 'restated. DEFERRED ITEM 18 IS CLOSED IN THE FIRST CLAUSE: the shield is '
+    + 'driven to ZERO first, where [S06.11]\'s hide pass takes its line off '
+    + 'the battlefield entirely — and the popup still draws it, still says '
+    + 'zero in D-21\'s own count form, and its + still works. THE HEALTH IS '
+    + 'DRIVEN TO ITS FLOOR AND THE UNIT IS STILL STANDING, which is D-00d and '
+    + 'is the line this whole surface must not cross: no ruling in here writes '
+    + '`alive`, and the survivor count is unmoved at zero health. The press '
+    + 'past the floor CLAMPS: the number stops, NO further ruling is recorded '
+    + 'because "a number went from one value to another" is false of a press '
+    + 'that moved nothing, the row says what the board keeps the number '
+    + 'between, and the error panel stays shut. THE DEAD TOGGLE STATES WHAT IS '
+    + 'AND WHAT IT DOES — D-33 P3-2\'s ruling, inherited whole: the ACT when '
+    + 'unpressed and the STATE when pressed, with aria-pressed, the class and '
+    + 'the word all written from one reading so they cannot contradict each '
+    + 'other, and the marker\'s own symbol moving with them. EVERY READING IS '
+    + 'A REAL D-29 SYMBOL with the prose on a tooltip that equals its '
+    + 'accessible name, and the student\'s fragment is declared on data-tsay '
+    + 'so the harvest reads the artifact\'s half of every sentence',
+  d37Held.shut === false && d37Held.head === 'Cat 1'
+    && d37Held.toks.join(',') === ['hp', 'shield', d36Tok, 'dead'].join(',')
+    && d37Zero.row === true && d37Zero.plus === true
+    && d37Zero.said === 'Cat 1 Shield, 0.'
+    && d37ZeroRuled.shield === 1 && d37ZeroRuled.said === 'Cat 1 Shield, 1.'
+    && d37ZeroRuled.rec.unit === 'c1' && d37ZeroRuled.rec.tok === 'shield'
+    && d37HpWas === 3 && d37Floor.hp === 0
+    && d37Floor.alive === true && d37Floor.standing === 9
+    && d37Floor.hand === 3 && d37Floor.said === 'Cat 1 Health, 0.'
+    && d37Floor.says === 'This board keeps this number between 0 and 4.'
+    && d37Clamped.hp === 0 && d37Clamped.hand === 3
+    && d37Clamped.says === d37Floor.says && d37Clamped.panel === true
+    && d37Tally.n === 1 && d37Tally.said === 'Cat 1 Chill, 1.'
+    && d37Tally.rec.tok === d36Tok && d37Tally.rec.unit === 'c1'
+    && d37Standing.pressed === 'false' && d37Standing.on === false
+    && d37Standing.word === 'Mark dead' && d37Standing.alive === true
+    && d37Marked.pressed === 'true' && d37Marked.on === true
+    && d37Marked.word === 'Marked dead' && d37Marked.alive === false
+    && d37Unmarked.pressed === 'false' && d37Unmarked.word === 'Mark dead'
+    && d37Unmarked.alive === true
+    && d37Syms.length === 4 && d37SymBad === 0 && d37Tsay === 4
+    && d37Albl === 6,
+  'the box=' + JSON.stringify(d37Held)
+    + ' | the zero shield=' + JSON.stringify(d37Zero)
+    + ' ruled up to=' + JSON.stringify(d37ZeroRuled)
+    + ' | health ' + d37HpWas + ' -> ' + JSON.stringify(d37Floor)
+    + ' | the press past the floor=' + JSON.stringify(d37Clamped)
+    + ' | the student\'s type=' + JSON.stringify(d37Tally)
+    + ' | the marker: ' + JSON.stringify(d37Standing) + ' -> '
+    + JSON.stringify(d37Marked) + ' -> ' + JSON.stringify(d37Unmarked)
+    + ' | symbols=' + d37Syms.length + ' malformed=' + d37SymBad
+    + ' declaring a student fragment=' + d37Tsay
+    + ' | nudge buttons with an exempted accessible name=' + d37Albl
+);
+
+/* 122. THE POPUP IS A TRUE KEYBOARD SURFACE, ITS ROWS SURVIVE A RAPID RUN, AND
+   IT DISMISSES THREE WAYS. Deferred item 17 is closed here — D-36 recorded
+   that a unit's numbers had no keyboard route at all, because a .bf-line is a
+   div inside a <button> and <button>'s content model allows neither an
+   interactive descendant nor a tabindex one. The rows in this box are real
+   <button>s in a plain container, so the whole trip is ordinary focus.
+
+   THE ROUND TRIP IS DRIVEN AS A ROUND TRIP AND NOT AS FOUR PRESSES: focus is
+   placed on the shape the way a Tab would leave it, Enter opens, the keyboard
+   is READ back inside the box, Enter rules, an ARROW rules in the opposite
+   direction, Escape shuts it and the focus is READ BACK ON THE SHAPE. A
+   control the keyboard can enter and not leave is a trap, and the last clause
+   is what says this is not one. */
+const d37KbShape = d37Shape('cats', 'c4');
+d37KbShape.focus();
+clickAt(d37KbShape, 0);
+A.state.flush();
+const d37KbOpen = Object.assign({
+  focusK: String((dom.document.activeElement || {}).dataset ? dom.document.activeElement.dataset.k || '' : '')
+}, d37Open());
+const d37KbBefore = A.state.get().fight.cats.units[3].hp;
+clickAt(dom.document.activeElement, 0);
+A.state.flush();
+const d37KbRuled = A.state.get().fight.cats.units[3].hp;
+// THE ARROWS. The KEY decides the sign and the button does not — the focus is
+// still on the −, and Up raises. preventDefault is asserted, because a page
+// that scrolled under a box placed against the viewport is the one thing that
+// would make this feel broken.
+let d37Prevented = 0;
+const d37Arrow = (key) => {
+  const e = dom.event('keydown', { key: key });
+  e.preventDefault = () => { d37Prevented++; };
+  dom.document.activeElement.dispatchEvent(e);
+  A.state.flush();
+};
+d37Arrow('ArrowUp');
+const d37AfterUp = A.state.get().fight.cats.units[3].hp;
+d37Arrow('ArrowLeft');
+const d37AfterLeft = A.state.get().fight.cats.units[3].hp;
+// AND AN ARROW THAT LANDS SOMEWHERE ELSE IS NOT CLAIMED — the guard is scoped
+// to a value's pair and every other key press in #fightbar falls through
+// exactly as it did.
+const d37Before = d37Prevented;
+d37Arrow('ArrowUp') /* still on the − */;
+const d37ArrowsClaimed = d37Prevented - d37Before === 1;
+/* THE ROWS ARE NOT REBUILT BY A RULING, WHICH IS THE WHOLE FOCUS CONTRACT.
+   Plan 05-10 measured that a pointer press on a control whose own node is
+   rebuilt drops the keyboard to <body>, and a nudge repaints on every press by
+   construction. The node identity is compared ACROSS the run above: the button
+   pressed first must be the same object as the button standing now, which is
+   the reading a browser cell turns into "three presses land three rulings". */
+const d37SameNode = d37Step('hp', -1) === dom.document.activeElement;
+const d37Sig = String(d37RowsRoot.dataset.fguUp || '');
+dom.document._listeners.keydown.forEach((fn) => fn(dom.event('keydown', { key: 'Escape' })));
+A.state.flush();
+const d37KbBack = {
+  shut: d37Box.hidden === true,
+  rows: d37RowsRoot.children.length,
+  sig: String(d37RowsRoot.dataset.fguUp || ''),
+  head: dom.byId['fg-unit-head'].textContent,
+  focusK: String(dom.document.activeElement.dataset.k || '')
+};
+// AND THE THIRD DISMISSAL: a press on something that is neither the box nor a
+// shape. "Elsewhere" includes the top bar and both dialogs, which is why the
+// listener is on the DOCUMENT.
+d37PressShape('cats', 'c5');
+const d37Reopened = d37Open();
+fgPress(dom.byId['fight-head']);
+const d37ByElsewhere = d37Open();
+check(
+  '122. D-37 — THE POPUP IS A TRUE KEYBOARD SURFACE AND ITS ROWS SURVIVE A '
+    + 'RUN OF RULINGS. DEFERRED ITEM 17 IS CLOSED BY THIS ROW: D-36 wrote down '
+    + 'that a unit\'s numbers had NO keyboard route from the fight tab at all, '
+    + 'because a battlefield reading is a div inside the shape\'s own <button> '
+    + 'and that content model allows neither an interactive descendant nor a '
+    + 'tabindex one. The popup\'s rows are real buttons in a plain container, '
+    + 'so the trip is ordinary focus and it is driven END TO END: the keyboard '
+    + 'is put on the shape as a Tab would leave it, Enter opens the popup AND '
+    + 'PUTS THE KEYBOARD INTO IT rather than at the end of #fightbar, Enter on '
+    + 'a − writes a real ruling, an ARROW rules in the opposite direction with '
+    + 'the KEY deciding the sign and preventDefault called so the page does '
+    + 'not scroll under a box placed against the viewport, and Escape shuts it '
+    + 'AND HANDS THE FOCUS BACK TO THE SHAPE. THE NODE IDENTITY IS COMPARED '
+    + 'ACROSS THE WHOLE RUN, which is the stub\'s half of plan 05-10\'s '
+    + 'measured defect: the rows are keyed on the side, the unit and the token '
+    + 'LIST and never on a number, so a ruling rebuilds nothing and the button '
+    + 'under a finger is still there for the second and third press. THE SHUT '
+    + 'THROWS THE ROWS AWAY WITH THE FINGERPRINT, so a hidden box holds no '
+    + 'words about a unit nobody has open and the next open cannot skip its '
+    + 'own build. And a press on a heading that is neither the box nor a shape '
+    + 'shuts it, which is the third of the three dismissals',
+  d37KbOpen.shut === false && d37KbOpen.unit === 'c4'
+    && d37KbOpen.focusK === 'fg/u/cats/c4/hp/less'
+    && d37KbBefore === 3 && d37KbRuled === 2
+    && d37AfterUp === 3 && d37AfterLeft === 2
+    && d37ArrowsClaimed === true && d37Prevented === 3
+    && d37SameNode === true && d37Sig !== ''
+    && d37KbBack.shut === true && d37KbBack.rows === 0
+    && d37KbBack.sig === '' && d37KbBack.head === ''
+    && d37KbBack.focusK === 'fg/bf/cats/c4'
+    && d37Reopened.shut === false && d37Reopened.unit === 'c5'
+    && d37ByElsewhere.shut === true
+    && errPanel.hidden === true,
+  'Enter on the shape=' + JSON.stringify(d37KbOpen)
+    + ' | Enter on the − took health ' + d37KbBefore + ' -> ' + d37KbRuled
+    + ' | ArrowUp -> ' + d37AfterUp + ', ArrowLeft -> ' + d37AfterLeft
+    + ' | arrows claimed and prevented=' + d37Prevented
+    + ' | the button is the same node after the run=' + d37SameNode
+    + ' | after Escape=' + JSON.stringify(d37KbBack)
+    + ' | reopened on=' + JSON.stringify(d37Reopened)
+    + ' | by a press elsewhere=' + JSON.stringify(d37ByElsewhere)
+    + ' | panel hidden=' + errPanel.hidden
+);
 A.ops.endFight();
 A.ops.resetToDefaults();
 A.state.invalidate({ structural: true });
