@@ -866,12 +866,18 @@
      raises the board's own token size in [C00]. */
   .pk-sw{
     --tok:24px;
-    min-width:66px;min-height:70px;padding:7px 9px;
+    min-width:84px;min-height:70px;padding:7px 9px;
     display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
     background:color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 8%, transparent);
     border:1px solid color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 32%, transparent);
     border-radius:10px;color:var(--ink);
-    font:inherit;font-size:13px;line-height:1.2;cursor:pointer;
+    /* D-39 P2-3 — 13px to 18px. [C07]'s own banner sets the floor eleven
+       rules above this one ("a real, permanently visible text label at the
+       18px minimum, never an icon") and the swatch labels — "Square",
+       "Bar", "Green" — were the surface breaking it, on the dialog where a
+       student names and shapes their own token. min-width goes with it so
+       the longest shipped label still sits on one line at the new size. */
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
@@ -958,8 +964,10 @@
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  /* The name takes the slack so the tick lands in the same column on every
-     row, which is what makes the live one findable by scanning down an edge. */
+  /* The name takes the slack so the row fills its column. D-39 P2-2 moved the
+     tick to sit BEFORE the name rather than after it — see pickerListRow for
+     why the node moved instead of an `order` being written here — so the mark
+     no longer rides that slack out to the far edge. */
   .pk-list-item .pk-sw-label{flex:1 1 auto;text-align:left}
 
   /* Full width, board-legible, and deliberately not a stepper field — see
@@ -1635,21 +1643,38 @@
      noted: an outline alone is one channel, and aria-pressed is the other, and
      the file's own rule asks for the visible second one.
 
-     ON A PILL IT IS A MARK RATHER THAN A COLUMN, which is D-30's idiom
-     arriving on a build surface. Its centre sits ON the pill's right edge —
-     the geometry the developer asked for on the token shape, said again about
-     a different box — so a tick that had been costing 20px of the row's width
-     while invisible now costs none of it at all while being seen. Half of it
-     hangs into the 6px gap; the mark is 13px, so 6.5 of overhang against 6 of
-     gap, and pointer-events:none keeps it out of the hit test of the pill
-     beside it. On a SIDE button it stays in the line: there are two of them,
-     they are not in a strip, and there is nothing there to buy. */
+     ON A PILL IT WAS A MARK RATHER THAN A COLUMN — D-30's idiom arriving on a
+     build surface — and its centre sat ON the pill's right edge, so a tick
+     that had been costing 20px of the row's width while invisible cost none
+     of it at all while being seen. Half of it hung into the 6px gap: the mark
+     is 13px, so 6.5 of overhang against 6 of gap, with pointer-events:none
+     keeping it out of the hit test of the pill beside it. On a SIDE button it
+     stays in the line: there are two of them, they are not in a strip, and
+     there is nothing there to buy.
+
+     ==================================================================
+     D-39 P2-2 REVERSES THE OVERHANG, AND THE PARAGRAPH ABOVE IS KEPT SO
+     THE TRADE IS READABLE FROM BOTH ENDS. Plan 05-D39a.
+     ==================================================================
+     The audit photographed w1366-05b-actedit-maxed at 3x: nine selected
+     .ae-pills, nine ticks each drawn half outside its own button with the
+     border running through the glyph, reading as nine rendering faults
+     rather than as nine selections. Measured, the same 4px of overflow
+     [C17]'s .rr-check had.
+
+     The 20px was real and it is given back. What it was buying it with was
+     a mark that straddled the edge of the thing it marks — and after D-39
+     P2-6 took the outline off .ae-pill--on, that border is the ONLY edge
+     left saying where the button ends. In-flow, the mark gets its
+     separation from the gap that is already on the pill and its containment
+     from the padding that is already on the pill, and visibility:hidden
+     keeps a hidden one occupying its width so the row does not reflow when
+     a student presses it. Same change, same reasoning and same spelling as
+     [C17]'s .rr-check, which is the point: they are two pills. */
   .ae-side--on .ae-check{visibility:visible}
   .ae-pill--on .ae-check{visibility:visible}
   .ae-pill .ae-check{
-    position:absolute;top:50%;right:0;
-    transform:translate(50%,-50%);
-    font-size:13px;pointer-events:none;
+    font-size:14px;pointer-events:none;flex:0 0 auto;
   }
 
   /* The amount. Narrow, tabular, and NOT one of the board's stepper fields —
@@ -5395,7 +5420,19 @@
        every cell spans the row and the contents are centred INSIDE it by
        .rr-cell's own align-items, which is the same picture with one line
        instead of four pieces of one. */
-    align-items:stretch;
+    /* D-39 P2-4 TURNS THIS TO `start`, AND THE PARAGRAPH ABOVE STAYS
+       BECAUSE IT IS STILL TRUE ABOUT `center`. The defect it photographed
+       was cells FLOATING to the middle of the row at four different top
+       edges, which cut the hairline into four segments. `start` does not
+       reintroduce that: every cell's top edge is the ROW's top edge, so the
+       border-block-start below still lands on one continuous y. What
+       `start` fixes is the other half — stretched, a row whose token strip
+       has wrapped to two lines is a TALL row, and .rr-cell's own
+       align-items:center then floats the amount field and the Remove
+       button to the middle of that tall row, off the reading's line. The
+       audit's words: "align-items:start so a wrapped token strip does not
+       decentre its siblings." */
+    align-items:start;
     row-gap:6px;column-gap:0;
   }
   .rr-cols,.rr-rule{display:contents}
@@ -5445,6 +5482,18 @@
      class is a rule two surfaces have to agree about forever. The values are
      the same values; the marks are the same marks; the live one is said by an
      outline AND a tick, never by colour alone ([C07]'s three-times rule). */
+  /* D-39 P2-3 — 18px. Measured against the file's own floor: .rr-pill-name
+     ran 15px and .rr-check 13px while .brd-btn, .vw-btn, .unit-rm, .fg-act
+     and .fgu-alive all run 18. [C07]'s banner states the rule — "a real,
+     permanently visible text label at the 18px minimum, never an icon" —
+     and the round-rules grid, which carries up to ten controls per rule and
+     up to eight rules, was the one surface below it. Projector legibility
+     is this artifact's stated bar.
+
+     THE ROW GROWS AND THAT IS THE TRADE, taken with a picture: at 18px the
+     pills are wider, so the token column wraps a rule sooner. P2-4's
+     align-items:start above is what makes a wrapped row still read as one
+     row, which is why the audit says to do the two together. */
   .rr-pill{
     position:relative;
     display:flex;align-items:center;gap:6px;
@@ -5452,15 +5501,41 @@
     background:color-mix(in srgb, var(--ink-faint) 8%, transparent);
     border:1px solid color-mix(in srgb, var(--ink-faint) 32%, transparent);
     border-radius:9px;color:var(--ink);
-    font:inherit;font-size:15px;line-height:1.2;cursor:pointer;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
   .rr-pill--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  /* ==================================================================
+     D-39 P2-2 — THE TICK COMES BACK INSIDE ITS OWN BUTTON.
+     ==================================================================
+     Measured: the .rr-check span's right edge sat at 534 against the
+     button's border-box right edge at 530 — four pixels OUTSIDE the button,
+     with the border drawn through the middle of the glyph. Photographed at
+     3x on "Cats", "Mechs" and "Action points": the tick renders as a
+     clipped "⌄" and reads from twenty feet as a rendering fault.
+
+     IT IS AN IN-FLOW FLEX ITEM NOW RATHER THAN AN ABSOLUTE ONE, which is
+     the shorter of the two spellings the audit offers ("a margin-inline-
+     start and enough padding-inline-end to contain it"). The pill is
+     already display:flex with gap:6px, so in-flow the mark gets its
+     separation from the gap that is already there and its containment from
+     the padding that is already there — no second magic number to keep in
+     step with the glyph's size.
+
+     visibility:hidden AND NOT display:none, which is .dc-check's and
+     .pk-check's shipped choice and is load-bearing here: an in-flow hidden
+     item still occupies its width, so a pill is the SAME WIDTH selected and
+     unselected and the row does not reflow when a student presses it.
+
+     WHAT THIS COSTS AND WHY IT IS PAID. The [C12] paragraph on .ae-check
+     argued the overhang bought back ~20px of row width per pill. It did.
+     But it bought it by putting the mark half outside the box it marks, and
+     with D-39 P2-6 taking the outline off .rr-pill--on the border is now
+     the ONLY edge that says where the button ends — so a mark straddling
+     that edge is a mark on no button in particular. */
   .rr-pill .rr-check{
-    position:absolute;top:50%;right:0;
-    transform:translate(50%,-50%);
-    font-size:13px;pointer-events:none;visibility:hidden;
+    font-size:14px;pointer-events:none;visibility:hidden;flex:0 0 auto;
   }
   .rr-pill--on .rr-check{visibility:visible}
 
@@ -17025,11 +17100,31 @@ App.render = (function () {
     // redden CI, which is the exact outcome the walk's own preamble rules out.
     // The value is the token id, which is what this key already means at every
     // other site in the file.
+    // D-39 P2-2 — THE TICK GOES BEFORE THE NAME ON THIS ROW, AND IT IS MOVED
+    // IN THE MARKUP RATHER THAN WITH `order`. Measured: on a 293px row the
+    // tick sat 224px from the word it marks, because .pk-sw-label takes the
+    // slack and the tick was appended after it — so the mark travelled to the
+    // far edge while the thing it marks stayed at the near one, and it read as
+    // an unrelated symbol at the end of the row. That is D-33 P2-8's second
+    // failure mode, whose prescription was not taken then and is taken here.
+    //
+    // A CSS `order` WOULD HAVE BEEN ONE LINE AND IS REFUSED. Checks 103e and
+    // 108 both state the rule and both exist because a probe proved it: a
+    // separation made in CSS puts the sequence a screen reader walks out of
+    // step with the sequence the room sees, and every DOM-order clause in this
+    // repository stays green over it. So the node moves.
+    //
+    // IT KEEPS THE SCANNABLE COLUMN THE OLD ORDER WAS BUYING. The reason the
+    // tick was last was "so the tick lands in the same column on every row,
+    // which is what makes the live one findable by scanning down an edge".
+    // Second position is also a fixed column — every row opens with the same
+    // 24px token — so the mark is still scannable down an edge AND is now
+    // beside the name. The property is kept; only the edge changed.
+    b.appendChild(text('span', 'pk-check', '✓'));
+
     var swLabel = text('span', 'pk-sw-label', labelFor(state, id));
     setData(swLabel, { lbl: id });
     b.appendChild(swLabel);
-
-    b.appendChild(text('span', 'pk-check', '✓'));
     return b;
   }
 
