@@ -5091,7 +5091,17 @@ for (const ch of ['chrome', 'msedge']) {
         hand: (App.state.get().fight.hand || []).filter((h) => h.tok === 'hp').length,
         says: says.textContent,
         shown: says.hidden === false,
-        figure: row.querySelector('.fgu-num').textContent,
+        // NULL-GUARDED, AND PROBE EA IS WHY. Its first spelling read
+        // .textContent off the lookup directly, so a probe that DELETED
+        // the figure — which is exactly the regression this clause exists
+        // to catch — made this cell THROW a TypeError and took the whole
+        // run down with it instead of reddening one row. A cell must FAIL,
+        // never throw and never hang: Pass B's recorded rule, at a cell I
+        // wrote two commits after reading it.
+        figure: (function () {
+          const numNode = row.querySelector('.fgu-num');
+          return numNode ? numNode.textContent : null;
+        }()),
         panel: document.querySelector('#err-panel').hidden
       };
     });
