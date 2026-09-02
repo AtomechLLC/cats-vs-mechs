@@ -80,13 +80,13 @@
 
          hover     a MUTED accent border plus a faint wash. Never the full
                    accent, so hover stops impersonating the other three.
-         declared  the full accent border, a FILL, and the outline it
-                   always had. The fill is what makes it readable from the
-                   back of a room; the outline is [C07]'s non-hue channel
-                   and is kept rather than traded away.
-         focus     the same 2px accent ring, at offset 3 rather than 2,
-                   with a 1px --bg ring inside it so the ring survives on
-                   top of a declared control's fill.
+         declared  the full accent border and a FILL. The fill is what
+                   makes it readable from the back of a room. IT NO LONGER
+                   CARRIES AN OUTLINE — see D-39 P2-6 below.
+         focus     a 2px accent ring at offset 3, with a 1px --bg ring
+                   inside it so the ring survives on top of a declared
+                   control's fill. THE ACCENT OUTLINE IS NOW FOCUS AND
+                   NOTHING ELSE, on this channel.
          lit       --accent-2, the removal-badge channel — a different HUE
                    as well as a different shape, because a lit target and
                    a declared action are two different invitations.
@@ -111,7 +111,60 @@
        .dc-alive sit on an OPAQUE --panel, so their fill mixes toward
        --panel instead — mixing toward transparent there would punch the
        panel out and let the page show through, which reads as a hole
-       rather than as a state. */
+       rather than as a state.
+
+       ==================================================================
+       D-39 P2-6 — THE OUTLINE IS DELETED FROM THE --on RULES, AND THIS
+       REVERSES D33a's OWN DECISION 1 IN THE OPEN. Plan 05-D39a.
+       ==================================================================
+       D33a read the audit's palette table, saw that taking the outline
+       away would leave "declared" saying itself in colour and a tick, and
+       KEPT the outline on [C07]'s "never by colour alone" grounds. That
+       was a reasonable call made from a table. D-39 went and LOOKED at
+       it, at 3x, with the pointer parked off the surface, and measured
+       what the two states actually are on screen:
+
+         .fg-act--on      outline 2px solid rgb(92,200,255) @ offset 2px
+         :focus-visible   outline 2px solid rgb(92,200,255) @ offset 3px
+
+       Byte-identical in width, style and colour, one pixel of offset
+       apart. --state-on-line and --state-focus are BOTH var(--accent) by
+       definition, twelve lines above this paragraph, so no amount of
+       care at the consumer end was ever going to separate them. Keeping
+       the outline did not buy a second channel; it bought a COLLISION,
+       and D33a's stated goal — that a keyboard user can tell "my focus
+       is here" from "this is declared" — was 80% delivered and the last
+       20% was the part that mattered.
+
+       THE NON-HUE CHANNEL IS THE TICK, AND IT SURVIVES. [C07]'s rule is
+       "an outline AND a tick, never by colour alone"; what is left after
+       this deletion is a border, a fill and A TICK, so the rule still
+       holds with the shape channel spent on the mark instead of on a ring
+       that was impersonating focus. .pv-on additionally goes dashed to
+       solid, which is a third.
+
+       EIGHT CONSUMERS, NOT THE THREE D-39 NAMED. The audit named
+       .fg-act--on, .ae-pill--on and .rr-pill--on. A scan for the whole
+       declaration found NINE rules on this channel, and stopping at three
+       would have left .ae-item--on, .ae-side--on and .ae-pill--on — the
+       action editor's three kinds of chooser, on ONE surface, which D33a
+       had deliberately made read alike — saying "this is the one" in two
+       different ways. So the deletion is taken on all eight rules that
+       carry a VISIBLE tick: .pk-sw--on, .ae-item--on, .ae-side--on,
+       .ae-pill--on, .fg-act--on, .vw-on, .pv-on, .rr-pill--on.
+
+       .ae-prop-pill--on IS THE NINTH AND IT KEEPS ITS OUTLINE. It builds
+       an .ae-check node and there is no `.ae-prop-pill--on .ae-check`
+       rule anywhere in this sheet to show it — D-32's "a rule written at
+       three sites and implemented at one", now four and three. Deleting
+       its outline would leave it saying "on" in COLOUR ALONE, which is
+       the one thing [C07] forbids outright. Showing its tick is a change
+       to the PROPOSAL pane, and D-39 reserves that whole surface for its
+       pass G behind a developer decision. So it is left standing, named
+       here, and it is pass G's to take.
+
+       .bf-unit--lit KEEPS ITS OUTLINE for the reason D-39 gives: it is on
+       the --accent-2 channel and never collides with focus. */
     --state-hover-line:color-mix(in srgb, var(--accent) 45%, var(--line));
     --state-hover-wash:linear-gradient(
       color-mix(in srgb, var(--accent) 12%, transparent),
@@ -825,7 +878,7 @@
   /* The live choice is marked by an outline AND a tick, never by colour on its
      own. Half of this surface IS colours, so a student who cannot tell two of
      them apart would otherwise have no way to read which one is in use. */
-  .pk-sw--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .pk-sw--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   .pk-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .pk-sw--on .pk-check{visibility:visible}
   .pk-sw-label{text-align:center}
@@ -883,7 +936,10 @@
     display:grid;grid-template-columns:repeat(auto-fill, minmax(200px, 1fr));
     gap:6px;align-content:start;
     max-height:236px;overflow-y:auto;
-    padding:2px;   /* room for .pk-sw--on's outline, which draws outside the box */
+    padding:2px;   /* Was room for .pk-sw--on's outline; D-39 P2-6 deleted that
+                      outline. The 2px STAYS as :focus-visible room — the focus
+                      ring draws outside the box at offset 3 and is now the only
+                      thing on this surface that does. */
   }
   /* A ROW, where .pk-sw is a tile — same chrome, same --tok override, same
      selected-state idiom, laid out along the line because the thing being read
@@ -1323,7 +1379,7 @@
   /* The name takes the slack so the tick lands in the same column on every row,
      which is what makes the live one findable by scanning down an edge. */
   .ae-item-name{flex:1 1 auto;text-align:left}
-  .ae-item--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .ae-item--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   .ae-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .ae-item--on .ae-check{visibility:visible}
 
@@ -1339,7 +1395,7 @@
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .ae-side--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .ae-side--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   /* D-33 P2-8 - THE TICK HAD NO SEPARATOR AND COLLIDED WITH THE LAST
      LETTER. The audit read it off the page as "Cats" with the mark
      against the s. This button is not a flex container, so the separator
@@ -1563,7 +1619,7 @@
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .ae-pill--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .ae-pill--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   /* ===============================================================
      THE TICK WAS NEVER VISIBLE ON A PILL OR ON A SIDE BUTTON, AND
      THAT IS A DEFECT THIS PLAN FOUND RATHER THAN A CHOICE IT MADE.
@@ -2836,7 +2892,7 @@
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .fg-act--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .fg-act--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   /* OUT OF REACH IS SAID IN TWO NON-COLOUR CHANNELS AND THE DIMMING IS ONLY ONE
      OF THEM. .brd-btn already carries &:disabled{opacity:.45}, and [C07]'s rule
      is that a state is never in colour or in dimming alone — a projector with
@@ -3092,8 +3148,9 @@
      buying with a number is held structurally instead, and held at 768 as well,
      which no setting of this dial ever managed.
 
-     THE 2px OF PADDING STAYS. It is outline room, and .fg-act--on's ring still
-     draws outside the box. */
+     THE 2px OF PADDING STAYS. It is outline room. D-39 P2-6 took the ring off
+     .fg-act--on, so what it is room for now is :focus-visible's ring at offset
+     3, which draws further outside the box than the declared one ever did. */
   .fg-sides{padding:2px}
 
   /* ==================================================================
@@ -4866,7 +4923,7 @@
     cursor:pointer;user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
   }
-  .vw-on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-solid);color:var(--ink)}
+  .vw-on{border-color:var(--state-on-line);background-color:var(--state-on-solid);color:var(--ink)}
   .vw-name{white-space:nowrap}
   .vw-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .vw-on .vw-check{visibility:visible}
@@ -5181,7 +5238,7 @@
      states differ in a SECOND non-hue channel — [C07]'s rule, and the one the
      browser checks read back off computed style rather than off a class. */
   .pv-on{
-    outline:2px solid var(--state-on-line);outline-offset:2px;color:var(--ink);
+    color:var(--ink);
     border-color:var(--state-on-line);background-color:var(--state-on-solid);
     border-style:solid;
   }
@@ -5381,7 +5438,7 @@
     user-select:none;touch-action:manipulation;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
   }
-  .rr-pill--on{outline:2px solid var(--state-on-line);outline-offset:2px;border-color:var(--state-on-line);background-color:var(--state-on-fill)}
+  .rr-pill--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   .rr-pill .rr-check{
     position:absolute;top:50%;right:0;
     transform:translate(50%,-50%);
