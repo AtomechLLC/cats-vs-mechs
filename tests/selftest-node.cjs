@@ -8334,12 +8334,35 @@ check(
    never did — the same keyboard failure 68e asserts one surface down, and it is
    asserted separately per surface because the two hand-backs name two different
    constant selectors. */
+/* EACH SURFACE IS RE-OPENED BEFORE IT IS DRIVEN, AND THAT IS A TURN RATHER
+   THAN A TIDY-UP. Row 90 above presses the share opener and then the reset
+   opener, and D-38's soleDialog closes the first when the second opens — so
+   every press below this line used to land on a CLOSED share dialog. The pane
+   clauses passed anyway, because a pane is two attributes and a hidden flag
+   that move whether or not the surface is up. The hand-back clause passed too,
+   and it passed by never running: closeShare() returns early on a dialog that
+   is already shut, so no `close` event fired, no focus was handed anywhere, and
+   the assertion read an activeElement that had simply never moved off the
+   opener since row 90 pressed it.
+
+   G-02.1-E IS WHAT FOUND IT. Placing the keyboard inside a dialog on open moves
+   activeElement off the opener, and this row went red on the share half and
+   stayed green on the reset half — which is exactly the asymmetry a row
+   asserting a hand-back that never ran would show. The two are driven on OPEN
+   surfaces now, each re-opened through its own shipped topbar control, and the
+   reset is re-opened after the share is done with rather than before, because
+   soleDialog would otherwise close it again. */
+shPress(shareOpener);
+const shReopened = shareDlg.open;
+const shFocusOnOpen = stub.activeElement !== shareOpener;
 shPress(shareToLoad);
 const paneAfterToLoad = [shareDlg.dataset.shPane, sharePaneCopy.hidden, sharePaneLoad.hidden];
 shPress(shareBackBtn);
 const paneAfterBack = [shareDlg.dataset.shPane, sharePaneCopy.hidden, sharePaneLoad.hidden];
 shPress(shareDoneBtn);
 const shClosedOn = [shareDlg.open, stub.activeElement === shareOpener];
+shPress(resetOpener);
+const rsReopened = resetDlg.open;
 shPress(resetCancelBtn);
 const rsClosedOn = [resetDlg.open, stub.activeElement === resetOpener];
 check(
@@ -8348,13 +8371,35 @@ check(
     + 'close hands focus back to the topbar control that opened it. A modal '
     + 'that drops focus onto <body> is the keyboard failure 68e asserts one '
     + 'surface down; the hand-back is asserted per surface because the two name '
-    + 'two different constant selectors',
-  JSON.stringify(paneAfterToLoad) === JSON.stringify(['load', true, false])
+    + 'two different constant selectors. TURNED IN THE OPEN UNDER G-02.1-E, '
+    + 'AND THE SHARE HALF OF IT COULD NOT FAIL: row 90 opens the share surface '
+    + 'and then the reset one, D-38\'s soleDialog closes the first when the '
+    + 'second opens, and every press below used to land on a CLOSED dialog. '
+    + 'The pane clauses passed regardless, because a pane is two attributes '
+    + 'and a hidden flag that move whether or not the surface is up; and the '
+    + 'hand-back passed BY NEVER RUNNING, because closeShare() returns early '
+    + 'on a shut dialog, so no close event fired and the assertion read an '
+    + 'activeElement that had simply never moved off the opener since row 90 '
+    + 'pressed it. Placing the keyboard inside a dialog on open is what '
+    + 'exposed that — the share half reddened and the reset half did not, '
+    + 'which is the exact asymmetry a never-run hand-back would show. Both are '
+    + 'driven on OPEN surfaces now, each re-opened through its own shipped '
+    + 'topbar control, and the reset after the share rather than before it '
+    + 'because soleDialog would otherwise shut it again. AND THE PLACEMENT '
+    + 'ITSELF IS READ: the keyboard is NOT on the opener once the dialog is '
+    + 'up, which is G-02.1-E\'s own measurement — both dialogs opened on '
+    + '<body> in real Chrome and real Edge, and Phase 2 wrote that down as '
+    + 'probably its own test pane. It was not the test pane',
+  shReopened === true && rsReopened === true
+    && shFocusOnOpen === true
+    && JSON.stringify(paneAfterToLoad) === JSON.stringify(['load', true, false])
     && JSON.stringify(paneAfterBack) === JSON.stringify(['copy', false, true])
     && JSON.stringify(shClosedOn) === JSON.stringify([false, true])
     && JSON.stringify(rsClosedOn) === JSON.stringify([false, true])
     && errPanel.hidden === true,
-  'after "paste a build code"=' + JSON.stringify(paneAfterToLoad)
+  'share re-opened=' + shReopened + ' reset re-opened=' + rsReopened
+    + ' | the keyboard left the opener on open=' + shFocusOnOpen
+    + ' | after "paste a build code"=' + JSON.stringify(paneAfterToLoad)
     + ' after back=' + JSON.stringify(paneAfterBack)
     + ' | share [open, focus back]=' + JSON.stringify(shClosedOn)
     + ' reset [open, focus back]=' + JSON.stringify(rsClosedOn)

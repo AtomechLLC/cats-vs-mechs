@@ -411,6 +411,168 @@ for (const ch of ['chrome', 'msedge']) {
       && clickAllBlocked && clickAlwaysOne && sendAlwaysSecond,
       { clickPairs, sendPairs });
 
+    /* ── 27d. G-02.1-E — THE KEYBOARD GOES IN WITH THE DIALOG. ───────────────────────────
+       Measured on the shipped file in real Chrome and real Edge: document.activeElement is
+       BODY after either authoring dialog opens through its own topbar control. Phase 2 saw
+       this and wrote it down as probably an artefact of its own test pane. It was not the
+       test pane.
+
+       WHY THE BROWSER DOES NOT DO IT: showModal() runs the dialog focusing steps, which
+       want an `autofocus` element and otherwise focus the dialog itself — except that they
+       skip a dialog with no tabindex, which none of these four has. So the keyboard stays
+       where the press left it, and the press was on a topbar button showModal() has just
+       made inert.
+
+       WHAT IS ASSERTED IS THE FIRST FOCUSABLE AND NOT A NAMED CONTROL, because that is what
+       the fix derives rather than chooses: it takes the control a Tab from the body would
+       have reached, so the keyboard order is unchanged and the only difference is the
+       number of presses. Four surfaces, all four driven. The confirmation's row carries the
+       clause that makes this safe to apply everywhere — its first focusable is Cancel and
+       NOT the accented control beside it, so a placement rule is never one stray Enter from
+       discarding a session.
+
+       AND ONE TAB MUST MOVE ON. A placement that landed on the dialog itself, or on a
+       control the first Tab would also have reached, would satisfy an "inside the dialog"
+       clause and still cost the student the press this is meant to save. */
+    const d39FocusOnOpen = [];
+    for (const [dlgId, sel] of OPENERS) {
+      await shutAll(); await pg.waitForTimeout(100);
+      await pg.click(sel); await pg.waitForTimeout(250);
+      const read = await pg.evaluate((id) => {
+        const d = document.getElementById(id);
+        const SEL = 'button:not([disabled]), input:not([disabled]), '
+          + 'textarea:not([disabled]), select:not([disabled]), '
+          + '[tabindex]:not([tabindex="-1"])';
+        const all = [...d.querySelectorAll(SEL)]
+          .filter((n) => !n.closest('[hidden]') && n.offsetParent !== null);
+        const a = document.activeElement;
+        return {
+          id,
+          open: d.open === true,
+          inDialog: !!(a && d.contains(a)),
+          isFirst: !!(a && a === all[0]),
+          onBody: a === document.body,
+          accented: !!(a && a.className.indexOf('--danger') !== -1),
+          k: a ? (a.dataset.k || a.id || a.tagName) : 'NONE',
+          firstK: all[0] ? (all[0].dataset.k || all[0].id || all[0].tagName) : 'NONE',
+          secondK: all[1] ? (all[1].dataset.k || all[1].id || all[1].tagName) : 'NONE'
+        };
+      }, dlgId);
+      await pg.keyboard.press('Tab'); await pg.waitForTimeout(120);
+      read.afterTab = await pg.evaluate(() => {
+        const a = document.activeElement;
+        return a ? (a.dataset.k || a.id || a.tagName) : 'NONE';
+      });
+      d39FocusOnOpen.push(read);
+    }
+    await shutAll(); await pg.waitForTimeout(120);
+    note(ch, size.name, 'G-02.1-E the keyboard lands on',
+      d39FocusOnOpen.map((r) => r.id + ':' + r.k).join(' '));
+    ok(`${tag}: 27d. G-02.1-E — ALL FOUR DIALOGS OPEN WITH THE KEYBOARD INSIDE THEM, ON THE CONTROL A TAB WOULD HAVE REACHED. Measured on the shipped file in both browsers: document.activeElement is BODY after either authoring dialog opens through its own topbar control, so the first Tab a student presses is spent getting into a surface they have already opened and a screen reader is told nothing about what appeared. Phase 2 saw it and recorded it as probably its own test pane; it was not the test pane. showModal() will not do it either — the dialog focusing steps skip a dialog with no tabindex and none of these four has one. THE PLACEMENT IS DERIVED AND NOT CHOSEN: it is the FIRST FOCUSABLE, which is where a Tab from the body was going anyway, so nothing about the keyboard order changes and only the number of presses does. That is asserted per dialog rather than by naming a control. THE CONFIRMATION'S ROW IS WHY THIS IS SAFE ON ALL FOUR: its markup puts Cancel first, so the first focusable and the control that keeps the build are the same node, and the accented one is never what a stray Enter would reach. AND ONE TAB MUST MOVE ON to the second control — a placement that landed on the dialog itself, or on the node the first Tab would have reached anyway, satisfies an "inside the dialog" clause and still costs the press this exists to save`,
+      d39FocusOnOpen.length === 4
+      && d39FocusOnOpen.every((r) => r.open === true && r.inDialog === true
+        && r.onBody === false && r.isFirst === true && r.accented === false
+        && r.afterTab === r.secondK && r.secondK !== 'NONE'),
+      d39FocusOnOpen);
+
+    /* ── 27e. G-02.1-D — Ctrl+Z IN A FIELD REACHES THE BOARD'S UNDO, ONCE. ───────────────
+       The rehearsal note drove this on the shipped file and recorded what happens: the
+       app's undo is correctly not run, but the browser's native <input> undo is NOT
+       suppressed, and the blur that follows COMMITS the rewound text as a fresh rename.
+
+         rename Slash -> Pounce through the field, committed with a real Enter
+         Ctrl+Z          -> field reads "Slash", record still "Pounce"
+         click away      -> record "Slash", A FRESH RENAME from text nobody typed
+         Ctrl+Z, Ctrl+Z  -> two presses to reach the name they had
+
+       Nothing is lost, which is exactly what makes it quiet. THE EXACT SEQUENCE IS DRIVEN
+       HERE, with real keystrokes, and one press must be enough. Then the three free-text
+       boxes are driven the other way: the paste field is where a student edits a build code
+       and the browser must keep undo there, which is the half a suppression written as a
+       blanket preventDefault would take away without saying so. */
+    await pg.evaluate(() => {
+      const d = document.getElementById('act-edit');
+      if (d && d.open) { d.close(); }
+    });
+    const d39ZSaved = await pg.evaluate(() => JSON.stringify(App.state.get()));
+    await pg.click('[data-k="act"]'); await pg.waitForTimeout(300);
+    const d39ZRec = () => pg.evaluate(() => {
+      const d = document.getElementById('act-edit');
+      const a = App.state.get().build[d.dataset.edSide].actions
+        .find((x) => x.id === d.dataset.edPick);
+      const f = document.getElementById('act-edit-name');
+      const act = document.activeElement;
+      return { name: a ? a.name : null, field: f.value,
+        depth: App.state.undoDepth(),
+        active: act ? (act.id || act.tagName) : 'NONE',
+        onBody: act === document.body };
+    });
+    const d39ZStart = await d39ZRec();
+    // Real keystrokes, never .value =, because the property under test is what
+    // Enter and Ctrl+Z do to text a student typed. Local rather than shared
+    // with cell 25d's helper, which is declared 3000 lines below this one.
+    const d39ZType = async (sel, text, key) => {
+      await pg.click(sel);
+      await pg.keyboard.press('Control+A');
+      await pg.keyboard.type(text);
+      if (key) { await pg.keyboard.press(key); }
+      await pg.waitForTimeout(180);
+    };
+    await d39ZType('#act-edit-name', 'Pounce', 'Enter');
+    const d39ZRenamed = await d39ZRec();
+    await pg.keyboard.press('Control+z'); await pg.waitForTimeout(320);
+    const d39ZUndone = await d39ZRec();
+    // The blur the note's step 3 takes, through a shipped control.
+    await pg.click('#act-edit-side-cats'); await pg.waitForTimeout(250);
+    const d39ZBlurred = await d39ZRec();
+    await pg.evaluate(() => {
+      const d = document.getElementById('act-edit');
+      if (d && d.open) { d.close(); }
+    });
+    await pg.waitForTimeout(150);
+    // THE OTHER HALF: the paste field keeps the browser's own undo.
+    await pg.click('[data-k="sh"]'); await pg.waitForTimeout(250);
+    await pg.click('#share-to-load'); await pg.waitForTimeout(250);
+    await pg.click('#sh-load-field');
+    await pg.keyboard.type('v1~abc');
+    await pg.waitForTimeout(150);
+    const d39ZPasteTyped = await pg.$eval('#sh-load-field', (n) => n.value);
+    await pg.keyboard.press('Control+z'); await pg.waitForTimeout(250);
+    const d39ZPasteUndone = await pg.evaluate(() => ({
+      value: document.getElementById('sh-load-field').value,
+      depth: App.state.undoDepth(),
+      dialogOpen: document.getElementById('share').open === true
+    }));
+    await pg.evaluate((saved) => {
+      [...document.querySelectorAll('dialog')].forEach((d) => { if (d.open) d.close(); });
+      App.state.restore(saved);
+      App.state.invalidate({ structural: true });
+      if (App.render.flush) App.render.flush();
+    }, d39ZSaved);
+    await pg.waitForTimeout(250);
+    const d39ZPutBack = await pg.evaluate(() => JSON.stringify(App.state.get()));
+    note(ch, size.name, 'G-02.1-D one press, field and record',
+      d39ZUndone.field + ' / ' + d39ZUndone.name);
+    ok(`${tag}: 27e. G-02.1-D — Ctrl+Z WITH THE CARET IN A FIELD REACHES THE BOARD'S UNDO, IN ONE PRESS, AND THE THREE FREE-TEXT BOXES KEEP THE BROWSER'S. The rehearsal note drove the shipped file and found the third behaviour neither of this file's two written ones describes: the app's undo was correctly not run, the browser's native input undo was NOT suppressed, and the blur that followed COMMITTED the rewound text as a fresh rename — a new history entry, so two presses were then needed to reach the name the student had. Nothing was lost, which is what made it quiet. The exact sequence is driven here with real keystrokes: rename through the real field committed with a real Enter, then ONE Ctrl+Z, and BOTH the record and the box on screen must be back. THE BOX ON SCREEN IS THE CLAUSE THAT COST A REWRITE — the first fix put the caret back synchronously, and D-19 declines to repaint a focused field, so the record read Slash while the field read Pounce and the next blur was one dispatch away from committing it. The caret goes back on the frame AFTER the repaint now, and the blur that follows is asserted to move nothing. AND THE CARET IS NEVER LEFT ON <body>, which is 113c's rule one surface wider. THE OTHER HALF IS THE EXCLUSION: a student types into the build-code paste box and Ctrl+Z must rewind their TEXT and touch no board, because that box is free text they compose and the artifact never reads it keystroke by keystroke. A suppression written as a blanket preventDefault would take that away with nothing on screen to say so`,
+      d39ZStart.name !== 'Pounce'
+      && d39ZRenamed.name === 'Pounce' && d39ZRenamed.field === 'Pounce'
+      && d39ZRenamed.depth === d39ZStart.depth + 1
+      && d39ZUndone.name === d39ZStart.name
+      && d39ZUndone.field === d39ZStart.name
+      && d39ZUndone.depth === d39ZStart.depth
+      && d39ZUndone.onBody === false
+      && d39ZUndone.active === 'act-edit-name'
+      && d39ZBlurred.name === d39ZStart.name
+      && d39ZBlurred.depth === d39ZStart.depth
+      && d39ZPasteTyped === 'v1~abc'
+      && d39ZPasteUndone.value !== 'v1~abc'
+      && d39ZPasteUndone.depth === d39ZStart.depth
+      && d39ZPasteUndone.dialogOpen === true
+      && d39ZPutBack === d39ZSaved,
+      { d39ZStart, d39ZRenamed, d39ZUndone, d39ZBlurred,
+        paste: { typed: d39ZPasteTyped, undone: d39ZPasteUndone },
+        putBack: d39ZPutBack === d39ZSaved });
+
     /* ── 27c. D-38's SECOND DEFECT, THE REAL ONE: A CLOSED <dialog> WAS ON THE PAGE. ──────
        ==================================================================================
        THIS IS THE CELL THE DEVELOPER'S SCREENSHOT ASKED FOR, and it is not the one 27b

@@ -27884,6 +27884,140 @@ App.interactions = (function () {
     });
   }
 
+  /* ==================================================================
+     G-02.1-E: A DIALOG OPENED ON <body>, AND ALL FOUR OF THEM DID.
+     Plan 05-D39c, off the rehearsal closing note's own measurement.
+     ==================================================================
+     MEASURED, real Chrome and real Edge, both dialogs opened through their
+     shipped topbar controls: document.activeElement is BODY. Phase 2
+     suspected its own test pane and wrote the item down as probably an
+     artefact of the harness; it was not the test pane. A modal whose active
+     element is the body has lost the keyboard -- the first Tab is spent
+     getting into a surface the student has already opened, and a screen
+     reader is told nothing about what just appeared.
+
+     WHY THE BROWSER DOES NOT DO IT. showModal() runs the dialog focusing
+     steps, which look for an `autofocus` element and, finding none, focus
+     the dialog itself -- except that the focusing steps skip a dialog with
+     no `tabindex`, which none of these four has. So the keyboard stays
+     exactly where the press left it, and the press was on a topbar button
+     that showModal() has just made inert.
+
+     THE FIRST FOCUSABLE CONTROL, DERIVED AND NOT CHOSEN. Nothing here
+     decides which control is "the important one" -- it takes the one a Tab
+     from the body would reach, which is where the keyboard was going
+     anyway and is therefore a change of nothing but the number of presses.
+     Read off the four shipped surfaces:
+
+       #tok-picker   the first type in the list      -- which type am I on
+       #act-edit     the Cats side chooser           -- which side am I on
+       #share        the first control of the pane it opens on
+       #reset-ask    Cancel, and NOT the accented control beside it
+
+     That last row is why this is safe to apply to all four rather than to
+     the two the note named: the confirmation's markup already puts the way
+     out first, so "the first focusable" and "the one that keeps the build"
+     are the same node. A rule that had picked the ACCENTED control would
+     have put a stray Enter one keystroke from discarding a session.
+
+     A CONTROL INSIDE A HIDDEN PANE IS SKIPPED, because both authoring
+     dialogs carry panes that are display:none and the browser silently
+     declines to focus one -- leaving the keyboard on the body with nothing
+     on screen to say the placement failed. Two tests, because the two
+     pages this file runs on answer differently: a `hidden` ancestor, which
+     the node gate's stub DOM can answer, and a null offsetParent, which
+     only a layout engine can. Neither is a substitute for the other.
+
+     AND THE PLACEMENT IS CONFIRMED RATHER THAN ASSUMED. focus() on a node
+     the browser will not take is a no-op that reports nothing, so the loop
+     asks activeElement afterwards and moves on if the answer is no. A
+     surface with nothing focusable on it at all falls back to the dialog,
+     which is the honest place for the keyboard when there is no control to
+     put it on.
+
+     ==================================================================
+     AND IT HAPPENS ON THE NEXT FRAME, WHICH IS PLAN 05-10's MEASURED
+     DEFECT ARRIVING AT A THIRD SURFACE.
+     ==================================================================
+     The first drive of this placed the keyboard synchronously and MEASURED
+     IT NOT STICKING: instrumented in real Chrome, the loop entered, focused
+     control 0, and read `document.activeElement === node` as TRUE -- and
+     one turn of the event loop later activeElement was BODY again.
+
+     Every control in this file acts on POINTERDOWN, which the spec puts
+     AHEAD of the browser's own focus-on-mousedown step. So the sequence is:
+     our handler opens the dialog and puts the keyboard on its first control,
+     and THEN the browser focuses the element the press landed on -- the
+     topbar opener, which showModal() has just made inert, so the keyboard
+     goes to <body>. That is plan 05-10's sentence with a different subject:
+     "a POINTER press on any control whose own node is rebuilt drops the
+     keyboard to <body>, because withPreservedFocus restores focus during
+     pointerdown and the browser's own focus-on-mousedown then targets a node
+     the rebuild has detached." Made inert rather than detached, same event
+     order, same landing.
+
+     SO THE PLACEMENT IS SCHEDULED, and the wrap is [S06]'s schedule() rule:
+     work that runs outside every try/catch this file owns goes through the
+     one boundary or it reaches the browser as an uncaught error with no
+     panel behind it.
+
+     IT IS SYNCHRONOUS WHERE THERE IS NO ANIMATION FRAME, and that is not two
+     behaviours -- it is one behaviour and one workaround. The deferral
+     exists ONLY to lose a race against a browser's default mousedown focus.
+     A page with no requestAnimationFrame is the node gate's stub DOM, which
+     dispatches no default actions at all and therefore has no race to lose;
+     placing the keyboard there immediately is the same outcome by the
+     shorter road, and it is what lets row 90d read the placement at all. */
+  var DLG_FOCUSABLE = 'button:not([disabled]), input:not([disabled]), '
+    + 'textarea:not([disabled]), select:not([disabled]), '
+    + '[tabindex]:not([tabindex="-1"])';
+
+  function dlgHidden(node) {
+    if (typeof node.closest === 'function' && node.closest('[hidden]') !== null) {
+      return true;
+    }
+    return node.offsetParent === null;
+  }
+
+  function focusIntoDialog(dlg) {
+    if (typeof dlg.querySelectorAll !== 'function') { return; }
+    var all = dlg.querySelectorAll(DLG_FOCUSABLE);
+    for (var i = 0; i < all.length; i++) {
+      var node = all[i];
+      if (typeof node.focus !== 'function') { continue; }
+      if (dlgHidden(node)) { continue; }
+      node.focus();
+      if (typeof document === 'undefined') { return; }
+      if (document.activeElement === node) { return; }
+    }
+    if (typeof dlg.focus === 'function') { dlg.focus(); }
+  }
+
+  /* THE FOUR OPENERS' LAST TWO LINES, AS ONE FUNCTION. Each of them ended in
+     the identical pair -- soleDialog(dlg) and then a guarded showModal() --
+     and G-02.1-E would have been a third line copied four times. It is one
+     line copied four times instead, which is the same argument [S07.1] makes
+     about its own refusal helpers: four copies is how six commit paths drifted
+     apart.
+
+     THE KEYBOARD IS PLACED ONLY ON THE TRANSITION FROM SHUT TO OPEN. An
+     already-open dialog keeps whatever the student is standing on -- every
+     one of these handlers can be reached again while its own surface is up,
+     and a re-dispatch that yanked the caret back to the first control would
+     be the page taking the keyboard off a student mid-sentence. */
+  function openSole(dlg) {
+    soleDialog(dlg);
+    if (dlg.open === true) { return; }
+    dlg.showModal();
+    if (typeof requestAnimationFrame !== 'function') {
+      focusIntoDialog(dlg);
+      return;
+    }
+    requestAnimationFrame(App.boot.wrap('dialog keyboard', function () {
+      if (dlg.open === true) { focusIntoDialog(dlg); }
+    }));
+  }
+
   // pointerdown, not click, and this is the whole of ALLOC-07's count half. A
   // click fires only when the down and the up land on the same element, so any
   // rebuild between them silently eats it — an intermittent UNDERcount, which
@@ -28216,9 +28350,9 @@ App.interactions = (function () {
     var id = (dlg.open === true) ? pickedTok(dlg) : '';
     if (id === '') { id = FIRST_TOK; }
     showType(dlg, id);
-    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
-    soleDialog(dlg);
-    if (dlg.open !== true) { dlg.showModal(); }
+    // D-38: one dialog at a time, and G-02.1-E: the keyboard goes in with it.
+    // See openSole's banner in [S07.1].
+    openSole(dlg);
   };
 
   // THE OTHER authorized UI-only handler, and the reason it is one. Choosing
@@ -28964,9 +29098,9 @@ App.interactions = (function () {
     // honestly has nothing on it, and the per-frame hook picks the surface up
     // the moment the side holds something again.
     if (id !== '') { showAction(dlg, side, id); }
-    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
-    soleDialog(dlg);
-    if (dlg.open !== true) { dlg.showModal(); }
+    // D-38: one dialog at a time, and G-02.1-E: the keyboard goes in with it.
+    // See openSole's banner in [S07.1].
+    openSole(dlg);
   };
 
   // Choosing which action the editor shows writes nothing to state: it moves
@@ -30172,9 +30306,9 @@ App.interactions = (function () {
     if (SH_PANES.indexOf(pane) === -1) { pane = SH_PANES[0]; }
 
     showPane(dlg, pane);
-    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
-    soleDialog(dlg);
-    if (dlg.open !== true) { dlg.showModal(); }
+    // D-38: one dialog at a time, and G-02.1-E: the keyboard goes in with it.
+    // See openSole's banner in [S07.1].
+    openSole(dlg);
   };
 
   // Its opposite number, and it is three lines shorter for a reason worth
@@ -30184,9 +30318,9 @@ App.interactions = (function () {
   UI_HANDLERS.openResetAsk = function () {
     var dlg = resetDialog();
     if (dlg === null) { return; }
-    // D-38: one dialog at a time. See soleDialog's banner in [S07.1].
-    soleDialog(dlg);
-    if (dlg.open !== true) { dlg.showModal(); }
+    // D-38: one dialog at a time, and G-02.1-E: the keyboard goes in with it.
+    // See openSole's banner in [S07.1].
+    openSole(dlg);
   };
 
   function closeShare() {
@@ -33316,6 +33450,14 @@ App.boot = (function () {
     window.addEventListener('resize', wrap('topbar measure', publishTopbarHeight));
   }
 
+  /* THE THREE FREE-TEXT BOXES, AS ONE SELECTOR AND AS A CONSTANT. A literal
+     inside the listener would be a selector rebuilt on every keystroke of every
+     Ctrl+Z, and a list spread across three closest() calls would be three places
+     a fourth box could be forgotten. It is a CLASS list and not an id list
+     because .sh-code and .sh-paste each have one node today and the classes are
+     what [C09] names them by; an id list would have to grow a name per box. */
+  var FREE_TEXT = '.err-detail, .sh-code, .sh-paste';
+
   function start() {
     try {
       // Ships deliberately: three lines, and the only way to rehearse the
@@ -33369,25 +33511,121 @@ App.boot = (function () {
 
       // A caller, never the implementation (D-11). A Phase 2 undo button calls
       // this same one line.
-      //
-      // The target test is the important part. This listener is on document,
-      // so without it a student typing into a Phase-2 health field who presses
-      // Ctrl+Z to take back a typo rewinds the entire board instead, and the
-      // preventDefault() guarantees the browser's own text undo never gets a
-      // chance. The same applies to the error panel's detail box, which exists
-      // to be selected and edited before pasting into the course thread.
-      // Whenever a text-editing surface has focus, the browser owns undo.
+      /* ==================================================================
+         G-02.1-D: THE BROWSER'S OWN TEXT UNDO WAS NOT SUPPRESSED, AND THE
+         BLUR AFTER IT COMMITTED THE REWOUND TEXT AS A FRESH EDIT.
+         Plan 05-D39c, off the rehearsal closing note's own measurement.
+         ==================================================================
+         WHAT STOOD HERE, kept verbatim because a rule that is replaced should
+         leave its own reasoning behind:
+
+           "The target test is the important part. This listener is on
+            document, so without it a student typing into a Phase-2 health
+            field who presses Ctrl+Z to take back a typo rewinds the entire
+            board instead, and the preventDefault() guarantees the browser's
+            own text undo never gets a chance. The same applies to the error
+            panel's detail box, which exists to be selected and edited before
+            pasting into the course thread. Whenever a text-editing surface
+            has focus, the browser owns undo."
+
+           var tag = el ? el.tagName : '';
+           if (tag === 'INPUT' || tag === 'TEXTAREA' || el.isContentEditable) { return; }
+
+         THE SECOND SENTENCE OF THAT PARAGRAPH IS FALSE OF THE CODE UNDER IT.
+         The early return means preventDefault is never reached, so the
+         browser's own text undo gets exactly the chance the comment says it is
+         denied. That note drove the consequence in real Chrome and real Edge:
+
+           1. rename Slash to Pounce through the real field, committed with a
+              real Enter -- record "Pounce", caret still in the field
+           2. Ctrl+Z          -> field reads "Slash", record still "Pounce"
+           3. click away      -> record "Slash" -- A FRESH RENAME, from text
+                                 the student never typed, as a NEW history
+                                 entry
+           4. Ctrl+Z, Ctrl+Z  -> two presses to reach the name they had
+
+         Nothing is lost and that is the whole trouble: it is quiet. The file's
+         own description of this key at 2.1 check 6 said the press "should do
+         nothing", the handler's comment said the browser owns it, and what
+         ships is a third thing neither of them describes -- which is D-39
+         P1-1's shape exactly, two decisions in one file disagreeing with a
+         student in between.
+
+         SO THE DEFAULT INVERTS: THE APP OWNS Ctrl+Z AND THE EXCEPTIONS ARE
+         NAMED. Every field in this artifact but three is a VALUE field -- it
+         commits on blur against a baseline recorded on focusin, so a native
+         rewind is an edit the student did not make, sitting in a field that is
+         about to be committed. The three that are not are free text a student
+         composes or pastes and the artifact never reads keystroke by
+         keystroke, and the browser keeps undo on all three:
+
+           .err-detail  the stack trace, which exists to be selected and
+                        pasted into the course thread
+           .sh-code     the build code a student copies out
+           .sh-paste    the build code a student pastes in and edits
+
+         THE ALLOWLIST FACES THIS WAY ROUND ON PURPOSE. A field added by a
+         later plan defaults to the APP's undo: if it is a value field that is
+         correct, and if it is free text the student loses one browser
+         convenience and can see that they have. The other direction defaults a
+         new value field back into this defect with nothing to say so.
+
+         AND THE FIELD IS LEFT BEFORE THE UNDO RUNS, which is the half that
+         makes this coherent rather than merely suppressed. D-19: a repaint
+         never writes a FOCUSED field, so an undo taken with the caret in one
+         would move the record and leave that field showing the old text --
+         and the blur that eventually followed would dispatch it, which is the
+         defect above with a longer fuse. Blurring first hands the field to its
+         own region's commit path, which is that region's business and not this
+         listener's: an uncommitted edit lands as the student typed it, and the
+         undo below then takes it back. ONE PRESS, ONE STEP BACK, from inside a
+         field exactly as from outside one.
+
+         THEN THE CARET GOES BACK, AND IT GOES BACK ON THE NEXT FRAME RATHER
+         THAN ON THIS ONE. 113c's rule, one surface wider: focus is PLACED and
+         never left on the body, because a modal whose active element is the
+         body has lost the keyboard. But the first drive of this change put it
+         back synchronously and MEASURED THE DEFECT MOVING RATHER THAN GOING:
+         undo() only INVALIDATES, the repaint runs on the frame after, and a
+         field re-focused before that frame is a field D-19 then declines to
+         write -- so the record read "Slash", the box on screen read "Pounce",
+         and the next blur was one dispatch away from committing it. Measured,
+         real Chrome: record Slash, field Pounce, undo depth 1 -> 0.
+
+         So the re-focus is scheduled, and the ordering is the animation-frame
+         callback list rather than a hope: undo() registers the render frame
+         BEFORE this line registers its own, and callbacks run in registration
+         order. WRAPPED, because [S06]'s schedule() states the rule for every
+         frame this file books -- work that runs outside every try/catch here
+         goes through the one boundary or it reaches the browser as an uncaught
+         error with no panel behind it. WITH NO setTimeout FALLBACK, unlike
+         schedule(): a page with no requestAnimationFrame has no repaint to
+         wait for either, and the field would be left focused and stale by a
+         fallback that fired too early. GUARDED ON THE NODE STILL BEING IN THE
+         DOCUMENT, because an undo can rebuild a board structurally and detach
+         the very field the press came from. */
       document.addEventListener('keydown', wrap('undo shortcut', function (e) {
         if (!(e.ctrlKey || e.metaKey)) { return; }
         if (e.shiftKey) { return; }
         if (e.key !== 'z' && e.key !== 'Z') { return; }
 
         var el = e.target;
-        var tag = el ? el.tagName : '';
-        if (tag === 'INPUT' || tag === 'TEXTAREA' || (el && el.isContentEditable)) { return; }
+        if (el && el.isContentEditable === true) { return; }
+        if (el && typeof el.closest === 'function'
+          && el.closest(FREE_TEXT) !== null) { return; }
 
         e.preventDefault();
+        var tag = el ? el.tagName : '';
+        var inField = (tag === 'INPUT' || tag === 'TEXTAREA');
+        if (inField && typeof el.blur === 'function') { el.blur(); }
         App.ops.undo();
+        if (inField && typeof requestAnimationFrame === 'function') {
+          requestAnimationFrame(wrap('undo caret', function () {
+            if (el.isConnected === true && typeof el.focus === 'function') {
+              el.focus();
+            }
+          }));
+        }
       }));
 
       App.interactions.bind();
