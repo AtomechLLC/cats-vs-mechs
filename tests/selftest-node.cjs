@@ -11718,6 +11718,15 @@ const ldSideWord = ldBuildNow.cats.name;
 const ldSaysUnit = ldCardAll.indexOf(ldUnitWord) !== -1;
 const ldSaysAct = typeof ldActWord === 'string' && ldCardAll.indexOf(ldActWord) !== -1;
 const ldBoardSaysSide = ldCardBoard.join(' ').indexOf(ldSideWord) !== -1;
+/* D-39 P1-5's clause, read off the card's own CHILD ORDER. The lane's sequence
+   is made in the DOM and never in CSS — check 103e's rule about the lane,
+   applied one level down inside a card — so this is a list of class names and
+   not a computed style, and a `order:` reintroduced to put the board back on
+   top would be caught by 103e's own scan of the .ld-row rule body. */
+const ldCardKids = ldNewest === null ? []
+  : ldNewest.children.map((n) => String(n.className || ''));
+const ldActsAt = ldCardKids.indexOf('ld-acts');
+const ldBoardAt = ldCardKids.indexOf('ld-board');
 check(
   '103f. EVERY CARD IN THE LANE SHOWS THE BOARD AS IT STOOD AND THE ACTIONS '
     + 'THAT WERE SELECTED — D-28 asks for both and only one of the two had a '
@@ -11738,13 +11747,32 @@ check(
     + 'against the live build\'s own words, which is check 102\'s rule: a row '
     + 'carrying its own copy of a name asserts that this file agrees with '
     + 'itself. This is the clause a 340px card is most likely to lose, and '
-    + 'losing it would have moved no number and reddened nothing',
+    + 'losing it would have moved no number and reddened nothing. AND THE '
+    + 'ORDER OF THE TWO HALVES IS ASSERTED UNDER D-39 P1-5, which is a clause '
+    + 'this row did not have and the reason the audit could photograph a lane '
+    + 'that had never once shown an action line: the ACTIONS come before the '
+    + 'BOARD in the card, after the round number. Measured at 1366x768 with '
+    + 'three rounds resolved and twelve declarations a round, card content '
+    + '1055px against a 167px box: with the board first, 0 of 12 action lines '
+    + 'were inside the card at EVERY dial from 15vh to 34vh and 1 of 12 at '
+    + '40vh, which is 305px of a 768px window. No height could reach them, '
+    + 'because they were underneath twelve unit lines and two faction '
+    + 'headings. The board half is also drawn on the state card 400px below '
+    + 'and larger; the action half is on no other surface in the artifact, '
+    + 'since `did` plus `hand` is the whole of FIGHT-08\'s log. THE ORDER IS '
+    + 'READ OFF CHILD ORDER AND NOT OFF A COMPUTED STYLE, which is check '
+    + '103e\'s rule one level down: a sequence made in CSS puts what a screen '
+    + 'reader walks out of step with what the room sees, and 103e\'s own scan '
+    + 'of the .ld-row rule body is what catches the tidy fix',
   ldNewest !== null && ldCardBoard.length > 0 && ldCardActs.length > 0
     && ldBoardSaysSide && ldSaysUnit && ldSaysAct
     && ldBoardToks > 0 && ldBoardSyms > 0
-    && ldBoardTextNamesType === false && ldBoardSaidNamesType === true,
+    && ldBoardTextNamesType === false && ldBoardSaidNamesType === true
+    && ldCardKids[0] === 'ld-round'
+    && ldActsAt !== -1 && ldBoardAt !== -1 && ldActsAt < ldBoardAt,
   'the newest card carries ' + ldCardBoard.length + ' board leaves and '
     + ldCardActs.length + ' action leaves'
+    + ' | its child order=' + JSON.stringify(ldCardKids)
     + ' | the board half names the faction ' + JSON.stringify(ldSideWord)
     + '=' + ldBoardSaysSide
     + ' | it draws ' + ldBoardToks + ' token nodes across ' + ldBoardSyms

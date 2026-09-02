@@ -3734,13 +3734,14 @@
      same width as a card in a lane of one — a lane whose cards got narrower as
      the fight went on would be a page that re-laid itself out on every Advance.
 
-     22vh IS THE HEIGHT BOUND AND IT IS THE ONE DIAL THIS CHANGE ADDS. It is a
-     REHEARSAL DIAL in .fg-sides' and .ld-list's old manner and it ships with
-     the measurement that makes it one rather than with a guess — the figures
-     are in .planning/phases/05-fight-loop-playtest/05-D28-SUMMARY.md and in
-     REHEARSAL.md B3. THE SCROLL IS ON THIS ELEMENT and never on an ancestor:
-     .ld-row is an ancestor of nothing that sticks, and [C03]'s gotcha is why
-     that sentence is written rather than assumed.
+     26vh IS THE HEIGHT BOUND, RE-DERIVED BY D-39 P1-5 AND 22vh BEFORE THAT. It
+     is a REHEARSAL DIAL in .fg-sides' and .ld-list's old manner and it ships
+     with the measurement that makes it one rather than with a guess — the
+     figures are in .planning/phases/05-fight-loop-playtest/05-D28-SUMMARY.md,
+     in 05-D33b-SUMMARY.md, in the D-39 P1-5 block at the foot of this
+     paragraph, and in REHEARSAL.md B3. THE SCROLL IS ON THIS ELEMENT and never
+     on an ancestor: .ld-row is an ancestor of nothing that sticks, and [C03]'s
+     gotcha is why that sentence is written rather than assumed.
 
      A CARD SCROLLING ON ITSELF IS THE RIGHT TRADE HERE AND IT WAS NOT IN THE
      COLUMN. In a column the newest round is the one a student reads and it sat
@@ -3752,7 +3753,7 @@
   .ld-row{
     display:flex;flex-direction:column;gap:6px;
     flex:0 0 340px;min-width:0;
-    max-height:22vh;overflow-y:auto;
+    max-height:26vh;overflow-y:auto;
     padding:10px 12px;
     border:1px solid color-mix(in srgb, var(--line) 70%, transparent);
     border-radius:var(--radius);
@@ -3826,6 +3827,66 @@
      AND IT IS AFFORDABLE NOW IN A WAY IT WAS NOT, because D-33 P1-6 made the
      Advance control a sticky footer — the control this lane used to be shrunk
      to protect is no longer a function of anything above it. */
+
+  /* ==================================================================
+     D-39 P1-5 — 22vh -> 26vh, AND THE DIAL MOVED ONLY AFTER THE READING
+     ORDER DID. Plan 05-D39c.
+     ==================================================================
+     THE AUDIT'S CLAIM ABOUT THIS DIAL IS WRONG AND THE PARAGRAPH ABOVE IS
+     WHY: "Step 3 — re-derive the 15vh dial against the new content, and record
+     the new number — did not happen. The dial is still measured against a card
+     that no longer exists." D-33 P1-4 DID re-derive it, deleted the one height
+     query in the file, and shipped 22vh with the six-row table above. The
+     audit's own measurements of a 236px card at 1080 and a 167px one at 768
+     are 22vh exactly; 15vh would have been 162 and 115.
+
+     WHAT WAS TRUE IS THAT NO DIAL COULD REACH THE ACTIONS. Re-measured at
+     1366x768, three rounds resolved with TWELVE declarations a round and one
+     student-authored unit-scope type — card content 1055px against a 167px
+     box, 84% hidden:
+
+       .ld-row      action lines seen (of 12)   unit lines seen (of 12)
+         15vh                 0                        3
+         18vh                 0                        6
+         22vh                 0                        9
+         26vh                 0                        9
+         30vh                 0                       10
+         34vh                 0                       11
+         40vh                 1                       12
+
+     40vh is 305px of a 768px window and it buys ONE line of twelve. The
+     actions were not underneath a bound that was too tight; they were
+     underneath twelve unit lines and two faction headings. [S06.8]'s ldFill
+     puts them first now, and only then is the dial worth turning.
+
+     THE SWEEP RE-TAKEN AFTER THE REORDER, both sizes, and with the number of
+     declarations a ROOM actually makes beside the 24-a-round worst case,
+     because a dial derived only from the worst case is a dial derived from a
+     board no workshop plays:
+
+                    three declarations a round        twelve a round
+       .ld-row     @1366 acts   @1920 acts          @1366   @1920
+         18vh        2 of 3       3 of 3              2       3
+         22vh        2 of 3       3 of 3              2       3
+         26vh        3 of 3       3 of 3              3       4   <- shipped
+         30vh        3 of 3       3 of 3              3       4
+
+     26vh IS THE FIRST SETTING THAT SHOWS A TYPICAL ROUND WHOLE AT BOTH SIZES,
+     and 30vh buys nothing over it in either column.
+
+     WHAT IT COSTS, MEASURED AND SMALLER THAN THE LAST TIME THIS DIAL MOVED:
+     the lane goes 183 -> 214 at 1366 and 242 -> 285 at 1920, and the page 2292
+     -> 2323 and 2351 -> 2394. THE ADVANCE CONTROL AND THE STATE WINDOW DO NOT
+     MOVE AT ALL — read at every setting from 15vh to 40vh, .fg-sides' top and
+     the Advance control's top are the same number in every row. That is D-33
+     P1-6's sticky footer paying for itself a second time: the control this
+     lane used to be shrunk to protect is no longer a function of anything
+     above it, so what the dial spends is page height and nothing else.
+
+     AND THE 22vh IN .fg-sides' OWN SWEEP IS A DIFFERENT DIAL. That one bounds
+     the state window and its table reads the Advance control's bottom edge
+     against the fold; this one bounds a card. They were the same number by
+     coincidence and are not any more. */
 
   /* THE ENTRY ANIMATION IS ON THE ROW AND ON NOTHING INSIDE IT, and that is a
      correctness decision with [S06.8]'s name on it rather than a styling one.
@@ -22867,18 +22928,69 @@ App.render = (function () {
      returns ~48px of a 115px card — from zero readings to several — without
      touching the height dial at all, which is why the audit puts it first and
      the dial third. LD_LANE_SAID is the constant; [S06.8]'s ldBuild writes it. */
+  /* ==================================================================
+     D-39 P1-5: THE ACTIONS COME FIRST IN THE CARD, AND A DIAL SWEEP IS
+     WHAT SETTLED THAT IT HAD TO BE THE ORDER AND NOT THE HEIGHT.
+     Plan 05-D39c.
+     ==================================================================
+     WHAT STOOD HERE: the round number, then the BOARD as it stood, then the
+     actions. D-28's instruction was "earlier rounds should be a full lane
+     above showing the past state AND THE ACTIONS SELECTED", and the audit
+     measured that the second half had never once been on screen.
+
+     MEASURED, 1366x768, three rounds resolved with twelve declarations a
+     round and one student-authored unit-scope type on the board -- which is
+     the board a student in the workshop has:
+
+       .ld-row      card box   action lines seen   unit lines seen
+         15vh         113          0 of 12             3 of 12
+         18vh         136          0 of 12             6 of 12
+         22vh         167  <- shipped
+                                   0 of 12             9 of 12
+         26vh         198          0 of 12             9 of 12
+         30vh         228          0 of 12            10 of 12
+         34vh         259          0 of 12            11 of 12
+         40vh         305          1 of 12            12 of 12
+
+     Card content is 1055px against a 167px box: 84% hidden, and the first
+     action line -- "Cat 1 uses Slash on Mech 1." -- is 12 unit lines and a
+     faction heading down. THE DIAL CANNOT REACH IT. 40vh is 305px of a
+     768px window, more than the lane can spend on itself before the round
+     being played goes off the bottom, and it buys ONE line of twelve. This
+     is not a height that was tuned against the wrong content; it is a
+     reading order that puts the never-seen half underneath the always-seen
+     half.
+
+     SO THE ORDER CHANGES AND THE DIAL DOES NOT. The board's readings are
+     also on the state card 400px below, drawn larger, and D-33 P1-4's
+     caption already says what a card IS ("the board as it stood when that
+     round began"). The actions are on no other surface at all -- `did` plus
+     `hand` is the whole of FIGHT-08's log and this lane is the only thing
+     that renders it. The half that exists nowhere else goes where it can be
+     seen.
+
+     THE ROUND NUMBER STAYS FIRST, because it is what tells a student which
+     card they are reading and it costs one line. [C14.2]'s own acceptance
+     criterion is restated with the subject swapped: a card at 22vh shows its
+     round number and the first ACTIONS of that round, and the board it
+     stood on is one scroll of the card away.
+
+     NOTHING IN THE MARKUP MOVED BUT THE APPEND ORDER, which is check 103e's
+     rule one level down: the lane's sequence is made in the DOM and never in
+     CSS, so the sequence a screen reader walks is the sequence the room
+     sees. There is no `order:` here and there must not be one. */
   function ldFill(row, state, record) {
     row.replaceChildren();
     row.appendChild(text('h3', 'ld-round', 'Round ' + record.round));
+    var acts = el('div', 'ld-acts');
+    ldDidInto(acts, state, record);
+    ldHandInto(acts, state, record);
+    row.appendChild(acts);
     var board = el('div', 'ld-board');
     LD_SIDES.forEach(function (side) {
       board.appendChild(ldBoardSide(state, side, record.was ? record.was[side] : null));
     });
     row.appendChild(board);
-    var acts = el('div', 'ld-acts');
-    ldDidInto(acts, state, record);
-    ldHandInto(acts, state, record);
-    row.appendChild(acts);
   }
 
   /* TIER ONE: the rows themselves, GROWN AND SHRUNK BY DELTA ONLY.

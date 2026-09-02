@@ -1731,11 +1731,30 @@ for (const ch of ['chrome', 'msedge']) {
         const bx = c.querySelector('.ld-board');
         const boardText = leavesOf(bx).join(' ');
         const boardSaid = saidOf(bx).join(' ');
+        // D-39 P1-5. Not "is there an action box" — the box was always there
+        // and always had leaves — but "is an action LINE inside the card's own
+        // box at the card's resting scroll offset". The audit measured 66% and
+        // 76% of a card hidden with every action line in the hidden part, and
+        // this cell was green over it in four columns for three plans, because
+        // a leaf count cannot see a fold.
+        const cr = c.getBoundingClientRect();
+        const insideCard = (n) => {
+          const r = n.getBoundingClientRect();
+          return r.top >= cr.top - 1 && r.bottom <= cr.bottom + 1;
+        };
+        const actLines = Array.from(c.querySelectorAll('.ld-act-line'));
         return {
           round: c.dataset.ldRound,
           board: leavesOf(bx).length,
           acts: leavesOf(c.querySelector('.ld-acts')).length,
           says: leavesOf(c.querySelector('.ld-acts')).join(' ').slice(0, 70),
+          childOrder: Array.from(c.children).map((n) => n.className),
+          actLines: actLines.length,
+          actLinesInside: actLines.filter(insideCard).length,
+          firstActInside: actLines.length > 0 && insideCard(actLines[0]),
+          firstActReads: actLines.length > 0
+            ? actLines[0].textContent.replace(/\s+/g, ' ').trim() : '',
+          cardBox: Math.round(cr.height), cardContent: c.scrollHeight,
           // D-29: what the board half of a card is MADE OF now.
           syms: bx.querySelectorAll('.sym').length,
           toks: bx.querySelectorAll('.tok').length,
@@ -1779,11 +1798,19 @@ for (const ch of ['chrome', 'msedge']) {
        names are taken off the LIVE vocabulary rather than typed here, so a
        renamed board is read by its own words. The ACTION half is untouched and
        still asserted non-empty, because D-29 keeps that a sentence by name. */
-    ok(`${tag}: 17b. EVERY card shows the board as it stood AND the actions that were selected — and under D-29 the board half is SYMBOLS with the prose on the hover`,
+    note(ch, size.name, 'D-39 P1-5 action lines inside a card',
+      lane.perCard.map((c) => c.actLinesInside + '/' + c.actLines).join(' '));
+    note(ch, size.name, 'D-39 P1-5 card box / content',
+      lane.perCard[0].cardBox + ' of ' + lane.perCard[0].cardContent);
+    ok(`${tag}: 17b. EVERY card shows the board as it stood AND the actions that were selected — and under D-29 the board half is SYMBOLS with the prose on the hover. TURNED IN THE OPEN UNDER D-39 P1-5, AND THIS CELL IS WHY THAT FINDING SURVIVED THREE PLANS: it counted LEAVES in the action box and required the count to be non-zero, which was true of a card that showed the actions and equally true of a card that had them 500px below its own fold. The audit photographed exactly that — 66% of a card hidden at 1920 and 76% at 1366, with the whole Mechs block AND EVERY ACTION LINE in the hidden part — and four columns of real browser were green over it, because a leaf count cannot see a fold. So the clause is now GEOMETRIC: at least one .ld-act-line is wholly inside the card's own box at the card's resting scroll offset, on EVERY card, and the first one is the one asserted so a card showing its last line and hiding its first would fail. AND THE CHILD ORDER IS READ WITH IT — round number, then the actions, then the board — because that reordering is the fix and a dial is not: re-measured at 1366x768 with twelve declarations a round, the board-first card showed 0 of 12 action lines at every setting from 15vh to 34vh and 1 of 12 at 40vh, which is 305px of a 768px window. The note beside this cell prints how many action lines each card actually holds inside itself in this column`,
       lane.perCard.length === 3
       && lane.perCard.every((c) => c.board > 0 && c.acts > 0)
       && lane.perCard.every((c) => c.syms > 0 && c.toks > 0 && c.saidCount > 0)
-      && lane.perCard.every((c) => c.textNamesType === false && c.saidNamesType === true),
+      && lane.perCard.every((c) => c.textNamesType === false && c.saidNamesType === true)
+      && lane.perCard.every((c) => c.childOrder[0] === 'ld-round'
+        && c.childOrder.indexOf('ld-acts') === 1
+        && c.childOrder.indexOf('ld-board') === 2)
+      && lane.perCard.every((c) => c.actLines > 0 && c.firstActInside === true),
       lane.perCard);
     /* THE NEWEST CARD IS THE RIGHTMOST AND IT IS WHOLE INSIDE THE LANE WITHOUT
        ANYBODY SCROLLING. [S06.8] scrolls the lane to its end on append and the
