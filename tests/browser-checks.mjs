@@ -3513,19 +3513,31 @@ for (const ch of ['chrome', 'msedge']) {
         req: at('#act-edit-req-0 .ae-term-read'),
         down: at('#act-edit-xf-0 .ae-term-read'),
         up: at('#act-edit-xf-1 .ae-term-read'),
-        all: document.querySelectorAll('#act-edit-terms .sym-sign').length
+        /* TURNED IN THE OPEN UNDER D-40. This read `#act-edit-terms .sym-sign`
+           and expected 5 — every mark in the region — which was the same set as
+           "every mark on a TERM READING" for as long as the term readings were
+           the only readings in the region. D-40 puts a pool preview inside the
+           Cost list, and its taken figure wears the same mark for the same
+           reason, so the region count went 5 to 7 and this cell reddened on a
+           change it is not about. The two are counted separately now rather
+           than the number being raised: this cell's subject is the TERM
+           readings and a preview mark appearing among them would be invisible
+           to a single total, which is exactly the kind of merge that lets one
+           surface cover another's regression. */
+        all: document.querySelectorAll('#act-edit-terms .ae-term-read .sym-sign').length,
+        inPool: document.querySelectorAll('#act-edit-cost-pool .sym-sign').length
       };
     });
     note(ch, size.name, 'D-32 the mark on an editor cost — dx / dy / colour',
       aeMarks.cost && aeMarks.cost.mark ? `${aeMarks.cost.dx}px, ${aeMarks.cost.dy} down, ${aeMarks.cost.color}` : 'no mark');
-    note(ch, size.name, 'D-32 marks in the terms region', `${aeMarks.all}, requirement carries ${aeMarks.req && aeMarks.req.mark ? 'one' : 'none'}`);
-    ok(`${tag}: 23d. the editor's removal mark is D-30's geometry exactly, and a requirement carries none`,
+    note(ch, size.name, 'D-32 marks on the term readings', `${aeMarks.all} (+${aeMarks.inPool} in D-40's preview), requirement carries ${aeMarks.req && aeMarks.req.mark ? 'one' : 'none'}`);
+    ok(`${tag}: 23d. the editor's removal mark is D-30's geometry exactly, and a requirement carries none — counted over the TERM READINGS, with D-40's pool preview counted apart from them rather than folded into one total`,
       aeMarks.cost !== null && aeMarks.cost.mark === true && aeMarks.cost.onTok === true
       && aeMarks.cost.dx === 0 && aeMarks.cost.dy === 0.25
       && aeMarks.req !== null && aeMarks.req.mark === false
       && aeMarks.down !== null && aeMarks.down.mark === true
       && aeMarks.up !== null && aeMarks.up.mark === false
-      && aeMarks.all === 5,
+      && aeMarks.all === 5 && aeMarks.inPool === 2,
       aeMarks);
 
     /* ── 23e. A SHIPPED RULE IS ACTUALLY APPLYING, READ OFF COMPUTED STYLE.
@@ -5844,6 +5856,266 @@ for (const ch of ['chrome', 'msedge']) {
       { popRest, popMoved, popRefused });
 
     await endFight(pg);
+    await pg.evaluate(() => {
+      App.ops.resetToDefaults();
+      App.state.invalidate({ structural: true });
+      if (App.render.flush) App.render.flush();
+    });
+    await pg.waitForTimeout(200);
+
+    /* ── 30 / 30b / 30c. D-40 — THE POOL DEPLETION PREVIEW, DRIVEN BY REAL CLICKS.
+       ==================================================================
+       "Make it so you can preview the depletion of action points while setting up
+       actions." Node rows 123 and 123b drive the same surface against a stub with no
+       layout engine and no computed style, so what they CANNOT see is the whole of why
+       these cells exist: whether a three-part reading plus a sentence fits on a line at
+       1366, whether the removal mark lands on the shape rather than beside it, and
+       whether the short sentence's colour is DERIVED from the palette or was typed.
+       That last one is PROBE BM's finding on a third surface — a typed colour is
+       pixel-identical to a derived one, and only moving the token can tell them apart. */
+    const d40Board = await pg.evaluate(() => {
+      App.ops.resetToDefaults();
+      const sideTok = App.ops.createTokenType({ name: 'Momentum', scope: 'side', shape: 'circ', color: 'gold', glyph: '' });
+      App.ops.setTally('cats', null, sideTok, 5);
+      App.state.invalidate({ structural: true });
+      if (App.render.flush) App.render.flush();
+      return { sideTok, ap: App.state.get().build.cats.ap };
+    });
+    await pg.waitForTimeout(200);
+
+    // The reader. Everything below is taken through it, so the four columns and the
+    // three cells all describe the same nodes in the same words.
+    const d40Read = () => pg.evaluate(() => {
+      const box = document.querySelector('#act-edit-cost-pool');
+      if (!box) { return null; }
+      const cs = getComputedStyle(box);
+      const rows = [...box.querySelectorAll('.ae-pool-row')].map((r) => {
+        const syms = [...r.querySelectorAll('.sym')];
+        const say = r.querySelector('.ae-pool-say');
+        const sign = r.querySelector('.sym-sign');
+        let mark = null;
+        if (sign) {
+          const shape = sign.parentElement;
+          const sr = shape.getBoundingClientRect();
+          const gr = sign.getBoundingClientRect();
+          mark = {
+            onTok: shape.classList.contains('tok'),
+            dx: Math.round(((gr.left + gr.width / 2) - sr.left) * 100) / 100,
+            dy: Math.round(((gr.top + gr.height / 2) - sr.top) / sr.height * 10000) / 10000,
+            color: getComputedStyle(sign).color,
+            which: syms.indexOf(sign.closest('.sym'))
+          };
+        }
+        return {
+          says: syms.map((s) => s.getAttribute('title')),
+          named: syms.every((s) => s.getAttribute('title') === s.getAttribute('aria-label')),
+          marks: syms.map((s) => s.querySelectorAll('.sym-sign').length),
+          tok: syms.length ? Math.round(parseFloat(getComputedStyle(syms[0]).getPropertyValue('--tok'))) : null,
+          arrow: [...r.querySelectorAll('.ae-pool-to')].map((n) => n.textContent).join(''),
+          say: say ? say.textContent : '(no sentence)',
+          short: say ? say.className.indexOf('ae-pool-say--short') !== -1 : false,
+          sayColor: say ? getComputedStyle(say).color : null,
+          /* NOT the .ae-pool-row's rectangle. That element is display:contents
+             under D-40's alignment fix, so it has no box at all and every
+             measurement of it reads zero — which a cell asserting `h > 0`
+             would report as a defect and a cell asserting nothing would let
+             through. The two things that HAVE boxes are read instead, and
+             their left edges are what the fix is about. */
+          sayLeft: say ? Math.round(say.getBoundingClientRect().left) : null,
+          sayH: say ? Math.round(say.getBoundingClientRect().height) : null,
+          readLeft: Math.round(r.querySelector('.ae-pool-read').getBoundingClientRect().left),
+          readH: Math.round(r.querySelector('.ae-pool-read').getBoundingClientRect().height)
+        };
+      });
+      return {
+        hidden: box.hidden,
+        drawn: cs.display !== 'none',
+        boxH: Math.round(box.getBoundingClientRect().height),
+        overflowsX: box.scrollWidth > box.clientWidth + 1,
+        rows,
+        // Every switched-off control in the dialog, by name — the never-disable claim.
+        off: [...document.querySelectorAll('#act-edit button, #act-edit input')]
+          .filter((n) => n.disabled).map((n) => n.dataset.k || n.id).sort().join(',')
+      };
+    });
+
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    await pg.click('#act-edit-new'); await pg.waitForTimeout(300);
+    const d40Act = await pg.evaluate(() => document.querySelector('#act-edit').dataset.edPick);
+    /* A CLAIM CORRECTED BY THE MEASUREMENT RATHER THAN A DRIVE BENT TO FIT IT.
+       The first draft of this cell asserted that a brand-new action names no
+       pool and the box is not drawn. It measured one row reading three held,
+       one taken, two left — and the measurement is RIGHT: a record with no
+       `cost` field costs the one action point the board always implied, which
+       is actionCostTerms' own shipped default and is written down at that
+       function. So a new action DOES name a pool from its first frame, which is
+       better behaviour than the draft expected, and the not-drawn state is
+       reached the way a student reaches it: by EMPTYING the cost. That is also
+       the more interesting arm — an emptied `pays` means "this report has no
+       figures for that cost" and never "this costs nothing", so the honest
+       drawing of it is nothing at all rather than a row of zeroes. */
+    const d40Fresh = await d40Read();
+    await pg.click('[data-k="ae/setActionCost/0/tok/"]'); await pg.waitForTimeout(200);
+    const d40Empty = await d40Read();
+
+    // Term by term, every one of them a real pointer press on a real box and a real
+    // keystroke into a real field. The preview is read after EACH, because "live as
+    // cost terms are added" is a claim about the frames in between and not only about
+    // the end state.
+    const d40Write = async (slot, tok, amount) => {
+      await pg.click(`[data-k="ae/setActionCost/${slot}/tok/${tok}"]`); await pg.waitForTimeout(150);
+      await pg.fill(`#act-edit-cost-${slot}-amt`, String(amount));
+      await pg.press(`#act-edit-cost-${slot}-amt`, 'Enter');
+      await pg.waitForTimeout(200);
+      return d40Read();
+    };
+    const d40OneAp = await d40Write(0, 'ap', 2);
+    const d40TwoPools = await d40Write(1, d40Board.sideTok, 3);
+    const d40Short = await d40Write(2, 'ap', 2);
+    const d40WithHp = await d40Write(3, 'hp', 1);
+
+    await pg.locator('#act-edit-pane-author').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d40-cost-pools-${ch}-${size.name}.png`)
+    });
+
+    note(ch, size.name, 'D-40 the preview, four terms in',
+      d40WithHp.rows.map((r) => `[${r.says.join(' / ')}] ${r.say}`).join('  ||  '));
+    const d40SayLefts = [...new Set(d40WithHp.rows.map((r) => r.sayLeft))];
+    const d40ReadLefts = [...new Set(d40WithHp.rows.map((r) => r.readLeft))];
+    note(ch, size.name, 'D-40 box / reading+sentence heights / overflow',
+      `${d40WithHp.boxH}px, readings ${d40WithHp.rows.map((r) => r.readH).join('/')}px,`
+      + ` sentences ${d40WithHp.rows.map((r) => r.sayH).join('/')}px, overflow ${d40WithHp.overflowsX}`);
+    note(ch, size.name, 'D-40 one column for the answers (was 232 and 252)',
+      `readings at ${JSON.stringify(d40ReadLefts)}, sentences at ${JSON.stringify(d40SayLefts)}`);
+    note(ch, size.name, 'D-40 marks per reading / --tok / rows as terms land',
+      `${d40WithHp.rows.map((r) => r.marks.join('')).join(' ')} / ${d40WithHp.rows[0].tok}px`
+      + ` / ${[d40Fresh, d40Empty, d40OneAp, d40TwoPools, d40Short, d40WithHp].map((s) => s.rows.length).join('->')}`);
+
+    ok(`${tag}: 30. D-40 — THE COST REGION PREVIEWS THE DEPLETION, PER POOL, AS THE COST IS TYPED, AND IT IS BUILT TERM BY TERM THROUGH REAL PRESSES. A BRAND-NEW ACTION ALREADY NAMES A POOL and the preview says so from its first frame — a record with no cost field costs the one action point the board always implied, which is actionCostTerms' shipped default; this cell's first draft claimed the opposite and the measurement corrected it. EMPTYING THE COST THROUGH THE CHOOSER'S OWN ENTRY IS WHAT LEAVES THE BOX NOT DRAWN, and nothing is the honest drawing of it: an emptied \`pays\` means "this report has no figures for that cost" and never "this costs nothing", so a row of zeroes would be the surface answering a question it was not asked, and an empty bordered panel under the Cost list would be it claiming a reading it does not have. The first action-point term brings ONE row; a term naming a type the student invented at side scope brings a SECOND, which is D-24 as pixels; a second action-point term brings NO third row and instead SUMS into the first, because a pool has one number and is drawn down once; and a fourth term naming health brings none at all, because health lives on units and picking which one pays would be adjudication. THE READING IS THREE PARTS AND THE MIDDLE ONE WEARS THE MARK: what the side holds, what this action takes, what would be left — and neither of the outer two is a subtraction. Every reading's tooltip EQUALS its accessible name, which is symQty's contract on a fifth surface. AND EVERY POOL ROW'S SENTENCE STARTS AT ONE x, WHICH IS A SCREENSHOT'S FINDING: the first draft of this block was a flex column, it measured 66px over rows of 29 and 22 with no overflow in all four columns, and the picture showed the two answers beginning at 232px and 252px, because each row's sentence started wherever its own run of tokens happened to end. That is D-39 P2-8's "all four rows end in one column" arriving a third time, and no number this repository takes could see it. The reading column is max-content so a single-pool cost pays nothing for the alignment. AND THE ROW DOES NOT OVERFLOW ITS BOX at either viewport, which is the other half of this that a stub with no layout engine cannot see at all`,
+      d40Fresh !== null && d40Fresh.rows.length === 1
+      && d40Fresh.rows[0].says[1] === 'Removes: 1 Action points when this action is used'
+      && d40Empty !== null && d40Empty.drawn === false && d40Empty.rows.length === 0
+      && d40OneAp.rows.length === 1 && d40TwoPools.rows.length === 2
+      && d40Short.rows.length === 2 && d40WithHp.rows.length === 2
+      && d40WithHp.drawn === true
+      && d40WithHp.rows[0].says.join(' | ')
+        === '3 Action points this side holds | Removes: 4 Action points when this action is used | 0 Action points left to spend'
+      && d40WithHp.rows[1].says.join(' | ')
+        === '5 Momentum this side holds | Removes: 3 Momentum when this action is used | 2 Momentum left to spend'
+      && d40WithHp.rows.every((r) => r.named === true)
+      && d40WithHp.rows.every((r) => r.marks.join(',') === '0,1,0')
+      && d40WithHp.rows.every((r) => r.arrow === '→')
+      && d40WithHp.rows.every((r) => r.tok === 16)
+      && d40SayLefts.length === 1 && d40ReadLefts.length === 1
+      && d40WithHp.rows.every((r) => r.readH > 0 && r.sayH > 0)
+      && d40WithHp.overflowsX === false,
+      { d40Fresh, d40Empty, d40OneAp, d40TwoPools, d40Short, d40WithHp });
+
+    /* ── 30b. THE EXCEEDED POOL, THE MARK'S GEOMETRY, AND THE COLOUR THAT HAS TO
+       DERIVE. Two action-point terms of two against a pool of three is FOUR out of
+       THREE, and the sentence is the affordability machinery's own — the same words
+       the proposal pane two panes over writes for the same cost, because both call
+       one function. The remainder FLOORS AT NONE rather than drawing minus one,
+       because a pool cannot hold less than none of it and advanceRound already takes
+       Math.min(want, held); how far past the end the cost reaches is the sentence's
+       job and not the picture's. THE TINT IS MOVED AND MUST FOLLOW: --accent-2 is
+       re-declared on :root and the sentence's computed colour must change with it,
+       which is cell 21d's technique on a third surface and the only way to tell a
+       derived colour from a typed one. AND NOTHING IS DISABLED — the never-disable
+       rule is in full force on an authoring surface, so the switched-off controls
+       are collected by NAME with the cost past the pool. */
+    const d40Tinted = await pg.evaluate(() => {
+      const el = document.createElement('style');
+      el.id = 'd40-tint-probe';
+      el.textContent = ':root{--accent-2:#00ff00;--coral:#00ff00}';
+      document.head.appendChild(el);
+      const say = document.querySelector('.ae-pool-say--short');
+      const sign = document.querySelector('#act-edit-cost-pool .sym-sign');
+      const out = {
+        say: say ? getComputedStyle(say).color : null,
+        sign: sign ? getComputedStyle(sign).color : null
+      };
+      el.remove();
+      return out;
+    });
+    await pg.waitForTimeout(150);
+    const d40Geo = await pg.evaluate(() => {
+      const sign = document.querySelector('#act-edit-cost-pool .sym-sign');
+      if (!sign) { return null; }
+      const shape = sign.parentElement;
+      const sr = shape.getBoundingClientRect();
+      const gr = sign.getBoundingClientRect();
+      return {
+        onTok: shape.classList.contains('tok'),
+        dx: Math.round(((gr.left + gr.width / 2) - sr.left) * 100) / 100,
+        dy: Math.round(((gr.top + gr.height / 2) - sr.top) / sr.height * 10000) / 10000,
+        color: getComputedStyle(sign).color,
+        inPool: document.querySelectorAll('#act-edit-cost-pool .sym-sign').length
+      };
+    });
+    note(ch, size.name, 'D-40 the exceeded pool says',
+      `"${d40WithHp.rows[0].say}" tinted ${d40WithHp.rows[0].sayColor}`);
+    note(ch, size.name, 'D-40 the tint follows --accent-2',
+      `${d40WithHp.rows[0].sayColor} -> ${d40Tinted.say}`);
+    note(ch, size.name, 'D-40 the preview mark — dx / dy / colour',
+      d40Geo ? `${d40Geo.dx}px, ${d40Geo.dy} down, ${d40Geo.color}` : 'no mark');
+    ok(`${tag}: 30b. D-40 — A COST PAST THE POOL SAYS SO IN THE AFFORDABILITY MACHINERY'S OWN WORDS, THE REMAINDER FLOORS AT NONE, THE MARK IS D-30's GEOMETRY EXACTLY, AND THE TINT DERIVES. Four action points out of three: the sentence is "Not enough to spend. Short by 1." — the same string the proposal pane writes for the same cost, because costShortSaid is one function and both panes call it — and the picture floors at no remainder rather than drawing a negative one, because a board cannot hold less than none of a thing and Advance already takes the minimum. The mark sits ON THE SHAPE at 0px from its left edge and a quarter of the way down it, which is D-30's sentence literally and is the same three numbers cells 21b and 23d read on two other surfaces. AND THE COLOUR IS MOVED TO PROVE IT DERIVES: --accent-2 and --coral are re-declared on :root and BOTH the sentence's tint and the mark's colour must follow. PROBE BM measured that a typed colour is pixel-identical to a derived one and passes every scan and every geometry cell, so this is the only check in the repository that can tell them apart on this surface. AND NOT ONE CONTROL IN THE DIALOG IS DISABLED BY A COST THE SIDE CANNOT PAY — the never-disable rule, in full force on an authoring surface`,
+      d40WithHp.rows[0].say === 'Not enough to spend. Short by 1.'
+      && d40WithHp.rows[0].short === true
+      && d40WithHp.rows[0].says[2] === '0 Action points left to spend'
+      && d40WithHp.rows[1].short === false
+      && d40WithHp.rows[1].say === 'Enough to spend.'
+      && d40Geo !== null && d40Geo.onTok === true
+      && d40Geo.dx === 0 && d40Geo.dy === 0.25
+      && d40Geo.inPool === 2
+      && d40Tinted.say !== null && d40Tinted.say !== d40WithHp.rows[0].sayColor
+      && d40Tinted.sign !== null && d40Tinted.sign !== d40Geo.color
+      && d40WithHp.off === d40Empty.off,
+      { d40Geo, d40Tinted, say: d40WithHp.rows[0], off: [d40Empty.off, d40WithHp.off] });
+
+    /* ── 30c. THE FOUR MOVEMENTS THAT ARE NOT AUTHORING: a term taken back off, D-34's
+       cancel, the side chooser and the action list. Each is a real press and each is a
+       different way the preview can be left describing a board that has moved on. The
+       side switch is the one worth naming: it changes NO record at all, so a preview
+       that read a pool captured when the dialog opened would go on reporting the Cats'
+       three while the student stood on the Mechs. */
+    await pg.click(`[data-k="ae/setActionCost/2/tok/"]`); await pg.waitForTimeout(250);
+    const d40Removed = await d40Read();
+    await pg.click('#act-edit-cancel'); await pg.waitForTimeout(300);
+    const d40Cancelled = await d40Read();
+    await pg.click('#act-edit-side-mechs'); await pg.waitForTimeout(300);
+    const d40Mechs = await d40Read();
+    await pg.click('#act-edit-side-cats'); await pg.waitForTimeout(300);
+    await pg.click('[data-k="ae/list/cats/slash"]'); await pg.waitForTimeout(300);
+    const d40Slash = await d40Read();
+    await pg.locator('#act-edit-pane-author').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d40-after-restore-${ch}-${size.name}.png`)
+    });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    note(ch, size.name, 'D-40 removed / cancelled / mechs / slash',
+      `${d40Removed.rows.map((r) => r.says[1]).join(' + ')} | drawn after cancel ${d40Cancelled.drawn}`
+      + ` | mechs "${d40Mechs.rows.map((r) => r.says[0]).join(' + ')}"`
+      + ` | slash "${d40Slash.rows.map((r) => r.says[0]).join(' + ')}"`);
+    ok(`${tag}: 30c. D-40 — THE PREVIEW FOLLOWS EVERY MOVEMENT THAT IS NOT A KEYSTROKE: a term REMOVED through the chooser's own emptying entry takes its amount back out of the pool row, so the action-point row goes from four back to two and stops being short; D-34's CANCEL puts the record back and the preview goes with it, which is the one press that can land on exactly the fingerprint an earlier paint recorded — a restore puts a record BACK, so a surface memoised on that fingerprint would return early over a preview that had stopped being true; the SIDE chooser moves the reading onto the OTHER faction's pool while changing no record at all, which is the movement a preview built from a pool captured at open would fail silently; and the ACTION list moves it onto another rule's cost. Every one of the four is a real press on a real control`,
+      d40Removed.rows.length === 2
+      && d40Removed.rows[0].says[1] === 'Removes: 2 Action points when this action is used'
+      && d40Removed.rows[0].short === false
+      /* The cancel restores the record the editor was SHOWN with, which for an
+         action created and then opened is one with no `cost` field at all — so
+         the preview comes back to the implied single action point, not to the
+         four-term cost that was authored over it and not to the emptied list
+         that was authored first. One row, one point, and the short sentence
+         gone with the terms that caused it. */
+      && d40Cancelled !== null && d40Cancelled.rows.length === 1
+      && d40Cancelled.rows[0].says[1] === 'Removes: 1 Action points when this action is used'
+      && d40Cancelled.rows[0].short === false
+      && d40Mechs !== null && d40Mechs.rows.length === 1
+      && d40Slash !== null
+      && d40Slash.rows.length === 1
+      && d40Slash.rows[0].says[0] === '3 Action points this side holds'
+      && d40Slash.rows[0].says[1] === 'Removes: 1 Action points when this action is used',
+      { d40Removed, d40Cancelled, d40Mechs, d40Slash, d40Act });
+
     await pg.evaluate(() => {
       App.ops.resetToDefaults();
       App.state.invalidate({ structural: true });

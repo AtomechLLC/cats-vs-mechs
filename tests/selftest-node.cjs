@@ -17208,6 +17208,452 @@ A.state.invalidate({ structural: true });
 A.state.flush();
 clearPanel();
 
+/* 123-123b. D-40: THE POOL DEPLETION PREVIEW IN THE ACTION EDITOR ------------
+   "Make it so you can preview the depletion of action points while setting up
+   actions." The fight tab already depletes live while DECLARING, so the
+   instruction is read as the AUTHORING surface: while a cost is being written,
+   the Cost region says what it does to the side's pool.
+
+   TWO ROWS AND NOT ONE, split along the line the last four passes keep finding.
+   123 is the READING — what it says, per pool, through the real controls. 123b
+   is the SIGNATURE — whether it goes on saying it, which is a different failure
+   with a different cause and no shared clause: a preview that draws the wrong
+   thing is visible the moment somebody looks, and a preview that draws the
+   right thing one commit late is not visible at all. */
+
+const d40Saved = JSON.stringify(A.state.get());
+const d40Box = dom.byId['act-edit-cost-pool'];
+
+function d40Read() {
+  const rows = d40Box.querySelectorAll('.ae-pool-row');
+  return {
+    hidden: d40Box.hidden,
+    n: rows.length,
+    rows: rows.map((r) => {
+      const syms = r.querySelectorAll('.sym');
+      const say = r.querySelectorAll('.ae-pool-say')[0] || null;
+      return {
+        says: syms.map((s) => s.getAttribute('title')),
+        named: syms.every((s) => s.getAttribute('title') === s.getAttribute('aria-label')),
+        marks: syms.map((s) => s.querySelectorAll('.sym-sign').length),
+        onShape: r.querySelectorAll('.sym-sign').every((n) =>
+          String(n.parentNode.className).split(' ').indexOf('tok') !== -1),
+        toks: syms.map((s) => s.querySelectorAll('.tok').length),
+        arrow: r.querySelectorAll('.ae-pool-to').map((n) => n.textContent).join(''),
+        say: say === null ? '(no sentence)' : say.textContent,
+        short: say !== null
+          && String(say.className).indexOf('ae-pool-say--short') !== -1
+      };
+    })
+  };
+}
+// The proposal pane's cost line is ASSEMBLED from fragments by sayInto, so its
+// root carries no text of its own — this stub's textContent is a property and
+// not a getter that walks children, which is the same reason row 111 reads a
+// title instead. Concatenated here rather than harvested, because the claim is
+// about the whole SENTENCE and a harvest hands back its leaves.
+function d40Text(node) {
+  if (node.children.length === 0) { return String(node.textContent || ''); }
+  return node.children.map(d40Text).join('');
+}
+// Every control in the dialog that is switched off, collected by NAME rather
+// than counted, so the failure prints which one grew a disabled flag.
+function d40Off() {
+  return aeDialog.querySelectorAll('button')
+    .concat(aeDialog.querySelectorAll('input'))
+    .filter((n) => n.disabled === true)
+    .map((n) => String(n.dataset.k || n.id || n.className))
+    .sort().join(',');
+}
+
+/* 123. WHAT THE PREVIEW SAYS, DRIVEN THROUGH THE PILLS AND THE FIELDS.
+
+   THE SHIPPED BOARD FIRST, because it is the one arrangement a workshop opens
+   on and because it is where the SENTENCE can be compared. Slash costs the one
+   action point the board always implied and Cats hold three, so the preview
+   reads three held, one taken with D-30's mark on the shape, two left — and the
+   proposal pane, two panes over in the same dialog, ENDS ITS OWN COST LINE WITH
+   THE SAME SENTENCE. That comparison is the claim and a pair of typed strings
+   is not: costShortSaid is one function and both surfaces call it, so a change
+   to either wording moves both or reddens this. Row 111's technique on a fifth
+   pair. It is an endsWith rather than an equality because the pane's line names
+   the action and its two figures first — the preview draws those as PICTURES —
+   and asserting the two sentences identical would be asserting the pane had
+   stopped naming the action.
+
+   THEN A FOUR-TERM COST AUTHORED THROUGH THE REAL CONTROLS, and every clause in
+   it is a different ruling:
+
+     TWO TERMS NAMING ONE POOL ARE ONE ROW AND THEIR AMOUNTS ARE SUMMED. Two
+     action points and then two more is FOUR out of one pool of three, not two
+     readings of two. A preview drawing a row per TERM would show a student two
+     action-point pools they do not have, and it is exactly the shape `pays`
+     has, so the grouping is the thing that had to be written.
+
+     A TERM NAMING A NON-POOL DRAWS NO ROW AT ALL. Health lives on units and
+     spending it means choosing which cat pays, which is adjudication —
+     isPoolToken's ruling, arriving at a reading. The row asserts the health
+     term is REALLY IN THE RECORD while no row exists for it, because a clause
+     that only counted rows would pass over a term the editor had silently
+     dropped.
+
+     A TYPE THE STUDENT INVENTED AT SIDE SCOPE READS IDENTICALLY, which is D-24
+     as pixels and the arm data-tsay exists for.
+
+     THE MARK IS ON THE TAKEN READING AND ON NEITHER OF THE OTHER TWO. What the
+     side holds is not a subtraction and what is left is not a subtraction;
+     D-30's sign belongs to the one figure in the row that is taken away. A
+     prefix applied to every reading fails this clause three times.
+
+     AND IT NEVER DISABLES ANYTHING. The never-disable rule is in full force on
+     authoring surfaces: a student may write an action that costs more than the
+     side has, and the tool reports it. The switched-off controls are collected
+     BY NAME before and after the cost goes short and compared — Remove and New
+     have their own bounds and are allowed to be off, so a count taken only
+     after would prove nothing. */
+A.state.restore(d40Saved);
+A.state.flush();
+clearPanel();
+aePress(aeOpenBtn);
+aeOpen('cats', 'slash');
+const d40Shipped = d40Read();
+
+// The same cost, said by the other pane, off the same report.
+press(nlOpenBtn); release(nlOpenBtn);
+A.state.flush();
+const d40PaneLines = dom.byId['act-prop-cost'].querySelectorAll('.ae-prop-report')
+  .map(d40Text);
+const d40BackBtn = dom.byId['act-prop-back'];
+if (d40BackBtn) { press(d40BackBtn); release(d40BackBtn); A.state.flush(); }
+
+// A side-scope type and a unit-scope type, so the cost can name one of each.
+const d40Side = A.ops.createTokenType({
+  name: 'Momentum', shape: 'hex', color: 'violet', glyph: '', scope: 'side'
+});
+A.ops.setTally('cats', null, d40Side, 5);
+A.state.flush();
+const d40Act = (() => { aeOpen('cats', 'slash'); aePress(aeNew); return aeDialog.dataset.edPick; })();
+// Taken HERE and not on the shipped board, which is the whole point of the
+// pairing: Remove is disabled on a shipped action and enabled on an authored
+// one, so a before-reading taken on Slash and an after-reading taken on this
+// action would differ for a reason that has nothing to do with a cost.
+const d40OffAtRest = d40Off();
+
+aePress(aePillFor('cost', 0, 'edTok', 'ap'));
+aeTypeAmount(aeAmtOf('cost', 0), '2');
+aeAmtOf('cost', 0).blur();
+A.state.flush();
+const d40OneTerm = d40Read();
+
+aePress(aePillFor('cost', 1, 'edTok', d40Side));
+aeTypeAmount(aeAmtOf('cost', 1), '3');
+aeAmtOf('cost', 1).blur();
+A.state.flush();
+const d40TwoPools = d40Read();
+
+aePress(aePillFor('cost', 2, 'edTok', 'ap'));
+aeTypeAmount(aeAmtOf('cost', 2), '2');
+aeAmtOf('cost', 2).blur();
+A.state.flush();
+aePress(aePillFor('cost', 3, 'edTok', 'hp'));
+aeTypeAmount(aeAmtOf('cost', 3), '1');
+aeAmtOf('cost', 3).blur();
+A.state.flush();
+const d40Full = d40Read();
+const d40OffWhenShort = d40Off();
+const d40Record = JSON.stringify(aeRecordOf(d40Act).cost);
+
+// AND A TERM TAKEN BACK OFF, through the chooser's own emptying entry, because
+// "live as terms are added, edited, removed" is three verbs and the third is
+// the one a preview built at open would fail.
+aePress(aePillFor('cost', 2, 'edTok', ''));
+A.state.flush();
+const d40Removed = d40Read();
+
+check(
+  '123. D-40 — THE COST REGION PREVIEWS WHAT THE COST DOES TO THE SIDE\'S '
+    + 'POOLS, PER POOL, LIVE, THROUGH THE REAL PILLS AND THE REAL FIELDS. The '
+    + 'developer: "make it so you can preview the depletion of action points '
+    + 'while setting up actions" — the fight tab already depletes while '
+    + 'DECLARING, so this is the authoring surface. THE SHIPPED BOARD IS READ '
+    + 'FIRST and its sentence is COMPARED TO THE PROPOSAL PANE\'S rather than '
+    + 'to a string typed here: costShortSaid is one function, both panes of '
+    + 'this dialog call it, and a change to either wording moves both or '
+    + 'reddens this — row 111\'s technique on a fifth pair. THEN A FOUR-TERM '
+    + 'COST, and every clause is its own ruling. TWO TERMS NAMING ONE POOL ARE '
+    + 'ONE ROW AND ARE SUMMED, because a pool has one number and is drawn down '
+    + 'once, and `pays` is per TERM — so a preview that skipped the grouping '
+    + 'would show a student two action-point pools they do not have. A TERM '
+    + 'NAMING A NON-POOL DRAWS NO ROW, which is isPoolToken\'s ruling arriving '
+    + 'at a reading, and the term is asserted PRESENT IN THE RECORD while no '
+    + 'row exists for it, because a clause that only counted rows would pass '
+    + 'over a term the editor had dropped. A TYPE THE STUDENT INVENTED AT SIDE '
+    + 'SCOPE READS IDENTICALLY — D-24 as pixels. THE MARK IS ON THE TAKEN '
+    + 'READING AND ON NEITHER OF THE OTHER TWO, on the SHAPE, because what a '
+    + 'side holds and what is left are not subtractions; a prefix written at '
+    + 'every reading fails that three times. EVERY READING\'S TOOLTIP EQUALS '
+    + 'ITS ACCESSIBLE NAME, which is symQty\'s own contract on a fifth surface. '
+    + 'A TERM REMOVED THROUGH THE CHOOSER\'S EMPTYING ENTRY TAKES ITS AMOUNT '
+    + 'BACK OUT OF THE POOL ROW — added, edited and removed are three verbs and '
+    + 'the third is the one a preview built at open would fail. AND IT DISABLES '
+    + 'NOTHING: the switched-off controls are collected BY NAME at rest and '
+    + 'again with the cost past the pool and compared, because Remove and New '
+    + 'carry bounds of their own and a count taken only afterwards proves '
+    + 'nothing',
+  d40Shipped.hidden === false && d40Shipped.n === 1
+    && d40Shipped.rows[0].says.join(' | ')
+      === '3 Action points this side holds | Removes: 1 Action points when this'
+        + ' action is used | 2 Action points left to spend'
+    && d40Shipped.rows[0].named === true
+    && d40Shipped.rows[0].marks.join(',') === '0,1,0'
+    && d40Shipped.rows[0].onShape === true
+    && d40Shipped.rows[0].toks.join(',') === '3,1,2'
+    && d40Shipped.rows[0].arrow === '→'
+    && d40Shipped.rows[0].short === false
+    && d40PaneLines.length === 1
+    && d40PaneLines[0].slice(-d40Shipped.rows[0].say.length)
+      === d40Shipped.rows[0].say
+    && d40OneTerm.n === 1 && d40OneTerm.rows[0].short === false
+    && d40TwoPools.n === 2
+    && d40Full.n === 2
+    && d40Full.rows[0].says[1] === 'Removes: 4 Action points when this action is used'
+    && d40Full.rows[0].says[2] === '0 Action points left to spend'
+    && d40Full.rows[0].say === 'Not enough to spend. Short by 1.'
+    && d40Full.rows[0].short === true
+    && d40Full.rows[1].says.join(' | ')
+      === '5 Momentum this side holds | Removes: 3 Momentum when this action is'
+        + ' used | 2 Momentum left to spend'
+    && d40Full.rows[1].marks.join(',') === '0,1,0'
+    && d40Full.rows[1].say === 'Enough to spend.'
+    && d40Full.rows[1].short === false
+    && d40Record.indexOf('"hp"') !== -1
+    && d40Removed.n === 2
+    && d40Removed.rows[0].says[1] === 'Removes: 2 Action points when this action is used'
+    && d40Removed.rows[0].say === 'Enough to spend.'
+    && d40OffWhenShort === d40OffAtRest
+    && errPanel.hidden === true,
+  'the shipped board=' + JSON.stringify(d40Shipped)
+    + ' | the proposal pane says ' + JSON.stringify(d40PaneLines)
+    + ' | one ap term=' + JSON.stringify(d40OneTerm.rows.map((r) => r.say))
+    + ' | two pools=' + d40TwoPools.n + ' rows'
+    + ' | four terms=' + JSON.stringify(d40Full)
+    + ' | the record=' + d40Record
+    + ' | after the removal=' + JSON.stringify(d40Removed.rows.map((r) => r.says[1]))
+    + ' | disabled at rest=' + JSON.stringify(d40OffAtRest)
+    + ' vs with the cost short=' + JSON.stringify(d40OffWhenShort)
+    + ' | panel hidden=' + errPanel.hidden
+    + ' | after the removal, the ap sentence=' + JSON.stringify(d40Removed.rows[0].say)
+);
+
+/* 123b. WHETHER IT GOES ON SAYING IT — THE SIGNATURE, AND THE TWO INPUTS D-40
+   FOUND MISSING FROM IT.
+
+   THIS IS PROBE CI's LESSON WRITTEN AS A ROW. A fingerprint that forgets an
+   input does not fail loudly: it PAINTS STALE, and the only frame on which that
+   can be caught is one where the forgotten input moved and NOTHING ELSE DID.
+   Every clause below is that arrangement, built on purpose.
+
+   THE SIDE'S OWN TALLY BAG WAS NOT IN editorSig AND IS REACHED BY A SHIPPED
+   CONTROL. The units' bags were in it — one slot along — which is the shape of
+   near-miss this file keeps finding: the half of a pair the code of the day
+   happened to read got fingerprinted and the other half did not. And this was
+   ALREADY WRONG before D-40: the proposal pane has read faction.tally through
+   presentOnCaster since plan 03.1-07, so the "of 5" in "costs 3 Momentum of 5"
+   could stand over a board that had stopped holding five. The preview is what
+   made it visible, not what made it true.
+
+   THE SCOPE IS DEFENSIVE AND IS ASSERTED AGAINST editorSig DIRECTLY, which is
+   the honest shape for it. No op in this file moves a type's scope — it is
+   written by createTokenType and never again — so a scope that differs on an
+   authored board comes with an id that differs, and the slot beside it has
+   already moved. What it covers is a vocabulary arriving whole from a decoded
+   build code, which can hand back the same id and the same name carrying the
+   other scope; that flips isPoolToken, which decides whether a term names a
+   pool at all. Driving a paste to prove a fingerprint slot would be driving the
+   codec, so the two states are built and the FUNCTION is asked.
+
+   THE FOCUSED FIELD IS THE 67e FAMILY'S CASE AND IT IS DRIVEN. A pool moved
+   from outside while a cost amount field holds focus must reach the preview on
+   that frame — it is a reading and skips nothing — while the field itself keeps
+   the student's half-typed text (D-19), and the paint must then record NO
+   fingerprint, because it is incomplete. All three, because the second and
+   third are what D-34 found and the first is what D-40 adds to them.
+
+   AND D-34's RESTORE, THE SIDE SWITCH AND THE ACTION SWITCH, which are the
+   remaining three verbs in the redirect's own list. */
+A.state.restore(d40Saved);
+A.state.flush();
+clearPanel();
+const d40Tok = A.ops.createTokenType({
+  name: 'Charge', shape: 'hex', color: 'gold', glyph: '', scope: 'side'
+});
+A.ops.setTally('cats', null, d40Tok, 4);
+const d40Act2 = A.ops.createAction('cats', 'Sprint');
+A.ops.setActionCost('cats', d40Act2, 0, d40Tok, 2);
+A.state.flush();
+aeOpen('cats', d40Act2);
+const d40TallyBefore = d40Read().rows[0].says[0];
+const d40SigBefore = aeDialog.dataset.edSig;
+
+// The side bag moved and NOTHING else. Through the shipped op, from outside
+// this dialog, exactly as the board tab's own stepper does it.
+A.ops.setTally('cats', null, d40Tok, 9);
+A.state.flush();
+const d40TallyAfter = d40Read().rows[0].says[0];
+const d40TallySigMoved = aeDialog.dataset.edSig !== d40SigBefore;
+
+// The pool itself, same arrangement.
+const d40ApAct = A.ops.createAction('cats', 'Dash');
+A.ops.setActionCost('cats', d40ApAct, 0, 'ap', 2);
+A.state.flush();
+aeOpen('cats', d40ApAct);
+const d40ApBefore = d40Read().rows[0].says[0];
+A.ops.setFactionAp('cats', 7);
+A.state.flush();
+const d40ApAfter = d40Read().rows[0].says[0];
+
+/* The focused field. The student is halfway through typing an amount when the
+   pool moves under them. */
+const d40Field = aeAmtOf('cost', 0);
+d40Field.focus();
+d40Field.value = '9';
+d40Field.dispatchEvent(dom.event('input'));
+A.ops.setFactionAp('cats', 4);
+A.state.flush();
+const d40WhileFocused = d40Read().rows[0].says[0];
+const d40FieldKept = d40Field.value;
+const d40SigBlanked = aeDialog.dataset.edSig;
+d40Field.blur();
+A.state.flush();
+
+/* The scope slot, DRIVEN rather than asked of the function — because the shape
+   it defends is a whole board arriving at once and that is a thing this harness
+   can actually hand over. Two states differing in NOTHING BUT one type's scope
+   are restored one after the other, which is the miniature of a decoded build
+   code carrying the same ids and the same names at the other scope. If scope
+   were not fingerprinted, the second restore would move no slot in the
+   signature and the gate at the top of editor() would return early over a
+   preview that had stopped being true. Measured: with the slot removed the row
+   below reads 1 and 1. */
+aeOpen('cats', d40Act2);
+const d40ScopeSide = JSON.stringify(A.state.get());
+const d40ScopeUnit = (() => {
+  const copy = JSON.parse(d40ScopeSide);
+  copy.build.tokens[d40Tok].scope = 'unit';
+  delete copy.build.cats.tally;
+  const back = JSON.parse(d40ScopeSide);
+  delete back.build.cats.tally;
+  return [JSON.stringify(back), JSON.stringify(copy)];
+})();
+A.state.restore(d40ScopeUnit[0]);
+A.state.flush();
+const d40ScopeRowsSide = d40Read().n;
+A.state.restore(d40ScopeUnit[1]);
+A.state.flush();
+const d40ScopeRowsUnit = d40Read().n;
+A.state.restore(d40ScopeSide);
+A.state.flush();
+
+/* The side switch and the action switch, through the shipped controls. Mechs
+   hold their own pool, so the reading must be about THEIR number. */
+aeOpen('cats', d40ApAct);
+const d40OnCats = d40Read().rows[0].says[0];
+aePress(aeSideMechs);
+A.state.flush();
+const d40OnMechs = d40Read().rows.map((r) => r.says[0]).join(' | ');
+aePress(aeSideCats);
+A.state.flush();
+aeOpen('cats', d40Act2);
+const d40OnOther = d40Read().rows[0].says[0];
+
+/* D-34's restore. The cancel puts the record back, which is the ONE press that
+   can land on exactly the fingerprint an earlier paint recorded — and the
+   preview has to come back with it. */
+A.ops.setActionCost('cats', d40ApAct, 0, 'ap', 2);
+A.state.flush();
+aeOpen('cats', d40ApAct);
+// PRESSED, not painted: the snapshot the cancel puts back is taken in
+// showAction, which is the one place that says which action the editor is
+// showing — 113d's claim. A repaint driven straight at App.render.editor moves
+// the surface and takes no snapshot, so a cancel after one would restore
+// whatever the last real press left behind.
+aePress(cxRowOf(d40ApAct));
+const d40CancelWas = d40Read().rows[0].says[1];
+A.ops.setActionCost('cats', d40ApAct, 0, 'ap', 4);
+A.state.flush();
+const d40CancelEdited = d40Read().rows[0].says[1];
+aePress(cxCancel);
+A.state.flush();
+const d40CancelBack = d40Read().rows[0].says[1];
+
+A.state.restore(d40Saved);
+A.state.flush();
+aeOpen('cats', 'slash');
+if (aeDialog.open === true) { aeDialog.close(); }
+A.state.invalidate({ structural: true });
+A.state.flush();
+clearPanel();
+
+check(
+  '123b. D-40 — THE PREVIEW GOES ON SAYING IT, AND editorSig COVERS WHAT IT '
+    + 'DRAWS. This is probe CI\'s lesson as a row: a fingerprint that forgets '
+    + 'an input does not fail loudly, it PAINTS STALE, and the only frame that '
+    + 'can catch it is one where the forgotten input moved and NOTHING ELSE '
+    + 'DID — which is how every clause here is built. THE SIDE\'S OWN TALLY BAG '
+    + 'WAS NOT IN THE FINGERPRINT and is reached by a shipped op: the UNITS\' '
+    + 'bags were in it, one slot along, which is the near-miss this file keeps '
+    + 'finding. IT WAS ALREADY WRONG BEFORE D-40 — the proposal pane has read '
+    + 'faction.tally through presentOnCaster since plan 03.1-07, so "costs 3 '
+    + 'Momentum of 5" could stand over a board holding nine; the preview made '
+    + 'it visible, it did not make it true. THE POOL ITSELF is driven the same '
+    + 'way. THE FOCUSED FIELD IS THE 67e FAMILY\'S CASE, all three halves: the '
+    + 'preview MOVES on the frame a pool changes under a student mid-keystroke '
+    + 'because it is a reading and skips nothing, the field KEEPS their '
+    + 'half-typed text because D-19 says a repaint may never write a focused '
+    + 'one, and the paint records NO fingerprint because it is incomplete — '
+    + 'D-34\'s finding, with a new reading riding on it. THE SCOPE SLOT COVERS '
+    + 'A PATH NO OP TAKES AND THAT IS SAID PLAINLY: nothing in this file moves '
+    + 'a type\'s scope after createTokenType writes it, so what the slot is for '
+    + 'is a vocabulary arriving WHOLE from a decoded build code carrying the '
+    + 'same id and the same name at the other scope — which flips isPoolToken, '
+    + 'and therefore flips both this preview and the proposal pane\'s choice of '
+    + 'sentence. It is DRIVEN as exactly that: two whole states differing in '
+    + 'nothing else, restored one after the other, so with the slot missing no '
+    + 'signature moves and the gate at the top of editor() returns early over a '
+    + 'preview that has stopped being true. AND '
+    + 'THE THREE REMAINING VERBS: the side switch reads the OTHER faction\'s '
+    + 'pool, the action switch reads the other rule\'s, and D-34\'s cancel '
+    + 'brings the preview back with the record it restores',
+  d40TallyBefore === '4 Charge this side holds'
+    && d40TallyAfter === '9 Charge this side holds'
+    && d40TallySigMoved === true
+    && d40ApBefore === '3 Action points this side holds'
+    && d40ApAfter === '7 Action points this side holds'
+    && d40WhileFocused === '4 Action points this side holds'
+    && d40FieldKept === '9'
+    && d40SigBlanked === ''
+    && d40ScopeRowsSide === 1 && d40ScopeRowsUnit === 0
+    && d40OnCats === '4 Action points this side holds'
+    && d40OnMechs === '3 Action points this side holds'
+    && d40OnOther === '9 Charge this side holds'
+    && d40CancelWas === 'Removes: 2 Action points when this action is used'
+    && d40CancelEdited === 'Removes: 4 Action points when this action is used'
+    && d40CancelBack === d40CancelWas
+    && errPanel.hidden === true,
+  'the side tally ' + JSON.stringify(d40TallyBefore) + ' -> '
+    + JSON.stringify(d40TallyAfter) + ' (sig moved=' + d40TallySigMoved + ')'
+    + ' | the pool ' + JSON.stringify(d40ApBefore) + ' -> ' + JSON.stringify(d40ApAfter)
+    + ' | with a cost field focused the preview says ' + JSON.stringify(d40WhileFocused)
+    + ', the field still holds ' + JSON.stringify(d40FieldKept)
+    + ' and the paint recorded sig=' + JSON.stringify(d40SigBlanked)
+    + ' | pool rows with the type at side scope=' + d40ScopeRowsSide
+    + ' and at unit scope=' + d40ScopeRowsUnit
+    + ' | cats=' + JSON.stringify(d40OnCats) + ' mechs=' + JSON.stringify(d40OnMechs)
+    + ' other action=' + JSON.stringify(d40OnOther)
+    + ' | cancel: ' + JSON.stringify(d40CancelWas) + ' -> '
+    + JSON.stringify(d40CancelEdited) + ' -> ' + JSON.stringify(d40CancelBack)
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore
