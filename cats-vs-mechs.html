@@ -393,6 +393,44 @@
   }
 
   /* ==================================================================
+     D-39 P2-12 — ONE CONVENTION FOR "THIS DELETES THE STUDENT'S WORK".
+     ==================================================================
+     Measured: #tok-pick-remove and #act-edit-remove both carried class
+     "brd-btn", byte for byte the same as the CREATE buttons beside them —
+     "Remove this type" identical to "New type on each unit", "Remove this
+     action" identical to "New action". Meanwhile #reset-ask-confirm and
+     #err-reset carry brd-btn--danger and .unit-rm has its own --accent-2
+     channel. Three conventions for the same act, and the two dialogs where
+     a student actually destroys an action or a token type had none of them.
+
+     IT IS DEMOTION PLUS SEPARATION AND NOT REDDENING, which is the call
+     D-33 P1-6 already made for the fight's destructive control and the one
+     this file has been consistent about since [C04]: a control that TAKES
+     SOMETHING AWAY is available rather than inviting, --accent-2 is
+     reserved for its hover and focus, and opacity stays 1 at all times so
+     nothing is revealed by pointing at it. The three declarations are
+     .unit-rm's own, restated on a modifier so the base .brd-btn keeps the
+     ramp, the disabled treatment and the pill geometry the row needs.
+
+     margin-inline-start:auto IS THE "SEPARATION" HALF. Both rows are
+     justify-content:flex-start flex rows, so an auto start margin puts this
+     control at the far end with the whole row's slack between it and the
+     create button — which is the arrangement the audit asks for and the one
+     .pk-actions already uses when it is not the --new variant.
+
+     IT IS A MODIFIER AND THE HOVER IS NESTED, both deliberately. Every
+     :hover in this file is nested and carries (0,2,0); a flat
+     `.brd-btn--rm:hover` written outside would tie with .brd-btn's and lose
+     on nothing but source order, which is a cascade nobody can see. Nested,
+     it is (0,2,0) declared after (0,2,0) and wins where it is read. */
+  .brd-btn--rm{
+    background:transparent;color:var(--ink-dim);
+    margin-inline-start:auto;
+    &:hover{border-color:var(--state-hover-line-2);background-image:var(--state-hover-wash-2);color:var(--accent-2)}
+    &:focus{border-color:var(--accent-2);color:var(--accent-2)}
+  }
+
+  /* ==================================================================
      D-33 P3-9 ASKED FOR A FRACTIONAL MIDDLE TRACK BELOW 1600, AND THE
      MEASUREMENT SAYS NO. Plan 05-D33c — recorded rather than left as an
      unexplained 320.
@@ -7211,7 +7249,7 @@
   <div class="pk-actions pk-actions--new">
     <button class="brd-btn" type="button" id="tok-pick-new-unit" data-act="createTokenType" data-scope="unit" data-k="pk/new-unit">New type on each unit</button>
     <button class="brd-btn" type="button" id="tok-pick-new-side" data-act="createTokenType" data-scope="side" data-k="pk/new-side">New type on the whole side</button>
-    <button class="brd-btn" type="button" id="tok-pick-remove" data-act="removeTokenType" data-k="pk/remove">Remove this type</button>
+    <button class="brd-btn brd-btn--rm" type="button" id="tok-pick-remove" data-act="removeTokenType" data-k="pk/remove">Remove this type</button>
   </div>
 
   <!-- ACT-07 and D-12: what a removal will break, said BEFORE it happens.
@@ -7467,7 +7505,7 @@
          repaint, so an undo moves them too. -->
     <div class="ae-row ae-actions--new">
       <button class="brd-btn" type="button" id="act-edit-new" data-act="createAction" data-k="ae/new">New action</button>
-      <button class="brd-btn" type="button" id="act-edit-remove" data-act="removeAction" data-k="ae/remove">Remove this action</button>
+      <button class="brd-btn brd-btn--rm" type="button" id="act-edit-remove" data-act="removeAction" data-k="ae/remove">Remove this action</button>
     </div>
 
     <!-- Deliberately NOT one of the board's stepper fields, for the reason
