@@ -5300,9 +5300,27 @@
      NOT ONE NEW COLOUR. Every value below is a custom property [C00] already
      publishes or a color-mix over one, which is [C07]'s rule and the one [C13]
      and [C14] each restate about themselves. */
+  /* ==================================================================
+     D-39 P2-1 — THE BREAKOUT, THE SIXTH AND SEVENTH REGIONS TO CARRY IT.
+     ==================================================================
+     Measured at 1920: .shell-head, #topbar, #views, #board and #refband all
+     at x=160 w=1600, and #roundrules and #howto at x=342 w=1236. 182px of
+     inset, on the two regions added AFTER D-33b fixed exactly this defect
+     for .shell-head — and #roundrules sits directly under #refband, so the
+     two edges are 182px apart and vertically adjacent.
+
+     THE FORMULA IS COPIED CHARACTER FOR CHARACTER from .shell-head's, which
+     copied it from #topbar's, which copied it from #board's. [C15]'s banner
+     states the trap that makes the SPELLING matter: a `margin` SHORTHAND
+     landing after a computed `margin-left` LONGHAND silently zeroes it and
+     puts the region 182px out of alignment with no error and no warning —
+     which is exactly the number this entry is fixing. So the shorthand goes
+     FIRST and the longhand after it. */
   #roundrules{
     margin:0 0 24px;padding:16px 18px;
     background:var(--panel);border:1px solid var(--line);border-radius:14px;
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
 
   /* The legend and its note on ONE line, which is .ae-term-head's measurement
@@ -5564,7 +5582,26 @@
      untouched. #board is named whole rather than .brd-col: #strip and .ref-sb
      live inside it and a view that is not the fight has nothing to say with
      either. */
+  /* D-39 P2-1's other half — the same breakout #roundrules takes three
+     blocks up, in the same spelling and for the same measured reason. It
+     goes on the base rule rather than on the data-view rule because a width
+     is a width whether the region is displayed or not, and because [C18]'s
+     own banner forbids editing the `#app[data-view=...]` rules: several gate
+     rows read those rule bodies BY NAME off the stylesheet. */
   #howto{display:none}
+  /* THE BREAKOUT IS A SECOND RULE ON THE SAME SELECTOR, AND THAT IS THE GATE
+     TALKING RATHER THAN A STYLE PREFERENCE. Folding these two declarations
+     into the rule above turned check 125 RED on the first run: it reads all
+     six [C18] rule bodies BY NAME off the stylesheet — "#howto{display:none}"
+     among them — because with no layout engine, "the board goes away on the
+     how-to tab" is a CSS claim and reading the rule is the whole of what a
+     gate with no browser can do about it. [C18]'s own banner warned about
+     exactly this and the warning was worth having. So the named body stays
+     byte-identical and the width arrives beside it. */
+  #howto{
+    width:min(var(--boardw), calc(100vw - 44px));
+    margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+  }
   #app[data-view="howto"] #howto{display:grid;gap:18px}
   #app[data-view="howto"] #board{display:none}
   #app[data-view="howto"] .fg-band{display:none}
