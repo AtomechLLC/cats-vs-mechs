@@ -4069,7 +4069,10 @@ for (const ch of ['chrome', 'msedge']) {
       const btn = document.createElement('button');
       btn.id = 'd39-defect-probe';
       btn.addEventListener('click', App.boot.wrap('d39 defect probe', function () {
-        throw new TypeError('a genuine defect, not a typed value');
+        // The message is long on purpose: .err-detail's scrollbar is read on
+        // this same panel below, and a box that does not overflow draws no bar.
+        throw new TypeError('a genuine defect, not a typed value. '
+          + Array.from({ length: 40 }, (unused, i) => 'frame ' + i).join(' / '));
       }));
       document.body.appendChild(btn);
     });
@@ -4088,7 +4091,48 @@ for (const ch of ['chrome', 'msedge']) {
         .backgroundColor,
       dismissLabel: document.querySelector('#err-dismiss').textContent,
       resetLabel: document.querySelector('#err-reset').textContent,
-      resetDisabled: document.querySelector('#err-reset').disabled
+      resetDisabled: document.querySelector('#err-reset').disabled,
+      /* AND THE STACK-TRACE BOX'S SCROLLBAR, WHICH IS D-39 P3-7 AND WAS
+         D-39 Pass B's own deferred item. .err-detail was the last box in
+         this file outside [C16]'s scroller list, so Chrome drew it in the
+         light default — a white bar down the right of a dark panel, byte
+         for byte the defect D-33 Pass C fixed on .pk-body one region over.
+         Pass B found it on a screenshot taken with --hide-scrollbars
+         removed and logged it rather than fixing it, because it predated
+         that task; this cell is where the fix is read back.
+
+         WHAT THIS RUNNER CANNOT SEE IS SAID HERE RATHER THAN ASSUMED, and
+         a first draft of this clause got it exactly backwards. It asserted
+         the GUTTER — offsetWidth minus clientWidth — on the argument that
+         a gutter is the only thing that proves a bar is drawn. That is
+         P1-3's correction and it is true of a runner that drops
+         --hide-scrollbars. THIS RUNNER DOES NOT DROP IT: line 81 launches
+         with Playwright's defaults, so headless Chrome hides every bar in
+         every cell in this file, and the gutter here read 2px — which is
+         .err-detail's own two 1px borders and is EXACTLY the "no scrollbar
+         takes any width" figure the D-39 audit reported and Pass B
+         explained. A clause asserting `> 0` on that number would have been
+         green on a box with no styling at all.
+
+         SO WHAT IS ASSERTED IS WHAT THE STYLE SAYS AND WHAT THE BOX DOES:
+         scrollbar-width is thin, scrollbar-color names [C00]'s thumb token
+         rather than the initial `auto`, the four-layer edge cue is on it,
+         and the box genuinely overflows so there is something to scroll.
+         The stack is made long on purpose for that last clause. THE PIXEL
+         HALF WAS TAKEN OUT OF BAND: driven at 1400x900 in real Chrome with
+         --hide-scrollbars removed, the gutter is 12px and the bar is dark.
+         Photographed. If a later pass drops the flag from line 81, the
+         gutter clause belongs back here and this paragraph is why. */
+      detailGutter: document.querySelector('#err-detail').offsetWidth
+        - document.querySelector('#err-detail').clientWidth,
+      detailBar: getComputedStyle(document.querySelector('#err-detail'))
+        .scrollbarWidth,
+      detailThumb: getComputedStyle(document.querySelector('#err-detail'))
+        .scrollbarColor,
+      detailCue: (getComputedStyle(document.querySelector('#err-detail'))
+        .backgroundImage.match(/linear-gradient/g) || []).length,
+      detailOverflows: document.querySelector('#err-detail').scrollHeight
+        > document.querySelector('#err-detail').clientHeight
     }));
     // Conditional, for the reason the cleanup above states in full.
     await pg.evaluate(() => {
@@ -4114,9 +4158,14 @@ for (const ch of ['chrome', 'msedge']) {
       `${d39Clamp.field} / ${d39Clamp.record}`);
     note(ch, size.name, 'D-39 P1-1 a genuine defect still reaches the panel',
       `${d39Defect.panelOpen} "${d39Defect.title}"`);
+    // The gutter is PRINTED and not judged, for the reason written at the read:
+    // this runner keeps --hide-scrollbars, so 2px here is the box's own borders.
+    note(ch, size.name, 'D-39 P3-7 .err-detail bar / thumb / cue / overflows',
+      `${d39Defect.detailBar} ${d39Defect.detailThumb} ${d39Defect.detailCue}`
+      + ` ${d39Defect.detailOverflows} (gutter ${d39Defect.detailGutter}px, bars hidden)`);
     note(ch, size.name, 'D-39 P1-1 a DRIFTED routing attribute, through the commit site',
       `panel=${d39Drifted.panelOpen} said stayed empty=${d39Drifted.saidStayedEmpty} says="${String(d39Drifted.says).slice(0, 34)}"`);
-    ok(`${tag}: 25d. D-39 P1-1 — ALL SIX TYPED-VALUE COMMIT PATHS, ACROSS SEVEN FIELDS, TAKE THE REFUSAL PATH ON ENTER AND THE PANEL STAYS SHUT, THE TWO DIALOGS STAY OPEN, AND A GENUINE DEFECT STILL OPENS THE PANEL. Every field in this artifact routed a refusal-worthy typo into the global crash panel on Enter — measured, six commit paths, "SOMETHING WENT WRONG" with a raw stack trace, and in both authoring dialogs the dialog CLOSED and the session went with it. Each of the six is driven here with real keystrokes through the shipped openers: the guard's own sentence lands on that surface's own said line with a real box, the panel stays hidden, the dialog stays open, and the board is byte-identical to what it was before the first keystroke. The SAME value on the SAME field by BLUR is driven beside each, because that path already worked and is what the fix was written against — both must end in the same place, and Enter differs only by leaving a sentence. The field and the record agree after a clamped commit, which is P1-1's second repair. The panel's accented control is now the one that KEEPS the build and the reset is demoted rather than reddened, which is P1-1's third. AND THE LAST TWO DRIVES ARE WHY THIS IS NOT A BLANKET CATCH. The first version of that clause threw from a listener registered through App.boot.wrap, which never reaches a commit site at all — PROBE DL replaced isRefusal's body with a bare return-true and the whole gate stayed green over it, 322 passed and 0 failed. So the defect is now raised where a real one would be: #act-edit-cost-0-amt's routing attribute is drifted, a perfectly good number is typed and committed with Enter, [S07.3]'s allowlist throws the TypeError it exists to throw, and #err-panel MUST open with the said line still EMPTY. A blanket catch puts that message on the surface instead and reddens here`,
+    ok(`${tag}: 25d. D-39 P1-1 — ALL SIX TYPED-VALUE COMMIT PATHS, ACROSS SEVEN FIELDS, TAKE THE REFUSAL PATH ON ENTER AND THE PANEL STAYS SHUT, THE TWO DIALOGS STAY OPEN, AND A GENUINE DEFECT STILL OPENS THE PANEL. Every field in this artifact routed a refusal-worthy typo into the global crash panel on Enter — measured, six commit paths, "SOMETHING WENT WRONG" with a raw stack trace, and in both authoring dialogs the dialog CLOSED and the session went with it. Each of the six is driven here with real keystrokes through the shipped openers: the guard's own sentence lands on that surface's own said line with a real box, the panel stays hidden, the dialog stays open, and the board is byte-identical to what it was before the first keystroke. The SAME value on the SAME field by BLUR is driven beside each, because that path already worked and is what the fix was written against — both must end in the same place, and Enter differs only by leaving a sentence. The field and the record agree after a clamped commit, which is P1-1's second repair. The panel's accented control is now the one that KEEPS the build and the reset is demoted rather than reddened, which is P1-1's third. AND THE LAST TWO DRIVES ARE WHY THIS IS NOT A BLANKET CATCH. The first version of that clause threw from a listener registered through App.boot.wrap, which never reaches a commit site at all — PROBE DL replaced isRefusal's body with a bare return-true and the whole gate stayed green over it, 322 passed and 0 failed. So the defect is now raised where a real one would be: #act-edit-cost-0-amt's routing attribute is drifted, a perfectly good number is typed and committed with Enter, [S07.3]'s allowlist throws the TypeError it exists to throw, and #err-panel MUST open with the said line still EMPTY. A blanket catch puts that message on the surface instead and reddens here. AND WHILE THE PANEL IS OPEN, ITS STACK-TRACE BOX IS READ FOR ITS SCROLLBAR — D-39 P3-7, and Pass B's own deferred item. .err-detail was the last box in this file outside [C16]'s scroller list, so Chrome drew it in the light default: a white bar down the right of a dark panel, byte for byte the defect D-33 Pass C fixed on .pk-body one region over. WHAT THIS RUNNER CANNOT SEE IS SAID AT THE READ RATHER THAN ASSUMED, and a first draft of this clause got it backwards: it asserted the gutter, on P1-3's argument that a gutter is the only proof a bar exists — which is true of a runner that drops --hide-scrollbars, and THIS RUNNER DOES NOT DROP IT. The gutter read 2px, which is the textarea's own two borders and is exactly the "no scrollbar takes any width" figure the audit reported and Pass B explained. So what is asserted is what the style says and what the box does: thin, a thumb colour that is not the initial auto, the four-layer cue, and a box that genuinely overflows — the thrown message is made long on purpose for that last one. The pixel half was taken out of band at 1400x900 with the flag removed: 12px of gutter and a dark bar, photographed`,
       d39Paths.length === 7 && d39Distinct === true
       && d39EnterOk === true && d39BlurOk === true
       && d39BoardGone.said === ''
@@ -4134,6 +4183,9 @@ for (const ch of ['chrome', 'msedge']) {
       && d39Defect.dismissLabel === 'Dismiss and continue'
       && d39Defect.resetLabel === 'Reset to Workshop 16 defaults'
       && d39Defect.resetDisabled === false
+      && d39Defect.detailOverflows === true
+      && d39Defect.detailBar === 'thin'
+      && d39Defect.detailThumb !== 'auto' && d39Defect.detailCue === 4
       && d39PickerUnmoved === true && d39EditorUnmoved === true
       && d39PageUnmoved === true
       && d39RulesAfter === d39RulesBefore,

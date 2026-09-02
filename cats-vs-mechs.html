@@ -1215,7 +1215,16 @@
   .err-panel[hidden]{display:none}
   .err-title{font-weight:700;color:var(--ink)}
   .err-message{color:var(--ink-dim)}
-  .err-detail{background:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--ink-dim);
+  /* background-COLOR AND NEVER THE SHORTHAND, which is D-39 Pass B's
+     recorded rule about [C16] and this is the box that made it apply
+     here: this textarea joined [C16]'s scroller list under D-39 P3-7,
+     and the shorthand resets background-image, which is the whole of the
+     edge cue. PROBE DN measured what that costs — the cue silently goes
+     to zero layers with nothing on screen to say so. Order alone would
+     have saved it, because [C16] is later in the sheet at the same
+     specificity; it is written the safe way anyway, because "later in the
+     sheet" is a property of the file and not of the rule. */
+  .err-detail{background-color:var(--panel);border:1px solid var(--line);border-radius:9px;color:var(--ink-dim);
     width:100%;min-height:96px;padding:8px 10px;
     font-family:ui-monospace,Consolas,monospace;font-size:12.5px;resize:vertical;user-select:text}
   .err-actions{display:flex;gap:8px;flex-wrap:wrap}
@@ -6564,8 +6573,20 @@
      scroller treatment — the thin bar, the thumb colour and the four-layer
      edge cue below. Its --fade-cover is --panel, which is #strip's own
      background read straight, exactly as #strip's own entry is. */
+  /* AND .err-detail, ADDED BY D-39 P3-7. It was the LAST box in the file
+     outside this list, so Chrome drew it in the light default — a white
+     bar down the right of a dark panel, which is byte for byte the defect
+     D-33 Pass C found on .pk-body and .ae-body and fixed one region over.
+     Pass B found it on a screenshot taken with --hide-scrollbars removed
+     and logged it rather than fixing it, because it predated that task;
+     this pass is one that touches [C08] and [C16], so it takes it.
+
+     ITS --fade-cover IS --panel, which is the textarea's own background
+     read straight, in #strip's and .pk-body's manner. And [C08]'s rule
+     for it was turned from the `background` shorthand to
+     `background-color` in the same commit, for the reason written there. */
   .fg-field, .ld-list, .ld-row, .ld-now-body, #strip, .ref-sb, .pk-list, .ae-list,
-  .pk-body, .ae-body{
+  .pk-body, .ae-body, .err-detail{
     scrollbar-width:thin;
     scrollbar-color:var(--state-scroll-thumb) transparent;
   }
@@ -6573,27 +6594,30 @@
   .ld-row::-webkit-scrollbar, .ld-now-body::-webkit-scrollbar,
   #strip::-webkit-scrollbar, .ref-sb::-webkit-scrollbar, .pk-list::-webkit-scrollbar,
   .ae-list::-webkit-scrollbar,
-  .pk-body::-webkit-scrollbar, .ae-body::-webkit-scrollbar{width:10px;height:10px}
+  .pk-body::-webkit-scrollbar, .ae-body::-webkit-scrollbar,
+  .err-detail::-webkit-scrollbar{width:10px;height:10px}
   .fg-field::-webkit-scrollbar-track, .ld-list::-webkit-scrollbar-track,
   .ld-row::-webkit-scrollbar-track, .ld-now-body::-webkit-scrollbar-track,
   #strip::-webkit-scrollbar-track, .ref-sb::-webkit-scrollbar-track,
   .pk-list::-webkit-scrollbar-track,
   .ae-list::-webkit-scrollbar-track,
   .pk-body::-webkit-scrollbar-track,
-  .ae-body::-webkit-scrollbar-track{background:transparent}
+  .ae-body::-webkit-scrollbar-track,
+  .err-detail::-webkit-scrollbar-track{background:transparent}
   .fg-field::-webkit-scrollbar-thumb, .ld-list::-webkit-scrollbar-thumb,
   .ld-row::-webkit-scrollbar-thumb, .ld-now-body::-webkit-scrollbar-thumb,
   #strip::-webkit-scrollbar-thumb, .ref-sb::-webkit-scrollbar-thumb,
   .pk-list::-webkit-scrollbar-thumb,
   .ae-list::-webkit-scrollbar-thumb,
-  .pk-body::-webkit-scrollbar-thumb, .ae-body::-webkit-scrollbar-thumb{
+  .pk-body::-webkit-scrollbar-thumb, .ae-body::-webkit-scrollbar-thumb,
+  .err-detail::-webkit-scrollbar-thumb{
     background:var(--state-scroll-thumb);border-radius:999px;
   }
 
   /* The vertical six, and the two dialog bodies D-33 Pass C added to
      them. */
   .fg-field, .ld-row, .ld-now-body, #strip, .ref-sb, .pk-list, .ae-list,
-  .pk-body, .ae-body{
+  .pk-body, .ae-body, .err-detail{
     background-image:
       linear-gradient(to bottom, var(--fade-cover) 60%, transparent),
       linear-gradient(to top, var(--fade-cover) 60%, transparent),
@@ -6626,7 +6650,7 @@
      reads that one, because the next selector moved into this block will
      be one that is read. */
   .fg-area .fg-field{--fade-cover:var(--panel-2)}
-  .pk-list, .ae-list, .pk-body, .ae-body{--fade-cover:var(--panel)}
+  .pk-list, .ae-list, .pk-body, .ae-body, .err-detail{--fade-cover:var(--panel)}
   #strip, .ref-sb{--fade-cover:var(--panel)}
   .ld-list{--fade-cover:var(--bg)}
   .ld-row{--fade-cover:color-mix(in srgb, var(--panel) 55%, var(--bg))}
