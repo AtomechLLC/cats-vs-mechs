@@ -5139,8 +5139,25 @@
      one — a grid rather than a flex row so every row's − lands in the same
      column whatever its label is called, which is what makes a column of them
      scannable at a glance on a projector. */
+  /* ==================================================================
+     FIVE COLUMNS AND NOT FOUR — D-39 P2-8. Plan 05-D39d.
+     ==================================================================
+     The audit measured three stepper presentations in one artifact and
+     this was the only one without a figure: #fg-unit's rows drew
+     `label - [tokens] +` with NO numeral, while #fg-nudge 200px away on
+     the same tab drew `- 3 +` and the board's own .stp-field drew `3`.
+     "A student ruling health from 3 to 2 in the popup watches a token
+     disappear and never sees a number; the same student ruling the
+     team's action points 200px away sees 3 become 2."
+
+     So the numeral goes where #fg-nudge puts it — between the minus and
+     the plus — and the tokens stay beside it, which is the audit's own
+     prescription and keeps both readings rather than trading one for the
+     other. The column is `auto` and .fgu-num carries the minimum, for
+     .fgu-val's own stated reason one rule down: the row must not reflow
+     while a held minus steps the count through 11, 10, 9. */
   .fgu-row{
-    display:grid;grid-template-columns:1fr auto auto auto;
+    display:grid;grid-template-columns:1fr auto auto auto auto;
     align-items:center;gap:8px;
     padding:6px 8px;border:1px solid var(--line);border-radius:10px;
     background:var(--bg-2);
@@ -5160,9 +5177,52 @@
      photographing. Centred, the − and the + sit either side of the quantity
      the way [C06]'s stepper does, and the + still lines up straight down the
      column because the grid decides that and not the content. */
+  /* THE MINIMUM CAME DOWN WITH D-39 P2-8's FIGURE, 96 TO 64. The 96 was
+     buying the no-reflow guarantee this paragraph states, and .fgu-num
+     now buys it instead: the figure is the stable-width part of the
+     reading and the strip beside it is the part that grows. Measured at
+     the shipped 320px box: at 96 the five columns overflowed their own
+     row — rowsSW 307 against clientWidth 290, a horizontal scrollbar
+     under the box and the + cut off its right edge, at both viewports.
+     At 64 the row fits with the box unchanged and the popup comes down
+     from 286px to 271px.
+
+     THE LABEL IS WHAT GIVES if a reading grows past the minimum, because
+     the label's track is the 1fr and every other track is auto. THE PLUS
+     NEVER MOVES: driven 0 to 15 on a shield at 1366, its x reads 307 at
+     every count, before this change and after it.
+
+     THE MINUS DOES MOVE A LITTLE AND IT DID BEFORE, which is measured
+     rather than assumed, because a button that shifts under a held finger
+     is exactly what this paragraph's own guarantee was written about. The
+     same drive on the COMMITTED file, at min-width 96:
+
+       committed   minus x  151 / 145 / 139     .fgu-val  96 / 102 / 108
+       after       minus x  149 / 141 / 139     .fgu-val  64 /  72 /  74
+
+     The strip passes its own minimum at high counts either way, so the
+     cell grows and the label gives — three positions before and three
+     after, two pixels more travel. What the 96 was buying was a HIGHER
+     THRESHOLD for that, not immunity from it, and the figure now carries
+     the part of the reading a held press is actually watching. */
   .fgu-val{
-    min-width:96px;display:flex;align-items:center;justify-content:center;
+    min-width:64px;display:flex;align-items:center;justify-content:center;
     font-size:18px;color:var(--ink);font-variant-numeric:tabular-nums;
+  }
+  /* THE FIGURE, IN .fgn-val's IDIOM AT THIS SURFACE'S OWN SIZE — D-39
+     P2-8. The nudge's own reading is 24px inside a 44px chrome, which is
+     the size a box holding ONE value can afford; this box holds three or
+     four rows and the whole of [C14.7] runs at 18px, so the figure takes
+     18px and the WEIGHT does the work instead. tabular-nums for the
+     reason [C03] gives on the board's values and .fgn-val restates: these
+     move under the eye on every press, and proportional digits make them
+     jitter sideways while they do. A minimum and never a fixed width, so
+     a three-digit reading does not clip and a one-digit one does not
+     leave the minus and the plus a hand's width apart. */
+  .fgu-num{
+    min-width:2.5ch;text-align:center;
+    font-size:18px;font-weight:700;color:var(--ink);
+    font-variant-numeric:tabular-nums;
   }
   /* Geometry inherited from [C06]'s .stp-btn, which the markup also wears.
      This rule exists for [C14.6]'s one reason only: the box sits on --panel
@@ -5200,10 +5260,29 @@
      the state changes, which is .dc-check's own shipped choice. */
   .fgu-alive .dc-check{visibility:hidden}
   .fgu-alive--on .dc-check{visibility:visible}
-  /* The dead row spans its buttons the way a value row spans its pair, so the
-     toggle sits in the same column the + does and the column reads straight
-     down. */
-  .fgu-row--dead .fgu-alive{grid-column:2 / -1;justify-self:end}
+  /* ==================================================================
+     THE DEAD ROW TAKES THE VALUE ROWS' SHAPE — D-39 P2-8's second item.
+     Plan 05-D39d.
+     ==================================================================
+     It used to span `2 / -1`, which put the toggle across every column
+     the other rows use for their pair and their figure, so it took a line
+     of its own: measured at 1920, 92px against the value rows' 46. The
+     audit: "the popup's fourth row also has a different grammar from its
+     first three."
+
+     Now it sits in the LAST column only — the one the + occupies on every
+     row above it — so the four rows read down as one shape and the row
+     comes back to the others' height. The marker's own symbol stays in
+     .fgu-val's column, where the other rows draw theirs, which is the
+     half of the old arrangement that was right. */
+  /* AND THE MARKER'S OWN CELL IS PLACED EXPLICITLY, because the dead row
+     builds THREE children against the value rows' five: auto-placement
+     would drop its symbol into the MINUS column, and a box whose fourth
+     row puts its reading under three minus signs is the grammar this
+     finding is about with one cell moved. Named to the same track the
+     value rows' reading takes, which is the second from the end. */
+  .fgu-row--dead .fgu-alive{grid-column:-2 / -1;justify-self:end}
+  .fgu-row--dead .fgu-val{grid-column:-3 / -2}
 
   /* ===================== [C15] THE VIEW SWITCH ===================== */
   /* The switch between the board and the fight, plan 05-12, plus D-28's
@@ -27054,6 +27133,12 @@ App.render = (function () {
     row.appendChild(lbl);
 
     row.appendChild(fguStep(side, unit.id, tok, -1, '−', 'less'));
+    /* D-39 P2-8's figure, between the minus and the plus, which is where
+       #fg-nudge puts its own. It is a span with no press on it, exactly
+       as .fgu-val is, so the focus contract this function's own banner
+       states is unchanged: the READING is replaced every frame and the
+       two buttons are never touched. */
+    row.appendChild(el('span', 'fgu-num'));
     row.appendChild(el('span', 'fgu-val'));
     row.appendChild(fguStep(side, unit.id, tok, 1, '+', 'more'));
 
@@ -27151,6 +27236,16 @@ App.render = (function () {
         val.appendChild(symQty(state, tok, n, who + ' ', ', ' + n + '.'));
       }
 
+      /* D-39 P2-8's figure, written with fgnText for the reason every
+         other reading on these two surfaces uses it: it writes only when
+         the string differs, so a frame that changed nothing touches no
+         text node. The DEAD row gets none — a marker is a state and not a
+         quantity, and printing "0" or "1" beside a toggle that already
+         says "Mark dead" or "Marked dead" in words would be a third
+         reading of a boolean. Its own branch below returns before this. */
+      var num = row.querySelector('.fgu-num');
+      if (num) { fgnText(num, String(n)); }
+
       if (tok === 'dead') {
         // Three channels from ONE reading, which is what makes them unable to
         // contradict each other rather than merely unlikely to — D-33 P3-2's
@@ -27182,16 +27277,56 @@ App.render = (function () {
         setData(btn2, { albl: tok });
       }
 
-      // The bound, said only when the number is sitting on one — fgnBoundSaid
-      // is CALLED and not restated, so a student who met that sentence on a
-      // team resource meets the same sentence here. It names no type, because
-      // the row's own label two cells left already says which value this is.
+      /* THE BOUND, SAID IN ANSWER TO A PRESS AND NOT AT REST — D-39 P2-9.
+         Plan 05-D39d.
+
+         fgnBoundSaid is still CALLED and not restated, so a student who
+         met that sentence on a team resource meets the same sentence here,
+         and it still names no type because the row's own label two cells
+         left says which value this is. What changed is WHEN.
+
+         The audit measured the popup ON OPEN, before anything was pressed:
+         the Shield row already read "This board keeps this number between
+         0 and 99." — the default pair a student never authored — and after
+         two presses at the floor it read under TWO rows at once, 120px of
+         a 440px box, re-laying the remaining rows out each time. "A row
+         sitting at a bound with no press is not a refusal", and that is
+         exactly right: the sentence is an ANSWER and nothing had asked.
+
+         THE ARITHMETIC IS HERE AND THE PRESS ONLY SAYS THAT IT HAPPENED,
+         which is the seam this region already keeps everywhere else:
+         bfAmount is [S06.11]'s and this pass is the only place that reads
+         it for this box, so [S07.5] recording "a press landed on this row"
+         is a PAGE fact and "the number did not move" stays a reading. The
+         alternative — the press reaching for the model — would put the
+         same derivation in two IIFEs, which is P1-2's finding.
+
+         fguWas IS LAST FRAME'S FIGURE and fguPressed is the press. A press
+         with an unchanged figure is a refusal and the sentence goes up; a
+         press that moved it clears the mark, which is dropSaidLine's rule
+         at a fourth surface — a sentence about a press stops being true the
+         moment the thing it was about changes. The press mark is consumed
+         here so one press answers once.
+
+         AND THE END IS NAMED BY THE ROW AND NOT BY A SECOND SENTENCE,
+         which is what P2-8 in this same commit paid for. The audit's other
+         half asks the sentence to say WHICH end refused; the row now prints
+         the figure between its minus and its plus, so "between 0 and 99"
+         standing beside a visible 0 says it with no new string to write, to
+         scan, or to keep in step with the pair it quotes. */
       var says = row.querySelector('.fgu-says');
       if (says) {
-        var said = fgnBoundSaid(state, tok, n);
+        var wasSaid = String(row.dataset.fguWas || '');
+        var pressed = String(row.dataset.fguPressed || '') === '1';
+        var refused = pressed && wasSaid === String(n);
+        if (refused) { setData(row, { fguRefused: '1' }); }
+        if (pressed && !refused) { setData(row, { fguRefused: '' }); }
+        var said = (String(row.dataset.fguRefused || '') === '1')
+          ? fgnBoundSaid(state, tok, n) : '';
         fgnText(says, said);
         says.hidden = (said === '');
       }
+      setData(row, { fguWas: String(n), fguPressed: '' });
     });
   }
 
@@ -32418,6 +32553,27 @@ App.interactions = (function () {
      carries one, so bfTokenIds never lists it and no row draws it — and if a
      stale attribute ever named it, setFightAp's own shape refuses a unit and
      the refusal is [S05]'s to raise rather than a guard repeated here. */
+  /* D-39 P2-9. The press says a press happened and NOTHING ELSE — the
+     comparison that decides whether it was refused is [S06.15]'s, beside
+     the derivation it is a comparison of. Two attributes, both on the row,
+     both dropped by the frame that reads them.
+
+     IT IS ON THE ROW AND NOT IN STATE, and that is plan 05-05's own
+     argument about the by-hand marker restated: "was this press refused?"
+     is a fact about a gesture and not about the board, so putting it in
+     state would make it a thing the build code carries, undo rewinds and a
+     share link reproduces. The row is the right lifetime — it is thrown
+     away when the popup rebuilds for another unit, which is exactly when
+     the answer stops being true. */
+  function fguPressMark(tok) {
+    if (typeof document === 'undefined') { return; }
+    var rows = document.getElementById('fg-unit-rows');
+    if (rows === null) { return; }
+    var row = rows.querySelector('.fgu-row[data-fgu-tok="' + tok + '"]');
+    if (row === null) { return; }
+    row.dataset.fguPressed = '1';
+  }
+
   function fgUnitRule(tok, step) {
     var box = fgUnitBox();
     if (box === null) { return; }
@@ -32426,6 +32582,7 @@ App.interactions = (function () {
     if (side === '' || unitId === '' || tok === '') { return; }
     var state = App.state.get();
     if (state.fight === null) { return; }
+    fguPressMark(tok);
     var op = fgResOps(tok).nudge;
     if (op === 'nudgeFightTally') {
       App.ops.dispatch(op, {

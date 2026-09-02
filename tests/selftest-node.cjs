@@ -16812,9 +16812,18 @@ A.ops.setFightShield('cats', 'c1', 0);   // the value deferred item 18 is about
 A.state.flush();
 d37PressShape('cats', 'c1');
 const d37Held = d37Open();
+/* AND ITS BOUND SENTENCE AT REST, WHICH IS D-39 P2-9's OWN MEASUREMENT.
+   Plan 05-D39d. The shield is at ZERO here, which is its floor, and the box
+   has just been opened with nothing pressed in it. The audit photographed
+   exactly this state and found the sentence already up: "on open, before any
+   press, the Shield row already reads This board keeps this number between 0
+   and 99" — the default pair a student never authored, 55px of a 349px box,
+   about a refusal that had not happened. A row sitting on a bound with no
+   press is not a refusal, and this reads the channel to say so. */
 const d37Zero = {
   row: d37Row('shield') !== null,
   said: d37Said('shield'),
+  says: d37Says('shield'),
   plus: d37Step('shield', 1) !== null
 };
 fgPress(d37Step('shield', 1));
@@ -16905,19 +16914,33 @@ check(
     + 'other, and the marker\'s own symbol moving with them. EVERY READING IS '
     + 'A REAL D-29 SYMBOL with the prose on a tooltip that equals its '
     + 'accessible name, and the student\'s fragment is declared on data-tsay '
-    + 'so the harvest reads the artifact\'s half of every sentence',
+    + 'so the harvest reads the artifact\'s half of every sentence. '
+    + 'TURNED IN THE OPEN UNDER D-39 P2-9: this row used to require the bound '
+    + 'sentence the moment a value SAT on a bound, and the audit measured what '
+    + 'that produced — the box announcing a refusal on open, before anything '
+    + 'was pressed, about a default pair the student never authored, and one '
+    + 'sentence per refusing row after, 120px of a 440px box, re-laying the '
+    + 'remaining rows out each time. The distinction the old row could not '
+    + 'make is now the claim: the shield sitting AT its floor with nothing '
+    + 'pressed says NOTHING; three presses that carry health 3 to 0 say '
+    + 'nothing either, because each one MOVED; and the fourth press, the one '
+    + 'the bound actually refuses, is the one that answers. Arrived-at and '
+    + 'refused-by are two different facts about the same number and only the '
+    + 'second is a thing to tell a student',
   d37Held.shut === false && d37Held.head === 'Cat 1'
     && d37Held.toks.join(',') === ['hp', 'shield', d36Tok, 'dead'].join(',')
     && d37Zero.row === true && d37Zero.plus === true
     && d37Zero.said === 'Cat 1 Shield, 0.'
+    && d37Zero.says === ''
     && d37ZeroRuled.shield === 1 && d37ZeroRuled.said === 'Cat 1 Shield, 1.'
     && d37ZeroRuled.rec.unit === 'c1' && d37ZeroRuled.rec.tok === 'shield'
     && d37HpWas === 3 && d37Floor.hp === 0
     && d37Floor.alive === true && d37Floor.standing === 9
     && d37Floor.hand === 3 && d37Floor.said === 'Cat 1 Health, 0.'
-    && d37Floor.says === 'This board keeps this number between 0 and 4.'
+    && d37Floor.says === ''
     && d37Clamped.hp === 0 && d37Clamped.hand === 3
-    && d37Clamped.says === d37Floor.says && d37Clamped.panel === true
+    && d37Clamped.says === 'This board keeps this number between 0 and 4.'
+    && d37Clamped.panel === true
     && d37Tally.n === 1 && d37Tally.said === 'Cat 1 Chill, 1.'
     && d37Tally.rec.tok === d36Tok && d37Tally.rec.unit === 'c1'
     && d37Standing.pressed === 'false' && d37Standing.on === false

@@ -5064,6 +5064,37 @@ for (const ch of ['chrome', 'msedge']) {
         panel: document.querySelector('#err-panel').hidden
       };
     });
+    /* AND THE PRESS THE BOUND ACTUALLY REFUSES, WHICH THIS CELL HAS ALWAYS
+       DESCRIBED AND NEVER MADE — D-39 P2-9. Plan 05-D39d.
+
+       Its own sentence below reads "the FOURTH press of the − has nowhere
+       to go: the number stops at the floor, NO further ruling is recorded".
+       The drive above stops one press short of that: health runs 4-3-2-1
+       and this last press takes it 1 to 0, which MOVES the number and
+       records the fourth ruling — hand === 4 is the count of presses that
+       worked, not evidence of one that did not. So the promised press is
+       made here, and the clause the prose promised is asserted for the
+       first time: the record does not grow.
+
+       IT IS ALSO THE HALF D-39 P2-9 TURNS. The bound line used to go up
+       the moment a value SAT on a bound, so `clamped` above found it after
+       a press that had arrived rather than been refused — and on open,
+       before anything at all. Arriving at a bound and being refused by one
+       are two facts about the same number and only the second is an answer
+       to anything. Both are read now, in that order. */
+    await pg.click(stepSel('cats', 'c1', 'hp', 'less')); await pg.waitForTimeout(200);
+    const refusedByBound = await pg.evaluate(() => {
+      const row = document.querySelector('#fg-unit .fgu-row[data-fgu-tok="hp"]');
+      const says = row.querySelector('.fgu-says');
+      return {
+        hp: App.state.get().fight.cats.units[0].hp,
+        hand: (App.state.get().fight.hand || []).filter((h) => h.tok === 'hp').length,
+        says: says.textContent,
+        shown: says.hidden === false,
+        figure: row.querySelector('.fgu-num').textContent,
+        panel: document.querySelector('#err-panel').hidden
+      };
+    });
     // THE PICTURE OF THE REFUSAL, taken in the state a student is actually in when they press
     // a − and nothing moves. "Twenty-one consecutive rendered changes had a defect only
     // pictures showed" is this phase's own lesson about which frame is worth photographing.
@@ -5116,17 +5147,28 @@ for (const ch of ['chrome', 'msedge']) {
       return { before, after: App.state.get().fight.cats.units[0].hp };
     });
     await pg.waitForTimeout(200);
-    note(ch, size.name, 'D-37 the bound, said', clamped.says);
-    ok(`${tag}: 26c. PRESSING PAST A D-35 BOUND INSIDE THE POPUP CLAMPS, SAYS WHY, AND RAISES NOTHING. The health type is bounded to 0-4 on this board, so the fourth press of the − has nowhere to go: the number stops at the floor, NO further ruling is recorded — "a number went from one value to another" is false of a press that moved nothing — and the ROW's own line states what the board keeps this number between. IT IS THE SAME SENTENCE THE TEAM-RESOURCE NUDGE SAYS, from the same function, so a student who met it on a pool meets it unchanged here. IT IS ARITHMETIC AND FACTUAL AND IT NAMES NO TYPE: never "you cannot", never "too low", never a judgement about a number a student chose. THE ERROR PANEL STAYS SHUT, which is the clause that matters most in a room. AND THE UNIT IS STILL STANDING AT ZERO — D-00d again, at the other end of the same press, with the survivor count unmoved. THE BOX THEN FOLLOWS A REAL SCROLL, which a screenshot found under D-36 and which this box inherits: the placement is measured off the shape's rect on a rendered frame, and a scroll commits nothing and schedules no frame. THEN UNDO IN ITS SHIPPED SHAPE, both halves: the rapid run is ONE Ctrl+Z because these ops share setUnitHp's label inside COALESCE_MS, and a press made after the window comes back on its own`,
+    note(ch, size.name, 'D-37 the bound, said', refusedByBound.says);
+    note(ch, size.name, 'D-39 P2-9 arrived at the bound / refused by it',
+      `says "${clamped.says}" hand ${clamped.hand}`
+      + ` -> says "${String(refusedByBound.says).slice(0, 22)}" hand ${refusedByBound.hand}`
+      + ` figure ${refusedByBound.figure}`);
+    ok(`${tag}: 26c. PRESSING PAST A D-35 BOUND INSIDE THE POPUP CLAMPS, SAYS WHY, AND RAISES NOTHING. The health type is bounded to 0-4 on this board, so the fourth press of the − has nowhere to go: the number stops at the floor, NO further ruling is recorded — "a number went from one value to another" is false of a press that moved nothing — and the ROW's own line states what the board keeps this number between. IT IS THE SAME SENTENCE THE TEAM-RESOURCE NUDGE SAYS, from the same function, so a student who met it on a pool meets it unchanged here. IT IS ARITHMETIC AND FACTUAL AND IT NAMES NO TYPE: never "you cannot", never "too low", never a judgement about a number a student chose. THE ERROR PANEL STAYS SHUT, which is the clause that matters most in a room. TURNED IN THE OPEN UNDER D-39 P2-9, AND THE TURN IS THAT THIS CELL NOW MAKES THE PRESS IT ALWAYS DESCRIBED: the drive stopped one short, so what it measured was the press that ARRIVED at the floor — health 1 to 0, a real ruling, hand going to 4 — while its own sentence claimed a press with nowhere to go and no ruling recorded. Both are read now, in order: the arriving press moves the number and says NOTHING, because arriving at a bound is not being refused by one and the audit photographed that sentence standing on a box before anything had been pressed at all; the next press moves nothing, records nothing — the clause this prose promised and never tested — and IS the one that answers. AND THE UNIT IS STILL STANDING AT ZERO — D-00d again, at the other end of the same press, with the survivor count unmoved. THE BOX THEN FOLLOWS A REAL SCROLL, which a screenshot found under D-36 and which this box inherits: the placement is measured off the shape's rect on a rendered frame, and a scroll commits nothing and schedules no frame. THEN UNDO IN ITS SHIPPED SHAPE, both halves: the rapid run is ONE Ctrl+Z because these ops share setUnitHp's label inside COALESCE_MS, and a press made after the window comes back on its own`,
       clamped.hp === 0 && clamped.alive === true && clamped.standing === 9
-      && clamped.hand === 4 && clamped.shown === true
-      && clamped.says === 'This board keeps this number between 0 and 4.'
+      && clamped.hand === 4
+      // ARRIVED AT, NOT REFUSED BY. Turned under D-39 P2-9 — see the block
+      // above the second press for why this reads the opposite of what it did.
+      && clamped.shown === false && clamped.says === ''
       && clamped.said === 'Cat 1 Health, 0.' && clamped.panel === true
+      && refusedByBound.hp === 0 && refusedByBound.hand === 4
+      && refusedByBound.figure === '0'
+      && refusedByBound.shown === true
+      && refusedByBound.says === 'This board keeps this number between 0 and 4.'
+      && refusedByBound.panel === true
       && followed.before.gap <= 24 && followed.after.gap <= 24
       && followed.before.top !== followed.after.top
       && undone.before === 0 && undone.afterRun === 4
       && alone.before === 3 && alone.after === 4,
-      { clamped, followed, undone, alone });
+      { clamped, refusedByBound, followed, undone, alone });
 
     // ── 26d. DISMISSAL, BOTH WAYS, AND THE TEAM-RESOURCE KEYBOARD ROUND TRIP. ────────────
     // UNTOUCHED BY D-37. This is D-36's own path and D-37 leaves it exactly as it was.
@@ -5557,6 +5599,138 @@ for (const ch of ['chrome', 'msedge']) {
         scrolled: d39Scrolled.map((s) => ({ want: s.want, shapeTop: s.shapeTop,
           coversAnchor: s.coversAnchor, inView: s.inView, bounded: s.bounded,
           rowsScroll: s.rowsScroll })) });
+
+    /* -- 26j. D-39 P2-8 AND P2-9 -- THE POPUP'S ROWS SHOW A FIGURE, ALL
+       FOUR READ DOWN AS ONE SHAPE, AND THE BOUND IS AN ANSWER TO A PRESS.
+       Plan 05-D39d.
+       ==================================================================
+       P2-8: "#fg-unit's rows render label - [tokens] + with NO numeral,
+       while #fg-nudge -- D-36's control, same tab, same nudge idiom, 200px
+       away -- renders - 3 +, and the board's .stp-field renders 3. Three
+       stepper presentations in one artifact, and the newest is the only
+       one without a figure." And its second half: the dead row had a
+       different grammar from the three above it, 92px against 46, because
+       its toggle spanned every column those rows use for their pair.
+
+       P2-9: measured ON OPEN, before anything was pressed, the Shield row
+       already read the bound sentence -- about a default pair the student
+       never authored -- and after two presses at the floor it read under
+       TWO rows at once, 120px of a 440px box.
+
+       WHAT IS DRIVEN HERE, in this order, through shipped controls only:
+       the box is opened on a shape; every value row must carry a figure
+       that EQUALS the model's own number for that value, so a decorative
+       digit cannot pass; the four rows' + column must read straight down,
+       which is the dead row's grammar clause and is asserted as a single x
+       for all of them; the box must not overflow its own width, which is
+       the clause a first draft of the fix failed -- the fifth column
+       pushed the row past the shipped 320px box, a horizontal scrollbar
+       appeared and the + was cut off its right edge, at both viewports,
+       and .fgu-val's minimum came 96 to 64 to answer it; the bound line
+       must be silent at rest EVEN ON A ROW SITTING ON A BOUND; a press
+       that MOVES the number must leave it silent, because arriving at a
+       bound is not being refused by one; and only the press the bound
+       actually refuses may say anything.
+
+       THE FIGURE IS COMPARED TO THE MODEL AND NOT TO A NUMBER TYPED HERE,
+       which is this file's standing rule about readings. */
+    await pg.evaluate(() => {
+      const shape = document.querySelector('#fightbar [data-fg="bf"]');
+      if (shape) { shape.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }
+    });
+    await pg.waitForTimeout(300);
+    const popRead = () => pg.evaluate(() => {
+      const box = document.querySelector('#fg-unit');
+      const rows = document.querySelector('#fg-unit-rows');
+      if (!box || box.hidden || !rows) { return null; }
+      const side = box.dataset.fgSide || '';
+      const unitId = box.dataset.fgUnit || '';
+      const st = App.state.get();
+      const unit = (st.fight && st.fight[side])
+        ? st.fight[side].units.filter((u) => u.id === unitId)[0] : null;
+      const modelOf = (tok) => {
+        if (!unit) { return null; }
+        if (tok === 'hp') { return unit.hp; }
+        if (tok === 'shield') { return unit.shield; }
+        if (tok === 'dead') { return unit.alive ? 0 : 1; }
+        return (unit.tally && unit.tally[tok]) ? unit.tally[tok] : 0;
+      };
+      const all = Array.from(rows.querySelectorAll('.fgu-row'));
+      return {
+        unit: unitId,
+        rows: all.map((r) => {
+          const tok = r.dataset.fguTok || '';
+          const num = r.querySelector('.fgu-num');
+          const plus = Array.from(r.querySelectorAll('.fgu-btn'))
+            .filter((btVal) => btVal.dataset.fgStep === '1')[0];
+          const alive = r.querySelector('.fgu-alive');
+          const last = plus || alive;
+          const says = r.querySelector('.fgu-says');
+          return {
+            tok,
+            figure: num ? num.textContent : null,
+            model: String(modelOf(tok)),
+            lastX: last ? Math.round(last.getBoundingClientRect().right) : null,
+            says: says ? (says.hidden ? '' : says.textContent) : ''
+          };
+        }),
+        overflows: rows.scrollWidth > rows.clientWidth + 1,
+        boxH: Math.round(box.getBoundingClientRect().height)
+      };
+    });
+    const popStep = (tok, dir) => pg.evaluate((arg) => {
+      const r = document.querySelector('#fg-unit .fgu-row[data-fgu-tok="' + arg.tok + '"]');
+      if (!r) { return; }
+      const btn = Array.from(r.querySelectorAll('.fgu-btn'))
+        .filter((b2) => b2.dataset.fgStep === arg.dir)[0];
+      if (btn) { btn.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }
+    }, { tok, dir });
+    const popRest = await popRead();
+    // Health down to its floor, one press at a time. Every one of these MOVES
+    // the number, so every one must leave the bound line silent.
+    let popMoved = null;
+    if (popRest) {
+      for (let i = 0; i < 6; i++) {
+        const before = await popRead();
+        const hpRow = before.rows.filter((r) => r.tok === 'hp')[0];
+        if (!hpRow || hpRow.figure === '0') { break; }
+        await popStep('hp', '-1');
+        await pg.waitForTimeout(160);
+        popMoved = await popRead();
+      }
+    }
+    // And the press the bound refuses.
+    await popStep('hp', '-1');
+    await pg.waitForTimeout(200);
+    const popRefused = await popRead();
+    const saysOf = (snap, tok) => {
+      if (!snap) { return null; }
+      const r = snap.rows.filter((x) => x.tok === tok)[0];
+      return r ? r.says : null;
+    };
+    const popValueRows = popRest ? popRest.rows.filter((r) => r.tok !== 'dead') : [];
+    const popLastXs = popRest
+      ? popRest.rows.map((r) => r.lastX).filter((x) => x !== null) : [];
+    note(ch, size.name, 'D-39 P2-8 every row: figure / model',
+      popValueRows.map((r) => `${r.tok} ${r.figure}/${r.model}`).join(' '));
+    note(ch, size.name, 'D-39 P2-8 the last column reads down / no overflow / box',
+      `${JSON.stringify(Array.from(new Set(popLastXs)))} / `
+      + `${popRest ? !popRest.overflows : '?'} / ${popRest ? popRest.boxH : '?'}px`);
+    note(ch, size.name, 'D-39 P2-9 the bound line: at rest / moved to it / refused by it',
+      `"${popRest ? popRest.rows.map((r) => r.says).join('') : '?'}"`
+      + ` / "${saysOf(popMoved, 'hp')}" / "${String(saysOf(popRefused, 'hp')).slice(0, 30)}"`);
+    ok(`${tag}: 26j. D-39 P2-8 AND P2-9 -- EVERY POPUP ROW SHOWS THE FIGURE, ALL FOUR ROWS END IN ONE COLUMN, AND THE BOUND IS AN ANSWER TO A PRESS RATHER THAN A STANDING NOTICE. P2-8 measured three stepper presentations in one artifact and this box as the only one without a number: it drew label - [tokens] + while D-36's nudge 200px away on the same tab drew - 3 + and the board's own field drew 3, so a student ruling health from 3 to 2 here watched a token disappear and never saw a figure. The figure is between the minus and the plus now, where the nudge puts its own, with the tokens beside it rather than instead of it -- and it is COMPARED TO THE MODEL row by row, so a decorative digit cannot pass. P2-8's second half is the dead row, which spanned every column the pairs use and took a line of its own at 92px against 46; it sits in the last column now, which is asserted as ONE x shared by all four rows. THE OVERFLOW CLAUSE IS THE ONE A FIRST DRAFT FAILED: the fifth column pushed the row past the shipped 320px box, a horizontal scrollbar came up under it and the + was cut off its right edge at both viewports, so .fgu-val's minimum came 96 to 64 and the box came down from 286px to 271px. P2-9 IS DRIVEN AS THE DISTINCTION IT IS: at rest, on a box whose shield is sitting exactly on its floor, every row is SILENT -- the audit photographed that sentence up before anything was pressed, about a default pair the student never authored; each press that MOVES health toward its floor leaves it silent, because arriving at a bound is not being refused by one; and only the press the bound actually refuses says anything. The end that refused is named by the row rather than by a second sentence, which is what the figure in the same commit paid for: "between 0 and 4" standing beside a visible 0`,
+      popRest !== null && popRefused !== null
+      && popValueRows.length >= 2
+      && popValueRows.every((r) => r.figure !== null && r.figure === r.model)
+      && popRest.rows.filter((r) => r.tok === 'dead').length === 1
+      && popRest.rows.filter((r) => r.tok === 'dead')[0].figure === null
+      && Array.from(new Set(popLastXs)).length === 1
+      && popRest.overflows === false
+      && popRest.rows.every((r) => r.says === '')
+      && (popMoved === null || saysOf(popMoved, 'hp') === '')
+      && String(saysOf(popRefused, 'hp')).indexOf('keeps this number between') !== -1,
+      { popRest, popMoved, popRefused });
 
     await endFight(pg);
     await pg.evaluate(() => {
