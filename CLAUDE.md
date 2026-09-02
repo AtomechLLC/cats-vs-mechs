@@ -30,9 +30,9 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 | **Vanilla JS (ES2022)** | n/a — browser built-in | Entire application | Verified: a single classic `<script>` runs unrestricted from `file://`. Zero bytes, zero license surface, the file stays readable and hand-editable — which matters because the artifact *is* the deliverable and an instructor may open it in an editor during a workshop. |
 | **One classic `<script>` block** | n/a | Code container | **Verified:** `<script type="module">` *executes* from `file://` but any `import` inside it fails CORS (`origin 'null'`). A classic `<script>` has no such restriction. Do not use modules. |
 | **Modern CSS in one `<style>` block** | Baseline Widely Available set | All styling | `:has()`, container queries, nesting, `color-mix()`, custom properties are all Baseline **Widely Available** (see Version Compatibility). Verified computing correctly from `file://`. Zero reason to hold back for a desktop-only 2026 target. |
-| **Compact positional string codec** | hand-written, ~60 lines | Build sharing | Measured 35 chars vs 1554 for JSON→base64url. Fits Discord's 2000-char message limit ~50x over. |
-| **`<dialog>` element** | Baseline high since 2024-09 | Share modal, confirm-reset, copy fallback | Native modal + backdrop + Esc handling for free. Verified `showModal` present on `file://`. |
-| **Event delegation from one root listener** | n/a | All interaction | The only pattern that survives region re-rendering without listener bookkeeping. |
+| **Compact positional string codec** | hand-written; ~60 lines as first scoped, far larger once its guards landed | Build sharing | **Re-measured 2026-09-01:** shipped board **45 chars**, a realistic authored board **344**, a 24v24 fully authored board **909**. The original "35 vs 1,554 for JSON→base64url" was measured pre-Phase-2.1 against a smaller schema; the *ratio* held, the absolute figure moved as authoring landed. Still inside Discord's 2,000-char limit at every scenario a workshop reaches. See § 3. |
+| **`<dialog>` element** | Baseline high since 2024-09 | Share modal, confirm-reset, copy fallback | Native modal + backdrop + Esc handling for free. Verified `showModal` present on `file://`. **D-38 lesson (measured 2026-09-01): never put an author `display` on a dialog's own class.** An author `display:grid` on `.pk`/`.ae` beat the UA's `dialog:not([open]){display:none}` — cascade **origin**, not a specificity contest — so a *closed* dialog laid out in normal flow, 660×728 and 1040×716 at document y 3067, on every page this artifact had ever drawn. Ship the guard: `.pk,.ae,.sh,.rs:not([open]){display:none}`. |
+| **Event delegation from one root listener** | n/a | All interaction | The only pattern that survives a region being rebuilt without listener bookkeeping. Shipped shape: routing by `data-act` off one root, every listener registered through `App.boot.wrap`. |
 ### Supporting Libraries
 | Library | Version | Purpose | When to Use |
 |---------|---------|---------|-------------|
@@ -41,32 +41,82 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 ### Development Tools
 | Tool | Purpose | Notes |
 |------|---------|-------|
-| **In-file self-test harness** (primary) | Assert codec round-trip, eHP/DPS math, damage/overkill application | ~50 lines, gated behind `#selftest` in the hash. Runs by double-click, ships with the artifact, costs nothing, never needs npm. This is the proportionate answer for a teaching artifact. |
-| **Playwright 1.62.1** (optional, dev-only) | Headless smoke test against `file://` | Keep in a sibling `tests/` folder that is **not** shipped. Verified working: `chromium.launch({ channel: 'chrome' })` + `pathToFileURL()`. |
+| **In-file self-test harness** (primary, ships) | The artifact's own assertions: codec round-trip, model math, damage/overkill, id gates | Gated behind `#selftest` in the hash. Runs by double-click, ships with the artifact, costs nothing, never needs npm. Scoped at ~50 lines; it is far past that now, and the growth is the point — it is the only tier that reaches a student's machine. |
+| **`tests/selftest-node.cjs`** (dev, tier 2 — the gate) | Runs the in-file harness in a bare `vm` sandbox, plus the `FORBIDDEN` scan and the interaction gate | `node tests/selftest-node.cjs`. Node built-ins only, no npm. **Measured 2026-09-01: 1336 passed, 0 failed, exit 0; 216 of 216 gate checks; 160 shell ids.** This is the gate. It is what "green" means in this repo. |
+| **`tests/selftest-dom.cjs`** (dev, tier 2 — stub DOM) | The same harness against `tests/stub-dom.cjs`, so the five DOM-bracketed suites actually run | `node tests/selftest-dom.cjs`. **Measured 2026-09-01: 1460 passed, 0 failed, exit 0.** The 124-row delta over tier 1 is five suites — render, interactions, the board rows of token authoring, projection, reference material — that report `skipped — no DOM` in the bare sandbox. Still Node built-ins only. |
+| **`tests/browser-checks.mjs`** (dev, tier 3, optional) | The claims no stub can reach: layout, computed style, real clipboard, real focus, real `file://` | `node tests/browser-checks.mjs`. **Measured 2026-09-01: 314 passed, 0 failed**, headless, across four columns — real Chrome and real Edge (`channel: 'chrome'` / `'msedge'`) × 1920×1080 and 1366×768. `HEADED=1` to watch a run. Resolves Playwright from `PLAYWRIGHT_DIR` or `tests/node_modules`, and **skips cleanly with exit 0 when it is absent**, so a fresh checkout is not a broken checkout. |
+| **Playwright 1.62.1** (optional, dev-only) | The driver under tier 3 | Kept in a sibling `tests/` folder that is **not** shipped, and is **not** a dependency of this project. Verified working: `chromium.launch({ channel: 'chrome' })` + `pathToFileURL()`. |
 | Browser DevTools | Everything else | The debugging story for a single file is "open DevTools." No source maps needed because there is no transform. |
 ## Installation
 # Runtime dependencies: none. The artifact is one .html file.
 # Open it by double-clicking it. That is the install step.
 # OPTIONAL, dev-only, in a sibling tests/ directory that is NOT shipped:
-- Headless Chromium **denies** `clipboard-write` by default even with a trusted click. Measured: `NotAllowedError: Write permission denied` with `permissions.query('clipboard-write') === "prompt"`. Real headed Chrome reports `"granted"`. If you don't call `grantPermissions`, your clipboard test will fail for a reason that has nothing to do with your code.
-- `channel: 'chrome'` (the real installed browser) is the higher-fidelity target for `file://` behaviour than bundled Chromium.
+- Headless Chromium denies `clipboard-write` **when you do not grant it**. Measured originally: `NotAllowedError: Write permission denied` with `permissions.query('clipboard-write') === "prompt"`. **Amended 2026-08-29/2026-09-01:** the denial is conditional, not a property of headless. `browser.newContext({ permissions: ['clipboard-read','clipboard-write'] })` makes a **headless** run report `"granted"`, and every clipboard tier cell passes headless in both Chrome and Edge. The original warning stands in its useful form: if you don't grant the permission, your clipboard test fails for a reason that has nothing to do with your code.
+- `channel: 'chrome'` / `channel: 'msedge'` — real installed browsers — are the higher-fidelity `file://` targets. Bundled Chromium is deliberately not used.
 ## 1. State Management Without a Framework
-### Why, with numbers
+
+> **SUPERSEDED IN PRESCRIPTION, NOT IN MEASUREMENT — read this before the tables below.**
+> This section originally prescribed *immediate-mode region re-render* with an `__lastHTML` memo, i.e. `innerHTML`.
+> **`innerHTML` is now on the artifact's `FORBIDDEN` list and the gate fails the build if it appears**
+> (`tests/selftest-node.cjs:38-51`, the `FORBIDDEN` array — 14 patterns; the markup-injection-sink row at `:48`
+> catches `innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write` and `createContextualFragment`, and the
+> HTML-parser row at `:49` catches `DOMParser` and `srcdoc`).
+> The artifact uses a **two-tier `structure()` / `sync()` keyed reconcile built entirely from `createElement` +
+> `textContent`**. What changed is the *prescription*, not the *benchmark*: the 2026-08 numbers below were really
+> measured and were a fair reading of `innerHTML` at this scale. They are simply **not applicable to this codebase**
+> and must never be used to size a new region. Recorded in `.planning/phases/05-fight-loop-playtest/05-RESEARCH.md`
+> § "CLAUDE.md correction, recorded rather than absorbed".
+
+### Why, with numbers — the original `innerHTML` benchmark (HISTORICAL; the pattern it justified is now forbidden)
 | Board size | DOM nodes | Full re-render | Targeted patch |
 |---|---|---|---|
 | 12 units × 10 tokens | 192 | **0.79 ms** | 0.03 ms |
 | 24 units × 20 tokens | 624 | **1.82 ms** | 0.04 ms |
 | 60 units × 30 tokens | 2,160 | **5.54 ms** | 0.06 ms |
 | 200 units × 40 tokens | 9,200 | 23.03 ms | 0.14 ms |
+
+### Why, with numbers — the shipped reconcile (CURRENT; use these)
+
+Measured Chrome 151 via Playwright `channel: 'chrome'`, Windows 11, `file://`, 1920×1080. Source:
+`.planning/phases/05-fight-loop-playtest/05-RESEARCH.md` § Measurements.
+
+| Measurement | Value |
+|---|---|
+| `#board` nodes, shipped 9v3 (setup / fight running) | 442 / 427, of which **78 carry `data-k`** |
+| `App.render.sync()` — the per-frame tier | **0.17 ms** |
+| `App.render.structure()` — the rebuild tier | **2.24 ms** |
+| 24v24 board: nodes / `sync()` / `structure()` | 1,558 / **0.535 ms** / **7.92 ms** |
+| `sync()` with a 50-round full-board ledger on the page | **0.154 ms** — does not move |
+| `sync()` with a 100-round compact ledger | **0.172 ms** — does not move |
+| 24v24 + 30-round ledger: 29,846 nodes, `sync()` | **0.57 ms** (vs 0.535 without) — still flat |
+| Marginal cost of one more full-board ledger row | **1.9–2.1 ms, flat from round 1 to round 60** |
+| `commit()` vs fight-slice size, 0 / 10 / 30 / 50 ledger rounds | 0.063 / 0.150 / 0.315 / **0.485 ms** |
+
+**The shape of the conclusion is unchanged and the reason is different.** Perf still is not the constraint — but now
+because inert DOM outside the keyed reconcile is free (`sync()` does not move at all with a 50-round ledger on the
+page), not because a full `innerHTML` rewrite was cheap. `structure()` is the real ceiling, and the thing that governs
+a new region is **whether it lands inside the keyed walk**, not its node count.
+
+**The hazard that replaced the perf hazard: `data-k` scope.** `withPreservedFocus` takes the **first** `[data-k]`
+match scoped to `#board`. A ledger of cloned boards placed *above* the live one *inside* `#board` makes that first
+match a dead ledger node — measured directly, `firstScopedMatchIsInLedger: true`. Keep accumulating history a
+**sibling** of `#board`, and keep every `data-k` unique document-wide.
 ### The pattern (this is the code shape to build to)
 ### Why the alternatives lose
 | Pattern | Verdict at this scale | Reason |
 |---|---|---|
-| **Immediate-mode region re-render** (recommended) | **Holds up** | Render functions are pure `state -> string`. You can read any region's output by reading one function. The `__lastHTML` memo makes untouched regions free. |
+| **Immediate-mode region re-render** via `innerHTML` | ~~recommended~~ **FORBIDDEN — the gate fails the build** | The original reasoning (pure `state -> string` render functions, one function per region, an `__lastHTML` memo) is still good reasoning and is **why the shipped `structure()` / `sync()` split has the same shape**. What it cannot have is the sink: `innerHTML` is banned outright. Keep the immediate-mode *discipline*, emit `createElement` + `textContent`. |
+| **Two-tier keyed reconcile** — `structure()` rebuilds, `sync()` patches text and classes in place (**shipped, recommended**) | **Holds up** | `sync()` is 0.17 ms and does not move with a 50-round ledger on the page; `structure()` is 2.24 ms and is the only tier that can add a region. A change that alters node *count* is structural; a change that alters text or class is a `sync()`. Nodes are keyed by `data-k`. |
 | **Proxy-based reactivity** | Becomes spaghetti | The appeal is "just mutate and it updates." The cost in a single file is that *why* something re-rendered becomes invisible — there is no stack trace from a DOM update back to the mutation. Also silently breaks on nested-array mutation unless you deep-wrap, and deep-wrapping 12 unit objects is more code than the thing it replaces. Debugging a mysterious non-update at 11pm before a workshop is the failure mode. |
 | **Pub/sub store** (`on('unit:hp', ...)`) | Becomes spaghetti fastest | Every feature adds an event name and 2+ subscribers. By feature 15 you have an untyped, undiscoverable event bus with no single place that describes what happens on a change. This is the classic single-file-app death spiral. |
-| **Explicit DOM patching everywhere** | Correct but expensive | 0.04 ms instead of 1.82 ms — irrelevant. You pay in hand-written diff code that must be kept in sync with the markup in two places. Use it *only* for the specific exceptions below. |
-### The three real constraints on `innerHTML` re-render (perf is not one of them)
+| **Explicit DOM patching everywhere** | ~~Correct but expensive~~ **This is what shipped, and the cost was worth paying** | Originally scoped to "the specific exceptions below" on the grounds that 0.04 ms vs 1.82 ms is irrelevant. The `FORBIDDEN` list made it the whole strategy. The predicted cost was real — hand-written diff logic kept in step with the markup — and the keying discipline (`data-k`, unique document-wide) is what pays it back. |
+### The three real constraints on rebuilding a region (perf is not one of them)
+
+The original three — animated tokens, the append-only combat log, focused inputs — all survived the move off
+`innerHTML` unchanged, because none of them was ever about the sink. A repaint still must never write a focused
+field (D-19), history is still append-only, and a fourth has since been measured: **a paint that skips a focused
+field must record no fingerprint**, or the signature check at the top of the region returns early over a surface
+that really is stale.
 ### State shape rule
 ## 2. Can a Framework Be Embedded Inline?
 ### Measured inline cost (actual dist bytes, downloaded and weighed)
@@ -90,28 +140,54 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 | JSON → base64url | **1,554 chars** | 0 | **Worst of both.** base64 inflates by 33% and buys nothing here |
 | JSON → `LZString.compressToEncodedURIComponent` | **709 chars** | **+4,814** (lz-string 1.5.0, MIT) | Works, round-trip verified — but pays 4.8 KB to fix a problem the schema created |
 | Slim JSON → native `CompressionStream('deflate-raw')` → base64url | **167 chars** | **0** | Excellent fallback. Verified working on `file://` |
-| **Compact positional schema** | **35 chars** | ~60 lines of codec | **Recommended** |
+| **Compact positional schema** | **35 chars** *(as first measured, pre-Phase-2.1 schema)* | ~60 lines of codec | **Recommended — and shipped.** Re-measured against the schema that actually shipped: see the scenario table below. |
 ### Recommended scheme, concretely
 - **Version prefix is mandatory** (`v1~`). The board *will* change between workshop runs. Without it, a stale Discord link silently loads garbage into a new schema and the student debugs your tool instead of their build.
 - **Only encode what the student changed.** Actions, keywords, effect names, counter map and roster templates are static defaults compiled into the file. Encode HP values, AP, roster counts, alive flags, manual overrides, turn, active side. Nothing else.
 - **Run-length the token rows.** Nine cats at 3 HP is `9x3`, not `3.3.3.3.3.3.3.3.3`. Typical builds are homogeneous; this is where the wins are.
 - **Append a 4-char checksum** (FNV-1a → base36, truncated). Costs 5 chars and turns "the code was truncated on paste" from a silent wrong-board into an explicit "That build code looks incomplete."
 - **On decode failure, never throw into the void.** Show "Couldn't read that build code" and leave the current board untouched.
+### Measured build-code sizes — the shipped schema
+
+Re-measured **2026-09-01** after phases 2.1 and 3.1 put token authoring, action authoring, token min/max bounds and
+round rules on the wire. Source: `.planning/phases/05-fight-loop-playtest/05-D35a-SUMMARY.md` § Measurements.
+
+| Scenario | Chars | Note |
+|---|---|---|
+| The shipped board, nothing authored | **45** | `v1~N~V~A9~3~9*3!0~9*~~~~B3~3~3*6!3~3*~~~~7tvo`. Writes no vocabulary record and no rules section, which is why it did not move when D-35 landed |
+| A realistic 12v5, lightly authored | **344** | two bounded types and three round rules |
+| 24v24, nothing authored | **283** | roster size alone is cheap — run-length encoding is doing its job |
+| 24v24, fully authored | **909** | six types carrying bounds, the rule list populated |
+| Adversarial ceiling | **3,542** | eleven distinct bound pairs, rule list at its cap |
+| The same in astral emoji | **3,744** | +202 for text only; bounds and rules carry no text |
+
+Marginal costs: a bounds pair is **~5 chars** per vocabulary record that is written at all; a round rule is **~4**.
+
 ### Size budget
 | Threshold | Value | Basis |
 |---|---|---|
-| **Typical build** | **≤ 120 chars** | Extrapolated from the 35-char measurement plus overrides and a mid-fight snapshot |
-| **Design target (hard)** | **≤ 512 chars** | Comfortable in a Discord message alongside prose; 4x headroom |
-| **Discord free-tier message limit** | **2,000 chars** | Verified current for 2026; Nitro raises to 4,000 but never assume Nitro |
-| **Escalation trigger** | **> 800 chars** | Switch to `CompressionStream('deflate-raw')` + base64url (measured: 1,165-char JSON → 167 chars, zero library bytes) |
-| Chrome `file://` hash capacity | **≥ 500,000 chars, verified** | Not a constraint. Discord is the binding constraint, by ~4,000x |
+| **Typical build** | ~~≤ 120 chars~~ **≤ 400 chars** | Amended. The 120 figure was extrapolated from the 35-char measurement; the realistic authored board measures **344**. The extrapolation was wrong because it predated authoring, not because the method was |
+| **Design target (hard)** | **≤ 512 chars** | **Stands.** A 24v24 fully authored board at 909 exceeds it — that is a deliberate, recorded overrun for a board no workshop builds, not a moved goalpost |
+| **Discord free-tier message limit** | **2,000 chars** | Verified current for 2026; Nitro raises to 4,000 but never assume Nitro. **The adversarial ceiling (3,542) exceeds this** — reachable only by a board built to break it |
+| **Escalation trigger** | **> 800 chars** | Unchanged mechanism: `CompressionStream('deflate-raw')` + base64url (measured: 1,165-char JSON → 167 chars, zero library bytes). Keep the `v<N>~` prefix **outside** the compressed blob |
+| Chrome `file://` hash capacity | **≥ 500,000 chars, verified** | Not a constraint. Discord is still the binding constraint |
+
+**The method held; only the numbers moved.** The reason the budget survived four phases of schema growth is the
+original rule — *only encode what the student changed* — enforced by writing a section **only when it differs from
+the seed**. That is also why an **empty** section and an **absent** one must stay distinguishable: a student who
+deletes every round rule has built a board they are allowed to share.
+
+**What the codec grew that the original scoping did not anticipate:** `WIRE_BOUNDS` (every wire-level cap declared
+beside the arithmetic that enforces it) and a **28-shape refusal matrix** — 23 content rows, 22 distinct guards,
+each past a recomputed digest. The 4-char FNV-1a checksum was necessary and was never sufficient; a checksum catches
+truncation, and a refusal matrix catches a code that is intact and lying.
 ### Unicode caveat
 ## 4. `file://` Constraints — Verified Capability Matrix
 | Capability | Result | Prescription |
 |---|---|---|
 | `window.isSecureContext` | **`true`** | Confirmed against the spec: W3C Secure Contexts step 6 — *"If origin's scheme is `file`, return Potentially Trustworthy."* All secure-context-gated APIs are therefore available. |
 | `location.origin` | `"file://"` | But CORS errors report `origin 'null'`. Both are true; the origin is opaque for network purposes. |
-| **`navigator.clipboard.writeText()`** | **WORKS with a user gesture** | Chrome 151 and Edge 151 both report `permissions.query('clipboard-write') === "granted"` on `file://` and the write succeeds inside a click handler. **Must be called synchronously in the gesture** — MDN BCD: from Chrome 107, writeText must be inside a user-gesture handler. Encode the build code *before* the `await`, never after. |
+| **`navigator.clipboard.writeText()`** | **WORKS with a user gesture** | Chrome 151 and Edge 151 both report `permissions.query('clipboard-write') === "granted"` on `file://` and the write succeeds inside a click handler. **Must be called synchronously in the gesture** — MDN BCD: from Chrome 107, writeText must be inside a user-gesture handler. Encode the build code *before* the `await`, never after. **Now exercised automatically:** all four clipboard tiers are driven headless in both browsers by `tests/browser-checks.mjs`, with the OS clipboard seeded with a sentinel first, so a copy that did **not** happen is detectable rather than assumed. |
 | `document.execCommand('copy')` | Returns `true` | Deprecated per MDN BCD, still functional everywhere. Keep as fallback tier 2. |
 | `fetch('./file.txt')` | **BLOCKED** — `TypeError: Failed to fetch`, *"URL scheme 'file' is not supported"* | No workaround; not even `--allow-file-access-from-files` fixes `fetch`. **All data must be JS literals in the file.** |
 | `XMLHttpRequest` to sibling file | **BLOCKED** (CORS, `origin 'null'`) | Works only with `--allow-file-access-from-files`, which students will never set. Same conclusion: inline everything. |
@@ -138,7 +214,7 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 | Container queries | **Widely available** | Newly 2023-02, **Widely 2025-08-14** | 105 / 105 / 110 / 16 | **Yes** |
 | CSS nesting | **Widely available** | Newly 2023-12, **Widely 2026-06-11** | 120 / 120 / 117 / 17.2 | **Yes** — big readability win in a 1,500-line `<style>` block |
 | `color-mix()` | **Widely available** | 2023-05 | 111 / 111 / 113 / 16.2 | **Yes** — derive faction tints from the shared tokens instead of hardcoding new hexes |
-| `<dialog>` / `showModal` | **Widely available** | 2022-03 | 37 / 79 / 98 / 15.4 | **Yes** |
+| `<dialog>` / `showModal` | **Widely available** | 2022-03 | 37 / 79 / 98 / 15.4 | **Yes** — with the D-38 guard: an author `display` on the dialog's own class repeals `dialog:not([open])` by cascade **origin**, so ship `…:not([open]){display:none}` explicitly |
 | Subgrid | **Widely available** | 2023-09 | 117 / 117 / 71 / 16 | Yes if useful for aligning token rows across cards |
 | `text-wrap: balance` | Newly available | 2024-05 | 114 / 114 / 121 / 17.5 | Yes — progressive enhancement, degrades to nothing |
 | `light-dark()` | Newly available | 2024-05 | 123 / 123 / 120 / 17.5 | Not needed — this artifact is dark-only by design |
@@ -153,7 +229,42 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 - It tests **exactly the things that fail silently and expensively**: the codec (a wrong-decoded build wastes a student's whole exercise) and the balance math (a wrong eHP number teaches a wrong lesson, which is the worst possible failure for a *teaching* artifact).
 - It is self-documenting. An instructor who forks the file can see what the invariants are.
 - It ships. It cannot rot in a folder nobody opens.
-### Tier 2 — Playwright smoke test (optional, dev-only)
+**Amendment (2026-09-01): this tier was built and it ships. Below it are two more.**
+
+### Tier 2 — the Node runners (dev, no npm, no build)
+
+Two runners drive the tier-1 harness from `node`, and between them they are what "green" means in this repo:
+`tests/selftest-node.cjs` (**1336 passed, 0 failed, exit 0**; 216 of 216 gate checks; 160 shell ids) in a bare
+`vm` sandbox, and `tests/selftest-dom.cjs` (**1460 passed, 0 failed, exit 0**) against `tests/stub-dom.cjs`, so the
+five DOM-bracketed suites — render, interactions, the board rows of token authoring, projection, reference
+material — actually execute instead of reporting `skipped — no DOM`. That 124-row delta is the whole reason the
+second runner exists.
+
+`tests/selftest-node.cjs` also carries the `FORBIDDEN` array — **14 patterns**, read 2026-09-01 at
+`tests/selftest-node.cjs:38-51`: `https?://`, `<link`, ` src=`, `type="module"`, `fetch(`, `XMLHttpRequest`,
+`@import`, `url(`, the markup-injection sinks (`innerHTML`, `outerHTML`, `insertAdjacentHTML`, `document.write`,
+`createContextualFragment`), the HTML parsers (`DOMParser`, `srcdoc`), `javascript:`, `<iframe`, `eval` and the
+`Function` constructor. **That array is what makes § 1's original prescription unimplementable, and it is the
+correct trade** — the constraint the artifact must never violate is mechanically
+enforced rather than remembered.
+
+### Tier 3 — Playwright browser checks (optional, dev-only) — **now built and passing**
+
+`tests/browser-checks.mjs`: **314 passed, 0 failed**, headless, four columns — real Chrome and real Edge
+(`channel: 'chrome'` / `'msedge'`) × 1920×1080 and 1366×768. `HEADED=1` to watch. Playwright resolves from
+`PLAYWRIGHT_DIR` or `tests/node_modules` and the file **skips cleanly with exit 0** when it is absent.
+
+**This closed a premise that was wrong for three phases.** The repo had been recording layout, computed-style and
+clipboard claims as "no browser in this environment" and deferring them to a human rehearsal. CLAUDE.md had said
+otherwise all along and nobody re-tested it. Measured 2026-08-29: both browsers load the artifact from `file://`,
+report `isSecureContext === true`, and report `clipboard-write` **granted**.
+
+**What tier 3 catches that neither Node tier structurally can:** a CSS rule silently dropped by the parser (a stray
+comment terminator once killed an entire rule body — invisible to a text scanner *and* to a gate with no layout
+engine); a colour that stopped deriving from a token; a closed dialog laid out in normal flow; anything about a real
+rectangle. The two kinds of check do not subsume each other — the node gate catches a bad literal being *written*,
+the browser cell catches a value that stopped deriving *for any reason at all*.
+
 ### What NOT to do
 - **No Jest/Vitest.** They require a module system, which requires a build, which the constraint forbids. Extracting logic into a testable module and re-inlining it is a build step wearing a disguise.
 - **No visual regression testing.** A hand-maintained teaching artifact does not have the change velocity to amortise screenshot baselines.
@@ -171,6 +282,7 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 ## What NOT to Use
 | Avoid | Why | Use Instead |
 |---|---|---|
+| **`innerHTML` / `outerHTML` / `insertAdjacentHTML` / `document.write` / `createContextualFragment` / `DOMParser` / `srcdoc`** | On the artifact's `FORBIDDEN` list; `tests/selftest-node.cjs:38-51` fails the build on any of them. Supersedes § 1's original region-re-render prescription — see the banner there | `createElement` + `textContent`, inside the two-tier `structure()` / `sync()` reconcile |
 | `<script type="module">` with any `import` | **Verified blocked** on `file://` — CORS, `origin 'null'`. The single most common way this class of project dies. | One classic `<script>` |
 | `fetch()` / `XMLHttpRequest` for any local asset | **Verified blocked.** `fetch` fails even with `--allow-file-access-from-files` | Inline all data as JS literals; inline images as data URIs or SVG |
 | `new Worker('file.js')` | **Verified `SecurityError`** | Not needed (1.82 ms). If ever needed: Blob-URL worker, verified working |
@@ -221,8 +333,14 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 | `file://` capability matrix (fetch/import/Worker/crypto/storage/history) | **HIGH** | Executed in real Chrome 151, default flags, from `file://` |
 | `navigator.clipboard.writeText()` works from `file://` in Chrome & Edge | **HIGH** | Executed in Chrome 151 and Edge 151, headed, with a real click; `permissions.query` returned `"granted"` |
 | `file://` is a secure context | **HIGH** | Measured `isSecureContext === true`; confirmed against W3C Secure Contexts step 6 |
-| Re-render performance numbers | **HIGH** | Benchmarked in Chrome 151, 60 iterations per configuration |
-| Encoding size comparison (35 / 167 / 709 / 1,554 chars) | **HIGH** | Measured on an actual representative state object |
+| Re-render performance numbers — the **original `innerHTML`** table | **HIGH as a measurement, SUPERSEDED as a prescription** | Benchmarked in Chrome 151, 60 iterations per configuration. The numbers are sound; the pattern they justified is now `FORBIDDEN`. Do not size a region with them |
+| Re-render performance numbers — the **shipped `structure()` / `sync()`** table | **HIGH** | Measured 2026-08/09 in Chrome 151 via Playwright `channel: 'chrome'` from `file://`. `.planning/phases/05-fight-loop-playtest/05-RESEARCH.md` § Measurements |
+| `innerHTML` is forbidden and mechanically enforced | **HIGH** | `tests/selftest-node.cjs:38-51`, the `FORBIDDEN` array, 14 patterns, read 2026-09-01; gate green at 1336/0 the same day |
+| Encoding size comparison (35 / 167 / 709 / 1,554 chars) | **HIGH as of when taken, now STALE for the 35** | Measured on a representative state object predating token and action authoring |
+| Build-code sizes on the shipped schema (45 / 344 / 283 / 909 / 3,542 / 3,744) | **HIGH** | Measured 2026-09-01 by driving the artifact; `.planning/phases/05-fight-loop-playtest/05-D35a-SUMMARY.md` § Measurements |
+| The three-tier harness counts (1336/0, 1460/0, 314/0) | **HIGH** | Tier 1 re-run 2026-09-01, exit 0. Tiers 2 and 3 as recorded in `05-DOMRUNNER-NOTE.md` and `05-D38-SUMMARY.md` |
+| Real Chrome **and** Edge drive the artifact from `file://` headless, clipboard granted | **HIGH** | ~314 cells in `tests/browser-checks.mjs`, four columns, measured 2026-08-29 and re-run through 2026-09-01 |
+| An author `display` on a dialog class repeals `dialog:not([open])` | **HIGH** | D-38: both dialogs measured laid out at 660×728 and 1040×716 at document y 3067 on the shipped file |
 | `file://` hash capacity ≥ 500,000 chars | **HIGH** | Measured, round-trip verified |
 | Preact+htm inline-from-`file://` viability | **HIGH** | Rendered successfully from inlined UMD source |
 | Library versions, licenses, dist byte sizes | **HIGH** | npm registry API + downloaded dist files, weighed |
@@ -230,13 +348,15 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 | Clipboard gesture requirement from Chrome 107 | **HIGH** | MDN browser-compat-data |
 | Discord 2,000-char limit | **MEDIUM** | Multiple 2026-dated secondary sources agree; not verified against Discord's own docs |
 | Discord does not linkify `file://` | **MEDIUM** | Consistent with Discord's markdown behaviour; not directly tested |
-| Firefox clipboard on `file://` | **LOW — designed around** | Firefox binary unavailable in this environment. The four-tier fallback makes it non-blocking |
+| Firefox clipboard on `file://` | **LOW — designed around, and now known to be unmeasurable HERE rather than merely unmeasured** | The Playwright Firefox binary **is present** — `ms-playwright/firefox-1538/firefox/firefox.exe`, 721,920 bytes, confirmed on disk 2026-09-01 — but the OS refuses to spawn it (`Permission denied`; policy / mark-of-the-web). So the gap is now *sharper*, not closed: it is a machine-policy block, not a missing install, and installing Playwright again will not fix it. The four-tier fallback makes it non-blocking |
 | Firefox `localStorage` on `file://` under `privacy.file_unique_origin` | **LOW — sources contradict** | Prescription is to never depend on it, which makes the answer irrelevant |
 | "Proxy/pub-sub become spaghetti" | **MEDIUM — engineering judgement** | Not an empirical claim. Stated as an opinionated recommendation with reasoning, per the brief |
 ## Gaps
-- **Firefox and Safari were not empirically testable.** The Playwright Firefox binary could not launch in this environment and no system Firefox is installed. Every Firefox-sensitive recommendation (clipboard, `localStorage`) has a fallback that makes the answer moot, but if either becomes a stated support target, re-run the probe before shipping.
-- **Discord's rendering of a very long unbroken code string** (does it wrap, truncate the display, or offer a "copy" affordance?) was not tested. Mitigated by the ≤512-char budget and by instructing students to wrap the code in backticks.
-- **Projector legibility** is an empirical question that only a rehearsal answers. No amount of research substitutes for putting the artifact on the actual workshop display before the session.
+- **Chromium-family coverage is no longer a gap.** ~314 cells in `tests/browser-checks.mjs` drive real Chrome and real Edge from `file://`, headless, at two viewports. Layout, computed style, focus and all four clipboard tiers are now measured rather than deferred.
+- **Firefox is a SHARPER gap than it was, not a closed one.** The Playwright Firefox binary is on this machine — `ms-playwright/firefox-1538/firefox/firefox.exe`, 721,920 bytes, dated 2026-08-26, confirmed present 2026-09-01 — and **the OS refuses to spawn it** (`Permission denied`; policy / mark-of-the-web). This changes the recommendation: re-installing Playwright will not help, and a future attempt needs an environment change (a different machine, or an unblocked binary), not another `npm install`. Every Firefox-sensitive recommendation (clipboard, `localStorage`) still has a fallback that makes the answer moot — **keep the four-tier clipboard fallback** — but if Firefox becomes a stated support target this must be resolved first.
+- **Safari remains entirely untested.** No Safari on Windows; nothing in this environment can close it.
+- **Discord's rendering of a very long unbroken code string** (does it wrap, truncate the display, or offer a "copy" affordance?) was not tested. Mitigated by the ≤512-char design target and by instructing students to wrap the code in backticks. Note the measured 909-char fully-authored board and the 3,542-char adversarial ceiling make this **more** worth testing than when it was first written.
+- **Projector legibility** is an empirical question that only a rehearsal answers. Tier 3 measures rectangles at 1366×768, which is a proxy and not the thing: whether a word reads from across a room, and whether a sentence reads as helpful, stay human items in `.planning/REHEARSAL.md`. No amount of automation substitutes for putting the artifact on the actual workshop display before the session.
 ## Sources
 - **Direct execution** — Chrome 151.0.0.0 and Edge 151 on Windows 11, loaded from `file://`, driven by Playwright 1.62.1. Capability probe, clipboard permission probe, inline-Preact probe, encoding-size probe, re-render benchmark. **HIGH confidence.** Probe artifacts: `C:\Users\alexy\AppData\Local\Temp\claude\C--Projects-GameDesignSkills-GameFeelDirectionCourse-CatsVsMech\02bc3ee9-fc27-479d-974a-c0660ffd5dd2\scratchpad\`
 - **`web-features` npm package** (the Baseline dataset) — Baseline status and low/high dates for `:has`, container queries, nesting, `color-mix`, `compression-streams`, `dialog`, `popover`, `field-sizing`, `text-wrap-balance`, `async-clipboard`, `subgrid`, `light-dark`, anchor positioning, scroll-driven animations. **HIGH.**
@@ -249,6 +369,15 @@ It is not a game engine. The tool does bookkeeping and projection; **the student
 - Discord character limits — [Discord Character Limit 2026 (TypeCount)](https://typecount.com/blog/discord-character-limit), [Discord Text Tools](https://discordtexttools.com/blog/discord-character-limit-guide/). 2,000 free / 4,000 Nitro. **MEDIUM** (secondary sources, mutually consistent).
 - URL length ceilings — [IEInternals: URL Length Limits](https://learn.microsoft.com/en-us/archive/blogs/ieinternals/url-length-limits), [Baeldung](https://www.baeldung.com/cs/max-url-length). Superseded for this project by the direct 500,000-char `file://` hash measurement. **MEDIUM**, and not load-bearing.
 - `C:/Projects/GameDesignSkills/GameFeelDirectionCourse/game-feel-study-guide.html` — design tokens, single classic `<script>` convention, `tabular-nums` usage, 57 KB baseline file size. **HIGH** (read directly).
+
+**Amending sources (added 2026-09-01, superseding the claims noted above):**
+
+- `.planning/phases/05-fight-loop-playtest/05-RESEARCH.md` — § "CLAUDE.md correction, recorded rather than absorbed" and § Measurements. The `innerHTML` prescription vs the `FORBIDDEN` list; `sync()` / `structure()` baselines; ledger cost across three designs; the `data-k` focus-restore hazard in both DOM orders. **HIGH.**
+- `.planning/phases/05-fight-loop-playtest/05-D35a-SUMMARY.md` — § Measurements and § "The refusal matrix: 20 → 28 shapes". Build-code sizes across six scenarios, marginal costs of bounds and rules, `WIRE_BOUNDS`, the 28-shape refusal matrix. **HIGH.**
+- `tests/browser-checks.mjs` — 314 cells, real Chrome + real Edge from `file://`, headless, 1920×1080 and 1366×768; the clipboard-tier cells with a seeded sentinel. Its own header records the "no browser in this environment" premise being wrong. **HIGH.**
+- `tests/selftest-node.cjs` (`FORBIDDEN` array at `:38-51`, read directly) and `tests/selftest-dom.cjs`, with `.planning/phases/05-fight-loop-playtest/05-DOMRUNNER-NOTE.md` — the two Node tiers and the 124-row delta between them. Tier 1 re-run 2026-09-01: 1336/0, exit 0. **HIGH.**
+- `.planning/phases/05-fight-loop-playtest/05-D38-SUMMARY.md` — the closed-dialog cascade-origin finding and the browser-cell count at 314. **HIGH.**
+- **Direct filesystem check, 2026-09-01** — `ms-playwright/firefox-1538/firefox/firefox.exe` present, 721,920 bytes. The spawn refusal (`Permission denied`) is recorded from the session that attempted it; this pass confirmed presence-on-disk only. **HIGH** on presence, **MEDIUM** on the cause being policy / mark-of-the-web.
 <!-- GSD:stack-end -->
 
 <!-- GSD:conventions-start source:CONVENTIONS.md -->
