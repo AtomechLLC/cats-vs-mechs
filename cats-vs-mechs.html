@@ -5407,6 +5407,155 @@
   }
   .ref-sb-side{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
 
+  /* ==================================================================
+     D-39 P1-3 — THE PANEL CALLED "PROJECTION AND REFERENCE" HAD NEVER
+     SHOWN THE REFERENCE. Plan 05-D39b.
+     ==================================================================
+     Measured, #strip in the fight view with the panel open, both
+     viewports, every run:
+
+       viewport     clientHeight  scrollHeight  first .ref-card top
+       1920x1080     836           1712          955   -> below the fold
+       1366x768      524           1637          880   -> below the fold
+
+     All six cards, at both sizes, always. D-33 P3-8 chose this panel as
+     REF-03's home BECAUSE P2-12 was giving it a header, a close control
+     and a scroll affordance — and then put the cards 955px down a
+     container that shows 836. REF-03 has been formally satisfied and
+     functionally absent for three rounds.
+
+     WHAT THE AUDIT PRESCRIBED AND WHY IT IS NOT WHAT LANDED. Its first
+     item is "put the reference cards first", and its own second item
+     admits the consequence: "the projection then falls below the fold
+     instead, which is the correct trade". That is the same defect with
+     the subject swapped, on a panel whose NAME is both readings. The
+     panel does not need a different order. It needs both ends held.
+
+     SO THE REFERENCE IS PINNED TO THE FOOT, WITH ITS OWN BOUND AND ITS
+     OWN SCROLL. .pv-head is already sticky at the top of this scroller
+     for exactly the reason [C07]'s and [C12]'s footers are — "the box
+     below it scrolls, and a way out that scrolls away is a way out a
+     student cannot see" — and this is that idiom turned upside down and
+     said a second time. The projection keeps its reading order and
+     scrolls between the two pinned ends; the reference is on screen at
+     EVERY scroll offset, including the resting one, which is the only
+     offset a student who has not scrolled will ever be at.
+
+     THE BOUND IS IN VIEWPORT UNITS AND NOT A PERCENTAGE, and that is a
+     mechanism rather than a taste: this is a grid ITEM, its containing
+     block is a content-sized row track, and a percentage max-height
+     against a track with no definite height resolves to none — the rule
+     would silently do nothing. #strip's own height is already
+     calc(100vh - ...), so vh is the same term one level up. Measured:
+     34vh is 367px at 1080 and 261px at 768, and the 190px floor is the
+     head plus the first card at the smaller size.
+
+     THE SECTION HEADING IS STICKY INSIDE IT, which is the same idiom a
+     third time and is what keeps the panel's second name attached to the
+     thing it names once a student scrolls the cards.
+
+     WHAT WAS MEASURED AND *NOT* DONE, recorded so the next reader does
+     not re-open it:
+
+       THE AUDIT'S ITEM 3 IS ALREADY SHIPPED. It asks for "the edge-fade
+       the [C16] block already defines" and reports the scroll affordance
+       invisible: "the measured gutter is offsetWidth - clientWidth = 2
+       ... no scrollbar takes any width, and no scrollbar appears in any
+       of the 115 screenshots this audit took". Re-driven this pass with
+       --hide-scrollbars REMOVED from headless Chrome's default args —
+       which is D33a's own recorded trap and the thing that made D-33
+       Pass B ship an unstyled white scrollbar — the gutter is 12px, the
+       bar is in the screenshots, and getComputedStyle reports the four
+       background layers of [C16]'s cue on #strip. The affordance was
+       always there; the measurement was taken through a flag that hides
+       it. The cue is EXTENDED to .ref-sb below, because a plan that
+       moves a scroll to a new box moves its cue too — [C16]'s own rule.
+
+       THE AUDIT'S ITEM 4 IS DECLINED AGAIN, with D-33c's measurement
+       re-taken this pass rather than quoted. It asks for "a fractional
+       basis rather than 360px" at 1366. Driven at 1366 with a fight
+       running and the panel open, reading the projection's own headline
+       height as the box shrank:
+
+         panel width   360  340  322  317  300  280  264
+         headline      38   38   38   38   77   77   77
+         lines          1    1    1    1    2    2    2
+
+       So there is 43px of slack and then the sentence [C10] sizes for a
+       four-digit turn count on a 24-unit roster breaks in two. The whole
+       of what a fractional basis buys the fight is those 43px, and the
+       first setting that buys it anything worth having costs the reading
+       the panel exists to carry. The panel PUSHES rather than overlays
+       ([C15], verified again this pass), which is the half of D-33 P2-12
+       that actually mattered. Recorded, not implemented — and the lever
+       is this rule if a room says otherwise at rehearsal. */
+  /* THE PANEL'S OWN BOTTOM PADDING GOES, AND IT IS A PICTURE THAT SAYS SO.
+     A sticky element cannot leave its containing block, and this one's is
+     #strip's CONTENT box — so with the panel's 18px bottom padding in place
+     the pinned section came to rest 19px above the border and the
+     projection scrolled through the gap underneath it. Measured (ref bottom
+     735 against panel bottom 754) and photographed at 1366: a strip of
+     "a hit spills past a unit's last point of" running under the reference
+     cards. A negative bottom margin does not reach it either, for the same
+     containing-block reason.
+
+     :has() IS THE SECOND USE IN THIS FILE AND THE FIRST ONE'S TOMBSTONE IN
+     [C14] EXPECTED IT — "the feature is still inside the stated browser
+     floor and the next region that wants it may take it". It is needed
+     because the padding must go ONLY when there is something pinned to the
+     foot: with the panel open and no fight running there is no .ref-sb,
+     and a flush-to-the-border projection would be the cramped box the
+     padding is there to prevent. Baseline Widely Available 2026-06-19,
+     inside this artifact's stated floor, and sanctioned in CLAUDE.md. */
+  #app[data-view="fight"][data-proj="1"] #strip:has(.ref-sb){padding-bottom:0}
+  /* AND THE SAME GAP AT THE TOP, WHICH IS OLDER THAN THIS PLAN AND WAS
+     FOUND BY THE SAME PICTURE. .pv-head carries margin-top:-18px so that in
+     FLOW it starts at the panel's border edge — but it sticks at `top:0`,
+     which is the SCROLLPORT's padding-box top, 18px lower. So the moment a
+     student scrolled this panel, a sliver of the projection's own prose
+     appeared ABOVE the pink "PROJECTION AND REFERENCE" header, in the
+     panel's top padding, in a strip 18px tall. Photographed at 1366 while
+     driving P1-3: "a hit spills past a unit's last point of" running along
+     the top edge over the header.
+
+     The padding goes and the header carries it, so the sticky top and the
+     border edge are the same line and there is no window between them. Two
+     rules, symmetrical with the two above, and the panel is closed at both
+     ends. This one needs no :has(): .pv-head is built by [S06.3] on the
+     first frame and is present whenever this panel is. */
+  #app[data-view="fight"][data-proj="1"] #strip{padding-top:0}
+  #app[data-view="fight"][data-proj="1"] .pv-head{margin-top:0;padding-top:18px}
+  #app[data-view="fight"][data-proj="1"] .ref-sb{
+    position:sticky;bottom:0;z-index:1;
+    max-height:max(190px, 34vh);
+    overflow-y:auto;
+    margin:0 -18px;padding:12px 18px 18px;
+    border-top:1px solid var(--line);
+    /* background-COLOR AND NEVER THE SHORTHAND, and this rule is the exact
+       trap [C16]'s banner was written about. That block sits LAST in this
+       stylesheet precisely because `background` is a shorthand in two rules
+       that own scrollers and a shorthand resets background-image to none —
+       so it paints its four-layer edge cue after them and survives. This
+       rule is (2,1,0) against [C16]'s (0,1,0) and would win WHEREVER it sat,
+       so the source order that protects the others protects nothing here:
+       a `background:` shorthand on this line would delete the cue on the one
+       scroller this plan just created, with nothing on screen and nothing in
+       the gate to say so. Browser cell 10f reads the layer count back. */
+    background-color:var(--panel);
+  }
+  #app[data-view="fight"][data-proj="1"] .ref-sb-head{
+    position:sticky;top:-12px;z-index:1;
+    /* The bottom padding is 10 and not 6, measured: at 6 the top edge of
+       the first card scrolled into a 4px window under the heading and read
+       as a rendering fault at projector distance. */
+    margin:-12px 0 0;padding:12px 0 10px;
+    /* The longhand again, for the reason two rules up, and here it is not
+       even a scroller — it is a habit kept on purpose, because the next
+       author of this pair should not have to work out which of the two
+       needs it. */
+    background-color:var(--panel);
+  }
+
   /* THE CONTROL IS NOT IN THE BUILD VIEW AT ALL, which is D-28's own closing
      line — "Build view is untouched. The strip behaves as before outside a
      fight." A toggle standing in the board tab would be a control that does
@@ -6210,25 +6359,35 @@
      THE RULE FOR THE NEXT AUTHOR IS THE ONE-LINE VERSION: a plan that
      moves a scroll from one box to another moves its cue too, and the
      only thing that can tell you it did not is a picture. */
-  .fg-field, .ld-list, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list,
+  /* AND .ref-sb, ADDED BY D-39 P1-3, FOR THE ONE-LINE RULE THIS BLOCK
+     ALREADY STATES ABOUT ITSELF: "a plan that moves a scroll from one box
+     to another moves its cue too, and the only thing that can tell you it
+     did not is a picture." P1-3 gives the sidebar's reference section its
+     own bound and its own scroll, so it is a scroller now and it takes the
+     scroller treatment — the thin bar, the thumb colour and the four-layer
+     edge cue below. Its --fade-cover is --panel, which is #strip's own
+     background read straight, exactly as #strip's own entry is. */
+  .fg-field, .ld-list, .ld-row, .ld-now-body, #strip, .ref-sb, .pk-list, .ae-list,
   .pk-body, .ae-body{
     scrollbar-width:thin;
     scrollbar-color:var(--state-scroll-thumb) transparent;
   }
   .fg-field::-webkit-scrollbar, .ld-list::-webkit-scrollbar,
   .ld-row::-webkit-scrollbar, .ld-now-body::-webkit-scrollbar,
-  #strip::-webkit-scrollbar, .pk-list::-webkit-scrollbar,
+  #strip::-webkit-scrollbar, .ref-sb::-webkit-scrollbar, .pk-list::-webkit-scrollbar,
   .ae-list::-webkit-scrollbar,
   .pk-body::-webkit-scrollbar, .ae-body::-webkit-scrollbar{width:10px;height:10px}
   .fg-field::-webkit-scrollbar-track, .ld-list::-webkit-scrollbar-track,
   .ld-row::-webkit-scrollbar-track, .ld-now-body::-webkit-scrollbar-track,
-  #strip::-webkit-scrollbar-track, .pk-list::-webkit-scrollbar-track,
+  #strip::-webkit-scrollbar-track, .ref-sb::-webkit-scrollbar-track,
+  .pk-list::-webkit-scrollbar-track,
   .ae-list::-webkit-scrollbar-track,
   .pk-body::-webkit-scrollbar-track,
   .ae-body::-webkit-scrollbar-track{background:transparent}
   .fg-field::-webkit-scrollbar-thumb, .ld-list::-webkit-scrollbar-thumb,
   .ld-row::-webkit-scrollbar-thumb, .ld-now-body::-webkit-scrollbar-thumb,
-  #strip::-webkit-scrollbar-thumb, .pk-list::-webkit-scrollbar-thumb,
+  #strip::-webkit-scrollbar-thumb, .ref-sb::-webkit-scrollbar-thumb,
+  .pk-list::-webkit-scrollbar-thumb,
   .ae-list::-webkit-scrollbar-thumb,
   .pk-body::-webkit-scrollbar-thumb, .ae-body::-webkit-scrollbar-thumb{
     background:var(--state-scroll-thumb);border-radius:999px;
@@ -6236,7 +6395,7 @@
 
   /* The vertical six, and the two dialog bodies D-33 Pass C added to
      them. */
-  .fg-field, .ld-row, .ld-now-body, #strip, .pk-list, .ae-list,
+  .fg-field, .ld-row, .ld-now-body, #strip, .ref-sb, .pk-list, .ae-list,
   .pk-body, .ae-body{
     background-image:
       linear-gradient(to bottom, var(--fade-cover) 60%, transparent),
@@ -6271,7 +6430,7 @@
      be one that is read. */
   .fg-area .fg-field{--fade-cover:var(--panel-2)}
   .pk-list, .ae-list, .pk-body, .ae-body{--fade-cover:var(--panel)}
-  #strip{--fade-cover:var(--panel)}
+  #strip, .ref-sb{--fade-cover:var(--panel)}
   .ld-list{--fade-cover:var(--bg)}
   .ld-row{--fade-cover:color-mix(in srgb, var(--panel) 55%, var(--bg))}
   .ld-now-body{--fade-cover:color-mix(in srgb, var(--accent) 7%, var(--bg))}

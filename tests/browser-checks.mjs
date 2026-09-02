@@ -1290,12 +1290,63 @@ for (const ch of ['chrome', 'msedge']) {
       const fig = document.querySelector('#strip [data-prj="turns"]');
       const card = document.querySelector('#strip .ref-card');
       const box = (n) => { if (!n) return null; const r = n.getBoundingClientRect(); return { w: Math.round(r.width), h: Math.round(r.height) }; };
+      /* ==============================================================
+         D-39 P1-3 — "HAS A BOX" IS TURNED INTO "IS ON THE SCREEN".
+         Plan 05-D39b.
+         ==============================================================
+         WHAT THIS CELL REQUIRED: `card.w > 0 && card.h > 0` — a
+         rectangle in the DOM. It was green in four columns for three
+         rounds while EVERY ONE of the six cards sat below the fold of
+         this panel at BOTH viewports, always:
+
+           1920x1080  panel shows 836, first card at 955
+           1366x768   panel shows 524, first card at 880
+
+         The panel is named "Projection and reference" and had never
+         once shown the reference. That is the green-over-defect shape
+         this project keeps finding, and it is what a box measurement
+         buys you when the box is inside a scroller.
+
+         SO THE CLAUSE IS REACHABILITY AT THE RESTING SCROLL OFFSET —
+         scrollTop 0, which is the only offset a student who has not
+         scrolled will ever be at — read against the PANEL's own box and
+         against the viewport. Both readings the panel's name promises
+         are asserted the same way, because P1-3's fix must not buy the
+         reference at the projection's expense: the audit's own
+         prescription was to reorder, and its own second item admits
+         that would put the projection below the fold instead. */
+      const inPanel = (n) => {
+        if (!n) { return false; }
+        const s = document.querySelector('#strip').getBoundingClientRect();
+        const r = n.getBoundingClientRect();
+        return r.width > 0 && r.height > 0
+          && r.top >= s.top - 1 && r.bottom <= s.bottom + 1
+          && r.top >= 0 && r.bottom <= innerHeight + 1;
+      };
+      const ref = document.querySelector('#strip .ref-sb');
+      const refCS = ref ? getComputedStyle(ref) : null;
       return {
         view: document.querySelector('#app').dataset.view,
         colsHidden: getComputedStyle(document.querySelector('.brd-col')).display === 'none',
         figure: box(fig), figureSays: fig ? fig.textContent : null,
         cards: document.querySelectorAll('#strip .ref-card').length,
         card: box(card), cardSays: card ? card.textContent : null,
+        // D-39 P1-3's clauses.
+        panelScrollTop: document.querySelector('#strip').scrollTop,
+        cardReachable: inPanel(card),
+        figureReachable: inPanel(fig),
+        refHeadReachable: inPanel(document.querySelector('.ref-sb-head')),
+        refPinned: refCS ? refCS.position : null,
+        refScrolls: ref ? (refCS.overflowY === 'auto' && ref.scrollHeight > ref.clientHeight) : false,
+        // [C16]'s four-layer edge cue survived the sidebar rule's own
+        // background declaration — the longhand-not-shorthand trap that
+        // block's banner is written about.
+        // COUNTED BY THE FUNCTION NAME AND NOT BY SPLITTING ON COMMAS: the
+        // cue's stops are color-mix(in srgb, ...) values, so a comma split
+        // reads 10 where there are 4. Measured, on the first run of this
+        // clause.
+        refCueLayers: refCS
+          ? (refCS.backgroundImage.match(/linear-gradient\(/g) || []).length : 0,
         head: (document.querySelector('.pv-head .pv-title') || {}).textContent || null,
         close: (document.querySelector('.pv-close') || {}).textContent || null,
         headSticky: document.querySelector('.pv-head')
@@ -1331,7 +1382,9 @@ for (const ch of ['chrome', 'msedge']) {
       `${coversTop.panelTop} vs ${coversTop.barBottom} / ${coversScrolled.panelTop} vs ${coversScrolled.barBottom}`);
     note(ch, size.name, 'D-33 REF-03 in the panel: cards / a card reads',
       `${bothServed.cards} / ${String(bothServed.cardSays).slice(0, 24)}`);
-    ok(`${tag}: 10f. the open panel COVERS NOTHING at either scroll offset, and PROJ-05 and REF-03 are both served without leaving the fight view: a projection figure and a per-action reference card both have real boxes inside it while the roster columns are display:none, its header names both readings, its own Close dismisses it and ONE press of the toggle brings it back with its cards — and in the BUILD view the panel's copy is display:none so the six cards are never on one screen twice`,
+    note(ch, size.name, 'D-39 P1-3 reachable at rest — card / figure / ref head',
+      `${bothServed.cardReachable} / ${bothServed.figureReachable} / ${bothServed.refHeadReachable}`);
+    ok(`${tag}: 10f. the open panel COVERS NOTHING at either scroll offset, and PROJ-05 and REF-03 are both served without leaving the fight view: a projection figure and a per-action reference card are both ON THE SCREEN inside it AT THE PANEL'S RESTING SCROLL OFFSET while the roster columns are display:none, its header names both readings, its own Close dismisses it and ONE press of the toggle brings it back with its cards — and in the BUILD view the panel's copy is display:none so the six cards are never on one screen twice. THE REACHABILITY CLAUSE IS D-39 P1-3 AND IT IS A TURN: this cell used to require the card to have a non-zero BOX, which it always did, while every one of the six sat below the fold of this panel at both viewports — 955 into an 836px box at 1920, 880 into a 524px box at 1366 — so a panel named "Projection and reference" had never once shown the reference and four columns of real browser were green over it. Now the reference is a sticky, bounded, independently scrolling section pinned to the panel's foot with [C16]'s four-layer cue on it, and BOTH readings are asserted reachable at scrollTop 0, because the fix must not buy one at the other's expense`,
       coversTop.hits.length === 0 && coversScrolled.hits.length === 0
       && coversTop.panelTop >= coversTop.barBottom
       && coversScrolled.panelTop >= coversScrolled.barBottom
@@ -1340,6 +1393,12 @@ for (const ch of ['chrome', 'msedge']) {
       && bothServed.cards === 6
       && bothServed.card !== null && bothServed.card.w > 0 && bothServed.card.h > 0
       && String(bothServed.cardSays).length > 0
+      && bothServed.panelScrollTop === 0
+      && bothServed.cardReachable === true
+      && bothServed.figureReachable === true
+      && bothServed.refHeadReachable === true
+      && bothServed.refPinned === 'sticky' && bothServed.refScrolls === true
+      && bothServed.refCueLayers === 4
       && bothServed.head === 'Projection and reference'
       && bothServed.close === 'Close' && bothServed.headSticky === 'sticky'
       && afterClose.display === 'none' && afterClose.proj === ''
