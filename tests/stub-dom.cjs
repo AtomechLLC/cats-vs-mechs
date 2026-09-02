@@ -159,6 +159,11 @@ function makeStubDom() {
     'act-edit-cost-1', 'act-edit-cost-1-amt',
     'act-edit-cost-2', 'act-edit-cost-2-amt',
     'act-edit-cost-3', 'act-edit-cost-3-amt',
+    // D-40's pool preview. One id and no rows of its own: everything inside it
+    // is built by [S06.5] on every repaint and found by class, because nothing
+    // in it is focusable and there is therefore no node a repaint has to
+    // preserve — which is the opposite of the four term rows above it.
+    'act-edit-cost-pool',
     'act-edit-req-0', 'act-edit-req-0-amt',
     'act-edit-req-1', 'act-edit-req-1-amt',
     'act-edit-req-2', 'act-edit-req-2-amt',
@@ -1495,6 +1500,15 @@ function makeStubDom() {
   aeTermRow('act-edit-cost-1', 'cost', 1, false);
   aeTermRow('act-edit-cost-2', 'cost', 2, false);
   aeTermRow('act-edit-cost-3', 'cost', 3, false);
+  /* D-40's pool preview, built EMPTY and HIDDEN exactly as the shell ships it.
+     It is appended after the four cost rows and before the Needs head, which is
+     where the shell has it — inside the Cost list rather than between two lists
+     — and the order matters to nothing here except a reader comparing the two
+     files side by side, which is the whole reason this page is hand-written. */
+  const aePool = idNode('act-edit-cost-pool');
+  aePool.className = 'ae-pool';
+  aePool.hidden = true;
+  aeTerms.appendChild(aePool);
   aeTermHead('Needs', 'Must be there for the action to be used. It is not spent.');
   aeTermRow('act-edit-req-0', 'req', 0, false);
   aeTermRow('act-edit-req-1', 'req', 1, false);

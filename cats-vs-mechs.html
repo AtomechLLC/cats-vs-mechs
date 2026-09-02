@@ -1802,6 +1802,83 @@
      list draws none. The 6px the list already puts between rows becomes
      3 above the rule and 3 below it, so nothing grows. */
   .ae-term + .ae-term{border-top:1px solid var(--line);padding-top:6px}
+  /* D-40's POOL PREVIEW, and every rule here is borrowed rather than invented.
+
+     THE HAIRLINE IS .ae-term + .ae-term's, ONE SCOPE UP. The rows above are
+     divided from each other by a 1px --line rule; this box is divided from the
+     LAST of them by the same rule, because it is the same kind of division
+     asked at the boundary between the terms and what they add up to. It is on
+     the box and not on a sibling selector, since the box is the only child of
+     its kind and a `+` here would be a rule that reads as conditional and never
+     is.
+
+     THE TOKEN SIZE IS .ae-term-read's 16px, TAKEN THE SAME WAY AND FOR THE SAME
+     MEASURED REASON: [C14.5] sets --tok on .sym itself, so the override has to
+     land on .sym and not on an ancestor or the shapes go on drawing at 12 with
+     the ancestor reporting 16. D-33 P2-7 measured that once and the note above
+     is where it is written down; this is that finding used rather than
+     rediscovered.
+
+     THE PICTURE WRAPS INSIDE ITS OWN COLUMN AND THE SENTENCE INSIDE ITS OWN.
+     A pool row is a picture and a sentence about it; the reading keeps its
+     flex-wrap so a nine-point pool folds rather than pushing the sentence off
+     the box, and the sentence's column is minmax(0,1fr) so it wraps in place
+     instead of forcing the grid wider than the dialog.
+
+     THE SHORT ARM'S COLOUR IS THE REMOVAL MARK'S, DERIVED AND NOT RE-TYPED.
+     .sym-sign is color-mix(in hsl, var(--accent-2), var(--coral)) and that mix
+     is the one thing on this surface that already means "taken away"; a cost
+     that outruns its pool is that fact at the scale of the whole pool, so it
+     wears the same colour. Not one new hex literal, which is this file's
+     standing rule, and [C07]'s never-in-colour-alone is kept by construction —
+     the sentence SAYS it, and the tint is the second channel rather than the
+     first. */
+  /* THE SENTENCES SHARE ONE LEFT EDGE, AND THAT IS A SCREENSHOT'S FINDING
+     RATHER THAN A PREFERENCE. The first draft of this block was a flex column
+     of flex rows, and it measured green on every number this repository can
+     take: 66px tall, rows of 29 and 22, no overflow, four columns agreeing
+     exactly. The PICTURE said otherwise. A pool of three action points draws
+     three shapes and a pool of five Momentum draws five, so each row's
+     sentence began wherever its own row of tokens happened to end — measured
+     off the shipped screenshot at 232px and 252px, twenty pixels of ragged
+     edge on a two-line reading whose entire job is to be scanned down for an
+     answer. That is D-39 P2-8's "all four rows end in one column" and D-39
+     P2-14's "three left edges on one bar", arriving a third time; and it is
+     the class of defect this file has now found by looking at a picture four
+     passes running.
+
+     SO THE BOX IS A TWO-COLUMN GRID and every row's sentence starts at one x.
+     max-content on the first column means the picture column is as wide as the
+     WIDEST picture and no wider, so a single-pool cost pays nothing for the
+     alignment and a two-pool cost gets it for free.
+
+     .ae-pool-row KEEPS EXISTING AND TAKES display:contents, which is the one
+     new technique here and is worth its two lines. The alternative was to emit
+     the reading and the sentence as direct children of the grid with no
+     wrapper, and that loses the PAIRING: a screen reader and the Layer C
+     harvest both walk this in document order, and a picture followed by the
+     sentence about it is a pair whether or not a box is drawn around it. The
+     hazard display:contents carries is that it removes the element's box —
+     which is why nothing may measure a .ae-pool-row's rectangle, and the
+     browser cell reads the reading and the sentence instead. It is Baseline
+     Widely Available, and the accessibility bug it is known for is about
+     elements that CARRY semantics; this is a plain div with none to lose. */
+  .ae-pool{
+    display:grid;grid-template-columns:max-content minmax(0,1fr);
+    gap:6px 14px;align-items:center;
+    border-top:1px solid var(--line);padding-top:8px;margin-top:2px;
+  }
+  .ae-pool[hidden]{display:none}
+  .ae-pool-row{display:contents}
+  .ae-pool-read{display:flex;align-items:center;flex-wrap:wrap;gap:6px}
+  .ae-pool-read .sym{--tok:16px}
+  /* The arrow is .sym-to's rule at .sym-to's size and colour — the punctuation
+     of a reading rather than a value in it — restated here because this arrow
+     is BETWEEN two .sym boxes rather than inside one, so the descendant
+     selector that styles the other one cannot reach it. */
+  .ae-pool-to{font-size:18px;line-height:1;color:var(--ink-faint)}
+  .ae-pool-say{margin:0;font-size:16px;line-height:1.4;color:var(--ink-dim)}
+  .ae-pool-say--short{color:color-mix(in hsl, var(--accent-2), var(--coral))}
   /* .ae-term-note IS GONE UNDER D-38. All four of its uses — Cost, Needs,
      Changes and Override — are tooltips on their own headings now, which is the
      idiom D-38 names by example. Deleted rather than kept, for the reason the
@@ -8517,6 +8594,31 @@
           <div class="ae-term-toks"></div>
           <input class="ae-amt" id="act-edit-cost-3-amt" type="text" autocomplete="off" maxlength="4" aria-label="How much this action spends" data-ae-field="cost" data-ae-slot="3" data-k="ae/amt/cost/3">
         </div>
+        <!-- D-40's PREVIEW. "Make it so you can preview the depletion of action
+             points while setting up actions" — the fight tab already depletes
+             live while DECLARING, so the instruction is read as the AUTHORING
+             surface, and this is where a cost is authored.
+
+             IT IS EMPTY AND HIDDEN IN THE MARKUP, and both halves matter. Empty
+             because every figure in it is a reading of the board and there is
+             no board yet at parse time — a resting value here would be a number
+             the artifact states before it knows anything, which is the opposite
+             of the side pills' D-38 ruling one region up and is why that ruling
+             does not transfer. Hidden because a cost naming no pool draws no
+             rows, and an empty bordered box under the Cost list is a surface
+             saying "there is a reading here" when there is not.
+
+             ONE NODE AND NOT FOUR ROWS. The four term rows above are static
+             markup because each holds a FIELD a student types into and a
+             repaint may not destroy one mid-keystroke (D-19). Nothing in here
+             is focusable — it is a reading and never a control — so it is
+             rebuilt whole on every repaint, which is .ae-term-read's own
+             argument at the scope of a box instead of a cell.
+
+             INSIDE THE COST .ae-term-list AND NOT AFTER IT, so it takes that
+             list's own 6px gap and belongs to the Cost legend rather than
+             floating between Cost and Needs as a third thing. -->
+        <div class="ae-pool" id="act-edit-cost-pool" hidden></div>
       </div>
 
       <div class="ae-term-list">
@@ -10344,6 +10446,56 @@ App.model = (function () {
     };
   }
 
+  /* D-40: THE POOLS A COST NAMES, ONE ROW EACH, SUMMED. Plan 05-D40.
+     The developer: "Make it so you can preview the depletion of action points
+     while setting up actions."
+
+     IT IS A PROJECTION OVER AN affordability REPORT AND NOT A SECOND WALK, and
+     the argument is pooledAt's exactly one region down: a reading built from
+     its own walk of the same slice is a second arithmetic, and D-33 P1-1 and
+     D-39 P1-2 are two passes' worth of evidence about what two arithmetics
+     over one slice do to two sentences. So this takes the REPORT — whatever
+     affordability said, this says the same thing grouped — and there is no
+     input it can see that affordability did not.
+
+     PER POOL AND NOT PER TERM, WHICH IS THE WHOLE OF WHY IT EXISTS. `pays` is
+     one row per cost TERM because a cost is an ordered list a student wrote and
+     two terms in two token types cannot be added up. A DEPLETION is a different
+     question — a pool has one number and it is drawn down once — so an action
+     costing one action point and then two more takes THREE out of one pool, and
+     a preview drawing two rows for that would show a student two pools they do
+     not have. Summed by token, in first-appearance order, so the preview's rows
+     sit in the order the student's own terms first named them.
+
+     NON-POOLS ARE EXCLUDED AND THE EXCLUSION IS THE READING'S HONESTY, not an
+     omission. isPoolToken's paragraph rules that health, shield and a
+     unit-scope type are not pools and cannot be, because spending them means
+     choosing which unit pays. A depletion preview for one of them would be this
+     surface inventing an economy the applier does not run — which is the exact
+     sentence [S06.7] kept in view when tallies did not deplete — and the
+     student is not left in the dark about it either: the proposal pane's own
+     cost line already says "This report has no figure for that pool" for the
+     same term, in the same dialog, from the same report.
+
+     AN UNREADABLE COST COMES BACK EMPTY, because `pays` does, and the rule
+     above it holds here word for word: an empty answer means "this report has
+     no figures for that cost" and never "this costs nothing". The one caller
+     draws no rows for it, which is the same thing said in pixels. */
+  function costPools(report) {
+    var order = [];
+    var seen = {};
+    if (!report || !Array.isArray(report.pays)) { return order; }
+    report.pays.forEach(function (c) {
+      if (!c || c.pool !== true || typeof c.tok !== 'string') { return; }
+      if (!Object.prototype.hasOwnProperty.call(seen, c.tok)) {
+        seen[c.tok] = { tok: c.tok, have: c.have, need: 0 };
+        order.push(seen[c.tok]);
+      }
+      seen[c.tok].need += c.need;
+    });
+    return order;
+  }
+
   /* WHICH TOKEN TYPES NAME A POOL A COST CAN BE SPENT OUT OF, and this is the
      one genuinely new ruling D-32 needed rather than inherited.
 
@@ -10825,6 +10977,10 @@ App.model = (function () {
     actionCostTerms: actionCostTerms,
     costIsApOnly: costIsApOnly,
     isPoolToken: isPoolToken,
+    // D-40's grouping. Exported because [S06.5] draws it and [S09.11] drives
+    // it, and because a preview that grouped a cost by token inside a render
+    // function would be arithmetic in the tier that is supposed to have none.
+    costPools: costPools,
     needsAt: needsAt,
     defaultAt: defaultAt,
     // FIGHT-16. Exported for the fight loop to spend and for [S09.12] to drive
@@ -19538,6 +19694,106 @@ App.render = (function () {
     return symQty(state, term.tok, n, String(n) + ' ', '', minus);
   }
 
+  /* ==================================================================
+     D-40: THE POOL PREVIEW IN THE COST REGION. Plan 05-D40.
+     ==================================================================
+     "Make it so you can preview the depletion of action points while setting up
+     actions." The fight tab already depletes live while DECLARING — that is
+     D-27's own shipped behaviour — so the instruction is read as the AUTHORING
+     surface, and this is the one place a cost is authored.
+
+     WHAT IT SAYS, PER POOL THE COST NAMES: what the side holds, what this
+     action's cost takes out of it wearing D-30's red mark, and what would be
+     left. Three readings through [S06.12]'s symQty, so the editor goes on
+     speaking the fight's language — row 111's claim, which this does not get to
+     weaken.
+
+     IT DOES NOT SHARE fgPoolReading AND THE DECISION IS DELIBERATE, because
+     that function is D-39 P1-2's one-pool-truth and reaching for it here would
+     look like the obedient move. It reads state.fight[side].ap against
+     spokenForPools over this round's DECLARATIONS — three things this surface
+     cannot use. The editor is open in the build view before any fight exists,
+     so there is no fight slice to read; the pool it is about is the one the
+     student is BUILDING; and there are no declarations, because nothing has
+     been declared — an action being authored has not been played. Sharing that
+     function would have made the preview either refuse to draw with no fight
+     running, which is when authoring actually happens, or answer a question
+     nobody asked.
+
+     WHAT IS SHARED IS THE SENTENCE, WHICH IS D-39 P1-2's ACTUAL LESSON. That
+     pass reconciled three readings by making them share a FUNCTION THAT WRITES
+     WORDS and not by making them share a slice — its own banner draws exactly
+     that distinction, because two arithmetics over one slice is how the first
+     two came apart. So: costShortSaid is the one place in this file that turns
+     a need and a have into a sentence about whether a pool covers
+     a cost, and both this preview and the proposal pane's own cost line call
+     it. Row 123 asserts the two EQUAL TO EACH OTHER rather than each to a typed
+     string, which is row 111's technique on a fifth pair.
+
+     AND THE ARITHMETIC IS SHARED TOO, ONE TIER DOWN: both go through
+     App.model.affordability, and this one through App.model.costPools over the
+     report it hands back. So the two panes of this dialog cannot disagree about
+     what a cost costs, and neither can disagree with the fight's disable.
+
+     IT IS A READING AND IT DISABLES NOTHING. The never-disable rule is in full
+     force on authoring surfaces — a student is allowed to write an action that
+     costs more than the side has, and D-16's own stance is that the tool
+     reports and never rules. Nothing in this function touches `disabled`, no
+     control anywhere reads it, and a cost that outruns its pool says so in
+     words and goes on being authorable. */
+  function costShortSaid(need, have) {
+    var short = need - have;
+    return (short > 0)
+      ? 'Not enough to spend. Short by ' + short + '.'
+      : 'Enough to spend.';
+  }
+
+  /* The three suffixes, named rather than written inline, because each one is
+     half of a tooltip that symQty finishes — "3 " + the type's live name + this
+     — and a sentence assembled at the call site is a sentence the next reader
+     has to reconstruct from three fragments. The middle one echoes the Cost
+     legend's own tooltip ("Spent when the action is used") on purpose: the
+     heading says what a cost IS and the reading says what THIS one does, in the
+     same words, four lines apart. The last one is fgPoolWords' own ending, so
+     the phrase a student learns on the fight tab is the phrase they meet here. */
+  var POOL_HELD = ' this side holds';
+  var POOL_TAKEN = ' when this action is used';
+  var POOL_LEFT = ' left to spend';
+
+  function fillCostPools(state, side, live) {
+    var box = document.getElementById('act-edit-cost-pool');
+    if (!box) { return; }
+    box.replaceChildren();
+    var faction = state.build[side];
+    if (!faction) { box.hidden = true; return; }
+    var pools = App.model.costPools(
+      App.model.affordability(faction, live, state.build.tokens));
+    box.hidden = (pools.length === 0);
+
+    pools.forEach(function (p) {
+      // FLOORED, because a pool cannot hold less than none of it — advanceRound
+      // takes Math.min(want, held) out of the board for exactly this reason,
+      // and a preview showing a remainder of minus two would be showing a board
+      // state the applier will never produce. How far past the end the cost
+      // reaches is the sentence's job, not the picture's.
+      var rest = Math.max(0, p.have - p.need);
+      var row = el('div', 'ae-pool-row');
+      var read = el('div', 'ae-pool-read');
+      read.appendChild(symQty(state, p.tok, p.have, String(p.have) + ' ',
+        POOL_HELD, false));
+      read.appendChild(symQty(state, p.tok, p.need, String(p.need) + ' ',
+        POOL_TAKEN, true));
+      read.appendChild(text('span', 'ae-pool-to', SYM_TO));
+      read.appendChild(symQty(state, p.tok, rest, String(rest) + ' ',
+        POOL_LEFT, false));
+      row.appendChild(read);
+      row.appendChild(text('p', 'ae-pool-say'
+        + ((p.need > p.have) ? ' ae-pool-say--short' : ''),
+        costShortSaid(p.need, p.have)));
+      box.appendChild(row);
+    });
+  }
+
   function fillSlotRows(state, field, act, cap, list) {
     // The rows in use plus one empty slot, never past the cap.
     var shown = Math.min(list.length + 1, cap);
@@ -19595,9 +19851,23 @@ App.render = (function () {
   // ALL THREE ARE FILLED AND THEN THE ANSWERS ARE COMBINED, never short-cut
   // with an early return on the first skipped field: two of the three lists
   // would then go unpainted because a student was standing in the first.
-  function fillTerms(state, live) {
+  // D-40 RIDES HERE AND TAKES THE SIDE, which is the one argument this function
+  // did not have and now does. Every other reading in the terms region is a
+  // reading of the ACTION alone — a term names a type and an amount and nothing
+  // about who is paying — and a depletion is the first thing drawn here that
+  // needs the faction whose pool it is about. It is passed down rather than
+  // read off the dialog's dataset, because [S06.5]'s own editor() already knows
+  // which side it is painting and a second reader of data-ed-side inside the
+  // same paint is two answers to a question that has one.
+  function fillTerms(state, side, live) {
     var cost = fillSlotRows(state, 'cost', 'setActionCost', App.ops.MAX_ACTION_COST,
       termList(live, 'cost'));
+    // AFTER the rows and never before, because it is the sum of what they say —
+    // and unconditionally, because it draws no field and skips nothing. A
+    // student standing in a cost amount field still sees the pool move under
+    // every other commit; what they must not be handed back is their own
+    // half-typed number, and that rule lives in showAmount where the field is.
+    fillCostPools(state, side, live);
     var req = fillSlotRows(state, 'req', 'setActionReq', App.data.MAX_ACTION_REQ,
       termList(live, 'req'));
     var xf = fillSlotRows(state, 'xf', 'setActionXf', App.data.MAX_ACTION_XF,
@@ -19906,14 +20176,11 @@ App.render = (function () {
             { said: '. This report has no figure for that pool.' }
           ]);
         } else {
-          var short = c.need - c.have;
           sayInto(line, [
             { word: live.name, act: live.id },
             { said: ' costs ' + c.need + ' ' },
             { word: labelFor(state, c.tok), tok: c.tok },
-            { said: ' of ' + c.have + '. ' + ((short > 0)
-              ? 'Not enough to spend. Short by ' + short + '.'
-              : 'Enough to spend.') }
+            { said: ' of ' + c.have + '. ' + costShortSaid(c.need, c.have) }
           ]);
         }
         costNode.appendChild(line);
@@ -20188,15 +20455,60 @@ App.render = (function () {
   // target and which override line each change what is DRAWN while changing no
   // record at all, and a fingerprint blind to them would leave a pressed
   // chooser looking unpressed until something unrelated moved.
+  //
+  // AND THE TWO INPUTS D-40 FOUND MISSING, WHICH WERE ALREADY MISSING. The pool
+  // preview draws figures out of the side's pools and decides WHICH pools exist
+  // from each type's scope, and neither of those was in here — but neither was
+  // new to this surface either, and saying so is the point rather than an
+  // excuse. fillReport has read both since plan 03.1-07: `c.pool` is
+  // isPoolToken over the scope, and it picks which of two sentences a cost term
+  // gets; and presentOnCaster reads faction.tally for a side-scope type, which
+  // is the "of 3" in "costs 2 Momentum of 3". So the proposal pane could
+  // already be left stating a sentence the board had stopped agreeing with, and
+  // it is reachable by every path this comment's fifth paragraph already names
+  // — a Ctrl+Z with the dialog open, a reset, a decoded build — plus the two
+  // tally ops, which move a number no slot here was watching.
+  //
+  //   tally   is the SIDE's bag and is a third field of the side slot, beside
+  //           the pool. The units' bags were already in — u.tally, one slot
+  //           along — which is exactly the shape of near-miss this file keeps
+  //           finding: the half of a pair that the code of the day happened to
+  //           read got fingerprinted and the other half did not. THIS ONE IS
+  //           REACHED BY A SHIPPED CONTROL: setTally and nudgeTally write a
+  //           side-scope bag from the board tab, and with the editor open on an
+  //           action costing that type both its readings were stale until the
+  //           next unrelated commit.
+  //   scope   rides beside the name in the vocabulary slot, and it is DEFENSIVE
+  //           rather than reached by a control — said plainly, because a slot
+  //           whose reachability is overstated is a slot the next reader trusts
+  //           for the wrong reason. No op in this file moves a type's scope: it
+  //           is written by createTokenType and never again, so on any board
+  //           reached by authoring, a scope that differs comes with an id that
+  //           differs and the slot beside it has already moved. What it covers
+  //           is the OTHER way a vocabulary arrives — a decoded build code,
+  //           which replaces the table wholesale and can hand back the same id
+  //           and the same name carrying the other scope. That flips
+  //           isPoolToken, which decides whether a cost term names a pool at
+  //           all, which decides both this preview's rows AND which of the
+  //           proposal pane's two sentences the term gets. Row 123b asserts it
+  //           against editorSig directly for exactly that reason.
+  //
+  // This is the probe CI lesson stated as a rule rather than as a war story: a
+  // signature that forgets an input does not fail loudly, it PAINTS STALE, and
+  // the only frame on which it can be caught is one where the forgotten input
+  // moved and nothing else did.
   function editorSig(state, side, actionId, dlg) {
     return JSON.stringify([side, actionId, refActions(state, side).map(function (a) {
       return [a.id, a.name, a.dmg, a.keywords, a.cost, a.req, a.xf];
     }), Object.keys(state.build.tokens).map(function (id) {
-      return [id, labelFor(state, id)];
+      var rec = state.build.tokens[id];
+      return [id, labelFor(state, id),
+        (rec && typeof rec === 'object') ? rec.scope : null];
     }), proposalSig(dlg), SIDE_IDS.map(function (each) {
-      return [state.build[each].ap, state.build[each].units.map(function (u) {
-        return [u.id, u.name, u.maxHp, u.shield, u.tally];
-      })];
+      return [state.build[each].ap, state.build[each].tally || null,
+        state.build[each].units.map(function (u) {
+          return [u.id, u.name, u.maxHp, u.shield, u.tally];
+        })];
     })]);
   }
 
@@ -20339,7 +20651,7 @@ App.render = (function () {
       // term written from the keyboard, an undo — reaches them on the frame it
       // happens. Any amount field holding focus is skipped inside, which is
       // why this is a call rather than a rebuild.
-      if (!fillTerms(state, live)) { whole = false; }
+      if (!fillTerms(state, side, live)) { whole = false; }
 
       // ACT-05's first half, ACT-06 and ACT-07. It draws the OTHER pane, so
       // it sits inside the same focus contract and behind the same
@@ -37881,6 +38193,56 @@ App.selftest = (function () {
       App.model.affordability(mixedSide, { cost: [{ tok: 'ap', n: 1 },
         { tok: 't1', n: 1 }], req: [] }).pays.map(function (r) { return r.pool; }),
       [true, false]);
+    /* --- D-40's GROUPING, DRIVEN OVER THE SAME FOUR-TERM REPORT THE ROWS
+           ABOVE JUST READ. The rows are deliberately taken over `mixed` rather
+           than over a fixture of their own: costPools is a PROJECTION and its
+           whole claim is that it can see nothing affordability did not, so a
+           row that built its own input would be asserting that claim about a
+           report this file never produced. --- */
+    t.eq('D-40: the pools a cost names are ONE ROW EACH, in the order the student\'s '
+      + 'terms first named them, and a pool named twice is SUMMED rather than drawn '
+      + 'twice — a pool has one number and is drawn down once, so two rows for one '
+      + 'pool would show a student two pools they do not have',
+      App.model.costPools({ pays: [
+        { tok: 'ap', need: 2, have: 3, pool: true },
+        { tok: 't1', need: 3, have: 5, pool: true },
+        { tok: 'ap', need: 2, have: 3, pool: true }
+      ] }),
+      [{ tok: 'ap', have: 3, need: 4 }, { tok: 't1', have: 5, need: 3 }]);
+    t.eq('and a term naming something that is NOT a pool gets no row at all, which is '
+      + 'isPoolToken\'s ruling arriving at the reading: health and shield live on '
+      + 'units, so a depletion preview for them would be this surface inventing an '
+      + 'economy the applier does not run. The proposal pane still says the same term '
+      + 'out loud, in the same dialog, off the same report',
+      App.model.costPools(mixed),
+      [{ tok: 'ap', have: 3, need: 2 }, { tok: 't1', have: 5, need: 3 }]);
+    t.eq('a cost this file cannot read at all groups to NOTHING, because `pays` is '
+      + 'empty — and the rule above `pays` holds word for word here: that is "no '
+      + 'figures for this cost" and never "this costs nothing"',
+      [App.model.costPools(App.model.affordability(mixedSide,
+        { cost: [{ tok: 'ap', n: 0 }], req: [] }, mixedTokens)),
+        App.model.costPools({ pays: [] }),
+        App.model.costPools({}),
+        App.model.costPools(null)],
+      [[], [], [], []]);
+    t.eq('and with no vocabulary handed in it groups exactly what affordability admits '
+      + '— action points and nothing else — so the preview inherits D-32\'s own answer '
+      + 'rather than deciding poolness a second time',
+      App.model.costPools(App.model.affordability(mixedSide,
+        { cost: [{ tok: 'ap', n: 1 }, { tok: 't1', n: 1 }], req: [] })),
+      [{ tok: 'ap', have: 3, need: 1 }]);
+    t.ok('a `pays` row carrying a token id off Object.prototype is grouped by an OWN '
+      + 'property and never resolved on the prototype — the rule styleFor, labelFor '
+      + 'and actionApCost all state, arriving at a lookup keyed by a student-reachable '
+      + 'id. It groups, it does not throw, and it does not come back with a function',
+      (function () {
+        var odd = App.model.costPools({ pays: [
+          { tok: 'constructor', need: 1, have: 0, pool: true },
+          { tok: 'constructor', need: 2, have: 0, pool: true }
+        ] });
+        return odd.length === 1 && odd[0].tok === 'constructor' && odd[0].need === 3;
+      })());
+
     var broke = App.model.affordability(
       (function () { var poor = App.data.defaults(); poor.cats.ap = 0; return poor.cats; })(),
       { cost: [{ tok: 'ap', n: 2 }], req: [] });
