@@ -762,3 +762,133 @@ its + button                       present, and one press writes {unit:c1, tok:s
 
 So a student running a Recharge house rule puts a shield back from the fight tab, which is exactly
 what this entry said they could not do.
+
+---
+
+## D-39 P2-13's LAYOUT HALF — `align-items:start` on `.ht-grid`
+
+**Raised 2026-09-02 by plan 05-D39a.** D-39's Pass A groups this as a free win: *"`align-items:
+start` on the grid so cards size to their content"*, against a measured **1,095px of empty card**
+across the how-to tab's six panels.
+
+**The void is real and the measurement reproduces.** At 1366, per `.ht-card`, height versus where
+its content ends: 646/185, 646/236, 646/17, 667/333, 667/17, 667/231 — **1,019px**. With
+`align-items:start` every card's void drops to 17px.
+
+**It is not taken, because D-38 already took it and reverted it with a picture,** and this pass
+took both pictures again rather than trusting either party. `[C18]`'s own banner records the
+first run: *"align-items is left at its initial `stretch` DELIBERATELY, and it was changed to
+`start` and back again with a picture of each."*
+
+**What the two pictures show** (`ht-stretch.png`, `ht-start.png`, 1366x768, full page, in
+`scratchpad/d39a/`): the void does not go away under `start`. It MOVES — out of the panels, where
+a border accounts for it, and into the gaps between them, where nothing does. Grid rows are still
+sized to their tallest item, so row 1 leaves 167px under "The board" and 218px under "Tokens"
+beside a full-height "Actions", and row 2 leaves 316px under "Sharing". The rack reads as three
+ragged pairs instead of two rows of three. D-38's sentence is exactly right.
+
+**The audit's own alternative is the live one:** *"or a `column-count` flow so six cards of unequal
+length fill."* Not taken here either — it needs `break-inside:avoid` and it changes how a card
+relates to its neighbours, which is a design decision and not a token swap.
+
+**And the other half of P2-13 moves a floor anyway.** Dropping the "HOW THIS WORKS" eyebrow — the
+part of the finding that is unambiguously right, since it repeats the tab's own switch label 50px
+above it — moves `HOWTO_FLOOR` (24) and `SUITE_FLOOR`. So the finding cannot be free in any case.
+
+**Owner:** whichever pass takes P2-13's string half, which can re-derive the floor once and settle
+the grid at the same time.
+
+---
+
+## D-39 P3-4 — the dialog's sticky edges cut the body with a hard edge
+
+**Raised 2026-09-02 by plan 05-D39a.** D-39 P3-4, listed under Pass A at **GATE: None**:
+*"`[C16]`'s edge-fade idiom exists and is not applied to the two sticky edges."*
+
+**The defect is real and was photographed this pass** (`ae-scrolled.png`, `ae-topedge.png`,
+`ae-botedge.png`, 1366x768, a maxed action, `.ae-body` scrolled to a third). At the top the name
+field's bottom curve is sliced flat; at the bottom the word "Changes" is cut through the middle of
+its letterforms by the sticky footer. It reads as a rendering fault rather than as an invitation
+to scroll, exactly as the audit says.
+
+**But the premise of the prescription is false, and that is why this is deferred rather than
+done.** `[C16]`'s idiom is the four-layer scroll shadow, and it is a **background**. Backgrounds
+paint BEHIND content. It cannot soften a cut through a glyph, and it is *already applied to both
+dialog bodies* — `.pk-body` and `.ae-body` have carried all four layers since D-33c. Measured this
+run: `bgLayers: 4`, `background-attachment: local, local, scroll, scroll`, `--fade-cover: #191d26`.
+Applying the named idiom is a no-op because it is already there.
+
+**What the finding actually needs is an OVERLAY, and there is no Baseline way to make one
+self-gating.** The four-layer trick's whole virtue is that it shows nothing when a region does not
+overflow. An overlaid gradient has no equivalent — it would dim the first 18px of content
+permanently, including when the box is scrolled to the top and nothing is cut, which is the
+"permanent smudge at the edge" `[C16]`'s own `--fade-cover` paragraph warns against. The
+mechanisms that WOULD gate it are `animation-timeline: scroll()`, which `CLAUDE.md` lists under
+**What NOT to Use** ("Not Baseline; Chrome-only"), or a scroll listener, which this file has
+deliberately never had.
+
+**Measured, and worth recording for whoever takes it:** `.ae-foot` is `position:sticky` and its
+top edge sits at 643 against `.ae-body`'s bottom at 661 — it **overlaps the body by 18px**, which
+is exactly the height of the bottom shade layer. So the bottom cue is not merely ineffective, it
+is painted underneath the footer and can never be seen. The footer's existing `border-top:1px
+solid var(--line)` is present and is not enough on its own.
+
+**The three admissible answers,** none taken here because each is a visual decision rather than a
+token swap — the same call `05-D33a` made when it carried P3-6 out of its own Pass A:
+1. an overlay pseudo-element on `.ae-head`/`.pk-head` and `.ae-foot`/`.pk-foot`, accepting a
+   permanent shallow vignette at both edges;
+2. a heavier hairline plus a shadow on the two sticky edges, saying "the box ends here" in shape
+   rather than fading anything;
+3. give `.ae-foot` a real `box-shadow` upward and stop the body 18px short of it, so the two stop
+   overlapping and the existing bottom shade becomes visible for the first time.
+
+**Owner:** a pass that can look at a picture of all three. Answer 3 is the cheapest and is the only
+one that makes the shipped cue work rather than adding a second one beside it.
+
+---
+
+## D-39 P2-2's `.ae-pill` HALF — the action editor's tick still hangs outside its button
+
+**Raised 2026-09-02 by plan 05-D39a.** D-39 P2-2 asks for the selection tick to be contained on
+both pill classes, at **GATE: None — spacing and order only**. `[C17]`'s `.rr-pill` took it and
+the whole harness stayed green. **`[C12]`'s `.ae-pill` did not, and the cost is two browser
+cells.**
+
+**Written, run, measured, reverted.** The in-flow spelling — the one `.rr-check` now carries — was
+applied to `.ae-check` and `tests/browser-checks.mjs` was run against real Chrome at 1920x1080:
+
+```
+FAIL 23.  the terms region is dense — twelve rows, every one of them ONE line
+          rows [41,48,48,48,41,48,48,48,87,94,94,94]
+          the four CHANGES rows went to TWO lines
+FAIL 23c. ... and the tick is SHOWN on the pressed pill
+          tickDx  0 -> -14
+```
+
+**Both failures are the finding's own price and neither is incidental.** The Changes rows carry the
+Caster/Target pair on top of seven token pills, so they sit closest to the line's edge; ~20px of
+newly in-flow tick per pill pushes them over. That is D-32b's dense editor — the surface D-33 P2-7
+was written about — being broken to fix a 4px mark. And cell **23c reads `tickDx` and asserts the
+overhang as the shipped geometry**, so the change does not merely disturb a measurement, it turns
+a claim the harness makes on purpose.
+
+**Which makes it D-30's and D-32's, not Pass A's.** D-39 itself reserves the badge-and-sign
+notation for its pass G, behind a developer decision, in as many words: *"This is D-30's spec —
+raise before implementing."* The tick's position on a pill is the same notation on the same
+surface.
+
+**One half of the finding landed for free anyway.** D-39 P2-6 deleted the outline from
+`.ae-pill--on`, so the accent ring no longer draws **through** the glyph — which was what made the
+tick photograph as a clipped "⌄" rather than as a mark. What remains is the original recorded
+trade: 6.5px of mark hanging into a 6px gap, with nothing crossing it.
+
+**The three admissible answers:**
+1. contain the tick and pay for it by re-deriving `.ae-term`'s density — re-measure cell 23's
+   twelve rows and turn 23c openly, which is a re-measurement pass and not a spacing tweak;
+2. contain the tick and claw the width back from `.ae-pill`'s padding, which is the same
+   re-measurement with a smaller budget;
+3. leave it, on the grounds that with the ring gone the mark reads correctly and the density is
+   worth more than the 4px.
+
+**Owner:** pass G, with P3-2 and P3-3, since all three are D-30's notation and the developer has
+already been asked to rule on that group.

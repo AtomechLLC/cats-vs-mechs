@@ -1691,28 +1691,52 @@
      there is nothing there to buy.
 
      ==================================================================
-     D-39 P2-2 REVERSES THE OVERHANG, AND THE PARAGRAPH ABOVE IS KEPT SO
-     THE TRADE IS READABLE FROM BOTH ENDS. Plan 05-D39a.
+     D-39 P2-2 ASKED FOR THE OVERHANG BACK AND THE MEASUREMENT SAID NO.
+     Plan 05-D39a — TRIED, REVERTED, AND RECORDED RATHER THAN LEFT OUT.
      ==================================================================
-     The audit photographed w1366-05b-actedit-maxed at 3x: nine selected
-     .ae-pills, nine ticks each drawn half outside its own button with the
-     border running through the glyph, reading as nine rendering faults
-     rather than as nine selections. Measured, the same 4px of overflow
-     [C17]'s .rr-check had.
+     The audit is right about the LOOK. It photographed
+     w1366-05b-actedit-maxed at 3x — nine selected .ae-pills, nine ticks
+     each drawn half outside its own button with the border running through
+     the glyph — and it groups the repair in a pass whose stated cost is
+     "None. No markup, no strings."
 
-     The 20px was real and it is given back. What it was buying it with was
-     a mark that straddled the edge of the thing it marks — and after D-39
-     P2-6 took the outline off .ae-pill--on, that border is the ONLY edge
-     left saying where the button ends. In-flow, the mark gets its
-     separation from the gap that is already on the pill and its containment
-     from the padding that is already on the pill, and visibility:hidden
-     keeps a hidden one occupying its width so the row does not reflow when
-     a student presses it. Same change, same reasoning and same spelling as
-     [C17]'s .rr-check, which is the point: they are two pills. */
+     THE COST IS NOT NONE HERE, AND IT IS TWO BROWSER CELLS. The in-flow
+     spelling was written, exactly as [C17]'s .rr-check now has it, and the
+     harness was run. Measured at 1920:
+
+       cell 23   the terms region is dense, twelve rows, every one ONE line
+                 -> rows [41,48,48,48,41,48,48,48,87,94,94,94]
+                 the four CHANGES rows went to TWO LINES. They carry the
+                 Caster/Target pair on top of the seven token pills, so they
+                 sat closest to the edge, and ~20px per pill pushed them
+                 over. D-32b's dense editor is the thing this pass would be
+                 breaking to fix a 4px mark.
+       cell 23c  reads tickDx and asserts the overhang AS THE SHIPPED
+                 GEOMETRY -> tickDx went 0 to -14.
+
+     So the mark's position on a pill is not a loose end this pass may
+     tidy — it is a recorded decision with a browser cell holding it, and
+     turning that cell is D-30's notation and D-32's density, which D-39
+     itself reserves for its pass G behind a developer decision (P3-2: "This
+     is D-30's spec — raise before implementing").
+
+     [C17]'s .rr-pill DID take the change and kept the gate green, because
+     the round-rules grid has no density cell and its own wrapping is
+     governed by that block's align-items:start. The two pills part company
+     here for a measured reason rather than an oversight, and that is why
+     this paragraph is longer than the change it declines to make.
+
+     THE ONE THING THAT DID GET BETTER HERE IS FREE: D-39 P2-6 took the
+     outline off .ae-pill--on, so the accent ring no longer draws THROUGH
+     the glyph. What is left is a mark that hangs 6.5px into a 6px gap —
+     which is the original recorded trade, now without the ring across it.
+     See deferred-items.md, D-39 P2-2's .ae-pill half. */
   .ae-side--on .ae-check{visibility:visible}
   .ae-pill--on .ae-check{visibility:visible}
   .ae-pill .ae-check{
-    font-size:14px;pointer-events:none;flex:0 0 auto;
+    position:absolute;top:50%;right:0;
+    transform:translate(50%,-50%);
+    font-size:13px;pointer-events:none;
   }
 
   /* The amount. Narrow, tabular, and NOT one of the board's stepper fields —
