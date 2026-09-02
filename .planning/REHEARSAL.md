@@ -1,14 +1,33 @@
 # One rehearsal session, four phases of debt
 
-**Assembled 2026-08-29.** Everything below is a check that no automated instrument in this repo can
-reach. They accumulated across phases 2.1, 3 and 4 because each phase honestly declined to mark a
-browser-only claim as verified from a terminal run. Nothing here is a known defect — it is the set of
-things nobody has looked at.
+**Assembled 2026-08-29. Cut down by machine on 2026-08-29 and again on 2026-09-02.**
 
-**Read this first:** there were 14 items; **section C was closed by machine on 2026-08-29**, leaving **~6 plus one DevTools cell**. They are ordered so one pass through the artifact
-answers all of them, rather than by the phase that raised them. Record results in the per-phase UAT
-files (linked per section) so `/gsd:progress` and `/gsd:audit-uat` see them, or mark them here and
-I'll transcribe.
+**READ THIS FIRST — THE LIST IS NOW FOUR ITEMS AND A DEVTOOLS CELL.**
+
+The premise this document was written on — *"a check that no automated instrument in this repo can
+reach"* — was true of the instruments the repo had and false of the browser it turned out to have.
+Real Chrome and real Edge drive `cats-vs-mechs.html` from `file://` headless. Two passes have now
+taken everything that was mechanical:
+
+| pass | what it closed |
+|---|---|
+| **2026-08-29** | section **C** — the clipboard tiers (22 rows), all but the DevTools-focused cell |
+| **2026-09-02** | **A2, A3, A4, A5, A8** (2.1 checks 2, 3, 4, 6, 9), **B1**, **B2**, **D1**, and A1 — which was already fixed and had never been confirmed from the page side |
+
+**WHAT IS LEFT FOR A PERSON — four items and one cell.** Each one is here because a machine
+*cannot* answer it, not because nobody has got round to it:
+
+| | item | why no instrument closes it |
+|---|---|---|
+| **A6** | 2.1 check 7 — does a refusal read like a sentence? | wording judgement. The four sentences are quoted in the UAT file |
+| **A7 / E1** | 2.1 check 5 + Phase 3 check 3 — the projector | viewing distance. No instrument has one |
+| **B3** | the whole page above the live board, in a room | "does it read as structure or as repetition" |
+| **D2** | the reset confirmation's words | wording judgement. Quoted verbatim in the UAT file |
+| **C, cell 3/4** | Copy with **DevTools focused** | CDP attaches *as* the DevTools target; it cannot focus *into* the panel |
+| *(9.7)* | Chrome's autoscroll circle over an armed ramp | browser chrome, drawn outside the page |
+
+Results are recorded in the per-phase UAT files (linked per section) so `/gsd:progress` and
+`/gsd:audit-uat` see them.
 
 **Setup:** open `cats-vs-mechs.html` by **double-clicking it**. Do not serve it — `file://` is the
 shipped condition and several of these checks are about `file://` specifically. Have Chrome and Edge
@@ -20,45 +39,140 @@ both available; two items need a second browser.
 node tests/selftest-node.cjs
 ```
 
-Expect `1051 passed, 0 failed`, exit 0, interaction gate `146 of 146`.
+Expect **`1336 passed, 0 failed`**, exit 0, interaction gate **`216 of 216`**, stub-drift
+**160 shell ids**. *(This line read "1051 passed / 146 of 146" until 2026-09-02; those numbers were
+already three phases stale and are corrected here rather than left to be read as a red gate.)*
+
+**The optional browser harness**, if you want the machine half re-run before you start:
+
+```bash
+PLAYWRIGHT_DIR=<an install> node tests/browser-checks.mjs
+```
+
+It skips cleanly with exit 0 when Playwright is absent, which is the normal state of a fresh
+checkout.
 
 ---
 
-## A. Sitting at the laptop — 8 items
+## A. Sitting at the laptop — was 8 items, **one left, and it is A6**
 
-### A1. Raise a tally by hand *(Phase 2.1 — the one that was impossible)*
-This is the highest-value item in the list. ALLOC-11 is still unticked *only* because nobody has ever
-done this in a real browser — and at the time of the 2.1 rehearsal it was genuinely impossible
-(F-02.1-A: 36 controls built for a fresh unit-scope type, 0 of them reachable, because the modal
-editor's backdrop owned every pointer). F-02.1-B fixed it by letting the reveal survive the editor
-closing. **Reverting that one line turns 2 of 430 rows red — but no human has confirmed the fix from
-the other side of the screen.**
+**CLOSED BY MACHINE 2026-09-02** — 104 rows, 0 failed, real Chrome and real Edge from `file://`.
+Probe `.planning/phases/05-fight-loop-playtest/rehearsal-closer-probes/p4-token-authoring.mjs`, readings regenerated into `p4-result.json` on each run, results
+written into `.planning/phases/02.1-token-authoring-inserted/02.1-HUMAN-UAT.md` per check.
 
-Create a new unit-scope token type, close the editor, and raise its tally by hand.
-→ `.planning/phases/02.1-token-authoring-inserted/02.1-HUMAN-UAT.md`
+### ~~A1. Raise a tally by hand~~ — **CLOSED. F-02.1-B works, and this is the confirmation.**
+The item said: *"no human has confirmed the fix from the other side of the screen."* Nothing human
+was needed. After `New type on each unit` → `Done`, **24 `nudgeTally` buttons and 12 tally fields
+are on the board and ALL 36 ARE REACHABLE** — each with a real box at a real coordinate — and Cat 1
+and Cat 2 were taken to a tally of 2 each **by four real mouse clicks**, in both browsers. F-02.1-A
+is dead. **ALLOC-11's blocker is gone.**
 
-### A2. A zero tally collapses its line and takes no space *(2.1, check 2)*
-### A3. Escape inside the name field *(2.1, check 3)* — does it revert and leave the dialog open?
-### A4. `maxlength` behaves on a real input *(2.1, check 4)*
-### A5. A rename reaches everywhere, and undo reaches back *(2.1, check 6)*
-### A6. A refusal reads like a sentence *(2.1, check 7)*
-### A7. The end-to-end story *(2.1, check 8)*
-### A8. Nothing regressed from Phase 2 *(2.1, check 9)*
+### ~~A2. A zero tally collapses its line and takes no space~~ — **CLOSED.**
+12 `.brd-line--opt` lines, **0 of them occupying any box**; the twelve card heights and `#board`
+byte-identical to before the type existed. (The page grows 82px — that is `#roundrules` gaining the
+new type as a round rule, D-35. Recorded so it is not re-investigated.)
 
-Items A2–A8 are scripted in full in the 2.1 UAT file. **Note its own warning:** that script predates
-four fixes and says so at the top — read the preamble before running it.
+### ~~A3. Escape inside the name field~~ — **CLOSED.**
+Escape in the field reverts to `Health` **and leaves the dialog open**; Escape on a swatch closes it
+and returns focus to **Tokens**. Phase 2's low-confidence `activeElement === BODY` nit is now a
+high-confidence measurement — it is `BODY`, and it was not the test pane.
+
+### ~~A4. `maxlength` behaves on a real input~~ — **CLOSED.**
+30 typed characters → **24**. 30 pasted astral skulls through the system clipboard → **12 whole
+emoji / 24 UTF-16 units / 0 lone surrogates**. Driven past `maxlength`, the op's code-point cap
+lands on **24 whole emoji**. No error panel on any path.
+
+### ~~A5. A rename reaches everywhere, and undo reaches back~~ — **CLOSED, with one finding.**
+`Health` → `Vigor` reaches the list row, the heading and **all 16 board labels**; the **Damage**
+rename reaches all 6 of its own. **The finding:** Ctrl+Z with the caret in the field does not run
+the *app's* undo — but it does run the *browser's* native `<input>` undo, and the following blur
+**commits the rewound text as a fresh rename**. The check's note says the keystroke "should do
+nothing"; it does not. Raised as **G-02.1-D**. Not fixed — that pass was read-only.
+
+### **A6. A refusal reads like a sentence *(2.1, check 7)* — STILL YOURS.**
+The mechanics are closed: three spaces + Enter is refused and the field reverts; a blur reverts
+**quietly, no panel**; `Remove this type` is `disabled` on all five built-ins. The words are read
+off the screen and quoted so you can judge them without opening the file:
+
+> **A token type needs a name. — the last good state is still on screen.**
+
+**Does that read like a sentence to a student, or like a stack trace?** That is the whole of A6.
+*(Recorded while there: raising that panel **closes the picker**. That is `[S08]`'s documented rule
+— a modal `<dialog>` sits in the top layer and would paint the recovery panel behind its own
+backdrop, and D-15 says recovery stays one click. Not a defect.)*
+
+### ~~A7. The end-to-end story~~ — **CLOSED, end to end, with no console anywhere.**
+Invent → name `Poison ☠` → shape, colour, emoji → **Done** → **raise Cat 1 and Cat 2 by hand** →
+read the board → **Remove**, no confirmation dialog (D-17), no error panel → **one Ctrl+Z** brings
+the type, its name, its appearance and both tallies back together (D-16).
+*(The projector half of 2.1's check 5 is a different question and is folded into **E1**.)*
+
+### ~~A8. Nothing regressed from Phase 2~~ — **CLOSED, 9.1 through 9.9**, including the three that
+had no cover anywhere: a real **middle-click** on a stepper changes no value and arms no ramp; a
+**physically held Enter** on Undo — 1 keydown plus **30 `autoRepeat: true` keydowns** through CDP —
+fires **one** undo against three distinct history entries, and so does held Space and held Ctrl+Z;
+and a **tally** stepper inherits 9.1 through 9.4 identically.
+*(Learned on the way, and it changes how "one undo entry" reads: this artifact **coalesces every
+nudge of the same control into one history entry**. Twenty clicks on one plus is one entry. Three
+clicks on three different pluses is three.)*
+*(Still open, and permanently machine-unreachable: whether **Chrome's autoscroll circle** appears
+over the board. It is browser chrome drawn outside the page.)*
+
+The full scripts remain in the 2.1 UAT file, each with its original NOT-RUN outcome kept verbatim
+beside the 2026-09-02 measurement.
 
 ---
 
-## B. Glyphs, wrapping and stickiness — 3 items
+## B. Glyphs, wrapping and stickiness — was 3 items, **B1 and B2 are CLOSED; B3 is the room's**
 
-### B1. Glyph rendering and wrapping in the strip and reference band *(Phase 3)*
-Do `≈`, `÷` and `–` render as intended — not tofu, and not a hyphen that reads as a minus next to the
-steppers' own minus? Do the arithmetic lines wrap rather than scroll inside the narrow strip?
+### ~~B1. Glyph rendering and wrapping in the strip and reference band~~ — **CLOSED BY MACHINE 2026-09-02.**
+128 rows, 0 failed, Chrome and Edge, 1920×1080 and 1366×768. Probe
+`.planning/phases/05-fight-loop-playtest/rehearsal-closer-probes/p1-glyphs-and-wrap.mjs`.
 
-### B2. The strip stays sticky when the window is short *(Phase 3)*
-Shrink the window height and scroll. A sticky box taller than the space available behaves as though it
-were not sticky for the part that doesn't fit — that's the specific failure to look for.
+Advance width alone cannot answer "is this tofu" — a font may give notdef the same advance as a real
+glyph. So each character was **rasterised at 96px in the strip's own computed font and the ink read
+back**, against **U+0378 and U+0380 — both permanently unassigned**, which therefore draw the notdef
+box. The instrument check is that those two produce an identical signature (they do: 1573 ink px,
+box 48×67).
+
+| | ink px | ink box | advance @18px |
+|---|---|---|---|
+| `≈` | 1013 | 49×36 | 12.516 |
+| `÷` | 630 | 47×50 | 12.498 |
+| `–` en dash | 400 | **50×8** | **9.000** |
+| `−` minus (the steppers') | 368 | 46×8 | 12.498 |
+| `-` hyphen | 216 | **27×8** | **7.233** |
+| notdef | 1573 | 48×67 | 11.619 |
+
+**None of the three matches notdef.** The range on screen is `≈4–6 turns to wipe Cats` with U+2013 —
+verified in the DOM, and no `\d-\d` anywhere in the strip — and the en dash draws **50px of ink
+against the hyphen's 27**. Screenshot read back by eye as well, and committed:
+`.planning/phases/05-fight-loop-playtest/rehearsal-closer-probes/shots/glyphs-chrome@1920x1080.png`.
+
+**Wrapping:** `#strip` `scrollWidth 318 / clientWidth 318`; every line `282/282`; no `nowrap`, no
+ellipsis; a deliberately over-long arithmetic line takes **2 line boxes** and still does not
+overflow. `#refband` `1598/1598` and `1320/1320`. Every figure identical in both browsers.
+
+### ~~B2. The strip stays sticky when the window is short~~ — **CLOSED BY MACHINE 2026-09-02.**
+280 rows, 0 failed, Chrome and Edge, **ten window heights** (1080 / 900 / 768 / 700 / 600 / 575 /
+574 / 573 / 500 / 400), five scroll offsets each, both views. Probe
+`.planning/phases/05-fight-loop-playtest/rehearsal-closer-probes/p2-sticky-short-window.mjs`.
+
+`#strip` is 510px tall and pins at the bar's foot — **64px, to the pixel** — at every mid-scroll
+offset at every one of the ten heights, with every ancestor at `overflow: visible` and no
+containing-block-maker anywhere. **All six projection figures stay wholly on screen while pinned,
+down to a 400px window.** The named failure — content taller than the room — is a pure threshold and
+it was bisected: it fits down to a **574px-tall window** and is 1px short at 573. No workshop laptop
+is near it.
+
+**Two readings worth keeping.** (1) At the document's *final* scroll position the sticky releases at
+the end of its containing block `#board` — CSS spec, not a defect — and on a 768-tall window that
+takes **2 of 6 figures** off the top (`Cats`, `≈9 turns to wipe Mechs`); 3 of 6 at 700; all 6 at 600
+and below. Recorded as **G-03-A**. (2) In the fight view the projection is `position: fixed` with
+`--topbar-foot` republished on scroll, so its **top rises and it grows** as the bar leaves while its
+**bottom does not move** — measured 192 → 130 → 78 with the bottom pinned at 386. Designed, not
+drifting; the first draft of the probe scored it as a failure and the CSS banner corrected the
+probe.
 
 → `.planning/phases/03-advisory-projection-reference-material/03-HUMAN-UAT.md`
 
@@ -330,7 +444,17 @@ it, and it is above the rows rather than below them. Browser cell 18 was turned 
 
 → `.planning/phases/05-fight-loop-playtest/05-HUMAN-UAT.md`
 
-### C1. Clipboard tiers 1 and 2 actually fire *(Phase 4)*
+### ~~C1. Clipboard tiers 1 and 2 actually fire~~ *(Phase 4)* — **CLOSED BY MACHINE 2026-08-29, except cell 3 and cell 4.**
+
+**The two DevTools-focused cells are HUMAN-ONLY and permanently so.** Recorded here on 2026-09-02 so
+nobody spends another pass trying: CDP attaches the automation client *as* a DevTools target;
+`Input.dispatchKeyEvent` and every focus primitive address the inspected page's render frame.
+Nothing in the protocol moves OS focus into a DevTools panel and holds it there while a click lands
+on the page beneath, and headless has no DevTools window at all. Those two cells need a person, a
+real window, F12, focus clicked into the panel, and a press on Copy.
+
+<details><summary>the original C1, kept because the matrix is the script for the two cells that are left</summary>
+
 
 **Why this one matters more than it looks.** `navigator` does not exist in the Node runtime, so
 `navigator.clipboard.writeText` and `document.execCommand('copy')` have **never executed anywhere in
@@ -355,11 +479,10 @@ on-screen line said*. The attribute reads `clipboard` / `command` / `select`.
 **The question that matters across all eight:** did the line *ever claim a copy that did not occur?*
 CLAUDE.md names the optimistic "Copied!" toast as an anti-pattern by name — a silent failure means a
 student pastes stale content into Discord and doesn't find out until a classmate loads the wrong board.
+**Answered `no` in the six cells the machine reached, on 2026-08-29.**
 
-Also, while you're here: **copy in Chrome, load in Edge. Then build something different in Edge, copy,
-and load it in Chrome.** Both directions, board identical — units, health, shield, action points, token
-names and appearance, tallies, authored actions. No automated check in this repo can cross a process
-boundary.
+~~Also, while you're here: copy in Chrome, load in Edge…~~ — **closed by machine 2026-08-29: the
+cross-browser round trip is byte-identical in both directions.**
 
 </details>
 
@@ -367,30 +490,62 @@ boundary.
 
 ---
 
-## D. Two things to watch for, not press — 2 items
+## D. Two things to watch for, not press — **D1 is CLOSED; D2 is yours**
 
-### D1. No flash of the shipped board before a linked build renders *(Phase 4)*
-Copy a build code, put it in the address bar, open it in a fresh tab, and **watch the first paint.**
+### ~~D1. No flash of the shipped board before a linked build renders~~ — **CLOSED BY MACHINE 2026-09-02.**
+16 rows, 0 failed, Chrome and Edge, **8 fresh loads of a hash-carrying URL per browser**. Probe
+`.planning/phases/05-fight-loop-playtest/rehearsal-closer-probes/p3-boot-flash.mjs`.
 
-Probe Q found that moving the boot step below the first structural invalidate reddened *nothing* —
-every automated reading is taken after the frame flushes, so a load landing after first paint is
-indistinguishable from one landing before it. The ordering that prevents the flash is held by **a code
-comment and nothing else.**
+The item's premise — *"every automated reading is taken after the frame flushes"* — was true of
+every instrument the repo had. Two new ones do better, and the **second bounds first paint
+causally**:
 
-### D2. The reset confirmation's words *(Phase 4)*
-Open the reset confirmation and read it. Does it communicate the actual stakes — that a reset's undo
-entry can age off the 30-deep stack, which is the entire reason this confirmation exists (D-19) when
-token and action removal deliberately have none (D-17)? Then confirm a reset and press Ctrl+Z: does it
-feel like recovery?
+**An init script at document-start** records the board's signature at **every MutationObserver
+microtask checkpoint, every animation frame and every task boundary**, timestamped, beside every
+`PerformanceObserver` paint entry. A frame can only paint a state that survived to a checkpoint or a
+task boundary — anything built and replaced inside one task is never painted. In all 16 loads the
+timeline reads **two entries**: empty, then the linked build.
 
-The Node stub is a hand-made stand-in, not a parser, so static markup text reads as empty there. The
-*mechanism* is asserted (checks 91d/91e); the *words* have never been read by anything.
+```
+chrome   0v0 @20.5ms   ->   1v1 @96.1ms      first-contentful-paint = 256ms
+msedge   0v0 @32.6ms   ->   1v1 @409.1ms     first-contentful-paint = 452ms
+```
+
+The linked roster is in the DOM **160ms before first paint in Chrome and 43ms before it in Edge**.
+The shipped 9-vs-3 roster is **never constructed at all**.
+
+**CDP `Page.startScreencast` corroborates by pixels** — every captured frame classified against
+references of both boards: the linked board recognised in **8/8 loads in both browsers, zero frames
+showing the shipped board**. Its limit is stated rather than glossed: screencast frames come from
+the compositor and can be coalesced, so it can *prove* a flash and cannot alone *disprove* one —
+which is why the timeline carries the verdict. **Both instruments carry a positive control**: loaded
+with no hash, the classifier must call a frame DEFAULT and the timeline must record 9-vs-3. Both do.
+
+**Still held by a code comment: the ordering itself.** This is a measurement, not a regression
+guard. Re-running the probe takes about ninety seconds.
+
+### **D2. The reset confirmation's words *(Phase 4)* — STILL YOURS.**
+The mechanism is now driven end to end rather than asserted: **Cancel costs nothing**; **Discard and
+start over** really returns the shipped defaults; **one Ctrl+Z restores the board exactly**
+(4/4/4 → reset → 4/4/4), both browsers. And the words have finally been read by something:
+
+> **Reset to Workshop 16 defaults**
+>
+> This puts both rosters, both action lists and every token type back to the Workshop 16 defaults.
+> One Ctrl+Z brings your board back — but only for the next thirty changes, after which it is gone.
+> Copy your build code first if you want to keep it.
+>
+> `[ Cancel ]  [ Discard and start over ]`
+
+18px / 26.1px line-height / `rgb(164,173,190)`, in a 470×130 box, not clipped. A regex can prove the
+word "thirty" is there and that the paragraph is non-comparative. **It cannot prove the sentence
+lands, and it cannot tell you whether the Ctrl+Z afterwards felt like recovery.** That is D2.
 
 ---
 
-## E. The projector — 1 item, and it needs the actual room
+## E. The projector — 1 item, and it needs the actual room. **2.1's check 5 folds into it.**
 
-### E1. Legibility from classroom distance *(Phase 3, and everything since)*
+### E1. Legibility from classroom distance *(Phase 3, Phase 2.1 check 5, and everything since)*
 Put it on the actual workshop display and stand back. Can you read the `≈9 turns to wipe Mechs` /
 `≈3 turns to wipe Cats` contrast — the phase's own worked teaching example — and the "What beats what"
 band, without zooming or narrating the numbers aloud?
@@ -398,10 +553,33 @@ band, without zooming or narrating the numbers aloud?
 CLAUDE.md is blunt about this one: *"No amount of research substitutes for putting the artifact on the
 actual workshop display before the session."*
 
+**What was measured on 2026-09-02, so the room starts from numbers rather than from nothing** (real
+Chrome, 1920×1080):
+
+| reading | measured |
+|---|---|
+| the turns line | **24px / weight 700 / `rgb(232,235,242)`** on the strip's `rgb(25,29,38)`, line-height 38.4px |
+| the "What beats what" band head | **20px / `rgb(164,173,190)`** |
+| clipping, either panel | none |
+| the token size `--tok` | **22px**, unchanged since Phase 2 |
+| the eleven-row picker at the cap | dialog **660×860 inside a 1366×900 window**; the list **scrolls** (`overflow-y: auto`) rather than clipping |
+| **the selected picker row, same row on and off** | **a `solid 2px rgb(92,200,255)` outline and a `✓` that switches `visibility`** — font weight and text colour are **identical** either way |
+
+That last row is the one to take to the room: **selection is carried by a 2px outline and a tick,
+and by nothing heavier.** Also bring 2.1's check 5 with you — put six invented types on the board so
+the list is eleven rows — and **write down the display and the viewing distance**, because Phase 2's
+G-02-B and Phase 2.1's G-02.1-B are both still open for want of exactly those two numbers.
+
 ---
 
 ## What is deliberately NOT on this list
 
+- **The phase 5 deferred items.** `05-fight-loop-playtest/deferred-items.md` was re-read on
+  2026-09-02 for anything newly machine-closable. **Nothing was.** Every item still open there (1,
+  3, 4, 6, 7, 8, 9, 11–16) is already measured in numbers and what remains open in each is a design
+  or a room judgement owned by the 05-11 playtest — *does a horizontal history read as history*,
+  *is a third of a column at a time enough*, *does reaching Advance on a laptop feel like scrolling
+  to a control you lost*. Item 12 is a test-harness matter and this pass was read-only on `tests/`.
 - **Phase 2's UAT is complete** — 5 of 5 passed on 2026-08-27.
 - **Phase 3.1's rehearsal was closed** by approval on 2026-08-29. Two of its acceptance criteria asked
   for prose and got a blanket answer; that is recorded in `03.1-08-SUMMARY.md` rather than re-opened
@@ -411,9 +589,22 @@ actual workshop display before the session."*
 
 ---
 
-## Honest note on how this list came to exist
+## Honest note on how this list came to exist, and on what happened to it
 
 Every item here was raised by an agent that could have marked it green and moved on. The pattern that
 produced it is worth keeping: when a claim could only be supported by a run the harness cannot perform,
-the phase recorded the gap instead of the guess. Four phases of that discipline is why this list is 14
-items and not zero — and why the 14 are trustworthy as a list of what is genuinely unknown.
+the phase recorded the gap instead of the guess. Four phases of that discipline is why this list was 14
+items and not zero — and why the 14 were trustworthy as a list of what is genuinely unknown.
+
+**And then most of them turned out to be reachable, which is the second half of the lesson.** The
+list's founding sentence was *"no automated instrument in this repo can reach"*. That was a claim
+about the instruments, not about the checks — and once a real browser was pointed at `file://`, ten
+of the fourteen fell in two passes. The discipline that kept them honestly open is the same
+discipline that made them cheap to close: each one stated its expected outcome precisely enough to
+be driven.
+
+**What survived is the residue that was never about instruments at all** — four items and two cells,
+every one of them a question about a person: does a sentence read like a sentence, can a room read a
+number, does a control feel like it is where your hands are. Those do not get closed by a better
+harness, and the two passes that emptied the rest are the evidence that the remaining four are the
+real ones.
