@@ -27114,6 +27114,28 @@ App.interactions = (function () {
      is a defect is being turned into a sentence, and nothing that is a
      refusal is being left to the panel.
 
+     THE TWO PAGE-LAYER ROUTING GUARDS WERE ON THE WRONG SIDE OF THAT LINE
+     AND A PROBE FOUND IT. fieldOp's "No set op for ..." and sendAmount's
+     "No amount op for ..." both threw a plain Error, so both would have
+     been rendered as sentences — and both are about a data attribute that
+     DRIFTED, which is a defect in this file's own markup and belongs in
+     the panel. Both are TypeErrors now, with their messages unchanged.
+     PROBE DL is the record: isRefusal's body was replaced with a bare
+     return-true — a blanket catch, the one thing this must never become —
+     and the entire browser gate stayed green over it, 322 passed and 0
+     failed, because the only defect the gate drove came from a listener
+     registered straight through App.boot.wrap and never reached a commit
+     site. The drive goes through a commit site now, in browser cell 25d.
+
+     ONE PLAIN-ERROR DEFECT REMAINS AND IT IS NAMED RATHER THAN CHANGED:
+     App.ops.dispatch's own "Unknown op" arm. It is [S05]'s and this pass
+     does not touch [S05]'s guards. It is unreachable from these six sites,
+     because both routing tables are allowlists of literal op names checked
+     BEFORE the dispatch — so an op name this file does not have cannot get
+     past the table to reach that arm. If a later plan lets a field name an
+     op directly, that arm becomes reachable and this paragraph is where it
+     has to be answered.
+
      A THROWN NON-ERROR, a subclass, or an Error with an empty message all
      fall to the re-throw arm. There is no fallback sentence and there is
      deliberately none: a refusal with nothing to say is not a refusal this
@@ -27258,10 +27280,25 @@ App.interactions = (function () {
   };
 
 
+  /* D-39 P1-1 — A TypeError AND NOT A PLAIN Error, AND A PROBE IS WHY.
+     This guard is not about a value a student typed; it is about a data-act
+     that DRIFTED, which is a defect in this file's own markup. isRefusal
+     above tells a refusal from a defect by the error's constructor, and
+     [S05] already draws that line the same way — every guard a student can
+     reach refuses with a plain Error carrying a sentence, and every
+     caller-passed-the-wrong-thing guard is a TypeError. This one was on the
+     wrong side of it: PROBE DL replaced isRefusal's body with a bare
+     return-true — a blanket catch, the one thing P1-1 must never become —
+     and the whole browser gate stayed green, because the only defect it
+     drove came from a listener registered straight through App.boot.wrap
+     and never reached a commit site at all. With this guard a plain Error,
+     a drifted data-act would have printed `No set op for "xyz"` on a said
+     line in front of a student instead of raising the panel. The MESSAGE is
+     unchanged. */
   function fieldOp(el, which) {
     var act = el.dataset.act;
     if (!Object.prototype.hasOwnProperty.call(FIELD_OPS, act)) {
-      throw new Error('No ' + which + ' op for "' + String(act) + '"');
+      throw new TypeError('No ' + which + ' op for "' + String(act) + '"');
     }
     return FIELD_OPS[act][which];
   }
@@ -28828,8 +28865,12 @@ App.interactions = (function () {
   // them.
   function sendAmount(el, side, actionId, n) {
     var field = el.dataset.aeField;
+    // D-39 P1-1 — a TypeError and not a plain Error, for fieldOp's stated
+    // reason one region over: a drifted data-ae-field is a defect in this
+    // file's markup, not a value a student typed, and isRefusal must not
+    // render it as a sentence. The message is unchanged.
     if (!Object.prototype.hasOwnProperty.call(AMOUNT_OPS, field)) {
-      throw new Error('No amount op for "' + String(field) + '"');
+      throw new TypeError('No amount op for "' + String(field) + '"');
     }
     var slot = Number(el.dataset.aeSlot);
     if (field === 'cost') {

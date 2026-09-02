@@ -3587,11 +3587,71 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.waitForTimeout(250);
     const d39RulesAfter = await pg.evaluate(() => App.state.get().build.rules.length);
 
-    /* -- the genuine-defect probe. It is registered through App.boot.wrap,
-       which is the boundary EVERY listener in this file goes through, and
-       it throws a TypeError — the shape [S05] uses for a caller that
-       passed the wrong type, which is a bug in this file rather than
-       something a student typed. The panel must open. */
+    /* -- THE GENUINE-DEFECT DRIVE, AND IT GOES THROUGH A COMMIT SITE.
+       ==================================================================
+       THE FIRST VERSION OF THIS DRIVE WAS WORTHLESS AND A PROBE SAID SO.
+       It registered a listener through App.boot.wrap and threw from it,
+       which proves the panel is alive and proves nothing about the line
+       P1-1 draws — the throw never reached a commit site, so isRefusal
+       was never consulted. PROBE DL replaced isRefusal's body with
+       `return true`, which is a BLANKET CATCH and is the one thing this
+       fix must never become, and the whole gate stayed green: 322 passed,
+       0 failed. Recorded here because a check that cannot fail is worse
+       than no check.
+
+       SO THE DEFECT IS RAISED WHERE A REAL ONE WOULD BE. #act-edit-*-amt
+       reads data-ae-field to decide which op to send, and [S07.3] checks
+       it against an allowlist — the guard that exists because that
+       attribute is markup and markup drifts. The attribute is drifted
+       here, deliberately, and then a perfectly good number is typed and
+       committed with Enter. That is the ONE thing the allowlist exists to
+       catch, it throws a TypeError from inside the commit's own try, and
+       the panel MUST open with the said line still EMPTY. Under a blanket
+       catch that message lands on #act-edit-said and the panel stays
+       shut, and this cell reddens — which is what PROBE DL now does. */
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    const d39DriftedBefore = await pg.evaluate(() => {
+      const f = document.querySelector('#act-edit-cost-0-amt');
+      const was = f.dataset.aeField;
+      f.dataset.aeField = 'not-an-amount-op';
+      return was;
+    });
+    await d39TypeInto('#act-edit-cost-0-amt', '2', 'Enter');
+    const d39Drifted = await pg.evaluate(() => {
+      const said = document.querySelector('#act-edit-said');
+      return {
+        panelOpen: document.querySelector('#err-panel').hidden === false,
+        title: document.querySelector('#err-title').textContent,
+        says: document.querySelector('#err-message').textContent,
+        detail: document.querySelector('#err-detail').value.slice(0, 40),
+        saidStayedEmpty: said.hidden === true && said.textContent === ''
+      };
+    });
+    /* DISMISSED THROUGH A CONDITION AND NEVER THROUGH pg.click, AND A PROBE
+       IS WHY. PROBE DL's second run put a blanket catch back in place; the
+       panel then never opened, Playwright waited 30s for a button that is
+       display:none and the whole run DIED with a TimeoutError instead of
+       reporting a red cell. A check must FAIL, never throw and never hang —
+       so a cleanup step that assumes the state the cell is testing for is a
+       cleanup step that can take the report down with it. */
+    await pg.evaluate(() => {
+      const e = document.querySelector('#err-panel');
+      if (e && e.hidden === false) { document.querySelector('#err-dismiss').click(); }
+    });
+    await pg.waitForTimeout(200);
+    await pg.evaluate((was) => {
+      const f = document.querySelector('#act-edit-cost-0-amt');
+      if (f) { f.dataset.aeField = was; }
+      const d = document.querySelector('#act-edit');
+      if (d && d.open === true) { d.close(); }
+    }, d39DriftedBefore);
+    await pg.waitForTimeout(200);
+
+    /* -- and the panel's own WEIGHT, read on a defect raised the ordinary
+       way: a listener registered through App.boot.wrap, which is the
+       boundary every listener in this file goes through. This half is
+       about which control the panel offers first, not about the line
+       isRefusal draws. */
     await pg.evaluate(() => {
       const btn = document.createElement('button');
       btn.id = 'd39-defect-probe';
@@ -3617,11 +3677,14 @@ for (const ch of ['chrome', 'msedge']) {
       resetLabel: document.querySelector('#err-reset').textContent,
       resetDisabled: document.querySelector('#err-reset').disabled
     }));
-    await pg.click('#err-dismiss'); await pg.waitForTimeout(200);
+    // Conditional, for the reason the cleanup above states in full.
     await pg.evaluate(() => {
+      const e = document.querySelector('#err-panel');
+      if (e && e.hidden === false) { document.querySelector('#err-dismiss').click(); }
       const n = document.querySelector('#d39-defect-probe');
       if (n) { n.remove(); }
     });
+    await pg.waitForTimeout(200);
     const d39EnterOk = d39Paths.every((p) => p.panelShut === true
       && p.dialogOpen === true && p.said !== '' && p.onScreen === true);
     const d39BlurOk = [d39PickerBlur, d39EditorBlur, d39BoardBlur]
@@ -3638,12 +3701,18 @@ for (const ch of ['chrome', 'msedge']) {
       `${d39Clamp.field} / ${d39Clamp.record}`);
     note(ch, size.name, 'D-39 P1-1 a genuine defect still reaches the panel',
       `${d39Defect.panelOpen} "${d39Defect.title}"`);
-    ok(`${tag}: 25d. D-39 P1-1 — ALL SIX TYPED-VALUE COMMIT PATHS, ACROSS SEVEN FIELDS, TAKE THE REFUSAL PATH ON ENTER AND THE PANEL STAYS SHUT, THE TWO DIALOGS STAY OPEN, AND A GENUINE DEFECT STILL OPENS THE PANEL. Every field in this artifact routed a refusal-worthy typo into the global crash panel on Enter — measured, six commit paths, "SOMETHING WENT WRONG" with a raw stack trace, and in both authoring dialogs the dialog CLOSED and the session went with it. Each of the six is driven here with real keystrokes through the shipped openers: the guard's own sentence lands on that surface's own said line with a real box, the panel stays hidden, the dialog stays open, and the board is byte-identical to what it was before the first keystroke. The SAME value on the SAME field by BLUR is driven beside each, because that path already worked and is what the fix was written against — both must end in the same place, and Enter differs only by leaving a sentence. The field and the record agree after a clamped commit, which is P1-1's second repair. The panel's accented control is now the one that KEEPS the build and the reset is demoted rather than reddened, which is P1-1's third. AND THE SEVENTH DRIVE IS WHY THIS IS NOT A BLANKET CATCH: a listener registered through App.boot.wrap throws a TypeError and #err-panel MUST open, because a swallowed real defect is worse than an ugly panel`,
+    note(ch, size.name, 'D-39 P1-1 a DRIFTED routing attribute, through the commit site',
+      `panel=${d39Drifted.panelOpen} said stayed empty=${d39Drifted.saidStayedEmpty} says="${String(d39Drifted.says).slice(0, 34)}"`);
+    ok(`${tag}: 25d. D-39 P1-1 — ALL SIX TYPED-VALUE COMMIT PATHS, ACROSS SEVEN FIELDS, TAKE THE REFUSAL PATH ON ENTER AND THE PANEL STAYS SHUT, THE TWO DIALOGS STAY OPEN, AND A GENUINE DEFECT STILL OPENS THE PANEL. Every field in this artifact routed a refusal-worthy typo into the global crash panel on Enter — measured, six commit paths, "SOMETHING WENT WRONG" with a raw stack trace, and in both authoring dialogs the dialog CLOSED and the session went with it. Each of the six is driven here with real keystrokes through the shipped openers: the guard's own sentence lands on that surface's own said line with a real box, the panel stays hidden, the dialog stays open, and the board is byte-identical to what it was before the first keystroke. The SAME value on the SAME field by BLUR is driven beside each, because that path already worked and is what the fix was written against — both must end in the same place, and Enter differs only by leaving a sentence. The field and the record agree after a clamped commit, which is P1-1's second repair. The panel's accented control is now the one that KEEPS the build and the reset is demoted rather than reddened, which is P1-1's third. AND THE LAST TWO DRIVES ARE WHY THIS IS NOT A BLANKET CATCH. The first version of that clause threw from a listener registered through App.boot.wrap, which never reaches a commit site at all — PROBE DL replaced isRefusal's body with a bare return-true and the whole gate stayed green over it, 322 passed and 0 failed. So the defect is now raised where a real one would be: #act-edit-cost-0-amt's routing attribute is drifted, a perfectly good number is typed and committed with Enter, [S07.3]'s allowlist throws the TypeError it exists to throw, and #err-panel MUST open with the said line still EMPTY. A blanket catch puts that message on the surface instead and reddens here`,
       d39Paths.length === 7 && d39Distinct === true
       && d39EnterOk === true && d39BlurOk === true
       && d39BoardGone.said === ''
       && d39Clamp.field === d39Clamp.record && d39Clamp.field === '99'
       && d39Clamp.panelShut === true && d39Clamp.dialogOpen === true
+      && d39Drifted.panelOpen === true
+      && d39Drifted.says.indexOf('No amount op for') !== -1
+      && d39Drifted.detail.indexOf('TypeError') !== -1
+      && d39Drifted.saidStayedEmpty === true
       && d39Defect.panelOpen === true
       && d39Defect.says.indexOf('a genuine defect, not a typed value') !== -1
       && d39Defect.detail.indexOf('TypeError') !== -1
@@ -3656,7 +3725,7 @@ for (const ch of ['chrome', 'msedge']) {
       && d39PageUnmoved === true
       && d39RulesAfter === d39RulesBefore,
       { d39Paths, d39PickerBlur, d39EditorBlur, d39BoardBlur, d39BoardGone,
-        d39Clamp, d39Defect,
+        d39Clamp, d39Drifted, d39Defect,
         unmoved: { picker: d39PickerUnmoved, editor: d39EditorUnmoved,
           page: d39PageUnmoved, rules: d39RulesBefore + '->' + d39RulesAfter } });
 
