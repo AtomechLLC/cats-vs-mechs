@@ -325,7 +325,41 @@
        .brd-brand{font-size:20px;font-weight:700;letter-spacing:-.2px;white-space:nowrap}
      A LIVE rule for a class no markup carries is a rule for nothing, so it is
      not left live. */
-  .brd-cluster{display:flex;align-items:center;justify-content:flex-end;gap:14px;flex-wrap:wrap}
+  /* ==================================================================
+     D-39 P2-14 — ONE LEFT EDGE IN BOTH VIEWS. Plan 05-D39d.
+     ==================================================================
+     `flex-end` was here from the beginning and cost nothing until a
+     fight started, because on the board this cluster is CONTENT-SIZED —
+     measured 1278px inside a 1600px bar, with #topbar's own
+     space-between putting it at the start and no slack inside it for a
+     justification to spend. The first control sat at x=159, six pixels
+     off the bar's own 153.
+
+     A FIGHT MAKES THE CLUSTER FULL-WIDTH AND THE SETTING BECOMES A
+     328px VOID. .fg-read below takes `flex:0 0 100%`, which forces this
+     flex container to wrap and stretch to the whole 1600, and 1278px of
+     tools justified to the end of 1600 start at x=487. Measured, both
+     engines, both viewports: the fight lifecycle control moves from
+     x=159 to x=487 the instant a fight starts, under an h1 at x=160 and
+     a view switch at x=160 that do not move. Three left edges on one
+     bar, which is the same sentence D-33 P2-1 wrote about .shell-head
+     and D-39 P2-1 wrote about #roundrules, at a third site.
+
+     SO THE ROW STARTS WHERE THE BAR STARTS. On the board this changes
+     nothing at all — there is no slack to justify — and in a fight it
+     is the whole of the finding's horizontal half. The reading below
+     takes the same treatment for D-33 P2-2's OWN reason, restated
+     rather than reversed: see its block.
+
+     THE HEIGHT HALF OF P2-14 IS NOT TAKEN AND IS PRICED IN
+     deferred-items.md. The audit also asks that the round/pool row be
+     reserved permanently so the bar does not change height on
+     startFight. Measured: 64px on the board, 101px in a fight. Reserving
+     it spends 37px of a STICKY bar on every frame of the build phase to
+     smooth a transition that happens once per fight, at the same instant
+     the whole viewport changes tabs — and this file has two open
+     deferred items about the above-the-fold budget at 768. */
+  .brd-cluster{display:flex;align-items:center;justify-content:flex-start;gap:14px;flex-wrap:wrap}
   .brd-tokedit{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
   /* ==================================================================
      D-33 P2-2 — THE READING TAKES ITS OWN LINE, AT THE END. Plan
@@ -340,8 +374,26 @@
 
      justify-content:flex-end so the reading hangs under the tools it
      follows rather than starting at the far left of a 1600px bar with a
-     void beside it, which is what the audit photographed at 1366. */
-  .brd-cluster .fg-read{flex:0 0 100%;justify-content:flex-end}
+     void beside it, which is what the audit photographed at 1366.
+
+     ==================================================================
+     D-39 P2-14 — THE SAME SENTENCE, AND IT NOW SAYS flex-start.
+     Plan 05-D39d.
+     ==================================================================
+     The paragraph above is not reversed, it is FOLLOWED. Its rule is
+     that the reading hangs under the tools it follows; what changed is
+     where the tools are. .brd-cluster justified to the end, so under it
+     "the far left of a 1600px bar" was a void and flex-end was the only
+     way to sit beneath them. The cluster starts at the bar's own left
+     edge now, so flex-end is what would orphan the reading — 1600px of
+     bar with the round number at the far right and nothing above it.
+
+     Measured after, both engines, both viewports: the tools' row and the
+     reading's row both open at x=159, six pixels off #topbar's 153,
+     under an h1 and a view switch at 160. One left edge, four rows deep.
+     Neither declaration was deleted; both were re-decided against the
+     same requirement. */
+  .brd-cluster .fg-read{flex:0 0 100%;justify-content:flex-start}
   .brd-cluster .fg-read[hidden]{display:none}
   /* ==================================================================
      D-33 P2-3 — A CAPTION OVER ITS CONTROL, NOT A PEER OF IT. Plan
@@ -6716,11 +6768,64 @@
            refusing. [S06.7] hides it in fgRest and shows it in
            fightBar, on the same two frames it fills and empties the
            spans inside it. -->
-      <div class="brd-tokedit fg-apart" role="group" aria-labelledby="fight-label">
+      <!-- D-39 P3-5 — THE HAIRLINE MOVED ONE NODE TO THE RIGHT, AND IT WAS
+           POINTING AT NOTHING BEFORE IT DID. Plan 05-D39d.
+
+           The audit: "the 'THE FIGHT' eyebrow labels two unrelated buttons …
+           Undo is the only topbar button without a caption of its own, and it
+           reads as part of the fight lifecycle."
+
+           ITS STATED MECHANISM IS WRONG AND ITS OBSERVATION IS RIGHT. Undo is
+           NOT inside this group — it is a sibling of it, outside the
+           role="group" and outside the aria-labelledby, so no screen reader
+           has ever been told the eyebrow labels it. Measured on the shipped
+           file at 1920: the fight group ends at x=412, Undo opens at x=425 and
+           ends at x=503, Tokens opens at x=517. Thirteen pixels on one side and
+           fourteen on the other, from .brd-cluster's own 14px gap against
+           .brd-tokedit's 8px — which is a six-pixel difference at twenty feet.
+           The grouping is asserted in the markup and denied by the spacing, and
+           a room reads the spacing.
+
+           SO IT IS SAID IN THE FILE'S OWN IDIOM AND NOT IN WORDS. [C14]'s
+           .fg-apart hairline is what this bar already uses for "the thing after
+           this is a different thing" — .rs-apart does it for Reset — so an
+           eyebrow of Undo's own would be a sixth caption on a bar UX-02 caps,
+           for a control whose one-word label already names it exactly.
+
+           AND THE HAIRLINE WAS FREE, because it was drawing against nothing.
+           It sat on THIS group, which is the cluster's first child, so it
+           painted a 1px line at x=159 with the bar's own left edge 6px away and
+           no sibling before it. That was not always so: D-33 P2-1 deleted
+           .brd-brand from the head of this bar, and this hairline is what used
+           to separate the fight controls FROM the brand. The premise went and
+           the line stayed — the same shape as P2-5's expired paragraph one
+           region over.
+
+           THE HAIRLINE GOES ON A WRAPPER AND NOT ON THE BUTTON, and a
+           photograph is why. Put straight onto .brd-btn it does not draw a
+           divider at all: .brd-btn already carries `border:1px solid
+           var(--ink-faint)` and a 999px radius, so .fg-apart's border-left
+           RE-COLOURS the pill's own left edge to --line and its padding-left
+           pushes the word off centre inside it. Read back at 3x on the board
+           tab: a lopsided pill and no line between it and the group beside it.
+           So Undo takes the shape the other five controls on this bar already
+           have, a .brd-tokedit wrapper, which has no border and no radius of
+           its own for the hairline to fight with.
+
+           THE WRAPPER CARRIES NO role AND NO CAPTION, deliberately. A
+           role="group" with no accessible name says "these belong together"
+           about one control and names nothing, which is worse for a screen
+           reader than the plain div it walks straight through. The five
+           captioned groups are captioned because each has a label its button
+           does not carry; "Undo" is its own label in full at 18px, which is
+           UX-02 satisfied without a sixth caption on a bar UX-02 caps. -->
+      <div class="brd-tokedit" role="group" aria-labelledby="fight-label">
         <span class="brd-tokedit-label" id="fight-label">The fight</span>
         <button class="brd-btn" type="button" id="fight-start" data-k="fg" data-act="startFight">Start the fight</button>
       </div>
-      <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
+      <div class="brd-tokedit fg-apart">
+        <button class="brd-btn" type="button" data-k="undo" data-act="undo">Undo</button>
+      </div>
       <!-- ONE button, and that is the whole of D-05. What was here was a row of
            them, one per type the board ships with, and it does not survive a
            student inventing types: the bar grows by one control per invention,

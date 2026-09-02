@@ -1231,6 +1231,88 @@ for (const ch of ['chrome', 'msedge']) {
     ok(`${tag}: 9. #board is on the page mid-fight and has a real box`,
       boardMid.height > 0 && boardMid.width > 0, boardMid);
 
+    /* ── 9b. D-39 P2-14 AND P3-5 — THE TOP BAR HAS ONE LEFT EDGE IN BOTH
+       VIEWS, AND UNDO IS SET APART FROM THE GROUP IT IS NOT IN. Plan
+       05-D39d.
+       ==================================================================
+       P2-14, measured on the shipped file, both engines, both viewports:
+       the control cluster opens at x=159 on the board and at x=487 in a
+       fight, under an h1 at 153 and a view switch at 153 that do not
+       move. 328px of void arriving on one press. The mechanism is one
+       declaration: this cluster is CONTENT-SIZED on the board so its
+       justify-content has no slack to spend, and .fg-read's flex:0 0 100%
+       makes it FULL-WIDTH in a fight, at which point flex-end pushes
+       1278px of tools to the end of 1600. This is the third site of D-33
+       P2-1's finding — #roundrules and #howto were the second, in Pass A.
+
+       P3-5's stated mechanism is wrong and its observation is right, and
+       both halves are asserted here. Undo is NOT inside the fight group:
+       it is a sibling, outside role="group" and outside
+       aria-labelledby, which this cell reads off the page rather than
+       taking the audit's word for. What was true is that nothing on
+       screen said so — 13px to its left against 14px to its right — so
+       [C14]'s own .fg-apart hairline moved off the cluster's FIRST child,
+       where D-33 P2-1's deletion of .brd-brand had left it drawing
+       against nothing, and onto Undo, where there is something to divide.
+
+       THE HEIGHT HALF OF P2-14 IS NOT ASSERTED BECAUSE IT WAS NOT TAKEN.
+       The bar still goes 64 -> 101 when a fight starts and the number is
+       PRINTED here rather than judged, in cell 9's own manner, so a later
+       pass that reserves the row can read what it cost and what it saved.
+       deferred-items.md carries the pricing. */
+    const barGeom = () => pg.evaluate(() => {
+      const x = (n) => (n ? Math.round(n.getBoundingClientRect().x) : null);
+      const bar = document.querySelector('#topbar');
+      const cluster = bar.querySelector('.brd-cluster');
+      const read = bar.querySelector('.fg-read');
+      const undo = bar.querySelector('[data-act="undo"]');
+      const group = bar.querySelector('[aria-labelledby="fight-label"]');
+      return {
+        h1: x(document.querySelector('.shell-head h1')),
+        views: x(document.querySelector('#views')),
+        bar: x(bar), barH: Math.round(bar.getBoundingClientRect().height),
+        tools: x(cluster.children[0]),
+        readShown: !!read && !read.hidden,
+        readFirst: (read && !read.hidden) ? x(read.children[0]) : null,
+        undoInGroup: !!(undo && group && group.contains(undo)),
+        // THE LINE IS READ OFF THE WRAPPER AND NOT OFF THE BUTTON, which is
+        // itself a correction this cell needed. .brd-btn carries a full border
+        // and a 999px radius, so a border-left put on the button re-colours the
+        // pill's own edge instead of drawing a divider — photographed at 3x
+        // before the wrapper went in. So this reads the box the hairline is on,
+        // and asserts the BUTTON has none of its own beyond .brd-btn's.
+        undoLine: undo ? getComputedStyle(undo.parentElement).borderLeftWidth : null,
+        undoWrap: undo ? undo.parentElement.className : null,
+        groupLine: group ? getComputedStyle(group).borderLeftWidth : null
+      };
+    });
+    const barBuild = await barGeom();
+    await pg.click('#view-fight'); await pg.waitForTimeout(250);
+    const barFight = await barGeom();
+    await pg.click('#view-build'); await pg.waitForTimeout(250);
+    note(ch, size.name, 'D-39 P2-14 first control x, board tab / fight tab',
+      `${barBuild.tools} / ${barFight.tools} (bar ${barBuild.bar}, h1 ${barBuild.h1})`);
+    // BOTH READINGS ARE TAKEN MID-FIGHT, because cell 9 above already started
+    // one and this cell is a guest on that board. So the bar is 101 on both
+    // tabs here and the 64 it measures on a page with no fight is NOT what is
+    // printed — the growth half of P2-14 was priced and declined, and the
+    // number that matters to whoever revisits it is in deferred-items.md.
+    note(ch, size.name, 'D-39 P2-14 the reading row x / bar height, both mid-fight',
+      `${barFight.readFirst} / ${barBuild.barH} & ${barFight.barH}`);
+    note(ch, size.name, 'D-39 P3-5 Undo inside the fight group / its hairline',
+      `${barBuild.undoInGroup} / wrap:${barBuild.undoWrap} line:${barBuild.undoLine}`
+      + ` group:${barBuild.groupLine}`);
+    ok(`${tag}: 9b. D-39 P2-14 AND P3-5 — THE TOP BAR OPENS AT THE SAME x IN BOTH VIEWS, AND UNDO CARRIES THE HAIRLINE THAT SAYS IT IS NOT PART OF THE FIGHT GROUP. The audit measured the control cluster jumping from x=160 on the board to x=495 in a fight, under an h1 and a view switch that stay at 160 — three left edges on one sticky bar, which is D-33 P2-1's finding at its third site. One declaration did it: the cluster is content-sized on the board so flex-end has no slack to spend, and .fg-read's flex:0 0 100% makes it full-width in a fight, where flex-end pushes 1278px of tools to the end of 1600. Both rows open at the bar's own edge now, EXACTLY on it: the 6px the tools used to sit off by was .fg-apart's own margin, and P3-5 moved that hairline away from this group, so the first control is flush with the h1 and the view switch above it. P3-5's HALVES ARE SPLIT HERE ON PURPOSE: its claim that "Undo sits inside the same .brd-tokedit group as the eyebrow" is FALSE and this cell reads containment off the page to say so — Undo is a sibling, outside the role="group" and outside its aria-labelledby, so no screen reader was ever told the caption covered it. What was true is that nothing on screen said so, at 13px against 14px. So [C14]'s hairline moved off the cluster's first child — where D-33 P2-1's deletion of .brd-brand had left it drawing against nothing at all — and onto Undo, which is a separation this bar already spells twice and needs no sixth caption to say. The bar's 64-to-101 growth is PRINTED and not judged: that half was priced and declined`,
+      barBuild.tools === barFight.tools
+      && barBuild.tools !== null && barBuild.bar !== null
+      && barBuild.tools === barBuild.bar
+      && barFight.readShown === true && barFight.readFirst === barFight.bar
+      && barBuild.h1 === barBuild.bar && barBuild.views === barBuild.bar
+      && barBuild.undoInGroup === false
+      && barBuild.undoWrap === 'brd-tokedit fg-apart'
+      && barBuild.undoLine === '1px' && barBuild.groupLine === '0px',
+      { barBuild, barFight });
+
     /* ── 10. #strip STILL PINS, IN BOTH VIEWS. Entry 20's exact shape: position, every
        ancestor's overflow, and the viewport top at four page-scroll offsets. An overflow on an
        ancestor takes sticking away SILENTLY — no error, no warning — which is the one failure
