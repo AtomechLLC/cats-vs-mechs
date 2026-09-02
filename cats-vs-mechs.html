@@ -578,6 +578,35 @@
      research proposed would ship dead on arrival. An acceptance grep keeps it
      from being helpfully added back. */
   .brd-line--opt[hidden]{display:none}
+
+  /* ==================================================================
+     D-39 P1-1 — THE BOARD'S REFUSAL LINE. Plan 05-D39b.
+     ==================================================================
+     Every stat line that carries a stepper carries one of these, built by
+     statLine, shipped hidden and empty. [S07.1]'s commitField writes a
+     SENTENCE into it when a typed value is refused, instead of throwing
+     that refusal into [S08]'s crash panel — which is what a typo did on
+     Enter, measured, on every typed-value field in this artifact.
+
+     IT IS ON THE LINE AND NOT ON THE CARD, because the line IS the
+     control: a card carries three to eight steppers and a sentence at the
+     foot of one would name none of them. .brd-line is already
+     flex-wrap:wrap, so a 100% basis puts the sentence on its own row
+     under the field that raised it and takes nothing off the row above.
+
+     IT CARRIES ITS OWN [hidden] RULE for .brd-line--opt's stated reason
+     one rule up, and for the reason .pk-warn, .prj-note, .sh-warn and
+     .fg-said each carry one: a UA [hidden] loses to any author display,
+     and the next author to give this a display would silently un-hide
+     every one of them at once.
+
+     NONE OF [S06.1]'s FOUR SILENT-FAILURE MARKERS IS ON IT: no data-k, so
+     keyed() cannot take its first document match here; no data-amt and it
+     is not a .brd-value, so the value pass cannot paint a confident zero
+     over the sentence; and not .brd-line--opt, whose hide pass reads a
+     tally and would pin it shut for good. */
+  .brd-said{flex:1 0 100%;margin:0;font-size:18px;color:var(--ink-dim);max-width:52ch;line-height:1.4}
+  .brd-said[hidden]{display:none}
   .brd-label{font-size:18px;color:var(--ink-dim);min-width:128px}
   .brd-value{font-size:24px;font-weight:700}
   .brd-note{font-size:18px;color:var(--ink-dim)}
@@ -881,7 +910,55 @@
     margin:0 -24px -22px;padding:12px 24px 22px;
     border-top:1px solid var(--line);
     background:var(--panel);
+    /* D-39 P1-1 — the refusal line below shares this row and takes a full
+       basis, so the buttons wrap under it while it is shown and the footer
+       is one row again the moment it is hidden. */
+    flex-wrap:wrap;
   }
+  /* ==================================================================
+     D-39 P1-1 — THE PICKER'S REFUSAL LINE, AND WHY IT IS IN THE FOOTER.
+     Plan 05-D39b.
+     ==================================================================
+     [S07.2]'s commitName and commitBound each carry the comment "`loud` is
+     Enter ... an explicit request earns a readable refusal", and both
+     delivered that refusal by re-throwing into [S08]'s boundary — whose
+     own banner says a throw arriving there is a DEFECT. Measured: a typo
+     in either bound field, or an emptied name, opened "SOMETHING WENT
+     WRONG" with a stack trace and CLOSED THIS DIALOG, discarding the
+     session. This is where the sentence goes instead.
+
+     IT IS IN THE STICKY FOOTER AND NOT UNDER EACH FIELD, and that is a
+     decision rather than a shortcut. This dialog is a grid with a
+     SCROLLING body (D-33 P1-3): the name field and the range pair sit at
+     the top of 1,466px of content and are routinely scrolled out of view
+     while a student is in the list below. A sentence pinned beside a
+     field a student cannot see is a sentence nobody reads. The footer is
+     the one box in this dialog that is on screen at every scroll offset,
+     which is exactly why the way out lives there. .sh-said is the same
+     idiom on a surface that does not scroll.
+
+     ONE NODE, ONE OWNER. #tok-pick-names and #tok-pick-bounds-said are
+     both written FROM STATE by [S06.2] on every repaint — they are
+     READINGS, not refusal slots, and a refusal written into either would
+     be gone on the next frame or would fight the reading for the node.
+     That is P2-5's defect (one sentence, two owners) and it is not
+     repeated here.
+
+     NO COLOUR OF ITS OWN, which is .pk-warn's rule: the said lines in
+     this document are all --ink-dim at 18px and none of them is red. A
+     refused typo is not an alarm. */
+  /* NO max-width, AND IT WAS MEASURED RATHER THAN CHOSEN. A first draft
+     carried the 60ch measure every other said line in this document has,
+     and the sentence then shared the footer's row with Done instead of
+     taking a row of its own — because a flex item's LINE-BREAKING uses its
+     hypothetical main size, which is the basis CLAMPED BY max-width, so a
+     100% basis capped at 60ch is a 480px item that fits beside a button.
+     The measure is not lost: this footer is ~610px at 1366 and ~1000px at
+     1920, and the longest sentence either surface can print is 107
+     characters, so it sets in one or two lines at a comfortable width in
+     every column of the harness. Photographed both ways. */
+  .pk-said{flex:1 0 100%;margin:0 0 10px;font-size:18px;color:var(--ink-dim);line-height:1.4}
+  .pk-said[hidden]{display:none}
   .pk::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
   .pk-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
   /* .pk-note IS GONE UNDER D-38 AND THE TOMBSTONE IS THE POINT. Both of its
@@ -1093,6 +1170,52 @@
   .err-btn{background:var(--panel);border:1px solid var(--line);color:var(--ink);
     border-radius:999px;padding:6px 14px;font:inherit;font-size:13px;cursor:pointer}
   .err-btn:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash)}
+  /* ==================================================================
+     D-39 P1-1's THIRD REPAIR — THE PANEL'S ACCENTED CONTROL IS THE ONE
+     THAT KEEPS THE BUILD. Plan 05-D39b.
+     ==================================================================
+     The audit, measured at 1920: the accented, brd-btn--danger control in
+     this panel sat at x=1563, y=1012 and read "Reset to Workshop 16
+     defaults". So the loudest thing on a panel a student met by MISTYPING
+     A NUMBER was an offer to delete their whole build.
+
+     P1-1 takes the typed-value refusals off this channel entirely, so
+     nobody reaches this panel for a typo any more. This is the other
+     half, and it stands on its own: even for a real defect, "Dismiss and
+     continue" is the right default weight. D-15 promises recovery in one
+     click and it still is — the control is untouched, keeps every word of
+     its label, is never disabled, and is one press away. What changes is
+     which of the two a student's eye lands on first.
+
+     THE TREATMENT IS .brd-btn--rm's, ONE SURFACE ACROSS. D-39 P2-12 chose
+     demotion plus separation over reddening for the two authoring
+     dialogs' Remove buttons — which is D-33 P1-6's call before it — and
+     this is the same act on the same grounds, so it takes the same
+     answer rather than inventing a fourth convention for it. The three
+     declarations are .brd-btn--rm's own, restated under this prefix for
+     the reason [C13] gives about .rs- and [C14] about its four: a rule
+     two regions share is a rule neither can change.
+
+     .err-btn--danger IS KEPT AS A TOMBSTONE, in .brd-brand's manner
+     ([C03]) and .sh-actions--lead's ([C13]): the class name is the only
+     trace that would otherwise be left of a decision this file made and
+     turned, and a later author reaching for a red button in an error
+     panel should find the reason it is not there. It applies to nothing
+     now. #reset-ask-confirm keeps .brd-btn--danger, and that is not an
+     inconsistency: that control is what a student pressed Reset to
+     reach, and a control somebody asked for may be as loud as it likes.
+     NO NEW HEX — every value below is [C00]'s or .brd-btn--rm's. */
+  .err-btn--go{
+    border-color:var(--state-on-line);
+    background-color:var(--state-on-solid);
+    font-weight:700;
+  }
+  .err-btn--rm{
+    background:transparent;color:var(--ink-dim);
+    margin-inline-start:auto;
+    &:hover{border-color:var(--state-hover-line-2);background-image:var(--state-hover-wash-2);color:var(--accent-2)}
+    &:focus{border-color:var(--accent-2);color:var(--accent-2)}
+  }
   .err-btn--danger{border-color:var(--accent-2);color:var(--accent-2)}
 
   /* ===================== [C09] SELFTEST REPORT ===================== */
@@ -1345,7 +1468,20 @@
     margin:0 -24px -22px;padding:12px 24px 22px;
     border-top:1px solid var(--line);
     background:var(--panel);
+    /* D-39 P1-1 — .pk-foot's line, one dialog across and for its reason. */
+    flex-wrap:wrap;
   }
+  /* D-39 P1-1 — THE ACTION EDITOR'S REFUSAL LINE. Plan 05-D39b, and it is
+     .pk-said restated under this prefix rather than borrowed, which is
+     [C13]'s rule about .rs- and [C12]'s own about .ae-. The reason for the
+     PLACEMENT is stronger here than in the picker: this dialog's body
+     holds up to twelve amount fields, a maxed action scrolls, and the
+     audit's own measurement of the defect was taken on
+     #act-edit-cost-0-amt with the terms region scrolled. The footer is on
+     screen at every offset; a term row is not. */
+  /* No max-width, for the reason .pk-said's own note measures out in full. */
+  .ae-said{flex:1 0 100%;margin:0 0 10px;font-size:18px;color:var(--ink-dim);line-height:1.4}
+  .ae-said[hidden]{display:none}
   .ae::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
   .ae-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
   .ae-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
@@ -5698,6 +5834,38 @@
   .rr-said[hidden]{display:none}
 
   /* ==================================================================
+     D-39 P1-1 — THE ROUND RULES' REFUSAL LINE, AND IT IS A SECOND NODE.
+     Plan 05-D39b.
+     ==================================================================
+     #rr-said is written FROM STATE by [S06.13] on every repaint — it
+     carries the cap sentence and nothing else — so a refusal written into
+     it would have two owners, which is the defect D-39 P2-5 measured on
+     the fight tab's build notice and is not going to be introduced here
+     to save one node. One node, one owner, twice.
+
+     IT TAKES A FULL BASIS so it sits on its own row under the add button
+     rather than beside it: the cap sentence and a refused amount are
+     about different things and a reader must not have to work out which
+     of two sentences on one line answers the press they just made.
+
+     THE REFUSAL IS AT THE FOOT AND NOT IN THE ROW because .rr-rule is
+     display:contents and has no box to hang a line off — [C17]'s own
+     arrangement, and the reason its hairline is drawn on the five CELLS.
+     A sixth cell per rule would be eight more nodes, a hairline exception
+     and a wrapping row; this block is 440px tall at its cap and the foot
+     is never more than one row from the field. */
+  /* max-width:none IS LOAD-BEARING AND IT WAS MEASURED. .rr-said's 52ch
+     measure is inherited by this class, and a flex item BREAKS THE LINE on
+     its hypothetical main size — the basis CLAMPED BY max-width — so a 100%
+     basis capped at 52ch is a ~420px item that fits happily beside the add
+     button AND beside the cap sentence. Driven at 1366 with the list at its
+     cap: add (200) + cap (420) + refusal (420) = 1040 in a 1284px row, so
+     all three sat on ONE LINE. Two sentences side by side about two
+     different things is exactly the defect the second node exists to avoid,
+     so the cap comes off and this takes a row of its own at every width. */
+  .rr-refuse{flex:1 0 100%;max-width:none}
+
+  /* ==================================================================
      [C17] THE SAME BLOCK, READ RATHER THAN EDITED, IN THE FIGHT'S
      ROUND-STATE AREA.
      ==================================================================
@@ -7125,6 +7293,12 @@
     <div class="rr-foot">
       <button class="rr-add" type="button" id="rr-add" data-rr="add" data-k="rr/add">+ Add a round rule</button>
       <p class="rr-said" id="rr-said" hidden></p>
+      <!-- D-39 P1-1 — THE REFUSAL LINE, AND IT IS A SECOND NODE BESIDE THE
+           CAP SENTENCE RATHER THAN A SECOND OWNER OF IT. #rr-said is written
+           from state by [S06.13] on every repaint; this one is written by
+           [S07.7] on a refused Enter and by nothing else. [C17]'s rule beside
+           .rr-refuse says why in full. -->
+      <p class="rr-said rr-refuse" id="rr-refuse" hidden></p>
     </div>
   </section>
 
@@ -7238,8 +7412,12 @@
   <div class="err-message" id="err-message"></div>
   <textarea class="err-detail" id="err-detail" readonly aria-label="Error details"></textarea>
   <div class="err-actions">
-    <button type="button" class="err-btn" id="err-dismiss">Dismiss and continue</button>
-    <button type="button" class="err-btn err-btn--danger" id="err-reset">Reset to Workshop 16 defaults</button>
+    <!-- D-39 P1-1 — THE ACCENT MOVES TO THE CONTROL THAT KEEPS THE BUILD.
+         The reset keeps every word of its label, keeps its one click (D-15)
+         and is never disabled; it stops being the loudest object on a panel a
+         student can meet by accident. [C08]'s rule has the argument. -->
+    <button type="button" class="err-btn err-btn--go" id="err-dismiss">Dismiss and continue</button>
+    <button type="button" class="err-btn err-btn--rm" id="err-reset">Reset to Workshop 16 defaults</button>
   </div>
 </div>
 
@@ -7429,7 +7607,31 @@
 
   </div><!-- .pk-body -->
 
+  <!-- D-39 P1-1 — THE REFUSAL LINE. Written by [S07.2] when Enter lands on a
+       typed value one of [S05]'s guards will not take, and dropped the moment
+       the student goes back into a field. It ships hidden and EMPTY, which is
+       #tok-pick-names' shape and the shape of every reserved line in this
+       document, so nothing is on screen for a dialog nothing has refused.
+
+       IT IS FIRST IN THE FOOTER'S MARKUP and takes a full flex basis, never a
+       CSS `order`: checks 103e and 108 both forbid re-ordering a surface in the
+       stylesheet, because it walks a screen reader out of step with the room.
+       The sentence is read before the buttons in both sequences.
+
+       IT DELIBERATELY DOES NOT CARRY data-anm, and #tok-pick-names three
+       hundred lines above it does. That marker makes Layer C skip a node's TEXT
+       — it is for a line whose whole content is a word a student typed — and
+       these sentences are the artifact's own, with at most a type's name quoted
+       inside one. A refusal a student reads is a refusal the comparative-
+       language gate must read too, so it stays in the harvest. (And that gate
+       refuses its own name as a substring document-wide, which is why this
+       paragraph spells it the long way round.)
+
+       Same three-part rule as every id in this document: the id, the KNOWN_IDS
+       entry and the stub node arrive together, and the run fails in BOTH
+       directions if one of the three is missing. -->
   <div class="pk-actions pk-foot">
+    <p class="pk-said" id="tok-pick-said" hidden></p>
     <button class="brd-btn" type="button" id="tok-pick-done" data-pk="done">Done</button>
   </div>
 </dialog>
@@ -7760,7 +7962,13 @@
          scale, and [S07.3]'s cancel listener still owns it. -->
     </div><!-- .ae-body -->
 
+    <!-- D-39 P1-1 — THE REFUSAL LINE, #tok-pick-said's twin. Written by
+         [S07.3] when Enter lands on a typed value one of [S05]'s guards will
+         not take, dropped the moment the student goes back into a field, and
+         shipped hidden and empty. First in the markup and a full flex basis,
+         never a CSS `order` — checks 103e and 108's rule. -->
     <div class="ae-actions ae-foot">
+      <p class="ae-said" id="act-edit-said" hidden></p>
       <button class="brd-btn" type="button" id="act-prop-open" data-ap="open" data-k="ap/open">Proposal</button>
       <button class="brd-btn" type="button" id="act-edit-cancel" data-act="restoreAction" data-k="ae/restore">Put this action back how it was</button>
       <button class="brd-btn" type="button" id="act-edit-done" data-ae="done">Done</button>
@@ -16250,6 +16458,34 @@ App.render = (function () {
   // first painted frame is never blank — the sync pass overwrites it
   // immediately, and for the shipped five it overwrites it with the same
   // words.
+  /* ==================================================================
+     D-39 P1-1 — A CROSS-PLAN EDIT into this function, by plan 05-D39b,
+     named as one. It is the THIRD such append into [S06.1] and it is
+     declared here in the register plan 03-05 opened and plan 05-09 used.
+     ==================================================================
+     Every line that carries a STEPPER gets a reserved refusal line, built
+     hidden and empty. [S07.1]'s commitField writes a sentence into it when
+     a typed value is refused on Enter; before this it threw that refusal
+     into [S08]'s boundary, and [S08]'s own banner says a throw arriving
+     there is a DEFECT — so a mistyped health opened "SOMETHING WENT
+     WRONG" with a stack trace and an accented "Reset to Workshop 16
+     defaults" beside it.
+
+     IT IS GATED ON THE STEPPER RATHER THAN BUILT ON EVERY LINE, read off
+     the value node's own class. "Damage" and "Total health" are
+     derivations with no field in them, so a refusal line under either
+     would be a reserved node nothing can ever write — the shape [C07]'s
+     .pk-note tombstone records as invisible to both gates.
+
+     IT CARRIES NONE OF THIS REGION'S FOUR MARKERS, which is the rule
+     [S06.3] and [S06.4] each state about anything appended near this
+     walk: no data-k, so keyed() cannot take its first document match
+     here; no data-amt and it is not a .brd-value, so the value pass
+     cannot paint a confident zero over the sentence; and not
+     .brd-line--opt, whose hide pass reads a tally and would pin it shut
+     for good. It is not marked data-anm either, and that is deliberate:
+     the sentence is the artifact's own words with at most a type's name
+     quoted inside it, so Layer C reads it. */
   function statLine(cls, label, valueNode, row, tokenId) {
     var line = el('div', 'brd-line');
     var name = text('span', cls, label);
@@ -16257,6 +16493,13 @@ App.render = (function () {
     line.appendChild(name);
     line.appendChild(valueNode);
     if (row) { line.appendChild(row); }
+    if (valueNode && valueNode.classList
+      && typeof valueNode.classList.contains === 'function'
+      && valueNode.classList.contains('stp')) {
+      var said = text('p', 'brd-said', '');
+      said.hidden = true;
+      line.appendChild(said);
+    }
     return line;
   }
 
@@ -26562,6 +26805,134 @@ App.interactions = (function () {
     });
   }
 
+  /* ======================================================================
+     D-39 P1-1 — A TYPO IS NOT A DEFECT, AND THE ONE PLACE THAT DECIDES.
+     Plan 05-D39b. Read this before touching any commit site in [S07].
+     ======================================================================
+     WHAT WAS MEASURED. Every typed-value field in this artifact routed a
+     refusal-worthy typo into [S08]'s crash panel on Enter. Six commit
+     paths — commitField here, commitName and commitBound in [S07.2],
+     commitActionName and commitAmount in [S07.3], commitRuleAmount in
+     [S07.7] — each ended in `if (loud) { throw refused; }`. Driven in real
+     Chrome through the shipped controls: `abc` in a health stepper, `9` in
+     a Least field whose Most is 4, an emptied name, `abc` in a cost
+     amount. Every one opened a 520x294 panel reading "SOMETHING WENT
+     WRONG", titled with an internal listener name ("picker keydown"),
+     carrying a raw stack trace in a textarea and offering "Reset to
+     Workshop 16 defaults" as its accented control. And in BOTH authoring
+     dialogs the dialog CLOSED, because [S08]'s fail() calls closeModals()
+     — so a student mid-way through authoring an action lost the session
+     to one mistyped character.
+
+     THE TWO DECISIONS THAT DISAGREED, both of them in this file:
+
+       [S07.2] commitBound:  "`loud` is Enter ... an explicit request earns
+                              a readable refusal"
+       [S08]   the banner:   "A throw from here is a DEFECT and is meant to
+                              reach the ... panel"
+
+     Both are right. What was wrong was the channel. A refusal is now
+     RENDERED, at the surface that raised it, and the panel goes back to
+     being what its own banner reserves it for.
+
+     AND THE BLUR PATH ALREADY HANDLED THE SAME VALUE GRACEFULLY, measured
+     on the identical field: `9` in Least committed by clicking away
+     reverts the field, keeps the dialog open and opens no panel. So the
+     graceful path existed and Enter was the only one that escaped it.
+     That is what "the same refusal path blur takes" means below: the
+     revert is unchanged, the dialog is unchanged, and Enter adds the
+     SENTENCE blur has nothing to say.
+
+     ------------------------------------------------------------------
+     THE ONE THING THIS MUST NOT DO, AND THE LINE IT DRAWS
+     ------------------------------------------------------------------
+     IT IS NOT A BLANKET CATCH. A swallowed real defect is worse than an
+     ugly panel: the panel is embarrassing for ten seconds and a silently
+     eaten TypeError is a board that quietly stops agreeing with itself
+     for the rest of a workshop. So the six sites route a REFUSAL and
+     re-throw everything else, and isRefusal() below is where that
+     distinction is made ONCE rather than six times.
+
+     THE DISCRIMINATOR IS THE ERROR'S OWN CONSTRUCTOR, and it is a real
+     property of [S05] rather than a convention invented here. Scanned
+     this pass across the whole of that section: every guard a student can
+     reach from a field refuses with a plain `new Error(sentence)` — "The
+     least "Rage" a unit or a side may hold cannot be more than the most:
+     9 is above 4.", "A change of nothing is not a change ...", "That name
+     is 31 characters long ...". Every `TypeError` in [S05] is a
+     CALLER-passed-the-wrong-type guard: int()'s "Expected a whole number
+     for ...", requireName's "'s name must be text, and this one is a
+     number.", requireTokenId's "A token type is named by a short id".
+     Not one of those is reachable from a field, because the page parses
+     before it dispatches at every one of the six sites — so nothing that
+     is a defect is being turned into a sentence, and nothing that is a
+     refusal is being left to the panel.
+
+     A THROWN NON-ERROR, a subclass, or an Error with an empty message all
+     fall to the re-throw arm. There is no fallback sentence and there is
+     deliberately none: a refusal with nothing to say is not a refusal this
+     file knows how to make, and inventing prose for it would put a made-up
+     sentence in front of a student for a cause this file cannot name. The
+     panel, which carries the stack, is the honest place for that.
+
+     ------------------------------------------------------------------
+     WHERE THE SENTENCE GOES, AND WHEN IT LEAVES
+     ------------------------------------------------------------------
+     Each surface owns one channel and each channel has exactly one
+     owner — never a node [S06] also writes from state, which is D-39
+     P2-5's defect and is why #tok-pick-names, #tok-pick-bounds-said and
+     #rr-said are all left alone:
+
+       the board          .brd-said, one per stepper line   ([C04])
+       the token picker   #tok-pick-said, in the sticky foot ([C07])
+       the action editor  #act-edit-said, in the sticky foot ([C12])
+       the round rules    #rr-refuse, in the foot            ([C17])
+
+     IT LEAVES WHEN THE STUDENT GOES BACK INTO A FIELD, which is
+     dropLoadSaid's rule one section over, stated there in full: "a
+     sentence about a paste stops being true the moment the text it was
+     about changes". Same here, and the focusin handlers each surface
+     already has are where it happens. A successful commit drops it too,
+     because a sentence about a value that has since been accepted is a
+     sentence that has stopped being true.
+
+     THESE THREE FUNCTIONS ARE IN [S07.1] AND CALLED FROM FOUR
+     SUB-REGIONS. [S07] is ONE IIFE — the same fact [S06]'s seventh
+     spelling of a two-element side list turns on — so this is a shared
+     helper rather than four copies. Four copies is how the six paths
+     drifted apart in the first place. */
+
+  function isRefusal(err) {
+    return err instanceof Error
+      && err.constructor === Error
+      && typeof err.message === 'string'
+      && err.message !== '';
+  }
+
+  function sayRefusal(node, words) {
+    if (!node || typeof words !== 'string' || words === '') { return false; }
+    node.textContent = words;
+    node.hidden = false;
+    return true;
+  }
+
+  function dropRefusal(node) {
+    if (!node) { return; }
+    node.textContent = '';
+    node.hidden = true;
+  }
+
+  /* The one shape all six commit sites take on a refused loud commit. The
+     value has already gone back by the time this runs — the revert is the
+     caller's and stays the caller's, because each field puts its own text
+     back through its own function and this must never grow a fifth
+     spelling of that. Returns nothing, and re-throws what it will not
+     render, so a caller cannot accidentally continue past a defect. */
+  function refuseLoudly(node, err) {
+    if (!isRefusal(err)) { throw err; }
+    sayRefusal(node, err.message);
+  }
+
   /* ---- the numeric field (ALLOC-03, D-14 through D-17) ---- */
 
   // A regex, not Number() / parseInt() / Math.trunc(), because all three fail
@@ -26578,14 +26949,30 @@ App.interactions = (function () {
   // is null — and that sentence means nothing to a student reading a projector.
   var FIELD = /^([+-]?)(\d{1,3})$/;
 
+  /* D-39 P1-1 — THE TWO REFUSALS ARE WHOLE SENTENCES NOW, because they are
+     RENDERED. They used to be clause fragments — "that field was empty",
+     "type a whole number, or +5 / -8 to adjust" — which read acceptably
+     inside the crash panel's "<message> — the last good state is still on
+     screen." frame and read as an unfinished thought anywhere else. The
+     register is the four SHARE-03 sentences one section over: say what the
+     string is not, then say what to do about it, and never say anything
+     about the board. Both are scanned by Layer B today and by Layer C the
+     moment one is shown. */
   function parseField(raw) {
     var typed = String(raw).trim();
     if (typed === '') {
-      return { ok: false, why: 'that field was empty' };
+      return {
+        ok: false,
+        why: 'That field was left empty, so the number it held is back.'
+      };
     }
     var m = FIELD.exec(typed);
     if (m === null) {
-      return { ok: false, why: 'type a whole number, or +5 / -8 to adjust' };
+      return {
+        ok: false,
+        why: 'That is not a number this field can take. Type a whole number, '
+          + 'or +5 or -8 to adjust the one that is there.'
+      };
     }
     return {
       ok: true,
@@ -26696,6 +27083,17 @@ App.interactions = (function () {
     if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
   }
 
+  /* D-39 P1-1 — the board's refusal channel, found from the FIELD rather
+     than by id, because there is one per stat line and the sentence has to
+     land under the stepper the student is standing in. [S06.1]'s statLine
+     builds it; a line whose value is a derivation has none, and a field is
+     never on one of those. */
+  function fieldSaidNode(el) {
+    if (!el || typeof el.closest !== 'function') { return null; }
+    var line = el.closest('.brd-line');
+    return (line === null) ? null : line.querySelector('.brd-said');
+  }
+
   // `loud` is Enter, which is an explicit request and earns a readable refusal.
   // Blur is quiet: a student clicking away from a half-typed value is not an
   // error, so the recorded text goes back and no panel opens.
@@ -26704,13 +27102,24 @@ App.interactions = (function () {
   // "+5", pressing Enter and then clicking away applies the delta TWICE.
   function commitField(el, loud) {
     if (el.value === el.dataset.was) { return; }
+    var said = fieldSaidNode(el);
     var parsed = parseField(el.value);
     if (!parsed.ok) {
       revertField(el);
-      if (loud) { throw new Error(parsed.why); }
+      // D-39 P1-1. The sentence is the PAGE's here, because nothing has
+      // reached an op yet — commitBound's own note about the same split.
+      if (loud) { sayRefusal(said, parsed.why); }
       return;
     }
+    // The board is the one of the six surfaces whose apply path does NOT
+    // sit inside a try today, and it is not given one: applyField reaches
+    // nudgeField and dispatch, and every refusal those can raise is a bound
+    // int() CLAMPS rather than throws. A try here would be a catch with
+    // nothing to catch, which is the reserved-rule-for-nothing shape [C07]'s
+    // .pk-note tombstone records. If a later plan gives a board op a real
+    // refusal, it wraps it here in the shape the other five already use.
     applyField(el, parsed);
+    dropRefusal(said);
     el.dataset.was = el.value;
   }
 
@@ -26933,6 +27342,10 @@ App.interactions = (function () {
     var el = e.target;
     if (!isField(el)) { return; }
     el.dataset.was = el.value;
+    // D-39 P1-1 — a refusal about the last thing typed here stops being true
+    // the moment the student comes back to type again. dropLoadSaid's rule,
+    // stated there in full and applied at all four surfaces.
+    dropRefusal(fieldSaidNode(el));
     if (typeof el.select === 'function') { el.select(); }
   }
 
@@ -27293,6 +27706,22 @@ App.interactions = (function () {
     if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
   }
 
+  /* D-39 P1-1 — this dialog's ONE refusal channel, for both of its typed
+     fields. It is in the sticky footer rather than under each field, and
+     [C07]'s rule beside .pk-said gives the reason in full: the body of this
+     dialog scrolls, the name and the range pair are at the top of it, and a
+     sentence beside a field a student has scrolled past is a sentence
+     nobody reads.
+
+     #tok-pick-names and #tok-pick-bounds-said are deliberately NOT used.
+     Both are written FROM STATE by [S06.2] on every repaint — they are
+     readings — and a refusal put in either would be a node with two owners,
+     which is the defect D-39 P2-5 measured on the fight tab. */
+  function pickerSaid() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('tok-pick-said');
+  }
+
   // The one place D-12a's cut actually runs. A 30-emoji paste is cut to the cap
   // on the code-point array, so no cut can leave half an astral pair for Phase
   // 4's encoder to throw URIError on — far from the paste that caused it. The
@@ -27332,9 +27761,14 @@ App.interactions = (function () {
       App.ops.dispatch('renameTokenType', { tokenId: target, name: el.value });
     } catch (refused) {
       revertName(el);
-      if (loud) { throw refused; }
+      // D-39 P1-1. `throw refused` stood here and it is what closed this
+      // dialog on an emptied name. refuseLoudly renders the guard's own
+      // sentence and re-throws anything that is not a refusal — [S07.1]'s
+      // banner has the whole argument.
+      if (loud) { refuseLoudly(pickerSaid(), refused); }
       return;
     }
+    dropRefusal(pickerSaid());
     // The baseline moves with the committed text or both of them start lying —
     // the rule showFieldValue states, applied to text.
     el.dataset.was = el.value;
@@ -27404,8 +27838,12 @@ App.interactions = (function () {
       // reached an op yet: the op's own refusals are about a NUMBER that is out
       // of range or upside down, and this one is about text that is not a
       // number at all. parseField's own sentence is the model for it.
+      // D-39 P1-1 — the same sentence, RENDERED rather than thrown. It was
+      // already the page's own and already in this register; all that
+      // changes is the channel it reaches a student through.
       if (loud) {
-        throw new Error('A range is written in whole numbers between 0 and '
+        sayRefusal(pickerSaid(),
+          'A range is written in whole numbers between 0 and '
           + App.ops.MAX_ALLOC + ', and "' + String(el.value) + '" is not one.');
       }
       return;
@@ -27419,9 +27857,13 @@ App.interactions = (function () {
       App.ops.dispatch('setTokenBounds', payload);
     } catch (refused) {
       revertBound(el);
-      if (loud) { throw refused; }
+      // D-39 P1-1. This is the path the audit photographed twice — a Least
+      // of 9 against a Most of 4, and a Most of 1 against a Least of 2 —
+      // and both closed this dialog.
+      if (loud) { refuseLoudly(pickerSaid(), refused); }
       return;
     }
+    dropRefusal(pickerSaid());
     // The baseline moves with the committed figure or both of them start
     // lying — showFieldValue's rule, arriving on a third field.
     el.dataset.was = el.value;
@@ -27438,6 +27880,9 @@ App.interactions = (function () {
     var el = e.target;
     if (!isNameField(el) && !isBoundField(el)) { return; }
     el.dataset.was = el.value;
+    // D-39 P1-1 — dropLoadSaid's rule, applied here: a refusal about the
+    // last thing typed stops being true when the student comes back to type.
+    dropRefusal(pickerSaid());
     var dlg = pickerDialog();
     el.dataset.forTok = (dlg === null) ? '' : pickedTok(dlg);
   }
@@ -27968,6 +28413,17 @@ App.interactions = (function () {
     if (typeof el.dataset.was === 'string') { el.value = el.dataset.was; }
   }
 
+  /* D-39 P1-1 — this dialog's ONE refusal channel, for its name field and
+     its twelve amount fields alike. pickerSaid()'s twin, in the sticky
+     footer for pickerSaid()'s reason and for one of its own: a maxed action
+     scrolls this dialog's body, and the audit's own measurement of the
+     defect was taken on #act-edit-cost-0-amt with the terms region
+     scrolled. */
+  function editorSaid() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('act-edit-said');
+  }
+
   // The cut is App.ops.clampTokenName for both nouns, because plan 03.1-03
   // factored the name gate into one function with the noun as a parameter: an
   // action's name is held to the same cap, the same code-point counting and the
@@ -28007,9 +28463,11 @@ App.interactions = (function () {
       App.ops.dispatch('renameAction', { side: side, actionId: target, name: el.value });
     } catch (refused) {
       revertActionName(el);
-      if (loud) { throw refused; }
+      // D-39 P1-1 — [S07.1]'s banner has the whole argument.
+      if (loud) { refuseLoudly(editorSaid(), refused); }
       return;
     }
+    dropRefusal(editorSaid());
     // The baseline moves with the committed text or both of them start lying —
     // the rule showFieldValue states, applied to text.
     el.dataset.was = el.value;
@@ -28064,16 +28522,28 @@ App.interactions = (function () {
    * then clamps to the named bound, so parse and clamp stay separate. ---- */
   var AMOUNT = /^([+-]?)(\d{1,3})$/;
 
+  /* D-39 P1-1 — WHOLE SENTENCES, for parseField's stated reason: they are
+     rendered now, and a clause fragment that read acceptably inside the
+     crash panel's "<message> — the last good state is still on screen."
+     frame reads as an unfinished thought on a said line. The second one
+     keeps the tail this dialog already says twice — [C12]'s Changes
+     heading and [S05]'s "A change of nothing is not a change" both end
+     "with a minus in front for a change downward" — so a student meets one
+     phrasing of that rule, not three. */
   function parseAmount(raw) {
     var typed = String(raw).trim();
     if (typed === '') {
-      return { ok: false, why: 'that field was empty' };
+      return {
+        ok: false,
+        why: 'That field was left empty, so the amount it held is back.'
+      };
     }
     var m = AMOUNT.exec(typed);
     if (m === null) {
       return {
         ok: false,
-        why: 'type a whole number, with a minus in front for a change downward'
+        why: 'That is not an amount this field can take. Type a whole number, '
+          + 'with a minus in front for a change downward.'
       };
     }
     return { ok: true, n: (m[1] === '-' ? -1 : 1) * Number(m[2]) };
@@ -28138,6 +28608,57 @@ App.interactions = (function () {
     });
   }
 
+  /* ==================================================================
+     D-39 P1-1's SECOND REPAIR — THE FIELD AND THE RECORD STOPPED
+     DISAGREEING. Plan 05-D39b.
+     ==================================================================
+     Measured: `999` typed into #act-edit-cost-0-amt and committed with
+     Enter left `state.cost[0].n === 99` and `field.value === "999"`. The
+     op CLAMPS a cost to MAX_ALLOC — which is correct and is int()'s job —
+     and the field went on showing a figure the board does not hold, until
+     the next STRUCTURAL render happened to rebuild the row. A student who
+     typed 999, read 999 back and walked away has a board that says 99.
+
+     THE CAUSE IS D-19 AND NOT A MISSING LINE. [S06.5]'s showAmount returns
+     early on `field === document.activeElement`, deliberately, because the
+     repaint must never overwrite text a student is halfway through typing.
+     After Enter the field is still focused, so the frame this commit asks
+     for reaches showAmount and showAmount declines — correctly.
+
+     SO THE PAGE WRITES IT, at this one call site, which is exactly the
+     arrangement [S07]'s own banner already names as its one exception:
+     "showFieldValue() — the one number [S06] is contractually forbidden to
+     write, because setValue() skips the focused field". This is that
+     function's twin for the editor's twelve amount fields, and the reason
+     is the same reason word for word.
+
+     IT READS THE RECORD AND NEVER THE TYPED TEXT. Re-showing what was
+     typed would be the defect with more steps; the whole point is that the
+     op may have written something else. */
+  function committedAmount(el, side, actionId) {
+    var faction = App.state.get().build[side];
+    if (!faction || !Array.isArray(faction.actions)) { return null; }
+    var rec = null;
+    faction.actions.forEach(function (a) { if (a.id === actionId) { rec = a; } });
+    if (rec === null) { return null; }
+    var kind = el.dataset.aeField;
+    var terms = (kind === 'cost') ? rec.cost : (kind === 'req') ? rec.req : rec.xf;
+    var slot = Number(el.dataset.aeSlot);
+    if (!Array.isArray(terms) || !terms[slot]) { return null; }
+    var n = (kind === 'xf') ? terms[slot].d : terms[slot].n;
+    return Number.isInteger(n) ? n : null;
+  }
+
+  function showAmountValue(el, side, actionId) {
+    var n = committedAmount(el, side, actionId);
+    // A slot the op emptied, or a term this field no longer names, leaves the
+    // typed text where it is for the ordinary repaint to replace on the frame
+    // after the blur. Writing a guess would be worse than writing nothing.
+    if (n === null) { el.dataset.was = el.value; return; }
+    el.value = String(n);
+    el.dataset.was = el.value;
+  }
+
   function commitAmount(el, loud) {
     if (el.value === el.dataset.was) { return; }
     var side = el.dataset.forSide;
@@ -28150,18 +28671,24 @@ App.interactions = (function () {
     var parsed = parseAmount(el.value);
     if (!parsed.ok) {
       revertAmount(el);
-      if (loud) { throw new Error(parsed.why); }
+      // D-39 P1-1. The sentence is the PAGE's, because nothing has reached an
+      // op yet — commitBound's own note about the same split.
+      if (loud) { sayRefusal(editorSaid(), parsed.why); }
       return;
     }
     try {
       sendAmount(el, side, target, parsed.n);
     } catch (refused) {
       revertAmount(el);
-      if (loud) { throw refused; }
+      // D-39 P1-1 — the path the audit photographed as "editor keydown",
+      // which closed this dialog and threw away the authoring session.
+      if (loud) { refuseLoudly(editorSaid(), refused); }
       return;
     }
-    // The baseline moves with the committed text or both of them start lying.
-    el.dataset.was = el.value;
+    dropRefusal(editorSaid());
+    // The baseline moves with the COMMITTED figure, which is not always the
+    // typed one. Read the banner above.
+    showAmountValue(el, side, target);
   }
 
   function rememberAmountTarget(el) {
@@ -28299,8 +28826,12 @@ App.interactions = (function () {
   // arrived on.
   function onEditorFocusIn(e) {
     var el = e.target;
+    if (!isAmountField(el) && !isActionNameField(el)) { return; }
+    // D-39 P1-1 — dropLoadSaid's rule, taken above the two arms because it is
+    // the same job for both fields: a refusal about the last thing typed here
+    // stops being true the moment the student comes back to type again.
+    dropRefusal(editorSaid());
     if (isAmountField(el)) { rememberAmountTarget(el); return; }
-    if (!isActionNameField(el)) { return; }
     el.dataset.was = el.value;
     var dlg = editorDialog();
     el.dataset.forSide = (dlg === null) ? '' : pickedSide(dlg);
@@ -31483,19 +32014,40 @@ App.interactions = (function () {
   // at length beside its own copy.
   var RULE_AMOUNT = /^([+-]?)(\d{1,3})$/;
 
+  /* D-39 P1-1 — WHOLE SENTENCES, and they are [S07.3]'s parseAmount's word
+     for word. The two are separate copies for the reason the regex above is
+     a separate copy and states at length: two sections are two scopes and a
+     section reaching into another's private variable is the one rule this
+     whole file keeps. Same source, same words, same reasons — and a student
+     who mistypes an amount in the editor and mistypes one here must not be
+     told two different things about the same rule. */
   function parseRuleAmount(raw) {
     var typed = String(raw).trim();
     if (typed === '') {
-      return { ok: false, why: 'that field was empty' };
+      return {
+        ok: false,
+        why: 'That field was left empty, so the amount it held is back.'
+      };
     }
     var m = RULE_AMOUNT.exec(typed);
     if (m === null) {
       return {
         ok: false,
-        why: 'type a whole number, with a minus in front for a change downward'
+        why: 'That is not an amount this field can take. Type a whole number, '
+          + 'with a minus in front for a change downward.'
       };
     }
     return { ok: true, n: (m[1] === '-' ? -1 : 1) * Number(m[2]) };
+  }
+
+  /* D-39 P1-1 — this region's refusal channel. A SECOND node beside
+     #rr-said and never #rr-said itself: that one is written from state by
+     [S06.13] and carries the cap sentence, and one node with two owners is
+     the defect D-39 P2-5 measured on the fight tab. [C17]'s rule beside
+     .rr-refuse has the placement argument. */
+  function rulesSaid() {
+    if (typeof document === 'undefined') { return null; }
+    return document.getElementById('rr-refuse');
   }
 
   function isRuleAmount(el) {
@@ -31521,7 +32073,8 @@ App.interactions = (function () {
     var parsed = parseRuleAmount(el.value);
     if (!parsed.ok) {
       revertRuleAmount(el);
-      if (loud) { throw new Error(parsed.why); }
+      // D-39 P1-1. The sentence is the PAGE's — nothing has reached an op.
+      if (loud) { sayRefusal(rulesSaid(), parsed.why); }
       return;
     }
     try {
@@ -31533,9 +32086,13 @@ App.interactions = (function () {
       });
     } catch (refused) {
       revertRuleAmount(el);
-      if (loud) { throw refused; }
+      // D-39 P1-1 — [S07.1]'s banner has the whole argument. This surface is
+      // not in a dialog, so nothing here was CLOSED by the old panel; what it
+      // cost was a stack trace in front of a room mid-authoring.
+      if (loud) { refuseLoudly(rulesSaid(), refused); }
       return;
     }
+    dropRefusal(rulesSaid());
     // The baseline moves with the committed text or both of them start lying.
     el.dataset.was = el.value;
   }
@@ -31597,6 +32154,8 @@ App.interactions = (function () {
     var el = e.target;
     if (!isRuleAmount(el)) { return; }
     el.dataset.was = el.value;
+    // D-39 P1-1 — dropLoadSaid's rule, at the fourth surface.
+    dropRefusal(rulesSaid());
   }
 
   function onRulesFocusOut(e) {

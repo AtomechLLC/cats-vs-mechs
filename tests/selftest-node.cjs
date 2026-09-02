@@ -1686,28 +1686,87 @@ check(
        code-point array at the keystroke boundary, so nothing downstream ever
        sees half an astral pair and Phase 4's encoder cannot be handed one
        (D-12a). Enter is loud because it is an explicit request; blur is quiet
-       because clicking away from a half-typed name is not an error. --- */
+       because clicking away from a half-typed name is not an error.
+
+       ==================================================================
+       TURNED IN THE OPEN UNDER D-39 P1-1, AND IT USED TO ASSERT THE
+       DEFECT. Plan 05-D39b.
+       ==================================================================
+       WHAT THIS ROW REQUIRED, verbatim from the clause that is gone:
+
+           loudPanel === true
+
+       — where loudPanel is `errPanel.hidden === false`. That is: pressing
+       Enter on an emptied token name was REQUIRED to open the global crash
+       panel. It has been green over the defect since plan 02.1-04, because
+       the row was written from the artifact's own word "loud" and nobody
+       asked what channel loud came out on.
+
+       The audit asked. Driven in real Chrome through the shipped controls,
+       what the student got was a 520x294 panel headed "SOMETHING WENT
+       WRONG", titled "picker keydown", carrying a raw stack trace in a
+       textarea, offering "Reset to Workshop 16 defaults" as its accented
+       control — and the DIALOG CLOSED underneath it, because [S08]'s
+       fail() closes every open modal.
+
+       WHAT IT ASSERTS NOW IS STRICTLY MORE. "Loud" is kept and made
+       specific: the refusal is RENDERED, at the surface that raised it,
+       in the guard's own words; the panel stays SHUT; the dialog stays
+       OPEN, which is the clause the old shape could not have held because
+       the old behaviour closed it; the typed text goes back; and the
+       board does not move. Then the sentence is asserted to LEAVE when
+       the student goes back into the field, which is the other half of a
+       said line and the half that goes stale silently.
+
+       THE QUIET HALF IS UNCHANGED AND IS STILL HERE, because that is the
+       path this fix was measured against: blur already handled the
+       identical value gracefully, and Enter now takes the same path with
+       a sentence added. --- */
 nameType('\u{1F480}'.repeat(30));
 const cutLength = Array.from(pkName.value).length;
 let cutEncodes = false;
 try { encodeURIComponent(pkName.value); cutEncodes = true; } catch (e) { cutEncodes = false; }
+const pkSaidNode = dom.byId['tok-pick-said'];
 nameType('   ');
 nameKey('Enter');
 const loudPanel = errPanel.hidden === false && errMessage.textContent !== '';
+const loudSaid = pkSaidNode.hidden === false ? pkSaidNode.textContent : '';
+const loudDialogOpen = dlg.open;
 const loudReverted = pkName.value;
 clearPanel();
+/* The said line leaves when the student comes back to the field to try again.
+   The blur is not decoration and it is not a second case: focus() on the node
+   that ALREADY holds focus dispatches nothing, in this stub and in a browser
+   alike, and after a refused Enter the field is still focused — so leaving and
+   returning is the only way to make this the event a student actually
+   generates. */
+pkName.blur();
+nameFocus();
+const saidAfterReturn = pkSaidNode.hidden === true && pkSaidNode.textContent === '';
 nameType('   ');
 nameBlur();
 check(
   '38. a paste past the cap is cut by code point, and a name the op refuses is '
-    + 'loud on Enter and quiet on blur',
+    + 'READABLE on Enter and quiet on blur — THE DIALOG SURVIVES BOTH. Turned '
+    + 'under D-39 P1-1: this row used to require errPanel.hidden === false, '
+    + 'which is the artifact opening its global crash panel, printing a stack '
+    + 'trace and CLOSING this dialog because a student emptied a name field. '
+    + 'The word "loud" in [S07.2] means a readable refusal and this row read '
+    + 'it as a defect report for sixteen plans. Now: the guard\'s own sentence '
+    + 'is on #tok-pick-said, the panel stays shut, the dialog stays open, the '
+    + 'text goes back, the board does not move, and the sentence LEAVES when '
+    + 'the student returns to the field',
   cutLength === A.data.MAX_TOKEN_NAME && cutEncodes === true
-    && loudPanel === true && loudReverted === 'Health'
+    && loudPanel === false && loudSaid !== '' && loudDialogOpen === true
+    && loudReverted === 'Health' && saidAfterReturn === true
     && errPanel.hidden === true && pkName.value === 'Health'
     && A.state.get().build.tokens.hp.name === 'Health',
   'cut to ' + cutLength + ' code points (cap ' + A.data.MAX_TOKEN_NAME + ')'
     + ' encodes=' + cutEncodes + ' loud panel=' + loudPanel
+    + ' loud said=' + JSON.stringify(loudSaid)
+    + ' dialog open through it=' + loudDialogOpen
     + ' reverted to ' + JSON.stringify(loudReverted)
+    + ' said dropped on return=' + saidAfterReturn
     + ' quiet panel hidden=' + errPanel.hidden
     + ' field now ' + JSON.stringify(pkName.value)
 );
@@ -15070,15 +15129,46 @@ A.ops.setUnitMaxHp('cats', 'c1', 9);
 A.state.flush();
 const bdWriteObeys = A.state.get().build.cats.units[0].maxHp;
 
+/* ==================================================================
+   THE THREE REFUSAL CLAUSES BELOW ARE TURNED IN THE OPEN UNDER D-39
+   P1-1. Plan 05-D39b.
+   ==================================================================
+   WHAT THEY REQUIRED, verbatim: `errPanel.hidden === false` for each of
+   the three, and `errMessage.textContent` as the place the type's own
+   label had to appear. That is: a Least of 7 against a Most of 4, a
+   ceiling of 200, and the letters `abc` were each REQUIRED to open the
+   global crash panel — and the panel's own fail() closes every open
+   modal, so each of the three also closed the dialog the student was
+   authoring in. This row could not see that half at all, because the
+   stub <dialog> models .open and close() and models no close-request
+   behaviour; the audit found it in real Chrome.
+
+   WHAT THEY ASSERT NOW IS STRICTLY MORE, on every one of the three: the
+   sentence is RENDERED on #tok-pick-said, the panel stays SHUT, THE
+   DIALOG STAYS OPEN — a clause the old shape could not have held,
+   because the old behaviour closed it — and the field and the board are
+   unchanged, which is what they already asserted and keep asserting.
+
+   The three still come from two different places on purpose, and the
+   distinction survives the move: the first two are [S05]'s own
+   sentences, arriving through refuseLoudly, and the third is the PAGE's,
+   arriving through sayRefusal because nothing has reached an op yet. */
+const bdSaidNode = dom.byId['tok-pick-said'];
+function bdRefusal() {
+  return bdSaidNode.hidden === false ? String(bdSaidNode.textContent || '') : '';
+}
+
 // 3a. a least above its most — [S05]'s refusal, by name.
 pkMin.blur();
 A.state.flush();
 bdEnter(pkMin, '7');
 const bdUpsidePair = bdPair();
 const bdUpsideState = hpBounds().min;
-const bdUpsideSaid = String(errMessage.textContent || '');
+const bdUpsideSaid = bdRefusal();
 const bdUpsideNamed = bdUpsideSaid.indexOf(
   A.render.labelFor(A.state.get(), 'hp')) !== -1;
+const bdUpsideQuiet = errPanel.hidden === true;
+const bdUpsideOpen = dlg.open === true;
 clearPanel();
 
 // 3b. a ceiling past MAX_ALLOC — refused, never cut.
@@ -15087,7 +15177,9 @@ A.state.flush();
 bdEnter(pkMax, '200');
 const bdOverPair = bdPair();
 const bdOverState = hpBounds().max;
-const bdOverLoud = errPanel.hidden === false;
+const bdOverSaid = bdRefusal();
+const bdOverQuiet = errPanel.hidden === true;
+const bdOverOpen = dlg.open === true;
 clearPanel();
 
 // 3c. text that is not a number at all — the PAGE's own sentence, because
@@ -15097,7 +15189,14 @@ A.state.flush();
 bdEnter(pkMax, 'abc');
 const bdJunkPair = bdPair();
 const bdJunkState = hpBounds().max;
-const bdJunkLoud = errPanel.hidden === false;
+const bdJunkSaid = bdRefusal();
+const bdJunkQuiet = errPanel.hidden === true;
+const bdJunkOpen = dlg.open === true;
+// The three sentences are compared to EACH OTHER rather than each to a string
+// typed into this file — row 111's technique, and here it is what says the
+// page's own refusal did not quietly become one of the op's.
+const bdThreeDiffer = bdUpsideSaid !== bdOverSaid
+  && bdOverSaid !== bdJunkSaid && bdUpsideSaid !== bdJunkSaid;
 clearPanel();
 
 // 4. the quiet leave.
@@ -15128,7 +15227,15 @@ check(
     + 'of 200 is [S05]\'s too and is REFUSED RATHER THAN CUT TO 99, read as '
     + 'the board not moving because a clamp and a refusal leave the same field '
     + 'showing the same figure; and text that is not a number at all is the '
-    + 'PAGE\'s sentence, because nothing has reached an op yet. A QUIET LEAVE '
+    + 'PAGE\'s sentence, because nothing has reached an op yet. ALL THREE ARE '
+    + 'READ OFF #tok-pick-said WITH THE PANEL SHUT AND THE DIALOG STILL OPEN, '
+    + 'WHICH IS D-39 P1-1 AND IS A TURN: this row used to REQUIRE '
+    + 'errPanel.hidden === false on each of the three, so it asserted that a '
+    + 'typo in a range field opened the crash panel and — through fail()\'s '
+    + 'own closeModals — threw away the dialog a student was authoring in. '
+    + 'The three sentences are compared to each other rather than to strings '
+    + 'typed here, which is what says the page\'s refusal did not quietly '
+    + 'become one of the op\'s. A QUIET LEAVE '
     + 'IS NOT AN ERROR — the recorded figure comes back and no panel opens, '
     + 'which is the name field\'s shipped contract one field over. AND THE '
     + 'CLAMP IS AT WRITE TIME: a health written AFTER the ceiling dropped to '
@@ -15145,8 +15252,12 @@ check(
     && bdAfterQuiet === true
     && bdWriteObeys === 4
     && bdUpsidePair === '0/4' && bdUpsideState === 0 && bdUpsideNamed === true
-    && bdOverPair === '0/4' && bdOverState === 4 && bdOverLoud === true
-    && bdJunkPair === '0/4' && bdJunkState === 4 && bdJunkLoud === true
+    && bdUpsideSaid !== '' && bdUpsideQuiet === true && bdUpsideOpen === true
+    && bdOverPair === '0/4' && bdOverState === 4
+    && bdOverSaid !== '' && bdOverQuiet === true && bdOverOpen === true
+    && bdJunkPair === '0/4' && bdJunkState === 4
+    && bdJunkSaid !== '' && bdJunkQuiet === true && bdJunkOpen === true
+    && bdThreeDiffer === true
     && bdQuietPair === '0/4' && bdQuietState === 4 && bdQuietPanel === true
     && bdWords.length > 0 && bdVerdicts.length === 0,
   'shipped=' + bdShippedPair + ' said=' + JSON.stringify(bdShippedSaid)
@@ -15154,9 +15265,15 @@ check(
     + ' said=' + JSON.stringify(bdAfterSaid)
     + ' | a health written afterwards lands on ' + bdWriteObeys
     + ' | least 7: ' + bdUpsidePair + ' state=' + bdUpsideState
-    + ' named=' + bdUpsideNamed + ' panel says ' + JSON.stringify(bdUpsideSaid)
-    + ' | most 200: ' + bdOverPair + ' state=' + bdOverState + ' loud=' + bdOverLoud
-    + ' | not a number: ' + bdJunkPair + ' state=' + bdJunkState + ' loud=' + bdJunkLoud
+    + ' named=' + bdUpsideNamed + ' said ' + JSON.stringify(bdUpsideSaid)
+    + ' panel shut=' + bdUpsideQuiet + ' dialog open=' + bdUpsideOpen
+    + ' | most 200: ' + bdOverPair + ' state=' + bdOverState
+    + ' said ' + JSON.stringify(bdOverSaid)
+    + ' panel shut=' + bdOverQuiet + ' dialog open=' + bdOverOpen
+    + ' | not a number: ' + bdJunkPair + ' state=' + bdJunkState
+    + ' said ' + JSON.stringify(bdJunkSaid)
+    + ' panel shut=' + bdJunkQuiet + ' dialog open=' + bdJunkOpen
+    + ' | three sentences differ=' + bdThreeDiffer
     + ' | quiet leave: ' + bdQuietPair + ' state=' + bdQuietState
     + ' panel hidden=' + bdQuietPanel
     + ' | harvest=' + bdWords.length + ' strings, verdict words: '
@@ -15628,8 +15745,22 @@ const wtCeiling = A.ops.tokenBounds(A.state.get().build.tokens, wtTok).max;
 pkMin.blur();
 A.state.flush();
 bdEnter(pkMin, '9');
-const wtRefusedLoud = errPanel.hidden === false;
-const wtRefusedSaid = String(errMessage.textContent || '');
+/* TURNED IN THE OPEN UNDER D-39 P1-1, and it is the third row in this file
+   that used to require the crash panel for a typed value. What stood here:
+
+       const wtRefusedLoud = errPanel.hidden === false;
+       const wtRefusedSaid = String(errMessage.textContent || '');
+
+   — a floor of 9 above a ceiling of 3, typed into a real field by a student
+   who has just spent four presses authoring a type, was REQUIRED to open
+   "SOMETHING WENT WRONG" and, through fail()'s closeModals, to close the
+   dialog they authored it in. It is read off the surface now: the sentence
+   is on #tok-pick-said, the panel is SHUT, and this row gains the clause it
+   could never have carried before — the dialog is still open, so the four
+   presses are not lost. */
+const wtRefusedSaid = bdRefusal();
+const wtRefusedQuiet = errPanel.hidden === true;
+const wtRefusedOpen = dlg.open === true;
 const wtFloorHeld = A.ops.tokenBounds(A.state.get().build.tokens, wtTok).min;
 const wtFieldBack = pkMin.value;
 clearPanel();
@@ -15765,9 +15896,15 @@ check(
     + 'which is what App.ops.rulesNaming was exported for; the type is taken '
     + 'away, the rule is NOT rewritten, and the next Advance is refused BY '
     + 'NAME with the round exactly where it was — ACT-07\'s treatment one '
-    + 'scope up, and the consequence that line is about',
+    + 'scope up, and the consequence that line is about. THE FLOOR REFUSAL IS '
+    + 'READ OFF THE PICKER\'S OWN SAID LINE UNDER D-39 P1-1, WITH THE PANEL '
+    + 'SHUT AND THE DIALOG STILL OPEN — this row used to require '
+    + 'errPanel.hidden === false there, which is a student four presses into '
+    + 'authoring a type having the dialog closed under them for typing one '
+    + 'number the wrong way round',
   wtCeiling === 3
-    && wtRefusedLoud === true && wtFloorHeld === 0 && wtFieldBack === '0'
+    && wtRefusedQuiet === true && wtRefusedOpen === true
+    && wtFloorHeld === 0 && wtFieldBack === '0'
     && wtRefusedSaid.indexOf('Chill') !== -1
     && wtRule === JSON.stringify({ who: 'catsEach', tok: wtTok, d: -1 })
     && wtChill0 === 3 && wtChill1 === 2 && wtChill2 === 1
@@ -15781,9 +15918,10 @@ check(
     && wtRefusedAdvance.indexOf(wtTok) !== -1
     && wtRoundHeld === true
     && wtVerdicts.length === 0,
-  'ceiling=' + wtCeiling + ' | a floor of 9 above it: loud=' + wtRefusedLoud
+  'ceiling=' + wtCeiling + ' | a floor of 9 above it: panel shut='
+    + wtRefusedQuiet + ' dialog open=' + wtRefusedOpen
     + ' floor held at ' + wtFloorHeld + ', field back to ' + JSON.stringify(wtFieldBack)
-    + ', panel says ' + JSON.stringify(wtRefusedSaid)
+    + ', the surface says ' + JSON.stringify(wtRefusedSaid)
     + ' | rule=' + wtRule
     + ' | Chill on c1: ' + wtChill0 + ' -> ' + wtChill1 + ' -> ' + wtChill2
     + ' | pool: ' + wtPool0 + ' -> ' + wtPool1

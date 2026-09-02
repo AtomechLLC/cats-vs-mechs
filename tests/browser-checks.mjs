@@ -3187,19 +3187,67 @@ for (const ch of ['chrome', 'msedge']) {
     note(ch, size.name, 'D-35 range reading',
       bounds ? JSON.stringify(bounds.said).slice(0, 90) : 'no node');
 
-    // The refusal, last, for the reason the block comment gives.
-    await pg.fill('#tok-pick-min', '9');
-    await pg.press('#tok-pick-min', 'Enter'); await pg.waitForTimeout(300);
-    const boundRefusal = await pg.evaluate(() => ({
-      panel: document.querySelector('#err-panel').hidden === false,
-      says: document.querySelector('#err-message').textContent,
-      field: document.querySelector('#tok-pick-min').value,
-      floor: App.ops.tokenBounds(App.state.get().build.tokens,
-        document.querySelector('#tok-picker').dataset.tok).min
-    }));
-    note(ch, size.name, 'D-35 a refused bound — panel / field / floor',
-      `${boundRefusal.panel} / ${JSON.stringify(boundRefusal.field)} / ${boundRefusal.floor}`);
-    ok(`${tag}: 25. D-35's range pair sits on ONE line inside the token editor and, once the group is scrolled to, is cut by NO scrolling ancestor and sits wholly inside the viewport with its own sentence beside it — the first draft of this cell read the rectangle alone, passed at both sizes, and photographed two fields cut in half by the dialog's sticky foot, both fields carry a permanent visible word at the projector floor, and the sentence under them says what the pair IS — the shipped 0-to-99 reads as the range every board starts from, which two boxes of digits cannot say on their own. A ceiling typed into the real field lands on the type; a FLOOR ABOVE THAT CEILING is refused rather than cut, the panel carries the type's own name, the field goes back and the board does not move. Read as a REGIME and not a pixel — one line, both words shown, not a height budget that reddens on a font`,
+    /* The refusal, last, for the reason the block comment gives.
+       ==================================================================
+       TURNED IN THE OPEN UNDER D-39 P1-1, AND THIS IS THE PIXEL HALF OF
+       NODE ROWS 38, 115 AND 117. Plan 05-D39b.
+       ==================================================================
+       WHAT THIS CELL REQUIRED, verbatim from the clause that is gone:
+
+           boundRefusal.panel === true
+
+       — where `panel` is `#err-panel.hidden === false`. A floor typed
+       above a ceiling, in a real field, by a real keypress, in real
+       Chrome, was REQUIRED to open the global crash panel. It did, and
+       the four columns of this harness went green over it for four
+       plans, because the artifact's own word for the Enter path is
+       "loud" and nobody asked what channel loud came out on.
+
+       THE HALF NO NODE ROW COULD SEE IS THE ONE THIS CELL NOW CARRIES.
+       [S08]'s fail() calls closeModals(), so the panel took the DIALOG
+       with it — the stub models .open and close() and no close-request
+       behaviour at all, which is why every node row was blind to it and
+       why the drive below reads `dialogOpen` off a real browser.
+
+       Typed with real keystrokes rather than pg.fill, because fill sets
+       .value and dispatches input, and the property under test is what
+       ENTER does after a student has typed. */
+    await pg.click('#tok-pick-min');
+    await pg.keyboard.press('Control+A');
+    await pg.keyboard.type('9');
+    await pg.keyboard.press('Enter'); await pg.waitForTimeout(300);
+    const boundRefusal = await pg.evaluate(() => {
+      const said = document.querySelector('#tok-pick-said');
+      return {
+        panel: document.querySelector('#err-panel').hidden === false,
+        dialogOpen: document.querySelector('#tok-picker').open === true,
+        said: said.hidden === false ? said.textContent : '',
+        saidBox: (function () {
+          const r = said.getBoundingClientRect();
+          return { w: Math.round(r.width), h: Math.round(r.height), top: Math.round(r.top) };
+        })(),
+        saidOnScreen: (function () {
+          const r = said.getBoundingClientRect();
+          return r.width > 0 && r.height > 0 && r.top >= 0 && r.bottom <= innerHeight + 1;
+        })(),
+        field: document.querySelector('#tok-pick-min').value,
+        floor: App.ops.tokenBounds(App.state.get().build.tokens,
+          document.querySelector('#tok-picker').dataset.tok).min
+      };
+    });
+    // And it LEAVES when the student goes back into the field to try again,
+    // which is the half of a said line that goes stale in silence.
+    await pg.click('#tok-pick-max');
+    await pg.click('#tok-pick-min'); await pg.waitForTimeout(200);
+    const boundRefusalGone = await pg.evaluate(() => {
+      const said = document.querySelector('#tok-pick-said');
+      return said.hidden === true && said.textContent === '';
+    });
+    note(ch, size.name, 'D-39 a refused bound — panel / dialog / field / floor',
+      `${boundRefusal.panel} / open=${boundRefusal.dialogOpen} / ${JSON.stringify(boundRefusal.field)} / ${boundRefusal.floor}`);
+    note(ch, size.name, 'D-39 the refusal on the surface / dropped on return',
+      `${JSON.stringify(boundRefusal.said).slice(0, 80)} / ${boundRefusalGone}`);
+    ok(`${tag}: 25. D-35's range pair sits on ONE line inside the token editor and, once the group is scrolled to, is cut by NO scrolling ancestor and sits wholly inside the viewport with its own sentence beside it — the first draft of this cell read the rectangle alone, passed at both sizes, and photographed two fields cut in half by the dialog's sticky foot, both fields carry a permanent visible word at the projector floor, and the sentence under them says what the pair IS — the shipped 0-to-99 reads as the range every board starts from, which two boxes of digits cannot say on their own. A ceiling typed into the real field lands on the type; a FLOOR ABOVE THAT CEILING is refused rather than cut, the field goes back and the board does not move. TURNED UNDER D-39 P1-1: this cell used to REQUIRE #err-panel to be open on that refusal, so it asserted in four columns of real browser that a student who typed one number the wrong way round got "SOMETHING WENT WRONG", a stack trace, an accented "Reset to Workshop 16 defaults" — and, because fail() closes every open modal, LOST THIS DIALOG. That last half is the one no node row could ever have caught, because the stub models no close-request behaviour, and it is why dialogOpen is read here. Now the guard's own sentence naming the type is ON #tok-pick-said with a real box wholly on screen, the panel stays shut, the dialog stays open, and the sentence LEAVES when the student returns to the field. Read as a REGIME and not a pixel — one line, both words shown, not a height budget that reddens on a font`,
       bounds !== null && bounds.lines === 1 && bounds.inDialog === true
       && bounds.inView === true && bounds.clipped === false
       && bounds.saidWithPair === true
@@ -3207,17 +3255,244 @@ for (const ch of ['chrome', 'msedge']) {
       && bounds.wordPx >= 18 && bounds.wordShown === true
       && bounds.saidShown === true
       && bounds.said.indexOf('between 0 and 3') !== -1
-      && boundRefusal.panel === true
-      && boundRefusal.says.indexOf('Chill') !== -1
+      && boundRefusal.panel === false
+      && boundRefusal.dialogOpen === true
+      && boundRefusal.said.indexOf('Chill') !== -1
+      && boundRefusal.saidOnScreen === true
+      && boundRefusalGone === true
       && boundRefusal.field === '0' && boundRefusal.floor === 0,
-      { bounds, boundRefusal });
+      { bounds, boundRefusal, boundRefusalGone });
 
-    await pg.click('#err-dismiss'); await pg.waitForTimeout(200);
     await pg.evaluate(() => {
       const d = document.querySelector('#tok-picker');
       if (d && d.open === true) { d.close(); }
     });
     await pg.waitForTimeout(200);
+
+    /* -- 25d. D-39 P1-1 — ALL SIX TYPED-VALUE PATHS, ON ENTER AND ON BLUR,
+       AND ONE GENUINE DEFECT TO PROVE THE PANEL STILL WORKS. Plan 05-D39b.
+       ==================================================================
+       THE ASSERTION THIS AUDIT HAD TO DISCOVER BY HAND. D-33 never typed
+       into a field, so nothing in this repository knew that every
+       typed-value field in the artifact routed a typo into the global
+       crash panel on Enter — and, in the two authoring dialogs, closed the
+       dialog and threw the session away. Six commit paths carried it:
+
+         commitField        [S07.1]   the board's steppers
+         commitName         [S07.2]   #tok-pick-name
+         commitBound        [S07.2]   #tok-pick-min / #tok-pick-max
+         commitActionName   [S07.3]   #act-edit-name
+         commitAmount       [S07.3]   #act-edit-*-amt
+         commitRuleAmount   [S07.7]   .rr-amt
+
+       ALL SIX ARE DRIVEN HERE AND ALL SIX ARE DRIVEN TWICE — once on
+       ENTER, which is the path that was broken, and once on BLUR, which
+       is the path that already worked and is the measurement the fix was
+       written against. Both must now end in the same place: the field
+       back, the board unmoved, the panel shut, and the dialog (where
+       there is one) still open. Enter differs from blur in exactly one
+       way and it is the one [S07.2]'s own comment always promised: it
+       leaves a SENTENCE behind.
+
+       EVERY VALUE IS TYPED WITH REAL KEYSTROKES. pg.fill sets .value and
+       dispatches input; what is under test is what ENTER does to text a
+       student typed, so the sequence is click, select-all, type, press.
+       An emptied field is Delete rather than an empty type(), because
+       type('') types nothing at all and leaves the old text standing —
+       measured, and it is how a first draft of this cell read green over
+       a name field it had never actually emptied.
+
+       THE SEVENTH DRIVE IS THE LOAD-BEARING ONE. A blanket catch would
+       pass every clause above and would be strictly worse than the defect
+       it replaced: a swallowed TypeError is a board that quietly stops
+       agreeing with itself for the rest of a workshop. So a listener
+       registered through App.boot.wrap — the same boundary every listener
+       in this file goes through — throws a TypeError, and #err-panel MUST
+       open on it. [S07.1]'s isRefusal is what draws that line and this is
+       where the line is read. */
+    const d39Paths = [];
+    const d39TypeInto = async (sel, text, key) => {
+      await pg.click(sel);
+      await pg.keyboard.press('Control+A');
+      if (text === '') { await pg.keyboard.press('Delete'); }
+      else { await pg.keyboard.type(text); }
+      if (key) { await pg.keyboard.press(key); }
+      await pg.waitForTimeout(150);
+    };
+    const d39Snap = () => pg.evaluate(() => JSON.stringify(App.state.get().build));
+    const d39Read = (name, saidSel, dlgSel) => pg.evaluate(([nm, ss, ds]) => {
+      const said = ss.charAt(0) === '#'
+        ? document.querySelector(ss)
+        : document.querySelector(ss).closest('.brd-line').querySelector('.brd-said');
+      const box = said ? said.getBoundingClientRect() : null;
+      return {
+        name: nm,
+        panelShut: document.querySelector('#err-panel').hidden === true,
+        dialogOpen: ds === '' ? true : document.querySelector(ds).open === true,
+        said: (said && said.hidden === false) ? said.textContent : '',
+        onScreen: !!(box && box.width > 0 && box.height > 0),
+        build: JSON.stringify(App.state.get().build)
+      };
+    }, [name, saidSel, dlgSel]);
+
+    /* -- the picker's three fields. Opened through the SHIPPED control.
+       THE SETUP WRITES COME FIRST AND THE SNAPSHOT COMES AFTER THEM, and
+       that ordering was measured rather than chosen: a Most of 1 is only
+       a REFUSAL if the Least above it actually landed, and the first draft
+       of this cell drove min=9 (refused, so min stayed 0) and then max=1
+       — which 0 is happily below, so the op ACCEPTED it and the cell read
+       an empty said line as a defect. The board must be moved into the
+       state that makes each refusal a refusal, and only then frozen. */
+    await pg.click('[data-act="openTokenPicker"]'); await pg.waitForTimeout(300);
+    await d39TypeInto('#tok-pick-max', '4', 'Enter');
+    await d39TypeInto('#tok-pick-min', '2', 'Enter');
+    const d39BuildBefore = await d39Snap();
+    await d39TypeInto('#tok-pick-min', '9', 'Enter');
+    d39Paths.push(await d39Read('tok-pick-min/enter', '#tok-pick-said', '#tok-picker'));
+    await d39TypeInto('#tok-pick-max', '1', 'Enter');
+    d39Paths.push(await d39Read('tok-pick-max/enter', '#tok-pick-said', '#tok-picker'));
+    await d39TypeInto('#tok-pick-name', '', 'Enter');
+    d39Paths.push(await d39Read('tok-pick-name/enter', '#tok-pick-said', '#tok-picker'));
+    const d39PickerUnmoved = d39Paths.every((p) => p.build === d39BuildBefore);
+    // the blur half, on the same field with the same value
+    await d39TypeInto('#tok-pick-min', '9', null);
+    await pg.click('#tok-pick-name'); await pg.waitForTimeout(200);
+    const d39PickerBlur = await d39Read('tok-pick-min/blur', '#tok-pick-said', '#tok-picker');
+    await pg.evaluate(() => {
+      const d = document.querySelector('#tok-picker');
+      if (d && d.open === true) { d.close(); }
+    });
+    await pg.waitForTimeout(200);
+
+    // -- the editor's two field kinds. Opened through the SHIPPED control.
+    await pg.click('[data-act="openActionEditor"]'); await pg.waitForTimeout(300);
+    const d39EditorBefore = await d39Snap();
+    await d39TypeInto('#act-edit-cost-0-amt', 'abc', 'Enter');
+    d39Paths.push(await d39Read('act-edit-cost-0-amt/enter', '#act-edit-said', '#act-edit'));
+    await d39TypeInto('#act-edit-name', '', 'Enter');
+    d39Paths.push(await d39Read('act-edit-name/enter', '#act-edit-said', '#act-edit'));
+    const d39EditorUnmoved = d39Paths.slice(3, 5)
+      .every((p) => p.build === d39EditorBefore);
+    /* AND THE FIELD AND THE RECORD AGREE AFTERWARDS — P1-1's second
+       repair. 999 into a cost clamps the record to MAX_ALLOC and used to
+       leave 999 standing in the field until the next structural render,
+       because [S06.5]'s showAmount declines to write a FOCUSED field
+       (D-19) and after Enter the field is focused. */
+    await d39TypeInto('#act-edit-cost-0-amt', '999', 'Enter');
+    const d39Clamp = await pg.evaluate(() => ({
+      field: document.querySelector('#act-edit-cost-0-amt').value,
+      record: String(App.state.get().build.cats.actions[0].cost[0].n),
+      panelShut: document.querySelector('#err-panel').hidden === true,
+      dialogOpen: document.querySelector('#act-edit').open === true
+    }));
+    await d39TypeInto('#act-edit-cost-0-amt', 'abc', null);
+    await pg.click('#act-edit-name'); await pg.waitForTimeout(200);
+    const d39EditorBlur = await d39Read('act-edit-cost-0-amt/blur', '#act-edit-said', '#act-edit');
+    await pg.evaluate(() => {
+      const d = document.querySelector('#act-edit');
+      if (d && d.open === true) { d.close(); }
+    });
+    await pg.waitForTimeout(200);
+
+    /* -- the round rules and the board, both of which are in the page itself.
+       NOTHING IS LEFT BEHIND FOR 25b, and that is not tidiness: this cell
+       runs before it, 25b counts the rules in the list against the rules
+       in state, and a first run of this cell left the rule it added
+       standing and reddened 25b at four rows against three. So the rule
+       is added, driven and taken away again through the row's OWN Remove,
+       and the count is read back. */
+    const d39RulesBefore = await pg.evaluate(() => App.state.get().build.rules.length);
+    await pg.click('#rr-add'); await pg.waitForTimeout(250);
+    const d39RuleSlot = await pg.evaluate(() => App.state.get().build.rules.length - 1);
+    const d39BoardBefore = await d39Snap();
+    await d39TypeInto(`.rr-rule[data-rr-slot="${d39RuleSlot}"] .rr-amt`, 'abc', 'Enter');
+    d39Paths.push(await d39Read('rr-amt/enter', '#rr-refuse', ''));
+    await d39TypeInto('[data-k="cats/c1/maxHp"]', 'abc', 'Enter');
+    d39Paths.push(await d39Read('board-stepper/enter', '[data-k="cats/c1/maxHp"]', ''));
+    const d39PageUnmoved = d39Paths.slice(5, 7)
+      .every((p) => p.build === d39BoardBefore);
+    // the board's blur half, and then the sentence LEAVING on return
+    await d39TypeInto('[data-k="cats/c1/maxHp"]', 'abc', null);
+    await pg.click('[data-k="cats/c1/shield"]'); await pg.waitForTimeout(200);
+    const d39BoardBlur = await d39Read('board-stepper/blur', '[data-k="cats/c1/maxHp"]', '');
+    await pg.click('[data-k="cats/c1/maxHp"]'); await pg.waitForTimeout(200);
+    const d39BoardGone = await d39Read('board-stepper/return', '[data-k="cats/c1/maxHp"]', '');
+    await pg.click(`.rr-rule[data-rr-slot="${d39RuleSlot}"] .rr-rm`);
+    await pg.waitForTimeout(250);
+    const d39RulesAfter = await pg.evaluate(() => App.state.get().build.rules.length);
+
+    /* -- the genuine-defect probe. It is registered through App.boot.wrap,
+       which is the boundary EVERY listener in this file goes through, and
+       it throws a TypeError — the shape [S05] uses for a caller that
+       passed the wrong type, which is a bug in this file rather than
+       something a student typed. The panel must open. */
+    await pg.evaluate(() => {
+      const btn = document.createElement('button');
+      btn.id = 'd39-defect-probe';
+      btn.addEventListener('click', App.boot.wrap('d39 defect probe', function () {
+        throw new TypeError('a genuine defect, not a typed value');
+      }));
+      document.body.appendChild(btn);
+    });
+    await pg.click('#d39-defect-probe'); await pg.waitForTimeout(300);
+    const d39Defect = await pg.evaluate(() => ({
+      panelOpen: document.querySelector('#err-panel').hidden === false,
+      title: document.querySelector('#err-title').textContent,
+      says: document.querySelector('#err-message').textContent,
+      detail: document.querySelector('#err-detail').value.slice(0, 40),
+      // P1-1's third repair, read on the panel it is about: the accented
+      // control is the one that KEEPS the build, and the reset is demoted
+      // rather than reddened — .brd-btn--rm's treatment, one surface across.
+      dismissAccented: getComputedStyle(document.querySelector('#err-dismiss'))
+        .backgroundColor,
+      resetGround: getComputedStyle(document.querySelector('#err-reset'))
+        .backgroundColor,
+      dismissLabel: document.querySelector('#err-dismiss').textContent,
+      resetLabel: document.querySelector('#err-reset').textContent,
+      resetDisabled: document.querySelector('#err-reset').disabled
+    }));
+    await pg.click('#err-dismiss'); await pg.waitForTimeout(200);
+    await pg.evaluate(() => {
+      const n = document.querySelector('#d39-defect-probe');
+      if (n) { n.remove(); }
+    });
+    const d39EnterOk = d39Paths.every((p) => p.panelShut === true
+      && p.dialogOpen === true && p.said !== '' && p.onScreen === true);
+    const d39BlurOk = [d39PickerBlur, d39EditorBlur, d39BoardBlur]
+      .every((p) => p.panelShut === true && p.dialogOpen === true);
+    /* SIX COMMIT PATHS, SEVEN FIELDS — commitBound owns two ends and both
+       are driven, because a Least above its Most and a Most below its Least
+       are two different guards inside one op and only one of them was ever
+       photographed. Every name is distinct, so no channel is silently
+       answering for a surface that never ran. */
+    const d39Distinct = new Set(d39Paths.map((p) => p.name)).size === 7;
+    note(ch, size.name, 'D-39 P1-1 six Enter paths — panel shut / dialog open / said',
+      d39Paths.map((p) => `${p.name}:${p.panelShut ? 'shut' : 'PANEL'}/${p.dialogOpen ? 'open' : 'CLOSED'}/${p.said === '' ? 'SILENT' : 'said'}`).join(' '));
+    note(ch, size.name, 'D-39 P1-1 the clamp — field / record',
+      `${d39Clamp.field} / ${d39Clamp.record}`);
+    note(ch, size.name, 'D-39 P1-1 a genuine defect still reaches the panel',
+      `${d39Defect.panelOpen} "${d39Defect.title}"`);
+    ok(`${tag}: 25d. D-39 P1-1 — ALL SIX TYPED-VALUE COMMIT PATHS, ACROSS SEVEN FIELDS, TAKE THE REFUSAL PATH ON ENTER AND THE PANEL STAYS SHUT, THE TWO DIALOGS STAY OPEN, AND A GENUINE DEFECT STILL OPENS THE PANEL. Every field in this artifact routed a refusal-worthy typo into the global crash panel on Enter — measured, six commit paths, "SOMETHING WENT WRONG" with a raw stack trace, and in both authoring dialogs the dialog CLOSED and the session went with it. Each of the six is driven here with real keystrokes through the shipped openers: the guard's own sentence lands on that surface's own said line with a real box, the panel stays hidden, the dialog stays open, and the board is byte-identical to what it was before the first keystroke. The SAME value on the SAME field by BLUR is driven beside each, because that path already worked and is what the fix was written against — both must end in the same place, and Enter differs only by leaving a sentence. The field and the record agree after a clamped commit, which is P1-1's second repair. The panel's accented control is now the one that KEEPS the build and the reset is demoted rather than reddened, which is P1-1's third. AND THE SEVENTH DRIVE IS WHY THIS IS NOT A BLANKET CATCH: a listener registered through App.boot.wrap throws a TypeError and #err-panel MUST open, because a swallowed real defect is worse than an ugly panel`,
+      d39Paths.length === 7 && d39Distinct === true
+      && d39EnterOk === true && d39BlurOk === true
+      && d39BoardGone.said === ''
+      && d39Clamp.field === d39Clamp.record && d39Clamp.field === '99'
+      && d39Clamp.panelShut === true && d39Clamp.dialogOpen === true
+      && d39Defect.panelOpen === true
+      && d39Defect.says.indexOf('a genuine defect, not a typed value') !== -1
+      && d39Defect.detail.indexOf('TypeError') !== -1
+      && d39Defect.dismissAccented !== d39Defect.resetGround
+      && d39Defect.resetGround === 'rgba(0, 0, 0, 0)'
+      && d39Defect.dismissLabel === 'Dismiss and continue'
+      && d39Defect.resetLabel === 'Reset to Workshop 16 defaults'
+      && d39Defect.resetDisabled === false
+      && d39PickerUnmoved === true && d39EditorUnmoved === true
+      && d39PageUnmoved === true
+      && d39RulesAfter === d39RulesBefore,
+      { d39Paths, d39PickerBlur, d39EditorBlur, d39BoardBlur, d39BoardGone,
+        d39Clamp, d39Defect,
+        unmoved: { picker: d39PickerUnmoved, editor: d39EditorUnmoved,
+          page: d39PageUnmoved, rules: d39RulesBefore + '->' + d39RulesAfter } });
 
     /* -- 25b. THE ROUND-RULES BLOCK, AUTHORED FROM END TO END THROUGH THE
        CONTROLS D-35c GAVE IT, AND MEASURED FOR THE FIVE THINGS A PICTURE

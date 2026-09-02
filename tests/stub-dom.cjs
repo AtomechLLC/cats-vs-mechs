@@ -106,6 +106,19 @@ function makeStubDom() {
     // DIALOG_ROOTS still walks four roots.
     'tok-pick-bounds-label', 'tok-pick-min', 'tok-pick-max',
     'tok-pick-bounds-said',
+    // plan 05-D39b - D-39 P1-1's refusal line for this dialog, in the sticky
+    // footer. It is a THIRD reserved line on this surface and none of the
+    // three may be folded into another: #tok-pick-names and
+    // #tok-pick-bounds-said are written FROM STATE by [S06.2] on every
+    // repaint, and this one is written by [S07.2] on a refused Enter and by
+    // nothing else. One node, one owner, three times.
+    //
+    // It is here because without it the whole of P1-1 is unreachable from
+    // this page: [S07.2] finds the channel by id, a missing node makes
+    // sayRefusal a no-op, and every row driving a refused bound would pass
+    // over a dialog that still said nothing. Same three-part rule as every
+    // entry above, in BOTH directions.
+    'tok-pick-said',
     // plan 03-05 — the reference band, full width below both columns. The
     // node is built a dozen lines below in the same change: this list and the
     // stub page disagreeing in EITHER direction fails the run at section 5b.
@@ -162,6 +175,12 @@ function makeStubDom() {
     // gives the partition in full.
     'act-edit-cancel',
     'act-edit-done',
+    // plan 05-D39b - D-39 P1-1's refusal line for this dialog, in the sticky
+    // footer beside the three controls above. #tok-pick-said's twin, and it
+    // is here for the same reason: [S07.3] finds the channel by id, so a
+    // missing node makes every refusal row on this dialog pass over a surface
+    // that says nothing.
+    'act-edit-said',
     // plan 03.1-07 — the proposal pane, and the button on the authoring pane
     // that switches to it. Reserved empty by plan 03.1-05 and filled here.
     //
@@ -342,7 +361,14 @@ function makeStubDom() {
     // disables it says so in one lookup — which is the distinction the
     // paragraph above draws: eight of a kind are addressed by a data attribute,
     // one of a kind is addressed by its id.
-    'roundrules', 'rr-head', 'rr-list', 'rr-said', 'rr-add'
+    'roundrules', 'rr-head', 'rr-list', 'rr-said', 'rr-add',
+    // FIVE BECAME SIX UNDER D-39 P1-1, and the sixth is a SECOND said line
+    // rather than a second writer of #rr-said. That one carries the cap
+    // sentence and is written from state by [S06.13] on every repaint; this
+    // one is written by [S07.7] on a refused Enter. A node with two owners is
+    // the defect D-39 P2-5 measured on the fight tab and it is not introduced
+    // here to save an entry in this list.
+    'rr-refuse'
   ];
 
   const byId = Object.create(null);
@@ -1089,6 +1115,15 @@ function makeStubDom() {
     group.appendChild(idNode('tok-pick-' + kind));
   });
 
+  /* D-39 P1-1's refusal line, FIRST in the footer exactly as the shell has
+     it — the sentence is read before the buttons in both sequences, which is
+     checks 103e and 108's rule about never re-ordering a surface in CSS.
+     Empty and hidden here exactly as it ships. */
+  const pkSaid = idNode('tok-pick-said', 'p');
+  pkSaid.className = 'pk-said';
+  pkSaid.hidden = true;
+  picker.appendChild(pkSaid);
+
   const doneBtn = idNode('tok-pick-done', 'button');
   doneBtn.dataset.pk = 'done';
   picker.appendChild(doneBtn);
@@ -1202,6 +1237,14 @@ function makeStubDom() {
   rrSaid.className = 'rr-said';
   rrSaid.hidden = true;
   rrFoot.appendChild(rrSaid);
+
+  /* D-39 P1-1's refusal line, a SECOND node beside the cap sentence exactly
+     as the shell has it. [S07.7] writes this one and [S06.13] writes the one
+     above, and neither may ever write the other's. */
+  const rrRefuse = idNode('rr-refuse', 'p');
+  rrRefuse.className = 'rr-said rr-refuse';
+  rrRefuse.hidden = true;
+  rrFoot.appendChild(rrRefuse);
 
   /* ---- plan 05-D38's how-to tab. It lives INSIDE #app in the shell, after
      #roundrules, so it is built here in that order for the reason the round
@@ -1465,6 +1508,12 @@ function makeStubDom() {
 
   const aeActions = createElement('div');
   authorPane.appendChild(aeActions);
+  /* D-39 P1-1's refusal line, FIRST in the footer exactly as the shell has
+     it. #tok-pick-said's twin. */
+  const aeSaid = idNode('act-edit-said', 'p');
+  aeSaid.className = 'ae-said';
+  aeSaid.hidden = true;
+  aeActions.appendChild(aeSaid);
   // plan 03.1-07's pane switch. data-ap and NOT data-act: it is page work with
   // no op behind it, and the proposal pane's own delegated listener is what
   // reads it.
