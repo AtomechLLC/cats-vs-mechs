@@ -4065,7 +4065,39 @@
      is where the live board is: the battlefield, the two pools and the picker
      rows. FIGHT-15 asks for this reading beside the numbers it is about, and
      the numbers it is about moved with it. On the board tab nothing changed at
-     all, because the band does not paint there. */
+     all, because the band does not paint there.
+
+     ==================================================================
+     THE PARAGRAPH BELOW USED TO BE UNREACHABLE AND SO DID THE RULE
+     AFTER IT — D-39 P3-7. Plan 05-D39d.
+     ==================================================================
+     There was a comment CLOSE on the line above this one — the two
+     characters this paragraph cannot spell, because spelling them here
+     would do the very thing it is describing, which is how this defect
+     survived a review in the first place. It closed the comment early,
+     and everything from "LEGIBLE" down to the SECOND close then stood in
+     the stylesheet as CSS. A parser meeting that recovers the
+     way the spec tells it to: an invalid selector is skipped up to the
+     next `{` and the whole block after it is discarded — and the next
+     `{` in the file was .ld-now's. So the rule below shipped, and every
+     one of its declarations was thrown away by the parser, in silence,
+     with nothing on screen or in any gate to say so.
+
+     D-33 P1-5's second half is what was lost. That audit asked for the
+     newest round to be drawn as a card like the three past rounds beside
+     it; the rule was written, reviewed and committed, and D-39 P3-7
+     measured the result — `border-width: 0px`, `background-color:
+     rgba(0,0,0,0)`, beside three .ld-rows at 1px — and read it as a
+     half-landed fix. It was a fully landed fix behind a typo.
+
+     IT IS THE SECOND EXPIRED-OR-BROKEN COMMENT THIS PASS FOUND and the
+     two fail differently, which is worth the sentence: P2-5's paragraph
+     was true prose about code that had changed under it, and this one
+     was true prose that stopped being prose. Nothing in this repository
+     reads the stylesheet to check that every comment closes where it
+     opened. What caught it was
+     reading a computed style back off a real browser, which is the only
+     instrument that can see a rule the parser dropped.
 
      LEGIBLE BESIDE THE LIVE NUMBERS WITHOUT BECOMING LOUDER THAN THEM. It is
      given a tint so a reader can see where the past stops and the present

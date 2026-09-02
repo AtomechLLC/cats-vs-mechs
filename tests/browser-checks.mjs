@@ -2141,6 +2141,63 @@ for (const ch of ['chrome', 'msedge']) {
         && c.childOrder.indexOf('ld-board') === 2)
       && lane.perCard.every((c) => c.actLines > 0 && c.firstActInside === true),
       lane.perCard);
+
+    /* ── 17c. D-39 P3-7 — .ld-now IS DRAWN AS A CARD, AND THE REASON IT
+       WAS NOT IS A COMMENT THAT CLOSED IN THE MIDDLE OF ITSELF. Plan
+       05-D39d.
+       ==================================================================
+       The audit: ".ld-now is still not a card. Measured border-width:
+       0px, background-color: rgba(0,0,0,0), beside three .ld-rows at
+       border-width: 1px. D-33 P1-5's second half did not land."
+
+       ITS MEASUREMENT IS EXACT AND ITS CONCLUSION IS WRONG. The second
+       half DID land — the rule is in [C14.2], it has been since D-33c,
+       and it carries a border, a radius and an accent-derived fill. What
+       nobody could see is that the parser never got it: a comment CLOSE
+       sat in the middle of the paragraph above the rule, the prose after
+       it became CSS, and error recovery on an invalid selector skips to
+       the next brace and DISCARDS THE BLOCK. Six declarations, deleted in
+       silence, for three plans, with the source looking perfectly right
+       to every reader who opened it.
+
+       SO THE COMPARISON IS THE AUDIT'S OWN AND IT IS MADE HERE. The card
+       and the rows beside it are read for the same three properties at
+       the same instant, and the card is required to have a border and a
+       fill of its own rather than to match the rows' — it is deliberately
+       tinted from --accent where they are neutral, which is [C14.2]'s
+       own paragraph about where the past stops and the present starts.
+       Node row 125b holds the general claim about the source; this holds
+       the one about the pixels, because a rule can also be lost to a
+       specificity fight that no source scan would ever see. */
+    const ldNowCard = await pg.evaluate(() => {
+      const three = (n) => {
+        if (!n) { return null; }
+        const cs = getComputedStyle(n);
+        const r = n.getBoundingClientRect();
+        return {
+          bw: cs.borderTopWidth, bg: cs.backgroundColor, disp: cs.display,
+          radius: cs.borderTopLeftRadius,
+          w: Math.round(r.width), h: Math.round(r.height)
+        };
+      };
+      const rows = Array.from(document.querySelectorAll('.ld-row')).map(three);
+      return { now: three(document.querySelector('.ld-now')), rows };
+    });
+    const clear = (c) => c === 'rgba(0, 0, 0, 0)' || c === 'transparent';
+    note(ch, size.name, 'D-39 P3-7 .ld-now border / fill / display',
+      ldNowCard.now
+        ? `${ldNowCard.now.bw} ${ldNowCard.now.bg} ${ldNowCard.now.disp}`
+        : 'no .ld-now');
+    note(ch, size.name, 'D-39 P3-7 the .ld-row borders beside it',
+      ldNowCard.rows.map((r) => r.bw).join(' '));
+    ok(`${tag}: 17c. D-39 P3-7 — THE NEWEST ROUND IS DRAWN AS A CARD, LIKE THE THREE PAST ROUNDS BESIDE IT. The audit measured .ld-now at border-width 0px and background rgba(0,0,0,0) against three .ld-rows at 1px and concluded D-33 P1-5's second half "did not land". The measurement is exact and the conclusion is wrong, and the difference matters: the rule landed in D-33c and the PARSER threw it away. A comment close sat in the middle of the paragraph above it, the prose after that close stood in the stylesheet as CSS, and recovery from an invalid selector skips to the next brace and DISCARDS the block after it — which was this one. Six declarations deleted in silence, for three plans, with source that read correctly to everyone who opened it. This cell makes the audit's own comparison: the card and the rows are read for border, fill and display at the same instant. The card must have a border and a fill OF ITS OWN rather than the rows' — it is tinted from --accent where they are neutral, which is [C14.2]'s paragraph about where the past stops and the present starts. Node row 125b holds the claim about the source; this one holds the claim about the pixels, because a rule can also be lost to a specificity fight no source scan would see`,
+      ldNowCard.now !== null && ldNowCard.rows.length === 3
+      && ldNowCard.now.bw === '1px' && clear(ldNowCard.now.bg) === false
+      && ldNowCard.now.disp === 'flex' && ldNowCard.now.radius !== '0px'
+      && ldNowCard.now.w > 0 && ldNowCard.now.h > 0
+      && ldNowCard.rows.every((r) => r.bw === '1px')
+      && ldNowCard.rows.every((r) => r.bg !== ldNowCard.now.bg),
+      ldNowCard);
     /* THE NEWEST CARD IS THE RIGHTMOST AND IT IS WHOLE INSIDE THE LANE WITHOUT
        ANYBODY SCROLLING. [S06.8] scrolls the lane to its end on append and the
        measurement is what says the assignment reached the right axis — the line it

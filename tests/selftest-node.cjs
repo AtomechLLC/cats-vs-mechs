@@ -11321,6 +11321,100 @@ check(
     + ' | routing attributes inside=' + htControls + ' buttons=' + htButtons
 );
 
+/* 125b. EVERY COMMENT IN THE STYLESHEET CLOSES WHERE IT OPENED, AND THE RULE
+   AFTER IT SURVIVES THE PARSER.
+
+   ==================================================================
+   THE DEFECT THAT MADE THIS ROW — D-39 P3-7. Plan 05-D39d.
+   ==================================================================
+   [C14.2] carried a comment CLOSE in the middle of a paragraph. Everything
+   after it stood in the stylesheet as CSS, and a parser meeting an invalid
+   selector recovers by skipping to the next `{` and discarding the block
+   after it. The next block was .ld-now's. So six declarations — the card
+   treatment D-33 P1-5 asked for and this repository reviewed, committed and
+   believed it had shipped — were thrown away by the parser in silence, for
+   three plans, and D-39 P3-7 measured the result and read it as a fix that
+   had never landed.
+
+   NOTHING IN THIS REPOSITORY COULD SEE IT. The node gate has no CSS parser,
+   the stub DOM has no stylesheet, and the browser gate reads computed styles
+   for the specific properties its cells name — none of which was one of the
+   six. What found it was reading a computed style back off a real browser
+   for a finding about something else entirely. That is luck, and a gate
+   should not need it.
+
+   SO THE CLAIM IS ABOUT THE SOURCE AND NOT ABOUT ANY ONE RULE, which is what
+   makes it hold for rules that do not exist yet. The scan walks the style
+   block as a state machine — the same walk a parser does — and reports every
+   place a close appears outside a comment and every open that never closes.
+   A row naming .ld-now would have caught this one defect and nothing else;
+   this catches the whole class, including the two-line version of it that a
+   later pass writes into a block nobody is reading today.
+
+   AND IT IS FLOORED ON THE SCAN HAVING SOMETHING TO SCAN. A walk over an
+   empty string finds no strays and passes spotlessly, which is the failure
+   mode half the rows in this file carry a floor against. The style block is
+   required to be found and to be substantial before its cleanliness means
+   anything, and the comment COUNT is printed so a block that quietly lost
+   its documentation shows up as a number moving. */
+const cssOpen = html.indexOf('>', html.indexOf('<style')) + 1;
+const cssShut = html.indexOf('</style>');
+const cssSrc = (cssOpen > 0 && cssShut > cssOpen) ? html.slice(cssOpen, cssShut) : '';
+const cssStrays = [];
+let cssComments = 0;
+{
+  let at = 0;
+  let inside = false;
+  let opened = 0;
+  while (at < cssSrc.length) {
+    if (!inside) {
+      const open = cssSrc.indexOf('/*', at);
+      const shut = cssSrc.indexOf('*/', at);
+      if (shut !== -1 && (open === -1 || shut < open)) {
+        cssStrays.push('close outside a comment at css offset ' + shut);
+        at = shut + 2;
+        continue;
+      }
+      if (open === -1) { break; }
+      inside = true; opened = open; at = open + 2;
+    } else {
+      const shut = cssSrc.indexOf('*/', at);
+      if (shut === -1) {
+        cssStrays.push('open never closed at css offset ' + opened);
+        break;
+      }
+      inside = false; cssComments += 1; at = shut + 2;
+    }
+  }
+}
+const CSS_COMMENT_FLOOR = 300;
+check(
+  '125b. EVERY COMMENT IN THE STYLESHEET CLOSES WHERE IT OPENED — and this row '
+    + 'exists because one did not, for three plans, with nothing anywhere able '
+    + 'to say so. [C14.2] carried a comment close in the middle of a paragraph; '
+    + 'the prose after it became CSS, and a parser recovering from an invalid '
+    + 'selector skips to the next brace and DISCARDS THE BLOCK AFTER IT. The '
+    + 'block after it was the one .ld-now owns, so the card treatment D-33 P1-5 '
+    + 'asked for '
+    + 'and this repository reviewed and committed was deleted by the parser and '
+    + 'shipped as six dead declarations. D-39 P3-7 measured border-width 0px '
+    + 'beside three .ld-rows at 1px and read it as a fix that had never landed. '
+    + 'THE SCAN IS THE WALK A PARSER ITSELF DOES rather than a count of the two '
+    + 'sequences, because either sequence is legal INSIDE a comment and a count '
+    + 'is green over one stray close paired with one stray open. It reports '
+    + 'closes that appear outside a comment and opens that never close. AND IT '
+    + 'IS ABOUT THE SOURCE RATHER THAN ABOUT ANY NAMED RULE, so it holds for '
+    + 'every block written after it — a row naming .ld-now would have caught '
+    + 'this defect once and never caught the next one. Floored on the style '
+    + 'block being found and on it still carrying its documentation, because a '
+    + 'walk over an empty string finds no strays and passes spotlessly',
+  cssSrc.length > 20000 && cssStrays.length === 0
+    && cssComments > CSS_COMMENT_FLOOR,
+  'style block=' + cssSrc.length + ' chars | comments closed properly='
+    + cssComments + ' (floor ' + CSS_COMMENT_FLOOR + ') | strays: '
+    + (cssStrays.join(' , ') || 'none')
+);
+
 /* 103b. PROJ-05 AND REF-03, READ OFF THE DOM AND OFF THE MARKUP RATHER THAN OFF
    A COMMENT.
 
