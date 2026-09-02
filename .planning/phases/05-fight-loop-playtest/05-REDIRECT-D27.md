@@ -459,3 +459,30 @@ board and The fight.
   chooser pills render EMPTY (no Cats/Mechs words), and a second panel ("Emoji" + "Done" — the
   token appearance editor's foot) is visible beneath the Actions dialog. Neither is clutter; both
   look wrong. Reproduce this exact state first.
+
+---
+
+## D-40 — 2026-09-02: preview the pool while setting up an action
+
+Verbatim:
+
+> Make it so you can preview the depletion of action points while setting up actions
+
+### Reading taken (recorded, overridable)
+
+The fight tab already depletes resources live while DECLARING (D-27's own spec, shipped). "While
+setting up actions" is read as the AUTHORING surface: while a student configures an action's cost
+in the action editor, the editor shows what that cost does to the side's pool — live, as the cost
+terms change.
+
+### What this settles
+
+- The editor's Cost region gains a live reading per pool the cost names: the side's current pool,
+  the cost taken from it (D-30's red mark on the taken symbols), and what remains — in the D-29
+  symbol language with the scanned-tooltip prose. Action points first; any side-scope tally a
+  multi-term cost names (D-32/D-24) reads the same way.
+- It is a READING, not a control — never disables anything (the never-disable rule is fully in
+  force on authoring surfaces), and states plainly when a cost exceeds the pool (the same words
+  the affordability machinery already owns).
+- It updates live as cost terms are added, edited, removed, or cancelled (D-34's restore included),
+  and follows the selected side.
