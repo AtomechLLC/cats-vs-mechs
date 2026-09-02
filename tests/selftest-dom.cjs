@@ -89,15 +89,28 @@ function Event(type, init) { return dom.event(type, init || {}); }
 // Nearly the shape selftest-node.cjs's section 5 uses, with ONE deliberate
 // difference: there is no `location` and no `history` here.
 //
-// That is not an omission, it is the division of labour, and [S09.11] states
-// it in its own words — "this suite runs in a sandbox with no location and no
-// history at all" — then asserts it: two of its rows require that scheduling a
-// mirror write does nothing, that flushing reports nothing to flush, and that
-// codeInHash() hands back null. Supply a location here and those two rows go
-// red, in a runner whose subject is the DOM and not the URL. What the mirror
-// actually WRITES is driven and read back where it belongs: selftest-node.cjs's
-// interaction gate, which does supply both and boots a second stub page from a
-// prepared hash. Adding a hash here would duplicate that and cost two rows.
+// That is not an omission, it is the division of labour. Two rows in [S09.11]
+// read the hash mirror, and with neither global present they take its INERT
+// branch: scheduling a mirror write does nothing, flushing reports there was
+// nothing to flush, and codeInHash() hands back null. That is a real property
+// of [S04.4] — its first line in each of three functions is an environment
+// guard — and this runner is where it is checked.
+//
+// D-39a CHANGED WHAT HAPPENS IF YOU SUPPLY ONE, AND THE OLD SENTENCE HERE IS
+// WORTH KEEPING AS A TOMBSTONE. It used to read "Supply a location here and
+// those two rows go red." That was true and it was the defect: the same two
+// rows ran red in a REAL BROWSER too, where #selftest in the hash gives them a
+// live location and the mirror correctly writes. Opening the shipped artifact
+// and pressing nothing read 1458 passed, 2 failed. The rows now branch on the
+// environment and assert the mirror's correctness in whichever one they are
+// in — inert here, and actually WRITING where there is an address bar — so
+// supplying a location here would no longer redden anything. It is still not
+// supplied, for the reason below and because the division of labour is good.
+//
+// What the mirror WRITES is driven and read back where it belongs:
+// selftest-node.cjs's interaction gate, which does supply both and boots a
+// second stub page from a prepared hash. Adding a hash here would duplicate
+// that.
 //
 // The practical consequence: [S00]'s hasFlag takes its undefined-location path,
 // so no flag is ever set and the artifact never paints its own report panel

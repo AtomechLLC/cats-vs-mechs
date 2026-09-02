@@ -38161,11 +38161,45 @@ App.selftest = (function () {
     t.eq('the run-length writer is exported', typeof App.serialize.runs, 'function');
     t.eq('the run-length reader is exported', typeof App.serialize.unruns, 'function');
     t.eq('the checksum is exported', typeof App.serialize.checksum, 'function');
-    // [S04.4]'s four exports. THE BEHAVIOUR OF THE MIRROR IS NOT ASSERTED
-    // HERE and cannot be: this suite runs in a sandbox with no location and no
-    // history at all, which is the same reason the rows below never touch the
-    // page. What the mirror actually writes is driven and read back in the
-    // interaction gate, where there is a hash to write into.
+    // [S04.4]'s four exports.
+    //
+    // THE TWO ROWS BELOW ASK THE MIRROR A DIFFERENT QUESTION IN EACH OF THE
+    // TWO PLACES THIS SUITE RUNS, AND THAT IS D-39a's FIX RATHER THAN THIS
+    // SUITE'S ORIGINAL SHAPE. What stood here asserted, unconditionally, that
+    // scheduling a mirror write does nothing, that flushing reports there was
+    // nothing to flush, and that codeInHash() hands back null — and it
+    // explained itself with "this suite runs in a sandbox with no location and
+    // no history at all".
+    //
+    // THAT SENTENCE IS TRUE OF TWO OF THE THREE PLACES THIS FILE RUNS AND
+    // FALSE OF THE ONE A STUDENT USES. tests/selftest-node.cjs section 3 and
+    // tests/selftest-dom.cjs both build a sandbox with neither global, on
+    // purpose. But #selftest in the hash of a REAL BROWSER runs these same
+    // rows with a live location — and there the mirror correctly DOES
+    // schedule, DOES flush, and DOES leave a code in the hash for the reader
+    // to find. Measured before this change: opening the artifact with
+    // #selftest in Chrome read 1458 passed, 2 FAILED, and the two failures
+    // were these rows reporting the environment rather than the mirror.
+    //
+    // A GREEN SUITE THAT GOES RED WHEN YOU OPEN IT IS WORSE THAN NO SUITE.
+    // The in-file harness ships with the artifact — that is its whole reason
+    // for existing over Jest — so the report a student or an instructor sees
+    // by double-clicking IS the deliverable, and two red rows in it say the
+    // tool is broken when the tool is fine.
+    //
+    // SO THE SUBJECT OF EACH ROW IS THE MIRROR'S CORRECTNESS IN ITS OWN
+    // ENVIRONMENT, WHICH IS WHAT IT WAS ALWAYS MEANT TO BE. Where there is no
+    // location the mirror must be INERT — that is a real property and it is
+    // still asserted. Where there IS one it must actually WRITE, and that is
+    // the stronger claim, because it round-trips the code through the real
+    // address bar and back out through the real reader. Neither branch is
+    // weaker than what stood here; the no-location branch is the same
+    // assertion, and the live branch is a harder one.
+    //
+    // THE ROW COUNT DOES NOT MOVE. Two t.eq calls before, two after, so the
+    // node runner's 1336 and the DOM runner's 1460 are unchanged and any
+    // drift in those figures is somebody else's change and not this one.
+    var mirrorIsLive = (typeof location !== 'undefined' && typeof history !== 'undefined');
     t.eq('the hash mirror is exported', typeof App.serialize.scheduleUrlSync, 'function');
     t.eq('the hash reader [S08] calls at boot is exported',
       typeof App.serialize.codeInHash, 'function');
@@ -38174,14 +38208,46 @@ App.selftest = (function () {
     t.eq('the swallowed-failure tally is exported, which is what makes a mirror that '
       + 'fails QUIETLY different from one that fails INVISIBLY',
       typeof App.serialize.syncFailures, 'function');
-    t.eq('and with no location anywhere in this sandbox the mirror is inert rather than '
-      + 'broken: scheduling one writes nothing, flushing reports that there was nothing '
-      + 'to flush, and nothing has been swallowed',
+    // Driven in BOTH branches: schedule, then flush by hand, then read the
+    // swallowed-failure tally. scheduleUrlSync() returns undefined either way
+    // — it is a debounce and has nothing to report — so the reading that
+    // separates the two environments is what FLUSH says. Inert: there was
+    // nothing due, so false. Live: a write was armed and has just run, so
+    // true. syncFailures() is 0 in both, and that is the row's sharpest
+    // clause in the live branch: a mirror that threw and swallowed would
+    // report true here too, and only the tally tells those two apart.
+    t.eq(mirrorIsLive
+      ? 'and with a live location the mirror WRITES rather than merely existing: '
+        + 'scheduling one arms it, flushing runs it and reports that there was one to '
+        + 'run, and nothing was swallowed on the way'
+      : 'and with no location anywhere in this sandbox the mirror is inert rather than '
+        + 'broken: scheduling one writes nothing, flushing reports that there was nothing '
+        + 'to flush, and nothing has been swallowed',
       [App.serialize.scheduleUrlSync(), App.serialize.flushUrlSync(), App.serialize.syncFailures()],
-      [undefined, false, 0]);
-    t.eq('and the reader hands back null rather than throwing when there is no hash to '
-      + 'read at all — [S08] branches on that null and a throw would reach the boundary '
-      + 'as a defect', App.serialize.codeInHash(), null);
+      [undefined, mirrorIsLive, 0]);
+    // The reader, against whatever the writer above just did.
+    //
+    // IN THE LIVE BRANCH THIS IS A ROUND TRIP THROUGH THE REAL ADDRESS BAR
+    // and not a re-reading of a variable: the flush above encoded the build
+    // and put it in location.hash through history.replaceState, and this asks
+    // the shipped reader to find it again among whatever other tokens are
+    // there — #selftest itself is one of them, which is [S04.4] decision 1
+    // being exercised rather than described. It is compared against a FRESH
+    // encode of the same build, so a writer that truncated or a reader that
+    // sliced at the wrong offset both redden it.
+    //
+    // The no-location branch is the original assertion, unchanged: null, not
+    // a throw. [S08] branches on that null at boot and a throw would reach
+    // the boundary as a defect.
+    t.eq(mirrorIsLive
+      ? 'and the reader finds that code again in the real hash, beside every other '
+        + 'token in it — the writer and the reader agreeing through the address bar '
+        + 'itself rather than through a variable'
+      : 'and the reader hands back null rather than throwing when there is no hash to '
+        + 'read at all — [S08] branches on that null and a throw would reach the boundary '
+        + 'as a defect',
+      App.serialize.codeInHash(),
+      mirrorIsLive ? App.serialize.encode(App.state.get().build) : null);
     t.ok('[S04] is frozen, so no caller can add a primitive to it after the fact',
       Object.isFrozen(App.serialize));
     t.ok('the prototype is intact after reading the export list', protoIntact());
