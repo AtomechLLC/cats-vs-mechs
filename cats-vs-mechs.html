@@ -9716,6 +9716,51 @@ App.data = (function () {
   // moved to.
   var MAX_ROUND_RULES = 8;
 
+  /* --- D-41: THE RESERVE, AND THE ONE NUMBER IT IS HELD TO --------------------
+     The developer's amendment: "allow any unit to any other unit, with a pool
+     at the top of each side for unit to side drags", and asked what the pool
+     holds, A REAL RESERVE. So each side carries `reserve`, a count per token
+     type of the unit-scope tokens a student has dragged OFF a unit and not yet
+     onto another. It lives on the side record beside `tally`, under tally's own
+     two sparse-storage rules (a count of zero deletes its key, a bag with no
+     keys deletes itself), which is why the shipped board carries no such key
+     and why its build code does not move by a character. A side-scope type
+     needs no reserve: its number already lives on the side, as `ap` or as the
+     side's own tally, and that number IS the pool's other half.
+
+     NOTHING IN A DRAG CREATES OR DESTROYS A TOKEN. Tokens enter the board by
+     the steppers, as they always have; a move takes one from somewhere and puts
+     it somewhere else. That is the invariant [S05]'s moveToken is built around
+     and [S09.13] asserts it as an equality over the whole build.
+
+     THE RESERVE IS NOT HELD TO THE TYPE'S AUTHORED BOUNDS, AND THAT WAS DECIDED
+     BY MEASUREMENT, as the amendment asked. D-35's min and max are properties
+     of the TYPE applied to whatever HOLDS one of it, and a holder in D-35's
+     sense is one unit or one side. The reserve is neither: it is where a whole
+     side's worth of tokens can be set down. Measured on the shipped board with
+     Health given an authored ceiling of 3 — the natural "no cat holds more than
+     three" rule — a reserve held to the type's pair refuses the FOURTH cat's
+     health dragged into it, on a side holding twenty-seven. That is exactly the
+     drag the amendment said a student reasonably expects to work, so the type's
+     pair binds UNITS and SIDES and not the reserve. [S09.13] drives that board.
+
+     BUT IT IS NOT UNBOUNDED EITHER, AND THE REASON IS CONSERVATION ITSELF. A
+     move conserves; a STEPPER does not. Step a unit up, drag the token into the
+     reserve, step the unit up again — the loop grows a reserve without limit,
+     and a count with no ceiling is a build code with no length ceiling and a
+     number no decoder can refuse. So the reserve takes the ceiling every other
+     allocated quantity in this file already has: MAX_ALLOC, named separately so
+     a later plan can move one without the other and so [S04] and [S05] both
+     read THIS name rather than two copies of it. What it costs, measured: the
+     reserve starts empty and a move adds exactly one, so the ceiling is met on
+     the ninety-ninth drag of one type into one side's reserve with none taken
+     back out — and the shipped board's largest one-type total on one side is
+     twenty-seven. It lives HERE, above both of its readers, for MAX_ROUND_RULES'
+     reason: [S04] may read [S01] directly and never [S05], so a cap placed here
+     needs no re-typed copy in WIRE_BOUNDS and has nothing to drift from.
+     ------------------------------------------------------------------------ */
+  var MAX_RESERVE = MAX_ALLOC;
+
   /* --- THE WIRE. Seven named constants that decide the SHAPE of a build code.
          Each carries the arithmetic or the source that chose it, in the
          MAX_CUSTOM_TYPES idiom above, because every one of them is a thing a
@@ -10074,6 +10119,10 @@ App.data = (function () {
     ROUND_WHO: ROUND_WHO,
     ROUND_WHO_IDS: ROUND_WHO_IDS,
     MAX_ROUND_RULES: MAX_ROUND_RULES,
+    // D-41's reserve ceiling, exported for the reason every cap above is: [S04]
+    // re-runs it on a pasted code, [S05]'s moveToken refuses at it, and [S09]
+    // asserts against this name rather than against a re-typed 99.
+    MAX_RESERVE: MAX_RESERVE,
     // The wire. [S04] reads every one of these at its call sites and [S09.11]
     // asserts against these names, never against a re-typed copy of the value.
     CODE_VERSION: CODE_VERSION,
@@ -12101,6 +12150,52 @@ App.serialize = (function () {
       return sideCode(WIRE_SIDE_MARKS[i], build[id], App.data.DEFAULTS[id],
         WIRE_UNIT_PREFIX[id], WIRE_UNIT_LABEL[id]);
     });
+
+    /* D-41's RESERVE, AND ONLY WHEN SOMETHING IS IN IT. Rule 1 of the three
+       that decide the size, applied to the newest section: an empty reserve on
+       both sides writes NO SECTION AT ALL, so the untouched board is still the
+       same 45 characters and a code from before this change is exactly what
+       this file now writes for the same board.
+
+       UNLIKE THE RULES, EMPTY AND ABSENT MEAN THE SAME THING HERE, and that is
+       what makes "absent" the only spelling of it. The rules section needed
+       both because the rules have a SEED a student can delete down from; the
+       reserve's seed is empty, so "nothing in either reserve" has exactly one
+       meaning and gets exactly one spelling — the missing section. A written
+       section that holds nothing is therefore a spelling this file never
+       produces, and [S04.3] refuses it rather than admitting a second code for
+       one board.
+
+       ONE SECTION FOR BOTH SIDES, A SIDE'S BAG PER RECORD, cats first — WIRE_
+       SIDES' order. A bag is the tally bag's own grammar, ordinal and count
+       joined by the term character and items by the field character, so it
+       needs no separator this file does not already reserve for that level. It
+       is written in ordinal order so the same reserve always spells the same
+       way. The count is held to MAX_RESERVE here, not to a unit's bound, and
+       only a type kept on each unit may be in it — the two things [S04.3]
+       re-runs on the way back. */
+    var reserveSection = null;
+    var reserveBags = WIRE_SIDES.map(function (id) {
+      var side = build[id];
+      var bag = (side && typeof side === 'object'
+        && Object.prototype.hasOwnProperty.call(side, 'reserve')) ? side.reserve : null;
+      if (bag === null) { return ''; }
+      if (!bag || typeof bag !== 'object' || Array.isArray(bag)) { return refuse(); }
+      var keys = Object.keys(bag);
+      keys.sort(function (x, y) { return ordinalOf[x] - ordinalOf[y]; });
+      return keys.map(function (tok) {
+        var n = bag[tok];
+        if (!Number.isInteger(n) || n < 1 || n > App.data.MAX_RESERVE) { return refuse(); }
+        var rec = build.tokens[tok];
+        var kept = (tok === 'hp' || tok === 'shield')
+          || (App.data.TOKEN_IDS.indexOf(tok) === -1 && !!rec && rec.scope === 'unit');
+        if (!kept) { return refuse(); }
+        return ordinal(tok) + SEP.term + n36(n);
+      }).join(SEP.field);
+    });
+    if (reserveBags.some(function (bag) { return bag !== ''; })) {
+      reserveSection = 'P' + reserveBags.join(SEP.record);
+    }
     if (refused) { return null; }
 
     // The name table is complete only once both sides have been written, which
@@ -12108,6 +12203,7 @@ App.serialize = (function () {
     var sections = ['N' + names.join(SEP.field), 'V' + vocabRecords.join(SEP.record)]
       .concat(sideCodes);
     if (ruleSection !== null) { sections.push(ruleSection); }
+    if (reserveSection !== null) { sections.push(reserveSection); }
     var body = sections.join(SEP.section);
     var digest = checksum(body);
     if (digest === null) { return null; }
@@ -12242,15 +12338,31 @@ App.serialize = (function () {
        backwards-decodable: the older shape means "the shipped rules", which is
        exactly what a board written before this change had. Anything else is
        still refused as a SHAPE, before a single value is read out of it. */
+    /* D-41 ADDED A SECOND OPTIONAL SECTION ON THE END, SO THE TAIL IS NOW READ
+       BY ITS LETTERS RATHER THAN BY ITS LENGTH. Sixteen sections is still a
+       code with neither; after them may come the rules (`R`), the reserve
+       (`P`), or both — IN THAT ORDER AND EACH AT MOST ONCE, which is the only
+       order [S04.2] writes. So every code this file wrote before D-41 is still
+       one of the admitted shapes, and the wire stays v1. A tail section with
+       any other letter, a repeated one, or the two the wrong way round is
+       refused as a SHAPE before a single value is read, exactly as a wrong
+       count always was: there is one spelling of each board. */
     var parts = body.split(SEP.section);
     var WIRE_BASE = 2 + WIRE_SIDES.length * WIRE_SIDE_FIELDS;
-    if (parts.length !== WIRE_BASE && parts.length !== WIRE_BASE + 1) {
+    var WIRE_TAIL = ['R', 'P'];
+    if (parts.length < WIRE_BASE || parts.length > WIRE_BASE + WIRE_TAIL.length) {
       return { ok: false, why: 'shape' };
     }
     if (parts[0].charAt(0) !== 'N') { return { ok: false, why: 'shape' }; }
     if (parts[1].charAt(0) !== 'V') { return { ok: false, why: 'shape' }; }
-    if (parts.length === WIRE_BASE + 1 && parts[WIRE_BASE].charAt(0) !== 'R') {
-      return { ok: false, why: 'shape' };
+    var ruleAt = -1;
+    var reserveAt = -1;
+    var tailFrom = 0;
+    for (var ti = WIRE_BASE; ti < parts.length; ti++) {
+      var tailSlot = WIRE_TAIL.indexOf(parts[ti].charAt(0), tailFrom);
+      if (tailSlot === -1) { return { ok: false, why: 'shape' }; }
+      if (tailSlot === 0) { ruleAt = ti; } else { reserveAt = ti; }
+      tailFrom = tailSlot + 1;
     }
 
     /* CONTENT — is what it says admissible? Every guard below sits BEHIND the
@@ -12669,8 +12781,8 @@ App.serialize = (function () {
        by its own reading rather than by a dereference of undefined — the
        lesson unbag's own paragraph records from probe J. */
     var rules = [];
-    if (parts.length === WIRE_BASE + 1) {
-      var ruleField = parts[WIRE_BASE].slice(1);
+    if (ruleAt !== -1) {
+      var ruleField = parts[ruleAt].slice(1);
       if (ruleField !== '') {
         var ruleRecords = ruleField.split(SEP.record);
         if (ruleRecords.length > App.data.MAX_ROUND_RULES) {
@@ -12699,6 +12811,68 @@ App.serialize = (function () {
       });
     }
     out.rules = rules;
+
+    /* D-41's RESERVE. Absent means empty — the backwards-decodable arm, and
+       the reason a code from before this change loads with an empty reserve on
+       both sides, which is what a board written then had. Present, it is one
+       bag per side, and it is placed on each side record AFTER that side's
+       tally, which is where the op's own sparse write puts it on a board
+       driven in that order.
+
+       EVERY GUARD IS ITS OWN, WITH ITS OWN SENTENCE, and none is shared with a
+       guard above: a count of zero, an empty section and an unreadable count
+       are three different ways a code can be wrong, and a matrix that folded
+       them into one reading would be one guard asserted three times. In order:
+         - two bags, one per side, or the section is the wrong shape;
+         - each entry is an ordinal and a count;
+         - the ordinal names a type this code carries — a DEPARTED type's
+           ordinal runs off the end of `order`, which is built in lockstep with
+           the vocabulary, and is refused by its own reading rather than by a
+           dereference of undefined (probe J's lesson in unbag, kept here);
+         - the type is kept on each unit, because a side-scope type's number
+           already lives on the side and Damage and the dead marker are not
+           allocated at all;
+         - no type twice in one bag;
+         - the count is a base36 whole number — a NEGATIVE count has no base36
+           spelling, so this is the guard it meets;
+         - the count is inside MAX_RESERVE, which is re-run here because a
+           pasted code reaches none of [S05]'s guards;
+         - a count of zero is not written down, the tally's own rule;
+         - and a section holding nothing at all is not written down, because
+           that board's one spelling is no section. */
+    if (reserveAt !== -1) {
+      var reserveBags = parts[reserveAt].slice(1).split(SEP.record);
+      if (reserveBags.length !== WIRE_SIDES.length) {
+        return content('a reserve is the wrong shape');
+      }
+      var reserveHeld = 0;
+      for (var rs = 0; rs < WIRE_SIDES.length; rs++) {
+        if (reserveBags[rs] === '') { continue; }
+        var reserveItems = reserveBags[rs].split(SEP.field);
+        var reserve = {};
+        for (var rv = 0; rv < reserveItems.length; rv++) {
+          var rg = reserveItems[rv].split(SEP.term);
+          if (rg.length !== 2) { return content('a reserve entry is the wrong shape'); }
+          var rvTok = entryAt(order, rg[0], 'a reserve names no token type');
+          if (rvTok === null) { return content(problem); }
+          var rvKept = (rvTok === 'hp' || rvTok === 'shield')
+            || (App.data.TOKEN_IDS.indexOf(rvTok) === -1 && !!tokens[rvTok]
+              && tokens[rvTok].scope === 'unit');
+          if (!rvKept) { return content('a reserve holds only types kept on each unit'); }
+          if (Object.prototype.hasOwnProperty.call(reserve, rvTok)) {
+            return content('a reserve names a type twice');
+          }
+          var rvN = p36(rg[1]);
+          if (rvN === null) { return content('a reserve count is not a whole number'); }
+          if (rvN > App.data.MAX_RESERVE) { return content('a reserve count is out of bounds'); }
+          if (rvN === 0) { return content('a reserve count of zero is not written down'); }
+          reserve[rvTok] = rvN;
+          reserveHeld += 1;
+        }
+        out[WIRE_SIDES[rs]].reserve = reserve;
+      }
+      if (reserveHeld === 0) { return content('an empty reserve is not written down'); }
+    }
     return { ok: true, build: out };
   }
 
@@ -15685,9 +15859,17 @@ App.ops = (function () {
       delete s.build.tokens[tokenId];
       // The numbers go with it, inside the SAME mutator, which is the whole of
       // D-16: one mutator is one snapshot is one Ctrl+Z.
+      //
+      // AND SO DOES WHAT THE RESERVE HELD OF IT (D-41). A removal is not a move
+      // and is not bound by conservation — the type itself is leaving the board
+      // — and a count left standing would name a type the vocabulary no longer
+      // holds: [S04.2] would refuse to write the board at all and the address
+      // bar would stop mirroring it. Same mutator, same Ctrl+Z, so undoing the
+      // removal puts the reserve back with the type.
       SIDES.forEach(function (side) {
         var faction = s.build[side];
         dropTally(faction, tokenId);
+        dropReserve(faction, tokenId);
         faction.units.forEach(function (unit) { dropTally(unit, tokenId); });
       });
     });
@@ -16621,6 +16803,244 @@ App.ops = (function () {
     return 'tally ' + tokenId + ' ' + side + '/' + String(unitId);
   }
 
+  /* ==================================================================
+     D-41 — THE RESERVE, AND ONE MOVE FOR EVERY DRAG. Plan 05-D41a.
+     ==================================================================
+     The developer: "make it so manual allocation of resources can be done via
+     dragging token elements onto the relevant entity or dragging from one to
+     another", amended before any of it was built: "allow any unit to any other
+     unit, with a pool at the top of each side for unit to side drags", the pool
+     being a real reserve. [S01]'s MAX_RESERVE paragraph says what the reserve
+     is and why it is held to the ceiling it is. This block is the op that moves
+     a token and the storage it moves one into. PART ONE OF TWO: nothing here
+     draws or drags anything, and the second D-41 dispatch builds the surface
+     on top of exactly this op.
+
+     ONE OP FOR EVERY DRAG THE SURFACE WILL SEND. moveToken takes a token type
+     and two ENDS, and an end is a side plus an optional unit: a named unit is
+     that unit's own number, and no unit is THE SIDE'S END — its reserve for a
+     type kept on each unit, and the side's own number (`ap`, or the side's
+     tally) for a type kept on the whole side. So the four drags are one
+     function with the ends filled in four ways:
+       unit -> unit      any unit, either side, to any other
+       unit -> pool      a unit-scope token into a side's reserve, either side
+       pool -> unit      out of a reserve onto any unit, either side
+       pool -> pool      between the two sides' ends: a side-scope number from
+                         one side to the other, or reserve to reserve
+     Four ops would be four copies of the same guards, and the day one of them
+     forgot the scope rule is the day a surface found the one that did.
+
+     THE SCOPE BINDS AND IT IS A PROPERTY OF THE TYPE, NOT A POLICY OF THIS OP
+     — the amendment's own words. A type kept on the whole side has no number
+     on a unit, so it can never land on one or come off one; a type kept on each
+     unit moves between units and reserves. Damage and the dead marker are
+     drawn but are not allocated by anybody, so there is nothing of either to
+     move. Every one of those is a REFUSAL in the house idiom — a plain Error
+     carrying a sentence a student can read, which [S07.1]'s isRefusal tells
+     apart from a defect — because each is a drag a student can actually make.
+     A caller passing something that is not a token id at all is a defect in the
+     caller, and requireTokenId raises that as the TypeError it always has.
+
+     CONSERVATION IS THE INVARIANT, AND IT IS WHY THE BOUNDS REFUSE RATHER THAN
+     CLAMP. Everywhere else in this file D-35's bounds CLAMP at write time, and
+     for a stepper that is right: the student asked for a number and gets the
+     nearest one the type allows. A move is not a request for a number. It is
+     −1 at one end and +1 at the other, and clamping either half would DESTROY
+     A TOKEN — the source gives one up and the target, clamped, never receives
+     it — so the whole-build total of that type would drop by one with no step
+     anyone took to remove it. So a move that would take its source under the
+     type's floor, or its target over the type's ceiling (or a reserve over
+     MAX_RESERVE), is REFUSED WHOLE and writes nothing, and a move that is
+     admitted writes both numbers EXACTLY. The test is directional, which is
+     D-41's own sentence taken literally: the source is tested against its floor
+     and the target against its ceiling. That is also the only reading under
+     which a unit left above a ceiling a student tightened afterwards can still
+     give its excess away — the bound does not reach back (D-35), and a move
+     taking the number TOWARD the bound is not a move past it.
+
+     ONE COMMIT, ONE UNDO ENTRY, NEVER A HALF-TRANSFER. Both writes happen in
+     one mutator, and every refusal is raised OUTSIDE it, so a refused move
+     leaves no phantom undo step. The mutator re-runs the same test on the
+     detached copy commit() hands it, and a disagreement there is a TypeError —
+     not a refusal, because the only way to reach it is a defect in this file —
+     and commit() discards the copy, so even that has nowhere to write half.
+
+     THE LABEL CARRIES THE COMMIT COUNT, AND THAT IS THE WHOLE OF THE UNDO
+     RULING. commit() folds two commits under one label inside COALESCE_MS, and
+     that is RIGHT for a stepper held down — the rehearsal's final machine pass
+     measured twenty clicks on one plus as one entry. A drag is a discrete gesture: two moves
+     half a second apart are two things the student did, and one Ctrl+Z taking
+     back both is the undo lying about what happened. [S03]'s count of commits
+     only ever rises and every commit raises it, so a label ending in it cannot
+     be shared by two moves or by a move and anything else. No other op writes a
+     label beginning `token move`.
+
+     WHAT A MOVE NEVER TOUCHES: the fight slice, `alive`, an action, a rule or
+     a bound. It is allocation on the build board — the same act the steppers
+     beside every number perform — so it is live whether or not a fight is
+     running, exactly as those steppers are, and a fight reads the build only
+     where it always has. THE FIGHT NEVER READS THE RESERVE: sideFromBuild copies
+     `ap`, the units and the side's tally BY NAME, presentOnCaster sums health
+     and shield off the UNITS, and the projection reads the units — a unit fights
+     only with what it has been given. [S09.13] holds that with a byte-identical
+     fight and projection over a full reserve and an empty one. */
+
+  // The reserve's storage, which is the tally's two sparse rules one key over:
+  // a count of zero deletes its key and a bag with no keys deletes itself. The
+  // SHIPPED board therefore carries no `reserve` key at all, which is what
+  // keeps every faction key-set row and the 45-character build code standing.
+  // hasOwnProperty on every step, for dropTally's reason: from D-41 a reserve
+  // can arrive from a pasted build code rather than from this file.
+  function readReserve(faction, tokenId) {
+    if (!faction || !Object.prototype.hasOwnProperty.call(faction, 'reserve')) { return 0; }
+    return Object.prototype.hasOwnProperty.call(faction.reserve, tokenId)
+      ? faction.reserve[tokenId] : 0;
+  }
+
+  function dropReserve(faction, tokenId) {
+    if (!Object.prototype.hasOwnProperty.call(faction, 'reserve')) { return; }
+    delete faction.reserve[tokenId];
+    if (Object.keys(faction.reserve).length === 0) { delete faction.reserve; }
+  }
+
+  function writeReserve(faction, tokenId, n) {
+    if (n === 0) { dropReserve(faction, tokenId); return; }
+    if (!Object.prototype.hasOwnProperty.call(faction, 'reserve')) { faction.reserve = {}; }
+    faction.reserve[tokenId] = n;
+  }
+
+  // Where a type's number is KEPT, as allocation reads it: on each unit, on the
+  // whole side, or nowhere. The side half is [S02]'s isPoolToken called rather
+  // than restated, because "which types are kept on the side" is one ruling
+  // this file makes once — advanceRound already spends the same function.
+  // Damage and the dead marker answer null: both are drawn, neither is
+  // allocated by anybody. Called only once the type is known to exist.
+  function moveScope(vocab, tokenId) {
+    if (tokenId === 'hp' || tokenId === 'shield') { return 'unit'; }
+    if (App.model.isPoolToken(tokenId, vocab)) { return 'side'; }
+    if (App.data.TOKEN_IDS.indexOf(tokenId) !== -1) { return null; }
+    return (vocab[tokenId].scope === 'unit') ? 'unit' : null;
+  }
+
+  function moveNamesUnit(unitId) {
+    return unitId !== null && unitId !== undefined;
+  }
+
+  // One END of a move, resolved against a build: who it is in words, the
+  // floor and ceiling it is tested against, and how its number is read and
+  // written. Called on the live board to rule, and again on commit()'s
+  // detached copy to write — the same function both times, so the number that
+  // was ruled on and the number that is written are read by one piece of code.
+  // The caller has already refused a side-scope type at a unit end.
+  function moveEnd(build, side, unitId, tokenId, scope) {
+    var faction = build[side];
+    var b = tokenBounds(build.tokens, tokenId);
+    if (moveNamesUnit(unitId)) {
+      var unit = findUnit(side, unitId, faction.units);
+      if (tokenId === 'hp') {
+        return { who: unit.name, pool: false, lo: b.min, hi: b.max,
+          read: function () { return unit.maxHp; },
+          write: function (n) { unit.maxHp = n; } };
+      }
+      if (tokenId === 'shield') {
+        return { who: unit.name, pool: false, lo: b.min, hi: b.max,
+          read: function () { return unit.shield; },
+          write: function (n) { unit.shield = n; } };
+      }
+      return { who: unit.name, pool: false, lo: b.min, hi: b.max,
+        read: function () { return readTally(unit, tokenId); },
+        write: function (n) { writeTally(unit, tokenId, n); } };
+    }
+    if (scope === 'unit') {
+      return { who: 'The ' + faction.name + ' reserve', pool: true,
+        lo: 0, hi: App.data.MAX_RESERVE,
+        read: function () { return readReserve(faction, tokenId); },
+        write: function (n) { writeReserve(faction, tokenId, n); } };
+    }
+    if (tokenId === 'ap') {
+      return { who: faction.name, pool: false, lo: b.min, hi: b.max,
+        read: function () { return faction.ap; },
+        write: function (n) { faction.ap = n; } };
+    }
+    return { who: faction.name, pool: false, lo: b.min, hi: b.max,
+      read: function () { return readTally(faction, tokenId); },
+      write: function (n) { writeTally(faction, tokenId, n); } };
+  }
+
+  // The two bound sentences, one per end. A floor of zero is "none left", which
+  // is what a student sees; a floor they authored above zero is said as the
+  // floor, because "has none" would be false of a unit holding two.
+  function moveFloorSaid(end, name) {
+    if (end.lo === 0) {
+      return end.who + ' has no "' + name + '" to move.';
+    }
+    return end.who + ' keeps at least ' + end.lo + ' "' + name + '", so none of it can '
+      + 'be moved away.';
+  }
+
+  function moveCeilingSaid(end, name) {
+    if (end.pool) {
+      return end.who + ' already holds ' + end.hi + ' "' + name + '", which is as many '
+        + 'as a reserve holds.';
+    }
+    return end.who + ' holds at most ' + end.hi + ' "' + name + '", so it cannot take '
+      + 'another.';
+  }
+
+  // THE MOVE. tokenId, then the two ends as side and unit; a unit of null (or
+  // left out) is that side's end. Returns true when a token moved and false
+  // when the two ends are the SAME end — a token dropped where it came from is
+  // nothing, and nothing is neither a refusal nor a commit (renameTokenType's
+  // no-op contract, for its reason: a do-nothing Ctrl+Z step would stand
+  // between the student and the edit they actually want back).
+  //
+  // THE GUARD ORDER IS THE SENTENCE A STUDENT GETS. The id and both sides
+  // first, because nothing after them can be read without them; then the type
+  // exists; then the scope, because "that is kept on the whole side" explains
+  // a refused drop better than any bound does; then the same-end no-op; then
+  // the source's floor and the target's ceiling. All of it outside the commit.
+  function moveToken(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+    requireTokenId(tokenId);
+    requireSide(fromSide);
+    requireSide(toSide);
+    var live = App.state.get().build;
+    if (!Object.prototype.hasOwnProperty.call(live.tokens, tokenId)) {
+      throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
+    }
+    var name = live.tokens[tokenId].name;
+    var scope = moveScope(live.tokens, tokenId);
+    if (scope === null) {
+      throw new Error('"' + String(name) + '" is not a number anyone allocates, so there '
+        + 'is none of it to move.');
+    }
+    if (scope === 'side' && (moveNamesUnit(fromUnitId) || moveNamesUnit(toUnitId))) {
+      throw new Error('"' + String(name) + '" is kept on the whole side, so it cannot be '
+        + 'moved onto or off a single unit.');
+    }
+    var from = moveEnd(live, fromSide, fromUnitId, tokenId, scope);
+    var to = moveEnd(live, toSide, toUnitId, tokenId, scope);
+    if (fromSide === toSide && (moveNamesUnit(fromUnitId) === moveNamesUnit(toUnitId))
+      && (!moveNamesUnit(fromUnitId) || fromUnitId === toUnitId)) {
+      return false;
+    }
+    if (from.read() - 1 < from.lo) { throw new Error(moveFloorSaid(from, name)); }
+    if (to.read() + 1 > to.hi) { throw new Error(moveCeilingSaid(to, name)); }
+
+    App.state.commit('token move ' + App.state.stats().commits, function (s) {
+      var a = moveEnd(s.build, fromSide, fromUnitId, tokenId, scope);
+      var b = moveEnd(s.build, toSide, toUnitId, tokenId, scope);
+      var had = a.read();
+      var got = b.read();
+      if (had - 1 < a.lo || got + 1 > b.hi) {
+        throw new TypeError('moveToken ruled on one board and was handed another, so it '
+          + 'wrote nothing.');
+      }
+      a.write(had - 1);
+      b.write(got + 1);
+    });
+    return true;
+  }
+
   // A named function, so a Phase 2 undo button calls exactly what Ctrl+Z calls
   // (D-11). Returns false at the bottom of the stack — a no-op, not an error.
   function undo() {
@@ -16762,6 +17182,15 @@ App.ops = (function () {
       case 'restoreAction': return restoreAction(p.side, p.actionId, p.was);
       case 'setTally': return setTally(p.side, p.unitId, p.tokenId, p.value);
       case 'nudgeTally': return nudgeTally(p.side, p.unitId, p.tokenId, p.delta);
+      // D-41. ONE ARM FOR EVERY DRAG, read key by key for the reason the tally
+      // arms give: it takes a token id, and a payload forwarded whole would be a
+      // caller-supplied key set one nesting level from one. The two ends are
+      // FLAT keys rather than two end objects for the same reason one level
+      // further out. Both unit keys are passed THROUGH rather than defaulted —
+      // null is "the side's own end", and a router that turned an absent key
+      // into a unit would decide an end the drag did not name.
+      case 'moveToken': return moveToken(p.tokenId, p.fromSide, p.fromUnitId,
+        p.toSide, p.toUnitId);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -16811,6 +17240,16 @@ App.ops = (function () {
          named it in, and record that the student named it. That record is the
          `hand` list on the round, and it is FIGHT-08's log — there is no second
          structure claiming to be what happened.
+       - THE MOVE, as of D-41 (plan 05-D41a): moveToken, with one arm. It is
+         the first op in this file that writes TWO holders of one number in
+         one commit, and it is recorded here because it is also the first op
+         that could look like an applier to a reader skimming the list — a
+         token leaves one place and lands in another. IT IS NOT ONE. It is
+         allocation on the build board, the steppers' own act with both ends
+         named by the student; it spends no declaration, tests nothing against
+         a rule, never touches the fight slice, and chooses no unit — the drag
+         names both. Its name matches neither of [S09.10]'s applier families
+         and that is checked by reading the live list, not by this sentence.
 
      WHAT STILL DOES NOT EXIST, AND THIS HALF IS THE REQUIREMENT RATHER THAN
      THE GAP: THERE IS NO WRITER THAT DECIDES ANYTHING. No op picks an action,
@@ -16886,6 +17325,13 @@ App.ops = (function () {
   // four facets it does write are the four the codec carries, which is the same
   // test read from the other end, and check 74 drives this op blind among the
   // rest and reads both fields after it.
+  //
+  // D-41's moveToken met this absence too and it held without being tested as
+  // hard: a move writes a health, a shield, a tally, a pool or a reserve count,
+  // and never an action at all. It is on the export list, so check 74 drives
+  // it blind with the rest and reads both fields after it; and every number it
+  // writes IS on the wire — the reserve being the one this change put there —
+  // which is the property this paragraph exists to protect.
   //
   // SO ADDING A WRITER HERE WITHOUT ADDING THE FIELD TO THE CODEC IS SILENT
   // DATA LOSS IN EVERY SHARED BUILD. A student sets a damage figure, shares
@@ -17012,6 +17458,14 @@ App.ops = (function () {
     restoreAction: restoreAction,
     setTally: setTally,
     nudgeTally: nudgeTally,
+    // D-41. The one move every drag sends, exported beside the tally pair
+    // because it writes the same numbers they do — plus the reserve — and
+    // because [S09.13] must drive the op the surface will dispatch rather than
+    // a re-typed copy. readReserve goes with it for the reason tokenBounds went
+    // with setTokenBounds: it is the READER, and a suite or a surface asking
+    // "how many are in the reserve" must ask the function the op itself asks.
+    moveToken: moveToken,
+    readReserve: readReserve,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
