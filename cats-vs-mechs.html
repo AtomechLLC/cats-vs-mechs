@@ -709,6 +709,88 @@
     &:disabled{opacity:.45;cursor:not-allowed}
   }
 
+  /* ==================================================================
+     D-41b — THE POOL AND THE DRAG. Plan 05-D41b. [S06.16] draws it,
+     [S07.8] drives it.
+     ==================================================================
+     THE POOL is a box inside the column head around the numbers a student
+     allocates to the whole side, opened by the reserve's line. Its border
+     is --line at rest, the same quiet edge a card has, so at rest it reads
+     as a group and not as a control. Its name and its reserve label are
+     visible words at the 18px floor (UX-02).
+
+     AN EMPTY RESERVE IS A DROP SLOT, not a blank: a dashed --ink-faint box
+     holding a sentence that says what goes there. Dashed at rest, and the
+     refused state below is ALSO dashed — which is why the refused state
+     carries two further channels (the dimming and the entity's own border
+     going dashed) and the slot carries neither.
+
+     touch-action:none ON THE SOURCES ONLY — a token row on an entity and a
+     reserve reading — so a finger on a token drags it and a finger anywhere
+     else on the board still scrolls the page.
+
+     THREE STATES WHILE A DRAG IS LIVE, AND NONE OF THEM IS COLOUR ALONE:
+       lit   D-33's lit role, spelled exactly as .bf-unit--lit spells it: a
+             2px SOLID outline in --state-lit-line, the border in the same
+             channel, and the --state-lit-fill wash.
+       no    the op would refuse this drop: a DASHED --ink-faint border and
+             the entity dimmed to half. Distinct from unlit in line style AND
+             in weight, so a target the drop would refuse reads as refused
+             before the pointer lets go, and distinct from lit by shape, not
+             only by hue.
+       home  the end the token came from: no treatment at all, because a
+             drop there is nothing.
+     The one under the pointer gains a 4px outline of its own state's
+     style — solid on a lit target, dashed on a refused one. Two classes
+     deep (0,2,0) so a card's own :focus-within border and [C14.3]'s dead
+     border cannot out-rank a live drag's answer.
+
+     THE GHOST sits in #drag-layer, fixed to the viewport, and is placed by
+     the two custom properties [S06.16] publishes (check 57's idiom).
+     pointer-events:none on the layer AND on the ghost is the property that
+     keeps it from ever being the node elementFromPoint answers. NO NEW
+     COLOUR: the shadow is --bg mixed toward transparent. */
+  .brd-pool{
+    display:flex;flex-direction:column;gap:12px;
+    border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;
+  }
+  .brd-pool-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .brd-pool-held{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-height:36px}
+  /* A RESERVE READING IS THE SUBJECT HERE, NOT A TERM IN A SENTENCE, so it is
+     drawn at the board's own token size and keeps its glyph — [C14.5]'s
+     banner draws exactly this line: "the board and the battlefield keep
+     theirs ... there the token is the subject ... drawn at 22px and up". The
+     pool sits on the board, beside rows drawn at --tok, and a reserve token
+     half their size would be a second, smaller kind of the same object. The
+     size is set on the reading, the precedent .ae-term-read and .ae-pool-read
+     set for their own surfaces. Measured first: at the notation's 12px a
+     parked health token read as a 12px speck beside the 22px ones it came
+     from, in the first real-browser screenshot of this pool. */
+  .brd-pool-held .sym{--tok:22px;--tok-gap:6px}
+  .brd-pool-held .sym .tok-g{display:grid}
+  .brd-pool-empty{
+    font-size:18px;color:var(--ink-dim);
+    border:1px dashed var(--ink-faint);border-radius:10px;padding:6px 12px;
+  }
+  .drg-src{cursor:grab;touch-action:none}
+  .drg-said{margin:0;font-size:18px;color:var(--ink-dim);max-width:52ch;line-height:1.4}
+  .drg-said[hidden]{display:none}
+  .unit-card.drg-lit, .brd-pool.drg-lit{
+    outline:2px solid var(--state-lit-line);outline-offset:2px;
+    border-color:var(--state-lit-line);background-color:var(--state-lit-fill);
+  }
+  .unit-card.drg-no, .brd-pool.drg-no{border-style:dashed;border-color:var(--ink-faint);opacity:.5}
+  .unit-card.drg-lit.drg-over, .brd-pool.drg-lit.drg-over{outline-width:4px}
+  .unit-card.drg-no.drg-over, .brd-pool.drg-no.drg-over{outline:4px dashed var(--ink-faint);outline-offset:2px}
+  .drg-taking{opacity:.35}
+  #drag-layer{position:fixed;inset:0;z-index:1000;pointer-events:none}
+  .drg-ghost{
+    position:fixed;left:0;top:0;pointer-events:none;
+    transform:translate(calc(var(--drg-x, -200px) - 50%), calc(var(--drg-y, -200px) - 50%)) scale(1.35);
+    filter:drop-shadow(0 3px 6px color-mix(in srgb, var(--bg) 80%, transparent));
+  }
+  .drg-ghost--no{opacity:.45}
+
   /* ===================== [C05] TOKENS-VIZ ===================== */
   /* One token is three layers, and the reason is D-10: emoji come from
      whatever the OS supplies and their metrics differ per platform, so the
@@ -8083,6 +8165,7 @@
         <h3 class="ht-card-head">The board</h3>
         <p>Each side has a roster of units and a pool of action points. Every number a unit holds is drawn as tokens, one token per point, so a row of three is three of them and the room can count it from the back.</p>
         <p>Use the − and + beside a row to change a number, or type into the field between them and press Enter. Add and Remove change the roster, and Ctrl+Z takes back the last thirty changes.</p>
+        <p>You can also drag a token with a mouse, a pen or a finger: from a unit onto any other unit on either side, or into the pool at the top of a side's column, whose Reserve holds it until you drag it out again. A drag moves one token and never makes or removes one. While you drag, every place the token can go lights up and every place it cannot is drawn dashed and dim; a drop that cannot happen says why under the card, and Esc cancels a drag. Dragging is pointer-only. Every number a drag changes also has its − and +, which are the way to change it from the keyboard; the Reserve is reached only by dragging.</p>
         <p>The projection in the middle column reads your allocation back to you: total health a side, damage a round, and roughly how many turns one side would take to wipe the other at the damage it is holding. It reads the numbers you put in. It is not a report on the fight.</p>
       </div>
 
@@ -8150,6 +8233,15 @@
     <button type="button" class="err-btn err-btn--rm" id="err-reset">Reset to Workshop 16 defaults</button>
   </div>
 </div>
+
+<!-- D-41b — THE DRAG'S LAYER. Plan 05-D41b. Static, empty, and OUTSIDE #app on
+     purpose: structure() replaces the column interiors and sync() walks #board,
+     so a drag ghost anywhere inside either would be rebuilt or repainted under
+     the pointer. [S06.16] puts the one ghost in here while a drag is live and
+     empties it when the drag ends. aria-hidden, because the ghost is a picture
+     of a token already named where it was picked up; pointer-events:none in
+     [C04], so the pointer's hit test sees through it to the board. -->
+<div id="drag-layer" aria-hidden="true"></div>
 
 <!-- The token-appearance picker (ALLOC-09, D-11). Static markup and a sibling
      of #err-panel, outside #app, so nothing about it depends on a rebuild:
@@ -17008,7 +17100,22 @@ App.ops = (function () {
   // exists; then the scope, because "that is kept on the whole side" explains
   // a refused drop better than any bound does; then the same-end no-op; then
   // the source's floor and the target's ceiling. All of it outside the commit.
-  function moveToken(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+  //
+  // D-41b — THE GUARDS ARE THEIR OWN FUNCTION NOW, AND moveToken CALLS IT.
+  // Plan 05-D41b's surface lights every drop target while a drag is live, and
+  // what decides whether a target lights is exactly what decides whether the
+  // drop would write — so the surface ASKS THIS FUNCTION rather than restating
+  // a scope rule and two bound tests of its own, which is how a picture and an
+  // op drift apart. moveCheck is every line moveToken ran before its commit,
+  // moved and not edited: it answers true where moveToken would move, false
+  // where it would do nothing, and throws exactly what moveToken would throw.
+  // It never commits, never schedules a frame, and never reads the page.
+  // [S09.14] drives the two against each other over every end of a board.
+  function moveCheck(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+    return moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId).moves;
+  }
+
+  function moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
     requireTokenId(tokenId);
     requireSide(fromSide);
     requireSide(toSide);
@@ -17030,10 +17137,17 @@ App.ops = (function () {
     var to = moveEnd(live, toSide, toUnitId, tokenId, scope);
     if (fromSide === toSide && (moveNamesUnit(fromUnitId) === moveNamesUnit(toUnitId))
       && (!moveNamesUnit(fromUnitId) || fromUnitId === toUnitId)) {
-      return false;
+      return { moves: false, scope: scope };
     }
     if (from.read() - 1 < from.lo) { throw new Error(moveFloorSaid(from, name)); }
     if (to.read() + 1 > to.hi) { throw new Error(moveCeilingSaid(to, name)); }
+    return { moves: true, scope: scope };
+  }
+
+  function moveToken(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+    var rule = moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId);
+    if (rule.moves === false) { return false; }
+    var scope = rule.scope;
 
     App.state.commit('token move ' + App.state.stats().commits, function (s) {
       var a = moveEnd(s.build, fromSide, fromUnitId, tokenId, scope);
@@ -17475,6 +17589,12 @@ App.ops = (function () {
     // "how many are in the reserve" must ask the function the op itself asks.
     moveToken: moveToken,
     readReserve: readReserve,
+    // D-41b. The move's guards with the commit left off — the question the
+    // drag surface asks of every target while a drag is live. NOT an op: it has
+    // no router arm, because nothing a page sends should be able to reach a
+    // function whose only job is to answer without writing. [S09.14] holds it
+    // to moveToken's answer over every end of a board.
+    moveCheck: moveCheck,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
@@ -17847,9 +17967,24 @@ App.render = (function () {
     var head = el('section', 'brd-col-head');
     head.appendChild(text('h2', 'brd-faction', faction.name));
 
+    /* D-41b — A CROSS-PLAN EDIT into this function, by plan 05-D41b, the
+       FOURTH append into [S06.1] and declared in the register plan 03-05
+       opened. D-41's amendment puts "a pool at the top of each side", holding
+       the side's reserve AND its own side-kept tokens, "since that is where
+       they already live" — and they live HERE, in the two groups this
+       function's own comments keep apart: the numbers a student ALLOCATES
+       (action points, then the side's own tallies) and the two projections
+       below them. So the pool is a box around the first group, opened by the
+       reserve's line, and the projections stay outside it. Nothing is
+       removed or reordered: the same stat lines, built by the same calls, are
+       appended into the box instead of beside it. Every node the box adds is
+       [S06.16]'s. */
+    var pool = poolBox(state, side);
+    head.appendChild(pool);
+
     // Action points are a faction-level pool. That is the whole reason they
     // are held here rather than on the units, so the control sits here too.
-    head.appendChild(statLine('brd-label', 'Action points', stepper({
+    pool.appendChild(statLine('brd-label', 'Action points', stepper({
       key: side + '/ap', act: 'ap', nudge: 'nudgeAp', amt: 'ap',
       side: side, owner: faction.name, label: labelFor(state, 'ap'),
       value: faction.ap
@@ -17860,7 +17995,7 @@ App.render = (function () {
     // damage and total-health lines are projections of what they allocated,
     // and keeping the two groups apart is the whole reading of the column.
     tallyLines(state, side, null, faction.name).forEach(function (line) {
-      head.appendChild(line);
+      pool.appendChild(line);
     });
 
     // Q-2 -- where the red diamonds live. App.model.bestDamage is a shipped
@@ -18172,6 +18307,18 @@ App.render = (function () {
 
     faction.units.forEach(function (unit) {
       parts.push(unitCard(state, faction, unit, side, setup));
+    });
+
+    // D-41b — the second half of plan 05-D41b's declared append: the pool and
+    // every card are marked as the ENTITY a drop resolves to, their token rows
+    // as drag sources, and each gets the drop's said line. Done here over
+    // FINISHED nodes rather than threaded into unitCard and factionHead, for
+    // dcMarkCard's stated reason: a decorator over a complete card cannot
+    // change what its lines hold. In both modes, because a move is allocation
+    // and the steppers beside every number stay live with a fight running.
+    dragEntity(parts[0].querySelector('.brd-pool'), side, null);
+    faction.units.forEach(function (unit, n) {
+      dragEntity(parts[n + 1], side, unit.id);
     });
 
     if (setup) {
@@ -28428,6 +28575,251 @@ App.render = (function () {
   SYNC_HOOKS.push(syncUnitPopup);
   // #endregion [S06.15] RENDER — THE UNIT POPUP
 
+  /* ===================== [S06.16] RENDER — THE POOL AND THE DRAG ========
+   * D-41's picture, plan 05-D41b. The pool at the top of each side's column,
+   * the entity marks a drop resolves to, the ghost that follows the pointer,
+   * and the lights on every target while a drag is live. It owns no state and
+   * binds no listener: [S07.8] holds the drag, asks the op what each target
+   * would do, and hands the answers here to be drawn.
+   *
+   * EVERY TOKEN IT DRAWS IS CALLED, NOT RE-DERIVED. A reserve count is
+   * symQty(styleFor(...)) — the same reading the fight bar and the ledger draw
+   * with, compacting at the same COMPACT_AT — and the ghost is
+   * makeToken(styleFor(...)). The pool's side-kept tokens are the shipped
+   * action-point row and the shipped side-tally rows, moved into the box and
+   * drawn by syncRow exactly as before. So a type a student invents is in the
+   * pool the moment it is in the reserve, in its own shape, colour and glyph,
+   * and a restyle lands there on the frame it lands on the card (D-24).
+   *
+   * THE GHOST LIVES IN #drag-layer, A STATIC NODE OUTSIDE #app, which neither
+   * tier ever touches: structure() replaces the column interiors and sync()
+   * walks #board, so a ghost inside either would be thrown away or repainted
+   * under the pointer — plan 05-10's and D-37 probe G's defect arriving again.
+   * The layer and the ghost are pointer-events:none, so elementFromPoint sees
+   * what is UNDER the ghost; its place is two custom properties, check 57's
+   * idiom — the stylesheet keeps the rule and the script supplies the point.
+   *
+   * THE LIGHTS ARE CLASSES ON NODES THAT ALREADY EXIST, re-applied on every
+   * move rather than once, so a rebuild under a live drag (Ctrl+Z from the
+   * keyboard mid-gesture) is re-lit on the next move rather than left dark.
+   * Three answers, all the op's: LIT is a drop that would move a token, NO is
+   * a drop the op would refuse, HOME is the end the token came from — dropping
+   * there is nothing, so it is neither lit nor refused.
+   *
+   * NO ROUTING ATTRIBUTE ANYWHERE IN HERE — no data-act, no data-k, no
+   * data-amt — which is the standing rule for everything structure() builds
+   * into a column: a data-act would be resolved by actTarget(), a data-k would
+   * enter the focus-restore space, and a data-amt would be painted by the value
+   * pass. NOTHING IN IT IS FOCUSABLE EITHER. The drag is a pointer gesture and
+   * the steppers beside every number are the keyboard path (WCAG 2.5.7); a
+   * pool token a Tab could land on and Enter could not operate would be a
+   * control that lies.
+   * ====================================================================== */
+  // #region [S06.16] RENDER — THE POOL AND THE DRAG
+
+  // The pool's words. LABELS, not explainers (D-38): the box's name, the
+  // reserve line's name, and what an empty reserve IS — said in the words the
+  // gesture uses, so an empty reserve reads as somewhere to drop rather than as
+  // a blank box. Visible text at the 18px floor (UX-02); nothing is hover-only.
+  // Read by [S09] and the gate rather than typed there.
+  var POOL_WORD = 'Pool';
+  var RESERVE_WORD = 'Reserve';
+  var RESERVE_EMPTY = 'Empty — drop a token from a unit here to hold it';
+  // A reserve reading's suffix, after symQty's count-and-name: "3 Health in
+  // reserve". Arithmetic and a place, never a judgement.
+  var RESERVE_POST = ' in reserve';
+
+  function poolBox(state, side) {
+    var pool = el('div', 'brd-pool');
+    pool.appendChild(text('p', 'brd-pool-head', POOL_WORD));
+    var line = el('div', 'brd-line brd-pool-line');
+    line.appendChild(text('span', 'brd-label', RESERVE_WORD));
+    var held = el('div', 'brd-pool-held');
+    setData(held, { drgHeld: side });
+    line.appendChild(held);
+    pool.appendChild(line);
+    // Filled now as well as on every frame, so the first painted frame is
+    // complete rather than a blank waiting for a hook.
+    poolHeld(state, held, side);
+    return pool;
+  }
+
+  // The reserve's readings. The count is read through App.ops.readReserve —
+  // the reader moveToken itself asks, exported for exactly this — so the
+  // number drawn and the number a drop is ruled on come from one function.
+  // Walked in vocabulary order, the order the card draws its lines in.
+  //
+  // FINGERPRINTED, AND THE PRINT COVERS EVERY INPUT: the type, its count, its
+  // shape, colour and glyph, and its name — a rename is a plain commit, and a
+  // print that forgot the name would leave the tooltip saying the old word
+  // (probe CI's lesson, 123b's row). Rebuilt only when it moves, so a frame
+  // that changed nothing here leaves every node in place, which is what keeps
+  // a token under a pointer the same node between frames. No field lives
+  // here, so there is no incomplete paint to decline a fingerprint for.
+  function poolHeld(state, held, side) {
+    var faction = state.build[side];
+    var vocab = state.build.tokens || {};
+    var items = [];
+    Object.keys(vocab).forEach(function (id) {
+      var n = App.ops.readReserve(faction, id);
+      if (n > 0) { items.push({ id: id, n: n }); }
+    });
+    var print = items.map(function (it) {
+      var style = styleFor(state, it.id);
+      return it.id + ':' + it.n + ':' + safeShape(style.shape) + '/' + safeColor(style.color)
+        + '/' + String(style.glyph) + ':' + labelFor(state, it.id);
+    }).join('|');
+    if (held.dataset.fp === print && held.children.length > 0) { return; }
+    held.replaceChildren();
+    held.dataset.fp = print;
+    if (items.length === 0) {
+      held.appendChild(text('span', 'brd-pool-empty', RESERVE_EMPTY));
+      return;
+    }
+    items.forEach(function (it) {
+      var box = symQty(state, it.id, it.n, String(it.n) + ' ', RESERVE_POST, false);
+      box.classList.add('drg-src');
+      setData(box, { drgTok: it.id });
+      held.appendChild(box);
+    });
+  }
+
+  function syncPools(state) {
+    ['col-cats', 'col-mechs'].forEach(function (id) {
+      var col = document.getElementById(id);
+      if (!col) { return; }
+      var found = col.querySelectorAll('[data-drg-held]');
+      for (var i = 0; i < found.length; i++) {
+        poolHeld(state, found[i], String(found[i].dataset.drgHeld));
+      }
+    });
+  }
+
+  SYNC_HOOKS.push(syncPools);
+
+  // The entity mark, the drag sources inside it, and its said line. The mark
+  // is two data-* a drop reads back off the node under the pointer. EVERY
+  // token row on the entity that names a type is a source — including the
+  // dead marker's, which nobody allocates — because WHICH TYPES MOVE IS THE
+  // OP'S RULING and a surface that pre-filtered its sources would be a second
+  // copy of moveScope. Pick one up and every target reads refused, and a drop
+  // says the op's own sentence.
+  //
+  // The said line is the drop's refusal channel on this entity: built hidden
+  // and empty, carrying none of [S06.1]'s markers for the reasons .brd-said's
+  // paragraph gives, and NOT .brd-said, because [S07.1]'s fieldSaidNode finds
+  // that class inside a stepper's line and this one belongs to the whole card.
+  function dragEntity(node, side, unitId) {
+    if (!node) { return; }
+    setData(node, { drgAt: side, drgUnit: unitId });
+    var rows = node.querySelectorAll('.tok-row');
+    for (var i = 0; i < rows.length; i++) {
+      var amt = rows[i].dataset.amt;
+      if (typeof amt !== 'string' || amt === '') { continue; }
+      rows[i].dataset.drgTok = amt;
+      rows[i].classList.add('drg-src');
+    }
+    var said = el('p', 'drg-said');
+    said.hidden = true;
+    node.appendChild(said);
+  }
+
+  // Every entity on both columns, per column rather than one descendant
+  // selector because the stub page answers a compound selector and not a
+  // combinator — and the artifact is not written around the stub either way.
+  function dragEntities() {
+    var out = [];
+    if (typeof document === 'undefined') { return out; }
+    ['col-cats', 'col-mechs'].forEach(function (id) {
+      var col = document.getElementById(id);
+      if (!col) { return; }
+      var found = col.querySelectorAll('[data-drg-at]');
+      for (var i = 0; i < found.length; i++) { out.push(found[i]); }
+    });
+    return out;
+  }
+
+  function dragKeyOf(side, unitId) {
+    return String(side) + '/' + (unitId === null || unitId === undefined ? '' : String(unitId));
+  }
+
+  function dragSaidOf(node) {
+    if (!node) { return null; }
+    for (var i = node.children.length - 1; i >= 0; i--) {
+      var kid = node.children[i];
+      if (kid.classList && kid.classList.contains('drg-said')) { return kid; }
+    }
+    return null;
+  }
+
+  function dragMark(node, cls, on) {
+    if (on) { node.classList.add(cls); } else { node.classList.remove(cls); }
+  }
+
+  // The ghost: one token, drawn by the board's own builder, in the layer.
+  function dragGhost(state, tokenId) {
+    if (typeof document === 'undefined') { return null; }
+    var layer = document.getElementById('drag-layer');
+    if (!layer) { return null; }
+    var ghost = el('div', 'drg-ghost');
+    ghost.appendChild(makeToken(styleFor(state, tokenId), false));
+    layer.replaceChildren(ghost);
+    return ghost;
+  }
+
+  // Where the ghost is: the two coordinates check 57 reads in context.
+  function dragGhostAt(ghost, x, y) {
+    if (!ghost) { return; }
+    ghost.style.setProperty('--drg-x', String(Math.round(x)) + 'px');
+    ghost.style.setProperty('--drg-y', String(Math.round(y)) + 'px');
+  }
+
+  // THE PAINT, on every move of a live drag. `answers` is [S07.8]'s list, one
+  // per end, each { side, unitId, answer } where the answer is 'lit', 'no'
+  // or 'home' — decided by App.ops.moveCheck and by nothing drawn here. `over`
+  // is the entity under the pointer or null; `source` is the node picked up.
+  // An entity with no answer (a card built after the answers were taken) is
+  // left unlit rather than guessed at.
+  function dragPaint(answers, over, source, ghost) {
+    var byKey = Object.create(null);
+    (answers || []).forEach(function (a) { byKey[dragKeyOf(a.side, a.unitId)] = a.answer; });
+    var overAnswer = '';
+    dragEntities().forEach(function (node) {
+      var v = byKey[dragKeyOf(node.dataset.drgAt, node.dataset.drgUnit)] || '';
+      dragMark(node, 'drg-lit', v === 'lit');
+      dragMark(node, 'drg-no', v === 'no');
+      dragMark(node, 'drg-home', v === 'home');
+      dragMark(node, 'drg-over', node === over);
+      if (node === over) { overAnswer = v; }
+    });
+    if (source && source.classList) { source.classList.add('drg-taking'); }
+    if (ghost) { dragMark(ghost, 'drg-ghost--no', overAnswer === 'no'); }
+  }
+
+  // Everything the drag drew comes off, and the ghost leaves the layer.
+  // Called on a drop, on Escape, on a cancelled pointer and on a lost window.
+  function dragDone(source) {
+    dragEntities().forEach(function (node) {
+      ['drg-lit', 'drg-no', 'drg-home', 'drg-over'].forEach(function (cls) {
+        node.classList.remove(cls);
+      });
+    });
+    if (source && source.classList) { source.classList.remove('drg-taking'); }
+    if (typeof document === 'undefined') { return; }
+    var layer = document.getElementById('drag-layer');
+    if (layer) { layer.replaceChildren(); }
+  }
+
+  // A sentence about the last drop stops being true when the next drag
+  // begins — dropLoadSaid's rule, arriving at a fifth surface.
+  function dragQuiet() {
+    dragEntities().forEach(function (node) {
+      var said = dragSaidOf(node);
+      if (said) { said.textContent = ''; said.hidden = true; }
+    });
+  }
+  // #endregion [S06.16] RENDER — THE POOL AND THE DRAG
+
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -28559,6 +28951,21 @@ App.render = (function () {
     // the row with it and typing it into the row makes the gate green over
     // a heading that has stopped saying anything.
     REF_HEAD_WORD: REF_HEAD_WORD,
+    // D-41b. [S07.8] holds the drag and these draw it — the ghost and where it
+    // is, the lights, the clean-up, the quieting of old sentences, and the
+    // drop's said line found on the entity it is about. The pool's words go
+    // with them to REF_HEAD_WORD's standard: a row asserts the words the pool
+    // actually carries, not a re-typed copy.
+    dragGhost: dragGhost,
+    dragGhostAt: dragGhostAt,
+    dragPaint: dragPaint,
+    dragDone: dragDone,
+    dragQuiet: dragQuiet,
+    dragSaidOf: dragSaidOf,
+    POOL_WORD: POOL_WORD,
+    RESERVE_WORD: RESERVE_WORD,
+    RESERVE_EMPTY: RESERVE_EMPTY,
+    RESERVE_POST: RESERVE_POST,
     MAX_UNITS: MAX_UNITS
   });
 })();
@@ -34518,6 +34925,375 @@ App.interactions = (function () {
   // refusal is made to stop being raised.
   // #endregion [S07.7] INTERACTIONS — THE ROUND RULES
 
+  /* ===================== [S07.8] INTERACTIONS — THE DRAG ================
+   * D-41's gesture, plan 05-D41b. A press on a token on a unit card or in a
+   * pool, moved past DRAG_PX, becomes a drag; a release over a unit card or a
+   * pool is a drop and is ONE App.ops.moveToken call through the router;
+   * Escape, a cancelled pointer and a lost window each end it with nothing
+   * written. It ATTACHES through LATE_BINDERS and edits no line of [S07.1] —
+   * UI_ACTS, UI_HANDLERS and HOLD_ACTS are untouched, because nothing here
+   * carries a data-act.
+   *
+   * POINTER EVENTS AND NOT HTML5 DRAG-AND-DROP, for D-41's three reasons:
+   * this file routes presses through pointerdown with delegation, HTML5 DnD
+   * delivers neither touch nor pen, and its drag image cannot carry a token's
+   * clip-path shape. The ghost is [S06.16]'s.
+   *
+   * THE THRESHOLD IS WHAT KEEPS A CLICK A CLICK. Nothing is drawn, captured
+   * or committed until the pointer has travelled DRAG_PX from where it went
+   * down, so a press-and-release on a token is exactly the nothing it was
+   * before this region existed. The steppers are not sources at all — a token
+   * row is, and it carries no data-act — so [S07.1]'s pointerdown, its fire()
+   * and its press-and-hold ramp never see a drag and a drag never sees them.
+   *
+   * WHAT LIGHTS IS WHAT THE OP SAYS, ASKED OF THE OP. Every end on the board
+   * is put to App.ops.moveCheck — moveToken's own guards with the commit left
+   * off — and the answer is read the way every commit site in this file reads
+   * one: true is a move, false is the same end, a refusal (isRefusal, the ONE
+   * place that tells a refusal from a defect) is a target that would refuse,
+   * and anything else is a defect and goes to the panel. Not one scope rule
+   * or bound test is restated here; a surface that re-derived them is how a
+   * lit target and a refused drop come to disagree. [S09.14] holds dragAnswers
+   * to what moveToken actually does, end by end.
+   *
+   * COMMIT ON DROP ONLY. A drag that committed mid-gesture would repaint the
+   * rows under the pointer, and a press on a node the repaint rebuilt is plan
+   * 05-10's measured defect (focus to <body>) and D-37 probe G's (a
+   * destroyed-under-the-pointer control). No commit, commitUi or setUi runs
+   * between the press and the release, so no frame is scheduled by this
+   * region while a drag is live and the token picked up keeps its node
+   * identity for the whole gesture — browser cell 31 reads that identity back.
+   *
+   * THE DRAG IN FLIGHT LIVES IN THIS REGION'S SCOPE AND IN NO SLICE, which is
+   * D-34's snapshot precedent: the `ui` slice has an exact key set that
+   * [S09.3] pins and check 73c reads back, and a drag is not something undo,
+   * the build code or the projection should ever be able to see.
+   *
+   * CAPTURE GOES ON #board, NOT ON THE SOURCE. #board is static markup no
+   * rebuild replaces; a capture on the pressed token would be lost the moment
+   * anything replaced it, and a lost capture on a mouse that has left the
+   * window is a drag that never ends. Because a captured pointer's events all
+   * target #board, the release is hit-tested with elementFromPoint and
+   * resolved to the ENTITY — a drop on a unit's health row and a drop on its
+   * name are the same drop.
+   *
+   * THE KEYBOARD PATH IS THE STEPPERS, AND THIS REGION DOES NOT PRETEND
+   * OTHERWISE. A drag is pointer-only (touch and pen included); every number a
+   * drag can move has a stepper beside it that reaches the same value from
+   * the keyboard (WCAG 2.5.7), and nothing in the pool is focusable. What a
+   * drag adds over the steppers is the reserve itself — moving a token INTO or
+   * OUT OF a reserve has no stepper, which is recorded as a gap in the
+   * summary rather than papered over with a focusable token that Enter could
+   * not operate.
+   * ====================================================================== */
+  // #region [S07.8] INTERACTIONS — THE DRAG
+
+  // How far the pointer travels before a press becomes a drag. Six pixels is
+  // under the width of a token (22px at the shipped dial), so a student who
+  // means to drag one gets a drag, and over the tremor of a mouse click.
+  // Lifted from the parked pre-amendment attempt (branch
+  // wip/d41-pre-amendment-drag-ui, d081c3b) together with the capture-on-
+  // #board and elementFromPoint arrangement; its tray and its two ops were not.
+  var DRAG_PX = 6;
+
+  /* THE PAGE SCROLLS UNDER A DRAG THAT REACHES AN EDGE OF THE WINDOW. Not in
+     the brief, and added because a real drag at 1366x768 measured it missing:
+     a column of nine Cats is far taller than the window, so once the page has
+     scrolled to Cat 6 the pool at the top of the column is off screen, and a
+     drag from one to the other had no way to reach it — a finger cannot
+     wheel-scroll while it holds a token, and touch-action:none on the source
+     is what stops the page panning under it. So a live drag whose pointer sits
+     within DRAG_EDGE_PX of the window's bottom, or of the sticky bar's bottom
+     edge at the top, scrolls the page toward that edge, faster the deeper the
+     pointer is, and re-reads what is under the pointer on every step so the
+     lights follow the page. It scrolls the WINDOW and nothing else — the build
+     board's columns are not scrollers — and never while no drag is live. */
+  var DRAG_EDGE_PX = 56;
+  var DRAG_EDGE_STEP = 22;
+
+  var drag = null;
+
+  function dragUnitOf(node) {
+    var u = node.dataset.drgUnit;
+    return (u === undefined || u === null || u === '') ? null : String(u);
+  }
+
+  // Every end on the live board — each side's own end (the pool), then each
+  // of its units — read off the BUILD rather than off the page, so the answer
+  // list does not depend on what the page happens to have drawn.
+  function dragEnds() {
+    var b = App.state.get().build;
+    var out = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      out.push({ side: side, unitId: null });
+      b[side].units.forEach(function (u) { out.push({ side: side, unitId: u.id }); });
+    });
+    return out;
+  }
+
+  // What a drop at one end would do, in the op's own words.
+  function dragAnswer(tokenId, from, to) {
+    try {
+      var moves = App.ops.moveCheck(tokenId, from.side, from.unitId, to.side, to.unitId);
+      return { answer: moves ? 'lit' : 'home', said: '' };
+    } catch (err) {
+      if (!isRefusal(err)) { throw err; }
+      return { answer: 'no', said: err.message };
+    }
+  }
+
+  function dragAnswers(tokenId, from) {
+    return dragEnds().map(function (to) {
+      var a = dragAnswer(tokenId, from, to);
+      return { side: to.side, unitId: to.unitId, answer: a.answer, said: a.said };
+    });
+  }
+
+  // A press on a token in a marked row, or on a reserve reading. [S06.16]
+  // marks both, so the stylesheet's grab cursor and this test read one fact.
+  // A row with no token in it has nothing to pick up.
+  function dragSource(e) {
+    var node = e.target;
+    if (!node || typeof node.closest !== 'function') { return null; }
+    var src = node.closest('[data-drg-tok]');
+    if (src === null) { return null; }
+    var tok = node.closest('.tok') || src.querySelector('.tok');
+    if (tok === null) { return null; }
+    var at = src.closest('[data-drg-at]');
+    if (at === null) { return null; }
+    return {
+      tokenId: String(src.dataset.drgTok),
+      from: { side: String(at.dataset.drgAt), unitId: dragUnitOf(at) },
+      node: tok
+    };
+  }
+
+  function dragTargetAt(x, y) {
+    if (typeof document === 'undefined') { return null; }
+    if (typeof document.elementFromPoint !== 'function') { return null; }
+    var hit = document.elementFromPoint(x, y);
+    if (!hit || typeof hit.closest !== 'function') { return null; }
+    return hit.closest('[data-drg-at]');
+  }
+
+  function dragBoard() {
+    return (typeof document === 'undefined') ? null : document.getElementById('board');
+  }
+
+  function onDragDown(e) {
+    if (!isPrimaryPress(e)) { return; }
+    if (drag !== null) { return; }
+    var src = dragSource(e);
+    if (src === null) { return; }
+    drag = {
+      id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+      live: false, tokenId: src.tokenId, from: src.from, node: src.node,
+      over: null, ghost: null, answers: null, at: -1, raf: null
+    };
+  }
+
+  function dragBegin(e) {
+    drag.live = true;
+    App.render.dragQuiet();
+    var board = dragBoard();
+    if (board && typeof board.setPointerCapture === 'function' && e.pointerId !== undefined) {
+      try {
+        board.setPointerCapture(e.pointerId);
+      } catch (noSuchPointer) {
+        void noSuchPointer;
+      }
+    }
+    drag.ghost = App.render.dragGhost(App.state.get(), drag.tokenId);
+  }
+
+  // The answers are taken once per board: re-asked only when a commit has
+  // landed since (Ctrl+Z from the keyboard mid-gesture), because asking the
+  // op fifty times per pointer move is fifty rulings on a board that did not
+  // move.
+  function dragFresh() {
+    var at = App.state.stats().commits;
+    if (drag.answers === null || drag.at !== at) {
+      drag.answers = dragAnswers(drag.tokenId, drag.from);
+      drag.at = at;
+    }
+  }
+
+  // Re-reads what is under the pointer's last point and repaints the lights
+  // and the ghost. Called on a move and on every step of an edge scroll, which
+  // moves the page under a pointer that did not move.
+  function dragRepaint() {
+    var here = drag;
+    try {
+      dragFresh();
+    } catch (defect) {
+      // A defect is a defect: the drag ends with nothing written and the
+      // panel gets it. Ending first is what keeps a half-lit board from
+      // standing behind the panel.
+      dragEnd();
+      throw defect;
+    }
+    here.over = dragTargetAt(here.x, here.y);
+    App.render.dragGhostAt(here.ghost, here.x, here.y);
+    App.render.dragPaint(here.answers, here.over, here.node, here.ghost);
+  }
+
+  function onDragMove(e) {
+    if (drag === null || e.pointerId !== drag.id) { return; }
+    if (!drag.live) {
+      var dx = e.clientX - drag.x0;
+      var dy = e.clientY - drag.y0;
+      if (dx * dx + dy * dy < DRAG_PX * DRAG_PX) { return; }
+      dragBegin(e);
+    }
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    dragRepaint();
+    dragEdgeStart();
+  }
+
+  // The top of the scroll zone is the sticky bar's bottom edge rather than
+  // the window's, because the bar covers the first stretch of the window and a
+  // pointer over it is already as high as a student can aim.
+  function dragTopEdge() {
+    var bar = document.getElementById('topbar');
+    if (!bar || typeof bar.getBoundingClientRect !== 'function') { return 0; }
+    return Math.max(0, bar.getBoundingClientRect().bottom);
+  }
+
+  function dragEdgeSpeed(y) {
+    if (typeof window === 'undefined' || typeof window.innerHeight !== 'number') { return 0; }
+    var top = dragTopEdge();
+    var bottom = window.innerHeight;
+    if (y < top + DRAG_EDGE_PX) {
+      return -Math.ceil(DRAG_EDGE_STEP * Math.min(1, (top + DRAG_EDGE_PX - y) / DRAG_EDGE_PX));
+    }
+    if (y > bottom - DRAG_EDGE_PX) {
+      return Math.ceil(DRAG_EDGE_STEP * Math.min(1, (y - (bottom - DRAG_EDGE_PX)) / DRAG_EDGE_PX));
+    }
+    return 0;
+  }
+
+  function dragEdgeStart() {
+    if (drag === null || !drag.live || drag.raf !== null) { return; }
+    if (typeof requestAnimationFrame !== 'function') { return; }
+    if (dragEdgeSpeed(drag.y) === 0) { return; }
+    drag.raf = requestAnimationFrame(App.boot.wrap('token drag scroll', dragEdgeTick));
+  }
+
+  function dragEdgeTick() {
+    if (drag === null) { return; }
+    drag.raf = null;
+    if (!drag.live) { return; }
+    var v = dragEdgeSpeed(drag.y);
+    if (v === 0) { return; }
+    var before = window.scrollY;
+    window.scrollBy({ top: v, left: 0, behavior: 'instant' });
+    // The end of the page: nothing moved, so there is nothing to re-read and
+    // no reason to keep asking. A pointer move starts it again.
+    if (window.scrollY === before) { return; }
+    dragRepaint();
+    dragEdgeStart();
+  }
+
+  // Ends the gesture and hands back what it was, so a release can still act
+  // on it. Idempotent: every stop condition may arrive, in any order.
+  function dragEnd() {
+    var was = drag;
+    drag = null;
+    if (was === null) { return null; }
+    if (was.raf !== null && typeof cancelAnimationFrame === 'function') {
+      cancelAnimationFrame(was.raf);
+    }
+    if (was.live) {
+      App.render.dragDone(was.node);
+      var board = dragBoard();
+      if (board && typeof board.releasePointerCapture === 'function' && was.id !== undefined) {
+        try {
+          board.releasePointerCapture(was.id);
+        } catch (released) {
+          void released;
+        }
+      }
+    }
+    return was;
+  }
+
+  // THE DROP. One dispatch, and the op decides: a refusal is a plain Error
+  // carrying a sentence and lands on the entity the pointer let go over,
+  // through [S07.1]'s refuseLoudly — the channel every commit site uses —
+  // and anything else is a defect that refuseLoudly re-throws to the panel.
+  // A successful drop takes any earlier sentence on that entity down with it.
+  function dragDrop(was, target) {
+    var said = App.render.dragSaidOf(target);
+    try {
+      App.ops.dispatch('moveToken', {
+        tokenId: was.tokenId,
+        fromSide: was.from.side, fromUnitId: was.from.unitId,
+        toSide: String(target.dataset.drgAt), toUnitId: dragUnitOf(target)
+      });
+    } catch (err) {
+      refuseLoudly(said, err);
+      return;
+    }
+    dropSaidLine(said);
+  }
+
+  function onDragUp(e) {
+    if (drag === null || e.pointerId !== drag.id) { return; }
+    var was = dragEnd();
+    // A press that never became a drag is a click, and a click on a token is
+    // the nothing it always was.
+    if (was === null || !was.live) { return; }
+    var target = dragTargetAt(e.clientX, e.clientY);
+    // A release over no entity at all is a cancel: nothing was aimed at, so
+    // nothing is refused and nothing is said.
+    if (target === null) { return; }
+    dragDrop(was, target);
+  }
+
+  function onDragCancel(e) {
+    if (drag === null) { return; }
+    if (e && e.pointerId !== undefined && drag.id !== undefined && e.pointerId !== drag.id) {
+      return;
+    }
+    dragEnd();
+  }
+
+  function onDragKey(e) {
+    if (drag === null || e.key !== 'Escape') { return; }
+    e.preventDefault();
+    dragEnd();
+  }
+
+  function bindDrag() {
+    var board = dragBoard();
+    if (board === null) { return; }
+    board.addEventListener('pointerdown', App.boot.wrap('token drag press', onDragDown));
+    document.addEventListener('pointermove', App.boot.wrap('token drag move', onDragMove));
+    document.addEventListener('pointerup', App.boot.wrap('token drag drop', onDragUp));
+    document.addEventListener('pointercancel', App.boot.wrap('token drag cancel', onDragCancel));
+    board.addEventListener('lostpointercapture', App.boot.wrap('token drag cancel', onDragCancel));
+    document.addEventListener('keydown', App.boot.wrap('token drag escape', onDragKey));
+    if (typeof window !== 'undefined') {
+      window.addEventListener('blur', App.boot.wrap('token drag cancel', onDragCancel));
+    }
+  }
+
+  LATE_BINDERS.push(bindDrag);
+
+  // Read-only, for the suites and the browser cells: whether a drag is live
+  // and what it carries, as a string so nothing can hold the record —
+  // editorSnapshot's shape.
+  function dragSaid() {
+    if (drag === null) { return ''; }
+    return JSON.stringify({ live: drag.live, tokenId: drag.tokenId, from: drag.from });
+  }
+
+  // THE ACTS THIS REGION CLAIMS: NONE, and the line is written down for
+  // [S07.5]'s reason. moveToken is a real op and goes through
+  // App.ops.dispatch; nothing here carries a data-act.
+  // #endregion [S07.8] INTERACTIONS — THE DRAG
+
   return Object.freeze({
     bind: bind,
     holdSource: holdSource,
@@ -34559,6 +35335,14 @@ App.interactions = (function () {
     // than the record so nothing can hold the reference, and nothing anywhere
     // writes through it.
     editorSnapshot: snapshotSaid,
+    // D-41b. The answers a drag lights the board with — the function the
+    // surface calls, exported so [S09.14] holds IT to moveToken rather than a
+    // copy of it — plus the drag in flight, read-only and stringified for
+    // editorSnapshot's reason, and the threshold browser cells drive either
+    // side of.
+    dragAnswers: dragAnswers,
+    dragInFlight: dragSaid,
+    DRAG_PX: DRAG_PX,
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
@@ -47329,6 +48113,332 @@ App.selftest = (function () {
     App.state.flush();
     t.ok('the prototype is intact after the whole reserve suite', protoIntact());
     t.eq('the reserve suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.14] SUITE: what a drag lights, asked of the op — owner plan 05-D41b --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('what a drag lights', function (t) {
+    /* D-41's SECOND PART DRAWS A PICTURE OF WHAT THE OP WILL DO, AND THIS SUITE
+       IS WHERE THE PICTURE IS HELD TO THE OP. While a drag is live, [S07.8] puts
+       every end on the board to App.ops.moveCheck and lights the answers; the
+       drop then calls moveToken. A lit target the drop refuses, or a dashed one
+       it would have taken, is the surface lying about the op — and the only way
+       that stays impossible is if nobody restates the op's rules. So the rows
+       here drive BOTH functions over the same boards and require them to agree,
+       end by end and sentence by sentence.
+
+       EVERY ROW IS STATE WORK AND SITS ABOVE ANY no-DOM BRACKET, [S09.11]'s and
+       [S09.13]'s declaration, so every row runs in the terminal harness and can
+       fail a build. THE GESTURE ITSELF — the threshold, the ghost, the drop
+       under a real pointer — cannot be reached from here (the stub page has no
+       elementFromPoint and no layout), and lives in the interaction gate's
+       stub-page drive and in the browser cells; the summary lists which claim
+       lives only where.
+
+       Every drive that can throw is inside a try with the restore in a finally,
+       for PROBE M's reason: a row may FAIL; it may not throw and it may not hang. */
+    var savedAll = JSON.stringify(App.state.get());
+
+    // [S07.1]'s isRefusal, restated for [S09.13]'s reason, character for
+    // character in what it tests.
+    function isRefusal(err) {
+      return err instanceof Error
+        && err.constructor === Error
+        && typeof err.message === 'string'
+        && err.message !== '';
+    }
+
+    function outcome(fn) {
+      try {
+        return { kind: fn() ? 'moved' : 'nothing', said: '' };
+      } catch (e) {
+        return { kind: isRefusal(e) ? 'refused' : 'DEFECT', said: String(e && e.message) };
+      }
+    }
+
+    function build() { return App.state.get().build; }
+
+    // The board every row below is driven on, built to meet the bounds: health
+    // tightened to four while every mech holds six, shield to two while every
+    // mech holds three, a student's unit type bounded to three with one cat
+    // already at it, a student's side type, and a reserve holding health.
+    function boundedBoard() {
+      App.ops.resetToDefaults();
+      var ooze = App.ops.createTokenType({ name: 'Ooze', shape: 'circ', color: 'violet',
+        glyph: '', scope: 'unit' });
+      var zeal = App.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+        glyph: '', scope: 'side' });
+      App.ops.setTally('cats', 'c1', ooze, 3);
+      App.ops.setTally('mechs', 'm1', ooze, 1);
+      App.ops.setTally('cats', null, zeal, 2);
+      App.ops.moveToken('hp', 'cats', 'c2', 'cats', null);
+      App.ops.moveToken('hp', 'cats', 'c3', 'cats', null);
+      App.ops.setTokenBounds('hp', { min: 0, max: 4 });
+      App.ops.setTokenBounds('shield', { min: 0, max: 2 });
+      App.ops.setTokenBounds(ooze, { min: 0, max: 3 });
+      App.state.flush();
+      return { ooze: ooze, zeal: zeal };
+    }
+
+    function everyEnd() {
+      var ends = [];
+      ['cats', 'mechs'].forEach(function (side) {
+        ends.push({ side: side, unitId: null });
+        build()[side].units.forEach(function (u) { ends.push({ side: side, unitId: u.id }); });
+      });
+      return ends;
+    }
+
+    /* --- THE PREDICATE IS EXPORTED BESIDE THE OP AND IS NOT AN OP. --- */
+    var ARM;
+    try {
+      App.ops.resetToDefaults();
+      var armThrew = false;
+      try { App.ops.dispatch('moveCheck', {}); } catch (e) { armThrew = true; }
+      ARM = [typeof App.ops.moveCheck, armThrew, typeof App.interactions.dragAnswers,
+        App.interactions.dragInFlight(), App.interactions.DRAG_PX];
+    } catch (stopped) {
+      ARM = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('moveCheck IS EXPORTED BESIDE moveToken AND HAS NO ROUTER ARM — the router '
+      + 'refuses it as an unknown op, because nothing a page sends should reach a '
+      + 'function whose only job is to answer without writing. The surface\'s answer '
+      + 'list is exported from [S07] for this suite to drive, nothing is in flight at '
+      + 'rest, and the threshold is six pixels',
+      ARM, ['function', true, 'function', '', 6]);
+
+    /* --- ASKING WRITES NOTHING. Every end, every type, on the bounded board:
+           after each question the build is byte-identical, the undo depth is
+           unmoved and the commit count is unmoved. A predicate that committed
+           would schedule a frame on every pointer move of a drag, which is the
+           rebuild-under-the-pointer defect the surface is built to avoid. --- */
+    var QUIET;
+    try {
+      var qTypes = boundedBoard();
+      var qBefore = JSON.stringify(App.state.get());
+      var qDepth = App.state.undoDepth();
+      var qCommits = App.state.stats().commits;
+      var qAsked = 0;
+      var qWrote = [];
+      var qEnds = everyEnd();
+      ['hp', 'shield', qTypes.ooze, 'ap', qTypes.zeal, 'dmg'].forEach(function (tok) {
+        qEnds.forEach(function (a) {
+          qEnds.forEach(function (b) {
+            outcome(function () {
+              return App.ops.moveCheck(tok, a.side, a.unitId, b.side, b.unitId);
+            });
+            qAsked += 1;
+            if (App.state.stats().commits !== qCommits) {
+              qWrote.push(tok + ' ' + a.side + '/' + a.unitId + ' -> ' + b.side + '/' + b.unitId);
+            }
+          });
+        });
+      });
+      QUIET = [qAsked, qWrote.slice(0, 3), JSON.stringify(App.state.get()) === qBefore,
+        App.state.undoDepth() - qDepth];
+    } catch (stopped) {
+      QUIET = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('ASKING THE OP WRITES NOTHING: every one of six types between every ordered pair '
+      + 'of the board\'s fourteen ends — 1176 questions — leaves the commit count, the '
+      + 'undo depth and the whole state exactly where they were',
+      QUIET, [1176, [], true, 0]);
+
+    /* --- THE PREDICATE AND THE OP GIVE ONE ANSWER. A fixed-seed walk of three
+           hundred attempts over every end and six types, on a board built to
+           meet its bounds: before each attempt moveCheck is asked, then
+           moveToken is CALLED on the same board, and the two outcomes — moved,
+           nothing, or refused with a sentence — must be identical, sentence and
+           all. The walk moves the board as it goes, so later questions are asked
+           of boards the earlier moves made. Required NOT VACUOUS: moves landed,
+           same-end drops met, and refusals met at a floor, at a ceiling and on
+           scope, with no defect anywhere. --- */
+    var SAME;
+    try {
+      var sTypes = boundedBoard();
+      var sEnds = everyEnd();
+      var sToks = ['hp', 'shield', sTypes.ooze, 'ap', sTypes.zeal, 'dmg'];
+      var seed = 7;
+      function next(n) {
+        seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+        return (seed >>> 8) % n;
+      }
+      var sDiffer = [];
+      var sKinds = { moved: 0, nothing: 0, refused: 0, DEFECT: 0 };
+      var sSaid = { floor: 0, ceiling: 0, scope: 0 };
+      for (var step = 0; step < 300; step++) {
+        var tok = sToks[next(sToks.length)];
+        var a = sEnds[next(sEnds.length)];
+        var b = sEnds[next(sEnds.length)];
+        var asked = outcome(function () {
+          return App.ops.moveCheck(tok, a.side, a.unitId, b.side, b.unitId);
+        });
+        var did = outcome(function () {
+          return App.ops.moveToken(tok, a.side, a.unitId, b.side, b.unitId);
+        });
+        sKinds[did.kind] += 1;
+        if (/has no|keeps at least/.test(did.said)) { sSaid.floor += 1; }
+        if (/holds at most|already holds/.test(did.said)) { sSaid.ceiling += 1; }
+        if (/whole side|allocates/.test(did.said)) { sSaid.scope += 1; }
+        if (asked.kind !== did.kind || asked.said !== did.said) {
+          sDiffer.push(step + ': asked ' + asked.kind + ' "' + asked.said + '" did ' + did.kind
+            + ' "' + did.said + '"');
+        }
+      }
+      t.info('the predicate walk — moved / nothing / refused at a floor / at a ceiling / on scope',
+        [sKinds.moved, sKinds.nothing, sSaid.floor, sSaid.ceiling, sSaid.scope].join(' / '));
+      SAME = [sDiffer.slice(0, 3), sKinds.DEFECT, sKinds.moved > 30, sKinds.nothing > 0,
+        sSaid.floor > 0, sSaid.ceiling > 0, sSaid.scope > 0];
+    } catch (stopped) {
+      SAME = ['THE WALK THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('moveCheck AND moveToken GIVE ONE ANSWER, SENTENCE AND ALL, over three hundred '
+      + 'attempts on a board that meets its bounds — and the walk was not vacuous: moves '
+      + 'landed, same-end drops were met, and refusals were met at a floor, at a ceiling '
+      + 'and on scope, with no defect',
+      SAME, [[], 0, true, true, true, true, true]);
+
+    /* --- WHAT THE SURFACE LIGHTS IS WHAT THE DROP DOES. For each of seven drags
+           a student can start — a unit's health, a reserve's health, a side's
+           action points, a student's unit type, a student's side type, a unit
+           at an authored ceiling's shield, and the damage marker nobody
+           allocates — App.interactions.dragAnswers is read (the function the
+           board is lit with), and then EVERY answer is checked by calling
+           moveToken for that drop on a restored copy of the same board: lit
+           must move, home must do nothing, and a dashed target must refuse
+           with exactly the sentence the answer carries. The answer list must
+           name every end on the board once, in the board's own order. --- */
+    var LIT;
+    try {
+      var lTypes = boundedBoard();
+      var lBoard = JSON.stringify(App.state.get());
+      var lEnds = everyEnd();
+      var drags = [
+        ['hp', 'cats', 'c1'], ['hp', 'cats', null], ['ap', 'cats', null],
+        [lTypes.ooze, 'mechs', 'm1'], [lTypes.zeal, 'cats', null],
+        ['shield', 'mechs', 'm2'], ['dmg', 'mechs', null]
+      ];
+      var lWrong = [];
+      var lCount = { lit: 0, home: 0, no: 0 };
+      var lCovers = true;
+      drags.forEach(function (d) {
+        App.state.restore(lBoard);
+        var answers = App.interactions.dragAnswers(d[0], { side: d[1], unitId: d[2] });
+        var named = answers.map(function (x) { return x.side + '/' + x.unitId; }).join(' ');
+        var want = lEnds.map(function (x) { return x.side + '/' + x.unitId; }).join(' ');
+        if (named !== want) { lCovers = false; }
+        answers.forEach(function (ans) {
+          App.state.restore(lBoard);
+          var did = outcome(function () {
+            return App.ops.moveToken(d[0], d[1], d[2], ans.side, ans.unitId);
+          });
+          lCount[ans.answer] = (lCount[ans.answer] || 0) + 1;
+          var agrees = (ans.answer === 'lit' && did.kind === 'moved')
+            || (ans.answer === 'home' && did.kind === 'nothing')
+            || (ans.answer === 'no' && did.kind === 'refused' && did.said === ans.said);
+          if (!agrees) {
+            lWrong.push(d[0] + ' from ' + d[1] + '/' + d[2] + ' onto ' + ans.side + '/'
+              + ans.unitId + ': lit as ' + ans.answer + ', the drop ' + did.kind + ' "'
+              + did.said + '"');
+          }
+        });
+      });
+      t.info('what the seven drags light — lit / home / refused', [lCount.lit, lCount.home,
+        lCount.no].join(' / '));
+      LIT = [lWrong.slice(0, 3), lCovers, lCount.lit > 0, lCount.home > 0, lCount.no > 0];
+    } catch (stopped) {
+      LIT = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('WHAT A DRAG LIGHTS IS WHAT ITS DROP DOES, END BY END: across seven drags a student '
+      + 'can start, every lit target moves the token when the drop is made, every home end '
+      + 'does nothing, and every dashed target refuses with the very sentence the answer '
+      + 'carried — which is the sentence the drop then shows. Every answer list names every '
+      + 'end on the board once, and all three answers were met',
+      LIT, [[], true, true, true, true]);
+
+    /* --- THE SPECIFIC ANSWERS A ROOM WILL SEE, read by name so a reader can
+           check them against the board. Action points picked up from the cats'
+           pool: the cats' pool is home, the mechs' pool lights, and every unit
+           on both sides reads refused with the scope sentence. A cat's health
+           onto a mech holding six under a ceiling of four is refused with the
+           ceiling sentence; onto the other side's pool it lights. --- */
+    var NAMED;
+    try {
+      boundedBoard();
+      var apA = App.interactions.dragAnswers('ap', { side: 'cats', unitId: null });
+      var byEnd = {};
+      apA.forEach(function (x) { byEnd[x.side + '/' + x.unitId] = x; });
+      var unitsNo = apA.filter(function (x) { return x.unitId !== null; })
+        .every(function (x) { return x.answer === 'no' && /whole side/.test(x.said); });
+      var hpA = App.interactions.dragAnswers('hp', { side: 'cats', unitId: 'c1' });
+      var hpBy = {};
+      hpA.forEach(function (x) { hpBy[x.side + '/' + x.unitId] = x; });
+      NAMED = [byEnd['cats/null'].answer, byEnd['mechs/null'].answer, unitsNo,
+        hpBy['cats/c1'].answer, hpBy['mechs/m1'].answer, hpBy['mechs/m1'].said,
+        hpBy['mechs/null'].answer, hpBy['cats/c2'].answer];
+    } catch (stopped) {
+      NAMED = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE ANSWERS A ROOM WILL SEE: action points from the cats\' pool are home there, '
+      + 'light the mechs\' pool, and are refused on every unit with the scope sentence; a '
+      + 'cat\'s health is home on its own card, refused on a mech holding six under a '
+      + 'ceiling of four with the ceiling sentence, and lights the other side\'s pool and '
+      + 'a cat below the ceiling',
+      NAMED, ['home', 'lit', true, 'home', 'no',
+        'Mech 1 holds at most 4 "Health", so it cannot take another.', 'lit', 'lit']);
+
+    /* --- THE DRAG LIVES IN NO SLICE. Answering every drag writes no key into
+           `ui`, and nothing reachable from the state names a drag — [S09.3]'s
+           pin and check 73c's walk, taken over this feature's vocabulary. --- */
+    var SLICE;
+    try {
+      boundedBoard();
+      var uiBefore = Object.keys(App.state.get().ui).sort().join(',');
+      App.interactions.dragAnswers('hp', { side: 'cats', unitId: 'c1' });
+      App.interactions.dragAnswers('ap', { side: 'mechs', unitId: null });
+      var named = [];
+      (function walk(v, at) {
+        if (v === null || typeof v !== 'object') { return; }
+        Object.keys(v).forEach(function (k) {
+          if (/drag|drg|ghost|pointer/i.test(k)) { named.push(at + '.' + k); }
+          walk(v[k], at + '.' + k);
+        });
+      })(App.state.get(), 'state');
+      SLICE = [Object.keys(App.state.get().ui).sort().join(',') === uiBefore, named,
+        App.interactions.dragInFlight()];
+    } catch (stopped) {
+      SLICE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE DRAG LIVES IN NO SLICE: answering drags adds no key to the ui slice, nothing '
+      + 'reachable from the state is named after a drag, a ghost or a pointer, and nothing '
+      + 'is in flight when no pointer is down',
+      SLICE, [true, [], '']);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the drag suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();

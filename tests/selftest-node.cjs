@@ -2638,13 +2638,32 @@ check(
    a comment. That is [C14.4]'s and refCard's shipped rule arriving from the
    other side: a check that scans the source for a token is a check a helpful
    comment can trip, so the artifact DESCRIBES the accessor rather than
-   spelling it. The row was right and the comment was rewritten. */
+   spelling it. The row was right and the comment was rewritten.
+
+   AND THE COUNT WENT 8 -> 10 UNDER D-41, TURNED IN THE OPEN FOR THE FIFTH
+   TIME. Plan 05-D41b. RED recorded first: with the drag ghost in and this row
+   untouched, it printed `occurrences: 10` with the two new sites
+   `.setProperty('--drg-x', ...)` and `.setProperty('--drg-y', ...)` as the
+   only strays.
+
+   The allowlist widens by one prefix and the CLAIM does not move, for the
+   reason it has not moved four times before: this row's own last sentence is
+   the test, and the point a dragged token's picture follows is not a figure
+   drawn with a length. D-41's ghost has to sit UNDER THE POINTER, which is a
+   coordinate only a pointer event knows; there is no stylesheet answer to
+   "where is the student's finger right now".
+
+   --drg-x AND --drg-y, ON THE GHOST, the same NARROW access the --fgn- and
+   --fgu- pairs are: read by exactly one rule in [C04] on exactly one element,
+   written by exactly one function ([S06.16]'s dragGhostAt). Still custom
+   properties rather than `left`/`top` longhands, for the topbar pair's reason:
+   the stylesheet keeps the RULE and the script supplies only the point. */
 const styleAccesses = html.split('.style').length - 1;
 const styleSites = html.split('.style').slice(1).map(
   (tail) => tail.slice(0, 64).replace(/\s+/g, ' ')
 );
 const STYLE_OK = ['.setProperty(\'--topbar-', '.setProperty(\'--fgn-',
-  '.setProperty(\'--fgu-'];
+  '.setProperty(\'--fgu-', '.setProperty(\'--drg-'];
 const styleStrays = styleSites.filter(
   (site) => !STYLE_OK.some((ok) => site.indexOf(ok) === 0)
 );
@@ -2654,7 +2673,9 @@ check(
     + 'shared scale and a midpoint marker each need an inline length, so this '
     + 'is the cheapest available proof that none of the three exists anywhere '
     + 'on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12, 2 -> 4 UNDER '
-    + 'D-36, 4 -> 6 UNDER D-37 AND 6 -> 8 UNDER D-39 P1-4, and the row reads '
+    + 'D-36, 4 -> 6 UNDER D-37, 6 -> 8 UNDER D-39 P1-4 AND 8 -> 10 UNDER '
+    + 'D-41, where --drg-x and --drg-y are the point a dragged token\'s ghost '
+    + 'follows, which only a pointer event knows; and the row reads '
     + 'each occurrence IN CONTEXT rather than counting '
     + 'them: --topbar-now is the bar\'s height and --topbar-foot its bottom '
     + 'edge, published from one measurement of one element because a fixed '
@@ -2678,7 +2699,7 @@ check(
     + 'taking the prefix as an argument would hold the count down and defeat '
     + 'this reading. A bar '
     + 'drawn with an inline length fails this however many accesses there are',
-  styleAccesses === 8 && styleStrays.length === 0,
+  styleAccesses === 10 && styleStrays.length === 0,
   'occurrences: ' + styleAccesses + ' | sites: ' + JSON.stringify(styleSites)
     + ' | not an allowed publication: ' + JSON.stringify(styleStrays)
 );
@@ -4739,6 +4760,16 @@ console.log('scan: ' + renderedText.length + ' rendered strings read from #app (
 // every one of them is separately pinned by checks 49-55 and 58-60, which
 // assert them by name. This floor is only ever about the walk still reaching
 // the page.
+//
+// PLAN 05-D41b RE-MEASURED IT AND DID NOT MOVE IT. D-41's pool adds exactly six
+// strings to this harvest — its name, its reserve label and the empty reserve's
+// sentence, on each side — and measured +6 at 2x2, 3x3, 5x3 and 9x3 alike, so
+// the shipped figure went 220 -> 226 and the per-card cost of 7 did not move.
+// The floor has sat at 117 since plan 03.1-04 while the harvest grew past 200:
+// it is a tripwire for a walk that reads NOTHING, and DIALOG_FLOOR's note gives
+// the reason a tripwire is not raised to follow a growing page — a ratchet here
+// would redden the next plan that legitimately takes a string off the board.
+// FIGHT_FLOOR is the constant that IS a measured base, and it moved (248 -> 254).
 check(
   '47. the rendered-page walk actually reaches the page, so a clean result is a '
     + 'read page rather than an empty one',
@@ -6090,7 +6121,32 @@ A.state.flush();
    what the PAGE holds rather than what the SCREEN shows, and the browser cells
    are where a region actually being on screen is asserted — 25c reads
    getComputedStyle(#roundrules).display and requires 'none' in this very view. */
-const FIGHT_FLOOR = 248;
+/* HISTORY — 248 -> 254, PLAN 05-D41b. D-41's pool is a box in each column
+   head, and it draws the same strings on every roster: its name, its reserve
+   line's label, and — with the reserve empty, which is what every board a
+   student has not dragged on carries — the sentence saying what goes there.
+   Three per side, drawn by factionHead once per side and by nothing per unit,
+   so all six land on the roster-INDEPENDENT constant this floor is.
+
+   RE-DERIVED BY THE METHOD ABOVE, not by subtraction from the shipped board.
+   Four roster shapes, undressed, on a scratch copy of HEAD (2e80179) and on the
+   working tree with the pool in, harvested by this file's own harvestInto
+   copied verbatim and booted the way tests/selftest-dom.cjs boots:
+
+                     setup before  after  delta     fight before  after  delta
+       2 x 2                 157    163     +6              305    311     +6
+       3 x 3                 171    177     +6              365    371     +6
+       5 x 3                 185    191     +6              425    431     +6
+       9 x 3                 213    219     +6              545    551     +6
+
+   THE PER-UNIT COST IS UNCHANGED IN EVERY COLUMN (fight: 30 a unit before
+   and after), which is the check on the re-measurement — the card decorations
+   D-41b adds are data-* marks and a hidden empty said line, and none of them is
+   a string. A reserve that HOLDS tokens swaps the empty sentence for one
+   reading per type, each with a tooltip and an accessible name, so a dragged
+   board draws MORE and never fewer; +6 is the lower bound this move must be,
+   the same argument that took 116 rather than 119 above. So 248 + 6 = 254. */
+const FIGHT_FLOOR = 254;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');

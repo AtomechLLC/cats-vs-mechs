@@ -119,6 +119,13 @@ function makeStubDom() {
     // over a dialog that still said nothing. Same three-part rule as every
     // entry above, in BOTH directions.
     'tok-pick-said',
+    // plan 05-D41b — D-41's drag layer, a static empty sibling of #err-panel
+    // OUTSIDE #app. [S06.16] finds it by id to hold the drag ghost; without the
+    // node the ghost is never drawn and a row about it would pass over nothing.
+    // Same three-part rule as every entry here: the id, this entry and the
+    // stub node arrive together, and section 5b fails the run in BOTH
+    // directions if one of the three is missing.
+    'drag-layer',
     // plan 03-05 — the reference band, full width below both columns. The
     // node is built a dozen lines below in the same change: this list and the
     // stub page disagreeing in EITHER direction fails the run at section 5b.
@@ -905,6 +912,12 @@ function makeStubDom() {
   panel.appendChild(idNode('err-detail', 'textarea'));
   panel.appendChild(idNode('err-dismiss', 'button'));
   panel.appendChild(idNode('err-reset', 'button'));
+
+  // plan 05-D41b — the drag layer, in the shell's own place: after the panel,
+  // outside #app, empty. Its one attribute is copied from the markup.
+  const dragLayer = idNode('drag-layer');
+  dragLayer.setAttribute('aria-hidden', 'true');
+  body.appendChild(dragLayer);
 
   // A hand-made stand-in for the STATIC #topbar markup, which this stub cannot
   // produce because it has no HTML parser. These two controls ship in
