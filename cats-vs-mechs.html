@@ -9531,23 +9531,31 @@ App.data = (function () {
   // nobody read back, which is how both of this phase's grammar bugs stayed
   // invisible for as long as they did:
   //   45     the shipped board, untouched;
-  //   344    a realistic 12v5 student build — one built-in renamed, one
+  //   346    a realistic 12v5 student build — one built-in renamed, one
   //            restyled, two authored token types, four tallies, three authored
   //            actions carrying a cost, a requirement and a transformation, one
   //            shipped action renamed, one unit removed so the ids are
-  //            non-contiguous, and (D-35) two types bounded and three round
-  //            rules written;
+  //            non-contiguous, (D-35) two types bounded and three round rules
+  //            written, and (D-41) three dragged tokens left in the reserves;
   //   283    24v24, every unit a distinct health and shield pair, nothing
   //            authored;
   //   909    24v24 exercising everything Phases 2.1 and 3.1 shipped — all six
   //            authored token types, a tally for every type on every unit, six
   //            authored actions, ordinary short names;
-  //   3542   an adversarial board: the above, plus non-contiguous ids on both
+  //   3623   an adversarial board: the above, plus non-contiguous ids on both
   //            sides, two-digit values everywhere, all 23 nameable things given
   //            distinct 24-character ASCII names, a distinct bound pair on
-  //            every one of the eleven types and the round-rule list filled to
-  //            its cap;
-  //   3744   the same board with distinct 23-emoji names.
+  //            every one of the eleven types, the round-rule list filled to
+  //            its cap, and all eight unit-kept types in both reserves at a
+  //            two-digit count;
+  //   3825   the same board with distinct 23-emoji names.
+  //
+  // RE-MEASURED UNDER D-41, the run's figures again. A reserve entry is an
+  // ordinal and a count, FIVE characters at its widest with the separator, so
+  // both reserves full of every unit-kept type on the ceiling board cost 81 —
+  // 2% — and the realistic board's three parked tokens cost TWO, because the
+  // moves that parked them also shortened the streams they came off. THE
+  // SHIPPED BOARD DID NOT MOVE AGAIN: an empty reserve writes no section.
   //
   // RE-MEASURED UNDER D-35 AND THE FIGURES ARE THE RUN'S, not the old ones
   // adjusted. What the two features cost, decomposed: FIVE CHARACTERS per
@@ -9835,7 +9843,8 @@ App.data = (function () {
   //
   // CODE_TARGET is the design target for a board a student ACTUALLY builds, and
   // it is a target rather than a guarantee: the realistic 12v5 measured 344 and
-  // the fully authored 24v24 measured 909, both re-measured under D-35. See the
+  // the fully authored 24v24 measured 909, both re-measured under D-35, and the
+  // 12v5 measured 346 once D-41 parked three tokens in its reserves. See the
   // measured decomposition beside MAX_CUSTOM_ACTIONS above for the rest of the
   // table and for what the bounds and the round rules cost on the wire.
   var CODE_TARGET = 512;
@@ -40876,7 +40885,22 @@ App.selftest = (function () {
            and moves no token, and its name matches neither family. Both lists
            were read back after it joined and both still answer the single name
            advanceRound, which is what these two rows say. Nothing was added to
-           either family to make that true. --- */
+           either family to make that true.
+
+           RE-READ AGAIN BY D-41 AND AGAIN NOT WIDENED, AND THIS TIME THE
+           SENTENCE ABOVE DOES NOT TRANSFER. D-41 put two names on the export
+           list — moveToken and its reader readReserve — and moveToken is the
+           first non-applier in this file that DOES move a token: one leaves a
+           unit, a side or a reserve and lands on another. What keeps it off
+           this list is not that it moves nothing but WHAT it is: allocation on
+           the build board, both ends named by the student's own drag, the
+           steppers' act done in one commit instead of two. It spends no
+           declaration, resolves no action, tests nothing against a rule and
+           never touches the fight slice — which [S09.13] holds as a
+           byte-identical fight over a full reserve and an empty one, rather
+           than leaving to this paragraph. Neither new name matches either
+           family, both lists were read back after they joined, and both still
+           answer advanceRound alone. --- */
     t.eq('the narrow applier family this suite was written against and the '
       + 'wider one the boundary row below uses answer the SAME single name, '
       + 'and it is advanceRound — so a later plan cannot satisfy one list and '
@@ -41606,6 +41630,33 @@ App.selftest = (function () {
         });
       });
     }
+    /* D-41. A RESERVE FILLS ONE TOKEN AT A TIME AND FROM NOWHERE BUT A UNIT —
+       that is the conservation rule, and a fixture cannot write a reserve
+       without breaking it. So a fixture that wants `count` of a type in a
+       side's reserve sets a DONOR unit to exactly that many, moves every one
+       of them off through the real op, and then puts the donor back to the
+       number it held. Nothing else on the board moves, so the difference in
+       the code is the reserve section and nothing besides. The three setters
+       are absolute on purpose: a donor's old number may be anything, and an
+       absolute write puts it back whatever it was. */
+    function unitHolds(side, id, tok) {
+      var unit = App.state.get().build[side].units.find(function (u) { return u.id === id; });
+      if (tok === 'hp') { return unit.maxHp; }
+      if (tok === 'shield') { return unit.shield; }
+      return (unit.tally && Object.prototype.hasOwnProperty.call(unit.tally, tok))
+        ? unit.tally[tok] : 0;
+    }
+    function unitSet(side, id, tok, n) {
+      if (tok === 'hp') { App.ops.setUnitMaxHp(side, id, n); return; }
+      if (tok === 'shield') { App.ops.setUnitShield(side, id, n); return; }
+      App.ops.setTally(side, id, tok, n);
+    }
+    function parkInReserve(side, donor, tok, count) {
+      var was = unitHolds(side, donor, tok);
+      unitSet(side, donor, tok, count);
+      for (var k = 0; k < count; k++) { App.ops.moveToken(tok, side, donor, side, null); }
+      unitSet(side, donor, tok, was);
+    }
     // Distinct maximum-length names for the two ceiling boards. Twenty-four
     // letters for one, twenty-three astral emoji for the other — the second is
     // 46 UTF-16 units and 92 bytes, which is the case a name cap read in code
@@ -41666,6 +41717,18 @@ App.selftest = (function () {
             made.forEach(function (tok, k) {
               App.ops.setTally(side, id, tok, 11 + ((j * 13 + k * 29) % 88));
             });
+          });
+        });
+        /* D-41 AT THE CEILING. Every type kept on each unit — health, shield
+           and all six of the student's own — is parked in BOTH sides'
+           reserves, at a count of two base36 digits, which is the widest a
+           reserve count is on the wire because MAX_RESERVE is two digits. The
+           counts are distinct so no reading can be mistaken for a repeated
+           one. Parked HERE, before the bounds below, for board B's reason: a
+           bound authored first would have refused the donor's step. */
+        ['cats', 'mechs'].forEach(function (side) {
+          ['hp', 'shield'].concat(made).forEach(function (tok, k) {
+            parkInReserve(side, unitIds(side)[0], tok, 36 + k);
           });
         });
         ['cats', 'mechs'].forEach(function (side) {
@@ -41733,8 +41796,12 @@ App.selftest = (function () {
           + 'and two changes, a shipped action renamed, and a unit removed so the ids have '
           + 'a hole in them. RE-MEASURED UNDER D-35, which added two authored bounds and '
           + 'three round rules to this fixture so the refusal matrix has a bounds field '
-          + 'and a rules section to tamper: 297 before, 344 after',
-        measured: 344,
+          + 'and a rules section to tamper: 297 before, 344 after. RE-MEASURED UNDER D-41, '
+          + 'which parks three dragged tokens in the two reserves — one of them a cat\'s '
+          + 'Poison in the MECHS\' reserve: 346, and only two more, because the nine '
+          + 'characters of reserve section are almost paid for by the three moves '
+          + 'shortening the stat and tally streams they came off',
+        measured: 346,
         drive: function () {
           App.ops.resetToDefaults();
           fillTo('cats', 12);
@@ -41786,6 +41853,18 @@ App.selftest = (function () {
           App.ops.setRoundRule(0, 'cats', 'ap', 4);
           App.ops.setRoundRule(2, 'catsEach', poison, -1);
           App.ops.setRoundRule(3, 'cats', pace, 2);
+          /* D-41 ON THE BOARD A STUDENT COULD ACTUALLY BUILD: three tokens
+             dragged off units and not yet onto another — a point of health
+             into the cats' reserve, and two Poison into the MECHS' reserve,
+             one of them off a CAT, which is the amendment's any-to-any. Three
+             drags is what a student setting a board up and changing their
+             mind leaves behind. It is also the refusal matrix's fixture, so
+             this is what gives the reserve tamper rows below a section to
+             edit. After the side's own tally was written, which is the order
+             the decoder places the two keys in. */
+          App.ops.moveToken('hp', 'cats', 'c1', 'cats', null);
+          App.ops.moveToken(poison, 'mechs', 'm1', 'mechs', null);
+          App.ops.moveToken(poison, 'cats', 'c4', 'mechs', null);
           return liveBuild();
         }
       },
@@ -41855,8 +41934,11 @@ App.selftest = (function () {
           + 'all three term caps to four and drove the cost list to its cap here too: it '
           + 'read 2984 before that change and 3434 after it. RE-MEASURED AGAIN UNDER '
           + 'D-35, which gives all eleven types a distinct authored pair of bounds and '
-          + 'fills the round-rule list to MAX_ROUND_RULES across all four parties: 3542',
-        measured: 3542,
+          + 'fills the round-rule list to MAX_ROUND_RULES across all four parties: 3542. '
+          + 'AND AGAIN UNDER D-41, which parks every one of the eight types kept on each '
+          + 'unit in BOTH reserves at a two-digit count — the widest a reserve count is '
+          + 'on the wire, since MAX_RESERVE is two base36 digits: 3623',
+        measured: 3623,
         drive: ceilingBoard(longAscii)
       },
       {
@@ -41865,8 +41947,10 @@ App.selftest = (function () {
           + 'which is twice the UTF-16 units and four times the bytes. RE-MEASURED UNDER '
           + 'D-32: 3186 before, 3636 after. AND AGAIN UNDER D-35: 3744, the same 108 '
           + 'characters its ASCII twin gained, because bounds and rules are ordinals and '
-          + 'numbers and carry no text for a name table to pay for',
-        measured: 3744,
+          + 'numbers and carry no text for a name table to pay for. AND UNDER D-41: 3825, '
+          + 'the same 81 its twin gained, for the same reason — a reserve is ordinals and '
+          + 'counts',
+        measured: 3825,
         drive: ceilingBoard(longAstral)
       }
     ];
@@ -42058,6 +42142,106 @@ App.selftest = (function () {
           App.serialize.encode(back.build) === code].join(' ');
       })(), App.data.MAX_ROUND_RULES + ' true');
 
+    /* --- D-41: THE WIRE STAYS v1 AGAIN, AND AGAIN IT IS EARNED BY A LITERAL.
+           The reserve is ONE SECTION ON THE END, written only when something is
+           in it, after the rules section and never before it — so every body
+           this file wrote before D-41 is one of the shapes [S04.3] still
+           admits, and a code that carries no reserve section means an empty
+           reserve, which is what every board written then had.
+
+           THE STRING BELOW IS A REAL v1 CODE, produced by driving the artifact
+           AT COMMIT 1966699 — the commit before D-41 — through renameTokenType,
+           createTokenType at BOTH scopes, setTally at both scopes, setUnitMaxHp,
+           removeUnit, setTokenBounds and setRoundRule. It carries seventeen
+           sections, the rules among them, which is the tail shape the letter-
+           reading of the tail had to go on admitting; D35_OLD_CODE above is the
+           sixteen-section shape and still loads beside it. Pasted, not derived,
+           for D35_OLD_CODE's reason. --- */
+    var D41_OLD_CODE = 'v1~NUGxhdGluZw.Um90.WmVhbA~V2.0.2.0.0.0.2r_C1.4.4.0.0.1.0.6'
+      + '_C2.5.1.0.1.2.0.2r~A8~3~8*3!0~1*-5!3-6*~4!6~~~B3~3~6!3-8!3-6!3~3*~~6!2~~'
+      + 'R0.1.2u_1.1.2u_3.5.2q~bza0';
+    var d41Old = App.serialize.decode(D41_OLD_CODE);
+
+    t.eq('A BUILD CODE FROM BEFORE D-41 STILL LOADS, AND LOADS THE BOARD IT WAS WRITTEN '
+      + 'ON — a renamed Shield, a type of the student\'s own on each unit carrying a '
+      + 'tally and a bound, one on the whole side carrying a tally, a mech at eight '
+      + 'health, a cat removed from the middle of the roster and three round rules — '
+      + 'WITH AN EMPTY RESERVE ON BOTH SIDES, which is the only honest reading of a code '
+      + 'written before a reserve existed: no `reserve` key on either side at all',
+      d41Old.ok !== true ? String(d41Old.why) + '/' + String(d41Old.what)
+        : [d41Old.build.tokens.shield.name, d41Old.build.tokens.t1.name,
+          d41Old.build.cats.units[1].tally.t1, d41Old.build.mechs.tally.t2,
+          d41Old.build.mechs.units[1].maxHp, d41Old.build.cats.units.length,
+          d41Old.build.rules.length,
+          Object.keys(d41Old.build.cats).join(','),
+          Object.keys(d41Old.build.mechs).join(',')].join(' '),
+      'Plating Rot 3 2 8 8 3 id,name,ap,units,actions id,name,ap,units,actions,tally');
+
+    t.eq('AND THE FILE WRITES THAT OLD BOARD BACK AS THE SAME CODE, CHARACTER FOR '
+      + 'CHARACTER: the reader and the writer agree about a code from before the change, '
+      + 'and an empty reserve on the way out writes no section — which is the '
+      + 'differences-only rule holding for the newest section exactly as it holds for '
+      + 'the rules',
+      d41Old.ok === true ? App.serialize.encode(d41Old.build) : 'refused', D41_OLD_CODE);
+
+    t.eq('AND A TOKEN MOVED INTO THE RESERVE AND BACK OUT LEAVES THE SHIPPED BOARD\'S '
+      + 'CODE EXACTLY WHERE IT WAS — the same forty-five characters, and no `reserve` key '
+      + 'left behind on either side. The sparse rule (a count of zero deletes its key, '
+      + 'an empty bag deletes itself) and the section rule (an empty reserve writes '
+      + 'nothing) are the two halves of one promise, and this reads both',
+      (function () {
+        App.ops.resetToDefaults();
+        App.ops.moveToken('hp', 'cats', 'c1', 'cats', null);
+        var parked = App.serialize.encode(liveBuild());
+        App.ops.moveToken('hp', 'cats', null, 'cats', 'c1');
+        var b = App.state.get().build;
+        return [parked.indexOf(App.data.CODE_SEP.section + 'P') !== -1,
+          App.serialize.encode(liveBuild()),
+          Object.prototype.hasOwnProperty.call(b.cats, 'reserve'),
+          Object.prototype.hasOwnProperty.call(b.mechs, 'reserve')];
+      })(), [true, 'v1~N~V~A9~3~9*3!0~9*~~~~B3~3~3*6!3~3*~~~~7tvo', false, false]);
+
+    t.eq('A RESERVE ROUND TRIPS EXACTLY AND RE-ENCODES BYTE FOR BYTE — both sides\' '
+      + 'reserves at once, a type of the student\'s own among them, one bag arriving from '
+      + 'a unit on the OTHER side, and a board where only the MECHS hold anything, whose '
+      + 'cats bag is written as nothing before the record separator. The bag order is '
+      + 'ordinal order whatever order the drags came in, which is what makes the same '
+      + 'reserve always spell the same way',
+      (function () {
+        App.ops.resetToDefaults();
+        var ooze = App.ops.createTokenType({ name: 'Ooze', shape: 'circ', color: 'violet',
+          glyph: '', scope: 'unit' });
+        App.ops.setTally('mechs', 'm2', ooze, 4);
+        App.ops.moveToken(ooze, 'mechs', 'm2', 'cats', null);
+        App.ops.moveToken('shield', 'mechs', 'm1', 'cats', null);
+        App.ops.moveToken('hp', 'cats', 'c3', 'mechs', null);
+        var both = liveBuild();
+        var bothCode = App.serialize.encode(both);
+        var bothBack = App.serialize.decode(bothCode);
+        App.ops.moveToken(ooze, 'cats', null, 'mechs', 'm3');
+        App.ops.moveToken('shield', 'cats', null, 'mechs', 'm1');
+        var oneSide = liveBuild();
+        var oneCode = App.serialize.encode(oneSide);
+        var oneBack = App.serialize.decode(oneCode);
+        // THE BOARD IS COMPARED KEY-SORTED AND THE CODE BYTE FOR BYTE, which is
+        // the split every BOARD row above makes. The first spelling of this row
+        // compared the boards as raw strings and went RED on its own fixture:
+        // the live cats' reserve held {t1, shield} because the drags came in
+        // that order, and the decoder builds a bag in ORDINAL order. No bag in
+        // this file keeps its keys in any order — a tally bag behaves
+        // identically — so the row was demanding more than the contract. The
+        // ORDER-SENSITIVE half of the claim is the re-encode, and a reserve
+        // written in the order it was dragged would redden that.
+        function exact(back, live, code) {
+          return back.ok === true && stableText(back.build) === stableText(live)
+            && App.serialize.encode(back.build) === code;
+        }
+        return [exact(bothBack, both, bothCode), both.cats.reserve, both.mechs.reserve,
+          bothCode.split(App.data.CODE_SEP.section).slice(-2)[0],
+          exact(oneBack, oneSide, oneCode),
+          oneCode.split(App.data.CODE_SEP.section).slice(-2)[0]];
+      })(), [true, { shield: 1, t1: 1 }, { hp: 1 }, 'P2!1.5!1_0!1', true, 'P_0!1']);
+
     App.ops.resetToDefaults();
     App.state.flush();
 
@@ -42077,10 +42261,16 @@ App.selftest = (function () {
        claim this row makes is about the DESIGN TARGET and 344 is still 168
        characters inside it. The two numbers a reader needs are both here: what a
        realistic student build costs, and how much of SHARE-04's budget that is. */
+    /* AND RE-MEASURED AGAIN UNDER D-41, IN THE SAME SHAPE: 344 became 346 when
+       board B was given three tokens in its reserves, and the threshold does
+       not move for the reason it did not move under D-35. The label carried
+       the old figure, and a green row whose sentence states a number the board
+       no longer measures is the stale-INFO-row failure one level up. */
     t.ok('a board a student could actually build fits in 400 characters, and it measures '
-      + '344 — a margin of 56, and comfortably inside the design target of 512 with the '
-      + 'whole of D-35 authored on it: two token types bounded and three round rules '
-      + 'written, which together cost 47 characters',
+      + '346 — a margin of 54, and comfortably inside the design target of 512 with the '
+      + 'whole of D-35 authored on it — two token types bounded and three round rules '
+      + 'written, which together cost 47 characters — and three tokens parked in D-41\'s '
+      + 'reserves, which cost two',
       measured.B < 400);
     /* TURNED IN THE OPEN UNDER D-32, AND RE-MEASURED RATHER THAN SCALED. This
        row read "fits in 800 characters, and it measures 675 — a margin of 125"
@@ -42367,6 +42557,35 @@ App.selftest = (function () {
         putRules(made, many);
       });
     }
+    /* D-41's TAMPER SITE. The reserve is the section AFTER the rules, which
+       for this fixture is parts[17] — board B parks a point of health in the
+       cats' reserve and two Poison in the mechs', so the section is written
+       and both bags have something in them. editReserve replaces the CATS bag
+       with one hand-written entry and leaves the mechs' bag standing, so every
+       row below edits exactly one thing and the rest of the section is still
+       the one the encoder wrote. ORDER_SIZE is the number of types this code
+       itself carries — five built-ins and the student's own records — so an
+       ordinal equal to it names the next type that would have existed, which
+       is the shape a departed type's count takes on the wire. */
+    var RESERVE_FIELD = 17;
+    function reserveBagsOf(made) {
+      return made[RESERVE_FIELD].slice(1).split(App.data.CODE_SEP.record);
+    }
+    function putReserve(made, bags) {
+      made[RESERVE_FIELD] = 'P' + bags.join(App.data.CODE_SEP.record);
+    }
+    function editReserve(entry) {
+      return tampered(function (made) {
+        var bags = reserveBagsOf(made);
+        bags[0] = entry;
+        putReserve(made, bags);
+      });
+    }
+    var ORDER_SIZE = App.data.TOKEN_IDS.length + vocabRecordsOf(hostileParts.slice())
+      .filter(function (rec) { return rec.charAt(0) === 'C'; }).length;
+    function reserveEntry(tokenOrdinal, countText) {
+      return App.serialize.n36(tokenOrdinal) + App.data.CODE_SEP.term + countText;
+    }
     function overTerms(fieldAt, count, isChange) {
       return tampered(function (made) {
         var records = made[ACTION_FIELD].split(App.data.CODE_SEP.record);
@@ -42562,7 +42781,76 @@ App.selftest = (function () {
         what_it_is: 'a round rule that changes nothing, which the write path refuses and '
           + 'the wire must refuse too — a line a student reads every round and cannot act '
           + 'on has no place in a list they have to check against the board',
-        code: editRule(2, App.serialize.n36(App.data.MAX_XF_DELTA)) }
+        code: editRule(2, App.serialize.n36(App.data.MAX_XF_DELTA)) },
+
+      /* --- THE NINE D-41 ADDED, one per guard [S04.3] runs over the reserve,
+             and every one reaching a guard NO OTHER ROW IN THIS MATRIX
+             REACHES. The dispatch named four shapes — a negative count, an
+             over-cap count, a reserve naming a side-scope type and one naming
+             a departed type — and the other five are here because the decoder
+             grew a guard for each, and a guard no row reaches is a guard
+             nobody would notice being deleted. Nine distinct `what` strings,
+             which is what says there are nine guards and not one loop. --- */
+      { at: 'content', why: 'content', what: 'a reserve is the wrong shape',
+        what_it_is: 'a reserve section carrying THREE bags where there are two sides — the '
+          + 'shape a code from a file that had grown a third side would arrive in',
+        code: tampered(function (made) {
+          putReserve(made, reserveBagsOf(made).concat(['']));
+        }) },
+      { at: 'content', why: 'content', what: 'a reserve entry is the wrong shape',
+        what_it_is: 'a reserve entry that names a type and carries no count, which is what a '
+          + 'section cut off inside an entry looks like from the inside',
+        code: editReserve(App.serialize.n36(0)) },
+      { at: 'content', why: 'content', what: 'a reserve names no token type',
+        what_it_is: 'a reserve holding a type the code itself does not carry — the ordinal '
+          + 'one past its own vocabulary, which is the shape a DEPARTED type\'s count takes, '
+          + 'refused by its own reading rather than by a dereference of undefined',
+        code: editReserve(reserveEntry(ORDER_SIZE, '1')) },
+      { at: 'content', why: 'content', what: 'a reserve holds only types kept on each unit',
+        what_it_is: 'a reserve holding ACTION POINTS, a type kept on the whole side — whose '
+          + 'number already lives on the side, so a reserve of it would be a second place '
+          + 'for one number and two readings of it that could disagree',
+        code: editReserve(reserveEntry(App.data.TOKEN_IDS.indexOf('ap'), '2')) },
+      { at: 'content', why: 'content', what: 'a reserve names a type twice',
+        what_it_is: 'one side\'s reserve naming the same type twice, which would leave the '
+          + 'decoder choosing which count to believe',
+        code: editReserve(reserveEntry(0, '1') + App.data.CODE_SEP.field
+          + reserveEntry(0, '2')) },
+      { at: 'content', why: 'content', what: 'a reserve count is not a whole number',
+        what_it_is: 'a NEGATIVE reserve count — base36 has no spelling for one, so it arrives '
+          + 'as a count this file cannot read at all, and a reserve owing tokens is a board '
+          + 'no move could have left behind',
+        code: editReserve(reserveEntry(0, '-3')) },
+      { at: 'content', why: 'content', what: 'a reserve count is out of bounds',
+        what_it_is: 'a reserve count one past MAX_RESERVE, which moveToken refuses to reach '
+          + 'and the wire must refuse to carry',
+        code: editReserve(reserveEntry(0, App.serialize.n36(App.data.MAX_RESERVE + 1))) },
+      { at: 'content', why: 'content', what: 'a reserve count of zero is not written down',
+        what_it_is: 'a reserve count of zero — the op deletes the key rather than store one, '
+          + 'so a written zero is a second spelling of a board that already has one',
+        code: editReserve(reserveEntry(0, '0')) },
+      { at: 'content', why: 'content', what: 'an empty reserve is not written down',
+        what_it_is: 'a reserve section with nothing in either bag — an empty reserve\'s one '
+          + 'spelling is NO section, which is what keeps the shipped board at its 45 '
+          + 'characters, and a second spelling of it would be a second code for one board',
+        code: tampered(function (made) { putReserve(made, ['', '']); }) },
+
+      /* --- AND TWO D-41 SHAPE ROWS. The tail is now read by its letters, so
+             the two ways a tail can be out of place are refused as SHAPES
+             before any value is read — the rules after the reserve, and the
+             reserve written twice. Neither is anything [S04.2] writes. --- */
+      { at: 'shape', why: 'shape',
+        what_it_is: 'the reserve section written BEFORE the rules section, which is the one '
+          + 'order the tail may not take, because there is one spelling of each board',
+        code: tampered(function (made) {
+          var rules = made[RULE_FIELD];
+          made[RULE_FIELD] = made[RESERVE_FIELD];
+          made[RESERVE_FIELD] = rules;
+        }) },
+      { at: 'shape', why: 'shape',
+        what_it_is: 'the reserve section written twice, which would leave the decoder '
+          + 'choosing which of two reserves to believe',
+        code: tampered(function (made) { made.push(made[RESERVE_FIELD]); }) }
     ];
 
     REFUSALS.forEach(function (row) {
@@ -42606,12 +42894,19 @@ App.selftest = (function () {
        twelve is still in the sentence, because the point of the number is that
        the matrix is complete against a list somebody drew up, and a total with
        no provenance is a number nobody can check. */
-    t.eq('there are TWENTY-THREE content rows — research measured twelve, D-32 added one '
-      + 'per term list when it made all three caps reachable from a paste, and D-35 '
-      + 'added eight: two for a token type’s authored bounds and six for the round '
-      + 'rules. The matrix is twenty-eight tamper shapes, of which one is the version, '
-      + 'two are the digest and two are not a build code at all',
-      contentRows.length, 23);
+    /* AND A THIRD TIME UNDER D-41, IN THE SAME SHAPE. Nine content shapes were
+       added, one per guard [S04.3] runs over the reserve, and two SHAPE rows
+       for a tail section out of place. The recorded RED is the run on the
+       commit that added them with this row still at 23 — it printed 32 — and
+       the row below still at 22, which printed 31. Research's twelve stays in
+       the sentence for the reason it stayed the last two times. */
+    t.eq('there are THIRTY-TWO content rows — research measured twelve, D-32 added one '
+      + 'per term list when it made all three caps reachable from a paste, D-35 '
+      + 'added eight — two for a token type’s authored bounds and six for the round '
+      + 'rules — and D-41 added nine, one per guard over the reserve. The matrix is '
+      + 'thirty-nine tamper shapes, of which one is the version, two are the digest, two '
+      + 'are not a build code at all and two are a tail section out of place',
+      contentRows.length, 32);
     t.ok('every content row\'s code carries a digest RECOMPUTED over its own tampered body, '
       + 'which is the only reason any of them reaches the guard it names rather than '
       + 'stopping four characters earlier — without this the matrix is one guard asserted '
@@ -42622,14 +42917,15 @@ App.selftest = (function () {
       + 'row is a code that was never tampered at all', contentRows.every(function (row) {
         return bodyOf(row.code) !== bodyOf(hostileCode);
       }));
-    t.eq('the twenty-three name their guards as twenty-three readings rather than one '
-      + 'repeated — twenty-two distinct `what` strings over twenty-three rows, the '
-      + 'repeat being the roster read from both ends. D-32\'s three and D-35\'s eight '
-      + 'are eleven DISTINCT strings and not two cap messages with nouns in them, which '
-      + 'is what says the decoder runs a separate guard over each separate field rather '
-      + 'than one loop that would be green over a code the first cap had stopped',
+    t.eq('the thirty-two name their guards as thirty-two readings rather than one '
+      + 'repeated — thirty-one distinct `what` strings over thirty-two rows, the '
+      + 'repeat being the roster read from both ends. D-32\'s three, D-35\'s eight and '
+      + 'D-41\'s nine are twenty DISTINCT strings and not three cap messages with nouns '
+      + 'in them, which is what says the decoder runs a separate guard over each '
+      + 'separate field rather than one loop that would be green over a code the first '
+      + 'cap had stopped',
       contentRows.map(function (row) { return row.what; })
-        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 22);
+        .filter(function (word, at, all) { return all.indexOf(word) === at; }).length, 31);
 
     /* --- AND THE VERSION IS READ BEFORE THE DIGEST IS EVEN COMPUTED. The row
            above uses an untouched body, so its digest is still valid and the
@@ -42844,10 +43140,20 @@ App.selftest = (function () {
        stringifies differently from the one that was encoded. */
     t.eq('a decoded build holds EXACTLY the five keys the slice holds, in the order the '
       + 'slice holds them', pinnedKeys([]), 'schema,cats,mechs,tokens,rules');
+    /* TURNED IN THE OPEN UNDER D-41. This row read ['…,tally', 'id,name,ap,
+       units,actions'] and went RED on the commit that gave board B a reserve,
+       printing ["id,name,ap,units,actions,tally,reserve","id,name,ap,units,
+       actions,reserve"]. Rewritten to that, and NOT loosened: the reserve is a
+       sparse bag exactly as the tally is, present only on a side that holds
+       something in it, and board B now parks tokens on both sides. The ORDER
+       is the half worth reading — tally before reserve on the cats, which is
+       where [S04.3] puts them and where the op's own write puts them on a board
+       driven in that order. A seventh key on either side still reddens it. */
     t.eq('and each faction holds exactly its five, plus the tally bag on the side that '
-      + 'carries one and nothing else anywhere',
+      + 'carries one and the D-41 reserve on each side that holds anything in it, and '
+      + 'nothing else anywhere',
       [pinnedKeys(['cats']), pinnedKeys(['mechs'])],
-      ['id,name,ap,units,actions,tally', 'id,name,ap,units,actions']);
+      ['id,name,ap,units,actions,tally,reserve', 'id,name,ap,units,actions,reserve']);
     t.ok('and every key of the decoded vocabulary is an id this file could have MADE — a '
       + 'built-in from TOKEN_IDS or a sequence number behind the letter, never a word that '
       + 'arrived as text', pinBack.ok === true
@@ -42899,9 +43205,12 @@ App.selftest = (function () {
     // the sweep is not vacuous and that nothing in it THREW, is unchanged both
     // times, which is why the row is rewritten to the new counts rather than
     // loosened into a comparison that would stop counting anything.
-    t.eq('and the sweep was not vacuous: forty-eight codes went in, forty-six of them '
+    // AND A THIRD TIME UNDER D-41: eleven more — nine reserve guards and two
+    // tail shapes — so the recorded RED printed [59, 57, 0] against [48, 46, 0]
+    // and the row now reads that. Not one of the eleven threw.
+    t.eq('and the sweep was not vacuous: fifty-nine codes went in, fifty-seven of them '
       + 'were refused, the other two are the good codes the paste table admits, and NOT '
-      + 'ONE of them threw', [everyBadCode.length, sweepRefused, sweepThrew], [48, 46, 0]);
+      + 'ONE of them threw', [everyBadCode.length, sweepRefused, sweepThrew], [59, 57, 0]);
     t.eq('and not one refusal carried a `build` key at all, so there is no partial board '
       + 'anywhere for a caller to half-apply even by mistake — a refusal is a record with '
       + 'a reason on it and nothing else', sweepPartial, 0);
@@ -46367,6 +46676,651 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the fight-loop suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.13] SUITE: the reserve and the move — owner plan 05-D41a --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('the reserve and the move', function (t) {
+    /* THE WHOLE OF THIS SUITE SITS ABOVE ANY no-DOM BRACKET — [S09.11]'s and
+       [S09.12]'s declaration, for their reason. Everything D-41's first part
+       built is STATE WORK: a schema key, an op, its guards and a codec
+       section. None of it reads or writes a page, so every row here runs in
+       the terminal harness and can therefore fail a build. D-41's second part
+       builds the surface, and its assertions belong to the interaction gate.
+
+       THE BOARD IS DRIVEN THROUGH THE SHIPPED OPS and handed back whole as the
+       suite's last act, as every suite above does. And every drive that can
+       throw is inside a try with the restore in a finally, which PROBE M
+       measured the reason for: a row that throws takes the suite's remaining
+       rows with it and leaves the board dirty for every suite after it. A row
+       here may FAIL; it may not throw and it may not hang. */
+    var savedAll = JSON.stringify(App.state.get());
+
+    function protoIntact() {
+      return Object.getPrototypeOf({}) === Object.prototype
+        && Object.prototype.polluted === undefined
+        && Object.prototype.name === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'reserve');
+    }
+
+    // [S07.1]'s isRefusal, restated because [S07] does not export it and
+    // [S09] may not reach into a closure: a refusal is a plain Error, exactly
+    // that constructor, carrying a sentence. A TypeError, a subclass, a thrown
+    // non-Error and an Error with no message are all DEFECTS, and the panel
+    // gets them rather than a student. The restatement is four lines and is
+    // asserted against the one it copies nowhere, so it is written to match
+    // that definition character for character in what it tests.
+    function isRefusal(err) {
+      return err instanceof Error
+        && err.constructor === Error
+        && typeof err.message === 'string'
+        && err.message !== '';
+    }
+
+    // One attempt at a move, and what came of it — never a throw out of here.
+    function attempt(tok, fromSide, fromUnit, toSide, toUnit) {
+      try {
+        return { kind: App.ops.moveToken(tok, fromSide, fromUnit, toSide, toUnit)
+          ? 'moved' : 'nothing', said: '' };
+      } catch (e) {
+        return { kind: isRefusal(e) ? 'refused' : 'DEFECT', said: String(e && e.message),
+          type: e && e.constructor ? e.constructor.name : typeof e };
+      }
+    }
+
+    function build() { return App.state.get().build; }
+
+    // What one END holds, read straight off the record rather than through the
+    // op's own reader, so the rows below cannot agree with moveToken merely by
+    // asking the same function it asks.
+    function heldAt(side, unitId, tok) {
+      var faction = build()[side];
+      var bag;
+      if (unitId !== null) {
+        var unit = faction.units.find(function (u) { return u.id === unitId; });
+        if (tok === 'hp') { return unit.maxHp; }
+        if (tok === 'shield') { return unit.shield; }
+        bag = unit.tally;
+      } else if (tok === 'ap') {
+        return faction.ap;
+      } else if (tok === 'hp' || tok === 'shield'
+        || (build().tokens[tok] && build().tokens[tok].scope === 'unit')) {
+        bag = faction.reserve;
+      } else {
+        bag = faction.tally;
+      }
+      return (bag && Object.prototype.hasOwnProperty.call(bag, tok)) ? bag[tok] : 0;
+    }
+
+    // THE WHOLE-BUILD TOTAL OF ONE TYPE: every unit, every side's own number,
+    // and both reserves — everywhere a token of it could be. Conservation is
+    // this number not moving, and it is summed over EVERY holder rather than
+    // over the two a move named, because a move that wrote a third place is
+    // exactly what a reading of the two named ends would miss.
+    function wholeTotal(tok) {
+      var b = build();
+      var n = 0;
+      ['cats', 'mechs'].forEach(function (side) {
+        var f = b[side];
+        if (tok === 'ap') { n += f.ap; }
+        if (f.tally && Object.prototype.hasOwnProperty.call(f.tally, tok)) { n += f.tally[tok]; }
+        if (f.reserve && Object.prototype.hasOwnProperty.call(f.reserve, tok)) {
+          n += f.reserve[tok];
+        }
+        f.units.forEach(function (u) {
+          if (tok === 'hp') { n += u.maxHp; }
+          if (tok === 'shield') { n += u.shield; }
+          if (u.tally && Object.prototype.hasOwnProperty.call(u.tally, tok)) { n += u.tally[tok]; }
+        });
+      });
+      return n;
+    }
+    function allTotals() {
+      return Object.keys(build().tokens).sort().map(function (tok) {
+        return tok + '=' + wholeTotal(tok);
+      }).join(' ');
+    }
+
+    /* --- THE SCHEMA: A RESERVE THAT STARTS EMPTY AND IS NOT THERE AT ALL. --- */
+    App.ops.resetToDefaults();
+    App.state.flush();
+    t.eq('THE SHIPPED BOARD CARRIES NO RESERVE: neither side has a `reserve` key, because '
+      + 'the reserve is a sparse bag under the tally\'s two rules and it starts empty — '
+      + 'nothing in a drag creates a token, so there is nothing to seed it with. The op '
+      + 'and its reader are exported, and the reader answers zero for a side with no bag',
+      [Object.keys(build().cats).join(','), Object.keys(build().mechs).join(','),
+        typeof App.ops.moveToken, App.ops.readReserve(build().cats, 'hp')],
+      ['id,name,ap,units,actions', 'id,name,ap,units,actions', 'function', 0]);
+    t.eq('the reserve\'s ceiling is its own named constant and it is MAX_ALLOC — the '
+      + 'ceiling every other allocated quantity in this file already has, and NOT the '
+      + 'type\'s authored pair, which [S01] says why',
+      [App.data.MAX_RESERVE, App.data.MAX_RESERVE === App.data.MAX_ALLOC],
+      [99, true]);
+
+    /* --- THE FOUR DRAGS, EVERY SPELLING OF EACH, DRIVEN AND READ BACK. Each
+           line is one call, and what it reports is: did the op say it moved,
+           did the source drop by exactly one, did the target rise by exactly
+           one, and did the WHOLE-BUILD total of that type stay put. A type of
+           the student's own at each scope rides with the built-ins, which is
+           D-24 — a student's invention moves on the same terms as a shipped
+           type or it is a second tier. --- */
+    var FOUR;
+    try {
+      App.ops.resetToDefaults();
+      var ooze = App.ops.createTokenType({ name: 'Ooze', shape: 'circ', color: 'violet',
+        glyph: '', scope: 'unit' });
+      var zeal = App.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+        glyph: '', scope: 'side' });
+      App.ops.setTally('cats', 'c1', ooze, 3);
+      App.ops.setTally('cats', null, zeal, 2);
+      FOUR = [
+        ['unit to unit, same side', 'hp', 'cats', 'c1', 'cats', 'c2'],
+        ['unit to unit, ACROSS sides', 'shield', 'mechs', 'm1', 'cats', 'c1'],
+        ['a student\'s unit type, unit to unit across sides', ooze, 'cats', 'c1', 'mechs', 'm2'],
+        ['unit to its own side\'s reserve', 'hp', 'cats', 'c3', 'cats', null],
+        ['unit to the OTHER side\'s reserve', ooze, 'cats', 'c1', 'mechs', null],
+        ['reserve to a unit on its own side', 'hp', 'cats', null, 'cats', 'c4'],
+        ['reserve to a unit on the OTHER side', ooze, 'mechs', null, 'cats', 'c2'],
+        ['unit to reserve, to set up the next', 'shield', 'mechs', 'm2', 'mechs', null],
+        ['reserve to reserve, between sides', 'shield', 'mechs', null, 'cats', null],
+        ['action points, side to side', 'ap', 'cats', null, 'mechs', null],
+        ['a student\'s side type, side to side', zeal, 'cats', null, 'mechs', null]
+      ].map(function (row) {
+        var tok = row[1];
+        var fromBefore = heldAt(row[2], row[3], tok);
+        var toBefore = heldAt(row[4], row[5], tok);
+        var totalBefore = wholeTotal(tok);
+        var got = attempt(tok, row[2], row[3], row[4], row[5]);
+        return [row[0], got.kind, fromBefore - heldAt(row[2], row[3], tok),
+          heldAt(row[4], row[5], tok) - toBefore, wholeTotal(tok) === totalBefore];
+      });
+    } catch (stopped) {
+      FOUR = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('ALL FOUR DRAGS THE AMENDMENT NAMES, EVERY SPELLING OF EACH: unit to unit on one '
+      + 'side and ACROSS sides, unit to either side\'s reserve, reserve to a unit on '
+      + 'either side, and side to side for a reserve, for action points and for a type '
+      + 'the student made at side scope. Every one moved EXACTLY ONE — the source down '
+      + 'one, the target up one — and left the whole-build total of its type where it '
+      + 'was',
+      FOUR, [
+        ['unit to unit, same side', 'moved', 1, 1, true],
+        ['unit to unit, ACROSS sides', 'moved', 1, 1, true],
+        ['a student\'s unit type, unit to unit across sides', 'moved', 1, 1, true],
+        ['unit to its own side\'s reserve', 'moved', 1, 1, true],
+        ['unit to the OTHER side\'s reserve', 'moved', 1, 1, true],
+        ['reserve to a unit on its own side', 'moved', 1, 1, true],
+        ['reserve to a unit on the OTHER side', 'moved', 1, 1, true],
+        ['unit to reserve, to set up the next', 'moved', 1, 1, true],
+        ['reserve to reserve, between sides', 'moved', 1, 1, true],
+        ['action points, side to side', 'moved', 1, 1, true],
+        ['a student\'s side type, side to side', 'moved', 1, 1, true]
+      ]);
+
+    /* --- THE REFUSALS, AND WHAT A REFUSAL LEAVES BEHIND: NOTHING. Each is a
+           drag a student can actually make on the surface part two builds, so
+           each must be a REFUSAL in [S07.1]'s sense — a plain Error with a
+           sentence — and each must leave the board byte-identical, the undo
+           stack the same depth and the commit count unmoved. A refusal that
+           wrote half a transfer and then complained would pass a row that only
+           looked for the complaint. --- */
+    var REFUSED;
+    try {
+      App.ops.resetToDefaults();
+      var rZeal = App.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+        glyph: '', scope: 'side' });
+      App.ops.setTokenBounds('hp', { min: 1, max: 4 });
+      App.ops.setUnitMaxHp('cats', 'c2', 1);
+      App.ops.moveToken('hp', 'cats', 'c3', 'cats', 'c1');
+      App.state.flush();
+      REFUSED = [
+        ['action points onto a unit', 'ap', 'cats', null, 'cats', 'c1',
+          'is kept on the whole side'],
+        ['action points off a unit', 'ap', 'cats', 'c1', 'mechs', null,
+          'is kept on the whole side'],
+        ['a student\'s side type onto a unit', rZeal, 'cats', null, 'mechs', 'm1',
+          'is kept on the whole side'],
+        ['Damage, which nobody allocates', 'dmg', 'cats', 'c1', 'cats', 'c2',
+          'is not a number anyone allocates'],
+        ['the dead marker, which nobody allocates', 'dead', 'mechs', 'm1', 'mechs', null,
+          'is not a number anyone allocates'],
+        ['onto a unit already at the type\'s ceiling', 'hp', 'cats', 'c4', 'cats', 'c1',
+          'holds at most 4'],
+        ['off a unit already at the type\'s floor', 'hp', 'cats', 'c2', 'cats', 'c5',
+          'keeps at least 1'],
+        ['out of a reserve holding none', 'shield', 'mechs', null, 'mechs', 'm1',
+          'reserve has no'],
+        ['off a unit holding none', 'shield', 'cats', 'c1', 'cats', null, 'has no'],
+        ['a side that does not exist', 'hp', 'dogs', 'c1', 'cats', 'c2', 'Unknown side'],
+        ['a unit that does not exist', 'hp', 'cats', 'c99', 'cats', 'c2', 'No unit'],
+        ['a type that is not on this board', 't9', 'cats', 'c1', 'cats', 'c2',
+          'no token type']
+      ].map(function (row) {
+        var was = JSON.stringify(App.state.get());
+        var depth = App.state.undoDepth();
+        var commitsWere = App.state.stats().commits;
+        var got = attempt(row[1], row[2], row[3], row[4], row[5]);
+        return [row[0], got.kind, got.said.indexOf(row[6]) !== -1,
+          JSON.stringify(App.state.get()) === was, App.state.undoDepth() === depth,
+          App.state.stats().commits === commitsWere];
+      });
+    } catch (stopped) {
+      REFUSED = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('EVERY DRAG THE BOARD CANNOT TAKE IS A REFUSAL IN THE HOUSE IDIOM AND WRITES '
+      + 'NOTHING: a side-scope type onto or off a unit, either built-in nobody allocates, '
+      + 'a unit at the type\'s authored ceiling, a unit at its authored floor, an empty '
+      + 'reserve, an empty unit, and a side, a unit or a type that is not there. Each is '
+      + 'a plain Error carrying the sentence it should, and after each the board is '
+      + 'byte-identical, the undo stack is the same depth and the commit count has not '
+      + 'moved — so no half of any transfer was written anywhere',
+      REFUSED, REFUSED.map ? REFUSED.map(function (row) {
+        return [row[0], 'refused', true, true, true, true];
+      }) : 'rows');
+    t.eq('AND A CALLER HANDING OVER SOMETHING THAT IS NOT A TOKEN ID AT ALL IS A DEFECT, '
+      + 'NOT A REFUSAL: requireTokenId raises the TypeError it always has, which [S07.1] '
+      + 'hands to the panel rather than to a student, because no drag can produce one',
+      (function () {
+        var got = attempt(7, 'cats', 'c1', 'cats', 'c2');
+        return [got.kind, got.type];
+      })(), ['DEFECT', 'TypeError']);
+    t.eq('AND A TOKEN DROPPED WHERE IT CAME FROM IS NOTHING: the op answers false, writes '
+      + 'nothing and leaves no undo step — a unit onto itself and a side\'s end onto '
+      + 'itself alike, because a do-nothing Ctrl+Z step would stand between the student '
+      + 'and the edit they actually want back',
+      (function () {
+        App.state.restore(savedAll);
+        App.ops.resetToDefaults();
+        App.state.restore(JSON.stringify(App.state.get()));
+        var was = JSON.stringify(App.state.get());
+        var a = attempt('hp', 'cats', 'c1', 'cats', 'c1');
+        var b = attempt('ap', 'mechs', null, 'mechs', null);
+        var out = [a.kind, b.kind, JSON.stringify(App.state.get()) === was,
+          App.state.undoDepth()];
+        App.state.restore(savedAll);
+        App.state.flush();
+        return out;
+      })(), ['nothing', 'nothing', true, 0]);
+
+    /* --- THE BOUND TEST IS DIRECTIONAL, AND THE WRITE IS EXACT. D-41: "a move
+           that would take the source below its min or the target above its max
+           is refused". Read literally, the source is tested against its floor
+           and the target against its ceiling — so a unit a student left ABOVE
+           a ceiling they tightened afterwards can still give its excess away,
+           and a unit below a floor they raised can still receive. Both are
+           driven, and both read the number the op WROTE, because a move that
+           clamped its admitted half would write the bound instead and destroy
+           a token doing it. --- */
+    var DIRECTED;
+    try {
+      App.ops.resetToDefaults();
+      App.ops.setTokenBounds('hp', { min: 0, max: 2 });
+      var dSource = heldAt('mechs', 'm1', 'hp');
+      var dGive = attempt('hp', 'mechs', 'm1', 'mechs', null);
+      var dAfter = heldAt('mechs', 'm1', 'hp');
+      App.ops.setTokenBounds('hp', { min: 0, max: App.data.MAX_ALLOC });
+      App.ops.setUnitShield('cats', 'c1', 1);
+      App.ops.setUnitShield('mechs', 'm1', 5);
+      App.ops.setTokenBounds('shield', { min: 3, max: App.data.MAX_ALLOC });
+      var dTake = attempt('shield', 'mechs', 'm1', 'cats', 'c1');
+      DIRECTED = [dSource, dGive.kind, dAfter, dTake.kind, heldAt('cats', 'c1', 'shield'),
+        heldAt('mechs', 'm1', 'shield')];
+    } catch (stopped) {
+      DIRECTED = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('A MECH LEFT AT SIX HEALTH UNDER A CEILING TIGHTENED TO TWO CAN STILL GIVE ONE '
+      + 'AWAY, AND THE NUMBER WRITTEN IS FIVE — not the ceiling, because clamping it '
+      + 'would destroy four tokens. And a cat left at one shield under a floor RAISED to '
+      + 'three can still RECEIVE one, reading two, while the mech at five it came from '
+      + 'reads four. D-35\'s bounds do not reach back, and a move taking a number TOWARD '
+      + 'its bound is not a move past it',
+      DIRECTED, [6, 'moved', 5, 'moved', 2, 4]);
+
+    /* --- CONSERVATION, AS AN EQUALITY OVER THE WHOLE BUILD, OVER A SWEEP.
+           Four hundred moves chosen by a fixed-seed generator over every end on
+           the board — every unit on both sides and both sides' own ends — and
+           six types: health, shield, a unit type of the student's own, action
+           points, a side type of the student's own, and Damage. The board is
+           set up so the sweep MEETS the bounds constantly: health has a
+           ceiling of four while every mech holds six, shield a ceiling of two,
+           the student's unit type a ceiling of three. After EVERY attempt the
+           whole-build total of EVERY type is compared to the one the sweep
+           started with, and any attempt that threw something other than a
+           refusal is counted as a defect.
+
+           THE SWEEP HAS TO BE SHOWN NOT TO BE VACUOUS, and it is: the row
+           requires moves that landed, refusals at a floor AND at a ceiling,
+           and scope refusals — because a sweep in which every attempt was
+           refused would conserve everything spotlessly. The day a bound
+           CLAMPS instead of refusing, a ceiling-refused move becomes a move
+           that gives a token up and never receives it, and this row reddens on
+           the first one. --- */
+    var SWEEP;
+    try {
+      App.ops.resetToDefaults();
+      var sOoze = App.ops.createTokenType({ name: 'Ooze', shape: 'circ', color: 'violet',
+        glyph: '', scope: 'unit' });
+      var sZeal = App.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+        glyph: '', scope: 'side' });
+      App.ops.setTally('cats', 'c1', sOoze, 3);
+      App.ops.setTally('mechs', 'm1', sOoze, 2);
+      App.ops.setTally('cats', null, sZeal, 2);
+      App.ops.setTokenBounds('hp', { min: 0, max: 4 });
+      App.ops.setTokenBounds('shield', { min: 0, max: 2 });
+      App.ops.setTokenBounds(sOoze, { min: 0, max: 3 });
+      var ends = [];
+      ['cats', 'mechs'].forEach(function (side) {
+        build()[side].units.forEach(function (u) { ends.push([side, u.id]); });
+        ends.push([side, null]);
+      });
+      var types = ['hp', 'shield', sOoze, 'ap', sZeal, 'dmg'];
+      var startTotals = allTotals();
+      var seed = 41;
+      function next(n) {
+        seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+        return (seed >>> 8) % n;
+      }
+      var tally = { moved: 0, nothing: 0, refused: 0, DEFECT: 0 };
+      var said = { floor: 0, ceiling: 0, scope: 0 };
+      var drifted = [];
+      var defects = [];
+      for (var step = 0; step < 400; step++) {
+        var tok = types[next(types.length)];
+        var a = ends[next(ends.length)];
+        var b = ends[next(ends.length)];
+        var got = attempt(tok, a[0], a[1], b[0], b[1]);
+        tally[got.kind] += 1;
+        if (got.kind === 'DEFECT') { defects.push(step + ': ' + got.type + ' ' + got.said); }
+        if (/has no|keeps at least/.test(got.said)) { said.floor += 1; }
+        if (/holds at most|already holds/.test(got.said)) { said.ceiling += 1; }
+        if (/whole side|allocates/.test(got.said)) { said.scope += 1; }
+        var now = allTotals();
+        if (now !== startTotals) { drifted.push(step + ': ' + now); }
+      }
+      SWEEP = [drifted.slice(0, 3), defects.slice(0, 3), tally.moved > 50,
+        said.floor > 0, said.ceiling > 0, said.scope > 0, allTotals() === startTotals];
+      t.info('the conservation sweep — moved / nothing / refused at a floor / at a '
+        + 'ceiling / on scope', [tally.moved, tally.nothing, said.floor, said.ceiling,
+          said.scope].join(' / '));
+    } catch (stopped) {
+      SWEEP = ['THE SWEEP THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('CONSERVATION HOLDS AS AN EQUALITY OVER THE WHOLE BUILD across four hundred moves '
+      + 'over every end on the board and six types: after every single attempt, the total '
+      + 'of every type — every unit, every side\'s own number and both reserves — is '
+      + 'exactly what it was before the sweep began, and nothing any attempt threw was '
+      + 'anything but a refusal. And the sweep was NOT VACUOUS: more than fifty moves '
+      + 'landed, and refusals were met at a floor, at a ceiling and on scope',
+      SWEEP, [[], [], true, true, true, true, true]);
+
+    /* --- THE RESERVE'S OWN CEILING, AND THE MEASUREMENT THAT DECIDED IT. The
+           amendment asked for the choice to be made by measurement, so the
+           measurement is a row rather than a paragraph. FIRST: Health is given
+           an authored ceiling of three — the natural "no cat holds more than
+           three" — and every point of every cat's health is dragged into the
+           cats' reserve. A reserve held to the TYPE'S pair would have refused
+           the fourth; this one takes all twenty-seven, and the type's ceiling
+           still binds every UNIT. SECOND: the ceiling it IS held to. One cat is
+           stepped to ninety-nine and every point of it dragged in, and the next
+           drag from anyone is refused whole, by name — while the same drag
+           into the OTHER side's reserve still lands, because the ceiling is
+           per side per type. --- */
+    var CEILING;
+    try {
+      App.ops.resetToDefaults();
+      App.ops.setTokenBounds('hp', { min: 0, max: 3 });
+      var pooled = { moved: 0, refused: 0 };
+      build().cats.units.map(function (u) { return u.id; }).forEach(function (id) {
+        while (heldAt('cats', id, 'hp') > 0) {
+          var one = attempt('hp', 'cats', id, 'cats', null);
+          if (one.kind !== 'moved') { pooled.refused += 1; break; }
+          pooled.moved += 1;
+        }
+      });
+      var typeWide = [pooled.moved, pooled.refused, heldAt('cats', null, 'hp'),
+        attempt('hp', 'cats', null, 'mechs', 'm1').said.indexOf('holds at most 3') !== -1];
+      App.ops.resetToDefaults();
+      App.ops.setUnitMaxHp('cats', 'c1', App.data.MAX_ALLOC);
+      for (var k = 0; k < App.data.MAX_ALLOC; k++) { App.ops.moveToken('hp', 'cats', 'c1', 'cats', null); }
+      var capWas = JSON.stringify(App.state.get());
+      var over = attempt('hp', 'cats', 'c2', 'cats', null);
+      var overLeft = JSON.stringify(App.state.get()) === capWas;
+      var elsewhere = attempt('hp', 'cats', 'c2', 'mechs', null);
+      CEILING = typeWide.concat([heldAt('cats', null, 'hp'), over.kind,
+        over.said.indexOf('already holds ' + App.data.MAX_RESERVE) !== -1, overLeft,
+        elsewhere.kind]);
+    } catch (stopped) {
+      CEILING = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE RESERVE IS NOT HELD TO THE TYPE\'S AUTHORED PAIR, MEASURED: with Health\'s '
+      + 'ceiling at three, all twenty-seven points of the nine cats\' health go into the '
+      + 'cats\' reserve and none is refused — while the ceiling still binds a UNIT, so '
+      + 'taking one back out onto a mech at six is refused by the unit\'s own bound. AND '
+      + 'IT IS HELD TO MAX_RESERVE: ninety-nine in, the hundredth refused whole and by '
+      + 'name, and the same token still lands in the other side\'s reserve',
+      CEILING, [27, 0, 27, true, 99, 'refused', true, true, 'moved']);
+
+    /* --- TWO MOVES ARE TWO UNDO ENTRIES, EVEN BACK TO BACK. The rehearsal's
+           final machine pass measured that commit() folds a same-label commit
+           inside COALESCE_MS, which is what makes a held stepper one Ctrl+Z.
+           The WORST case for a move is the one driven here: the same type
+           between the same two ends, twice, with nothing in between — the
+           exact shape a naive label ("move hp cats/c1 cats/c2") would fold.
+           THE CONTROL IS THE HALF THAT MAKES THIS A MEASUREMENT: two stepper
+           presses on one number, driven in the same run, DO fold into one —
+           so the window really was open when the two moves landed, and the
+           row is not green merely because the clock ran past half a second.
+           restore() clears the stack first, so the depths are read from zero
+           and nowhere near UNDO_LIMIT, where a push that shifted the oldest
+           entry off would read as a fold. --- */
+    var UNDO;
+    try {
+      App.ops.resetToDefaults();
+      App.state.restore(JSON.stringify(App.state.get()));
+      var t0 = Date.now();
+      App.ops.nudgeUnitMaxHp('cats', 'c5', 1);
+      App.ops.nudgeUnitMaxHp('cats', 'c5', 1);
+      var stepperDepth = App.state.undoDepth();
+      App.ops.moveToken('hp', 'cats', 'c1', 'cats', 'c2');
+      App.ops.moveToken('hp', 'cats', 'c1', 'cats', 'c2');
+      var moveDepth = App.state.undoDepth() - stepperDepth;
+      var inWindow = (Date.now() - t0) < App.state.COALESCE_MS;
+      App.ops.undo();
+      var afterOne = [heldAt('cats', 'c1', 'hp'), heldAt('cats', 'c2', 'hp')];
+      App.ops.undo();
+      var afterTwo = [heldAt('cats', 'c1', 'hp'), heldAt('cats', 'c2', 'hp')];
+      App.ops.nudgeUnitMaxHp('cats', 'c6', 1);
+      App.ops.moveToken('hp', 'cats', 'c6', 'cats', null);
+      UNDO = [stepperDepth, moveDepth, inWindow, afterOne, afterTwo,
+        App.state.undoDepth() - 1];
+    } catch (stopped) {
+      UNDO = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('TWO MOVES FIRED BACK TO BACK ARE TWO UNDO ENTRIES — the same type between the '
+      + 'same two ends, inside COALESCE_MS, where the CONTROL in the same run shows two '
+      + 'stepper presses DO fold into one. One Ctrl+Z takes back exactly one move and the '
+      + 'second takes back the other. And a move made straight after a stepper press on '
+      + 'the same number does not fold into the press either',
+      UNDO, [1, 2, true, [2, 4], [3, 3], 2]);
+
+    /* --- THE FIGHT NEVER READS THE RESERVE, AND NEITHER DOES THE PROJECTION.
+           Two boards are driven that differ in the reserve and IN NOTHING
+           ELSE: board X parks tokens in both reserves — health and shield and
+           a type of the student's own, one of them across sides — by stepping
+           a donor up and dragging the excess off, so every unit ends where it
+           started; board Y is the same ops without the parking. The first
+           clause proves they differ only there, and that X's reserve is full
+           on both sides, because the claim is vacuous over two boards that
+           differ in nothing or in more than the reserve.
+
+           THEN THE SAME FIGHT ON BOTH: three rounds of declarations and a real
+           Advance, and the whole fight slice is compared as a STRING. And the
+           projection is read over both boards — every number [S02] derives
+           from a faction, its actions and the fight: effective health, damage
+           per turn, turns to wipe, the unmodelled list, affordability per
+           action, what the side has to show for a requirement, the soak, the
+           spoken-for pools. A unit fights only with what it has been given,
+           and a reserve is what it has NOT been given. --- */
+    function parkX(side, donor, tok, count) {
+      var was = heldAt(side, donor, tok);
+      if (tok === 'hp') { App.ops.setUnitMaxHp(side, donor, was + count); }
+      else if (tok === 'shield') { App.ops.setUnitShield(side, donor, was + count); }
+      else { App.ops.setTally(side, donor, tok, was + count); }
+      for (var p = 0; p < count; p++) { App.ops.moveToken(tok, side, donor, side, null); }
+    }
+    function blindBoard(withReserve) {
+      App.ops.resetToDefaults();
+      var goo = App.ops.createTokenType({ name: 'Goo', shape: 'circ', color: 'violet',
+        glyph: '', scope: 'unit' });
+      App.ops.setTally('cats', 'c1', goo, 2);
+      // An action that REQUIRES health and the student's own type, so the
+      // requirement reader [S02] keeps private — presentOnCaster, which sums a
+      // side's health off its UNITS — is read through affordability below. A
+      // reader that summed the reserve in would say this side has more health
+      // to show than its units hold, and the reading would move.
+      var needy = App.ops.createAction('cats', 'Pounce');
+      App.ops.setActionCost('cats', needy, 0, 'ap', 1);
+      App.ops.setActionReq('cats', needy, 0, 'hp', 20);
+      App.ops.setActionReq('cats', needy, 1, goo, 1);
+      if (withReserve) {
+        parkX('cats', 'c1', 'hp', 7);
+        parkX('cats', 'c2', goo, 5);
+        parkX('mechs', 'm1', 'shield', 6);
+        parkX('mechs', 'm2', 'hp', 9);
+        App.ops.setUnitMaxHp('cats', 'c3', 4);
+        App.ops.moveToken('hp', 'cats', 'c3', 'mechs', null);
+      }
+      return goo;
+    }
+    function projectionOf(s, goo) {
+      var out = {};
+      ['cats', 'mechs'].forEach(function (side, i) {
+        var f = s.build[side];
+        var other = s.build[i === 0 ? 'mechs' : 'cats'];
+        var fs = s.fight === null ? null : s.fight[side];
+        out[side] = {
+          ehp: App.model.factionEhp(f),
+          dps: App.model.factionDps(f),
+          wipe: App.model.turnsToWipe(f, other),
+          unmodelled: App.model.unmodelled(f),
+          pair: App.model.bestPair(f),
+          afford: f.actions.map(function (a) {
+            return App.model.affordability(f, a, s.build.tokens);
+          }),
+          goo: goo,
+          soak: App.model.soakTotal(f, 3),
+          spoken: s.fight === null ? null
+            : App.model.spokenForPools(f.actions, s.fight.decl, side, s.build.tokens),
+          spent: fs === null ? null : App.model.apSpent(f, fs),
+          alive: fs === null ? null : App.model.aliveCount(fs)
+        };
+      });
+      return JSON.stringify(out);
+    }
+    function fightThree() {
+      App.ops.startFight();
+      for (var r = 0; r < 3; r++) {
+        App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+        App.ops.declareAction('cats', 'slash', 'c2', 'm1');
+        App.ops.declareAction('cats', 'hairball', 'c3', 'm2');
+        App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+        App.ops.declareAction('mechs', 'fly', 'm2', 'c2');
+        App.ops.advanceRound();
+      }
+      App.state.flush();
+    }
+    var BLIND;
+    try {
+      var xGoo = blindBoard(true);
+      var xBuild = JSON.parse(JSON.stringify(build()));
+      var xAtRest = projectionOf(App.state.get(), xGoo);
+      fightThree();
+      var xFight = JSON.stringify(App.state.get().fight);
+      var xFighting = projectionOf(App.state.get(), xGoo);
+      var yGoo = blindBoard(false);
+      var yBuild = JSON.parse(JSON.stringify(build()));
+      var yAtRest = projectionOf(App.state.get(), yGoo);
+      fightThree();
+      var yFight = JSON.stringify(App.state.get().fight);
+      var yFighting = projectionOf(App.state.get(), yGoo);
+      var xReserves = [xBuild.cats.reserve, xBuild.mechs.reserve];
+      delete xBuild.cats.reserve;
+      delete xBuild.mechs.reserve;
+      BLIND = [xReserves, JSON.stringify(xBuild) === JSON.stringify(yBuild),
+        xFight === yFight, xFight.length > 1000, xAtRest === yAtRest,
+        xFighting === yFighting];
+    } catch (stopped) {
+      BLIND = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE FIGHT AND THE PROJECTION ARE BLIND TO THE RESERVE. Two boards differing in '
+      + 'the reserve and in nothing else — X holding health, shield and a type of the '
+      + 'student\'s own in BOTH reserves, one of them dragged across sides, Y holding '
+      + 'none — fight the same three rounds through a real Advance, and the fight slice '
+      + 'comes back BYTE-IDENTICAL; every number the projection derives, at rest and '
+      + 'mid-fight, is identical too. A unit fights only with what it has been given',
+      BLIND, [[{ hp: 7, t1: 5 }, { shield: 6, hp: 10 }], true, true, true, true, true]);
+
+    /* --- A REMOVED TYPE TAKES ITS RESERVE WITH IT, AND ONE UNDO PUTS BOTH BACK.
+           A count naming a departed type would leave [S04.2] unable to write
+           the board, and the address bar would stop mirroring it — so the
+           removal drops the reserve in the same mutator that drops the tally,
+           and the same Ctrl+Z restores all three. --- */
+    var GONE;
+    try {
+      App.ops.resetToDefaults();
+      var gTok = App.ops.createTokenType({ name: 'Grime', shape: 'sq', color: 'green',
+        glyph: '', scope: 'unit' });
+      App.ops.setTally('mechs', 'm3', gTok, 3);
+      App.ops.moveToken(gTok, 'mechs', 'm3', 'cats', null);
+      App.state.restore(JSON.stringify(App.state.get()));
+      var gBefore = JSON.stringify(App.state.get());
+      App.ops.removeTokenType(gTok);
+      var gCode = App.serialize.encode(build());
+      var gAfter = [Object.prototype.hasOwnProperty.call(build().cats, 'reserve'),
+        gCode !== null, App.state.undoDepth()];
+      App.ops.undo();
+      GONE = gAfter.concat([JSON.stringify(App.state.get()) === gBefore,
+        heldAt('cats', null, gTok)]);
+    } catch (stopped) {
+      GONE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('A TOKEN TYPE REMOVED TAKES ITS RESERVE WITH IT — the cats\' reserve key is gone, '
+      + 'the board still writes a build code, and it was ONE undo entry, which puts the '
+      + 'type, its tally and its reserve count back byte for byte',
+      GONE, [false, true, 1, true, 1]);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.ok('the prototype is intact after the whole reserve suite', protoIntact());
+    t.eq('the reserve suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
