@@ -42405,7 +42405,15 @@ App.selftest = (function () {
       + 'from the equality above — the tokens of each list, in order, on the authored '
       + 'action',
       (function () {
+        // GUARDED UNDER D-41, the sibling row's own guard one row up. D-41's
+        // probe E made the decoder refuse the encoder's own output, and this
+        // line — which reached into `.build` with no refusal check — threw,
+        // stopping [S09.11] with every row below it (the whole refusal matrix
+        // among them) unreported. A row may fail; it may not take the suite
+        // with it.
+        if (wireBack === null || wireBack.ok !== true) { return 'refused'; }
         var rec = wireBack.build.cats.actions.find(function (a) { return a.id === 'x1'; });
+        if (!rec) { return 'the authored action did not come back'; }
         return [rec.cost.map(function (c) { return c.tok; }),
           rec.req.map(function (r) { return r.tok; }),
           rec.xf.map(function (x) { return x.tok; })];
