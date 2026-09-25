@@ -524,3 +524,33 @@ Allocation gains a direct-manipulation path alongside the steppers:
   way to reach a value (WCAG 2.5.7). Nothing that exists is removed.
 - Drop targets light with D-33's "lit" palette role while a drag is live; an invalid target reads
   as invalid (not merely unlit); Escape cancels a drag in flight.
+
+### D-41 amendment — 2026-09-25, developer, before any code was written
+
+Verbatim:
+
+> allow any unit to any other unit, with a pool at the top of each side for unit to side drags
+
+And, asked what the pool holds, the developer chose **a real reserve** over a source/sink.
+
+**This supersedes two of D-41's calls above:**
+
+1. **Moves are ANY unit → ANY other unit**, across sides included. The "moves stay within a side"
+   call is withdrawn. Scope still binds (a unit-scope token moves unit→unit; a side-scope token
+   cannot land on a unit), because a token type's scope is a property of the type, not a policy.
+2. **The per-side tray becomes a per-side POOL, and the pool is a conserved reserve.**
+   - It sits at the top of each side's column.
+   - It holds a COUNT per token type. Unit → pool moves one in (−1 unit, +1 pool); pool → unit
+     moves one out (−1 pool, +1 unit). Pool → a unit on the OTHER side is allowed (any-to-any).
+   - Nothing in a drag creates or destroys a token. Tokens enter the system only by the steppers,
+     as today — so the pool starts empty and imposes no budget.
+   - The side's own side-scope tokens (action points and student side tallies) are drawn in the
+     pool too, since that is where they already live. Side-scope tokens can move pool → pool
+     (side to side). They cannot land on a unit.
+   - **The reserve is build data.** It round-trips in the build code as a v1 extension, provided an
+     old code decodes with an empty reserve, driven with a real pre-D-41 code. It is NOT spent,
+     applied, or read by the fight: it is unallocated, and a unit never fights with tokens it has
+     not been given. The projection likewise reads only allocated tokens.
+   - Bounds (D-35) clamp on units. Whether the pool itself is bounded is decided by measurement:
+     a pool at a token's max would refuse a unit→pool drag the student reasonably expects to work.
+     Record the choice.
