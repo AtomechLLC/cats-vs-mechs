@@ -6123,6 +6123,432 @@ for (const ch of ['chrome', 'msedge']) {
     });
     await pg.waitForTimeout(200);
 
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // ── 31. D-41 PART TWO — THE POOL AND THE DRAG, BY REAL POINTERS. Plan 05-D41b.
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // Every drag below is page.mouse: down on a real token, several moves past the threshold,
+    // across to the target, up. Nothing is dispatched by hand and no op is called for the
+    // gesture — the ops below only BUILD a board to drag on. The node gate reaches the
+    // gesture up to the drop (129c); the drop resolves the entity under the pointer with
+    // elementFromPoint, which only a layout engine answers, so every drop kind lives HERE.
+    const d41Fresh = async () => {
+      await pg.evaluate(() => {
+        if (App.state.get().fight !== null) { App.ops.endFight(); }
+        App.ops.resetToDefaults();
+        App.state.invalidate({ structural: true });
+        App.state.flush();
+      });
+      if (await pg.evaluate(() => document.querySelector('#app').dataset.view) !== 'build') {
+        await pg.click('#view-build'); await pg.waitForTimeout(200);
+      }
+      await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+      await pg.waitForTimeout(120);
+    };
+    // Places the page so the source and the target are both on screen (a real student
+    // scrolls first too), then returns their centres.
+    const d41Aim = (srcSel, tgtSel) => pg.evaluate(([s, t]) => {
+      const src = document.querySelector(s);
+      const tgt = document.querySelector(t);
+      if (!src || !tgt) return { missing: !src ? s : t };
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      const bar = document.getElementById('topbar').getBoundingClientRect().bottom;
+      let a = src.getBoundingClientRect();
+      let b = tgt.getBoundingClientRect();
+      const lo = Math.min(a.top, b.top);
+      const hi = Math.max(a.bottom, b.bottom);
+      if (hi > window.innerHeight - 70) {
+        window.scrollBy({ top: Math.min(lo - bar - 70, hi - window.innerHeight + 70), left: 0, behavior: 'instant' });
+      }
+      a = src.getBoundingClientRect();
+      b = tgt.getBoundingClientRect();
+      window.__d41src = src.classList.contains('tok') ? src : src.querySelector('.tok');
+      return { sx: a.left + a.width / 2, sy: a.top + a.height / 2,
+        tx: b.left + Math.min(b.width / 2, 60), ty: b.top + Math.min(b.height / 2, 14),
+        onScreen: a.top >= bar && b.top >= bar && a.bottom <= window.innerHeight && b.bottom <= window.innerHeight };
+    }, [srcSel, tgtSel]);
+    // What the board is showing mid-flight: every lit, refused and home entity, the ghost,
+    // and whether the node picked up is still the node the press landed on.
+    const d41Flight = () => pg.evaluate(() => {
+      const key = (n) => n.dataset.drgAt + '/' + (n.dataset.drgUnit || 'pool');
+      const all = Array.from(document.querySelectorAll('[data-drg-at]'));
+      const ghost = document.querySelector('#drag-layer .drg-ghost');
+      const gs = ghost ? getComputedStyle(ghost) : null;
+      return {
+        inFlight: App.interactions.dragInFlight(),
+        lit: all.filter((n) => n.classList.contains('drg-lit')).map(key),
+        no: all.filter((n) => n.classList.contains('drg-no')).map(key),
+        home: all.filter((n) => n.classList.contains('drg-home')).map(key),
+        over: all.filter((n) => n.classList.contains('drg-over')).map(key),
+        ghost: !!ghost, ghostPE: gs ? gs.pointerEvents : null,
+        layerPE: getComputedStyle(document.getElementById('drag-layer')).pointerEvents,
+        srcSame: !!window.__d41src && window.__d41src.isConnected
+          && window.__d41src.classList.contains('drg-taking'),
+        commits: App.state.stats().commits
+      };
+    });
+    const d41Read = () => pg.evaluate(() => {
+      const b = App.state.get().build;
+      const said = Array.from(document.querySelectorAll('[data-drg-at] > .drg-said'))
+        .filter((p) => !p.hidden).map((p) => (p.parentNode.dataset.drgUnit || p.parentNode.dataset.drgAt + ' pool') + ': ' + p.textContent);
+      return {
+        c1: b.cats.units[0].maxHp, c2: b.cats.units[1].maxHp, c3: b.cats.units[2].maxHp,
+        c4: b.cats.units[3].maxHp, c1s: b.cats.units[0].shield, m1: b.mechs.units[0].maxHp,
+        m1s: b.mechs.units[0].shield, capAp: b.cats.ap, mapAp: b.mechs.ap,
+        catsRes: JSON.stringify(b.cats.reserve || {}), mechsRes: JSON.stringify(b.mechs.reserve || {}),
+        depth: App.state.undoDepth(), commits: App.state.stats().commits,
+        inFlight: App.interactions.dragInFlight(),
+        ghosts: document.querySelectorAll('#drag-layer > *').length,
+        lights: document.querySelectorAll('.drg-lit, .drg-no, .drg-home, .drg-over, .drg-taking').length,
+        said, panel: document.getElementById('err-panel').hidden
+      };
+    });
+    // One real drag. `mid` runs while the token is over the target, before the release.
+    const d41Drag = async (srcSel, tgtSel, mid) => {
+      const aim = await d41Aim(srcSel, tgtSel);
+      if (aim.missing) return { aim, flight: null };
+      await pg.mouse.move(aim.sx, aim.sy);
+      await pg.mouse.down();
+      for (let i = 1; i <= 4; i++) { await pg.mouse.move(aim.sx + i * 3, aim.sy + i * 2); }
+      await pg.mouse.move(aim.tx, aim.ty, { steps: 8 });
+      await pg.waitForTimeout(80);
+      const flight = await d41Flight();
+      if (mid) await mid();
+      await pg.mouse.up();
+      await pg.waitForTimeout(160);
+      return { aim, flight };
+    };
+    // Where the one showing said line is, after the page's smooth scroll has settled.
+    const d41SaidBox = async () => {
+      await pg.waitForTimeout(700);
+      return pg.evaluate(() => {
+        const p = Array.from(document.querySelectorAll('[data-drg-at] > .drg-said')).find((n) => !n.hidden);
+        if (!p) return null;
+        const r = p.getBoundingClientRect();
+        const bar = document.getElementById('topbar').getBoundingClientRect().bottom;
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), onScreen: r.top >= bar && r.bottom <= window.innerHeight };
+      });
+    };
+    const d41Shot = (name) => pg.screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d41-${name}-${ch}-${size.name}.png`)
+    });
+    const CAT = (u) => `#col-cats [data-drg-at="cats"][data-drg-unit="${u}"]`;
+    const MECH = (u) => `#col-mechs [data-drg-at="mechs"][data-drg-unit="${u}"]`;
+    const POOL = (side) => `#col-${side} .brd-pool`;
+
+    // ── 31. THE POOL, ON SCREEN, AT THE TOP OF EACH COLUMN, AT THE FLOOR, AND THE LAYER. ──
+    await d41Fresh();
+    const d41Layout = await pg.evaluate(() => ['cats', 'mechs'].map((side) => {
+      const col = document.getElementById('col-' + side);
+      const h2 = col.querySelector('.brd-faction').getBoundingClientRect();
+      const pool = col.querySelector('.brd-pool').getBoundingClientRect();
+      const dmg = col.querySelector('.brd-value[data-amt="dmg"]').getBoundingClientRect();
+      const empty = col.querySelector('.brd-pool-empty');
+      const words = [col.querySelector('.brd-pool-head'), col.querySelector('.brd-pool-line .brd-label'), empty];
+      const layer = document.getElementById('drag-layer');
+      return {
+        order: h2.bottom <= pool.top && pool.bottom <= dmg.top,
+        onScreen: pool.top >= 0 && pool.bottom <= window.innerHeight,
+        emptyDashed: getComputedStyle(empty).borderTopStyle === 'dashed' && empty.getBoundingClientRect().height > 0,
+        emptyText: empty.textContent,
+        minFont: Math.min(...words.map((w) => parseFloat(getComputedStyle(w).fontSize))),
+        layerOutsideApp: !document.getElementById('app').contains(layer),
+        layerPE: getComputedStyle(layer).pointerEvents,
+        srcTouch: getComputedStyle(col.querySelector('.tok-row.drg-src')).touchAction,
+        srcCursor: getComputedStyle(col.querySelector('.tok-row.drg-src')).cursor
+      };
+    }));
+    note(ch, size.name, 'D-41 pool top / bottom (cats)', await pg.evaluate(() => {
+      const r = document.querySelector('#col-cats .brd-pool').getBoundingClientRect();
+      return Math.round(r.top) + ' / ' + Math.round(r.bottom);
+    }));
+    ok(`${tag}: 31. D-41 — THE POOL SITS AT THE TOP OF EACH SIDE'S COLUMN, ON SCREEN AT LOAD, UNDER THE FACTION'S NAME AND ABOVE THE DAMAGE LINE, and an EMPTY reserve reads as a DROP SLOT — a dashed box holding the sentence that says what goes there — rather than as a blank. Every word the pool adds is at UX-02's 18px floor. The drag layer is OUTSIDE #app, where neither render tier reaches, and pointer-events:none, so the pointer's hit test sees through it; the drag sources are touch-action:none so a finger drags a token instead of panning the page, and wear the grab cursor`,
+      d41Layout.every((s) => s.order && s.onScreen && s.emptyDashed && s.minFont >= 18
+        && s.layerOutsideApp && s.layerPE === 'none' && s.srcTouch === 'none' && s.srcCursor === 'grab')
+      && d41Layout[0].emptyText === await pg.evaluate(() => App.render.RESERVE_EMPTY),
+      d41Layout);
+
+    // ── 31a. UNIT → UNIT, SAME SIDE: lights, identity, ONE move, and the picture. ──
+    await d41Fresh();
+    const a0 = await d41Read();
+    const d41A = await d41Drag(`${CAT('c1')} .tok-row[data-drg-tok="hp"] .tok`, `${CAT('c2')} .unit-name`,
+      () => d41Shot('inflight-unit-to-unit'));
+    const a1 = await d41Read();
+    await d41Shot('after-unit-to-unit');
+    ok(`${tag}: 31a. D-41 — A REAL DRAG FROM ONE CAT TO ANOTHER MOVES ONE HEALTH, AS ONE COMMIT AND ONE UNDO ENTRY. In flight: the drag is live carrying health from Cat 1, one ghost is in the layer and is pointer-events:none, Cat 1 is HOME, every other card and both pools are LIT because health moves anywhere on the shipped board, nothing is refused, and the target under the pointer is the one marked OVER. THE TOKEN PICKED UP IS STILL THE NODE THE PRESS LANDED ON, and still in the document, at the moment of the drop — the node-identity clause plan 05-10 and D-37 probe G say nothing else catches — and NOT ONE COMMIT landed while the drag was live. After the release: Cat 1 3 -> 2, Cat 2 3 -> 4, exactly one commit and one undo entry, the ghost gone and every light off`,
+      d41A.aim.onScreen && d41A.flight
+      && JSON.parse(d41A.flight.inFlight || '{}').live === true
+      && d41A.flight.ghost && d41A.flight.ghostPE === 'none' && d41A.flight.layerPE === 'none'
+      && d41A.flight.home.join() === 'cats/c1' && d41A.flight.no.length === 0
+      && d41A.flight.lit.length === 2 + 9 + 3 - 1 && d41A.flight.over.join() === 'cats/c2'
+      && d41A.flight.srcSame === true && d41A.flight.commits === a0.commits
+      && a1.c1 === 2 && a1.c2 === 4 && a1.commits === a0.commits + 1 && a1.depth === a0.depth + 1
+      && a1.inFlight === '' && a1.ghosts === 0 && a1.lights === 0 && a1.panel === true,
+      { aim: d41A.aim, flight: d41A.flight, before: a0, after: a1 });
+
+    // ── 31b. UNIT → UNIT, ACROSS SIDES. ──
+    await d41Fresh();
+    const b0 = await d41Read();
+    const d41B = await d41Drag(`${MECH('m1')} .tok-row[data-drg-tok="shield"] .tok`, `${CAT('c1')} .unit-name`);
+    const b1 = await d41Read();
+    ok(`${tag}: 31b. D-41 — ACROSS SIDES: A MECH'S SHIELD DRAGGED ONTO A CAT MOVES ONE — Mech 1 3 -> 2, Cat 1 0 -> 1 — the amendment's "any unit to any other unit", one commit, one undo entry`,
+      d41B.aim.onScreen && d41B.flight && d41B.flight.over.join() === 'cats/c1'
+      && d41B.flight.lit.indexOf('cats/c1') !== -1
+      && b1.m1s === 2 && b1.c1s === 1 && b1.commits === b0.commits + 1 && b1.depth === b0.depth + 1,
+      { flight: d41B.flight, before: b0, after: b1 });
+
+    // ── 31c / 31d. UNIT → ITS OWN POOL, THEN POOL → A UNIT ON THE OTHER SIDE. ──
+    await d41Fresh();
+    const c0 = await d41Read();
+    const d41C = await d41Drag(`${CAT('c1')} .tok-row[data-drg-tok="hp"] .tok`, `${POOL('cats')} .brd-pool-head`);
+    const c1r = await d41Read();
+    const d41Held = await pg.evaluate(() => {
+      const box = document.querySelector('#col-cats .brd-pool-held .sym');
+      return box ? { tok: box.dataset.drgTok, title: box.getAttribute('title'), n: box.querySelectorAll('.tok').length,
+        size: Math.round(box.querySelector('.tok').getBoundingClientRect().width),
+        board: Math.round(document.querySelector('#col-cats .unit-card .tok-row[data-drg-tok="hp"] .tok').getBoundingClientRect().width) } : null;
+    });
+    await d41Shot('after-unit-to-pool');
+    ok(`${tag}: 31c. D-41 — UNIT → ITS OWN POOL: Cat 1's health dragged onto the Cats' pool goes into the RESERVE — Cat 1 3 -> 2, the reserve holds one — and the pool draws it as a reading of the type's own token AT THE BOARD'S TOKEN SIZE, with the empty sentence gone`,
+      d41C.aim.onScreen && d41C.flight && d41C.flight.over.join() === 'cats/pool'
+      && c1r.c1 === 2 && c1r.catsRes === '{"hp":1}' && c1r.commits === c0.commits + 1
+      && d41Held && d41Held.tok === 'hp' && d41Held.n === 1 && d41Held.size === d41Held.board
+      && /^1 .* in reserve$/.test(d41Held.title),
+      { flight: d41C.flight, before: c0, after: c1r, held: d41Held });
+    const d41D = await d41Drag(`#col-cats .brd-pool-held .sym[data-drg-tok="hp"] .tok`, `${MECH('m1')} .unit-name`);
+    const d1 = await d41Read();
+    await d41Shot('after-pool-to-other-side');
+    ok(`${tag}: 31d. D-41 — POOL → A UNIT ON THE OTHER SIDE: the health parked in the Cats' reserve dragged onto Mech 1 leaves the reserve empty (the key gone and the empty sentence back) and Mech 1 goes 6 -> 7 — any-to-any, one commit`,
+      d41D.aim.onScreen && d41D.flight && d41D.flight.home.join() === 'cats/pool'
+      && d41D.flight.over.join() === 'mechs/m1'
+      && d1.m1 === 7 && d1.catsRes === '{}' && d1.commits === c1r.commits + 1
+      && await pg.evaluate(() => document.querySelector('#col-cats .brd-pool-empty') !== null),
+      { flight: d41D.flight, after: d1 });
+
+    // ── 31e. SIDE-KEPT, POOL → POOL. ──
+    await d41Fresh();
+    const e0 = await d41Read();
+    const d41E = await d41Drag(`${POOL('cats')} .tok-row[data-drg-tok="ap"] .tok`, `${POOL('mechs')} .brd-pool-head`,
+      () => d41Shot('inflight-side-scope'));
+    const e1 = await d41Read();
+    ok(`${tag}: 31e. D-41 — A SIDE-KEPT TOKEN MOVES POOL TO POOL: one of the Cats' action points dragged onto the Mechs' pool — Cats 3 -> 2, Mechs 3 -> 4. In flight the Cats' pool is HOME, the Mechs' pool is LIT, and EVERY UNIT ON BOTH SIDES reads REFUSED, which is the op's scope rule arriving as a picture`,
+      d41E.aim.onScreen && d41E.flight && d41E.flight.home.join() === 'cats/pool'
+      && d41E.flight.lit.join() === 'mechs/pool' && d41E.flight.no.length === 9 + 3
+      && e1.capAp === 2 && e1.mapAp === 4 && e1.commits === e0.commits + 1,
+      { flight: d41E.flight, before: e0, after: e1 });
+
+    // ── 31f. A REFUSED DROP: SIDE-KEPT ONTO A UNIT, AND ITS SENTENCE READ BACK. ──
+    await d41Fresh();
+    const f0 = await d41Read();
+    let d41FWasNo = null;
+    const d41F = await d41Drag(`${POOL('cats')} .tok-row[data-drg-tok="ap"] .tok`, `${CAT('c2')} .unit-name`,
+      async () => { d41FWasNo = await pg.evaluate((s) => document.querySelector(s).classList.contains('drg-no'), CAT('c2')); });
+    const f1 = await d41Read();
+    const fBox = await d41SaidBox();
+    const d41FSaid = await pg.evaluate(() => App.interactions.dragAnswers('ap', { side: 'cats', unitId: null })
+      .find((a) => a.unitId === 'c2').said);
+    await d41Shot('refused-scope');
+    ok(`${tag}: 31f. D-41 — A REFUSED DROP IS REFUSED BEFORE AND AFTER THE RELEASE, AND SAYS WHY AT THE DROP. An action point dragged onto Cat 2: while it is over the card the card is marked REFUSED, not lit; on release NOTHING MOVES and nothing commits, and Cat 2's own said line carries the op's sentence — "kept on the whole side, so it cannot be moved onto or off a single unit" — which is the very sentence the drag's answer carried, so the picture and the refusal come from one ruling. AND THE SENTENCE IS ON SCREEN once the page settles, between the sticky bar and the foot of the window — a screenshot of this very drop at 1366x768 found it written below the fold. The error panel stays shut`,
+      d41F.aim.onScreen && d41FWasNo === true && d41F.flight.lit.indexOf('cats/c2') === -1
+      && f1.commits === f0.commits && f1.capAp === 3
+      && f1.said.length === 1 && f1.said[0] === 'c2: ' + d41FSaid
+      && /kept on the whole side, so it cannot be moved onto or off a single unit/.test(d41FSaid)
+      && fBox !== null && fBox.onScreen === true
+      && f1.panel === true,
+      { flight: d41F.flight, wasNo: d41FWasNo, after: f1, said: d41FSaid, box: fBox });
+
+    // ── 31g. A REFUSED BOUND BREACH. ──
+    await d41Fresh();
+    await pg.evaluate(() => { App.ops.setTokenBounds('hp', { min: 0, max: 4 }); App.state.flush(); });
+    const g0 = await d41Read();
+    const d41G = await d41Drag(`${CAT('c1')} .tok-row[data-drg-tok="hp"] .tok`, `${MECH('m1')} .unit-name`,
+      () => d41Shot('inflight-bound'));
+    const g1 = await d41Read();
+    const gBox = await d41SaidBox();
+    await d41Shot('refused-bound');
+    ok(`${tag}: 31g. D-41 — A DROP PAST A D-35 CEILING IS REFUSED WHOLE. Health bounded to 0-4 while every mech holds six: in flight every CAT is lit and every MECH reads refused — the bound test is the op's, asked of each end — and dropping on Mech 1 moves nothing, commits nothing, and Mech 1's said line reads the op's ceiling sentence, "Mech 1 holds at most 4 "Health", so it cannot take another.", on screen`,
+      d41G.aim.onScreen && d41G.flight
+      && ['mechs/m1', 'mechs/m2', 'mechs/m3'].every((k) => d41G.flight.no.indexOf(k) !== -1)
+      && d41G.flight.lit.indexOf('cats/c2') !== -1
+      && g1.commits === g0.commits && g1.c1 === 3 && g1.m1 === 6
+      && g1.said.join() === 'm1: Mech 1 holds at most 4 "Health", so it cannot take another.'
+      && gBox !== null && gBox.onScreen === true
+      && g1.panel === true,
+      { flight: d41G.flight, after: g1, box: gBox });
+
+    // ── 31h. ESCAPE MID-DRAG, THEN A RELEASE OVER A LIT TARGET. ──
+    await d41Fresh();
+    const h0 = await d41Read();
+    const hAim = await d41Aim(`${CAT('c1')} .tok-row[data-drg-tok="hp"] .tok`, `${CAT('c2')} .unit-name`);
+    await pg.mouse.move(hAim.sx, hAim.sy);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(hAim.sx + i * 3, hAim.sy + i * 2); }
+    await pg.mouse.move(hAim.tx, hAim.ty, { steps: 6 });
+    const hLive = await d41Flight();
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(80);
+    const hEsc = await d41Read();
+    await pg.mouse.up();
+    await pg.waitForTimeout(150);
+    const h1 = await d41Read();
+    ok(`${tag}: 31h. D-41 — ESCAPE CANCELS A DRAG IN FLIGHT. Live and over a LIT card, Escape ends it: nothing in flight, no ghost, every light off — and the release that follows over that lit card writes NOTHING`,
+      JSON.parse(hLive.inFlight || '{}').live === true && hLive.over.join() === 'cats/c2'
+      && hEsc.inFlight === '' && hEsc.ghosts === 0 && hEsc.lights === 0
+      && h1.commits === h0.commits && h1.c1 === 3 && h1.c2 === 3,
+      { live: hLive, esc: hEsc, after: h1 });
+
+    // ── 31i. A SUB-THRESHOLD PRESS IS STILL A CLICK, ON A TOKEN AND ON A STEPPER. ──
+    await d41Fresh();
+    const i0 = await d41Read();
+    const iAim = await d41Aim(`${CAT('c1')} .tok-row[data-drg-tok="hp"] .tok`, `${CAT('c1')} .unit-name`);
+    await pg.mouse.move(iAim.sx, iAim.sy);
+    await pg.mouse.down();
+    await pg.mouse.move(iAim.sx + 3, iAim.sy + 1);
+    const iMid = await pg.evaluate(() => [App.interactions.dragInFlight(), document.querySelectorAll('#drag-layer > *').length]);
+    await pg.mouse.up();
+    await pg.waitForTimeout(120);
+    const i1 = await d41Read();
+    const plus = await pg.evaluate(() => {
+      const b = document.querySelector('[data-k="cats/c1/maxHp+"]');
+      b.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const r = b.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    await pg.mouse.move(plus.x, plus.y);
+    await pg.mouse.down();
+    await pg.mouse.move(plus.x + 3, plus.y + 2);
+    await pg.mouse.up();
+    await pg.waitForTimeout(150);
+    const i2 = await d41Read();
+    ok(`${tag}: 31i. D-41 — A PRESS THAT DOES NOT TRAVEL DRAG_PX IS STILL A CLICK. On a token: a 3px wobble leaves the press pending and never live, draws no ghost, and the release commits nothing. On the + beside the same health: a press with the same wobble is ONE step, exactly as before this plan — the stepper is not a drag source and the drag never sees it`,
+      iMid[0] !== '' && JSON.parse(iMid[0]).live === false && iMid[1] === 0
+      && i1.commits === i0.commits && i1.c1 === 3 && i1.inFlight === ''
+      && i2.c1 === 4 && i2.commits === i1.commits + 1,
+      { mid: iMid, after: i1, afterPlus: i2 });
+
+    // ── 31j. TWO DRAGS ARE TWO UNDO ENTRIES, EVEN INSIDE COALESCE_MS. ──
+    // Two FAST drags, so the second release lands inside COALESCE_MS of the first — the
+    // window in which two stepper presses on one number fold into one entry. A drag paced
+    // like the ones above takes ~450 ms each and would prove nothing about folding.
+    await d41Fresh();
+    const j0 = await d41Read();
+    const jAim = await d41Aim(`${CAT('c3')} .tok-row[data-drg-tok="hp"] .tok`, `${CAT('c4')} .unit-name`);
+    const jCoalesce = await pg.evaluate(() => App.state.COALESCE_MS);
+    const jFast = async () => {
+      const at = await pg.evaluate(() => {
+        const n = document.querySelector('#col-cats [data-drg-unit="c3"] .tok-row[data-drg-tok="hp"] .tok');
+        const r = n.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+      await pg.mouse.move(at.x, at.y);
+      await pg.mouse.down();
+      await pg.mouse.move(at.x + 8, at.y + 6);
+      await pg.mouse.move(jAim.tx, jAim.ty, { steps: 2 });
+      await pg.mouse.up();
+      return Date.now();
+    };
+    const jUp1 = await jFast();
+    const jUp2 = await jFast();
+    const jMs = jUp2 - jUp1;
+    await pg.waitForTimeout(150);
+    const j1 = await d41Read();
+    await pg.evaluate(() => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); });
+    await pg.keyboard.press('Control+z');
+    await pg.waitForTimeout(150);
+    const j2 = await d41Read();
+    // THE CONTROL, in the same run: two presses on one stepper, the same distance apart,
+    // DO fold — so the window really was open when the two drags did not.
+    const jPlus = await pg.evaluate(() => {
+      const bt = document.querySelector('[data-k="cats/c5/maxHp+"]');
+      bt.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const r = bt.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    await pg.waitForTimeout(600);
+    const jc0 = await d41Read();
+    await pg.mouse.click(jPlus.x, jPlus.y);
+    await pg.mouse.click(jPlus.x, jPlus.y);
+    await pg.waitForTimeout(150);
+    const jc1 = await d41Read();
+    note(ch, size.name, 'D-41 two drags, release to release (ms)', jMs + ' of ' + jCoalesce);
+    ok(`${tag}: 31j. D-41 — TWO DRAGS ARE TWO UNDO ENTRIES, EVEN INSIDE COALESCE_MS. The same type between the same two cards, twice, with the second release landing inside the window in which two presses on one stepper fold into one entry (measured, and required): Cat 3 3 -> 1, Cat 4 3 -> 5, and the undo depth rises by TWO; one Ctrl+Z takes back exactly ONE of them (Cat 3 back to 2, Cat 4 to 4), because the move's label carries the commit count and cannot fold into its neighbour. THE CONTROL IN THE SAME RUN: two clicks on one stepper's + DO fold — two commits, one entry — so the window was open`,
+      jAim.onScreen && typeof jCoalesce === 'number' && jMs < jCoalesce
+      && j1.c3 === 1 && j1.c4 === 5 && j1.depth === j0.depth + 2
+      && j2.c3 === 2 && j2.c4 === 4 && j2.depth === j0.depth + 1
+      && jc1.commits === jc0.commits + 2 && jc1.depth === jc0.depth + 1,
+      { before: j0, twice: j1, afterUndo: j2, ms: jMs, coalesce: jCoalesce, control: [jc0.depth, jc1.depth, jc0.commits, jc1.commits] });
+
+    // ── 31k. THE STEPPER'S PRESS-AND-HOLD RAMP IS UNCHANGED. ──
+    await d41Fresh();
+    const k0 = await d41Read();
+    const kBtn = await pg.evaluate(() => {
+      const b = document.querySelector('[data-k="cats/c1/maxHp+"]');
+      b.scrollIntoView({ block: 'center', behavior: 'instant' });
+      const r = b.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    await pg.mouse.move(kBtn.x, kBtn.y);
+    await pg.mouse.down();
+    await pg.waitForTimeout(250);
+    const kEarly = await pg.evaluate(() => [App.state.get().build.cats.units[0].maxHp, App.interactions.holdSource(), App.interactions.dragInFlight()]);
+    await pg.waitForTimeout(850);
+    await pg.mouse.up();
+    await pg.waitForTimeout(250);
+    const k1 = await d41Read();
+    const kSteps = k1.c1 - k0.c1;
+    const kSrc = await pg.evaluate(() => App.interactions.holdSource());
+    note(ch, size.name, 'D-41 stepper hold 1100ms: steps / undo entries', kSteps + ' / ' + (k1.depth - k0.depth));
+    ok(`${tag}: 31k. D-41 — THE STEPPER'S PRESS-AND-HOLD RAMP IS UNCHANGED BY THE DRAG. Held for 1.1 s on Cat 1's health +: one step lands on the press, the ramp starts after HOLD_FIRST_MS and repeats — the count is recorded for all four columns — the whole hold is ONE undo entry, NO drag ever goes in flight, and releasing stops the ramp`,
+      kEarly[0] === 4 && kEarly[1] === 'pointer' && kEarly[2] === ''
+      && kSteps >= 5 && kSteps <= 14 && k1.depth === k0.depth + 1 && kSrc === null,
+      { early: kEarly, steps: kSteps, before: k0, after: k1 });
+
+    // ── 31l. A DRAG REACHES THE POOL FROM A CARD THE POOL IS NOT ON SCREEN WITH. ──
+    await d41Fresh();
+    const l0 = await d41Read();
+    const lSrc = await pg.evaluate(() => {
+      const n = document.querySelector('#col-cats [data-drg-unit="c9"] .tok-row[data-drg-tok="hp"] .tok');
+      n.scrollIntoView({ block: 'end', behavior: 'instant' });
+      window.scrollBy({ top: 60, left: 0, behavior: 'instant' });
+      const r = n.getBoundingClientRect();
+      const pool = document.querySelector('#col-cats .brd-pool').getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, poolBottom: pool.bottom,
+        bar: document.getElementById('topbar').getBoundingClientRect().bottom };
+    });
+    await pg.mouse.move(lSrc.x, lSrc.y);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(lSrc.x + i * 3, lSrc.y - i * 2); }
+    await pg.mouse.move(lSrc.x, lSrc.bar + 6, { steps: 10 });
+    let lPool = null;
+    for (let i = 0; i < 80; i++) {
+      await pg.waitForTimeout(50);
+      lPool = await pg.evaluate(() => {
+        const r = document.querySelector('#col-cats .brd-pool-head').getBoundingClientRect();
+        return { top: r.top, x: r.left + 40, y: r.top + r.height / 2 };
+      });
+      if (lPool.top > lSrc.bar + 70) break;
+    }
+    // Out of the edge zone first, so the page stops scrolling, THEN read where the pool
+    // is and aim at it — a point read while the page is still moving is a stale one.
+    await pg.mouse.move(lPool.x, lSrc.bar + 200, { steps: 2 });
+    await pg.waitForTimeout(120);
+    lPool = await pg.evaluate(() => {
+      const r = document.querySelector('#col-cats .brd-pool-head').getBoundingClientRect();
+      return { top: r.top, x: r.left + 40, y: r.top + r.height / 2 };
+    });
+    await pg.mouse.move(lPool.x, lPool.y, { steps: 5 });
+    await pg.waitForTimeout(80);
+    const lOver = await d41Flight();
+    await pg.mouse.up();
+    await pg.waitForTimeout(160);
+    const l1 = await d41Read();
+    const l9 = await pg.evaluate(() => App.state.get().build.cats.units[8].maxHp);
+    ok(`${tag}: 31l. D-41 — A DRAG REACHES THE POOL FROM A CARD THE POOL IS NOT ON SCREEN WITH. Cat 9's health is picked up with the pool scrolled out of sight (its bottom edge above the window, measured), held at the sticky bar's edge until the page scrolls the pool into view, and dropped on it: Cat 9 3 -> 2 and the Cats' reserve holds one. Added because a real drag at 1366x768 measured the pool unreachable from Cat 6 down`,
+      lSrc.poolBottom < lSrc.bar && lOver.over.join() === 'cats/pool'
+      && l9 === 2 && l1.catsRes === '{"hp":1}' && l1.commits === l0.commits + 1,
+      { src: lSrc, over: lOver, after: l1 });
+
+    await d41Fresh();
+
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
     ok(`${tag}: 16. no page error and no console error across every press above`,
       errs.length === 0, errs.slice(0, 3));

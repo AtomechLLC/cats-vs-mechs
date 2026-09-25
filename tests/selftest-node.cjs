@@ -17710,6 +17710,351 @@ check(
     + JSON.stringify(d40CancelEdited) + ' -> ' + JSON.stringify(d40CancelBack)
 );
 
+/* --- 129 to 129c. D-41 PART TWO — THE POOL AND THE DRAG, plan 05-D41b ---------
+   What this page can reach of D-41's surface, and it is most of it: the pool's
+   structure and words, every entity mark and drag source, the reserve's
+   readings drawn through the shipped symbolic reading, and the gesture up to
+   the moment of the drop — the threshold, the lights, the ghost's layer,
+   Escape, and the fact that nothing commits while a drag is live. WHAT IT
+   CANNOT REACH IS THE DROP ITSELF: the drop resolves the entity under the
+   pointer with document.elementFromPoint, and a page with no layout has no
+   point to resolve. Every drop kind is driven by a real pointer in
+   tests/browser-checks.mjs cells 31 to 31f, and the arithmetic a drop is ruled
+   on is held to the op in [S09.14]. */
+A.ops.resetToDefaults();
+A.state.flush();
+
+function d41Pool(side) {
+  const col = dom.byId['col-' + side];
+  const pools = col.querySelectorAll('.brd-pool');
+  const pool = pools[0] || null;
+  const head = col.querySelector('.brd-col-head');
+  const reserveLine = pool ? pool.querySelector('.brd-pool-line') : null;
+  const held = pool ? pool.querySelector('.brd-pool-held') : null;
+  const said = pool ? pool.children[pool.children.length - 1] : null;
+  // Everything the pool ADDED, as opposed to the stat lines moved into it:
+  // its head, the reserve line's subtree and its said line.
+  const added = [];
+  const collect = (n) => { if (!n) { return; } added.push(n); n.children.forEach(collect); };
+  if (pool) { collect(pool.children[0]); collect(reserveLine); collect(said); }
+  return {
+    count: pools.length,
+    underHead: !!pool && pool.parentNode === head,
+    secondInHead: !!pool && head.children[1] === pool && head.children[0].tagName === 'H2',
+    at: pool ? pool.dataset.drgAt : null,
+    unit: pool ? pool.dataset.drgUnit : null,
+    name: pool ? pool.children[0].textContent : null,
+    label: reserveLine ? reserveLine.querySelector('.brd-label').textContent : null,
+    empty: held ? held.children.map((c) => c.className + '=' + c.textContent).join('|') : null,
+    apInside: !!pool && pool.querySelector('[data-act="ap"]') !== null,
+    dmgOutside: !!pool && pool.querySelector('[data-amt="dmg"]') === null
+      && head.querySelector('[data-amt="dmg"]') !== null,
+    saidQuiet: !!said && said.classList.contains('drg-said') && said.hidden === true
+      && said.textContent === '',
+    routed: added.filter((n) => n.dataset.act !== undefined || n.dataset.k !== undefined
+      || n.dataset.amt !== undefined).length,
+    focusable: added.filter((n) => n.tagName === 'BUTTON' || n.tagName === 'INPUT'
+      || n.getAttribute('tabindex') !== null).length
+  };
+}
+
+// A student's type at each scope, so the side-kept tally line is in the pool
+// and a unit-kept one is on every card, and the marks are read over both.
+const d41Grit = A.ops.createTokenType({ name: 'Grit', shape: 'tri', color: 'coral',
+  glyph: A.data.GLYPHS[1], scope: 'unit' });
+const d41Zeal = A.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+  glyph: '', scope: 'side' });
+A.ops.setTally('cats', 'c1', d41Grit, 2);
+A.ops.setTally('cats', null, d41Zeal, 2);
+A.state.invalidate({ structural: true });
+A.state.flush();
+
+const d41Cats = d41Pool('cats');
+const d41Mechs = d41Pool('mechs');
+const d41ZealInPool = dom.byId['col-cats'].querySelector('.brd-pool')
+  .querySelector('.tok-row[data-amt="' + d41Zeal + '"]') !== null;
+
+// Every entity on the page and every token row inside one.
+const d41Entities = ['cats', 'mechs'].map((side) =>
+  dom.byId['col-' + side].querySelectorAll('[data-drg-at]'));
+const d41CardMarks = ['cats', 'mechs'].map((side) => {
+  const cards = dom.byId['col-' + side].querySelectorAll('.unit-card');
+  return cards.map((c) => c.dataset.drgAt + '/' + c.dataset.drgUnit).join(' ');
+});
+const d41WantMarks = ['cats', 'mechs'].map((side) =>
+  A.state.get().build[side].units.map((u) => side + '/' + u.id).join(' '));
+const d41CardSaid = ['cats', 'mechs'].every((side) =>
+  dom.byId['col-' + side].querySelectorAll('.unit-card').every((c) => {
+    const saids = c.children.filter((k) => k.classList.contains('drg-said'));
+    return saids.length === 1 && saids[0].hidden === true && saids[0].textContent === ''
+      && c.children[c.children.length - 1] === saids[0];
+  }));
+let d41RowsMarked = 0;
+let d41RowsWrong = [];
+d41Entities.forEach((list) => list.forEach((ent) => {
+  ent.querySelectorAll('.tok-row').forEach((row) => {
+    if (row.dataset.amt === undefined) { return; }
+    d41RowsMarked += 1;
+    if (row.dataset.drgTok !== row.dataset.amt || !row.classList.contains('drg-src')) {
+      d41RowsWrong.push(row.dataset.amt);
+    }
+  });
+}));
+const d41DmgRow = dom.byId['col-cats'].querySelector('.tok-row[data-amt="dmg"]');
+
+check(
+  '129. D-41 PART TWO — A POOL AT THE TOP OF EACH SIDE, AND EVERY ENTITY A DROP '
+    + 'CAN LAND ON IS MARKED AS ONE. The developer\'s amendment: "a pool at the '
+    + 'top of each side for unit to side drags", holding a real reserve AND the '
+    + 'side\'s own side-kept tokens "since that is where they already live". So '
+    + 'the pool is ONE box per column, the second thing in the head directly '
+    + 'under the faction\'s name, and it holds the reserve line and the numbers a '
+    + 'student allocates to the whole side — the action-point stepper and a side '
+    + 'type the student invented — while Damage stays OUTSIDE it, because a '
+    + 'projection is not something a drag can take. ITS WORDS ARE READ OFF THE '
+    + 'EXPORTS rather than typed here, and an empty reserve says what goes there '
+    + 'rather than standing as a blank box. THE BOX IS AN ENTITY, THE SIDE\'S OWN '
+    + 'END: data-drg-at names the side and no unit, and every unit card on both '
+    + 'sides is marked with its side and its unit in the build\'s own order. '
+    + 'EVERY TOKEN ROW INSIDE AN ENTITY IS A DRAG SOURCE naming its own type, '
+    + 'and the Damage row in the head, outside every entity, is not. EACH ENTITY '
+    + 'CARRIES ONE SAID LINE, hidden and empty, as its last child — the channel a '
+    + 'refused drop is said on. AND NOTHING THE POOL ADDED CARRIES A ROUTING '
+    + 'ATTRIBUTE OR TAKES A TAB STOP: a data-act would be dispatched by [S07.1], '
+    + 'a data-k would enter the focus-restore space, a data-amt would be painted '
+    + 'by the value pass, and a focusable token Enter could not operate would be '
+    + 'a control that lies — the steppers are the keyboard path',
+  [d41Cats, d41Mechs].every((p, i) => p.count === 1 && p.underHead && p.secondInHead
+    && p.at === ['cats', 'mechs'][i] && p.unit === undefined
+    && p.name === A.render.POOL_WORD && p.label === A.render.RESERVE_WORD
+    && p.empty === 'brd-pool-empty=' + A.render.RESERVE_EMPTY
+    && p.apInside && p.dmgOutside && p.saidQuiet && p.routed === 0 && p.focusable === 0)
+    && d41ZealInPool
+    && d41CardMarks[0] === d41WantMarks[0] && d41CardMarks[1] === d41WantMarks[1]
+    && d41CardSaid
+    && d41RowsMarked >= 2 * (9 + 3) + 2 + 1 && d41RowsWrong.length === 0
+    && d41DmgRow !== null && d41DmgRow.dataset.drgTok === undefined,
+  'cats pool ' + JSON.stringify(d41Cats) + ' | mechs pool ' + JSON.stringify(d41Mechs)
+    + ' | side type in the pool=' + d41ZealInPool
+    + ' | card marks ' + JSON.stringify(d41CardMarks) + ' want ' + JSON.stringify(d41WantMarks)
+    + ' | one quiet said line last on every card=' + d41CardSaid
+    + ' | rows marked ' + d41RowsMarked + ' wrong ' + JSON.stringify(d41RowsWrong)
+    + ' | damage row marked=' + (d41DmgRow ? d41DmgRow.dataset.drgTok : 'no row')
+);
+
+/* 129b — the reserve's readings. Moved in through the OP (the gesture is the
+   browser's), then read back off the page. */
+A.ops.moveToken('hp', 'cats', 'c1', 'cats', null);
+A.ops.moveToken('hp', 'cats', 'c2', 'cats', null);
+A.ops.moveToken(d41Grit, 'cats', 'c1', 'cats', null);
+A.state.flush();
+function d41Held(side) {
+  const held = dom.byId['col-' + side].querySelector('.brd-pool-held');
+  return held.children.map((box) => {
+    const tok = box.querySelector('.tok');
+    const glyph = tok ? tok.querySelector('.tok-g') : null;
+    return {
+      cls: box.className, tok: box.dataset.drgTok, title: box.getAttribute('title'),
+      aria: box.getAttribute('aria-label'), tsay: box.dataset.tsay,
+      role: box.getAttribute('role'),
+      n: box.querySelectorAll('.tok').length,
+      shape: tok ? tok.className : '', glyph: glyph ? glyph.textContent : '',
+      text: box.textContent
+    };
+  });
+}
+const d41HeldIn = d41Held('cats');
+const d41MechsStill = d41Held('mechs');
+const d41HpStyle = A.render.amountFor ? A.state.get().build.tokens.hp : null;
+const d41FirstNode = dom.byId['col-cats'].querySelector('.brd-pool-held').children[0];
+A.ops.dispatch('ap', { side: 'mechs', value: 5 });
+A.state.flush();
+const d41SameNode = dom.byId['col-cats'].querySelector('.brd-pool-held').children[0]
+  === d41FirstNode;
+A.ops.renameTokenType(d41Grit, 'Sand');
+A.state.flush();
+const d41Renamed = d41Held('cats')[1];
+A.ops.setTokenStyle(d41Grit, { shape: 'circ', color: 'violet' });
+A.state.flush();
+const d41Restyled = d41Held('cats')[1];
+A.ops.moveToken('hp', 'cats', null, 'mechs', 'm1');
+A.ops.moveToken('hp', 'cats', null, 'cats', 'c1');
+A.ops.moveToken(d41Grit, 'cats', null, 'cats', 'c1');
+A.state.flush();
+const d41Drained = d41Held('cats');
+const d41NoKey = !Object.prototype.hasOwnProperty.call(A.state.get().build.cats, 'reserve');
+
+check(
+  '129b. D-41 PART TWO — THE RESERVE IS DRAWN THROUGH THE SHIPPED READING, AS '
+    + 'AUTHORED, AND IT FOLLOWS EVERY INPUT. Two health and one of a type the '
+    + 'student invented are moved into the cats\' reserve through moveToken, and '
+    + 'the pool draws ONE READING PER TYPE in vocabulary order — [S06.12]\'s '
+    + 'symQty, called and not restated: role="img", a tooltip that EQUALS the '
+    + 'accessible name, the student\'s word declared on data-tsay so the harvest '
+    + 'reads only the artifact\'s half, and one token per point in the type\'s '
+    + 'own shape, colour and glyph — D-24, no second tier. Each reading is a drag '
+    + 'source naming its type. The empty sentence is gone and the OTHER side\'s '
+    + 'pool still says it. A FRAME THAT MOVED NOTHING HERE KEEPS THE SAME NODE, '
+    + 'which is what keeps a token under a pointer the same token between '
+    + 'frames; and the fingerprint covers the NAME and the STYLE, because a '
+    + 'rename or a restyle is a plain commit and a print that forgot either would '
+    + 'paint stale — probe CI\'s lesson. Drained back out (one of the health to '
+    + 'the OTHER side\'s unit), the reserve key is gone and the sentence returns',
+  d41HeldIn.length === 2
+    && d41HeldIn[0].tok === 'hp' && d41HeldIn[0].n === 2 && d41HeldIn[0].role === 'img'
+    && d41HeldIn[0].title === '2 ' + A.render.labelFor(A.state.get(), 'hp') + A.render.RESERVE_POST
+    && d41HeldIn[0].aria === d41HeldIn[0].title
+    && d41HeldIn[0].tsay === A.render.labelFor(A.state.get(), 'hp')
+    && d41HeldIn[0].cls.indexOf('drg-src') !== -1
+    && d41HeldIn[0].shape.indexOf('tok--' + d41HpStyle.shape) !== -1
+    && d41HeldIn[0].shape.indexOf('tok--' + d41HpStyle.color) !== -1
+    && d41HeldIn[1].tok === d41Grit && d41HeldIn[1].n === 1
+    && d41HeldIn[1].title === '1 Grit' + A.render.RESERVE_POST
+    && d41HeldIn[1].shape.indexOf('tok--tri') !== -1
+    && d41HeldIn[1].shape.indexOf('tok--coral') !== -1
+    && d41HeldIn[1].glyph === A.data.GLYPHS[1]
+    && d41MechsStill.length === 1 && d41MechsStill[0].text === A.render.RESERVE_EMPTY
+    && d41SameNode === true
+    && d41Renamed.title === '1 Sand' + A.render.RESERVE_POST && d41Renamed.tsay === 'Sand'
+    && d41Restyled.shape.indexOf('tok--circ') !== -1
+    && d41Restyled.shape.indexOf('tok--violet') !== -1
+    && d41Drained.length === 1 && d41Drained[0].text === A.render.RESERVE_EMPTY
+    && d41NoKey === true,
+  'in ' + JSON.stringify(d41HeldIn) + ' | mechs ' + JSON.stringify(d41MechsStill)
+    + ' | same node across an unrelated frame=' + d41SameNode
+    + ' | renamed ' + JSON.stringify(d41Renamed) + ' | restyled ' + JSON.stringify(d41Restyled)
+    + ' | drained ' + JSON.stringify(d41Drained) + ' reserve key gone=' + d41NoKey
+);
+
+/* 129c — the gesture, as far as a page with no layout can take it. */
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+const d41Board = dom.byId['board'];
+const d41Layer = dom.byId['drag-layer'];
+const d41Src = dom.byId['col-cats'].querySelector('.unit-card')
+  .querySelector('.tok-row[data-drg-tok="hp"]').children[0];
+const d41State0 = JSON.stringify(A.state.get());
+const d41Commits0 = commits();
+function d41Ev(type, x, y, extra) {
+  return dom.event(type, Object.assign({ pointerId: 7, button: 0, clientX: x, clientY: y }, extra || {}));
+}
+function d41Lights() {
+  const out = { lit: [], no: [], home: [], taking: 0 };
+  ['cats', 'mechs'].forEach((side) => {
+    dom.byId['col-' + side].querySelectorAll('[data-drg-at]').forEach((n) => {
+      const k = n.dataset.drgAt + '/' + (n.dataset.drgUnit || 'pool');
+      if (n.classList.contains('drg-lit')) { out.lit.push(k); }
+      if (n.classList.contains('drg-no')) { out.no.push(k); }
+      if (n.classList.contains('drg-home')) { out.home.push(k); }
+    });
+    out.taking += dom.byId['col-' + side].querySelectorAll('.drg-taking').length;
+  });
+  return out;
+}
+
+// A SUB-THRESHOLD PRESS: down, a 3px wobble, up. It is a click, and a click on
+// a token is nothing.
+d41Src.dispatchEvent(d41Ev('pointerdown', 100, 100));
+d41Board.dispatchEvent(d41Ev('pointermove', 103, 101));
+const d41SubInFlight = A.interactions.dragInFlight();
+d41Board.dispatchEvent(d41Ev('pointerup', 103, 101));
+const d41SubAfter = [A.interactions.dragInFlight(), d41Layer.children.length,
+  commits() - d41Commits0, JSON.stringify(A.state.get()) === d41State0];
+
+// A LIVE DRAG: down, past the threshold, and hold.
+d41Src.dispatchEvent(d41Ev('pointerdown', 100, 100));
+d41Board.dispatchEvent(d41Ev('pointermove', 130, 110));
+const d41Live = JSON.parse(A.interactions.dragInFlight() || '{}');
+const d41LitLive = d41Lights();
+const d41Ghost = d41Layer.children[0] || null;
+const d41GhostAt = d41Ghost ? [d41Ghost.style.getPropertyValue('--drg-x'),
+  d41Ghost.style.getPropertyValue('--drg-y')] : null;
+const d41GhostTok = d41Ghost ? d41Ghost.querySelector('.tok') : null;
+const d41SrcTaking = d41Src.classList.contains('drg-taking');
+const d41CommitsLive = commits() - d41Commits0;
+d41Board.dispatchEvent(d41Ev('pointermove', 160, 140));
+const d41SrcAttached = (function () {
+  let n = d41Src;
+  while (n) { if (n === d41Board) { return true; } n = n.parentNode; }
+  return false;
+})();
+// ESCAPE, mid-drag.
+d41Board.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+const d41AfterEsc = [A.interactions.dragInFlight(), d41Layer.children.length,
+  d41Lights(), commits() - d41Commits0, JSON.stringify(A.state.get()) === d41State0];
+// The release that follows an Escape is nothing, too.
+d41Board.dispatchEvent(d41Ev('pointerup', 160, 140));
+const d41AfterUp = [A.interactions.dragInFlight(), commits() - d41Commits0];
+
+// ACTION POINTS picked up from the cats' pool: the pool is home, the mechs'
+// pool lights, every unit reads refused.
+const d41ApSrc = dom.byId['col-cats'].querySelector('.brd-pool')
+  .querySelector('.tok-row[data-drg-tok="ap"]').children[0];
+d41ApSrc.dispatchEvent(d41Ev('pointerdown', 50, 50));
+d41Board.dispatchEvent(d41Ev('pointermove', 80, 80));
+const d41ApLights = d41Lights();
+d41Board.dispatchEvent(d41Ev('pointercancel', 80, 80));
+const d41AfterCancel = [A.interactions.dragInFlight(), d41Layer.children.length,
+  d41Lights().lit.length + d41Lights().no.length, commits() - d41Commits0];
+
+check(
+  '129c. D-41 PART TWO — THE GESTURE UP TO THE DROP: THE THRESHOLD, THE LIGHTS, '
+    + 'THE LAYER, ESCAPE, AND NOTHING WRITTEN WHILE A DRAG IS LIVE. A press on a '
+    + 'cat\'s health token that wobbles three pixels and lets go is a CLICK — '
+    + 'nothing goes in flight, no ghost is drawn and nothing commits. Past '
+    + 'App.interactions.DRAG_PX the same press IS a drag: in flight with the '
+    + 'type and the end it came from, ONE ghost in #drag-layer — outside #app, '
+    + 'where neither render tier reaches — drawn by the board\'s own token '
+    + 'builder and placed by the two custom properties check 57 reads, the token '
+    + 'picked up marked as taken, and every entity lit by the op\'s answers: the '
+    + 'source card HOME, every other card and both pools LIT, because health '
+    + 'moves anywhere on the shipped board. NOT ONE COMMIT LANDS WHILE IT IS LIVE, '
+    + 'and the token picked up is STILL IN THE DOCUMENT after a further move — '
+    + 'the identity clause plan 05-10 and D-37 probe G say only a node-identity '
+    + 'check catches. ESCAPE ends it with nothing written and every light off, '
+    + 'the layer empty, and the release after it is nothing too. THEN ACTION '
+    + 'POINTS FROM THE CATS\' POOL light the other asymmetry: that pool home, the '
+    + 'mechs\' pool lit, and EVERY UNIT on both sides refused — a side-kept type '
+    + 'cannot land on a unit, and the surface knows that only because the op '
+    + 'said so. A cancelled pointer ends that one the same way. THE DROP ITSELF '
+    + 'IS NOT DRIVEN HERE: it resolves the entity under the pointer, and this '
+    + 'page has no point to resolve',
+  d41SubInFlight !== '' && JSON.parse(d41SubInFlight).live === false
+    && d41SubAfter[0] === '' && d41SubAfter[1] === 0 && d41SubAfter[2] === 0
+    && d41SubAfter[3] === true
+    && d41Live.live === true && d41Live.tokenId === 'hp'
+    && d41Live.from.side === 'cats' && d41Live.from.unitId === 'c1'
+    && d41LitLive.home.join() === 'cats/c1'
+    && d41LitLive.no.length === 0
+    && d41LitLive.lit.length === 2 + 9 + 3 - 1
+    && d41LitLive.taking === 1 && d41SrcTaking === true
+    && d41Layer.children.length <= 1 && d41Ghost !== null
+    && d41Ghost.classList.contains('drg-ghost') && d41GhostTok !== null
+    && d41GhostAt !== null && d41GhostAt[0] === '130px' && d41GhostAt[1] === '110px'
+    && d41CommitsLive === 0 && d41SrcAttached === true
+    && d41AfterEsc[0] === '' && d41AfterEsc[1] === 0
+    && d41AfterEsc[2].lit.length === 0 && d41AfterEsc[2].no.length === 0
+    && d41AfterEsc[2].home.length === 0 && d41AfterEsc[2].taking === 0
+    && d41AfterEsc[3] === 0 && d41AfterEsc[4] === true
+    && d41AfterUp[0] === '' && d41AfterUp[1] === 0
+    && d41ApLights.home.join() === 'cats/pool' && d41ApLights.lit.join() === 'mechs/pool'
+    && d41ApLights.no.length === 9 + 3
+    && d41AfterCancel[0] === '' && d41AfterCancel[1] === 0 && d41AfterCancel[2] === 0
+    && d41AfterCancel[3] === 0
+    && errPanel.hidden === true,
+  'sub-threshold in flight ' + d41SubInFlight + ' after ' + JSON.stringify(d41SubAfter)
+    + ' | live ' + JSON.stringify(d41Live) + ' lights ' + JSON.stringify(d41LitLive)
+    + ' ghost at ' + JSON.stringify(d41GhostAt) + ' commits while live ' + d41CommitsLive
+    + ' source still attached ' + d41SrcAttached
+    + ' | after Escape ' + JSON.stringify(d41AfterEsc) + ' after up ' + JSON.stringify(d41AfterUp)
+    + ' | action points ' + JSON.stringify(d41ApLights) + ' after cancel '
+    + JSON.stringify(d41AfterCancel) + ' | panel hidden=' + errPanel.hidden
+);
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore
