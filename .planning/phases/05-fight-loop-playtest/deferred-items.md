@@ -1221,3 +1221,35 @@ that moved the tail void without the badge decision would be restyling those row
 Pass A's own sequencing argument, at the surface it was written about.
 
 **Owner:** pass G, after the developer rules on the three.
+
+---
+
+## D-41 PART TWO — the pool and the drag, on top of the op part one built
+
+**Raised 2026-09-25 by plan 05-D41a.**
+
+Part one built everything below the surface: `faction.reserve`, `App.ops.moveToken` (one op, every
+drag, flat ends `fromSide`/`fromUnitId`/`toSide`/`toUnitId`, a null unit meaning the side's end),
+`App.ops.readReserve`, `App.data.MAX_RESERVE`, and the `P` section on the wire. **Nothing draws the
+reserve and nothing drags.** Part two owns the per-side pool at the top of each column, the
+pointer-events drag with its threshold, the lit/invalid target states, Escape-to-cancel, and the
+interaction-gate rows for all of it. Every refusal the op raises is a plain Error carrying a sentence
+already written for a student, so the surface can hand them to `[S07.1]`'s refusal channel as they
+stand.
+
+**A PRE-AMENDMENT ATTEMPT AT PART TWO'S SURFACE IS PARKED, NOT LOST.** It was found uncommitted in
+the main working tree when this dispatch began, written against D-41 as first recorded — before the
+amendment — and it is on the local branch **`wip/d41-pre-amendment-drag-ui`** at `d081c3b`. It
+carries a `[S06.16]` tray and ghost, an `[S07.8]` pointer drive, `[C04]` drag CSS and a style-
+allowlist turn (8 → 10, `--drg-`). **It is not a working state** — the stub-DOM runner reads 1479
+passed, 1 failed on it — and it implements the within-a-side rule the amendment withdrew and its own
+`dropRefusal` op, which would collide with `[S07.1]`'s function of the same name. Mine it; do not
+merge it.
+
+**THE RESERVE CEILING IS A PLAYTEST-VISIBLE NUMBER.** `MAX_RESERVE` is 99, reached on the ninety-
+ninth drag of one type into one side's reserve with none taken out. [S01] records why it is not the
+type's authored pair (measured: a reserve held to Health at 3 refuses the fourth cat) and why it is
+not unbounded (steppers create tokens). If a room ever pools a whole 24-unit side's health, this is
+the number it meets, and the refusal says so by name.
+
+**Owner:** the second D-41 dispatch; the ceiling, the 05-11 playtest.
