@@ -486,3 +486,41 @@ terms change.
   the affordability machinery already owns).
 - It updates live as cost terms are added, edited, removed, or cancelled (D-34's restore included),
   and follows the selected side.
+
+---
+
+## D-41 — 2026-09-25: drag tokens to allocate them
+
+Verbatim:
+
+> Can you make it so manual allocation of resources can be done via dragging token elements onto
+> the relevant entity or dragging from one to another
+
+### What this settles
+
+Allocation gains a direct-manipulation path alongside the steppers:
+1. **Drag onto an entity** — a token type dragged from a source onto a unit (unit-scope types) or
+   a side (side-scope types) adds one of it.
+2. **Drag from one to another** — a token dragged off one entity onto another moves one: −1 at the
+   source, +1 at the target, as ONE commit.
+
+### Orchestrator calls (recorded, overridable)
+
+- **Surface: the build board**, where allocation lives. The fight tab keeps D-37's click-to-rule
+  popup; a fight-tab drag would be a hand ruling, not an allocation, and is a follow-up on request.
+- **Moves stay within a side** and within a token type's scope (unit→unit, side→side). A
+  cross-side drop is refused in the file's refusal register, not silently ignored. One-line change
+  if the developer wants cross-side transfers.
+- **Sources for "add one":** a per-side tray of that side's token types (shipped and
+  student-authored alike — D-24, no second tier), each drawn in its own authored shape/colour/glyph.
+- **Each drop is ONE commit, ONE undo entry**, clamped by D-35 bounds on both ends: a move that
+  would take the source below its min or the target above its max is refused readably and moves
+  nothing (a half-transfer is never written).
+- **Pointer Events, not HTML5 drag-and-drop** — the file routes presses through `pointerdown` with
+  event delegation, HTML5 DnD does not deliver touch/pen, and its drag image cannot carry the
+  token's clip-path shape. A movement threshold separates a click from a drag so existing presses
+  keep working.
+- **The steppers remain the keyboard and assistive-tech path.** Drag is additive, never the only
+  way to reach a value (WCAG 2.5.7). Nothing that exists is removed.
+- Drop targets light with D-33's "lit" palette role while a drag is live; an invalid target reads
+  as invalid (not merely unlit); Escape cancels a drag in flight.
