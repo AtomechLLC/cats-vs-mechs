@@ -35233,6 +35233,15 @@ App.interactions = (function () {
       });
     } catch (err) {
       refuseLoudly(said, err);
+      // THE SENTENCE IS BROUGHT ON SCREEN, measured necessary rather than
+      // assumed: the said line is the card's LAST child, and a real drop at
+      // 1366x768 onto a card near the fold wrote the op's sentence below the
+      // window — correct on the page, read back by every row, and invisible to
+      // the student it was for. 'nearest' moves nothing when it is already on
+      // screen, and the page's own smooth scroll carries it there otherwise.
+      if (said && typeof said.scrollIntoView === 'function') {
+        said.scrollIntoView({ block: 'nearest' });
+      }
       return;
     }
     dropSaidLine(said);
