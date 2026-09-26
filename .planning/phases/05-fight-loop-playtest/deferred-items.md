@@ -1253,3 +1253,33 @@ not unbounded (steppers create tokens). If a room ever pools a whole 24-unit sid
 the number it meets, and the refusal says so by name.
 
 **Owner:** the second D-41 dispatch; the ceiling, the 05-11 playtest.
+
+**CLOSED BY PLAN 05-D41b (2026-09-25), with four things left open below.** The pool, the drag and
+the lights shipped on part one's op, unchanged except that its guards moved into `moveRule` and are
+exported as `App.ops.moveCheck`, the predicate the surface lights with. The parked branch was mined
+for its threshold, its capture-on-`#board` and its `elementFromPoint` hit test. Its tray, its two
+ops and its within-a-side rule were not used. **The branch is untouched and its fate is the
+orchestrator's.** See `05-D41b-SUMMARY.md`.
+
+---
+
+## D-41 — what the drag does not cover, raised by plan 05-D41b
+
+**Raised 2026-09-25.**
+
+1. **THE RESERVE HAS NO KEYBOARD PATH.** Every number a drag changes on a unit or a side still has
+   its − and +, which are the keyboard route (WCAG 2.5.7), and the How-to says drag is pointer-only.
+   But moving a token INTO or OUT OF a reserve is only possible by dragging. The reserve is not read
+   by the fight or the projection, so no allocation is out of reach. It is still a thing a keyboard
+   user cannot do. The recorded answer is real buttons (spec item 4: "if the pool is operable by
+   keyboard at all, it goes through real buttons"), for example a "Hold one" / "Give back"
+   pair on each reading. That is a design call the developer has not made.
+2. **TOUCH AND PEN ARE NOT DRIVEN.** The gesture is Pointer Events with `touch-action:none` on the
+   sources, and every browser cell drives it with `page.mouse`. A finger and a stylus take the same
+   code path, but no cell has driven one.
+3. **FIREFOX AND SAFARI**, as for every other surface (CLAUDE.md § Gaps).
+4. **A DRAG ON THE BUILD BOARD WITH A FIGHT RUNNING** is allowed, because a move is allocation and
+   the steppers stay live mid-fight. It follows FIGHT-10 (a build edit lands at the next round), but
+   no browser cell drives a drag mid-fight.
+
+**Owner:** the developer (1); the 05-11 playtest (2, 4).
