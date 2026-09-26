@@ -17801,6 +17801,20 @@ d41Entities.forEach((list) => list.forEach((ent) => {
   });
 }));
 const d41DmgRow = dom.byId['col-cats'].querySelector('.tok-row[data-amt="dmg"]');
+// PROBE P1's clause. With pointer-events:none taken off the layer and the ghost,
+// every drop resolves to the ghost instead of the card under it and lands
+// nowhere — and this whole gate stayed green over it, 1391 passed and 225 of 225,
+// because a page with no layout cannot hit-test. Only a browser cell saw it, and
+// a browser cell is absent from every fresh checkout by design. So the two rule
+// bodies are read BY NAME for the property, the way 103e reads the lane's rules.
+const d41Css = (sel) => {
+  const at = html.indexOf('\n  ' + sel + '{');
+  return at === -1 ? null : html.slice(at, html.indexOf('}', at));
+};
+const d41LayerCss = d41Css('#drag-layer');
+const d41GhostCss = d41Css('.drg-ghost');
+const d41SeeThrough = d41LayerCss !== null && d41GhostCss !== null
+  && /pointer-events:\s*none/.test(d41LayerCss) && /pointer-events:\s*none/.test(d41GhostCss);
 
 check(
   '129. D-41 PART TWO — A POOL AT THE TOP OF EACH SIDE, AND EVERY ENTITY A DROP '
@@ -17823,7 +17837,12 @@ check(
     + 'ATTRIBUTE OR TAKES A TAB STOP: a data-act would be dispatched by [S07.1], '
     + 'a data-k would enter the focus-restore space, a data-amt would be painted '
     + 'by the value pass, and a focusable token Enter could not operate would be '
-    + 'a control that lies — the steppers are the keyboard path',
+    + 'a control that lies — the steppers are the keyboard path. AND THE DRAG '
+    + 'LAYER AND THE GHOST ARE pointer-events:none, READ BY RULE NAME IN THE '
+    + 'STYLESHEET: probe P1 took the property off both and every drop resolved to '
+    + 'the ghost instead of the card under it, and this gate stayed green because '
+    + 'a page with no layout cannot hit-test',
+  d41SeeThrough &&
   [d41Cats, d41Mechs].every((p, i) => p.count === 1 && p.underHead && p.secondInHead
     && p.at === ['cats', 'mechs'][i] && p.unit === undefined
     && p.name === A.render.POOL_WORD && p.label === A.render.RESERVE_WORD
@@ -17834,7 +17853,8 @@ check(
     && d41CardSaid
     && d41RowsMarked >= 2 * (9 + 3) + 2 + 1 && d41RowsWrong.length === 0
     && d41DmgRow !== null && d41DmgRow.dataset.drgTok === undefined,
-  'cats pool ' + JSON.stringify(d41Cats) + ' | mechs pool ' + JSON.stringify(d41Mechs)
+  'layer and ghost see-through in the stylesheet=' + d41SeeThrough
+    + ' | cats pool ' + JSON.stringify(d41Cats) + ' | mechs pool ' + JSON.stringify(d41Mechs)
     + ' | side type in the pool=' + d41ZealInPool
     + ' | card marks ' + JSON.stringify(d41CardMarks) + ' want ' + JSON.stringify(d41WantMarks)
     + ' | one quiet said line last on every card=' + d41CardSaid
