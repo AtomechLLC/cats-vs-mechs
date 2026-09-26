@@ -6135,6 +6135,11 @@ for (const ch of ['chrome', 'msedge']) {
       await pg.evaluate(() => {
         if (App.state.get().fight !== null) { App.ops.endFight(); }
         App.ops.resetToDefaults();
+        // AN EMPTY UNDO STACK, measured necessary: the stack is capped at UNDO_LIMIT
+        // (30) and by cell 31 the earlier cells have filled it, so a drag that pushed an
+        // entry left the depth at 30 and "one undo entry" read as none. restore() is
+        // [S03]'s own writer and empties the stack; the board is the reset one.
+        App.state.restore(JSON.stringify(App.state.get()));
         App.state.invalidate({ structural: true });
         App.state.flush();
       });
