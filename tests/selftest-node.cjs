@@ -4764,7 +4764,8 @@ console.log('scan: ' + renderedText.length + ' rendered strings read from #app (
 // PLAN 05-D41b RE-MEASURED IT AND DID NOT MOVE IT. D-41's pool adds exactly six
 // strings to this harvest — its name, its reserve label and the empty reserve's
 // sentence, on each side — and measured +6 at 2x2, 3x3, 5x3 and 9x3 alike, so
-// the shipped figure went 220 -> 226 and the per-card cost of 7 did not move.
+// the shipped figure went 220 -> 226 and the per-card cost of 7 did not move;
+// the plan's How-to paragraph takes it one further, to 227.
 // The floor has sat at 117 since plan 03.1-04 while the harvest grew past 200:
 // it is a tripwire for a walk that reads NOTHING, and DIALOG_FLOOR's note gives
 // the reason a tripwire is not raised to follow a growing page — a ratchet here
@@ -6145,7 +6146,16 @@ A.state.flush();
    a string. A reserve that HOLDS tokens swaps the empty sentence for one
    reading per type, each with a tooltip and an accessible name, so a dragged
    board draws MORE and never fewer; +6 is the lower bound this move must be,
-   the same argument that took 116 rather than 119 above. So 248 + 6 = 254. */
+   the same argument that took 116 rather than 119 above. So 248 + 6 = 254.
+
+   RE-MEASURED AT THE PLAN'S CLOSE, AND THE HARVEST MOVED ONE FURTHER THAN THE
+   FLOOR, ON PURPOSE. The same four shapes read +7, not +6, once D-41b's How-to
+   paragraph (dragging is pointer-only; the steppers are the keyboard path) was
+   in: 164/312, 178/372, 192/432, 220/552. That seventh string is #howto's, which
+   the stub builds with its words inside #app, and #howto has its own floor
+   (HOWTO_FLOOR, measured 32 now against 31). D-38 set the precedent when it added
+   the whole tab and left this constant at 248: a How-to paragraph is prose a
+   later plan may legitimately move, and this base does not ratchet on it. */
 const FIGHT_FLOOR = 254;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
