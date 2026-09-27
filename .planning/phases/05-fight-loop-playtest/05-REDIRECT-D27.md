@@ -607,3 +607,34 @@ Verbatim:
 Orchestrator reading: mech sprites render at about **2× the cats' linear size** (4× the area),
 FF1's scale for large monsters. Names stay legible. The default formation, the drag clamp, and the
 24-a-side case are all re-measured at the new size.
+
+---
+
+## D-44 — 2026-09-27: 16-bit art, with the 8-bit art kept as a choice
+
+Verbatim:
+
+> change the bar to FFV level art and redraw, keep the original art and let users pick the
+> generation, use the new one as default
+
+### What this settles
+
+- **A new art generation for the battle scene, at Final Fantasy V's level of detail** (16-bit
+  SNES): higher-resolution sprites with shading and outlines, and a richer layered backdrop band
+  (sky, distant scenery, textured ground).
+- **The D-42 art is kept** as the 8-bit generation.
+- **A picker selects the generation; 16-bit is the default.**
+
+### Orchestrator calls (recorded, overridable)
+
+- "The bar" is read as the scene's backdrop band, and "redraw" as the sprites too. The whole scene
+  gets the new generation.
+- The picker is labelled by generation ("16-bit" / "8-bit") rather than by game title, to keep
+  third-party trademarks off the tool's controls. A one-word change if the developer wants the
+  titles.
+- The choice is view state, like sprite positions: best-effort `localStorage` under a `cvm.v1.*`
+  key. It is not in App.state, undo or the build code.
+- D-43's scale holds in both generations: mechs at about 2× the cats' linear size.
+- Colours stay derived from the design tokens at runtime (shade ramps built by mixing tokens), with
+  no new stylesheet hex (row 107f). Names stay real text above sprites (Layer C, D-42's paint-order
+  fix). Dead units lie down greyed in both generations. No victory text.
