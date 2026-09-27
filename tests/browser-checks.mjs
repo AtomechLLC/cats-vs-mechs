@@ -6621,9 +6621,17 @@ for (const ch of ['chrome', 'msedge']) {
           const hit = document.elementFromPoint(x, y);
           return hit === nm || (hit !== null && nm.contains(hit));
         });
+        // D-43: the canvas's own rectangle, TRANSFORM INCLUDED (a dead unit's is turned), its
+        // backing size and how it is scaled — what "twice the cat" is measured on.
+        const cv = n.querySelector('canvas');
+        const c = cv ? cv.getBoundingClientRect() : { left: 0, top: 0, right: 0, bottom: 0, width: 0, height: 0 };
         return { id: n.dataset.scnUnit, at: n.dataset.scnAt, name: nm.textContent, onTop,
           aria: n.getAttribute('aria-label'), down: n.classList.contains('scn-unit--down'),
           l: r.left, t: r.top, r: r.right, b: r.bottom, cx: r.left + r.width / 2, cy: r.top + r.height / 2,
+          w: r.width, h: r.height,
+          cl: c.left, ct: c.top, cr: c.right, cb: c.bottom, cw: c.width, chh: c.height,
+          cbw: cv ? cv.width : 0, ir: cv ? getComputedStyle(cv).imageRendering : '',
+          cf: cv ? getComputedStyle(cv).filter : '', ctf: cv ? getComputedStyle(cv).transform : '',
           nl: q.left, nt: q.top, nr: q.right, nb: q.bottom,
           font: parseFloat(getComputedStyle(nm).fontSize), family: getComputedStyle(nm).fontFamily,
           clipped: nm.scrollWidth > nm.clientWidth + 1 };
@@ -6976,12 +6984,151 @@ for (const ch of ['chrome', 'msedge']) {
     });
     note(ch, size.name, 'D-42 scene at 24 a side: top/bottom, field, rows', `${d42bigLook.top}/${d42bigLook.bottom} of ${d42bigLook.vh}, ${Math.round(d42big.field.w)}x${Math.round(d42big.field.h)}, rows ${d42big.rows}`);
     await d42Shot('24');
-    ok(`${tag}: 32j. D-42 — TWENTY-FOUR A SIDE, EVERY SPRITE INSIDE THE FRAME AND EVERY NAME LEGIBLE: 48 sprites in a four-row field, all inside it, every name at the 18px floor or above, monospace, unclipped, and no two names overlapping anywhere`,
-      d42big.sprites.length === 48 && d42big.rows === '4' && d42Inside(d42big)
+    /* TURNED IN THE OPEN UNDER D-43, plan 05-D43. This cell asked for a FOUR-row field at 24
+       a side. With the mechs drawn at twice the cats' size, four rows of them need the height
+       of six cat rows, so the field is six rows: RED recorded first, `rows: "6"` in all four
+       columns with every other clause green. The claim itself did not move. */
+    ok(`${tag}: 32j. D-42 — TWENTY-FOUR A SIDE, EVERY SPRITE INSIDE THE FRAME AND EVERY NAME LEGIBLE: 48 sprites in a six-row field (four rows under D-42; D-43's big mechs take six), all inside it, every name at the 18px floor or above, monospace, unclipped, and no two names overlapping anywhere`,
+      d42big.sprites.length === 48 && d42big.rows === '6' && d42Inside(d42big)
       && d42big.sprites.every((s) => s.font >= 18 && /mono/i.test(s.family) && !s.clipped)
       && d42NamesApart(d42big) === '' && d42big.sprites.every((s) => s.onTop),
       { n: d42big.sprites.length, rows: d42big.rows, inside: d42Inside(d42big), apart: d42NamesApart(d42big),
         field: d42big.field, look: d42bigLook });
+
+    // ── 32k-32n. D-43 — THE MECHS ARE MUCH BIGGER THAN THE CATS. Plan 05-D43.
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // "make the mechs much bigger than the cats", read as twice the cats' linear size. Node
+    // check 130c reads the ratio off the stylesheet and lays every roster out in pixels; these
+    // cells measure the real rectangles: the ratio, a whole number of screen pixels per sprite
+    // pixel, no sprite over another sprite or another unit's name, a big mech lying down clear
+    // of its own name, a big mech stopping at every side of the frame by its OWN size, and
+    // Advance still reachable with 24 big mechs on the tab.
+    const d43Hit = (a, b) => a.l < b.r - 1 && b.l < a.r - 1 && a.t < b.b - 1 && b.t < a.b - 1;
+    const d43Art = (s) => ({ l: s.cl, r: s.cr, t: s.ct, b: s.cb });
+    const d43Nm = (s) => ({ l: s.nl, r: s.nr, t: s.nt, b: s.nb });
+    // The first sprite over a sprite, or over ANOTHER unit's name; '' when there is none.
+    const d43Clear = (rd) => {
+      const n = rd.sprites;
+      for (let i = 0; i < n.length; i++) {
+        for (let j = 0; j < n.length; j++) {
+          if (i === j) { continue; }
+          if (j > i && d43Hit(d43Art(n[i]), d43Art(n[j]))) { return 'sprites ' + n[i].id + '/' + n[j].id; }
+          if (d43Hit(d43Art(n[i]), d43Nm(n[j]))) { return n[i].id + ' over the name of ' + n[j].id; }
+        }
+      }
+      return '';
+    };
+    // Every mech's canvas twice every cat's on both axes, every canvas a whole number of screen
+    // pixels per sprite pixel, and drawn pixelated. Standing units only: a turned canvas's box
+    // is the same square, but only a standing one is asked.
+    const d43Ratio = (rd) => {
+      const up = rd.sprites.filter((s) => !s.down);
+      const cats = up.filter((s) => s.id.charAt(0) === 'c');
+      const mechs = up.filter((s) => s.id.charAt(0) === 'm');
+      const cw = cats.length ? cats[0].cw : 0;
+      return { cat: cw, mech: mechs.length ? mechs[0].cw : 0,
+        ok: cats.length > 0 && mechs.length > 0 && cw > 0
+          && cats.every((s) => Math.abs(s.cw - cw) < 0.5 && Math.abs(s.chh - cw) < 0.5)
+          && mechs.every((s) => Math.abs(s.cw - 2 * cw) < 0.5 && Math.abs(s.chh - 2 * cw) < 0.5)
+          && up.every((s) => s.cbw === 16 && Math.abs(s.cw / 16 - Math.round(s.cw / 16)) < 0.01
+            && s.ir === 'pixelated') };
+    };
+
+    // ── 32k. TWENTY-FOUR A SIDE WITH BIG MECHS: nothing over anything, and Advance reachable.
+    const d43bigRatio = d43Ratio(d42big);
+    const d43Adv = await pg.evaluate(async () => {
+      const span = Math.max(0, document.documentElement.scrollHeight - window.innerHeight);
+      const out = [];
+      for (const frac of [0, 0.25, 0.5, 0.75, 1]) {
+        window.scrollTo(0, Math.round(span * frac));
+        await new Promise((r) => setTimeout(r, 420));
+        const a = document.querySelector('#fightbar [data-fg="advance"]');
+        const ar = a ? a.getBoundingClientRect() : null;
+        const rows = Array.from(document.querySelectorAll('#decl-cats .fg-row'))
+          .map((n) => n.getBoundingClientRect()).filter((r) => r.bottom > 0 && r.top < window.innerHeight);
+        out.push({ y: Math.round(window.scrollY), rowsInView: rows.length,
+          adv: ar ? Math.round(ar.top) + '-' + Math.round(ar.bottom) : 'MISSING',
+          whole: !!ar && ar.top >= 0 && ar.bottom <= window.innerHeight && ar.height > 0 });
+      }
+      window.scrollTo(0, 0);
+      await new Promise((r) => setTimeout(r, 420));
+      return out;
+    });
+    const d43AdvRows = d43Adv.filter((s) => s.rowsInView > 0);
+    note(ch, size.name, 'D-43 sprite px cat / mech (9v3 and 24v24 alike)', `${d43bigRatio.cat} / ${d43bigRatio.mech}`);
+    note(ch, size.name, 'D-43 Advance at 24 a side over five offsets', d43Adv.map((s) => `y${s.y}:${s.adv}/${s.rowsInView}rows`).join('  '));
+    ok(`${tag}: 32k. D-43 — TWENTY-FOUR A SIDE WITH MECHS TWICE THE CATS' SIZE: every mech's canvas is twice every cat's on both axes, every canvas is a whole number of screen pixels per sprite pixel and drawn pixelated, NO SPRITE OVERLAPS ANOTHER SPRITE OR ANOTHER UNIT'S NAME anywhere among the 48, and the field grew to six rows to hold them. And ADVANCE IS STILL REACHABLE — the rule D-31 and D-33 set, driven the way cell 18c drives it: at every page offset where a picker row is on screen, the Advance control is wholly on screen with it`,
+      d43bigRatio.ok && d43Clear(d42big) === '' && d42big.rows === '6'
+      && d43AdvRows.length > 0 && d43AdvRows.every((s) => s.whole),
+      { ratio: d43bigRatio, clear: d43Clear(d42big), rows: d42big.rows, advance: d43Adv });
+
+    // ── 32l. THE SHIPPED 9v3: three big mechs in one row, and the scene no taller. ──
+    await d42Fresh();
+    const d43s0 = await d42Read();
+    const d43sRatio = d43Ratio(d43s0);
+    const d43Mechs = ['m1', 'm2', 'm3'].map((u) => d42Sprite(d43s0, u));
+    const d43sLook = await pg.evaluate(() => {
+      const r = document.getElementById('scene').getBoundingClientRect();
+      return { top: Math.round(r.top + window.scrollY), bottom: Math.round(r.bottom + window.scrollY), vh: window.innerHeight };
+    });
+    note(ch, size.name, 'D-43 shipped scene top/bottom, field', `${d43sLook.top}/${d43sLook.bottom} of ${d43sLook.vh}, ${Math.round(d43s0.field.w)}x${Math.round(d43s0.field.h)} rows ${d43s0.rows}`);
+    await pg.locator('#scene').screenshot({ path: path.join(process.env.SHOT_DIR || tmpdir(), `d43-fresh-${ch}-${size.name}.png`) });
+    ok(`${tag}: 32l. D-43 — THE SHIPPED BOARD: each of the three mechs is drawn at TWICE a cat's size on both axes (96px against 48, 128px against 64 on a projector-sized window — four times the area), a whole number of screen pixels per sprite pixel and pixelated; the three stand in ONE ROW, so the field keeps D-42's three rows and the scene is still whole on screen at load; no sprite overlaps another sprite or another unit's name, and every name is still what a hit test finds at its centre and four inner corners`,
+      d43sRatio.ok && d43s0.rows === '3' && d43sLook.bottom <= d43sLook.vh
+      && d43Mechs.every((m) => m.cy !== undefined && Math.abs(m.cy - d43Mechs[0].cy) < 1)
+      && d43Clear(d43s0) === '' && d42Inside(d43s0) && d43s0.sprites.every((s) => s.onTop)
+      && d42NamesApart(d43s0) === '',
+      { ratio: d43sRatio, rows: d43s0.rows, look: d43sLook, mechs: d43Mechs.map((m) => [m.cx, m.cy]),
+        clear: d43Clear(d43s0) });
+
+    // ── 32m. A BIG MECH RULED DEAD lies down grey and clears its own name. ──
+    await pg.evaluate(() => {
+      App.ops.dispatch('setAlive', { side: 'mechs', unitId: 'm3', value: false });
+      App.state.flush();
+    });
+    await pg.waitForTimeout(400);
+    const d43d = await d42Read();
+    const d43m3 = d42Sprite(d43d, 'm3');
+    await pg.locator('#scene').screenshot({ path: path.join(process.env.SHOT_DIR || tmpdir(), `d43-dead-${ch}-${size.name}.png`) });
+    ok(`${tag}: 32m. D-43 — A BIG MECH RULED DEAD LIES DOWN GREY AND CLEARS ITS OWN NAME: Mech 3, ruled dead through setAlive, has the down class, a turned canvas and a grayscale filter, and the turned canvas's own rectangle ends ABOVE the top of its name — nothing of the lying mech is over the words that say who it is, and the name is what a hit test finds. No sprite overlaps another unit's name either`,
+      d43m3.down === true && d43m3.ctf !== 'none' && d43m3.ctf !== '' && /grayscale/.test(d43m3.cf)
+      && d43m3.cb <= d43m3.nt + 0.5 && d43m3.onTop === true && d43Clear(d43d) === ''
+      && d43m3.aria === 'Mech 3, ruled dead',
+      { m3: d43m3, clear: d43Clear(d43d) });
+
+    // ── 32n. A BIG MECH DRAGGED TO EVERY SIDE STOPS THERE BY ITS OWN SIZE. ──
+    const d43Edges = [];
+    for (const side of ['left', 'top', 'right', 'bottom']) {
+      const f = (await d42Read()).field;
+      const vw = await pg.evaluate(() => [window.innerWidth, window.innerHeight]);
+      const tgt = {
+        left: { x: Math.max(3, Math.round(f.l - 40)), y: Math.round(f.t + f.h * 0.5) },
+        top: { x: Math.round(f.l + f.w * 0.5), y: Math.max(3, Math.round(f.t - 40)) },
+        right: { x: Math.min(vw[0] - 3, Math.round(f.r + 40)), y: Math.round(f.t + f.h * 0.5) },
+        bottom: { x: Math.round(f.l + f.w * 0.5), y: Math.min(vw[1] - 3, Math.round(f.b + 60)) }
+      }[side];
+      await d42Drag('m1', tgt.x, tgt.y);
+      const rd = await d42Read();
+      const m1 = d42Sprite(rd, 'm1');
+      const cat = d42Sprite(rd, 'c1');
+      const kept = d42J(rd.saved).m1 || [];
+      const gap = { left: m1.l - rd.field.l, top: m1.t - rd.field.t, right: rd.field.r - m1.r, bottom: rd.field.b - m1.b }[side];
+      // The share the clamp kept is half THIS sprite's own box in from that side — a mech's
+      // box, not a cat's, which is what "the clamp uses each sprite's own size" means.
+      const want = { left: (m1.w / 2) / rd.field.w, top: (m1.h / 2) / rd.field.h,
+        right: 1 - (m1.w / 2) / rd.field.w, bottom: 1 - (m1.h / 2) / rd.field.h }[side];
+      const got = (side === 'left' || side === 'right') ? kept[0] : kept[1];
+      const beyond = { left: tgt.x < f.l, top: tgt.y < f.t, right: tgt.x > f.r, bottom: tgt.y > f.b }[side];
+      await pg.locator('#scene').screenshot({ path: path.join(process.env.SHOT_DIR || tmpdir(), `d43-edge-${side}-${ch}-${size.name}.png`) });
+      d43Edges.push({ side, beyond, gap: Math.round(gap * 10) / 10, want: Math.round(want * 10000) / 10000, got,
+        mechH: m1.h, catH: cat.h, inside: d42Inside(rd), onTop: rd.sprites.every((s) => s.onTop),
+        ok: beyond && Math.abs(gap) <= 2 && typeof got === 'number' && Math.abs(got - want) <= 0.0015
+          && d42Inside(rd) && rd.sprites.every((s) => s.onTop) && m1.h > cat.h });
+    }
+    note(ch, size.name, 'D-43 Mech 1 at each side: gap px / kept share', d43Edges.map((e) => `${e.side} ${e.gap}/${e.got}`).join('  '));
+    ok(`${tag}: 32n. D-43 — A BIG MECH DRAGGED PAST EVERY SIDE OF THE FRAME STOPS AT THAT SIDE BY ITS OWN SIZE: Mech 1, taken with page.mouse and let go beyond the left, the top, the right and the bottom in turn, rests within two pixels of that side, wholly inside the field, and the share kept for it is half the MECH's own box in from that side (its box is taller than a cat's, so a clamp that used a cat's size would leave it hanging over the frame or short of it). Every name on the field is still what a hit test finds after each drop`,
+      d43Edges.length === 4 && d43Edges.every((e) => e.ok),
+      d43Edges);
 
     await pg.evaluate(() => {
       App.render.sceneHome();

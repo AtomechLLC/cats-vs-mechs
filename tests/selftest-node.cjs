@@ -18356,6 +18356,121 @@ A.ops.resetToDefaults();
 A.state.invalidate({ structural: true });
 A.state.flush();
 
+/* --- 130c. D-43 — THE MECHS ARE MUCH BIGGER THAN THE CATS, plan 05-D43 ----------
+   The developer, verbatim: "make the mechs much bigger than the cats". Read as
+   twice the cats' linear size, FF1's scale for a large monster, drawn at a whole
+   number of screen pixels per sprite pixel.
+
+   THE RATIO IS READ OFF [C19] ITSELF, not off a copy of it: the cat's sprite size
+   at both window sizes, the one multiplier every mech is drawn at, and the rules
+   that make a mech's sprite and a mech's box use it. So a stylesheet that drew
+   the mechs at the cats' size again is red here on a fresh checkout, and the
+   browser cell 32k is red for the same change on a real rectangle.
+
+   THEN THE FORMATION IS LAID OUT IN PIXELS, EVERY ROSTER FROM 1v1 TO 24v24, at
+   both window sizes the browser tier drives (fields 1304 and 1582 wide, measured
+   under D-42), with the field height [C19] gives each row count. [S06.17] places
+   units by shares and never measures, so this is the only place the shares meet
+   the sizes before a browser does: no sprite overlaps another sprite, no sprite
+   overlaps another unit's name, no two names overlap, and every box is inside
+   the field. A name's width is estimated at 11px a character plus its plate,
+   wider than the monospace faces [C19] asks for. --- */
+const d43Css = (() => {
+  const a = html.indexOf('[C19] THE BATTLE SCENE');
+  const b = html.indexOf('[C16] MOTION AND SCROLL');
+  return (a >= 0 && b > a) ? html.slice(a, b) : '';
+})();
+const D43_MEDIA = '@media (min-width:1600px) and (min-height:900px){';
+const d43Base = d43Css.split(D43_MEDIA)[0] || '';
+const d43Media = d43Css.split(D43_MEDIA)[1] || '';
+const d43Num = (src, re) => { const m = re.exec(src); return m ? Number(m[1]) : NaN; };
+const d43Cat = {
+  small: d43Num(d43Base, /\.scn-field\{[^}]*--scn-px:(\d+)px/),
+  large: d43Num(d43Media, /\.scn-field\{[^}]*--scn-px:(\d+)px/)
+};
+const d43Big = d43Num(d43Base, /\.scn-field\{[^}]*--scn-big:(\d+(?:\.\d+)?)[;}]/);
+const d43BoxW = d43Num(d43Base, /\.scn-field\{[^}]*--scn-w:(\d+)px/);
+const d43Under = d43Num(d43Css, /--scn-h:calc\(var\(--scn-spr\) \+ (\d+)px\)/);
+const d43Rules = [
+  /\.scn-unit\{[^}]*--scn-spr:var\(--scn-px\)/.test(d43Css),
+  /\.scn-unit\[data-scn-side="mechs"\]\{--scn-spr:calc\(var\(--scn-px\) \* var\(--scn-big\)\)\}/.test(d43Css),
+  /\.scn-sprite\{\s*width:var\(--scn-spr\);height:var\(--scn-spr\);image-rendering:pixelated/.test(d43Css)
+];
+const d43Heights = { small: {}, large: {} };
+d43Heights.small[3] = d43Num(d43Base, /\.scn-field\{[^}]*;height:(\d+)px/);
+d43Heights.large[3] = d43Num(d43Media, /\.scn-field\{[^}]*;height:(\d+)px/);
+[4, 5, 6].forEach((r) => {
+  const re = new RegExp('\\.scn-field\\[data-scn-rows="' + r + '"\\]\\{height:(\\d+)px\\}');
+  d43Heights.small[r] = d43Num(d43Base, re);
+  d43Heights.large[r] = d43Num(d43Media, re);
+});
+const d43Ratio = [d43Big, d43Cat.small, d43Cat.large, d43Cat.small * d43Big, d43Cat.large * d43Big,
+  [d43Cat.small, d43Cat.large, d43Cat.small * d43Big, d43Cat.large * d43Big].every((v) => v > 0 && v % 16 === 0)];
+const d43Hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+let d43Laid = 0;
+let d43Bad = '';
+for (const fld of [{ media: 'small', w: 1304 }, { media: 'large', w: 1582 }]) {
+  const spr = { cats: d43Cat[fld.media], mechs: d43Cat[fld.media] * d43Big };
+  for (let nc = 1; nc <= 24 && d43Bad === ''; nc++) {
+    for (let nm = 1; nm <= 24 && d43Bad === ''; nm++) {
+      const rows = A.render.sceneFieldRows(nc, nm);
+      const H = d43Heights[fld.media][rows];
+      const where = fld.media + ' ' + nc + 'v' + nm + ' rows ' + rows;
+      if (!(H > 0)) { d43Bad = where + ': [C19] gives no height'; break; }
+      const units = [];
+      [['cats', nc, 'Cat '], ['mechs', nm, 'Mech ']].forEach(([side, n, word]) => {
+        for (let i = 0; i < n; i++) {
+          const at = A.render.sceneSlot(side, i, n, rows);
+          const s = spr[side];
+          const boxH = s + d43Under;
+          const cx = at[0] * fld.w;
+          const top = at[1] * H - boxH / 2;
+          const nw = (word + (i + 1)).length * 11 + 8;
+          units.push({ id: side.charAt(0) + (i + 1),
+            box: { l: cx - d43BoxW / 2, r: cx + d43BoxW / 2, t: top, b: top + boxH },
+            art: { l: cx - s / 2, r: cx + s / 2, t: top, b: top + s },
+            name: { l: cx - nw / 2, r: cx + nw / 2, t: top + boxH - 22, b: top + boxH } });
+        }
+      });
+      d43Laid += 1;
+      for (let i = 0; i < units.length && d43Bad === ''; i++) {
+        const u = units[i];
+        if (u.box.l < 0 || u.box.r > fld.w || u.box.t < 0 || u.box.b > H) { d43Bad = where + ': ' + u.id + ' outside'; }
+        for (let j = 0; j < units.length && d43Bad === ''; j++) {
+          if (i === j) { continue; }
+          const v = units[j];
+          if (j > i && d43Hit(u.art, v.art)) { d43Bad = where + ': sprites ' + u.id + '/' + v.id; }
+          else if (d43Hit(u.art, v.name)) { d43Bad = where + ': ' + u.id + ' over the name of ' + v.id; }
+          else if (j > i && d43Hit(u.name, v.name)) { d43Bad = where + ': names ' + u.id + '/' + v.id; }
+        }
+      }
+    }
+  }
+}
+const d43Ship = [A.render.sceneFieldRows(9, 3), A.render.sceneFieldRows(24, 24),
+  [0, 1, 2].map((i) => A.render.sceneSlot('mechs', i, 3, 3)[1]).every((y, _, a) => y === a[0])];
+check(
+  '130c. D-43 — THE MECHS ARE MUCH BIGGER THAN THE CATS, AND THE FORMATION STILL FITS '
+    + 'THEM. Read off [C19]: a cat is drawn at 48px and at 64px on a projector-sized window, '
+    + 'exactly as D-42 drew it, and EVERY MECH AT TWICE THAT — one multiplier, --scn-big, '
+    + 'that the mech\'s sprite and the mech\'s box both use — so 96px and 128px, four times '
+    + 'the area and still a whole number of screen pixels per sprite pixel, drawn pixelated. '
+    + 'A stylesheet that drew the mechs at the cats\' size again is red here. THEN EVERY '
+    + 'ROSTER FROM 1v1 TO 24v24 IS LAID OUT IN PIXELS at both window sizes the browser tier '
+    + 'drives, on the field height [C19] gives its row count: no sprite over another sprite, '
+    + 'no sprite over another unit\'s name, no two names overlapping, every box inside the '
+    + 'field. The shipped 9v3 keeps D-42\'s three-row field, its three mechs standing in one '
+    + 'row, and 24 a side takes six rows, four of them mechs',
+  d43Ratio[0] === 2 && d43Ratio[1] === 48 && d43Ratio[2] === 64 && d43Ratio[3] === 96
+    && d43Ratio[4] === 128 && d43Ratio[5] === true && d43BoxW === 128 && d43Under === 24
+    && d43Rules.every(Boolean) && d43Laid === 2 * 24 * 24 && d43Bad === ''
+    && d43Ship[0] === 3 && d43Ship[1] === 6 && d43Ship[2] === true,
+  'ratio [big, cat small, cat large, mech small, mech large, all x16] ' + JSON.stringify(d43Ratio)
+    + ' | box w ' + d43BoxW + ' under ' + d43Under + ' | rules ' + JSON.stringify(d43Rules)
+    + ' | heights ' + JSON.stringify(d43Heights) + ' | laid ' + d43Laid + ' first bad: ' + (d43Bad || 'none')
+    + ' | shipped rows / 24v24 rows / 3 mechs one row ' + JSON.stringify(d43Ship)
+);
+
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
        stand-in rather than a parser. The behaviours numbered below therefore

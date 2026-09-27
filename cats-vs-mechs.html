@@ -6708,8 +6708,10 @@
      it writes too, so what is saved is what is drawn.
 
      THE FIELD'S HEIGHT FOLLOWS THE FORMATION'S ROW COUNT through a data
-     attribute rather than an inline length: three rows for every roster up to
-     nine a side, four above that, and 24 a side is 6 columns by 4 rows. */
+     attribute rather than an inline length: three rows for the shipped board
+     and every roster up to six mechs, and one row more for each further row of
+     mechs, because a mech is twice a cat (D-43) and a row of mechs takes two
+     rows of height. 24 a side is six rows: cats 6 columns by 4, mechs 6 by 4. */
   .scn{flex:1 1 100%;min-width:0;display:grid;gap:10px}
   .scn-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px}
   .scn-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
@@ -6721,13 +6723,22 @@
     box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--ink-faint) 70%, var(--bg));
   }
   /* THE SIZES ARE ARITHMETIC, and the row spacing is the number that must not
-     go under a sprite's height: the rows share 74% of the field (SCENE_ROWS_H
-     in [S06.17]), so 300px over three rows is 74px apart against a 72px
-     sprite-and-name, and 400px over four is 74px. On a projector-sized window
-     the sprites go to 64px (four screen pixels a sprite pixel, still whole
-     pixels) and the fields to 360 and 480, 88px apart against 88. */
+     go under a sprite's height. A field row is 100px (120px on a projector-
+     sized window), the scenery band and the foot take 0.78 of one row
+     (SCENE_BAND and SCENE_FOOT in [S06.17]), and the rest is shared: 300px
+     over three rows of cats is 74px apart against a 72px sprite-and-name, and
+     88.8px against 88 on the big window, where a cat is 64px (four screen
+     pixels a sprite pixel, still whole pixels).
+
+     A MECH IS --scn-big TIMES A CAT, and --scn-big is 2 (D-43: "make the mechs
+     much bigger than the cats", FF1's large-monster scale). 96px and 128px are
+     six and eight screen pixels a sprite pixel, so a mech is as crisp as a cat.
+     A row of mechs takes TWO rows of height: four rows of mechs in six field
+     rows are 130.5px apart against a 120px mech-and-name, and 156.6 against
+     152. Check 130c in the gate lays every roster to 24v24 out at both sizes
+     from these numbers. */
   .scn-field{
-    --scn-w:128px;--scn-h:72px;--scn-px:48px;
+    --scn-w:128px;--scn-px:48px;--scn-big:2;
     --scn-sky:color-mix(in srgb, var(--accent) 36%, var(--bg));
     --scn-sky-2:color-mix(in srgb, var(--accent) 14%, var(--bg));
     --scn-grass:color-mix(in srgb, var(--green) 46%, var(--bg));
@@ -6744,26 +6755,35 @@
     touch-action:none;user-select:none;
   }
   .scn-field[data-scn-rows="4"]{height:400px}
+  .scn-field[data-scn-rows="5"]{height:500px}
+  .scn-field[data-scn-rows="6"]{height:600px}
   @media (min-width:1600px) and (min-height:900px){
-    .scn-field{--scn-h:88px;--scn-px:64px;height:360px}
+    .scn-field{--scn-px:64px;height:360px}
     .scn-field[data-scn-rows="4"]{height:480px}
+    .scn-field[data-scn-rows="5"]{height:600px}
+    .scn-field[data-scn-rows="6"]{height:720px}
   }
   /* THE BOX IS WIDER THAN THE SPRITE AND ONLY THE SPRITE AND ITS NAME TAKE THE
      POINTER. 128px holds eleven characters of the 18px name on one line; the
      rest of the box is empty space that must not pick a sprite up, so the box
      is pointer-events:none and its two visible parts put it back. */
+  /* EACH UNIT'S BOX IS ITS OWN SPRITE PLUS ITS NAME (2px gap, one 22px line),
+     so a mech's box is taller than a cat's, the stylesheet's clamp keeps each
+     one inside by its own height, and [S07.9]'s clamp reads the same box. */
   .scn-unit{
+    --scn-spr:var(--scn-px);--scn-h:calc(var(--scn-spr) + 24px);
     position:absolute;width:var(--scn-w);
     left:clamp(0px, calc(var(--scn-x, .5) * 100% - var(--scn-w) / 2), calc(100% - var(--scn-w)));
     top:clamp(0px, calc(var(--scn-y, .5) * 100% - var(--scn-h) / 2), calc(100% - var(--scn-h)));
     display:flex;flex-direction:column;align-items:center;gap:2px;
     pointer-events:none;touch-action:none;
   }
+  .scn-unit[data-scn-side="mechs"]{--scn-spr:calc(var(--scn-px) * var(--scn-big))}
   .scn-unit > *{pointer-events:auto;cursor:grab}
   .scn-unit--held{z-index:3}
   .scn-unit--held > *{cursor:grabbing}
   .scn-sprite{
-    width:var(--scn-px);height:var(--scn-px);image-rendering:pixelated;display:block;
+    width:var(--scn-spr);height:var(--scn-spr);image-rendering:pixelated;display:block;
     transition:transform var(--ramp), filter var(--ramp);
   }
   /* A UNIT RULED DEAD LIES DOWN AND GOES GREY, the way an FF1 party member
@@ -6773,7 +6793,10 @@
      stands in full colour. The name stays at full size and is dimmed, not
      hidden, because the scene's one job is telling units apart. */
   .scn-unit--down .scn-sprite{filter:grayscale(1) brightness(.7);transform:translateY(12px) rotate(-90deg)}
-  .scn-unit--down[data-scn-side="mechs"] .scn-sprite{transform:translateY(12px) rotate(90deg)}
+  /* A BIG MECH LIES DOWN WHERE IT STOOD, not dropped the cat's 12px: turned in
+     place its square is its own square, so the lying mech ends above its name
+     (D-43; browser cell 32m measures the turned rectangle against the name). */
+  .scn-unit--down[data-scn-side="mechs"] .scn-sprite{transform:rotate(90deg)}
   /* A NAME IS NEVER UNDER A SPRITE. Measured on the first real screenshots:
      a renamed unit's long name ran down over the sprite in the next row, and a
      sprite dropped onto a neighbour covered the neighbour's name — every row
@@ -29077,37 +29100,73 @@ App.render = (function () {
     return Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000;
   }
 
-  /* THE FORMATION, FF1's: a side of up to four stands in one column, up to
-     nine in three rows, and more in four rows — so 9 cats are a three-by-three
-     block and 24 are six columns of four. Rows fill left to right, so Cat 1 is
-     top left and reading order is roster order. Cats take the left half,
-     Mechs the right, each block centred in its half and never wider than a
-     comfortable spacing, below the band of scenery at the top of the field. */
+  /* THE FORMATION, FF1's. CATS: a side of up to four stands in one column,
+     up to nine in three rows, and more in four rows — so 9 cats are a
+     three-by-three block and 24 are six columns of four. MECHS ARE TWICE A
+     CAT (D-43, [C19]'s --scn-big), so they stand FF1's large-monster way: as
+     few rows as six columns allow — the shipped three in one row, up to
+     twelve in two, 24 in four rows of six — because a row of mechs costs two
+     rows of height and the field is what grows for it. Rows fill left to
+     right, so unit 1 is top left and reading order is roster order. Cats
+     take the left strip and mechs the wider right one, each block centred in
+     its strip and never wider than a comfortable spacing, below the band of
+     scenery at the top of the field. */
   function sceneRowsFor(n) {
     if (n <= 4) { return Math.max(1, n); }
     return (n <= 9) ? 3 : 4;
   }
 
-  function sceneFieldRows(catsCount, mechsCount) {
-    return Math.max(3, sceneRowsFor(catsCount), sceneRowsFor(mechsCount));
+  var SCENE_MECH_COLS = 6;    // the most mechs a row holds
+
+  // [rows, columns] of the mechs' block.
+  function sceneMechGrid(count) {
+    var n = Math.max(1, count);
+    var rows = Math.ceil(n / SCENE_MECH_COLS);
+    return [rows, Math.ceil(n / rows)];
   }
 
-  var SCENE_HALF = 0.44;      // the width of each side's half of the field
+  // The field's height in rows, which [C19] turns into pixels: enough for the
+  // cats' rows, and two more than the mechs' rows, since each is two tall.
+  function sceneFieldRows(catsCount, mechsCount) {
+    return Math.max(3, sceneRowsFor(catsCount), sceneMechGrid(mechsCount)[0] + 2);
+  }
+
+  var SCENE_CATS = [0.03, 0.44];   // the cats' strip: where it starts, how wide
+  var SCENE_MECHS = [0.48, 0.49];  // the mechs' strip, wider: six mechs fit it
   var SCENE_SPACE_X = 0.11;   // the widest a column spacing is allowed to be
-  var SCENE_TOP = 0.23;       // where the rows begin, under the scenery
-  var SCENE_ROWS_H = 0.74;    // how much of the height the rows share
+  // A field row is a fixed length in [C19] (100px, 120px on a big window), so
+  // the scenery band and the foot are fixed fractions OF A ROW, and the rest
+  // of the height is what the rows share. At three rows this is D-42's 0.23
+  // and 0.74 exactly.
+  var SCENE_BAND = 0.69;      // in rows: the band of scenery and the gap under it
+  var SCENE_FOOT = 0.09;      // in rows: the margin at the foot
 
   function sceneSlot(side, index, count, fieldRows) {
     var n = Math.max(1, count);
-    var rows = sceneRowsFor(n);
-    var cols = Math.ceil(n / rows);
-    rows = Math.ceil(n / cols);
+    var lines = Math.max(1, fieldRows);
+    var rows, cols, strip, lanes;
+    if (side === 'cats') {
+      rows = sceneRowsFor(n);
+      cols = Math.ceil(n / rows);
+      rows = Math.ceil(n / cols);
+      strip = SCENE_CATS;
+      lanes = Math.max(rows, lines);
+    } else {
+      var grid = sceneMechGrid(n);
+      rows = grid[0];
+      cols = grid[1];
+      strip = SCENE_MECHS;
+      // A mech's lane is the height the field keeps for one row of mechs:
+      // the field has two rows more than the mechs, so share it among them.
+      lanes = Math.max(rows, lines - 2);
+    }
     var row = Math.floor(index / cols);
     var col = index % cols;
-    var sx = Math.min(SCENE_HALF / cols, SCENE_SPACE_X);
-    var left = (side === 'cats' ? 0.03 : 0.53) + (SCENE_HALF - sx * cols) / 2;
-    var sy = SCENE_ROWS_H / Math.max(rows, fieldRows);
-    var top = SCENE_TOP + (SCENE_ROWS_H - sy * rows) / 2;
+    var sx = Math.min(strip[1] / cols, SCENE_SPACE_X);
+    var left = strip[0] + (strip[1] - sx * cols) / 2;
+    var shared = (lines - SCENE_BAND - SCENE_FOOT) / lines;
+    var sy = shared / lanes;
+    var top = SCENE_BAND / lines + (shared - sy * rows) / 2;
     return [sceneShare(left + sx * (col + 0.5)), sceneShare(top + sy * (row + 0.5))];
   }
 
@@ -49276,9 +49335,14 @@ App.selftest = (function () {
     var savedAll = JSON.stringify(App.state.get());
 
     /* --- THE FORMATION. Nine cats are a three-by-three block in the left
-           half, three mechs one column in the right half, twenty-four a side
-           are six columns of four, every slot distinct and inside the field,
-           and Cat 1 is top left: rows fill left to right. --- */
+           half, twenty-four cats six columns of four, every slot distinct and
+           inside the field, and Cat 1 is top left: rows fill left to right.
+           TURNED IN THE OPEN UNDER D-43 (plan 05-D43): the mechs are drawn at
+           twice a cat's size, so the three shipped mechs stand in ONE ROW
+           rather than one column, and 24 a side takes a SIX-row field (four
+           rows of mechs, each two tall). RED recorded first: actual
+           [3,6,3,3,3,3,1,6,4,…] against D-42's [3,4,3,3,3,1,3,6,4,…]. Mechs at
+           24 are asserted as six columns of four too. --- */
     var FORM;
     try {
       var slots = function (side, n, rows) {
@@ -49315,6 +49379,7 @@ App.selftest = (function () {
       FORM = [
         R.sceneFieldRows(9, 3), R.sceneFieldRows(24, 24), R.sceneFieldRows(1, 1),
         cols(c9), rowsOf(c9), cols(m3), rowsOf(m3), cols(c24), rowsOf(c24),
+        cols(m24), rowsOf(m24),
         distinct(c9.concat(m3)), distinct(c24.concat(m24)),
         inside(c9.concat(m3, c24, m24)),
         c9.concat(c24).every(function (p) { return p[0] < 0.5; }),
@@ -49324,11 +49389,12 @@ App.selftest = (function () {
     } catch (stopped) {
       FORM = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
     }
-    t.eq('THE FORMATION IS FF1\'s: a field of three rows up to nine a side and four above; '
-      + 'nine cats a three-by-three block, three mechs one column, twenty-four a side six '
-      + 'columns of four; every slot distinct and inside the field, cats in the left half, '
-      + 'mechs in the right, and Cat 1 top left with rows filling left to right',
-      FORM, [3, 4, 3, 3, 3, 1, 3, 6, 4, true, true, true, true, true, true]);
+    t.eq('THE FORMATION IS FF1\'s, WITH MECHS TWICE A CAT (D-43): the shipped board keeps a '
+      + 'three-row field and 24 a side takes six; nine cats a three-by-three block, the three '
+      + 'big mechs one row, twenty-four cats and twenty-four mechs each six columns of four; '
+      + 'every slot distinct and inside the field, cats in the left half, mechs in the right, '
+      + 'and Cat 1 top left with rows filling left to right',
+      FORM, [3, 6, 3, 3, 3, 3, 1, 6, 4, 6, 4, true, true, true, true, true, true]);
 
     /* --- THE CLAMP. A sprite 104px across in a field 1000px across keeps its
            centre at least 52px from either edge, whatever share it is handed;
