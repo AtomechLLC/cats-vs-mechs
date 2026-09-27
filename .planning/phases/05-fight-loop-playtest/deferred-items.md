@@ -1309,3 +1309,25 @@ orchestrator's.** See `05-D41b-SUMMARY.md`.
    person's to judge. Harness limitations entry 40.
 
 **Owner:** the developer (1); the 05-11 playtest (3, 5).
+
+---
+
+## D-44 — the two generations of scene art, what they do not settle, raised by plan 05-D44
+
+**Raised 2026-09-27.**
+
+1. **ON A PROJECTOR-SIZED WINDOW THE 16-BIT SPRITES ARE SMALLER THAN THE 8-BIT ONES.** A 16-bit cat
+   is 24 sprite pixels and a mech 48, drawn at two screen pixels each: 48px and 96px at every window
+   size, where the 8-bit pair goes to 64px and 128px from 1600x900 up. 64 is not a whole multiple
+   of 24, and the next whole size, 72px and 144px, does not fit the formation: a row of six 144px
+   mechs is 864px against the mechs' 775px strip at 1920 (`05-D44-SUMMARY.md` § Why 48 and 96). The
+   names, which are what tell units apart, are the same 18px line in both generations. Two ways
+   out, both the developer's call: a second, larger 16-bit sprite set drawn for big windows, or a
+   formation with fewer mechs to a row when the sprites are larger.
+2. **THE BACKDROP COVERS A FIELD UP TO 2048 BY 720.** The widest field measured is 1582x720
+   (24 a side at 1920x1080). A field wider or taller would show the window's own blue past the
+   picture's edge. Nothing on a desktop reaches it today.
+3. **WHETHER THE 16-BIT PICTURE READS FROM THE BACK OF A ROOM** is D-42 item 5 again, for the new
+   art: judged here on screenshots at 1920x1080 and 1366x768 and 3x crops, not on a projector.
+
+**Owner:** the developer (1); the 05-11 playtest (3).
