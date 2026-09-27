@@ -6608,7 +6608,7 @@ for (const ch of ['chrome', 'msedge']) {
       const f = document.getElementById('scene-field').getBoundingClientRect();
       const sprites = Array.from(document.querySelectorAll('#scene-field > .scn-unit')).map((n) => {
         const r = n.getBoundingClientRect();
-        const nm = n.querySelector('.scn-name');
+        const nm = n.querySelector('.scn-name') || n;
         const q = nm.getBoundingClientRect();
         // THE NAME IS WHAT A HIT TEST FINDS AT ITS CENTRE AND AT ALL FOUR INNER CORNERS —
         // nothing painted over it. Added after the first screenshots showed a long name
@@ -6637,7 +6637,11 @@ for (const ch of ['chrome', 'msedge']) {
         state: JSON.stringify(App.state.get()), held: App.interactions.sceneHeld(),
         panel: document.getElementById('err-panel').hidden };
     });
-    const d42Sprite = (rd, id) => rd.sprites.filter((s) => s.id === id)[0];
+    // A missing sprite reads as an EMPTY record, so a clause about it is false rather than a
+    // TypeError that ends the run: under PROBE P2 cell 32g threw on a place that was never kept,
+    // and a row may FAIL but may not throw.
+    const d42Sprite = (rd, id) => rd.sprites.filter((s) => s.id === id)[0] || {};
+    const d42J = (t) => { try { const v = JSON.parse(t); return (v && typeof v === 'object') ? v : {}; } catch (e) { return {}; } };
     const d42Inside = (rd) => rd.sprites.every((s) => s.l >= rd.field.l - 1 && s.t >= rd.field.t - 1
       && s.r <= rd.field.r + 1 && s.b <= rd.field.b + 1);
     const d42NamesApart = (rd) => {
@@ -6662,6 +6666,7 @@ for (const ch of ['chrome', 'msedge']) {
     }, css);
     const d42Pixel = (id, x, y) => pg.evaluate(([u, px, py]) => {
       const c = document.querySelector(`#scene-field > [data-scn-unit="${u}"] canvas`);
+      if (!c) { return 'MISSING'; }
       const d = c.getContext('2d').getImageData(px, py, 1, 1).data;
       return `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
     }, [id, x, y]);
@@ -6670,14 +6675,16 @@ for (const ch of ['chrome', 'msedge']) {
       const s = await pg.evaluate((u) => {
         const n = document.querySelector(`#scene-field > [data-scn-unit="${u}"]`);
         window.__d42node = n;
+        if (!n) { return null; }
         const r = n.getBoundingClientRect();
         return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
       }, id);
+      if (s === null) { return { from: null, flight: { held: '', same: false }, mid: {} }; }
       await pg.mouse.move(s.x, s.y);
       await pg.mouse.down();
       for (let i = 1; i <= 3; i++) { await pg.mouse.move(s.x + i * 3, s.y + i * 2); }
       await pg.mouse.move((s.x + tx) / 2, (s.y + ty) / 2, { steps: 6 });
-      const midOut = mid ? await mid() : null;
+      const midOut = mid ? await mid() : {};
       await pg.mouse.move(tx, ty, { steps: 6 });
       await pg.waitForTimeout(60);
       const flight = await pg.evaluate(() => ({ held: App.interactions.sceneHeld(),
@@ -6696,7 +6703,7 @@ for (const ch of ['chrome', 'msedge']) {
       const scene = document.getElementById('scene');
       const r = scene.getBoundingClientRect();
       const win = getComputedStyle(document.querySelector('.scn-win'));
-      const cv = getComputedStyle(document.querySelector('#scene-field canvas'));
+      const cv = getComputedStyle(document.querySelector('#scene-field canvas') || document.getElementById('scene-field'));
       const reset = document.getElementById('scene-reset');
       const words = ['scene-head', 'scene-hint', 'scene-reset'].map((id) => parseFloat(getComputedStyle(document.getElementById(id)).fontSize));
       const text = document.getElementById('scene').innerText;
@@ -6799,6 +6806,7 @@ for (const ch of ['chrome', 'msedge']) {
     const d42Dead = await pg.evaluate(() => {
       const read = (u) => {
         const n = document.querySelector(`#scene-field > [data-scn-unit="${u}"]`);
+        if (!n || !n.querySelector('canvas')) { return {}; }
         const cs = getComputedStyle(n.querySelector('canvas'));
         return { down: n.classList.contains('scn-unit--down'), aria: n.getAttribute('aria-label'),
           transform: cs.transform, filter: cs.filter };
@@ -6828,9 +6836,9 @@ for (const ch of ['chrome', 'msedge']) {
     ok(`${tag}: 32d. D-42 — A REAL DRAG MOVES ONE SPRITE TO WHERE IT WAS LET GO AND WRITES NOTHING ELSE. Cat 1 is taken at its centre with page.mouse and let go in the middle of the field: its centre lands within two pixels of the release point, the node under the pointer is the node that was pressed, and it was HELD in flight. The place is kept in the scene and in localStorage under cvm.v1.scene. The state is byte-identical, and neither the commit count nor the undo depth moved — no op, no commit, no undo entry, no build code`,
       d42g1.flight.same === true && JSON.parse(d42g1.flight.held || '{}').live === true
       && Math.abs(d42c1.cx - d42T.x) <= 2 && Math.abs(d42c1.cy - d42T.y) <= 2 && d42c1Same
-      && JSON.parse(d42p1.saved).c1 !== undefined && d42p1.stored !== null
-      && JSON.parse(d42p1.stored).c1 !== undefined
-      && JSON.stringify(JSON.parse(d42p1.stored).c1) === JSON.stringify(JSON.parse(d42p1.saved).c1)
+      && d42J(d42p1.saved).c1 !== undefined && d42p1.stored !== null
+      && d42J(d42p1.stored).c1 !== undefined
+      && JSON.stringify(d42J(d42p1.stored).c1) === JSON.stringify(d42J(d42p1.saved).c1)
       && d42p1.state === d42p0.state && d42p1.commits === d42p0.commits && d42p1.depth === d42p0.depth
       && d42p1.held === '' && d42p1.panel === true,
       { target: d42T, c1: d42c1, flight: d42g1.flight, saved: d42p1.saved, stored: d42p1.stored,
@@ -6847,7 +6855,7 @@ for (const ch of ['chrome', 'msedge']) {
     ok(`${tag}: 32e. D-42 — A DRAG OFF THE EDGE IS CLAMPED: Mech 1 dragged past the field's right side and below its foot, to a point outside the frame, comes to rest wholly inside the field, pressed into its bottom-right corner (within two pixels of both sides), and the saved share is the clamped one — what is saved is what is drawn`,
       d42Off.x > d42Off.fr && d42Off.y > d42Off.fb
       && d42Inside(d42p2) && Math.abs(d42m1.r - d42p2.field.r) <= 2 && Math.abs(d42m1.b - d42p2.field.b) <= 2
-      && JSON.stringify(JSON.parse(d42p2.saved).m1) === JSON.stringify(d42m1.at.split(',').map(Number)),
+      && JSON.stringify(d42J(d42p2.saved).m1) === JSON.stringify(String(d42m1.at).split(',').map(Number)),
       { off: d42Off, m1: d42m1, field: d42p2.field, saved: d42p2.saved });
 
     // ── 32f. A DRAG WHILE AN ADVANCE COMMITS. ──
@@ -6860,8 +6868,8 @@ for (const ch of ['chrome', 'msedge']) {
       return pg.evaluate(() => ({
         round: App.state.get().fight.round,
         same: window.__d42node === document.querySelector('#scene-field > [data-scn-unit="c4"]'),
-        attached: window.__d42node.isConnected,
-        held: window.__d42node.classList.contains('scn-unit--held'),
+        attached: !!window.__d42node && window.__d42node.isConnected,
+        held: !!window.__d42node && window.__d42node.classList.contains('scn-unit--held'),
         commits: App.state.stats().commits
       }));
     });
@@ -6872,7 +6880,7 @@ for (const ch of ['chrome', 'msedge']) {
       && d42g4.flight.same === true
       && Math.abs(d42c4.cx - d42T4.x) <= 2 && Math.abs(d42c4.cy - d42T4.y) <= 2
       && d42p3.commits === d42p2.commits + 1 && d42g4.mid.commits === d42p3.commits
-      && JSON.parse(d42p3.saved).c4 !== undefined && d42p3.panel === true
+      && d42J(d42p3.saved).c4 !== undefined && d42p3.panel === true
       && d42p3.sprites.every((s) => s.onTop),
       { from: d42c4From, target: d42T4, mid: d42g4.mid, c4: d42c4, commits: [d42p2.commits, d42p3.commits] });
     await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
@@ -6889,10 +6897,10 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
     await pg.waitForTimeout(150);
     const d42p4 = await d42Read();
-    const d42Kept = JSON.parse(d42SavedBefore);
+    const d42Kept = d42J(d42SavedBefore);
     const d42Restored = ['c1', 'm1', 'c4'].map((u) => {
       const sp = d42Sprite(d42p4, u);
-      return sp && sp.at === d42Kept[u].join(',')
+      return Array.isArray(d42Kept[u]) && sp.at === d42Kept[u].join(',')
         && Math.abs(sp.cx - (d42p4.field.l + d42Kept[u][0] * d42p4.field.w)) <= 2;
     });
     await d42Shot('reloaded');
@@ -6915,8 +6923,8 @@ for (const ch of ['chrome', 'msedge']) {
     const d42n9 = d42Sprite(d42New9, 'c9');
     const d42Slot9 = await pg.evaluate(() => App.render.sceneSlot('cats', 8, 9, 3).join(','));
     ok(`${tag}: 32h. D-42 — A REMOVED UNIT'S SAVED PLACE IS DROPPED, FROM THE SCENE AND FROM THE STORE: Cat 9 is dragged (its place kept in both), then removed — and its place is gone from both on that frame. The cat addUnit next names c9 stands in its formation slot, not where the old Cat 9 was left`,
-      JSON.parse(d42With9.saved).c9 !== undefined && JSON.parse(d42With9.stored).c9 !== undefined
-      && JSON.parse(d42Without9.saved).c9 === undefined && JSON.parse(d42Without9.stored).c9 === undefined
+      d42J(d42With9.saved).c9 !== undefined && d42J(d42With9.stored).c9 !== undefined
+      && d42J(d42Without9.saved).c9 === undefined && d42J(d42Without9.stored).c9 === undefined
       && d42Without9.sprites.filter((s) => s.id === 'c9').length === 0
       && d42n9 !== undefined && d42n9.at === d42Slot9,
       { with9: d42With9.saved, without9: [d42Without9.saved, d42Without9.stored], new9: d42n9 && d42n9.at, slot: d42Slot9 });
@@ -6935,7 +6943,7 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.keyboard.press('Enter');
     await pg.waitForTimeout(200);
     const d42q4 = await d42Read();
-    const d42Home = (rd) => rd.sprites.every((s) => s.at === d42q0.sprites.filter((z) => z.id === s.id)[0].at);
+    const d42Home = (rd) => rd.sprites.every((s) => s.at === (d42q0.sprites.filter((z) => z.id === s.id)[0] || {}).at);
     // Enter is one of [S07.1]'s NAV_KEYS, so the keyboard press turns ui.kbdNav on — the
     // shipped focus-ring writer, one commitUi, never undoable. That is the ONLY thing
     // allowed to move across it, and it is compared key by key rather than excused.
