@@ -6688,6 +6688,93 @@
      counts the leaves to say so. The indent is what the emphasis was for. */
   .ht-term{padding-inline-start:14px;border-inline-start:2px solid var(--line)}
 
+  /* ===================== [C19] THE BATTLE SCENE ===================== */
+  /* D-42's picture, plan 05-D42. An FF1 battle window: a framed panel in the
+     old menu blue with a white rim, a band of scenery along the top of the
+     field, Cats standing on the left facing Mechs on the right. EVERY COLOUR
+     IS DERIVED FROM A [C00] TOKEN — the window blue is --accent mixed into
+     --bg, the rim is --ink, the scenery is --accent and --green mixed into the
+     same dark — and check 107f scans this block with the rest of the fight
+     stylesheet for a literal. The sprites' own pixels are painted by [S06.17]
+     from the same tokens, read off the computed style at run time.
+
+     WHERE A SPRITE STANDS IS TWO UNITLESS FRACTIONS, --scn-x and --scn-y, the
+     CENTRE of the sprite as a share of the field, written by one function in
+     [S06.17] (check 57 reads that access in context). THE STYLESHEET DOES THE
+     CLAMP: left and top are clamp()ed so the whole box stays inside the field
+     at any field size, so a position saved on a 1920-wide screen still lands
+     inside a 1366-wide one, and a field that is display:none while the board
+     tab is showing needs no measurement at all. [S07.9] clamps the fractions
+     it writes too, so what is saved is what is drawn.
+
+     THE FIELD'S HEIGHT FOLLOWS THE FORMATION'S ROW COUNT through a data
+     attribute rather than an inline length: three rows for every roster up to
+     nine a side, four above that, and 24 a side is 6 columns by 4 rows. */
+  .scn{flex:1 1 100%;min-width:0;display:grid;gap:10px}
+  .scn-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px}
+  .scn-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .scn-hint{margin:0;font-size:18px;color:var(--ink-faint);flex:1 1 420px}
+  .scn-reset{flex:0 0 auto}
+  .scn-win{
+    border:3px solid var(--ink);border-radius:10px;padding:6px;
+    background:color-mix(in srgb, var(--accent) 26%, var(--bg));
+    box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--ink-faint) 70%, var(--bg));
+  }
+  /* THE SIZES ARE ARITHMETIC, and the row spacing is the number that must not
+     go under a sprite's height: the rows share 74% of the field (SCENE_ROWS_H
+     in [S06.17]), so 300px over three rows is 74px apart against a 72px
+     sprite-and-name, and 400px over four is 74px. On a projector-sized window
+     the sprites go to 64px (four screen pixels a sprite pixel, still whole
+     pixels) and the fields to 360 and 480, 88px apart against 88. */
+  .scn-field{
+    --scn-w:104px;--scn-h:72px;--scn-px:48px;
+    --scn-sky:color-mix(in srgb, var(--accent) 36%, var(--bg));
+    --scn-sky-2:color-mix(in srgb, var(--accent) 14%, var(--bg));
+    --scn-grass:color-mix(in srgb, var(--green) 46%, var(--bg));
+    --scn-grass-2:color-mix(in srgb, var(--green) 22%, var(--bg));
+    position:relative;height:300px;border-radius:4px;
+    background:
+      repeating-linear-gradient(90deg,
+        var(--scn-grass) 0 12px, transparent 12px 20px,
+        var(--scn-grass) 20px 26px, transparent 26px 44px) 0 34px / 100% 8px no-repeat,
+      linear-gradient(to bottom,
+        var(--scn-sky) 0, var(--scn-sky-2) 42px,
+        var(--scn-grass) 42px, var(--scn-grass-2) 56px,
+        var(--bg) 56px, var(--bg) 100%) 0 0 / 100% 100% no-repeat;
+    touch-action:none;user-select:none;
+  }
+  .scn-field[data-scn-rows="4"]{height:400px}
+  @media (min-width:1600px) and (min-height:900px){
+    .scn-field{--scn-h:88px;--scn-px:64px;height:360px}
+    .scn-field[data-scn-rows="4"]{height:480px}
+  }
+  .scn-unit{
+    position:absolute;width:var(--scn-w);
+    left:clamp(0px, calc(var(--scn-x, .5) * 100% - var(--scn-w) / 2), calc(100% - var(--scn-w)));
+    top:clamp(0px, calc(var(--scn-y, .5) * 100% - var(--scn-h) / 2), calc(100% - var(--scn-h)));
+    display:flex;flex-direction:column;align-items:center;gap:2px;
+    cursor:grab;touch-action:none;
+  }
+  .scn-unit--held{cursor:grabbing;z-index:2}
+  .scn-sprite{
+    width:var(--scn-px);height:var(--scn-px);image-rendering:pixelated;display:block;
+    transition:transform var(--ramp), filter var(--ramp);
+  }
+  /* A UNIT RULED DEAD LIES DOWN AND GOES GREY, the way an FF1 party member
+     falls: turned a quarter onto its back, facing away from the other side,
+     and drawn without colour. The class is written from the stored flag and
+     nothing else ([S06.17]); a unit at zero health that nobody ruled on
+     stands in full colour. The name stays at full size and is dimmed, not
+     hidden, because the scene's one job is telling units apart. */
+  .scn-unit--down .scn-sprite{filter:grayscale(1) brightness(.7);transform:translateY(12px) rotate(-90deg)}
+  .scn-unit--down[data-scn-side="mechs"] .scn-sprite{transform:translateY(12px) rotate(90deg)}
+  .scn-name{
+    max-width:100%;font:600 18px/22px ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+    color:var(--ink);text-align:center;overflow-wrap:anywhere;
+    text-shadow:0 2px 0 var(--bg);
+  }
+  .scn-unit--down .scn-name{color:var(--ink-faint)}
+
   /* ===================== [C16] MOTION AND SCROLL ===================== */
   /* The two document-wide layers D-33 PASS A adds, and the ONLY block in
      this stylesheet that deliberately reaches across every region rather
@@ -7574,6 +7661,49 @@
        is the one failure in this file that arrives with no error and no
        warning. [C14] lays this element out and nothing else does. -->
   <div class="fg-band">
+
+  <!-- ============ THE BATTLE SCENE, plan 05-D42 ==========================
+       D-42, the developer: "create a final fantasy 1 esque visualization of
+       the battlefield. Allow people to drag the entities around anywhere they
+       like. It is simply a visualization for the purpose of them tracking
+       which cat and which mech is which."
+
+       ONE FRAMED WINDOW, CATS LEFT AND MECHS RIGHT, EVERY UNIT A PIXEL SPRITE
+       WITH ITS NAME UNDER IT. [S06.17] draws the sprites into #scene-field;
+       [S07.9] moves them under a pointer. The frame, the heading, the one line
+       under it and the way back to formation are static shell, so the words
+       are on the page before any frame paints (D-38's first defect was words
+       that lived only in a per-frame write).
+
+       IT IS AN ADDITION AND NOT A REPLACEMENT. The battlefield in #fight-state
+       keeps its two jobs (retarget targets and D-37's unit popup), and nothing
+       in here is a control over the fight: a drag moves a picture, commits
+       nothing, opens nothing and is in no slice, no undo entry and no build
+       code. Where a sprite stands is kept best-effort on this computer and
+       nowhere else.
+
+       ITS PLACE ON THE TAB WAS CHOSEN BY MEASUREMENT, recorded in
+       05-D42-SUMMARY.md: the first child of the band, above the lane of earlier
+       rounds, so the lane still sits directly above the round it leads into,
+       the scene is whole on screen at load at both sizes, and the Advance
+       control's reachability (browser cells 18 and 18c) is untouched.
+
+       A SIBLING OF #board AND CARRYING NO data-k, NO data-act AND NO data-fg,
+       for #ledger's reason below: withPreservedFocus takes the first [data-k]
+       match inside #board, [S07.1] routes any data-act into App.ops.dispatch,
+       and [S07.5] routes any data-fg inside #fightbar. The reset control is a
+       plain button with a listener of its own. Five ids here; the id, the
+       KNOWN_IDS entry and the stub node arrive together. -->
+  <section class="scn" id="scene" aria-labelledby="scene-head">
+    <div class="scn-top">
+      <h2 class="scn-head" id="scene-head">Who is who</h2>
+      <p class="scn-hint" id="scene-hint">Drag anyone anywhere. Where they stand only helps you tell them apart: it is not part of the build, and nothing is ruled from it.</p>
+      <button class="brd-btn scn-reset" type="button" id="scene-reset">Back to formation</button>
+    </div>
+    <div class="scn-win">
+      <div class="scn-field" id="scene-field" data-scn-rows="3"></div>
+    </div>
+  </section>
 
   <!-- ============ THE LEDGER OF PAST ROUNDS, plan 05-06 =================
        IT IS A SIBLING OF #board AND NEVER A CHILD OF IT, and the reason is
@@ -28820,6 +28950,461 @@ App.render = (function () {
   }
   // #endregion [S06.16] RENDER — THE POOL AND THE DRAG
 
+  /* ===================== [S06.17] RENDER — THE BATTLE SCENE ============
+   * D-42's picture, plan 05-D42. Every unit on the fight tab drawn as a pixel
+   * sprite — a cat facing right, a mech facing left — with its name under it,
+   * inside #scene-field. [S07.9] moves the sprites under a pointer; this
+   * region draws them and keeps where they stand.
+   *
+   * IT IS A PICTURE AND NOTHING READS IT. It owns no slice and writes none:
+   * not the build, not the fight, not `ui`, not the undo stack and not the
+   * build code. Where a sprite stands lives in this region's own scope
+   * (scenePos) and is kept best-effort in localStorage under SCENE_KEY —
+   * namespaced, because Chrome gives every file:// page one shared bucket, and
+   * wrapped so that a store that is missing, blocked or full is the ordinary
+   * case rather than an error. A page opened to run the self-test never
+   * touches the store at all, because the suites trim and rebuild rosters and
+   * a prune on each of those would throw a student's layout away.
+   *
+   * WHICH ROSTER: the fight's while a fight runs — the same units, in the same
+   * order, the battlefield draws — and the build's otherwise, so a room can
+   * put everyone where they like before pressing Start. Names are fgUnitName's,
+   * called and not restated: the build's name for the id, read every frame, so
+   * a renamed unit (no op renames one today; the day one exists this lands on
+   * its frame) is drawn renamed. A unit is drawn LYING DOWN when, and only
+   * when, its stored `alive` flag in the fight slice is false — never inferred
+   * from its health (D-00d): a unit at zero health that nobody ruled on
+   * stands.
+   *
+   * THE PAINT NEVER REBUILDS A SPRITE THAT STILL HAS A UNIT. The field is
+   * static shell and every sprite in it is keyed by its unit id on
+   * data-scn-unit — NOT data-k, so nothing here enters withPreservedFocus's
+   * space, and the field is outside #board anyway. A frame adds the sprites
+   * for new units, removes the ones for units that left, and writes text,
+   * class and place into the nodes that are already there. So a sprite a
+   * pointer is holding is the SAME NODE across any commit that lands mid-drag
+   * (an Advance, a ruling, an undo) — the defect plan 05-10 measured and D-37
+   * probe G caught only by node identity — and the paint does not even write
+   * its place while [S07.9]'s held class is on it.
+   *
+   * THE NAME IS A REAL TEXT NODE, never pixels. The canvas is aria-hidden and
+   * holds no words; the sprite's accessible name and its visible label are
+   * both the unit's name, so Layer C's fight-mode harvest reads every one of
+   * them (check 130 counts them there).
+   *
+   * THE COLOURS ARE READ OFF THE COMPUTED STYLE, every frame: fur is --coral,
+   * the mech is --ink-dim with an --accent visor and --gold trim, every
+   * outline is --bg, and the shades are mixes of those. Not one colour is
+   * typed here, so moving a [C00] token moves the sprites with it.
+   * ====================================================================== */
+  // #region [S06.17] RENDER — THE BATTLE SCENE
+
+  var SCENE_KEY = 'cvm.v1.scene';
+  // A saved position is kept for at most two full rosters. Anything past that
+  // is not a layout this board can draw, so it is not read.
+  var SCENE_MAX_SAVED = 2 * MAX_UNITS;
+  var SCENE_ID = /^[cm]\d{1,6}$/;
+  // Said after the name, on the sprite's accessible name, when the unit is
+  // ruled dead — the picture says it by lying down, and this says it to a
+  // screen reader. The ruling's own words, D-00d's register.
+  var SCENE_DOWN_SAID = ', ruled dead';
+
+  /* THE TWO SPRITES, sixteen by sixteen, one letter per pixel. A cat sitting
+     up and facing right; a mech standing and facing left, visor and arm
+     cannon toward the cats. '.' is empty. Cats: o outline, f fur, s stripe,
+     l cream, e eye, n nose. Mechs: o outline, b plate, v visor and cannon
+     mouth, t trim. Upright on purpose: a quarter turn lays either one down. */
+  var SCENE_SPRITES = Object.freeze({
+    cats: Object.freeze([
+      '................',
+      '........o....o..',
+      '.......oso..oso.',
+      '.......osfooofso',
+      '.......offfffffo',
+      '.......ofefffefo',
+      '.......ofelflefo',
+      '..oo...offlnlffo',
+      '.ofso...offlffo.',
+      '.ofo...ofsfffsfo',
+      '.ofo..offfsfsffo',
+      '.ofo.offsffflffo',
+      '.oso.offfsfflffo',
+      '..ofoofffsfflffo',
+      '...offfffffflffo',
+      '....ooooooooooo.'
+    ]),
+    mechs: Object.freeze([
+      '.........o......',
+      '.........o......',
+      '......oooooo....',
+      '.....obbbbbbo...',
+      '.....ovvvbbbo...',
+      '.....ovvvbbbo...',
+      '.....obbbbbbo...',
+      '...ooootttoooo..',
+      '.oobbbbbbbbbbbo.',
+      'ovvobbtbbbbtbbo.',
+      '.oobbbbbbbbbbbo.',
+      '...obbbbbbbbo...',
+      '...obbbooobbbo..',
+      '...obbo...obbo..',
+      '..obbbo..obbbo..',
+      '..ooooo..ooooo..'
+    ])
+  });
+
+  // Where a sprite stands, keyed by unit id: [x, y], each the CENTRE of the
+  // sprite as a share of the field. Only sprites somebody dragged are here;
+  // everyone else stands in formation. null until the first paint reads it.
+  var scenePos = null;
+
+  function sceneShare(v) {
+    return Math.round(Math.min(1, Math.max(0, v)) * 10000) / 10000;
+  }
+
+  /* THE FORMATION, FF1's: a side of up to four stands in one column, up to
+     nine in three rows, and more in four rows — so 9 cats are a three-by-three
+     block and 24 are six columns of four. Rows fill left to right, so Cat 1 is
+     top left and reading order is roster order. Cats take the left half,
+     Mechs the right, each block centred in its half and never wider than a
+     comfortable spacing, below the band of scenery at the top of the field. */
+  function sceneRowsFor(n) {
+    if (n <= 4) { return Math.max(1, n); }
+    return (n <= 9) ? 3 : 4;
+  }
+
+  function sceneFieldRows(catsCount, mechsCount) {
+    return Math.max(3, sceneRowsFor(catsCount), sceneRowsFor(mechsCount));
+  }
+
+  var SCENE_HALF = 0.44;      // the width of each side's half of the field
+  var SCENE_SPACE_X = 0.11;   // the widest a column spacing is allowed to be
+  var SCENE_TOP = 0.23;       // where the rows begin, under the scenery
+  var SCENE_ROWS_H = 0.74;    // how much of the height the rows share
+
+  function sceneSlot(side, index, count, fieldRows) {
+    var n = Math.max(1, count);
+    var rows = sceneRowsFor(n);
+    var cols = Math.ceil(n / rows);
+    rows = Math.ceil(n / cols);
+    var row = Math.floor(index / cols);
+    var col = index % cols;
+    var sx = Math.min(SCENE_HALF / cols, SCENE_SPACE_X);
+    var left = (side === 'cats' ? 0.03 : 0.53) + (SCENE_HALF - sx * cols) / 2;
+    var sy = SCENE_ROWS_H / Math.max(rows, fieldRows);
+    var top = SCENE_TOP + (SCENE_ROWS_H - sy * rows) / 2;
+    return [sceneShare(left + sx * (col + 0.5)), sceneShare(top + sy * (row + 0.5))];
+  }
+
+  // THE CLAMP, in shares: the centre of a box `box` pixels across, in a field
+  // `extent` pixels across, may come no nearer an edge than half the box. A
+  // field narrower than the box has one place to put it, the middle.
+  function sceneClampFrac(f, box, extent) {
+    if (!(extent > 0) || !(extent > box)) { return 0.5; }
+    var lo = (box / 2) / extent;
+    var v = (typeof f === 'number' && isFinite(f)) ? f : 0.5;
+    return sceneShare(Math.min(1 - lo, Math.max(lo, v)));
+  }
+
+  /* THE STORE. Every access is inside a try, because a browser may refuse
+     the store outright (a SecurityError on read of window.localStorage), may
+     refuse a write (a full or a private store), and the headless harnesses
+     have none at all. Each of those reads as "nothing saved" and a write
+     that fails is simply a layout that lasts until the page closes. */
+  function sceneStorage() {
+    if (typeof window === 'undefined' || App.hasFlag('selftest')) { return null; }
+    try {
+      var s = window.localStorage;
+      return (s && typeof s.getItem === 'function' && typeof s.setItem === 'function') ? s : null;
+    } catch (blocked) {
+      void blocked;
+      return null;
+    }
+  }
+
+  function sceneGet(storage) {
+    if (!storage) { return null; }
+    try {
+      return storage.getItem(SCENE_KEY);
+    } catch (refused) {
+      void refused;
+      return null;
+    }
+  }
+
+  function scenePut(storage, map) {
+    if (!storage) { return false; }
+    try {
+      storage.setItem(SCENE_KEY, JSON.stringify(map));
+      return true;
+    } catch (refused) {
+      void refused;
+      return false;
+    }
+  }
+
+  // What the store held, read as a layout or as nothing. The store is shared
+  // with every other file:// page, so what comes back is treated as foreign:
+  // only unit-shaped keys, only pairs of finite numbers, clamped into the
+  // field, and no more of them than two rosters hold.
+  function sceneParse(raw) {
+    var out = Object.create(null);
+    if (typeof raw !== 'string' || raw === '') { return out; }
+    var v;
+    try {
+      v = JSON.parse(raw);
+    } catch (notJson) {
+      void notJson;
+      return out;
+    }
+    if (v === null || typeof v !== 'object' || Array.isArray(v)) { return out; }
+    var kept = 0;
+    Object.keys(v).forEach(function (id) {
+      if (kept >= SCENE_MAX_SAVED || !SCENE_ID.test(id)) { return; }
+      var p = v[id];
+      if (!Array.isArray(p) || p.length !== 2) { return; }
+      if (typeof p[0] !== 'number' || typeof p[1] !== 'number') { return; }
+      if (!isFinite(p[0]) || !isFinite(p[1])) { return; }
+      out[id] = [sceneShare(p[0]), sceneShare(p[1])];
+      kept += 1;
+    });
+    return out;
+  }
+
+  // A saved place for a unit that is no longer on the roster is DROPPED, not
+  // kept for later: ids are reused (nextUnitId hands out one past the highest
+  // present), so a cat removed and another added would otherwise inherit the
+  // first one's spot.
+  function scenePrune(map, ids) {
+    var out = Object.create(null);
+    var dropped = [];
+    var present = Object.create(null);
+    ids.forEach(function (id) { present[id] = true; });
+    Object.keys(map).forEach(function (id) {
+      if (present[id] === true) { out[id] = map[id]; } else { dropped.push(id); }
+    });
+    return { map: out, dropped: dropped };
+  }
+
+  // A colour as three channels, from a token's computed value. The tokens are
+  // hex in [C00], and a browser may hand one back as rgb(); either is read.
+  function sceneRgb(raw) {
+    var s = String(raw === undefined || raw === null ? '' : raw).trim();
+    var m = /^#([0-9a-f]{3}|[0-9a-f]{6})$/i.exec(s);
+    if (m !== null) {
+      var h = m[1];
+      if (h.length === 3) { h = h.charAt(0) + h.charAt(0) + h.charAt(1) + h.charAt(1) + h.charAt(2) + h.charAt(2); }
+      return [parseInt(h.slice(0, 2), 16), parseInt(h.slice(2, 4), 16), parseInt(h.slice(4, 6), 16)];
+    }
+    m = /^rgba?\(\s*(\d+)[\s,]+(\d+)[\s,]+(\d+)/i.exec(s);
+    if (m !== null) { return [Number(m[1]), Number(m[2]), Number(m[3])]; }
+    return null;
+  }
+
+  function sceneMix(a, b, t) {
+    if (a === null || b === null) { return null; }
+    return [0, 1, 2].map(function (i) { return Math.round(a[i] * (1 - t) + b[i] * t); });
+  }
+
+  function sceneCss(rgb) {
+    return rgb === null ? '' : 'rgb(' + rgb.join(', ') + ')';
+  }
+
+  // The two palettes, one entry per sprite letter, every one of them a token
+  // or a mix of two. `read` hands back a custom property's computed value.
+  // A token that cannot be read paints nothing for its letters rather than a
+  // colour nobody chose.
+  function scenePalette(read) {
+    var t = function (name) { return sceneRgb(read(name)); };
+    var bg = t('--bg');
+    var ink = t('--ink');
+    var fur = t('--coral');
+    var steel = t('--ink-dim');
+    return {
+      cats: {
+        o: sceneCss(bg), f: sceneCss(fur), s: sceneCss(sceneMix(fur, bg, 0.4)),
+        l: sceneCss(sceneMix(fur, ink, 0.62)), e: sceneCss(bg), n: sceneCss(t('--accent-2'))
+      },
+      mechs: {
+        o: sceneCss(bg), b: sceneCss(steel), v: sceneCss(t('--accent')), t: sceneCss(t('--gold'))
+      }
+    };
+  }
+
+  function sceneTokenReader() {
+    var cs = null;
+    try {
+      cs = window.getComputedStyle(document.documentElement);
+    } catch (noStyle) {
+      void noStyle;
+    }
+    return function (name) {
+      return (cs && typeof cs.getPropertyValue === 'function') ? cs.getPropertyValue(name) : '';
+    };
+  }
+
+  // Paints one sprite, pixel by pixel. A canvas whose context the browser
+  // will not hand over (getContext may answer null) stays empty: the name
+  // under it still says who it is.
+  function sceneDraw(canvas, side, pal) {
+    var ctx = canvas.getContext('2d');
+    if (!ctx) { return false; }
+    ctx.clearRect(0, 0, 16, 16);
+    var colours = pal[side];
+    SCENE_SPRITES[side].forEach(function (row, y) {
+      for (var x = 0; x < row.length; x++) {
+        var c = colours[row.charAt(x)];
+        if (!c) { continue; }
+        ctx.fillStyle = c;
+        ctx.fillRect(x, y, 1, 1);
+      }
+    });
+    return true;
+  }
+
+  // Where a sprite is drawn: the two shares check 57 reads in context. The
+  // stylesheet turns them into a clamped left and top.
+  function scenePlace(node, x, y) {
+    node.style.setProperty('--scn-x', String(x));
+    node.style.setProperty('--scn-y', String(y));
+    node.dataset.scnAt = String(x) + ',' + String(y);
+  }
+
+  function sceneBuildUnit(side, id) {
+    var node = el('div', 'scn-unit');
+    setData(node, { scnUnit: id, scnSide: side });
+    node.setAttribute('role', 'img');
+    var canvas = el('canvas', 'scn-sprite');
+    canvas.width = 16;
+    canvas.height = 16;
+    canvas.setAttribute('aria-hidden', 'true');
+    node.appendChild(canvas);
+    node.appendChild(el('span', 'scn-name'));
+    return node;
+  }
+
+  function sceneRoster(state) {
+    var out = [];
+    ['cats', 'mechs'].forEach(function (side) {
+      var fighting = state.fight !== null && state.fight[side];
+      var units = fighting ? state.fight[side].units : state.build[side].units;
+      units.forEach(function (u, i) {
+        out.push({
+          id: String(u.id), side: side, index: i, count: units.length,
+          name: fgUnitName(state, u.id),
+          // THE STORED FLAG AND NOTHING ELSE. A build unit has no flag, and a
+          // fight unit at zero health that nobody ruled on is still standing.
+          down: fighting ? u.alive === false : false
+        });
+      });
+    });
+    return out;
+  }
+
+  function sceneStore() {
+    if (scenePos === null) { scenePos = sceneParse(sceneGet(sceneStorage())); }
+    return scenePos;
+  }
+
+  /* THE PAINT, on every frame through SYNC_HOOKS and on demand from [S07.9].
+     Cheap exit first for a page with no scene. */
+  function scene(state) {
+    if (typeof document === 'undefined') { return; }
+    var field = document.getElementById('scene-field');
+    if (!field) { return; }
+
+    var roster = sceneRoster(state);
+    var pruned = scenePrune(sceneStore(), roster.map(function (u) { return u.id; }));
+    if (pruned.dropped.length > 0) {
+      scenePos = pruned.map;
+      scenePut(sceneStorage(), scenePos);
+    }
+
+    var counts = { cats: 0, mechs: 0 };
+    roster.forEach(function (u) { counts[u.side] = u.count; });
+    var rows = String(sceneFieldRows(counts.cats, counts.mechs));
+    if (field.dataset.scnRows !== rows) { field.dataset.scnRows = rows; }
+
+    var pal = scenePalette(sceneTokenReader());
+    var palSig = JSON.stringify(pal);
+    var repaint = field.dataset.scnPal !== palSig;
+    field.dataset.scnPal = palSig;
+
+    var have = Object.create(null);
+    var want = Object.create(null);
+    roster.forEach(function (u) { want[u.id] = u.side; });
+    Array.prototype.slice.call(field.children).forEach(function (child) {
+      var id = child.dataset.scnUnit;
+      if (want[id] === child.dataset.scnSide && have[id] === undefined) {
+        have[id] = child;
+      } else {
+        child.remove();
+      }
+    });
+
+    roster.forEach(function (u, i) {
+      var node = have[u.id];
+      var fresh = node === undefined;
+      if (fresh) { node = sceneBuildUnit(u.side, u.id); }
+      // Order is roster order, which is reading order. Only a node that is
+      // out of place is moved, so a frame on an unchanged roster moves none.
+      if (field.children[i] !== node) { field.insertBefore(node, field.children[i] || null); }
+
+      var canvas = node.firstElementChild;
+      if (fresh || repaint) { sceneDraw(canvas, u.side, pal); }
+
+      var label = node.lastElementChild;
+      if (label.textContent !== u.name) { label.textContent = u.name; }
+      var named = u.name + (u.down ? SCENE_DOWN_SAID : '');
+      if (node.getAttribute('aria-label') !== named) { node.setAttribute('aria-label', named); }
+      if (u.down) { node.classList.add('scn-unit--down'); } else { node.classList.remove('scn-unit--down'); }
+
+      // A sprite under a pointer is [S07.9]'s to place until it is let go.
+      if (node.classList.contains('scn-unit--held')) { return; }
+      var at = scenePos[u.id] || sceneSlot(u.side, u.index, u.count, Number(rows));
+      if (node.dataset.scnAt !== String(at[0]) + ',' + String(at[1])) {
+        scenePlace(node, at[0], at[1]);
+      }
+    });
+  }
+
+  function syncScene(state) {
+    scene(state);
+  }
+
+  SYNC_HOOKS.push(syncScene);
+
+  // A drag let go: the place is kept and written to the store. Shares only,
+  // clamped by [S07.9] before they arrive and again here.
+  function sceneKeep(unitId, x, y) {
+    var id = String(unitId);
+    if (!SCENE_ID.test(id)) { return; }
+    sceneStore()[id] = [sceneShare(x), sceneShare(y)];
+    scenePut(sceneStorage(), scenePos);
+  }
+
+  // Back to formation: every saved place is forgotten, here and in the store,
+  // and the scene is painted onto that at once — page work, no commit, so no
+  // frame would come for it otherwise.
+  function sceneHome() {
+    scenePos = Object.create(null);
+    scenePut(sceneStorage(), scenePos);
+    if (typeof document !== 'undefined') {
+      var field = document.getElementById('scene-field');
+      if (field) {
+        Array.prototype.slice.call(field.children).forEach(function (n) { n.dataset.scnAt = ''; });
+      }
+    }
+    scene(App.state.get());
+  }
+
+  // Read-only, for the suites and the browser cells: the saved layout as a
+  // string, so nothing outside can hold the record.
+  function sceneSaid() {
+    return JSON.stringify(sceneStore());
+  }
+  // #endregion [S06.17] RENDER — THE BATTLE SCENE
+
 
   // DELIBERATELY ABSENT: any escalation from sync() into structure(). The
   // structural trigger belongs to [S05] -- an op that changes the number of
@@ -28966,6 +29551,30 @@ App.render = (function () {
     RESERVE_WORD: RESERVE_WORD,
     RESERVE_EMPTY: RESERVE_EMPTY,
     RESERVE_POST: RESERVE_POST,
+    // D-42. [S07.9] holds the drag and these draw it and keep it: the paint,
+    // the place, the drop, the way back to formation, and the saved layout
+    // read back as a string. The pure pieces go with them so [S09.15] asserts
+    // the functions the scene is drawn with rather than re-typed copies —
+    // the formation, the clamp, the store's reading and pruning, both store
+    // accesses (which must survive a store that is missing or refuses), and
+    // the palette — plus the key, the sprites and the dead sentence.
+    scene: scene,
+    scenePlace: scenePlace,
+    sceneKeep: sceneKeep,
+    sceneHome: sceneHome,
+    sceneSaid: sceneSaid,
+    sceneSlot: sceneSlot,
+    sceneFieldRows: sceneFieldRows,
+    sceneClampFrac: sceneClampFrac,
+    sceneParse: sceneParse,
+    scenePrune: scenePrune,
+    sceneGet: sceneGet,
+    scenePut: scenePut,
+    scenePalette: scenePalette,
+    sceneRgb: sceneRgb,
+    SCENE_KEY: SCENE_KEY,
+    SCENE_SPRITES: SCENE_SPRITES,
+    SCENE_DOWN_SAID: SCENE_DOWN_SAID,
     MAX_UNITS: MAX_UNITS
   });
 })();
@@ -35303,6 +35912,185 @@ App.interactions = (function () {
   // App.ops.dispatch; nothing here carries a data-act.
   // #endregion [S07.8] INTERACTIONS — THE DRAG
 
+  /* ===================== [S07.9] INTERACTIONS — THE SCENE ===============
+   * D-42's gesture, plan 05-D42. A press on a sprite in #scene-field, moved
+   * past SCENE_DRAG_PX, picks it up; it follows the pointer, clamped so the
+   * whole sprite stays inside the field; letting go keeps the place, in
+   * [S06.17]'s scope and best-effort in the store. Escape, a cancelled
+   * pointer, a lost capture and a lost window each put it back where it was.
+   * The reset control sends everyone back to formation.
+   *
+   * IT WRITES NOTHING ANYWHERE A STATE LIVES. No op, no commit, no commitUi,
+   * no setUi, from the press to the release — so no frame is scheduled by a
+   * drag, nothing lands on the undo stack, and the build code cannot see it.
+   * [S09.15] and check 130 read the commit count and the undo depth across a
+   * whole gesture.
+   *
+   * IDEAS FROM D-41's DRAG, AND NONE OF ITS STATE. The threshold, capture on a
+   * static node rather than on the thing picked up, and Escape as a cancel are
+   * [S07.8]'s arrangement; the variables, the listeners and the node are this
+   * region's own. The capture is on #scene-field, which is shell and is never
+   * rebuilt; [S07.8]'s document listeners do nothing while its own drag is
+   * null, and a press here never starts one, because its press listener is on
+   * #board and this field is not inside it.
+   *
+   * A COMMIT THAT LANDS MID-DRAG REBUILDS NOTHING HERE. The paint keeps every
+   * sprite whose unit is still on the roster and skips the place of the one
+   * wearing scn-unit--held, so the node under the pointer is the same node for
+   * the whole gesture. If its unit LEAVES the roster mid-drag (an undo from
+   * the keyboard that un-starts the fight), the paint removes it and the next
+   * pointer event here ends the drag with nothing kept.
+   *
+   * POINTER-ONLY, AND THAT IS ADMISSIBLE HERE AND NOWHERE ELSE ON THE PAGE:
+   * a place in the scene carries no information — every unit's name, state and
+   * numbers are on the battlefield and the board — so nothing is locked behind
+   * a drag (WCAG 2.5.7's concern). The reset control is a real button and
+   * reaches its one job from the keyboard.
+   * ====================================================================== */
+  // #region [S07.9] INTERACTIONS — THE SCENE
+
+  var SCENE_DRAG_PX = 4;
+
+  var held = null;
+
+  function sceneFieldNode() {
+    return (typeof document === 'undefined') ? null : document.getElementById('scene-field');
+  }
+
+  function onSceneDown(e) {
+    if (!isPrimaryPress(e) || held !== null) { return; }
+    var t = e.target;
+    if (!t || typeof t.closest !== 'function') { return; }
+    var node = t.closest('.scn-unit');
+    var field = sceneFieldNode();
+    if (node === null || field === null || node.parentNode !== field) { return; }
+    var r = node.getBoundingClientRect();
+    held = {
+      id: e.pointerId, unit: String(node.dataset.scnUnit), node: node,
+      x0: e.clientX, y0: e.clientY, live: false, x: null, y: null,
+      // Where on the sprite it was taken, from its centre, so it does not
+      // jump to put its middle under the pointer.
+      dx: e.clientX - (r.left + r.width / 2), dy: e.clientY - (r.top + r.height / 2)
+    };
+    // No text selection and no native image drag under a held sprite.
+    if (typeof e.preventDefault === 'function') { e.preventDefault(); }
+  }
+
+  function sceneBegin(e) {
+    held.live = true;
+    held.node.classList.add('scn-unit--held');
+    var field = sceneFieldNode();
+    if (field && typeof field.setPointerCapture === 'function' && e.pointerId !== undefined) {
+      try {
+        field.setPointerCapture(e.pointerId);
+      } catch (noSuchPointer) {
+        void noSuchPointer;
+      }
+    }
+  }
+
+  // Ends the gesture and hands back what it was. Idempotent, like dragEnd.
+  function sceneEnd() {
+    var was = held;
+    held = null;
+    if (was === null) { return null; }
+    was.node.classList.remove('scn-unit--held');
+    if (was.live) {
+      var field = sceneFieldNode();
+      if (field && typeof field.releasePointerCapture === 'function' && was.id !== undefined) {
+        try {
+          field.releasePointerCapture(was.id);
+        } catch (released) {
+          void released;
+        }
+      }
+    }
+    return was;
+  }
+
+  function onSceneMove(e) {
+    if (held === null || e.pointerId !== held.id) { return; }
+    var field = sceneFieldNode();
+    // The unit left the roster under the pointer: nothing to keep.
+    if (field === null || held.node.parentNode !== field) { sceneEnd(); return; }
+    if (!held.live) {
+      var mx = e.clientX - held.x0;
+      var my = e.clientY - held.y0;
+      if (mx * mx + my * my < SCENE_DRAG_PX * SCENE_DRAG_PX) { return; }
+      sceneBegin(e);
+    }
+    var fr = field.getBoundingClientRect();
+    var r = held.node.getBoundingClientRect();
+    var cx = e.clientX - held.dx - fr.left;
+    var cy = e.clientY - held.dy - fr.top;
+    held.x = App.render.sceneClampFrac(fr.width > 0 ? cx / fr.width : 0.5, r.width, fr.width);
+    held.y = App.render.sceneClampFrac(fr.height > 0 ? cy / fr.height : 0.5, r.height, fr.height);
+    App.render.scenePlace(held.node, held.x, held.y);
+  }
+
+  function onSceneUp(e) {
+    if (held === null || e.pointerId !== held.id) { return; }
+    var was = sceneEnd();
+    if (!was.live || was.x === null) { return; }
+    var field = sceneFieldNode();
+    if (field === null || was.node.parentNode !== field) { return; }
+    App.render.sceneKeep(was.unit, was.x, was.y);
+  }
+
+  // Put back where it stood before the press: the paint places every sprite
+  // not being held, and this one is not held any more.
+  function onSceneCancel(e) {
+    if (held === null) { return; }
+    if (e && e.pointerId !== undefined && held.id !== undefined && e.pointerId !== held.id) { return; }
+    var was = sceneEnd();
+    if (was && was.live) {
+      was.node.dataset.scnAt = '';
+      App.render.scene(App.state.get());
+    }
+  }
+
+  function onSceneKey(e) {
+    if (held === null || e.key !== 'Escape') { return; }
+    e.preventDefault();
+    onSceneCancel(null);
+  }
+
+  function onSceneReset() {
+    if (held !== null) { sceneEnd(); }
+    App.render.sceneHome();
+  }
+
+  function bindScene() {
+    var field = sceneFieldNode();
+    if (field === null) { return; }
+    field.addEventListener('pointerdown', App.boot.wrap('scene press', onSceneDown));
+    // On the DOCUMENT, [S07.8]'s arrangement: a press that never became a drag
+    // is not captured, and its release may land anywhere — it must still end
+    // the hold, or the next press on a sprite would be ignored.
+    document.addEventListener('pointermove', App.boot.wrap('scene move', onSceneMove));
+    document.addEventListener('pointerup', App.boot.wrap('scene let go', onSceneUp));
+    document.addEventListener('pointercancel', App.boot.wrap('scene cancel', onSceneCancel));
+    field.addEventListener('lostpointercapture', App.boot.wrap('scene cancel', onSceneCancel));
+    document.addEventListener('keydown', App.boot.wrap('scene escape', onSceneKey));
+    if (typeof window !== 'undefined') {
+      window.addEventListener('blur', App.boot.wrap('scene cancel', onSceneCancel));
+    }
+    var reset = document.getElementById('scene-reset');
+    if (reset) { reset.addEventListener('click', App.boot.wrap('scene formation', onSceneReset)); }
+  }
+
+  LATE_BINDERS.push(bindScene);
+
+  // Read-only, for the suites and the browser cells, dragSaid's shape.
+  function sceneHeldSaid() {
+    if (held === null) { return ''; }
+    return JSON.stringify({ live: held.live, unit: held.unit, x: held.x, y: held.y });
+  }
+
+  // THE ACTS THIS REGION CLAIMS: NONE. Nothing here carries a data-act and
+  // nothing here dispatches.
+  // #endregion [S07.9] INTERACTIONS — THE SCENE
+
   return Object.freeze({
     bind: bind,
     holdSource: holdSource,
@@ -35352,6 +36140,10 @@ App.interactions = (function () {
     dragAnswers: dragAnswers,
     dragInFlight: dragSaid,
     DRAG_PX: DRAG_PX,
+    // D-42. The sprite held in the scene, read-only and stringified for
+    // dragInFlight's reason, and the threshold the cells drive either side of.
+    sceneHeld: sceneHeldSaid,
+    SCENE_DRAG_PX: SCENE_DRAG_PX,
     HOLD_FIRST_MS: HOLD_FIRST_MS,
     HOLD_STEP_MS: HOLD_STEP_MS,
     HOLD_FAST_MS: HOLD_FAST_MS,
@@ -48448,6 +49240,301 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the drag suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.15] SUITE: the battle scene — owner plan 05-D42 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('the battle scene', function (t) {
+    /* D-42's scene is a PICTURE: sprites in formation, dragged anywhere, the
+       place kept best-effort on this computer. Every row down to the no-DOM
+       bracket is arithmetic and store handling and runs in the terminal
+       harness: the formation, the clamp, reading and pruning what the store
+       held, surviving a store that is missing or refuses, the palette coming
+       from the tokens, and the place living in NO slice. THE GESTURE AND THE
+       LOOK ARE NOT HERE — a drag needs a pointer and a picture needs a screen;
+       they are check 130b in the gate and the D-42 browser cells. */
+    var R = App.render;
+    var savedAll = JSON.stringify(App.state.get());
+
+    /* --- THE FORMATION. Nine cats are a three-by-three block in the left
+           half, three mechs one column in the right half, twenty-four a side
+           are six columns of four, every slot distinct and inside the field,
+           and Cat 1 is top left: rows fill left to right. --- */
+    var FORM;
+    try {
+      var slots = function (side, n, rows) {
+        var out = [];
+        for (var i = 0; i < n; i++) { out.push(R.sceneSlot(side, i, n, rows)); }
+        return out;
+      };
+      var distinct = function (list) {
+        var seen = {};
+        return list.every(function (p) {
+          var k = p.join(',');
+          if (seen[k]) { return false; }
+          seen[k] = true;
+          return true;
+        });
+      };
+      var cols = function (list) {
+        var xs = {};
+        list.forEach(function (p) { xs[p[0]] = true; });
+        return Object.keys(xs).length;
+      };
+      var rowsOf = function (list) {
+        var ys = {};
+        list.forEach(function (p) { ys[p[1]] = true; });
+        return Object.keys(ys).length;
+      };
+      var inside = function (list) {
+        return list.every(function (p) { return p[0] > 0 && p[0] < 1 && p[1] > 0 && p[1] < 1; });
+      };
+      var c9 = slots('cats', 9, R.sceneFieldRows(9, 3));
+      var m3 = slots('mechs', 3, R.sceneFieldRows(9, 3));
+      var c24 = slots('cats', 24, R.sceneFieldRows(24, 24));
+      var m24 = slots('mechs', 24, R.sceneFieldRows(24, 24));
+      FORM = [
+        R.sceneFieldRows(9, 3), R.sceneFieldRows(24, 24), R.sceneFieldRows(1, 1),
+        cols(c9), rowsOf(c9), cols(m3), rowsOf(m3), cols(c24), rowsOf(c24),
+        distinct(c9.concat(m3)), distinct(c24.concat(m24)),
+        inside(c9.concat(m3, c24, m24)),
+        c9.concat(c24).every(function (p) { return p[0] < 0.5; }),
+        m3.concat(m24).every(function (p) { return p[0] > 0.5; }),
+        c9[0][0] < c9[1][0] && c9[0][1] === c9[1][1] && c9[0][1] < c9[3][1]
+      ];
+    } catch (stopped) {
+      FORM = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('THE FORMATION IS FF1\'s: a field of three rows up to nine a side and four above; '
+      + 'nine cats a three-by-three block, three mechs one column, twenty-four a side six '
+      + 'columns of four; every slot distinct and inside the field, cats in the left half, '
+      + 'mechs in the right, and Cat 1 top left with rows filling left to right',
+      FORM, [3, 4, 3, 3, 3, 1, 3, 6, 4, true, true, true, true, true, true]);
+
+    /* --- THE CLAMP. A sprite 104px across in a field 1000px across keeps its
+           centre at least 52px from either edge, whatever share it is handed;
+           a share inside that is kept; a field narrower than the sprite has
+           one place for it, the middle; and a share that is not a number is
+           the middle too rather than a NaN written into a style. --- */
+    t.eq('THE CLAMP: a centre is kept half a sprite in from every side of the field — past the '
+      + 'left it is 0.052, past the right 0.948, a share inside is kept, a field narrower than the '
+      + 'sprite puts it in the middle, and a share that is not a number is the middle',
+      [R.sceneClampFrac(-0.5, 104, 1000), R.sceneClampFrac(2, 104, 1000),
+        R.sceneClampFrac(0.3, 104, 1000), R.sceneClampFrac(0.3, 104, 80),
+        R.sceneClampFrac(NaN, 104, 1000), R.sceneClampFrac(0.3, 104, 0)],
+      [0.052, 0.948, 0.3, 0.5, 0.5, 0.5]);
+
+    /* --- WHAT THE STORE HELD IS READ AS FOREIGN. The bucket is shared with
+           every file:// page, so garbage, a wrong shape, a key that is not a
+           unit, a place that is not two finite numbers, and more places than
+           two rosters hold are all dropped, and a place off the field is
+           clamped into it. --- */
+    var PARSE;
+    try {
+      var big = {};
+      for (var bi = 1; bi <= 60; bi++) { big['c' + bi] = [0.5, 0.5]; }
+      PARSE = [
+        JSON.stringify(R.sceneParse(null)), JSON.stringify(R.sceneParse('')),
+        JSON.stringify(R.sceneParse('{not json')), JSON.stringify(R.sceneParse('[1,2]')),
+        JSON.stringify(R.sceneParse('null')),
+        JSON.stringify(R.sceneParse(JSON.stringify({
+          c1: [0.25, 0.5], m2: [1.5, -1], __proto__x: [0.1, 0.1], c3: ['0.1', 0.2],
+          c4: [0.1], m5: [null, 0.2], x6: [0.1, 0.1]
+        }))),
+        Object.keys(R.sceneParse(JSON.stringify(big))).length
+      ];
+    } catch (stopped) {
+      PARSE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('WHAT THE STORE HELD IS READ AS FOREIGN: nothing, garbage, an array and null each read '
+      + 'as no saved places; of a mixed record only the unit-shaped keys holding two numbers '
+      + 'survive, clamped into the field; and no more places are read than two full rosters '
+      + 'hold',
+      PARSE, ['{}', '{}', '{}', '{}', '{}', '{"c1":[0.25,0.5],"m2":[1,0]}', 2 * R.MAX_UNITS]);
+
+    /* --- A PLACE FOR A UNIT THAT HAS LEFT IS DROPPED, because ids are reused:
+           a cat removed and another added would otherwise inherit its spot. --- */
+    var PRUNE;
+    try {
+      var held = R.sceneParse(JSON.stringify({ c1: [0.1, 0.3], c9: [0.2, 0.4], m3: [0.9, 0.9] }));
+      var pr = R.scenePrune(held, ['c1', 'c2', 'm1', 'm2', 'm3']);
+      PRUNE = [JSON.stringify(pr.map), pr.dropped];
+    } catch (stopped) {
+      PRUNE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('A PLACE FOR A UNIT NO LONGER ON THE ROSTER IS DROPPED and the rest are kept as they '
+      + 'were, because nextUnitId reuses ids and a new Cat 9 must not stand where the old one '
+      + 'was left',
+      PRUNE, ['{"c1":[0.1,0.3],"m3":[0.9,0.9]}', ['c9']]);
+
+    /* --- A STORE THAT IS MISSING OR REFUSES IS THE ORDINARY CASE. No store,
+           a store whose read throws and a store whose write throws each answer
+           "nothing" and throw nothing; a working store round-trips under a
+           key in this artifact's own namespace. --- */
+    var STORE;
+    try {
+      var rec = { v: Object.create(null) };
+      var good = {
+        getItem: function (k) { return (k in rec.v) ? rec.v[k] : null; },
+        setItem: function (k, v) { rec.v[k] = String(v); }
+      };
+      var refuses = {
+        getItem: function () { throw new Error('SecurityError'); },
+        setItem: function () { throw new Error('QuotaExceededError'); }
+      };
+      var wrote = R.scenePut(good, R.sceneParse('{"m2":[0.7,0.6]}'));
+      STORE = [
+        R.sceneGet(null), R.scenePut(null, {}), R.sceneGet(refuses), R.scenePut(refuses, {}),
+        wrote, JSON.stringify(R.sceneParse(R.sceneGet(good))),
+        R.SCENE_KEY.indexOf('cvm.v1.') === 0
+      ];
+    } catch (stopped) {
+      STORE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('A STORE THAT IS MISSING OR REFUSES IS THE ORDINARY CASE: no store and a refusing '
+      + 'one answer nothing on read and false on write, and throw nothing; a working one '
+      + 'round-trips a place under a key in the cvm.v1. namespace, because Chrome gives every '
+      + 'file:// page one bucket',
+      STORE, [null, false, null, false, true, '{"m2":[0.7,0.6]}', true]);
+
+    /* --- THE PALETTE IS THE TOKENS. Read through a stand-in for the computed
+           style: fur is --coral, the plate is --ink-dim, the visor --accent,
+           the trim --gold, every outline --bg, and the cream is a MIX of fur
+           and --ink. Move --coral and the fur and both of its mixes move with
+           it. Every letter either sprite uses has a colour, and both sprites
+           are sixteen by sixteen. --- */
+    var PAL;
+    try {
+      var tokens = {
+        '--bg': '#0e1014', '--ink': '#e8ebf2', '--coral': '#ff8a5c', '--ink-dim': '#a4adbe',
+        '--accent': 'rgb(92, 200, 255)', '--accent-2': '#ff7eb6', '--gold': '#fd6'
+      };
+      var reader = function (name) { return tokens[name] || ''; };
+      var pal = R.scenePalette(reader);
+      var moved = JSON.parse(JSON.stringify(tokens));
+      moved['--coral'] = '#123456';
+      var pal2 = R.scenePalette(function (name) { return moved[name] || ''; });
+      var covered = ['cats', 'mechs'].every(function (side) {
+        return R.SCENE_SPRITES[side].length === 16 && R.SCENE_SPRITES[side].every(function (row) {
+          if (row.length !== 16) { return false; }
+          for (var i = 0; i < row.length; i++) {
+            var ch = row.charAt(i);
+            if (ch !== '.' && !pal[side][ch]) { return false; }
+          }
+          return true;
+        });
+      });
+      PAL = [pal.cats.f, pal.mechs.b, pal.mechs.v, pal.mechs.t, pal.cats.o, pal.mechs.o,
+        pal.cats.l, pal2.cats.f, pal2.cats.s !== pal.cats.s, pal2.cats.l !== pal.cats.l,
+        pal2.mechs.b === pal.mechs.b, covered,
+        R.sceneRgb('garbage'), R.scenePalette(function () { return ''; }).cats.f];
+    } catch (stopped) {
+      PAL = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('THE PALETTE IS THE TOKENS: fur --coral, plate --ink-dim, visor --accent (read as '
+      + 'rgb() as well as hex), trim --gold (three-digit hex read), every outline --bg, and '
+      + 'the cream a mix of fur and --ink; moving --coral moves the fur and both of its mixes '
+      + 'and nothing of the mech; every letter both sprites use has a colour; and a token '
+      + 'that cannot be read paints nothing rather than a colour nobody chose',
+      PAL, ['rgb(255, 138, 92)', 'rgb(164, 173, 190)', 'rgb(92, 200, 255)',
+        'rgb(255, 221, 102)', 'rgb(14, 16, 20)', 'rgb(14, 16, 20)', 'rgb(241, 198, 185)',
+        'rgb(18, 52, 86)', true, true, true, true, null, '']);
+
+    /* --- A PLACE LIVES IN NO SLICE. Keeping places and going back to
+           formation leave the whole state byte-identical, the commit count and
+           the undo depth unmoved, the build code the same code, and nothing
+           reachable from the state named after a scene, a sprite or a place. --- */
+    var SLICE;
+    try {
+      var before = JSON.stringify(App.state.get());
+      var commits = App.state.stats().commits;
+      var depth = App.state.undoDepth();
+      var code = App.serialize.encode(App.state.get().build);
+      R.sceneKeep('c1', 0.2, 0.7);
+      R.sceneKeep('m1', 0.8, 0.3);
+      var kept = R.sceneSaid();
+      R.sceneHome();
+      var named = [];
+      (function walk(v, at) {
+        if (v === null || typeof v !== 'object') { return; }
+        Object.keys(v).forEach(function (k) {
+          if (/scene|scn|sprite|place/i.test(k)) { named.push(at + '.' + k); }
+          walk(v[k], at + '.' + k);
+        });
+      })(App.state.get(), 'state');
+      SLICE = [JSON.parse(kept).c1, JSON.stringify(App.state.get()) === before,
+        App.state.stats().commits - commits, App.state.undoDepth() - depth,
+        App.serialize.encode(App.state.get().build) === code, named, R.sceneSaid()];
+    } catch (stopped) {
+      SLICE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('A PLACE LIVES IN NO SLICE: keeping two places and going back to formation leave the '
+      + 'state byte-identical, no commit and no undo entry, the same build code, nothing in '
+      + 'the state named after the scene, and no saved place afterwards',
+      SLICE, [[0.2, 0.7], true, 0, 0, true, [], '{}']);
+
+    // Everything below needs a page: the sprites themselves.
+    if (typeof document === 'undefined') {
+      t.info('the battle scene\'s sprites', 'skipped — no DOM');
+      App.state.restore(savedAll);
+      App.state.flush();
+      return;
+    }
+
+    /* --- THE SPRITES FOLLOW THE ROSTER AND THE STORED FLAG. With a fight
+           running, one sprite per fight unit in roster order, named as the
+           build names it, the name a text node and the canvas hidden from
+           assistive tech; the cat ruled dead LIES DOWN and says so in its
+           accessible name, and the mech at zero health that nobody ruled on
+           STANDS. Nothing in the scene carries a routing attribute. --- */
+    var PAINT;
+    try {
+      App.ops.resetToDefaults();
+      App.ops.startFight();
+      App.ops.setAlive('cats', 'c2', false);
+      App.ops.setUnitHp('mechs', 'm2', 0);
+      App.state.flush();
+      R.scene(App.state.get());
+      var field = document.getElementById('scene-field');
+      var kids = Array.prototype.slice.call(field.children);
+      var st = App.state.get();
+      var wantIds = st.fight.cats.units.concat(st.fight.mechs.units).map(function (u) { return u.id; });
+      var routed = field.querySelectorAll('[data-k]').length + field.querySelectorAll('[data-act]').length
+        + field.querySelectorAll('[data-fg]').length;
+      var byId = {};
+      kids.forEach(function (n) { byId[n.dataset.scnUnit] = n; });
+      PAINT = [
+        kids.map(function (n) { return n.dataset.scnUnit; }).join() === wantIds.join(),
+        kids.every(function (n) {
+          var nm = n.lastElementChild;
+          return nm.children.length === 0 && nm.textContent !== '';
+        }),
+        byId.c1.lastElementChild.textContent, byId.m3.lastElementChild.textContent,
+        byId.c1.firstElementChild.tagName, byId.c1.firstElementChild.getAttribute('aria-hidden'),
+        byId.c2.classList.contains('scn-unit--down'), byId.c2.getAttribute('aria-label'),
+        byId.m2.classList.contains('scn-unit--down'), byId.m2.getAttribute('aria-label'),
+        byId.c1.classList.contains('scn-unit--down'), routed
+      ];
+    } catch (stopped) {
+      PAINT = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE SPRITES FOLLOW THE ROSTER AND THE STORED FLAG: one per fight unit in roster '
+      + 'order, each name a text node, the canvas hidden from assistive tech; the cat RULED '
+      + 'dead lies down and says so, the mech at ZERO HEALTH that nobody ruled on stands, and '
+      + 'nothing in the scene carries data-k, data-act or data-fg',
+      PAINT, [true, true, 'Cat 1', 'Mech 3', 'CANVAS', 'true',
+        true, 'Cat 2' + R.SCENE_DOWN_SAID, false, 'Mech 2', false, 0]);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the scene suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();

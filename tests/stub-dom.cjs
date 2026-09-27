@@ -126,6 +126,14 @@ function makeStubDom() {
     // stub node arrive together, and section 5b fails the run in BOTH
     // directions if one of the three is missing.
     'drag-layer',
+    // plan 05-D42 — D-42's battle scene, the first child of the fight band.
+    // FIVE ids: the section, its heading, the one line under it, the way back
+    // to formation, and the field [S06.17] draws sprites into and [S07.9]
+    // captures the pointer on. The field is static and never rebuilt, which is
+    // the whole of why a held sprite survives a commit. The three words are
+    // read out of the shell below rather than re-typed, #howto's method.
+    // Same three-part rule as every entry here, in BOTH directions.
+    'scene', 'scene-head', 'scene-hint', 'scene-reset', 'scene-field',
     // plan 03-05 — the reference band, full width below both columns. The
     // node is built a dozen lines below in the same change: this list and the
     // stub page disagreeing in EITHER direction fails the run at section 5b.
@@ -585,6 +593,32 @@ function makeStubDom() {
     node.setPointerCapture = () => {};
     node.releasePointerCapture = () => {};
 
+    /* A <canvas> GETS A 2D CONTEXT THAT RECORDS WHAT IT PAINTS — plan 05-D42.
+       [S06.17] paints each sprite pixel by pixel, and a stub canvas with no
+       getContext would make the artifact either throw or grow a guard written
+       for this page, which is the stub shaping the shipped code. So the two
+       calls the artifact makes are modelled and nothing else: clearRect wipes,
+       fillRect records one colour per pixel it covers. _pixels is readable, so
+       a row can assert WHICH colour a sprite was painted in — which is how a
+       node row tells a colour derived from a token from a typed one. Only
+       '2d' is answered; any other kind is null, which is what a browser gives
+       for a context it will not hand over. */
+    if (node.tagName === 'CANVAS') {
+      node.width = 300;
+      node.height = 150;
+      node._pixels = Object.create(null);
+      const ctx = {
+        fillStyle: '',
+        clearRect() { node._pixels = Object.create(null); },
+        fillRect(x, y, w, h) {
+          for (let i = 0; i < w; i++) {
+            for (let j = 0; j < h; j++) { node._pixels[(x + i) + ',' + (y + j)] = String(ctx.fillStyle); }
+          }
+        }
+      };
+      node.getContext = (kind) => (kind === '2d' ? ctx : null);
+    }
+
     // No layout engine here, so a node reports whatever height the gate gave
     // it. _rectHeight defaults to 0, which is the "no layout at all" case
     // [S08]'s measurement is required to decline rather than publish.
@@ -758,6 +792,43 @@ function makeStubDom() {
   // to #board a live node after a structural rebuild. Its rows carry no data-k
   // and no data-act at all, so there is nothing to stub inside the list —
   // [S06.8] appends into it.
+  //
+  // plan 05-D42 — D-42's scene is the band's FIRST child in the shell, above
+  // the ledger, so it is built first here too: this page's child order is its
+  // appendChild order. Its three words are STATIC MARKUP and are read out of
+  // the shell by id, #howto's method, so the harvest reads what ships rather
+  // than a copy that goes stale — and it fails LOUD if one is not found. The
+  // field ships empty, carrying the shell's own resting row count.
+  const scene = idNode('scene', 'section');
+  scene.className = 'scn';
+  scene.setAttribute('aria-labelledby', 'scene-head');
+  app.appendChild(scene);
+  const sceneTop = createElement('div');
+  sceneTop.className = 'scn-top';
+  scene.appendChild(sceneTop);
+  const sceneWord = (id) => {
+    const m = new RegExp('id="' + id + '"[^>]*>([^<]*)<').exec(html);
+    if (!m || m[1].trim() === '') {
+      fail('the scene\'s #' + id + ' words could not be read out of the shell.');
+    }
+    return m[1];
+  };
+  [['scene-head', 'h2', 'scn-head'], ['scene-hint', 'p', 'scn-hint'],
+    ['scene-reset', 'button', 'brd-btn scn-reset']].forEach(([id, tag, cls]) => {
+    const n = idNode(id, tag);
+    n.className = cls;
+    if (tag === 'button') { n.type = 'button'; }
+    n.textContent = sceneWord(id);
+    sceneTop.appendChild(n);
+  });
+  const sceneWin = createElement('div');
+  sceneWin.className = 'scn-win';
+  scene.appendChild(sceneWin);
+  const sceneField = idNode('scene-field');
+  sceneField.className = 'scn-field';
+  sceneField.dataset.scnRows = '3';
+  sceneWin.appendChild(sceneField);
+
   const ledger = idNode('ledger', 'section');
   ledger.hidden = true;
   app.appendChild(ledger);
@@ -1791,6 +1862,37 @@ function makeStubDom() {
     win._listeners[type].push(fn);
   };
   win.scrollTo = () => {};
+
+  /* getComputedStyle, FOR THE ONE THING THE ARTIFACT ASKS OF IT — plan
+     05-D42. [S06.17] reads the design tokens off the root's computed style to
+     colour the sprites, so that moving a [C00] token moves them. This page has
+     no cascade, so the tokens are READ OUT OF THE SHELL'S OWN :root BLOCK
+     rather than re-typed here — a copy would go stale the day a token moved —
+     and a property the root style has been given by a row (documentElement's
+     setProperty, which the stub already models) wins over the sheet, which is
+     what inline style does to a custom property in a browser. Only the root is
+     answered, because nothing else is asked for. */
+  const rootTokens = Object.create(null);
+  (function readRoot() {
+    const at = html.indexOf(':root{');
+    const end = at === -1 ? -1 : html.indexOf('}', at);
+    if (at === -1 || end === -1) { fail('the shell\'s :root token block could not be found.'); }
+    const re = /(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{3,8})\s*;/g;
+    const body = html.slice(at, end);
+    let m;
+    while ((m = re.exec(body)) !== null) { rootTokens[m[1]] = m[2]; }
+    if (Object.keys(rootTokens).length < 10) {
+      fail('the shell\'s :root token block gave ' + Object.keys(rootTokens).length + ' colour token(s).');
+    }
+  })();
+  win.getComputedStyle = (node) => ({
+    getPropertyValue(name) {
+      if (node !== doc.documentElement) { return ''; }
+      const own = doc.documentElement._props[name];
+      if (own !== undefined) { return own; }
+      return rootTokens[name] !== undefined ? rootTokens[name] : '';
+    }
+  });
 
   function event(type, props) {
     const evt = { type: type, target: null, detail: 0, bubbles: true, defaultPrevented: false };

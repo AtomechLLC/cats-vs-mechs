@@ -2657,13 +2657,26 @@ check(
    --fgu- pairs are: read by exactly one rule in [C04] on exactly one element,
    written by exactly one function ([S06.16]'s dragGhostAt). Still custom
    properties rather than `left`/`top` longhands, for the topbar pair's reason:
-   the stylesheet keeps the RULE and the script supplies only the point. */
+   the stylesheet keeps the RULE and the script supplies only the point.
+
+   AND 10 -> 12 UNDER D-42, TURNED IN THE OPEN FOR THE SIXTH TIME. Plan
+   05-D42. RED recorded first: with the battle scene in and this row untouched
+   it printed `occurrences: 12` with `.setProperty('--scn-x', String(x))` and
+   `.setProperty('--scn-y', String(y))` as the only strays.
+
+   The allowlist widens by one prefix and the claim does not move. Where a
+   student has dragged a sprite is a point only a pointer knows, exactly as
+   D-41's ghost is. And these two are NOT LENGTHS AT ALL: they are unitless
+   shares of the field, and [C19]'s rule turns them into a clamped left and
+   top with the field's own percentage — so the stylesheet keeps both the rule
+   AND the clamp, and the script supplies a fraction. Written by exactly one
+   function ([S06.17]'s scenePlace), read by exactly one rule. */
 const styleAccesses = html.split('.style').length - 1;
 const styleSites = html.split('.style').slice(1).map(
   (tail) => tail.slice(0, 64).replace(/\s+/g, ' ')
 );
 const STYLE_OK = ['.setProperty(\'--topbar-', '.setProperty(\'--fgn-',
-  '.setProperty(\'--fgu-', '.setProperty(\'--drg-'];
+  '.setProperty(\'--fgu-', '.setProperty(\'--drg-', '.setProperty(\'--scn-'];
 const styleStrays = styleSites.filter(
   (site) => !STYLE_OK.some((ok) => site.indexOf(ok) === 0)
 );
@@ -2673,9 +2686,11 @@ check(
     + 'shared scale and a midpoint marker each need an inline length, so this '
     + 'is the cheapest available proof that none of the three exists anywhere '
     + 'on the page. THE COUNT WENT 1 -> 2 UNDER D-33 P2-12, 2 -> 4 UNDER '
-    + 'D-36, 4 -> 6 UNDER D-37, 6 -> 8 UNDER D-39 P1-4 AND 8 -> 10 UNDER '
+    + 'D-36, 4 -> 6 UNDER D-37, 6 -> 8 UNDER D-39 P1-4, 8 -> 10 UNDER '
     + 'D-41, where --drg-x and --drg-y are the point a dragged token\'s ghost '
-    + 'follows, which only a pointer event knows; and the row reads '
+    + 'follows, which only a pointer event knows, AND 10 -> 12 UNDER D-42, where '
+    + '--scn-x and --scn-y are where a student left a sprite in the battle '
+    + 'scene, written as unitless SHARES that the stylesheet clamps; and the row reads '
     + 'each occurrence IN CONTEXT rather than counting '
     + 'them: --topbar-now is the bar\'s height and --topbar-foot its bottom '
     + 'edge, published from one measurement of one element because a fixed '
@@ -2699,7 +2714,7 @@ check(
     + 'taking the prefix as an argument would hold the count down and defeat '
     + 'this reading. A bar '
     + 'drawn with an inline length fails this however many accesses there are',
-  styleAccesses === 10 && styleStrays.length === 0,
+  styleAccesses === 12 && styleStrays.length === 0,
   'occurrences: ' + styleAccesses + ' | sites: ' + JSON.stringify(styleSites)
     + ' | not an allowed publication: ' + JSON.stringify(styleStrays)
 );
@@ -4237,7 +4252,9 @@ const LABEL_ATTRS = ['aria-label', 'title', 'placeholder'];
 // the page and points at nothing. Adding an id here changes no assertion except
 // the relationship guard's, and costs nothing: the harvest's length, and
 // therefore every floor over it, is untouched by which label a record carries.
-const SCOPE_IDS = ['refband', 'strip'];
+// `scene` is the third, plan 05-D42: check 130 ASSERTS on the region's name —
+// every unit's name must reach this harvest from #scene as a real text leaf.
+const SCOPE_IDS = ['refband', 'strip', 'scene'];
 
 /* --- data-tsay: THE FOURTH EXEMPTION CHANNEL, ADDED BY D-29 -------------------
 
@@ -5362,6 +5379,30 @@ const fightLit = dom.byId['state-mechs'].querySelectorAll('.bf-unit')
   .filter((n) => String(n.className || '').indexOf('bf-unit--lit') !== -1).length;
 const fightText = harvestInto(dom.byId['app'], [], '#app');
 const fightHits = verdictHitsIn(fightText).concat(relationshipHitsIn(fightText));
+/* D-42's SCENE, READ ON THIS VERY PAGE STATE for check 130: the board with a
+   cat RULED dead and a mech at ZERO health that nobody ruled on is exactly the
+   board that tells a sprite drawn from the stored flag from one drawn from the
+   health. Taken here, beside the harvest, so the names check 130 counts in the
+   harvest are the names on this page. */
+const d42Sprites = dom.byId['scene-field'].children.map((n) => ({
+  unit: n.dataset.scnUnit, side: n.dataset.scnSide,
+  name: n.lastElementChild ? n.lastElementChild.textContent : null,
+  nameIsLeaf: n.lastElementChild ? n.lastElementChild.children.length === 0 : false,
+  nameCls: n.lastElementChild ? n.lastElementChild.className : '',
+  aria: n.getAttribute('aria-label'), role: n.getAttribute('role'),
+  down: n.classList.contains('scn-unit--down'),
+  canvas: n.firstElementChild ? n.firstElementChild.tagName : null,
+  canvasHidden: n.firstElementChild ? n.firstElementChild.getAttribute('aria-hidden') : null,
+  canvasText: n.firstElementChild ? n.firstElementChild.textContent : null,
+  px: n.firstElementChild && n.firstElementChild._pixels
+    ? Object.keys(n.firstElementChild._pixels).length : 0
+}));
+const d42Roster = ['cats', 'mechs'].map((side) => A.state.get().fight[side].units
+  .map((u) => ({ id: u.id, side: side, alive: u.alive, name: A.state.get().build[side].units
+    .filter((b) => b.id === u.id).map((b) => b.name)[0] }))).reduce((a, b) => a.concat(b), []);
+const d42ZeroHp = A.state.get().fight.mechs.units.filter((u) => u.id === fightZeroId)[0];
+const d42SceneText = fightText.filter((r) => r.where === '#scene').map((r) => r.s);
+const d42SceneHits = verdictHitsIn(fightText.filter((r) => r.where === '#scene'));
 /* THE RENAMED TYPE'S WORD AND THE AUTHORED TYPE'S WORD, MEASURED IN BOTH
    DIRECTIONS — AND THE MEASUREMENT CORRECTED WHAT THIS DRIVE WAS WRITTEN TO
    EXPECT, so the correction is recorded rather than papered over. The
@@ -6156,7 +6197,38 @@ A.state.flush();
    (HOWTO_FLOOR, measured 32 now against 31). D-38 set the precedent when it added
    the whole tab and left this constant at 248: a How-to paragraph is prose a
    later plan may legitimately move, and this base does not ratchet on it. */
-const FIGHT_FLOOR = 254;
+/* HISTORY — 254 -> 257, PLAN 05-D42. D-42's battle scene is the fight band's
+   first child, and it draws THREE strings on every roster — its heading, the
+   one line under it, and the way back to formation, all read out of the shell
+   by the stub — and TWO per unit: the name under the sprite, and the same name
+   as the sprite's accessible name.
+
+   RE-DERIVED BY THE METHOD ABOVE, not by subtraction from the shipped board.
+   Four roster shapes and the 24-a-side ceiling, undressed, on a scratch copy
+   of HEAD (07f795e) and on the working tree with the scene in, harvested by
+   this file's own harvestInto copied verbatim and booted the way
+   tests/selftest-dom.cjs boots:
+
+                     setup before  after  delta     fight before  after  delta   #scene
+       2 x 2                 164    175    +11              312    323    +11       11
+       3 x 3                 178    193    +15              372    387    +15       15
+       5 x 3                 192    211    +19              432    451    +19       19
+       9 x 3                 220    247    +27              552    579    +27       27
+       24 x 24               472    571    +99             1632   1731    +99       99
+
+   So the scene costs 3 + 2n, exactly, at every shape. The per-unit cost of the
+   fight harvest goes 30 -> 32 and that is ROSTER-DEPENDENT, so it is not this
+   constant's to carry; the 3 is roster-independent and is. 254 + 3 = 257.
+   Check 47's setup floor stays 117 (harvest 220 -> 247 at 9x3), a tripwire and
+   not a ratchet, for DIALOG_FLOOR's stated rule.
+
+   WHAT THIS FLOOR CANNOT DO, and why check 130 exists beside it: a scene whose
+   names were painted into the canvas instead of written as text would lose n
+   strings here, and at every board a student can build that is still far
+   above 257 — a floor is a lower bound on the whole page and not a census of
+   one region. So the names are counted BY NAME in #scene by check 130, and
+   that is the row that goes red. */
+const FIGHT_FLOOR = 257;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
@@ -18081,6 +18153,205 @@ check(
     + ' | action points ' + JSON.stringify(d41ApLights) + ' after cancel '
     + JSON.stringify(d41AfterCancel) + ' | panel hidden=' + errPanel.hidden
 );
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+
+/* --- 130 and 130b. D-42 — THE BATTLE SCENE, plan 05-D42 -----------------------
+   130 reads the scene as check 92 left it: a fight running, a cat RULED dead, a
+   mech at ZERO health nobody ruled on, and the harvest taken on that page. 130b
+   drives the gesture as far as a page with no layout can take it, with the two
+   rectangles the drag reads handed to the stub nodes by this row. --- */
+const d42Walk = [];
+(function walk(n) {
+  n.children.forEach((c) => {
+    if (c.dataset.k !== undefined || c.dataset.act !== undefined || c.dataset.fg !== undefined) {
+      d42Walk.push(c.className);
+    }
+    walk(c);
+  });
+})(dom.byId['scene']);
+const d42InBoard = (function () {
+  let n = dom.byId['scene'];
+  while (n) { if (n === dom.byId['board']) { return true; } n = n.parentNode; }
+  return false;
+})();
+// The visible name, plus the accessible name — which for a unit ruled dead is
+// the name with SCENE_DOWN_SAID after it. Two per unit either way.
+const d42NamesInHarvest = d42Roster.map((u) => d42SceneText.filter((s) => s === u.name
+  || (u.alive === false && s === u.name + A.render.SCENE_DOWN_SAID)).length);
+const d42DeadSprite = d42Sprites.filter((s) => s.unit === fightDeadId)[0] || {};
+const d42ZeroSprite = d42Sprites.filter((s) => s.unit === fightZeroId)[0] || {};
+check(
+  '130. D-42 — THE BATTLE SCENE DRAWS EVERY UNIT OF THE FIGHT, BY NAME, AS TEXT, AND '
+    + 'LAYS DOWN ONLY THE ONES RULED DEAD. Read on check 92\'s own page: ONE SPRITE PER '
+    + 'FIGHT UNIT in roster order, each keyed by its unit on data-scn-unit and never on '
+    + 'data-k, each a role="img" whose accessible name is the unit\'s name, holding an '
+    + 'aria-hidden <canvas> that carries NO WORDS and a painted sprite, and a NAME that is '
+    + 'a real text leaf equal to the build\'s name for that id. EVERY NAME REACHES LAYER '
+    + 'C\'s FIGHT HARVEST FROM #scene TWICE — the visible name and the accessible name — '
+    + 'and that is the clause a scene whose names were painted into the canvas goes red '
+    + 'on, where FIGHT_FLOOR alone would not: its history paragraph says why. THE STORED '
+    + 'FLAG AND NOTHING ELSE: the cat ruled dead lies down and its accessible name says '
+    + 'so, and the mech at ZERO HEALTH that nobody ruled on is STILL ALIVE in the fight '
+    + 'slice and STANDS — D-00d on a sixth surface. Nothing the scene draws carries a '
+    + 'verdict word, NOTHING IN IT CARRIES data-k, data-act or data-fg, and it is NOT '
+    + 'INSIDE #board, so withPreservedFocus\'s first [data-k] match can never be a sprite',
+  d42Sprites.length === d42Roster.length && d42Roster.length === 12
+    && d42Sprites.every((s, i) => s.unit === d42Roster[i].id && s.side === d42Roster[i].side
+      && s.name === d42Roster[i].name && s.nameIsLeaf === true && s.nameCls === 'scn-name'
+      && s.role === 'img' && s.canvas === 'CANVAS' && s.canvasHidden === 'true'
+      && s.canvasText === '' && s.px > 60
+      && s.aria === s.name + (d42Roster[i].alive === false ? A.render.SCENE_DOWN_SAID : ''))
+    && d42NamesInHarvest.every((n) => n === 2)
+    && d42DeadSprite.down === true
+    && d42DeadSprite.aria === d42DeadSprite.name + A.render.SCENE_DOWN_SAID
+    && d42ZeroHp !== undefined && d42ZeroHp.hp === 0 && d42ZeroHp.alive === true
+    && d42ZeroSprite.down === false && d42ZeroSprite.aria === d42ZeroSprite.name
+    && d42Sprites.filter((s) => s.down).length === 1
+    && d42SceneHits.length === 0 && d42Walk.length === 0 && d42InBoard === false,
+  'sprites ' + JSON.stringify(d42Sprites.map((s) => [s.unit, s.name, s.down, s.aria, s.px]))
+    + ' | roster ' + JSON.stringify(d42Roster)
+    + ' | each name in the harvest from #scene ' + JSON.stringify(d42NamesInHarvest)
+    + ' | zero-health mech ' + JSON.stringify(d42ZeroHp)
+    + ' | verdict hits ' + JSON.stringify(d42SceneHits)
+    + ' | routing attributes ' + JSON.stringify(d42Walk) + ' | inside #board=' + d42InBoard
+);
+
+/* 130b — the gesture. */
+A.ops.resetToDefaults();
+A.ops.startFight();
+A.state.invalidate({ structural: true });
+A.state.flush();
+A.render.sceneHome();
+const d42Field = dom.byId['scene-field'];
+const d42Rect = (left, top, width, height) => () => ({
+  left, top, width, height, right: left + width, bottom: top + height
+});
+const d42FieldRectWas = d42Field.getBoundingClientRect;
+d42Field.getBoundingClientRect = d42Rect(0, 0, 1000, 300);
+const d42C1 = d42Field.children[0];
+const d42C2 = d42Field.children[1];
+const d42C1RectWas = d42C1.getBoundingClientRect;
+const d42C2RectWas = d42C2.getBoundingClientRect;
+d42C1.getBoundingClientRect = d42Rect(48, 64, 104, 72);    // centre (100, 100)
+d42C2.getBoundingClientRect = d42Rect(248, 64, 104, 72);   // centre (300, 100)
+const d42Home1 = A.render.sceneSlot('cats', 0, 9, 3).join(',');
+const d42Home2 = A.render.sceneSlot('cats', 1, 9, 3).join(',');
+function d42Ev(type, x, y) {
+  return dom.event(type, { pointerId: 11, button: 0, clientX: x, clientY: y });
+}
+const d42At = (n) => [n.style.getPropertyValue('--scn-x'), n.style.getPropertyValue('--scn-y')];
+const d42C0 = commits();
+const d42State0 = JSON.stringify(A.state.get());
+const d42Rest = [d42C1.dataset.scnAt === d42Home1, d42C2.dataset.scnAt === d42Home2];
+
+// A SUB-THRESHOLD PRESS is nothing.
+d42C1.firstElementChild.dispatchEvent(d42Ev('pointerdown', 100, 100));
+d42Field.dispatchEvent(d42Ev('pointermove', 102, 101));
+const d42SubHeld = A.interactions.sceneHeld();
+d42Field.dispatchEvent(d42Ev('pointerup', 102, 101));
+const d42Sub = [JSON.parse(d42SubHeld || '{}').live, A.interactions.sceneHeld(),
+  d42C1.dataset.scnAt === d42Home1, A.render.sceneSaid(), commits() - d42C0];
+
+// A LIVE DRAG.
+d42C1.firstElementChild.dispatchEvent(d42Ev('pointerdown', 100, 100));
+d42Field.dispatchEvent(d42Ev('pointermove', 400, 150));
+const d42Live = [JSON.parse(A.interactions.sceneHeld() || '{}').live, d42At(d42C1),
+  d42C1.classList.contains('scn-unit--held'), commits() - d42C0];
+// AN ADVANCE COMMITS WHILE IT IS HELD. The paint runs; the node under the
+// pointer must be the SAME node, still attached, still where the pointer put it.
+A.ops.advanceRound();
+A.state.flush();
+const d42AfterAdvance = JSON.stringify(A.state.get());
+const d42AdvDepth = A.state.undoDepth();
+const d42AdvCommits = commits();
+const d42Mid = [d42Field.children[0] === d42C1, d42C1.parentNode === d42Field, d42At(d42C1),
+  A.state.get().fight.round, d42AdvCommits - d42C0];
+// OFF THE FIELD, far past two sides at once: clamped.
+d42Field.dispatchEvent(d42Ev('pointermove', -500, 9999));
+const d42Clamped = d42At(d42C1);
+d42Field.dispatchEvent(d42Ev('pointerup', -500, 9999));
+const d42Kept = [A.interactions.sceneHeld(), d42C1.classList.contains('scn-unit--held'),
+  JSON.stringify(JSON.parse(A.render.sceneSaid()).c1),
+  JSON.stringify(A.state.get()) === d42AfterAdvance, A.state.undoDepth() - d42AdvDepth,
+  commits() - d42AdvCommits];
+
+// ESCAPE mid-drag puts a sprite back where it stood.
+d42C2.firstElementChild.dispatchEvent(d42Ev('pointerdown', 300, 100));
+d42Field.dispatchEvent(d42Ev('pointermove', 600, 200));
+const d42EscMoved = d42C2.dataset.scnAt !== d42Home2;
+d42Field.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+const d42Esc = [d42EscMoved, A.interactions.sceneHeld(), d42C2.dataset.scnAt === d42Home2,
+  JSON.parse(A.render.sceneSaid()).c2 === undefined];
+d42Field.dispatchEvent(d42Ev('pointerup', 600, 200));
+
+// BACK TO FORMATION, pressed the way a keyboard or a mouse presses it.
+dom.byId['scene-reset'].dispatchEvent(dom.event('click', {}));
+const d42Reset = [A.render.sceneSaid(), d42C1.dataset.scnAt === d42Home1,
+  JSON.stringify(A.state.get()) === d42AfterAdvance];
+
+// A REMOVED UNIT'S PLACE IS DROPPED, and the unit that takes its id next
+// stands in formation rather than where the old one was left.
+A.ops.endFight();
+A.state.flush();
+A.render.sceneKeep('c9', 0.31, 0.62);
+const d42Before9 = JSON.parse(A.render.sceneSaid()).c9;
+A.ops.removeUnit('cats', 'c9');
+A.state.flush();
+const d42After9 = JSON.parse(A.render.sceneSaid()).c9;
+const d42Count8 = d42Field.children.length;
+A.ops.addUnit('cats');
+A.state.flush();
+const d42New9 = d42Field.children.filter((n) => n.dataset.scnUnit === 'c9')[0] || null;
+const d42Prune = [JSON.stringify(d42Before9), d42After9 === undefined, d42Count8,
+  d42New9 !== null && d42New9.dataset.scnAt === A.render.sceneSlot('cats', 8, 9, 3).join(',')];
+
+check(
+  '130b. D-42 — THE GESTURE: A PRESS IS NOTHING, A DRAG MOVES ONE PICTURE AND NOTHING '
+    + 'ELSE, AND A COMMIT LANDING UNDER IT REBUILDS NOTHING. A press on a sprite that '
+    + 'wobbles two pixels and lets go is nothing: never live, no place kept, no commit. '
+    + 'Past SCENE_DRAG_PX it is HELD and follows the pointer as two SHARES of the field '
+    + '(0.4 and 0.5 at x 400 of 1000 and y 150 of 300). THEN AN ADVANCE COMMITS WHILE IT '
+    + 'IS HELD, and the round moves — and the sprite under the pointer is THE SAME NODE, '
+    + 'still attached and still where the pointer put it, because the paint rebuilds no '
+    + 'sprite whose unit is still on the roster and skips the place of a held one: the '
+    + 'identity clause plan 05-10 measured and D-37 probe G says only node identity '
+    + 'catches. Dragged far past two sides at once it is CLAMPED, half a sprite in from '
+    + 'each (0.052 and 0.88). LET GO, the place is kept in the scene and NOTHING ELSE '
+    + 'MOVED: across the whole gesture the only commit and the only undo entry are the '
+    + 'Advance\'s own, and the state after the release is byte-identical to the state '
+    + 'after the Advance. ESCAPE mid-drag puts a sprite back in formation with nothing '
+    + 'kept. THE RESET CONTROL, pressed with a click, forgets every place and puts the '
+    + 'sprite back in its slot. AND A REMOVED UNIT\'S PLACE IS DROPPED: Cat 9 kept at '
+    + '(0.31, 0.62), removed, and the place is gone — so the cat addUnit next names c9 '
+    + 'stands in formation and not where the old Cat 9 was left. The node sandbox has no '
+    + 'store, so every write above went to a missing one, and the panel stayed shut',
+  d42Rest[0] === true && d42Rest[1] === true
+    && d42Sub[0] === false && d42Sub[1] === '' && d42Sub[2] === true
+    && d42Sub[3] === '{}' && d42Sub[4] === 0
+    && d42Live[0] === true && d42Live[1][0] === '0.4' && d42Live[1][1] === '0.5'
+    && d42Live[2] === true && d42Live[3] === 0
+    && d42Mid[0] === true && d42Mid[1] === true
+    && d42Mid[2][0] === '0.4' && d42Mid[2][1] === '0.5' && d42Mid[3] === 2 && d42Mid[4] === 1
+    && d42Clamped[0] === '0.052' && d42Clamped[1] === '0.88'
+    && d42Kept[0] === '' && d42Kept[1] === false && d42Kept[2] === '[0.052,0.88]'
+    && d42Kept[3] === true && d42Kept[4] === 0 && d42Kept[5] === 0
+    && d42Esc[0] === true && d42Esc[1] === '' && d42Esc[2] === true && d42Esc[3] === true
+    && d42Reset[0] === '{}' && d42Reset[1] === true && d42Reset[2] === true
+    && d42Prune[0] === '[0.31,0.62]' && d42Prune[1] === true && d42Prune[2] === 11
+    && d42Prune[3] === true
+    && errPanel.hidden === true,
+  'at rest ' + JSON.stringify(d42Rest) + ' | sub-threshold ' + JSON.stringify(d42Sub)
+    + ' | live ' + JSON.stringify(d42Live) + ' | mid-drag Advance ' + JSON.stringify(d42Mid)
+    + ' | clamped ' + JSON.stringify(d42Clamped) + ' | kept ' + JSON.stringify(d42Kept)
+    + ' | Escape ' + JSON.stringify(d42Esc) + ' | reset ' + JSON.stringify(d42Reset)
+    + ' | prune ' + JSON.stringify(d42Prune) + ' | panel hidden=' + errPanel.hidden
+);
+A.render.sceneHome();
+d42Field.getBoundingClientRect = d42FieldRectWas;
+d42C1.getBoundingClientRect = d42C1RectWas;
+d42C2.getBoundingClientRect = d42C2RectWas;
 A.ops.resetToDefaults();
 A.state.invalidate({ structural: true });
 A.state.flush();
