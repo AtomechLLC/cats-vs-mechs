@@ -638,3 +638,37 @@ Verbatim:
 - Colours stay derived from the design tokens at runtime (shade ramps built by mixing tokens), with
   no new stylesheet hex (row 107f). Names stay real text above sprites (Layer C, D-42's paint-order
   fix). Dead units lie down greyed in both generations. No victory text.
+
+---
+
+## D-45 — 2026-09-27: generated, themed default names for units
+
+Verbatim:
+
+> Use a name generator to create initial names for the cats and mechs, theme appropriately
+
+### What this settles
+
+Units no longer default to "Cat 1" / "Mech 1". A name generator produces themed initial names:
+cat-like names for the Cats, mech designations for the Mechs. They show everywhere a unit's name
+already shows: board cards, the fight grid, the battlefield, the battle scene, the ledger and the
+unit popup.
+
+### Orchestrator calls (recorded, overridable)
+
+- **Deterministic, not random.** A unit's generated name comes from its side and a stable key (its
+  id or slot), so the same board always shows the same names: across reloads, in a classmate's
+  copy loaded from a build code, and after undo. Everyone's first cat has the same name, so the
+  instructor can name units aloud. A re-roll control is not added (not asked for).
+- **A student's own rename always wins.** The generator supplies only the default name.
+- **Names are derived, not stored**, where the current model allows it. The build code keeps
+  encoding only what the student changed, so the shipped board stays 45 characters and old codes
+  still decode. If the model stores default names today, record what changes and why.
+- **Theme:**
+  - Cats: short, friendly cat names (single words, e.g. Biscuit, Pounce, Mittens).
+  - Mechs: industrial designation style (a model name with a mark or number, e.g. "Warden MK-2").
+  - Unique within a side up to 24 units. Short enough to fit every surface (scene labels, grid
+    rows, cards).
+- **The no-verdict gate applies to the name lists.** Names that judge or rank ("Victor",
+  "Champion", "Dominator", "Ace", anything on the live word lists or the eight
+  clean-but-unshippable words) are excluded. Screen every candidate against the live arrays.
