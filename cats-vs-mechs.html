@@ -51862,6 +51862,76 @@ App.selftest = (function () {
       + 'hundred times; and the walk met moves, same-end drops and refusals, with no defect',
       SAME, [[], 0, 0, 300, true, true, true]);
 
+    /* --- WHAT THE FIGHT TAB LIGHTS IS WHAT ITS DROP DOES, END BY END. For six
+           drags a student can start on the fight tab — a cat's health, a
+           reserve's health, the side's action points, a student's unit type, a
+           student's side type, and the dead marker nobody allocates —
+           App.interactions.fightDragAnswers is read (the list the fight tab is
+           lit with) and EVERY answer is checked by calling moveFightToken for
+           that drop on a restored copy of the same fight: lit must move, home
+           must do nothing, and a refused target must refuse with the very
+           sentence the answer carries. The list names every end of the FIGHT
+           once, in the fight's own order — [S09.14]'s row, for the second
+           surface. --- */
+    var LIT;
+    try {
+      var lT = fightBoard();
+      App.ops.setTokenBounds('hp', { min: 0, max: 4 });
+      App.ops.moveFightToken('hp', 'cats', 'c2', 'cats', null);
+      App.state.flush();
+      var lFight = JSON.stringify(App.state.get());
+      var lEnds = [];
+      ['cats', 'mechs'].forEach(function (side) {
+        lEnds.push(side + '/null');
+        fight()[side].units.forEach(function (u) { lEnds.push(side + '/' + u.id); });
+      });
+      var lOutcome = function (fn) {
+        try { return { kind: fn() ? 'moved' : 'nothing', said: '' }; } catch (e) {
+          return { kind: isRefusal(e) ? 'refused' : 'DEFECT', said: String(e && e.message) };
+        }
+      };
+      var lWrong = [];
+      var lCount = { lit: 0, home: 0, no: 0 };
+      var lCovers = true;
+      [['hp', 'cats', 'c1'], ['hp', 'cats', null], ['ap', 'cats', null],
+        [lT.ooze, 'mechs', 'm1'], [lT.zeal, 'cats', null], ['dead', 'mechs', 'm2']
+      ].forEach(function (d) {
+        App.state.restore(lFight);
+        var answers = App.interactions.fightDragAnswers(d[0], { side: d[1], unitId: d[2] });
+        if (answers.map(function (x) { return x.side + '/' + x.unitId; }).join(' ') !== lEnds.join(' ')) {
+          lCovers = false;
+        }
+        answers.forEach(function (ans) {
+          App.state.restore(lFight);
+          var did = lOutcome(function () {
+            return App.ops.moveFightToken(d[0], d[1], d[2], ans.side, ans.unitId);
+          });
+          lCount[ans.answer] = (lCount[ans.answer] || 0) + 1;
+          var agrees = (ans.answer === 'lit' && did.kind === 'moved')
+            || (ans.answer === 'home' && did.kind === 'nothing')
+            || (ans.answer === 'no' && did.kind === 'refused' && did.said === ans.said);
+          if (!agrees) {
+            lWrong.push(d[0] + ' ' + d[1] + '/' + d[2] + ' onto ' + ans.side + '/' + ans.unitId
+              + ': ' + ans.answer + ' but ' + did.kind + ' "' + did.said + '"');
+          }
+        });
+      });
+      t.info('what the fight tab\'s six drags light — lit / home / refused',
+        [lCount.lit, lCount.home, lCount.no].join(' / '));
+      LIT = [lWrong.slice(0, 3), lCovers, lCount.lit > 0, lCount.home > 0, lCount.no > 0];
+    } catch (stopped) {
+      LIT = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('WHAT THE FIGHT TAB LIGHTS IS WHAT ITS DROP DOES, END BY END: across six drags a '
+      + 'student can start on the fight tab, every lit target moves the token when the drop is '
+      + 'made, every home end does nothing, and every refused target refuses with the very '
+      + 'sentence its answer carried. Every answer list names every end of the fight once, and '
+      + 'all three answers were met',
+      LIT, [[], true, true, true, true]);
+
     /* --- ONE COMMIT AND ONE UNDO ENTRY PER MOVE, AND TWO MOVES NEVER FOLD. The
            worst case, driven: the same type between the same two ends, twice,
            back to back inside COALESCE_MS. THE CONTROL in the same run: two

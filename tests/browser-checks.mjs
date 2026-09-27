@@ -7460,6 +7460,592 @@ for (const ch of ['chrome', 'msedge']) {
     });
     await d41Fresh();
 
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // ── 33. D-46 — RESOURCE DRAGS ON THE FIGHT TAB, BY REAL POINTERS. Plan 05-D46.
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // The developer, from real use: "I can't drag resources around the battle screen." Every
+    // drag below is page.mouse on a real token on the fight tab — a reading on a battlefield
+    // shape, a row in a side's pool, a reading in a fight reserve — moved past the threshold,
+    // across to a target, and let go. The ops below only BUILD a board to drag on; no op is
+    // called for any gesture. What lives ONLY here: every drop (it resolves the entity with
+    // elementFromPoint), the popup and the nudge opening on a still release, the retarget's
+    // ownership of a press, the scene and the drag not capturing each other's pointer, the
+    // sentence on screen, the ledger's reading after a real Advance, and all layout.
+    const d46Fresh = async (setup) => {
+      await pg.evaluate((s) => {
+        if (App.state.get().fight !== null) { App.ops.endFight(); }
+        App.ops.resetToDefaults();
+        if (s === 'hp4') { App.ops.setTokenBounds('hp', { min: 0, max: 4 }); }
+        App.ops.startFight();
+        // An EMPTY undo stack, for d41Fresh's measured reason: the stack is capped.
+        App.state.restore(JSON.stringify(App.state.get()));
+        App.state.invalidate({ structural: true });
+        App.state.flush();
+        try { App.render.sceneHome(); } catch (e) { /* the scene's own reset */ }
+      }, setup || '');
+      if (await pg.evaluate(() => document.querySelector('#app').dataset.view) !== 'fight') {
+        await pg.click('#view-fight'); await pg.waitForTimeout(200);
+      }
+      await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+      await pg.waitForTimeout(120);
+    };
+    const BF = (side, u) => `#state-${side} .bf-unit[data-drg-unit="${u}"]`;
+    const FPOOL = (side) => `#state-${side} .fg-team`;
+    const d46Line = (side, u, tok) => `${BF(side, u)} .bf-line[data-drg-tok="${tok}"] .tok`;
+    const d46Row = (side, tok) => `${FPOOL(side)} .fg-res[data-drg-tok="${tok}"] .tok`;
+    const d46Held = (side, tok) => `${FPOOL(side)} .fg-team-held .sym[data-drg-tok="${tok}"] .tok`;
+    // Scrolls the page so the source and the target are both on screen, as a student would,
+    // and remembers the token, its reading and its entity for the identity clauses.
+    const d46Aim = (srcSel, tgtSel) => pg.evaluate(([s, t]) => {
+      const src = document.querySelector(s);
+      const tgt = document.querySelector(t);
+      if (!src || !tgt) return { missing: !src ? s : t };
+      const bar = document.getElementById('topbar').getBoundingClientRect().bottom;
+      let a = src.getBoundingClientRect();
+      let b = tgt.getBoundingClientRect();
+      const lo = Math.min(a.top, b.top);
+      window.scrollBy({ top: lo - bar - 40, left: 0, behavior: 'instant' });
+      a = src.getBoundingClientRect();
+      b = tgt.getBoundingClientRect();
+      window.__d46src = src;
+      window.__d46line = src.closest('[data-drg-tok]');
+      window.__d46ent = src.closest('[data-drg-at]');
+      return { sx: a.left + a.width / 2, sy: a.top + a.height / 2,
+        tx: b.left + Math.min(b.width / 2, 60), ty: b.top + Math.min(b.height / 2, 14),
+        onScreen: a.top >= bar && b.top >= bar && a.bottom <= window.innerHeight && b.bottom <= window.innerHeight };
+    }, [srcSel, tgtSel]);
+    const d46Flight = () => pg.evaluate(() => {
+      const key = (n) => n.dataset.drgAt + '/' + (n.dataset.drgUnit || 'pool');
+      const all = Array.from(document.querySelectorAll('#fight-state [data-drg-at]'));
+      const board = Array.from(document.querySelectorAll('#board [data-drg-at]'));
+      const ghost = document.querySelector('#drag-layer .drg-ghost');
+      return {
+        inFlight: App.interactions.dragInFlight(),
+        lit: all.filter((n) => n.classList.contains('drg-lit')).map(key),
+        no: all.filter((n) => n.classList.contains('drg-no')).map(key),
+        home: all.filter((n) => n.classList.contains('drg-home')).map(key),
+        over: all.filter((n) => n.classList.contains('drg-over')).map(key),
+        boardLights: board.filter((n) => /drg-(lit|no|home|over)/.test(n.className)).length,
+        ghost: !!ghost, ghostPE: ghost ? getComputedStyle(ghost).pointerEvents : null,
+        srcSame: !!window.__d46src && window.__d46src.isConnected && window.__d46src.classList.contains('drg-taking'),
+        lineSame: !!window.__d46line && window.__d46line.isConnected,
+        entSame: !!window.__d46ent && window.__d46ent.isConnected,
+        popupShut: document.getElementById('fg-unit').hidden, nudgeShut: document.getElementById('fg-nudge').hidden,
+        commits: App.state.stats().commits, depth: App.state.undoDepth(), round: App.state.get().fight.round
+      };
+    });
+    const d46Read = () => pg.evaluate(() => {
+      const s = App.state.get();
+      const f = s.fight;
+      const u = (side, i) => f[side].units[i];
+      // Every showing said line on the fight tab: a pool's own, or a column's line under its
+      // battlefield (where a shape's refusal is said — no shape carries one).
+      const said = Array.from(document.querySelectorAll('#fight-state .drg-said'))
+        .filter((p) => !p.hidden).map((p) => (p.classList.contains('fg-field-said')
+          ? p.parentNode.id.replace('state-', '') + ' field' : p.parentNode.dataset.drgAt + ' pool') + ': ' + p.textContent);
+      const shapes = Array.from(document.querySelectorAll('#fight-state .bf-unit')).map((n) => {
+        const r = n.getBoundingClientRect();
+        return n.dataset.drgUnit + ':' + Math.round(r.left + window.scrollX) + ',' + Math.round(r.top + window.scrollY) + ',' + Math.round(r.width) + 'x' + Math.round(r.height);
+      }).join(' ');
+      return {
+        round: f.round, shapes, c1: u('cats', 0).hp, c2: u('cats', 1).hp, c3: u('cats', 2).hp, c4: u('cats', 3).hp,
+        c5: u('cats', 4).hp, c1s: u('cats', 0).shield, m1: u('mechs', 0).hp, m2: u('mechs', 1).hp,
+        m1s: u('mechs', 0).shield, catsAp: f.cats.ap, mechsAp: f.mechs.ap,
+        catsRes: JSON.stringify(f.cats.reserve || {}), mechsRes: JSON.stringify(f.mechs.reserve || {}),
+        hand: JSON.stringify(f.hand || []), alive: f.cats.units.concat(f.mechs.units).every((x) => x.alive === true),
+        code: App.serialize.encode(s.build), depth: App.state.undoDepth(), commits: App.state.stats().commits,
+        inFlight: App.interactions.dragInFlight(),
+        ghosts: document.querySelectorAll('#drag-layer > *').length,
+        lights: document.querySelectorAll('.drg-lit, .drg-no, .drg-home, .drg-over, .drg-taking').length,
+        said, panel: document.getElementById('err-panel').hidden,
+        popup: document.getElementById('fg-unit').hidden ? '' : document.getElementById('fg-unit').dataset.fgUnit,
+        nudge: document.getElementById('fg-nudge').hidden ? '' : document.getElementById('fg-nudge').dataset.fgTok,
+        focus: document.activeElement ? (document.activeElement.dataset.k || document.activeElement.tagName) : ''
+      };
+    });
+    const d46Drag = async (srcSel, tgtSel, mid) => {
+      const aim = await d46Aim(srcSel, tgtSel);
+      if (aim.missing) return { aim, flight: null };
+      await pg.mouse.move(aim.sx, aim.sy);
+      await pg.mouse.down();
+      for (let i = 1; i <= 4; i++) { await pg.mouse.move(aim.sx + i * 3, aim.sy + i * 2); }
+      await pg.mouse.move(aim.tx, aim.ty, { steps: 8 });
+      await pg.waitForTimeout(80);
+      const flight = await d46Flight();
+      if (mid) await mid();
+      await pg.mouse.up();
+      await pg.waitForTimeout(160);
+      return { aim, flight };
+    };
+    const d46SaidBox = async () => {
+      await pg.waitForTimeout(700);
+      return pg.evaluate(() => {
+        const p = Array.from(document.querySelectorAll('#fight-state .drg-said')).find((n) => !n.hidden);
+        if (!p) return null;
+        const r = p.getBoundingClientRect();
+        const bar = document.getElementById('topbar').getBoundingClientRect().bottom;
+        return { top: Math.round(r.top), bottom: Math.round(r.bottom), onScreen: r.top >= bar && r.bottom <= window.innerHeight };
+      });
+    };
+    const d46Shot = (name) => pg.screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d46-${name}-${ch}-${size.name}.png`)
+    });
+    const d46Name = (side, u) => `${BF(side, u)} .bf-name`;
+    const d46Head = (side) => `${FPOOL(side)} .fg-team-head`;
+
+    // ── 33. THE POOL ON THE FIGHT TAB, AND THE MARKS. ──
+    await d46Fresh();
+    const d46Layout = await pg.evaluate(() => ['cats', 'mechs'].map((side) => {
+      const col = document.getElementById('state-' + side);
+      const field = col.querySelector('.fg-field').getBoundingClientRect();
+      const pool = col.querySelector('.fg-team');
+      const pr = pool.getBoundingClientRect();
+      const empty = pool.querySelector('.fg-team-empty');
+      const words = [pool.querySelector('.fg-team-head'), pool.querySelector('.fg-team-lbl'), empty];
+      const line = col.querySelector('.bf-line.drg-src');
+      const row = pool.querySelector('.fg-res.drg-src');
+      return {
+        below: field.bottom <= pr.top, border: getComputedStyle(pool).borderTopStyle,
+        emptyDashed: getComputedStyle(empty).borderTopStyle === 'dashed' && empty.getBoundingClientRect().height > 0,
+        emptyText: empty.textContent,
+        minFont: Math.min(...words.map((w) => parseFloat(getComputedStyle(w).fontSize))),
+        lineTouch: getComputedStyle(line).touchAction, lineCursor: getComputedStyle(line).cursor,
+        rowTouch: getComputedStyle(row).touchAction, rowCursor: getComputedStyle(row).cursor,
+        rowTokCursor: getComputedStyle(row.querySelector('.fg-res-toks')).cursor,
+        apTokens: row.querySelectorAll('.tok').length,
+        shapes: col.querySelectorAll('.bf-unit[data-drg-at]').length,
+        top: Math.round(pr.top + window.scrollY), bottom: Math.round(pr.bottom + window.scrollY)
+      };
+    }));
+    note(ch, size.name, 'D-46 fight pool top / bottom (cats, document y)', d46Layout[0].top + ' / ' + d46Layout[0].bottom);
+    ok(`${tag}: 33. D-46 — THE TEAM RESOURCES ARE EACH SIDE'S POOL ON THE FIGHT TAB: a bordered box under that side's battlefield, opened by the fight RESERVE — empty on a fresh fight and drawn as a dashed drop slot holding the sentence that says what goes there — with the side's action points drawn as TOKENS as well as words (three triangles), so there is something to pick up. Every word the pool adds is at the 18px floor. Every battlefield shape is an entity; every reading on a shape and every pool row is a drag source with touch-action:none; a reading wears the grab cursor, and a pool row — a button a click still opens D-36's nudge from — keeps the pointer cursor with the grab cursor on its tokens`,
+      d46Layout.every((s) => s.below && s.border === 'solid' && s.emptyDashed && s.minFont >= 18
+        && s.lineTouch === 'none' && s.lineCursor === 'grab' && s.rowTouch === 'none' && s.rowCursor === 'pointer'
+        && s.rowTokCursor === 'grab'
+        && s.apTokens === 3)
+      && d46Layout[0].shapes === 9 && d46Layout[1].shapes === 3
+      && d46Layout[0].emptyText === await pg.evaluate(() => App.render.RESERVE_EMPTY),
+      d46Layout);
+
+    // ── 33a. UNIT → UNIT ACROSS SIDES: lights, identity, ONE hand ruling, and the picture. ──
+    await d46Fresh();
+    const a46 = await d46Read();
+    const d46A = await d46Drag(d46Line('cats', 'c1', 'hp'), d46Name('mechs', 'm1'), () => d46Shot('inflight-unit-to-unit'));
+    const a46b = await d46Read();
+    await d46Shot('after-unit-to-unit');
+    ok(`${tag}: 33a. D-46 — A REAL DRAG ON THE FIGHT TAB FROM A CAT'S HEALTH ONTO A MECH MOVES ONE, AS ONE HAND RULING. In flight: a FIGHT drag is live carrying health from Cat 1, one ghost in the layer (pointer-events:none), Cat 1 HOME, every other shape and both pools LIT (13), nothing refused, Mech 1 OVER — and NOT ONE LIGHT on the hidden board's cards, because the two tabs' entities share keys. The token, its reading and its shape are the nodes the press landed on, still in the document; no commit landed while live; and the D-37 POPUP NEVER OPENED, because a press that travels is a drag. After the release: Cat 1 3 -> 2 and Mech 1 6 -> 7 on the FIGHT slice, one commit, one undo entry, two hand records, the build code unchanged by one character, nobody marked dead`,
+      d46A.aim.onScreen && d46A.flight
+      && JSON.parse(d46A.flight.inFlight || '{}').live === true && JSON.parse(d46A.flight.inFlight || '{}').surf === 'fight'
+      && d46A.flight.ghost && d46A.flight.ghostPE === 'none'
+      && d46A.flight.home.join() === 'cats/c1' && d46A.flight.no.length === 0
+      && d46A.flight.lit.length === 2 + 9 + 3 - 1 && d46A.flight.over.join() === 'mechs/m1'
+      && d46A.flight.boardLights === 0
+      && d46A.flight.srcSame && d46A.flight.lineSame && d46A.flight.entSame
+      && d46A.flight.commits === a46.commits && d46A.flight.popupShut === true
+      && a46b.c1 === 2 && a46b.m1 === 7 && a46b.commits === a46.commits + 1 && a46b.depth === a46.depth + 1
+      && JSON.parse(a46b.hand).length === 2 && a46b.code === a46.code && a46b.alive
+      && a46b.inFlight === '' && a46b.ghosts === 0 && a46b.lights === 0 && a46b.panel === true && a46b.popup === '',
+      { aim: d46A.aim, flight: d46A.flight, before: a46, after: a46b });
+
+    // ── 33b / 33c. UNIT → ITS OWN POOL, THEN THE RESERVE → A UNIT ON THE OTHER SIDE. ──
+    await d46Fresh();
+    const b46 = await d46Read();
+    const d46B = await d46Drag(d46Line('cats', 'c1', 'hp'), d46Head('cats'));
+    const b46b = await d46Read();
+    const d46HeldRead = await pg.evaluate(() => {
+      const box = document.querySelector('#state-cats .fg-team-held .sym');
+      return box ? { tok: box.dataset.drgTok, title: box.getAttribute('title'), n: box.querySelectorAll('.tok').length,
+        empty: document.querySelector('#state-cats .fg-team-empty') === null } : null;
+    });
+    await d46Shot('after-unit-to-pool');
+    ok(`${tag}: 33b. D-46 — UNIT → ITS OWN POOL: Cat 1's health dragged onto the Cats' pool on the fight tab goes into the FIGHT reserve — Cat 1 3 -> 2, the reserve holds one — drawn as the type's own token with "1 Health in reserve" on it, the empty sentence gone; the build code has not moved`,
+      d46B.aim.onScreen && d46B.flight && d46B.flight.over.join() === 'cats/pool'
+      && b46b.c1 === 2 && b46b.catsRes === '{"hp":1}' && b46b.commits === b46.commits + 1 && b46b.code === b46.code
+      && d46HeldRead && d46HeldRead.tok === 'hp' && d46HeldRead.n === 1 && d46HeldRead.empty
+      && /^1 .* in reserve$/.test(d46HeldRead.title),
+      { flight: d46B.flight, before: b46, after: b46b, held: d46HeldRead });
+    const d46C = await d46Drag(d46Held('cats', 'hp'), d46Name('mechs', 'm2'));
+    const c46 = await d46Read();
+    await d46Shot('after-pool-to-other-side');
+    ok(`${tag}: 33c. D-46 — THE RESERVE → A UNIT ON THE OTHER SIDE: the health parked in the Cats' fight reserve dragged onto Mech 2 empties the reserve (the key gone, the empty sentence back) and Mech 2 goes 6 -> 7 — any-to-any, one commit`,
+      d46C.aim.onScreen && d46C.flight && d46C.flight.home.join() === 'cats/pool' && d46C.flight.over.join() === 'mechs/m2'
+      && c46.m2 === 7 && c46.catsRes === '{}' && c46.commits === b46b.commits + 1
+      && await pg.evaluate(() => document.querySelector('#state-cats .fg-team-empty') !== null),
+      { flight: d46C.flight, after: c46 });
+
+    // ── 33d. SIDE-SCOPE, POOL → POOL. ──
+    await d46Fresh();
+    const d46d0 = await d46Read();
+    const d46D = await d46Drag(d46Row('cats', 'ap'), d46Head('mechs'), () => d46Shot('inflight-side-scope'));
+    const d46d1 = await d46Read();
+    ok(`${tag}: 33d. D-46 — A SIDE-SCOPE TOKEN MOVES POOL TO POOL ON THE FIGHT TAB: one of the Cats' action points dragged off the pool's own row onto the Mechs' pool — Cats 3 -> 2, Mechs 3 -> 4 on the fight slice. In flight the Cats' pool is HOME, the Mechs' pool the ONLY lit target, and EVERY UNIT ON BOTH SIDES refused — the op's scope rule as a picture. D-36's NUDGE never opened: the press travelled`,
+      d46D.aim.onScreen && d46D.flight && d46D.flight.home.join() === 'cats/pool'
+      && d46D.flight.lit.join() === 'mechs/pool' && d46D.flight.no.length === 9 + 3 && d46D.flight.nudgeShut === true
+      && d46d1.catsAp === 2 && d46d1.mechsAp === 4 && d46d1.commits === d46d0.commits + 1 && d46d1.nudge === '',
+      { flight: d46D.flight, before: d46d0, after: d46d1 });
+
+    // ── 33e. A REFUSED DROP, AND ITS SENTENCE READ BACK AT THE DROP. ──
+    await d46Fresh();
+    const e46 = await d46Read();
+    let e46No = null;
+    const d46E = await d46Drag(d46Row('cats', 'ap'), d46Name('cats', 'c2'),
+      async () => { e46No = await pg.evaluate((s) => document.querySelector(s).classList.contains('drg-no'), BF('cats', 'c2')); });
+    const e46b = await d46Read();
+    const e46Box = await d46SaidBox();
+    const e46Said = await pg.evaluate(() => App.interactions.fightDragAnswers('ap', { side: 'cats', unitId: null })
+      .find((a) => a.unitId === 'c2').said);
+    await d46Shot('refused-scope');
+    ok(`${tag}: 33e. D-46 — A REFUSED DROP ON THE FIGHT TAB SAYS WHY, AT THE DROP. An action point dragged onto Cat 2's shape: over it, the shape reads REFUSED; on release nothing moves and nothing commits, and the Cats' battlefield says the op's sentence on its own line under the cluster — "kept on the whole side, so it cannot be moved onto or off a single unit" — the very sentence the drag's answer carried, ON SCREEN once the page settles, with the error panel shut. AND NOT ONE SHAPE MOVED OR CHANGED SIZE: every shape's rectangle is what it was before the drop — the first build said the sentence INSIDE the shape and the screenshot showed six cats pushed out of sight`,
+      d46E.aim.onScreen && e46No === true && e46b.commits === e46.commits && e46b.catsAp === 3
+      && e46b.said.length === 1 && e46b.said[0] === 'cats field: ' + e46Said && e46b.shapes === e46.shapes
+      && /kept on the whole side, so it cannot be moved onto or off a single unit/.test(e46Said)
+      && e46Box !== null && e46Box.onScreen === true && e46b.panel === true,
+      { wasNo: e46No, after: e46b, said: e46Said, box: e46Box });
+
+    // ── 33f. A REFUSED BOUND BREACH. ──
+    await d46Fresh('hp4');
+    const f46 = await d46Read();
+    const d46F = await d46Drag(d46Line('cats', 'c1', 'hp'), d46Name('mechs', 'm1'), () => d46Shot('inflight-bound'));
+    const f46b = await d46Read();
+    const f46Box = await d46SaidBox();
+    await d46Shot('refused-bound');
+    ok(`${tag}: 33f. D-46 — A DROP PAST A D-35 CEILING IS REFUSED WHOLE ON THE FIGHT TAB. Health bounded to 0-4 while every mech holds six: in flight every mech reads refused and the cats lit; dropping on Mech 1 moves nothing, commits nothing, and the Mechs' battlefield line reads the op's ceiling sentence, naming Mech 1, on screen, with every shape where it was — never a clamp`,
+      d46F.aim.onScreen && d46F.flight
+      && ['mechs/m1', 'mechs/m2', 'mechs/m3'].every((k) => d46F.flight.no.indexOf(k) !== -1)
+      && d46F.flight.lit.indexOf('cats/c2') !== -1
+      && f46b.commits === f46.commits && f46b.c1 === 3 && f46b.m1 === 6
+      && f46b.said.join() === 'mechs field: ' + born.m1 + ' holds at most 4 "Health", so it cannot take another.'
+      && f46b.shapes === f46.shapes
+      && f46Box !== null && f46Box.onScreen === true && f46b.panel === true,
+      { flight: d46F.flight, after: f46b, box: f46Box });
+
+    // ── 33g. ESCAPE MID-DRAG, THEN A RELEASE OVER A LIT TARGET. ──
+    await d46Fresh();
+    const g46 = await d46Read();
+    const g46Aim = await d46Aim(d46Line('cats', 'c1', 'hp'), d46Name('cats', 'c2'));
+    await pg.mouse.move(g46Aim.sx, g46Aim.sy);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(g46Aim.sx + i * 3, g46Aim.sy + i * 2); }
+    await pg.mouse.move(g46Aim.tx, g46Aim.ty, { steps: 6 });
+    const g46Live = await d46Flight();
+    await pg.keyboard.press('Escape');
+    await pg.waitForTimeout(80);
+    const g46Esc = await d46Read();
+    await pg.mouse.up();
+    await pg.waitForTimeout(150);
+    const g46b = await d46Read();
+    ok(`${tag}: 33g. D-46 — ESCAPE CANCELS A FIGHT DRAG IN FLIGHT. Live over a LIT shape, Escape ends it — nothing in flight, no ghost, every light off — and the release over that lit shape writes NOTHING and opens nothing`,
+      JSON.parse(g46Live.inFlight || '{}').live === true && g46Live.over.join() === 'cats/c2'
+      && g46Esc.inFlight === '' && g46Esc.ghosts === 0 && g46Esc.lights === 0
+      && g46b.commits === g46.commits && g46b.c1 === 3 && g46b.c2 === 3 && g46b.popup === '' && g46b.hand === '[]',
+      { live: g46Live, esc: g46Esc, after: g46b });
+
+    // ── 33h. A STILL PRESS IS A CLICK: THE POPUP ON A UNIT, THE NUDGE ON A POOL ROW. ──
+    await d46Fresh();
+    const h46 = await d46Read();
+    const h46Aim = await d46Aim(d46Line('cats', 'c1', 'hp'), d46Name('cats', 'c1'));
+    await pg.mouse.move(h46Aim.sx, h46Aim.sy);
+    await pg.mouse.down();
+    await pg.mouse.move(h46Aim.sx + 3, h46Aim.sy + 1);
+    const h46Mid = await pg.evaluate(() => [App.interactions.dragInFlight(), document.querySelectorAll('#drag-layer > *').length,
+      document.getElementById('fg-unit').hidden]);
+    await pg.mouse.up();
+    await pg.waitForTimeout(200);
+    const h46b = await d46Read();
+    await pg.click('#fg-unit-close'); await pg.waitForTimeout(150);
+    // The shape's NAME is not a reading: a press there opens the popup on the way down, as
+    // D-37 built it, with no drag to wait for.
+    const h46Name = await pg.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + 8, y: r.top + r.height / 2 }; }, d46Name('cats', 'c3'));
+    await pg.mouse.move(h46Name.x, h46Name.y);
+    await pg.mouse.down();
+    const h46NameDown = await pg.evaluate(() => document.getElementById('fg-unit').dataset.fgUnit || '');
+    await pg.mouse.up();
+    await pg.waitForTimeout(150);
+    await pg.click('#fg-unit-close'); await pg.waitForTimeout(150);
+    // A still click on the Cats' action-point row opens D-36's nudge on that row.
+    await pg.click(`${FPOOL('cats')} .fg-res[data-drg-tok="ap"]`); await pg.waitForTimeout(200);
+    const h46c = await d46Read();
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
+    ok(`${tag}: 33h. D-46 — A STILL PRESS IS STILL A CLICK, AND THE CLICK STILL DOES WHAT IT DID. On a reading on Cat 1's shape: down and a 3px wobble leaves a pending press that is never live, draws no ghost and opens NOTHING yet — and the release opens D-37's popup on Cat 1, commits nothing, and leaves the keyboard on the shape, where a mouse open always left it. On a shape's NAME, which is not a reading, the popup opens on the way DOWN exactly as before. And a click on the Cats' action-point row opens D-36's nudge on that row, commits nothing`,
+      h46Mid[0] !== '' && JSON.parse(h46Mid[0]).live === false && h46Mid[1] === 0 && h46Mid[2] === true
+      && h46b.popup === 'c1' && h46b.commits === h46.commits && h46b.inFlight === '' && h46b.focus === 'fg/bf/cats/c1'
+      && h46NameDown === 'c3'
+      && h46c.nudge === 'ap' && h46c.commits === h46.commits && h46c.popup === '',
+      { mid: h46Mid, afterStill: h46b, nameDown: h46NameDown, afterRow: h46c });
+
+    // ── 33i. NO DRAG WHILE A RETARGET IS HALF MADE. ──
+    await d46Fresh();
+    await pg.evaluate(() => {
+      const a = App.state.get().build.mechs.actions[0];
+      App.ops.dispatch('declare', { side: 'mechs', actionId: a.id, by: 'm1', at: 'c1' });
+      App.state.invalidate(); App.state.flush();
+    });
+    await pg.waitForTimeout(150);
+    await pg.click('#decl-mechs [data-fg="at"][data-fg-by="m1"]'); await pg.waitForTimeout(250);
+    const i46 = await d46Read();
+    const i46Armed = await pg.evaluate(() => document.querySelectorAll('#state-cats .bf-unit--lit').length);
+    const i46Aim = await d46Aim(d46Line('cats', 'c3', 'hp'), d46Name('cats', 'c4'));
+    await pg.mouse.move(i46Aim.sx, i46Aim.sy);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(i46Aim.sx + i * 3, i46Aim.sy + i * 2); }
+    await pg.mouse.move(i46Aim.tx, i46Aim.ty, { steps: 6 });
+    const i46Mid = await pg.evaluate(() => [App.interactions.dragInFlight(), document.querySelectorAll('#drag-layer > *').length]);
+    await pg.mouse.up();
+    await pg.waitForTimeout(200);
+    const i46b = await d46Read();
+    const i46At = await pg.evaluate(() => (App.state.get().fight.decl.filter((d) => d.by === 'm1')[0] || {}).at);
+    ok(`${tag}: 33i. D-46 — WHILE A RETARGET IS HALF MADE, NO DRAG STARTS: the battlefield belongs to the retarget flow. Armed (nine cats lit), a press on Cat 3's health that then travels well past the threshold onto Cat 4 is the RETARGET'S press — the mech's declaration now points at Cat 3 — and nothing goes in flight, no ghost is drawn, no hand ruling is made and Cat 3 still holds three`,
+      i46Armed === 9 && i46Mid[0] === '' && i46Mid[1] === 0 && i46At === 'c3'
+      && i46b.c3 === 3 && i46b.c4 === 3 && i46b.hand === '[]' && i46b.popup === '',
+      { armed: i46Armed, mid: i46Mid, at: i46At, before: i46, after: i46b });
+
+    // ── 33j. A SCENE SPRITE DRAG NEVER MOVES A RESOURCE, AND A RESOURCE DRAG NEVER MOVES A SPRITE. ──
+    await d46Fresh();
+    const j46 = await d46Read();
+    const j46Scene0 = await pg.evaluate(() => App.render.sceneSaid());
+    // A sprite: taken from the scene and dragged DOWN past the frame's foot toward the
+    // battlefield. Its gesture is the scene's: the sprite is clamped inside the frame, no fight
+    // drag is ever in flight, nothing commits.
+    const j46Sprite = await pg.evaluate(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      const s = document.querySelector('#scene-field .scn-unit[data-scn-unit="c2"]');
+      const r = s.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+    });
+    await pg.mouse.move(j46Sprite.x, j46Sprite.y);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(j46Sprite.x + i * 4, j46Sprite.y + i * 3); }
+    await pg.mouse.move(j46Sprite.x + 60, j46Sprite.y + 500, { steps: 10 });
+    const j46SpriteMid = await pg.evaluate(() => [App.interactions.sceneHeld(), App.interactions.dragInFlight(),
+      document.querySelectorAll('#drag-layer > *').length]);
+    await pg.mouse.up();
+    await pg.waitForTimeout(200);
+    const j46b = await d46Read();
+    const j46Scene1 = await pg.evaluate(() => App.render.sceneSaid());
+    // Then a resource: Cat 1's health, dragged UP onto a scene sprite and let go there. The
+    // scene is not an entity, so it is a release over nothing — no move, no refusal, and the
+    // sprite under it is not picked up.
+    const j46Res = await pg.evaluate(() => {
+      const src = document.querySelector('#state-cats .bf-unit[data-drg-unit="c1"] .bf-line[data-drg-tok="hp"] .tok');
+      const scene = document.getElementById('scene-field');
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      window.scrollBy({ top: src.getBoundingClientRect().bottom - window.innerHeight + 30, left: 0, behavior: 'instant' });
+      // The bar is read AFTER the scroll, measured necessary: at the top of the page it is
+      // 214px tall at 1366x768 and once scrolled it is 101, so an edge aimed off the first
+      // reading sits outside the scroll zone and the page never moves.
+      const bar = document.getElementById('topbar').getBoundingClientRect().bottom;
+      const a = src.getBoundingClientRect();
+      return { sx: a.left + a.width / 2, sy: a.top + a.height / 2, bar, sceneTop: Math.round(scene.getBoundingClientRect().top) };
+    });
+    await pg.mouse.move(j46Res.sx, j46Res.sy);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(j46Res.sx + i * 3, j46Res.sy - i * 2); }
+    // Up to the sticky bar's edge until the page has scrolled the scene's field into view.
+    await pg.mouse.move(j46Res.sx, j46Res.bar + 6, { steps: 10 });
+    let j46Field = null;
+    for (let i = 0; i < 120; i++) {
+      await pg.waitForTimeout(50);
+      j46Field = await pg.evaluate(() => {
+        const r = document.getElementById('scene-field').getBoundingClientRect();
+        return { top: r.top, bottom: r.bottom };
+      });
+      if (j46Field.bottom > j46Res.bar + 200) break;
+    }
+    await pg.mouse.move(j46Res.sx, j46Res.bar + 150, { steps: 2 });
+    await pg.waitForTimeout(150);
+    const j46Over = await pg.evaluate(() => {
+      const s = document.querySelector('#scene-field .scn-unit[data-scn-unit="m1"]');
+      const r = s.getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, onScreen: r.top > 0 && r.bottom < window.innerHeight };
+    });
+    await pg.mouse.move(j46Over.x, j46Over.y, { steps: 4 });
+    await pg.waitForTimeout(80);
+    const j46ResMid = await pg.evaluate(() => [App.interactions.dragInFlight(), App.interactions.sceneHeld()]);
+    const j46Hit = await pg.evaluate(([x, y]) => { const h = document.elementFromPoint(x, y); return h ? (h.closest('.scn-unit') ? 'sprite' : h.tagName) : null; }, [j46Over.x, j46Over.y]);
+    await pg.mouse.up();
+    await pg.waitForTimeout(200);
+    const j46c = await d46Read();
+    const j46Scene2 = await pg.evaluate(() => App.render.sceneSaid());
+    ok(`${tag}: 33j. D-46 — THE SCENE AND THE RESOURCE DRAG NEVER CAPTURE EACH OTHER'S POINTER. A SPRITE taken in the scene and dragged down toward the battlefield is the SCENE'S gesture from press to release: it is held, no fight drag goes in flight, no ghost is drawn, and nothing commits — no number on either slice moves. A RESOURCE taken off Cat 1 and carried up, the page scrolling under it at the bar's edge until the scene is in view, and let go ON A SPRITE is the DRAG'S gesture: live the whole way, no sprite is ever held, and the release over the scene — which is not an entity — moves nothing, refuses nothing and says nothing, and the scene's places are exactly where the sprite drag left them`,
+      j46SpriteMid[0] !== '' && JSON.parse(j46SpriteMid[0]).live === true && j46SpriteMid[1] === '' && j46SpriteMid[2] === 0
+      && j46b.commits === j46.commits && j46b.c1 === 3 && j46b.hand === '[]' && j46Scene1 !== j46Scene0
+      && JSON.parse(j46ResMid[0] || '{}').live === true && j46ResMid[1] === '' && j46Hit === 'sprite'
+      && j46c.commits === j46.commits && j46c.c1 === 3 && j46c.said.length === 0 && j46c.inFlight === ''
+      && j46Scene2 === j46Scene1 && j46c.panel === true,
+      { spriteMid: j46SpriteMid, sceneMoved: j46Scene1 !== j46Scene0, resMid: j46ResMid, hit: j46Hit, over: j46Over, field: j46Field, after: j46c });
+
+    // ── 33k. THE LEDGER READS THE MOVE AFTER A REAL ADVANCE — BOTH ENDS, AND THE RESERVE BY NAME. ──
+    await d46Fresh();
+    await d46Drag(d46Line('cats', 'c1', 'hp'), d46Name('mechs', 'm1'));
+    await d46Drag(d46Line('mechs', 'm2', 'shield'), d46Head('mechs'));
+    const k46 = await d46Read();
+    await pg.click('[data-k="fg/advance"]');
+    await pg.waitForTimeout(450);
+    const k46Ledger = await pg.evaluate(() => {
+      const rows = Array.from(document.querySelectorAll('#ledger .ld-row')).slice(-1)[0];
+      const facts = rows ? Array.from(rows.querySelectorAll('.ld-fact')) : [];
+      return {
+        sub: rows ? Array.from(rows.querySelectorAll('.ld-sub')).map((n) => n.textContent) : [],
+        said: facts.map((r) => {
+          const sym = r.querySelector('.sym');
+          return (r.textContent || '').trim() + '|' + (sym ? sym.getAttribute('title') : '');
+        })
+      };
+    });
+    const k46b = await d46Read();
+    await pg.locator('#ledger').screenshot({ path: path.join(process.env.SHOT_DIR || tmpdir(), `d46-ledger-${ch}-${size.name}.png`) });
+    ok(`${tag}: 33k. D-46 — AFTER A REAL ADVANCE THE LEDGER READS BOTH DRAGS AS THE FOUR NUMBERS THEY MOVED, under "Set by hand this round": Cat 1's health 3 to 2 and Mech 1's 6 to 7; Mech 2's shield 3 to 2 and THE MECHS RESERVE 0 to 1 — the reserve named as the op names it in a refusal, never as "Mechs" alone and never as "null". The live list is empty after the Advance`,
+      JSON.parse(k46.hand).length === 4 && k46b.round === 2 && k46b.hand === '[]'
+      && k46Ledger.sub.some((s) => String(s).indexOf('Set by hand') === 0)
+      && k46Ledger.said.length === 4
+      && k46Ledger.said[0].indexOf(born.c1 + ' ') === 0 && k46Ledger.said[0].indexOf('Health set by hand, 3 to 2.') !== -1
+      && k46Ledger.said[1].indexOf(born.m1 + ' ') === 0 && k46Ledger.said[1].indexOf('Health set by hand, 6 to 7.') !== -1
+      && k46Ledger.said[2].indexOf(born.m2 + ' ') === 0 && k46Ledger.said[2].indexOf('Shield set by hand, 3 to 2.') !== -1
+      && k46Ledger.said[3].indexOf('The Mechs reserve ') === 0 && k46Ledger.said[3].indexOf('Shield set by hand, 0 to 1.') !== -1
+      && k46Ledger.said.every((s) => s.indexOf('null') === -1),
+      { before: k46.hand, ledger: k46Ledger, after: [k46b.round, k46b.hand] });
+
+    // ── 33l. TWO DRAGS ARE TWO UNDO ENTRIES, EVEN INSIDE COALESCE_MS; THE CONTROL FOLDS. ──
+    await d46Fresh();
+    const l46 = await d46Read();
+    const l46Aim = await d46Aim(d46Line('cats', 'c3', 'hp'), d46Name('cats', 'c4'));
+    const l46Coalesce = await pg.evaluate(() => App.state.COALESCE_MS);
+    const l46Fast = async () => {
+      const at = await pg.evaluate(() => {
+        const n = document.querySelector('#state-cats .bf-unit[data-drg-unit="c3"] .bf-line[data-drg-tok="hp"] .tok');
+        const r = n.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+      await pg.mouse.move(at.x, at.y);
+      await pg.mouse.down();
+      await pg.mouse.move(at.x + 8, at.y + 6);
+      await pg.mouse.move(l46Aim.tx, l46Aim.ty, { steps: 2 });
+      await pg.mouse.up();
+      return Date.now();
+    };
+    const l46Up1 = await l46Fast();
+    const l46Up2 = await l46Fast();
+    const l46Ms = l46Up2 - l46Up1;
+    await pg.waitForTimeout(150);
+    const l46b = await d46Read();
+    await pg.evaluate(() => { document.activeElement && document.activeElement.blur && document.activeElement.blur(); });
+    await pg.keyboard.press('Control+z');
+    await pg.waitForTimeout(150);
+    const l46c = await d46Read();
+    // THE CONTROL: the popup's + on Cat 5's health, clicked twice the same distance apart, DOES
+    // fold — two commits, one entry — so the window really was open.
+    await pg.waitForTimeout(600);
+    await pg.click(d46Name('cats', 'c5')); await pg.waitForTimeout(200);
+    const lc0 = await d46Read();
+    const l46Plus = await pg.evaluate(() => { const b = document.querySelector('#fg-unit-rows [data-fg="unudge"][data-fg-tok="hp"][data-fg-step="1"]'); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    await pg.mouse.click(l46Plus.x, l46Plus.y);
+    await pg.mouse.click(l46Plus.x, l46Plus.y);
+    await pg.waitForTimeout(150);
+    const lc1 = await d46Read();
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(120);
+    note(ch, size.name, 'D-46 two fight drags, release to release (ms)', l46Ms + ' of ' + l46Coalesce);
+    ok(`${tag}: 33l. D-46 — TWO FIGHT DRAGS ARE TWO UNDO ENTRIES, EVEN INSIDE COALESCE_MS. The same health between the same two cats, twice, the second release inside the window (measured, and required): Cat 3 3 -> 1, Cat 4 3 -> 5, the undo depth up by TWO and four hand records; one Ctrl+Z takes back exactly ONE move and its two records. THE CONTROL IN THE SAME RUN: two clicks on the popup's + for Cat 5 DO fold — two commits, one entry`,
+      l46Aim.onScreen && l46Ms < l46Coalesce
+      && l46b.c3 === 1 && l46b.c4 === 5 && l46b.depth === l46.depth + 2 && JSON.parse(l46b.hand).length === 4
+      && l46c.c3 === 2 && l46c.c4 === 4 && l46c.depth === l46.depth + 1 && JSON.parse(l46c.hand).length === 2
+      && lc1.commits === lc0.commits + 2 && lc1.depth === lc0.depth + 1 && lc1.c5 === lc0.c5 + 2,
+      { before: l46, twice: l46b, afterUndo: l46c, ms: l46Ms, coalesce: l46Coalesce, control: [lc0.depth, lc1.depth, lc0.commits, lc1.commits] });
+
+    // ── 33m. AN ADVANCE LANDS WHILE A DRAG IS HELD. ──
+    await d46Fresh();
+    const m46 = await d46Read();
+    const m46Aim = await d46Aim(d46Line('cats', 'c1', 'hp'), d46Name('cats', 'c2'));
+    await pg.mouse.move(m46Aim.sx, m46Aim.sy);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(m46Aim.sx + i * 3, m46Aim.sy + i * 2); }
+    await pg.mouse.move(m46Aim.tx, m46Aim.ty, { steps: 6 });
+    const m46Before = await d46Flight();
+    // The pointer is held; the keyboard presses Advance — the one way a student can resolve a
+    // round with a token in their hand.
+    await pg.evaluate(() => document.querySelector('[data-k="fg/advance"]').focus({ preventScroll: true }));
+    await pg.keyboard.press('Enter');
+    await pg.waitForTimeout(250);
+    await pg.mouse.move(m46Aim.tx + 2, m46Aim.ty + 1);
+    await pg.waitForTimeout(80);
+    const m46After = await d46Flight();
+    const m46Mid = await d46Read();
+    await pg.mouse.up();
+    await pg.waitForTimeout(160);
+    const m46b = await d46Read();
+    ok(`${tag}: 33m. D-46 — AN ADVANCE THAT LANDS WHILE A DRAG IS HELD REBUILDS NOTHING UNDER THE POINTER. Live over Cat 2, the round is Advanced from the keyboard: the round moves to 2, and the token held, its reading and its shape are THE SAME NODES, still attached; the drag is still live, still lit (re-asked of the op on the new board) and still over Cat 2. While it was held the only undo entry added was the Advance's (the page's first key press also flips the ui slice's keyboard-navigation flag, which is a ui commit and no undo entry, measured the same on HEAD). Let go, the move lands as ONE entry on the new round: Cat 1 3 -> 2, Cat 2 3 -> 4, and round 2's hand list holds the two records while round 1 carried none`,
+      JSON.parse(m46Before.inFlight || '{}').live === true && m46Mid.round === 2
+      && JSON.parse(m46After.inFlight || '{}').live === true && m46After.srcSame && m46After.lineSame && m46After.entSame
+      && m46After.over.join() === 'cats/c2' && m46After.lit.length === 2 + 9 + 3 - 1
+      && m46Before.depth === m46.depth && m46After.depth === m46.depth + 1 && m46After.round === 2
+      && m46b.c1 === 2 && m46b.c2 === 4 && m46b.depth === m46.depth + 2 && JSON.parse(m46b.hand).length === 2
+      && m46b.panel === true,
+      { before: m46Before, after: m46After, mid: [m46Mid.round, m46Mid.commits], end: m46b });
+
+    // ── 33n. A DRAG REACHES THE OTHER SIDE'S POOL WHEN IT IS BELOW THE WINDOW. ──
+    await d46Fresh();
+    const n46 = await d46Read();
+    // FIRST THE NATURAL CASE, RECORDED: Cat 1's shape just under the sticky bar, the way a
+    // student lands on the round state. Where the other side's pool then sits is noted for
+    // all four columns — measured at 439px, on screen at both sizes, so no scroll is needed.
+    const n46Natural = await pg.evaluate(() => {
+      const n = document.querySelector('#state-cats .bf-unit[data-drg-unit="c1"] .bf-line[data-drg-tok="hp"] .tok');
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      window.scrollBy({ top: n.getBoundingClientRect().top - 140, left: 0, behavior: 'instant' });
+      const bar = document.getElementById('topbar').getBoundingClientRect().bottom;
+      window.scrollBy({ top: n.getBoundingClientRect().top - bar - 20, left: 0, behavior: 'instant' });
+      const pool = document.querySelector('#state-mechs .fg-team-head').getBoundingClientRect();
+      return { poolTop: Math.round(pool.top), onScreen: pool.bottom <= window.innerHeight };
+    });
+    note(ch, size.name, 'D-46 Mechs pool top with Cat 1 under the bar (px / on screen)', n46Natural.poolTop + ' / ' + n46Natural.onScreen);
+    // THEN THE CASE THAT NEEDS IT, DRIVEN: the page left where a student who has just been
+    // looking at the battle scene leaves it — Cat 1's shape near the window's FOOT — so the
+    // Mechs' pool is below the window and a finger holding a token cannot wheel-scroll to it.
+    const n46Src = await pg.evaluate(() => {
+      const n = document.querySelector('#state-cats .bf-unit[data-drg-unit="c1"] .bf-line[data-drg-tok="hp"] .tok');
+      window.scrollTo({ top: 0, left: 0, behavior: 'instant' });
+      window.scrollBy({ top: n.getBoundingClientRect().bottom - window.innerHeight + 90, left: 0, behavior: 'instant' });
+      const r = n.getBoundingClientRect();
+      const pool = document.querySelector('#state-mechs .fg-team-head').getBoundingClientRect();
+      return { x: r.left + r.width / 2, y: r.top + r.height / 2, poolTop: pool.top, h: window.innerHeight };
+    });
+    await pg.mouse.move(n46Src.x, n46Src.y);
+    await pg.mouse.down();
+    for (let i = 1; i <= 4; i++) { await pg.mouse.move(n46Src.x + i * 3, n46Src.y + i * 2); }
+    let n46Pool = await pg.evaluate(() => { const r = document.querySelector('#state-mechs .fg-team-head').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, x: r.left + 40, y: r.top + r.height / 2 }; });
+    let n46Scrolled = false;
+    if (n46Pool.bottom > n46Src.h - 60) {
+      n46Scrolled = true;
+      await pg.mouse.move(n46Src.x + 200, n46Src.h - 6, { steps: 10 });
+      for (let i = 0; i < 80; i++) {
+        await pg.waitForTimeout(50);
+        n46Pool = await pg.evaluate(() => { const r = document.querySelector('#state-mechs .fg-team-head').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, x: r.left + 40, y: r.top + r.height / 2 }; });
+        if (n46Pool.bottom < n46Src.h - 120) break;
+      }
+      await pg.mouse.move(n46Pool.x, n46Src.h - 200, { steps: 2 });
+      await pg.waitForTimeout(120);
+      n46Pool = await pg.evaluate(() => { const r = document.querySelector('#state-mechs .fg-team-head').getBoundingClientRect(); return { top: r.top, bottom: r.bottom, x: r.left + 40, y: r.top + r.height / 2 }; });
+    }
+    await pg.mouse.move(n46Pool.x, n46Pool.y, { steps: 5 });
+    await pg.waitForTimeout(80);
+    const n46Over = await d46Flight();
+    await pg.mouse.up();
+    await pg.waitForTimeout(160);
+    const n46b = await d46Read();
+    note(ch, size.name, 'D-46 edge scroll needed to reach the Mechs pool', String(n46Scrolled));
+    ok(`${tag}: 33n. D-46 — THE OTHER SIDE'S POOL IS REACHABLE WHEN IT IS BELOW THE WINDOW. The fight tab is tall — the scene sits above the round — so with Cat 1's shape near the window's foot the Mechs' pool is below the window (measured, and required). The drag is held at the foot, D-41b's edge scroll brings the pool in, and the token dropped on it lands: Cat 1 3 -> 2 and the Mechs' FIGHT reserve holds one. (Landing on the round state with Cat 1 under the bar, the pool is already on screen at both sizes — recorded, not assumed)`,
+      n46Src.poolTop > n46Src.h && n46Scrolled === true && n46Over.over.join() === 'mechs/pool' && n46b.c1 === 2 && n46b.mechsRes === '{"hp":1}'
+      && n46b.commits === n46.commits + 1,
+      { src: n46Src, scrolled: n46Scrolled, over: n46Over, after: n46b });
+
+    await pg.evaluate(() => {
+      if (App.state.get().fight !== null) { App.ops.endFight(); }
+      App.ops.resetToDefaults();
+      App.state.invalidate({ structural: true });
+      App.state.flush();
+      try { App.render.sceneHome(); localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ }
+    });
+    await pg.click('#view-build'); await pg.waitForTimeout(150);
+
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
     ok(`${tag}: 16. no page error and no console error across every press above`,
       errs.length === 0, errs.slice(0, 3));

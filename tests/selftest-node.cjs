@@ -6258,8 +6258,35 @@ A.state.flush();
    stays 117, as it did under D-42. (The HEAD column reproduces D-42's own
    "after" column to the string, which is what says the harness is the same
    harness.) Check 130d counts the picker's words by name in #scene, for this
-   paragraph's reason above: a floor is not a census. */
-const FIGHT_FLOOR = 262;
+   paragraph's reason above: a floor is not a census.
+
+   262 -> 268 UNDER D-46, plan 05-D46, by the same method — the same harness
+   (floor.cjs, harvestInto copied verbatim, undressed boards) on a scratch copy
+   of HEAD (acea578) and the working tree, the same five shapes:
+
+                     setup before  after  delta     fight before  after  delta   #scene
+       2 x 2                 180    180      0              328    334     +6       16
+       3 x 3                 198    198      0              392    398     +6       20
+       5 x 3                 216    216      0              456    462     +6       24
+       9 x 3                 252    252      0              584    590     +6       32
+       24 x 24               576    576      0             1736   1742     +6      104
+
+   The fight tab's pool costs exactly 6 at every shape — "Pool", "Reserve" and
+   the empty reserve's sentence, once per side — so all 6 are roster-
+   independent and all 6 are this constant's. 262 + 6 = 268. The pool rows'
+   tokens and the battlefield's drag marks add no text (the action-point type
+   carries no glyph), and the column's refusal line is empty and hidden at
+   rest. The setup page does not move, so check 47 stays 117. The How-to
+   paragraph D-46 adds is one string more on BOTH pages at close (+1 setup, +7
+   fight, 591 at 9x3); it belongs to #howto, which has its own floor (32 -> 33
+   against 24), and D-38 left this base unmoved for the whole tab, as D-41b
+   recorded for its own paragraph. (HEAD's FIGHT
+   column reproduces D-44's "after" column to the string, which is what says the
+   harness is the same harness; its setup column reads one lower than D-44's at
+   four of the five shapes, a move that landed before this plan and is not
+   attributed here.) Check 132 counts the pool's words by name, for this
+   paragraph's reason: a floor is not a census. */
+const FIGHT_FLOOR = 268;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
@@ -18785,6 +18812,307 @@ check(
     + d45Made.length + ', walked ' + d45Every.length + ' | hits ' + JSON.stringify(d45Hits)
     + ' | control caught ' + d45Caught.length + ' of ' + d45Control.length + ' ' + JSON.stringify(d45Caught)
 );
+
+/* --- 132 to 132c. D-46 — RESOURCE DRAGS ON THE FIGHT TAB, plan 05-D46 -------------
+   The developer, from real use: "I can't drag resources around the battle screen."
+   What this page can reach of the fight tab's drag: the pool's structure and words,
+   every entity and source mark, the reserve's readings and the build-once rows, and
+   the gesture up to the moment of the drop — the threshold, the popup and the nudge
+   opening on a STILL release, the lights, the layer, an Advance landing mid-drag,
+   Escape, the retarget owning the press, and the scene never starting a resource
+   drag. WHAT IT CANNOT REACH IS THE DROP: it resolves the entity under the pointer
+   with elementFromPoint, and this page has no point to resolve. Every drop kind is a
+   real pointer in tests/browser-checks.mjs cells 33 to 33n; the arithmetic a drop is
+   ruled on is [S09.17]'s. */
+A.ops.resetToDefaults();
+const d46Grit = A.ops.createTokenType({ name: 'Grit', shape: 'tri', color: 'coral',
+  glyph: A.data.GLYPHS[1], scope: 'unit' });
+const d46Zeal = A.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+  glyph: '', scope: 'side' });
+A.ops.setTally('cats', 'c1', d46Grit, 2);
+A.ops.setTally('cats', null, d46Zeal, 2);
+A.ops.startFight();
+A.state.invalidate({ structural: true });
+A.state.flush();
+
+function d46Col(side) {
+  const col = dom.byId['state-' + side];
+  const kids = col.children;
+  const field = col.querySelector('.fg-field');
+  const fieldSaid = col.querySelector('.fg-field-said');
+  const teams = col.querySelectorAll('.fg-team');
+  const team = teams[0] || null;
+  const held = team ? team.querySelector('.fg-team-held') : null;
+  const said = team ? team.children[team.children.length - 1] : null;
+  const added = [];
+  const collect = (n) => { if (!n) { return; } added.push(n); n.children.forEach(collect); };
+  if (team) { collect(team.children[0]); collect(team.querySelector('.fg-team-line')); collect(said); }
+  collect(fieldSaid);
+  const rows = team ? team.querySelectorAll('.fg-res') : [];
+  const shapes = col.querySelectorAll('.bf-unit');
+  return {
+    teams: teams.length,
+    order: kids.indexOf(field) !== -1 && kids.indexOf(field) < kids.indexOf(fieldSaid)
+      && kids.indexOf(fieldSaid) < kids.indexOf(team),
+    fieldSaidQuiet: !!fieldSaid && fieldSaid.classList.contains('drg-said') && fieldSaid.hidden === true
+      && fieldSaid.textContent === '' && fieldSaid.parentNode === col,
+    at: team ? team.dataset.drgAt : null,
+    unit: team ? team.dataset.drgUnit : null,
+    name: team ? team.children[0].textContent : null,
+    label: team ? team.querySelector('.fg-team-lbl').textContent : null,
+    empty: held ? held.children.map((c) => c.className + '=' + c.textContent).join('|') : null,
+    saidQuiet: !!said && said.classList.contains('drg-said') && said.hidden === true && said.textContent === '',
+    rows: rows.map((r) => [r.dataset.fgTok, r.dataset.drgTok === r.dataset.fgTok,
+      r.classList.contains('drg-src'), r.querySelectorAll('.tok').length]),
+    shapes: shapes.map((s) => [s.dataset.drgAt === side && s.dataset.drgAt === s.dataset.fgSide
+      && s.dataset.drgUnit === s.dataset.fgVal,
+    s.children.filter((k) => k.classList.contains('drg-said')).length,
+    s.querySelectorAll('.bf-line').every((l) => l.dataset.drgTok === l.dataset.bfAmt
+      && l.classList.contains('drg-src'))]),
+    routed: added.filter((n) => n.dataset.act !== undefined || n.dataset.k !== undefined
+      || n.dataset.amt !== undefined || n.dataset.fg !== undefined).length,
+    focusable: added.filter((n) => n.tagName === 'BUTTON' || n.tagName === 'INPUT'
+      || n.getAttribute('tabindex') !== null).length
+  };
+}
+const d46Cats = d46Col('cats');
+const d46Mechs = d46Col('mechs');
+const d46BoardEntities = ['cats', 'mechs'].map((side) =>
+  dom.byId['col-' + side].querySelectorAll('[data-drg-at]').length);
+check(
+  '132. D-46 — THE TEAM RESOURCES ARE EACH SIDE\'S POOL ON THE FIGHT TAB, AND EVERY THING A '
+    + 'DROP CAN LAND ON THERE IS MARKED. Each state column holds ONE pool box, AFTER its '
+    + 'battlefield: an entity naming the side and no unit, headed by the board pool\'s own '
+    + 'word, opened by its reserve line — "Reserve" and the empty drop slot\'s sentence, read '
+    + 'off the exports — then the side\'s own rows (action points, and a side type the student '
+    + 'invented) EACH A DRAG SOURCE naming its type and drawing its count as tokens, and a '
+    + 'hidden, empty said line last. EVERY BATTLEFIELD SHAPE is an entity carrying its side and '
+    + 'unit — the same pair its data-fg attributes carry — and EVERY READING on it is a source '
+    + 'naming the type it reads. NO SHAPE CARRIES A SAID LINE: a shape\'s refusal is said on its '
+    + 'COLUMN\'s line, which sits between the battlefield and the pool, OUTSIDE the cluster, '
+    + 'hidden and empty at rest — because the first build put it inside the shape and the '
+    + 'screenshot showed six cats pushed out of sight. NOTHING THE POOL ADDED is routed or '
+    + 'focusable (the rows are D-36\'s buttons and were already both). AND THE BOARD\'S '
+    + 'ENTITIES ARE UNTOUCHED: one pool and nine cards, one pool and three cards',
+  [d46Cats, d46Mechs].every((c, i) => c.teams === 1 && c.order && c.fieldSaidQuiet
+    && c.at === ['cats', 'mechs'][i] && c.unit === undefined
+    && c.name === A.render.POOL_WORD && c.label === A.render.RESERVE_WORD
+    && c.empty === 'fg-team-empty=' + A.render.RESERVE_EMPTY
+    && c.saidQuiet && c.routed === 0 && c.focusable === 0
+    && c.shapes.every((s) => s[0] === true && s[1] === 0 && s[2] === true))
+    && d46Cats.shapes.length === 9 && d46Mechs.shapes.length === 3
+    && JSON.stringify(d46Cats.rows) === JSON.stringify([['ap', true, true, 3], [d46Zeal, true, true, 2]])
+    && JSON.stringify(d46Mechs.rows) === JSON.stringify([['ap', true, true, 3]])
+    && d46BoardEntities[0] === 1 + 9 && d46BoardEntities[1] === 1 + 3,
+  'cats ' + JSON.stringify(d46Cats) + ' | mechs ' + JSON.stringify(d46Mechs)
+    + ' | board entities ' + JSON.stringify(d46BoardEntities)
+);
+
+/* 132b — the fight reserve's readings, and the rows built once. Moved in through the
+   OP; read back off the page. */
+const d46Team = (side) => dom.byId['state-' + side].querySelector('.fg-team');
+const d46HeldOf = (side) => d46Team(side).querySelector('.fg-team-held').children.map((box) => ({
+  cls: box.className, tok: box.dataset.drgTok, title: box.getAttribute('title'),
+  n: box.querySelectorAll('.tok').length, text: box.textContent
+}));
+A.ops.moveFightToken('hp', 'cats', 'c1', 'cats', null);
+A.ops.moveFightToken(d46Grit, 'cats', 'c1', 'cats', null);
+A.state.flush();
+const d46In = d46HeldOf('cats');
+const d46MechsHeld = d46HeldOf('mechs');
+const d46ApRow = d46Team('cats').querySelector('.fg-res[data-drg-tok="ap"]');
+const d46FirstHeld = d46Team('cats').querySelector('.fg-team-held').children[0];
+const d46Shape = dom.byId['state-cats'].querySelector('.bf-unit');
+A.ops.nudgeFightAp('cats', 1);
+A.state.flush();
+const d46AfterNudge = [d46Team('cats').querySelector('.fg-res[data-drg-tok="ap"]') === d46ApRow,
+  d46ApRow.querySelectorAll('.tok').length, d46ApRow.querySelector('.fg-res-spoke').textContent,
+  d46Team('cats').querySelector('.fg-team-held').children[0] === d46FirstHeld];
+A.ops.advanceRound();
+A.state.flush();
+const d46AfterAdvance = [d46Team('cats').querySelector('.fg-res[data-drg-tok="ap"]') === d46ApRow,
+  d46Team('cats').querySelector('.fg-team-held').children[0] === d46FirstHeld,
+  dom.byId['state-cats'].querySelector('.bf-unit') === d46Shape,
+  A.state.get().fight.round, JSON.stringify(A.state.get().fight.cats.reserve)];
+A.ops.setFightTally('mechs', null, d46Zeal, 1);
+A.state.flush();
+const d46MechsRows = d46Team('mechs').querySelectorAll('.fg-res').map((r) => [r.dataset.drgTok,
+  r.querySelectorAll('.tok').length]);
+// Read off the slice, never typed: the round rules refilled the pool at the Advance.
+const d46MechsAp = A.state.get().fight.mechs.ap;
+A.ops.moveFightToken('hp', 'cats', null, 'mechs', 'm1');
+A.ops.moveFightToken(d46Grit, 'cats', null, 'cats', 'c2');
+A.state.flush();
+const d46Drained = d46HeldOf('cats');
+const d46NoKey = !Object.prototype.hasOwnProperty.call(A.state.get().fight.cats, 'reserve');
+check(
+  '132b. D-46 — THE FIGHT RESERVE IS DRAWN BY THE BOARD POOL\'S OWN READING, AND THE POOL\'S '
+    + 'ROWS ARE BUILT ONCE. A health and a Grit moved into the Cats\' FIGHT reserve through '
+    + 'moveFightToken are drawn as ONE READING PER TYPE in vocabulary order — reserveHeld, the '
+    + 'function the board\'s pool draws with — each a drag source, titled "1 Health in reserve" '
+    + 'and "1 Grit in reserve", the empty sentence gone and the Mechs\' pool still saying it. '
+    + 'THEN THE IDENTITY CLAUSES, which are why the rows were rebuilt from scratch before D-46 '
+    + 'and are not now: a fight nudge on the action points WRITES INTO the same row (four '
+    + 'tokens, the words moved) and leaves the reserve reading the same node; a real ADVANCE '
+    + 'leaves the action-point row, the reserve reading and the first battlefield shape the '
+    + 'same nodes, and the fight reserve untouched. A side tally appearing mid-fight is a NEW '
+    + 'ROW. Drained back out — one health onto the OTHER side\'s mech — the reserve key is gone '
+    + 'and the sentence returns',
+  d46In.length === 2 && d46In[0].tok === 'hp' && d46In[0].n === 1
+    && d46In[0].title === '1 ' + A.render.labelFor(A.state.get(), 'hp') + A.render.RESERVE_POST
+    && d46In[0].cls.indexOf('drg-src') !== -1
+    && d46In[1].tok === d46Grit && d46In[1].title === '1 Grit' + A.render.RESERVE_POST
+    && d46MechsHeld.length === 1 && d46MechsHeld[0].text === A.render.RESERVE_EMPTY
+    && d46AfterNudge[0] === true && d46AfterNudge[1] === 4 && d46AfterNudge[2] === '0 of 4 spoken for'
+    && d46AfterNudge[3] === true
+    && d46AfterAdvance[0] === true && d46AfterAdvance[1] === true && d46AfterAdvance[2] === true
+    && d46AfterAdvance[3] === 2 && d46AfterAdvance[4] === JSON.stringify({ hp: 1, [d46Grit]: 1 })
+    && JSON.stringify(d46MechsRows) === JSON.stringify([['ap', d46MechsAp], [d46Zeal, 1]])
+    && d46MechsAp > 0
+    && d46Drained.length === 1 && d46Drained[0].text === A.render.RESERVE_EMPTY && d46NoKey === true,
+  'in ' + JSON.stringify(d46In) + ' | mechs ' + JSON.stringify(d46MechsHeld)
+    + ' | after a nudge ' + JSON.stringify(d46AfterNudge) + ' | after an Advance '
+    + JSON.stringify(d46AfterAdvance) + ' | mechs rows ' + JSON.stringify(d46MechsRows)
+    + ' | drained ' + JSON.stringify(d46Drained) + ' key gone=' + d46NoKey
+);
+
+/* 132c — the gesture on the fight tab, as far as a page with no layout can take it. */
+A.ops.resetToDefaults();
+A.ops.startFight();
+A.state.invalidate({ structural: true });
+A.state.flush();
+const d46Bar = dom.byId['fightbar'];
+const d46Layer = dom.byId['drag-layer'];
+const d46Popup = dom.byId['fg-unit'];
+const d46Nudge = dom.byId['fg-nudge'];
+const d46Ev = (type, x, y) => dom.event(type, { pointerId: 9, button: 0, clientX: x, clientY: y });
+const d46Tok = (side, unit, tok) => dom.byId['state-' + side]
+  .querySelector('.bf-unit[data-drg-unit="' + unit + '"]')
+  .querySelector('.bf-line[data-drg-tok="' + tok + '"]').querySelector('.tok');
+function d46Lights() {
+  const out = { lit: [], no: [], home: [], board: 0, taking: 0 };
+  ['cats', 'mechs'].forEach((side) => {
+    dom.byId['state-' + side].querySelectorAll('[data-drg-at]').forEach((n) => {
+      const k = n.dataset.drgAt + '/' + (n.dataset.drgUnit || 'pool');
+      if (n.classList.contains('drg-lit')) { out.lit.push(k); }
+      if (n.classList.contains('drg-no')) { out.no.push(k); }
+      if (n.classList.contains('drg-home')) { out.home.push(k); }
+    });
+    out.taking += dom.byId['state-' + side].querySelectorAll('.drg-taking').length;
+    dom.byId['col-' + side].querySelectorAll('[data-drg-at]').forEach((n) => {
+      if (/drg-(lit|no|home|over)/.test(n.className)) { out.board += 1; }
+    });
+  });
+  return out;
+}
+const d46Attached = (n) => { for (let x = n; x; x = x.parentNode) { if (x === d46Bar) { return true; } } return false; };
+const d46State0 = JSON.stringify(A.state.get());
+const d46C0 = commits();
+
+// A STILL PRESS ON A READING: pending, nothing open; the release opens D-37's popup.
+const d46Src = d46Tok('cats', 'c1', 'hp');
+d46Src.dispatchEvent(d46Ev('pointerdown', 100, 100));
+const d46StillDown = [A.interactions.dragInFlight(), d46Popup.hidden];
+d46Bar.dispatchEvent(d46Ev('pointermove', 103, 101));
+d46Bar.dispatchEvent(d46Ev('pointerup', 103, 101));
+const d46StillUp = [A.interactions.dragInFlight(), d46Popup.hidden, d46Popup.dataset.fgUnit,
+  d46Layer.children.length, commits() - d46C0];
+d46Bar.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+const d46PopupShut = d46Popup.hidden;
+
+// A LIVE DRAG: past the threshold. Then an ADVANCE lands while it is held.
+d46Src.dispatchEvent(d46Ev('pointerdown', 100, 100));
+d46Bar.dispatchEvent(d46Ev('pointermove', 130, 110));
+const d46Live = JSON.parse(A.interactions.dragInFlight() || '{}');
+const d46LiveLights = d46Lights();
+const d46Ghost = d46Layer.children[0] || null;
+const d46LiveCommits = commits() - d46C0;
+const d46LivePopup = d46Popup.hidden;
+A.ops.advanceRound();
+A.state.flush();
+d46Bar.dispatchEvent(d46Ev('pointermove', 140, 120));
+const d46AfterAdv = [JSON.parse(A.interactions.dragInFlight() || '{}').live, d46Attached(d46Src),
+  d46Src.classList.contains('drg-taking'), d46Lights().lit.length, A.state.get().fight.round];
+d46Bar.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+const d46AfterEsc = [A.interactions.dragInFlight(), d46Layer.children.length, d46Lights(),
+  commits() - d46C0, (A.state.get().fight.hand || []).length];
+d46Bar.dispatchEvent(d46Ev('pointerup', 140, 120));
+
+// A STILL PRESS ON A POOL ROW opens D-36's nudge on the release.
+const d46RowTok = dom.byId['state-cats'].querySelector('.fg-team')
+  .querySelector('.fg-res[data-drg-tok="ap"]').querySelector('.tok');
+d46RowTok.dispatchEvent(d46Ev('pointerdown', 50, 50));
+const d46RowDown = [A.interactions.dragInFlight() !== '', d46Nudge.hidden];
+d46Bar.dispatchEvent(d46Ev('pointerup', 50, 50));
+const d46RowUp = [d46Nudge.hidden, d46Nudge.dataset.fgTok, d46Nudge.dataset.fgSide];
+d46Bar.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
+
+// ARMED: a change of target half made. The press is the retarget's and no drag starts.
+const d46Act = A.state.get().build.mechs.actions[0].id;
+A.ops.dispatch('declare', { side: 'mechs', actionId: d46Act, by: 'm1', at: 'c1' });
+A.state.flush();
+dom.byId['decl-mechs'].dataset.fgAct = d46Act;
+dom.byId['decl-mechs'].dataset.fgBy = 'm1';
+const d46Armed = d46Tok('cats', 'c3', 'hp');
+d46Armed.dispatchEvent(d46Ev('pointerdown', 200, 200));
+d46Bar.dispatchEvent(d46Ev('pointermove', 240, 230));
+const d46ArmedMid = [A.interactions.dragInFlight(), d46Layer.children.length];
+d46Bar.dispatchEvent(d46Ev('pointerup', 240, 230));
+const d46ArmedAt = (A.state.get().fight.decl.filter((d) => d.by === 'm1')[0] || {}).at;
+dom.byId['decl-mechs'].dataset.fgAct = '';
+dom.byId['decl-mechs'].dataset.fgBy = '';
+
+// THE SCENE: a press on a sprite starts the scene's hold and never a resource drag.
+A.state.flush();
+const d46Sprite = dom.byId['scene-field'].children[0] || null;
+if (d46Sprite) { d46Sprite.dispatchEvent(d46Ev('pointerdown', 10, 10)); }
+const d46SceneDown = [A.interactions.sceneHeld() !== '', A.interactions.dragInFlight()];
+dom.byId['scene-field'].dispatchEvent(d46Ev('pointerup', 10, 10));
+check(
+  '132c. D-46 — THE FIGHT TAB\'S GESTURE UP TO THE DROP, AND WHO OWNS A PRESS. A STILL PRESS on '
+    + 'a reading on Cat 1\'s shape is held back, NOT ANSWERED: pending, not live, and the popup '
+    + 'NOT open on the way down; let go after three pixels, it opens D-37\'s popup ON CAT 1 — '
+    + 'nothing drawn, nothing committed. PAST THE THRESHOLD the same press is a FIGHT drag: '
+    + 'in flight on the fight surface, one ghost in the layer, the source home and every other '
+    + 'shape and both fight pools LIT from moveFightCheck (13), NOT ONE LIGHT on the board\'s '
+    + 'cards, the token marked as taken, and the popup STILL SHUT. AN ADVANCE LANDS WHILE IT IS '
+    + 'HELD: the round moves, the drag is still live, the token picked up is the same node and '
+    + 'still in the document, and the next move re-lights all thirteen. ESCAPE ends it — every '
+    + 'light off, the layer empty, and the only commit across all of it the Advance\'s. A STILL '
+    + 'PRESS ON A POOL ROW opens D-36\'s nudge on the release, on that row. ARMED, a press on a '
+    + 'reading is the RETARGET\'s: the mech\'s declaration now points at Cat 3 and nothing goes '
+    + 'in flight however far the pointer travels. AND A PRESS ON A SCENE SPRITE starts the '
+    + 'scene\'s hold and never a resource drag. THE DROP ITSELF IS NOT DRIVEN HERE',
+  JSON.parse(d46StillDown[0] || '{}').live === false && JSON.parse(d46StillDown[0] || '{}').surf === 'fight'
+    && d46StillDown[1] === true
+    && d46StillUp[0] === '' && d46StillUp[1] === false && d46StillUp[2] === 'c1'
+    && d46StillUp[3] === 0 && d46StillUp[4] === 0 && d46PopupShut === true
+    && d46Live.live === true && d46Live.surf === 'fight' && d46Live.tokenId === 'hp'
+    && d46Live.from.side === 'cats' && d46Live.from.unitId === 'c1'
+    && d46LiveLights.home.join() === 'cats/c1' && d46LiveLights.no.length === 0
+    && d46LiveLights.lit.length === 2 + 9 + 3 - 1 && d46LiveLights.board === 0
+    && d46LiveLights.taking === 1 && d46Ghost !== null && d46Ghost.classList.contains('drg-ghost')
+    && d46LiveCommits === 0 && d46LivePopup === true
+    && d46AfterAdv[0] === true && d46AfterAdv[1] === true && d46AfterAdv[2] === true
+    && d46AfterAdv[3] === 2 + 9 + 3 - 1 && d46AfterAdv[4] === 2
+    && d46AfterEsc[0] === '' && d46AfterEsc[1] === 0 && d46AfterEsc[2].lit.length === 0
+    && d46AfterEsc[2].taking === 0 && d46AfterEsc[3] === 1 && d46AfterEsc[4] === 0
+    && d46RowDown[0] === true && d46RowDown[1] === true
+    && d46RowUp[0] === false && d46RowUp[1] === 'ap' && d46RowUp[2] === 'cats'
+    && d46ArmedMid[0] === '' && d46ArmedMid[1] === 0 && d46ArmedAt === 'c3'
+    && d46Sprite !== null && d46SceneDown[0] === true && d46SceneDown[1] === ''
+    && errPanel.hidden === true,
+  'still down ' + JSON.stringify(d46StillDown) + ' up ' + JSON.stringify(d46StillUp)
+    + ' popup shut after Escape=' + d46PopupShut + ' | live ' + JSON.stringify(d46Live)
+    + ' lights ' + JSON.stringify(d46LiveLights) + ' commits while live ' + d46LiveCommits
+    + ' popup hidden=' + d46LivePopup + ' | after an Advance ' + JSON.stringify(d46AfterAdv)
+    + ' | after Escape ' + JSON.stringify(d46AfterEsc) + ' | row down ' + JSON.stringify(d46RowDown)
+    + ' up ' + JSON.stringify(d46RowUp) + ' | armed ' + JSON.stringify(d46ArmedMid) + ' at ' + d46ArmedAt
+    + ' | scene ' + JSON.stringify(d46SceneDown) + ' | panel hidden=' + errPanel.hidden
+);
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
        THIS HARNESS has no layout engine, and the stub page is a hand-made
