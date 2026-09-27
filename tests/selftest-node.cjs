@@ -18949,7 +18949,18 @@ A.state.flush();
             projector: lower contrast, a longer throw, a lit room and a person
             at the back. That has been entry 25's point about the round and both
             pools since plan 05-08 and it is worth restating for a surface four
-            times the size. Human. NEW. --- */
+            times the size. Human. NEW.
+
+        40. WHETHER THE BATTLE SCENE READS AS FF1 AND EARNS ITS PLACE AT THE TOP
+            OF THE TAB. Plan 05-D42. Check 130 proves every name is text and
+            reaches the harvest, 130b proves a drag writes nothing and survives
+            a commit, and the browser cells prove every name is at the floor,
+            unclipped and uncovered at 24 a side. What none of them can say is
+            whether a room reads a 48px pixel cat as a cat from the back, and
+            whether putting the picture above the lane and the round — which
+            costs the round-state panel its place on the first screen, measured
+            in 05-D42-SUMMARY.md — is the trade the developer wants. The
+            one-line alternative is written there. Human. NEW. --- */
 
 console.log(
   'interaction gate: ' + (gateChecks - gateFailures.length) + ' of ' + gateChecks

@@ -1110,7 +1110,19 @@ for (const ch of ['chrome', 'msedge']) {
         const before = Math.round(last.getBoundingClientRect().bottom);
         const want = Math.max(0, window.scrollY + before - window.innerHeight + 70);
         window.scrollTo(0, want);
-        await new Promise((r) => setTimeout(r, 500));
+        /* WAITED UNTIL THE SCROLL SETTLES, NOT FOR A FIXED 500ms — TURNED IN THE OPEN
+           UNDER D-42. D-42 put the battle scene at the top of the fight tab, 435px
+           above this grid at 1920x1080, so the smooth scroll to the last row became
+           2156px long and was still moving when the fixed wait ran out: RED recorded
+           in both browsers at 1920, asked 2156 and got 1993, the last row at
+           1133-1173 of 1080. The property was never in doubt — the row IS reachable
+           — so the wait now polls until scrollY reaches the ask or stops moving, for
+           at most 3s. Still a smooth scroll, for this banner's own reason. */
+        for (let i = 0, prevY = -1; i < 30; i++) {
+          await new Promise((r) => setTimeout(r, 100));
+          if (Math.abs(window.scrollY - want) < 1 || (i >= 4 && window.scrollY === prevY)) { break; }
+          prevY = window.scrollY;
+        }
         const lr = last.getBoundingClientRect();
         const n = document.querySelector('#fight-input .fg-sides');
         const r = n.getBoundingClientRect();
@@ -2773,6 +2785,19 @@ for (const ch of ['chrome', 'msedge']) {
     });
     note(ch, size.name, 'a lane card: window / content / scrolled to the first reading',
       cardWindow === null ? 'NOT FOUND' : `${cardWindow.h}px over ${cardWindow.content}px, scrollTop ${cardWindow.scrolled}`);
+    /* THE LANE IS BROUGHT ON SCREEN FIRST — TURNED IN THE OPEN UNDER D-42. This cell
+       found its reading at page scroll zero, which was a property of the page rather
+       than of the claim: D-42 put the battle scene above the lane, and at 1366x768
+       the lane then began at 759 of a 768 window, so every reading was rejected as
+       off-screen (RED recorded in both browsers at 1366: 29 outside the lane's box,
+       9 outside the window, none found). What the cell asserts — a real mouse on a
+       reading finds the prose on both channels — says nothing about where the page
+       is scrolled, so the page is scrolled to the lane, the way a student reaches it. */
+    await pg.evaluate(async () => {
+      const lane = document.querySelector('#ledger-list');
+      if (lane) { lane.scrollIntoView({ block: 'center', behavior: 'instant' }); }
+      await new Promise((r) => setTimeout(r, 200));
+    });
     const hoverTarget = await pg.evaluate(() => {
       const lane = document.querySelector('#ledger-list');
       if (!lane) return null;
@@ -6552,6 +6577,408 @@ for (const ch of ['chrome', 'msedge']) {
       && l9 === 2 && l1.catsRes === '{"hp":1}' && l1.commits === l0.commits + 1,
       { src: lSrc, over: lOver, after: l1 });
 
+    await d41Fresh();
+
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // ── 32. D-42 — THE BATTLE SCENE, BY REAL POINTERS AND BY THE PICTURE. Plan 05-D42.
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // What only a browser can say: where the scene sits on the tab, that every sprite and
+    // every name is inside the frame and legible, that the pixels on the canvas are the
+    // tokens' colours, what a dead unit looks like, and the whole gesture — every drag
+    // below is page.mouse on a real sprite. The node gate (130, 130b) holds the paint and
+    // the gesture's bookkeeping; the drop point, the clamp against a real rectangle, the
+    // store surviving a RELOAD and the look live here. Every screenshot is read back.
+    const d42Shot = (name) => pg.locator('#scene').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d42-${name}-${ch}-${size.name}.png`)
+    });
+    const d42Fresh = async () => {
+      await pg.evaluate(() => {
+        if (App.state.get().fight !== null) { App.ops.endFight(); }
+        App.ops.resetToDefaults();
+        App.state.restore(JSON.stringify(App.state.get()));
+        App.render.sceneHome();
+        App.state.invalidate({ structural: true });
+        App.state.flush();
+      });
+      await pg.click('#fight-start'); await pg.waitForTimeout(250);
+      await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+      await pg.waitForTimeout(150);
+    };
+    const d42Read = () => pg.evaluate(() => {
+      const f = document.getElementById('scene-field').getBoundingClientRect();
+      const sprites = Array.from(document.querySelectorAll('#scene-field > .scn-unit')).map((n) => {
+        const r = n.getBoundingClientRect();
+        const nm = n.querySelector('.scn-name');
+        const q = nm.getBoundingClientRect();
+        // THE NAME IS WHAT A HIT TEST FINDS AT ITS CENTRE AND AT ALL FOUR INNER CORNERS —
+        // nothing painted over it. Added after the first screenshots showed a long name
+        // under the next row's sprite and a dropped sprite over a neighbour's name, with
+        // every row green: comparing names with names cannot see a name under a picture.
+        const pts = [[(q.left + q.right) / 2, (q.top + q.bottom) / 2], [q.left + 3, q.top + 3],
+          [q.right - 3, q.top + 3], [q.left + 3, q.bottom - 3], [q.right - 3, q.bottom - 3]];
+        const onTop = pts.every(([x, y]) => {
+          if (x < 0 || y < 0 || x >= window.innerWidth || y >= window.innerHeight) { return true; }
+          const hit = document.elementFromPoint(x, y);
+          return hit === nm || (hit !== null && nm.contains(hit));
+        });
+        return { id: n.dataset.scnUnit, at: n.dataset.scnAt, name: nm.textContent, onTop,
+          aria: n.getAttribute('aria-label'), down: n.classList.contains('scn-unit--down'),
+          l: r.left, t: r.top, r: r.right, b: r.bottom, cx: r.left + r.width / 2, cy: r.top + r.height / 2,
+          nl: q.left, nt: q.top, nr: q.right, nb: q.bottom,
+          font: parseFloat(getComputedStyle(nm).fontSize), family: getComputedStyle(nm).fontFamily,
+          clipped: nm.scrollWidth > nm.clientWidth + 1 };
+      });
+      let stored = null;
+      try { stored = localStorage.getItem('cvm.v1.scene'); } catch (e) { stored = 'BLOCKED'; }
+      return { field: { l: f.left, t: f.top, r: f.right, b: f.bottom, w: f.width, h: f.height },
+        rows: document.getElementById('scene-field').dataset.scnRows,
+        sprites, saved: App.render.sceneSaid(), stored,
+        commits: App.state.stats().commits, depth: App.state.undoDepth(),
+        state: JSON.stringify(App.state.get()), held: App.interactions.sceneHeld(),
+        panel: document.getElementById('err-panel').hidden };
+    });
+    const d42Sprite = (rd, id) => rd.sprites.filter((s) => s.id === id)[0];
+    const d42Inside = (rd) => rd.sprites.every((s) => s.l >= rd.field.l - 1 && s.t >= rd.field.t - 1
+      && s.r <= rd.field.r + 1 && s.b <= rd.field.b + 1);
+    const d42NamesApart = (rd) => {
+      const n = rd.sprites;
+      for (let i = 0; i < n.length; i++) {
+        for (let j = i + 1; j < n.length; j++) {
+          const a = n[i]; const b = n[j];
+          if (a.nl < b.nr - 1 && b.nl < a.nr - 1 && a.nt < b.nb - 1 && b.nt < a.nb - 1) { return a.id + '/' + b.id; }
+        }
+      }
+      return '';
+    };
+    // A token's computed colour, through a probe element, so a sprite pixel is compared with
+    // what the stylesheet says the token IS rather than with a typed value.
+    const d42Tok = (css) => pg.evaluate((c) => {
+      const p = document.createElement('div');
+      p.style.color = c;
+      document.body.appendChild(p);
+      const v = getComputedStyle(p).color;
+      p.remove();
+      return v;
+    }, css);
+    const d42Pixel = (id, x, y) => pg.evaluate(([u, px, py]) => {
+      const c = document.querySelector(`#scene-field > [data-scn-unit="${u}"] canvas`);
+      const d = c.getContext('2d').getImageData(px, py, 1, 1).data;
+      return `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
+    }, [id, x, y]);
+    // One real drag of one sprite, taken at its centre. `mid` runs half-way, while held.
+    const d42Drag = async (id, tx, ty, mid) => {
+      const s = await pg.evaluate((u) => {
+        const n = document.querySelector(`#scene-field > [data-scn-unit="${u}"]`);
+        window.__d42node = n;
+        const r = n.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      }, id);
+      await pg.mouse.move(s.x, s.y);
+      await pg.mouse.down();
+      for (let i = 1; i <= 3; i++) { await pg.mouse.move(s.x + i * 3, s.y + i * 2); }
+      await pg.mouse.move((s.x + tx) / 2, (s.y + ty) / 2, { steps: 6 });
+      const midOut = mid ? await mid() : null;
+      await pg.mouse.move(tx, ty, { steps: 6 });
+      await pg.waitForTimeout(60);
+      const flight = await pg.evaluate(() => ({ held: App.interactions.sceneHeld(),
+        same: !!window.__d42node && window.__d42node.isConnected
+          && window.__d42node.classList.contains('scn-unit--held') }));
+      await pg.mouse.up();
+      await pg.waitForTimeout(150);
+      return { from: s, flight, mid: midOut };
+    };
+
+    // ── 32. WHERE IT SITS, WHAT IT LOOKS LIKE, AND THAT EVERY NAME IS LEGIBLE. ──
+    await pg.evaluate(() => { try { localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ } });
+    await d42Fresh();
+    const d42Look = await pg.evaluate(() => {
+      const band = document.querySelector('.fg-band');
+      const scene = document.getElementById('scene');
+      const r = scene.getBoundingClientRect();
+      const win = getComputedStyle(document.querySelector('.scn-win'));
+      const cv = getComputedStyle(document.querySelector('#scene-field canvas'));
+      const reset = document.getElementById('scene-reset');
+      const words = ['scene-head', 'scene-hint', 'scene-reset'].map((id) => parseFloat(getComputedStyle(document.getElementById(id)).fontSize));
+      const text = document.getElementById('scene').innerText;
+      return {
+        first: band.firstElementChild === scene,
+        aboveLedger: !!(scene.compareDocumentPosition(document.getElementById('ledger')) & Node.DOCUMENT_POSITION_FOLLOWING),
+        outsideBoard: !document.getElementById('board').contains(scene),
+        top: Math.round(r.top + window.scrollY), bottom: Math.round(r.bottom + window.scrollY), vh: window.innerHeight,
+        rim: win.borderTopColor, rimWidth: win.borderTopWidth, fill: win.backgroundColor,
+        pixelated: cv.imageRendering, canvasPx: Math.round(parseFloat(cv.width)),
+        resetText: reset.textContent.trim(), resetShown: reset.getBoundingClientRect().width > 0,
+        minWord: Math.min(...words), text,
+        dataK: document.querySelectorAll('#scene [data-k], #scene [data-act], #scene [data-fg]').length
+      };
+    });
+    const d42Fill = await d42Tok('color-mix(in srgb, var(--accent) 26%, var(--bg))');
+    // The fill is a BACKGROUND and the probe a colour; both are the same mix, read the
+    // same way, so a probe for the background is taken through its own property.
+    const d42FillProbe = await pg.evaluate(() => {
+      const p = document.createElement('div');
+      p.style.backgroundColor = 'color-mix(in srgb, var(--accent) 26%, var(--bg))';
+      document.body.appendChild(p);
+      const v = getComputedStyle(p).backgroundColor;
+      p.remove();
+      return v;
+    });
+    const d42r0 = await d42Read();
+    const d42Ink = await d42Tok('var(--ink)');
+    const d42Coral = await d42Tok('var(--coral)');
+    const d42Steel = await d42Tok('var(--ink-dim)');
+    const d42Accent = await d42Tok('var(--accent)');
+    const d42Px = [await d42Pixel('c1', 9, 4), await d42Pixel('m1', 7, 3), await d42Pixel('m1', 6, 4)];
+    // Words the scene shows are the three in the shell plus one name per unit, and NOT ONE
+    // of them names an outcome: FF1's end-of-battle banner is exactly what D-26 forbids.
+    const d42Verdict = /victor|triumph|winner|loser|\bwin(s|ning)?\b|\bwon\b|defeat|\blost\b|\bbest\b|score|rank/i
+      .test(d42Look.text);
+    note(ch, size.name, 'D-42 scene top/bottom from the top of the document, at load', `${d42Look.top}/${d42Look.bottom} of ${d42Look.vh}`);
+    note(ch, size.name, 'D-42 field w x h, rows, sprite px', `${Math.round(d42r0.field.w)}x${Math.round(d42r0.field.h)} rows ${d42r0.rows} px ${d42Look.canvasPx}`);
+    await d42Shot('fresh');
+    ok(`${tag}: 32. D-42 — THE BATTLE SCENE IS THE FIGHT TAB'S FIRST PANEL, WHOLE ON SCREEN AT LOAD, FRAMED IN TOKENS, AND EVERY NAME IN IT IS LEGIBLE. It is the band's first child and above the lane of earlier rounds (so the lane still leads into the round), outside #board, and nothing in it carries data-k, data-act or data-fg. The window's rim is --ink and its fill is --accent mixed into --bg, each compared with what the stylesheet computes for that token rather than with a typed value. Twelve sprites, all inside the field, one per fight unit; the canvas is drawn pixelated; the fur pixel IS --coral, the mech's plate IS --ink-dim and its visor IS --accent, read off the canvas. Every name is monospace, at UX-02's 18px floor or above, unclipped, no two names overlap, and a HIT TEST at every name's centre and four inner corners finds that name — nothing is painted over any of them. The three shell words are at the floor too and the way back to formation is a visible text control. And not one word in the scene names an outcome — FF1's end-of-battle banner is the verdict D-26 forbids`,
+      d42Look.first && d42Look.aboveLedger && d42Look.outsideBoard && d42Look.dataK === 0
+      && d42Look.bottom <= d42Look.vh
+      && d42Look.rim === d42Ink && d42Look.fill === d42FillProbe
+      && d42r0.sprites.length === 12 && d42Inside(d42r0)
+      && d42Look.pixelated === 'pixelated'
+      && d42Px[0] === d42Coral && d42Px[1] === d42Steel && d42Px[2] === d42Accent
+      && d42r0.sprites.every((s) => s.font >= 18 && /mono/i.test(s.family) && !s.clipped && s.name !== '')
+      && d42NamesApart(d42r0) === '' && d42r0.sprites.every((s) => s.onTop)
+      && d42Look.minWord >= 18 && d42Look.resetText === 'Back to formation' && d42Look.resetShown
+      && d42Verdict === false && d42r0.panel === true,
+      { look: d42Look, fill: [d42Fill, d42FillProbe], px: d42Px, want: [d42Coral, d42Steel, d42Accent],
+        apart: d42NamesApart(d42r0), inside: d42Inside(d42r0) });
+
+    // ── 32a. MOVE A TOKEN AND THE SPRITES FOLLOW. ──
+    await pg.evaluate(() => {
+      document.documentElement.style.setProperty('--coral', '#123456');
+      document.documentElement.style.setProperty('--accent', '#654321');
+      App.state.invalidate(); App.state.flush();
+    });
+    const d42Moved = [await d42Pixel('c1', 9, 4), await d42Pixel('m1', 6, 4)];
+    await pg.evaluate(() => {
+      document.documentElement.style.removeProperty('--coral');
+      document.documentElement.style.removeProperty('--accent');
+      App.state.invalidate(); App.state.flush();
+    });
+    const d42Back = [await d42Pixel('c1', 9, 4), await d42Pixel('m1', 6, 4)];
+    ok(`${tag}: 32a. D-42 — THE SPRITES' COLOURS ARE DERIVED, NOT TYPED: --coral and --accent are moved on the root, one frame is painted, and the fur pixel and the visor pixel read the new tokens; put back, they read the old ones. 107f catches a literal being written into the stylesheet; this catches a colour that stopped deriving for any reason at all, including one painted by script`,
+      d42Moved[0] === 'rgb(18, 52, 86)' && d42Moved[1] === 'rgb(101, 67, 33)'
+      && d42Back[0] === d42Coral && d42Back[1] === d42Accent,
+      { moved: d42Moved, back: d42Back });
+
+    // ── 32b. A RENAMED UNIT. No op renames one; the state is written through [S03]'s
+    // restore with a long name, which is what the day a rename op lands will look like.
+    const d42c3Before = await pg.evaluate(() => {
+      window.__d42c3 = document.querySelector('#scene-field > [data-scn-unit="c3"]');
+      const s = JSON.parse(JSON.stringify(App.state.get()));
+      s.build.cats.units[2].name = 'Whiskerton the Brave';
+      App.state.restore(JSON.stringify(s));
+      App.state.flush();
+      return true;
+    });
+    const d42rn = await d42Read();
+    const d42c3 = d42Sprite(d42rn, 'c3');
+    const d42c3Same = await pg.evaluate(() => window.__d42c3 === document.querySelector('#scene-field > [data-scn-unit="c3"]'));
+    await d42Shot('renamed');
+    ok(`${tag}: 32b. D-42 — A RENAMED UNIT IS DRAWN RENAMED ON ITS FRAME, IN THE SAME NODE: Cat 3 renamed "Whiskerton the Brave" through [S03]'s writer shows that name as its label and its accessible name, the sprite node is the one that was there before (a rename rebuilds nothing), the long name wraps inside the sprite's own width rather than running out of it, and every sprite is still inside the field with no two names overlapping. AND NO NAME IS UNDER A PICTURE: the first screenshot of this cell showed "Whiskerton the Brave" broken mid-word into three lines running down under Cat 6's sprite while this cell was green, so every name is now hit-tested at its centre and four inner corners and must be what the hit finds`,
+      d42c3Before && d42c3.name === 'Whiskerton the Brave' && d42c3.aria === 'Whiskerton the Brave'
+      && d42c3Same && d42c3.nl >= d42c3.l - 1 && d42c3.nr <= d42c3.r + 1 && !d42c3.clipped
+      && d42Inside(d42rn) && d42NamesApart(d42rn) === '' && d42rn.sprites.every((s) => s.onTop),
+      { c3: d42c3, same: d42c3Same, apart: d42NamesApart(d42rn) });
+
+    // ── 32c. A UNIT RULED DEAD LIES DOWN; A UNIT AT ZERO HEALTH STANDS. ──
+    await d42Fresh();
+    await pg.evaluate(() => {
+      App.ops.dispatch('setAlive', { side: 'cats', unitId: 'c2', value: false });
+      App.ops.dispatch('setUnitHp', { side: 'mechs', unitId: 'm2', value: 0 });
+      App.state.flush();
+    });
+    await pg.waitForTimeout(250);
+    const d42Dead = await pg.evaluate(() => {
+      const read = (u) => {
+        const n = document.querySelector(`#scene-field > [data-scn-unit="${u}"]`);
+        const cs = getComputedStyle(n.querySelector('canvas'));
+        return { down: n.classList.contains('scn-unit--down'), aria: n.getAttribute('aria-label'),
+          transform: cs.transform, filter: cs.filter };
+      };
+      return { c2: read('c2'), m2: read('m2'), c1: read('c1'),
+        m2hp: App.state.get().fight.mechs.units[1].hp, m2alive: App.state.get().fight.mechs.units[1].alive };
+    });
+    const d42rd = await d42Read();
+    await d42Shot('dead');
+    ok(`${tag}: 32c. D-42 — A UNIT RULED DEAD LIES DOWN AND GOES GREY, AND A UNIT AT ZERO HEALTH NOBODY RULED ON STANDS IN FULL COLOUR: Cat 2, ruled dead through setAlive, has the down class, a turned canvas (a real transform, not "none") and a grayscale filter, and its accessible name says it is ruled dead; Mech 2 at zero health is still alive in the fight slice and its canvas is untransformed and unfiltered, exactly like Cat 1's. Read from the stored flag and never from the health (D-00d)`,
+      d42Dead.c2.down && d42Dead.c2.transform !== 'none' && /grayscale/.test(d42Dead.c2.filter)
+      && d42Dead.c2.aria === 'Cat 2, ruled dead'
+      && d42Dead.m2hp === 0 && d42Dead.m2alive === true
+      && !d42Dead.m2.down && d42Dead.m2.transform === 'none' && d42Dead.m2.filter === 'none'
+      && d42Dead.m2.aria === 'Mech 2'
+      && d42Dead.c1.transform === 'none' && d42Inside(d42rd) && d42rd.sprites.every((s) => s.onTop),
+      d42Dead);
+
+    // ── 32d. A REAL DRAG INSIDE THE SCENE. ──
+    await d42Fresh();
+    const d42p0 = await d42Read();
+    const d42T = { x: Math.round(d42p0.field.l + d42p0.field.w * 0.5), y: Math.round(d42p0.field.t + d42p0.field.h * 0.62) };
+    const d42g1 = await d42Drag('c1', d42T.x, d42T.y);
+    const d42p1 = await d42Read();
+    const d42c1 = d42Sprite(d42p1, 'c1');
+    const d42c1Same = await pg.evaluate(() => window.__d42node === document.querySelector('#scene-field > [data-scn-unit="c1"]'));
+    ok(`${tag}: 32d. D-42 — A REAL DRAG MOVES ONE SPRITE TO WHERE IT WAS LET GO AND WRITES NOTHING ELSE. Cat 1 is taken at its centre with page.mouse and let go in the middle of the field: its centre lands within two pixels of the release point, the node under the pointer is the node that was pressed, and it was HELD in flight. The place is kept in the scene and in localStorage under cvm.v1.scene. The state is byte-identical, and neither the commit count nor the undo depth moved — no op, no commit, no undo entry, no build code`,
+      d42g1.flight.same === true && JSON.parse(d42g1.flight.held || '{}').live === true
+      && Math.abs(d42c1.cx - d42T.x) <= 2 && Math.abs(d42c1.cy - d42T.y) <= 2 && d42c1Same
+      && JSON.parse(d42p1.saved).c1 !== undefined && d42p1.stored !== null
+      && JSON.parse(d42p1.stored).c1 !== undefined
+      && JSON.stringify(JSON.parse(d42p1.stored).c1) === JSON.stringify(JSON.parse(d42p1.saved).c1)
+      && d42p1.state === d42p0.state && d42p1.commits === d42p0.commits && d42p1.depth === d42p0.depth
+      && d42p1.held === '' && d42p1.panel === true,
+      { target: d42T, c1: d42c1, flight: d42g1.flight, saved: d42p1.saved, stored: d42p1.stored,
+        commits: [d42p0.commits, d42p1.commits], depth: [d42p0.depth, d42p1.depth] });
+
+    // ── 32e. OFF THE EDGE: CLAMPED. ──
+    const d42Off = await pg.evaluate(() => {
+      const f = document.getElementById('scene-field').getBoundingClientRect();
+      return { x: window.innerWidth - 3, y: Math.min(window.innerHeight - 3, Math.round(f.bottom + 140)), fr: f.right, fb: f.bottom };
+    });
+    await d42Drag('m1', d42Off.x, d42Off.y);
+    const d42p2 = await d42Read();
+    const d42m1 = d42Sprite(d42p2, 'm1');
+    ok(`${tag}: 32e. D-42 — A DRAG OFF THE EDGE IS CLAMPED: Mech 1 dragged past the field's right side and below its foot, to a point outside the frame, comes to rest wholly inside the field, pressed into its bottom-right corner (within two pixels of both sides), and the saved share is the clamped one — what is saved is what is drawn`,
+      d42Off.x > d42Off.fr && d42Off.y > d42Off.fb
+      && d42Inside(d42p2) && Math.abs(d42m1.r - d42p2.field.r) <= 2 && Math.abs(d42m1.b - d42p2.field.b) <= 2
+      && JSON.stringify(JSON.parse(d42p2.saved).m1) === JSON.stringify(d42m1.at.split(',').map(Number)),
+      { off: d42Off, m1: d42m1, field: d42p2.field, saved: d42p2.saved });
+
+    // ── 32f. A DRAG WHILE AN ADVANCE COMMITS. ──
+    const d42Round0 = await pg.evaluate(() => App.state.get().fight.round);
+    const d42c4From = d42Sprite(d42p2, 'c4');
+    const d42T4 = { x: Math.round(d42p2.field.l + d42p2.field.w * 0.35), y: Math.round(d42p2.field.t + d42p2.field.h * 0.45) };
+    const d42g4 = await d42Drag('c4', d42T4.x, d42T4.y, async () => {
+      await pg.evaluate(() => App.ops.dispatch('advanceRound', {}));
+      await pg.waitForTimeout(120);
+      return pg.evaluate(() => ({
+        round: App.state.get().fight.round,
+        same: window.__d42node === document.querySelector('#scene-field > [data-scn-unit="c4"]'),
+        attached: window.__d42node.isConnected,
+        held: window.__d42node.classList.contains('scn-unit--held'),
+        commits: App.state.stats().commits
+      }));
+    });
+    const d42p3 = await d42Read();
+    const d42c4 = d42Sprite(d42p3, 'c4');
+    ok(`${tag}: 32f. D-42 — A DRAG SURVIVES AN ADVANCE COMMITTING UNDER IT: Cat 4 is held half-way across the field when a real Advance is dispatched and its frame paints. The round moves, and the sprite under the pointer is STILL THE SAME NODE, still attached, still held — the keyed repaint rebuilt nothing (plan 05-10's measured defect and D-37 probe G's, answered by node identity). The drag then carries on to its release point, where Cat 4's centre lands within two pixels; the Advance's commit is the only one across the whole gesture. Cat 4 lands overlapping Cat 3, which is where this cell drops it on purpose, and every name on the field — Cat 3's included — is still what a hit test finds at its centre and inner corners: the first screenshot had Cat 4's sprite painted over Cat 3's name`,
+      d42g4.mid.round === d42Round0 + 1 && d42g4.mid.same && d42g4.mid.attached && d42g4.mid.held
+      && d42g4.flight.same === true
+      && Math.abs(d42c4.cx - d42T4.x) <= 2 && Math.abs(d42c4.cy - d42T4.y) <= 2
+      && d42p3.commits === d42p2.commits + 1 && d42g4.mid.commits === d42p3.commits
+      && JSON.parse(d42p3.saved).c4 !== undefined && d42p3.panel === true
+      && d42p3.sprites.every((s) => s.onTop),
+      { from: d42c4From, target: d42T4, mid: d42g4.mid, c4: d42c4, commits: [d42p2.commits, d42p3.commits] });
+    await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    await pg.waitForTimeout(120);
+    await d42Shot('dragged');
+
+    // ── 32g. A RELOAD BRINGS THE PLACES BACK. ──
+    const d42SavedBefore = d42p3.saved;
+    await pg.reload();
+    await pg.waitForTimeout(600);
+    if (await pg.evaluate(() => document.querySelector('#app').dataset.view) !== 'fight') {
+      await pg.click('#view-fight'); await pg.waitForTimeout(250);
+    }
+    await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    await pg.waitForTimeout(150);
+    const d42p4 = await d42Read();
+    const d42Kept = JSON.parse(d42SavedBefore);
+    const d42Restored = ['c1', 'm1', 'c4'].map((u) => {
+      const sp = d42Sprite(d42p4, u);
+      return sp && sp.at === d42Kept[u].join(',')
+        && Math.abs(sp.cx - (d42p4.field.l + d42Kept[u][0] * d42p4.field.w)) <= 2;
+    });
+    await d42Shot('reloaded');
+    ok(`${tag}: 32g. D-42 — A RELOAD BRINGS EVERY PLACE BACK: after three real drags the page is reloaded, and Cat 1, Mech 1 and Cat 4 each stand at the share they were left at (read off the sprite and off its drawn centre), while the rest stand in formation — the store is best-effort and on this machine it held`,
+      d42Restored.every(Boolean) && d42p4.saved === d42SavedBefore && d42Inside(d42p4),
+      { restored: d42Restored, before: d42SavedBefore, after: d42p4.saved });
+
+    // ── 32h. A REMOVED UNIT'S SAVED PLACE IS DROPPED. ──
+    const d42T9 = { x: Math.round(d42p4.field.l + d42p4.field.w * 0.42), y: Math.round(d42p4.field.t + d42p4.field.h * 0.3) };
+    await d42Drag('c9', d42T9.x, d42T9.y);
+    const d42With9 = await d42Read();
+    await pg.evaluate(() => {
+      if (App.state.get().fight !== null) { App.ops.endFight(); }
+      App.ops.dispatch('removeUnit', { side: 'cats', unitId: 'c9' });
+      App.state.flush();
+    });
+    const d42Without9 = await d42Read();
+    await pg.evaluate(() => { App.ops.dispatch('addUnit', { side: 'cats' }); App.state.flush(); });
+    const d42New9 = await d42Read();
+    const d42n9 = d42Sprite(d42New9, 'c9');
+    const d42Slot9 = await pg.evaluate(() => App.render.sceneSlot('cats', 8, 9, 3).join(','));
+    ok(`${tag}: 32h. D-42 — A REMOVED UNIT'S SAVED PLACE IS DROPPED, FROM THE SCENE AND FROM THE STORE: Cat 9 is dragged (its place kept in both), then removed — and its place is gone from both on that frame. The cat addUnit next names c9 stands in its formation slot, not where the old Cat 9 was left`,
+      JSON.parse(d42With9.saved).c9 !== undefined && JSON.parse(d42With9.stored).c9 !== undefined
+      && JSON.parse(d42Without9.saved).c9 === undefined && JSON.parse(d42Without9.stored).c9 === undefined
+      && d42Without9.sprites.filter((s) => s.id === 'c9').length === 0
+      && d42n9 !== undefined && d42n9.at === d42Slot9,
+      { with9: d42With9.saved, without9: [d42Without9.saved, d42Without9.stored], new9: d42n9 && d42n9.at, slot: d42Slot9 });
+
+    // ── 32i. BACK TO FORMATION — by a real click, and from the keyboard. ──
+    await d42Fresh();
+    const d42q0 = await d42Read();
+    await d42Drag('c1', Math.round(d42q0.field.l + d42q0.field.w * 0.5), Math.round(d42q0.field.t + d42q0.field.h * 0.5));
+    await d42Drag('m3', Math.round(d42q0.field.l + d42q0.field.w * 0.6), Math.round(d42q0.field.t + d42q0.field.h * 0.4));
+    const d42q1 = await d42Read();
+    await pg.click('#scene-reset'); await pg.waitForTimeout(200);
+    const d42q2 = await d42Read();
+    await d42Drag('c5', Math.round(d42q0.field.l + d42q0.field.w * 0.55), Math.round(d42q0.field.t + d42q0.field.h * 0.8));
+    const d42q3 = await d42Read();
+    await pg.focus('#scene-reset');
+    await pg.keyboard.press('Enter');
+    await pg.waitForTimeout(200);
+    const d42q4 = await d42Read();
+    const d42Home = (rd) => rd.sprites.every((s) => s.at === d42q0.sprites.filter((z) => z.id === s.id)[0].at);
+    // Enter is one of [S07.1]'s NAV_KEYS, so the keyboard press turns ui.kbdNav on — the
+    // shipped focus-ring writer, one commitUi, never undoable. That is the ONLY thing
+    // allowed to move across it, and it is compared key by key rather than excused.
+    const d42Slices = (rd) => { const s = JSON.parse(rd.state); return JSON.stringify([s.build, s.fight]); };
+    const d42UiMoved = (a, b) => {
+      const x = JSON.parse(a.state).ui; const y = JSON.parse(b.state).ui;
+      return Object.keys(Object.assign({}, x, y)).filter((k) => JSON.stringify(x[k]) !== JSON.stringify(y[k]));
+    };
+    await d42Shot('formation');
+    ok(`${tag}: 32i. D-42 — BACK TO FORMATION PUTS EVERYONE BACK, BY MOUSE AND BY KEYBOARD: two sprites dragged away, the control clicked, and every sprite is in its formation slot, nothing is kept in the scene and the store holds an empty layout — and the click committed NOTHING. Dragged again and the control reached from the keyboard (focus, Enter): everyone home again, the build, the fight and the undo depth unmoved, and the only thing that changed anywhere in the state is ui.kbdNav, which Enter turns on everywhere on this page ([S07.1]'s focus-ring writer), read key by key`,
+      !d42Home(d42q1) && d42Home(d42q2) && d42q2.saved === '{}' && d42q2.stored === '{}'
+      && d42q2.commits === d42q1.commits && d42q2.state === d42q1.state
+      && !d42Home(d42q3) && d42Home(d42q4) && d42q4.saved === '{}'
+      && d42Slices(d42q4) === d42Slices(d42q3) && d42q4.depth === d42q3.depth
+      && JSON.stringify(d42UiMoved(d42q3, d42q4)) === JSON.stringify(
+        JSON.parse(d42q3.state).ui.kbdNav === true ? [] : ['kbdNav']),
+      { moved: d42q1.saved, afterClick: [d42q2.saved, d42q2.stored, d42q1.commits, d42q2.commits],
+        afterKey: d42q4.saved, uiMoved: d42UiMoved(d42q3, d42q4), depth: [d42q3.depth, d42q4.depth] });
+
+    // ── 32j. TWENTY-FOUR A SIDE: every sprite inside, every name legible. ──
+    await pg.evaluate(() => { if (App.state.get().fight !== null) { App.ops.endFight(); } App.state.flush(); });
+    await toRoster(pg, 24);
+    await pg.click('#fight-start'); await pg.waitForTimeout(300);
+    await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    await pg.waitForTimeout(150);
+    const d42big = await d42Read();
+    const d42bigLook = await pg.evaluate(() => {
+      const r = document.getElementById('scene').getBoundingClientRect();
+      return { top: Math.round(r.top + window.scrollY), bottom: Math.round(r.bottom + window.scrollY), vh: window.innerHeight };
+    });
+    note(ch, size.name, 'D-42 scene at 24 a side: top/bottom, field, rows', `${d42bigLook.top}/${d42bigLook.bottom} of ${d42bigLook.vh}, ${Math.round(d42big.field.w)}x${Math.round(d42big.field.h)}, rows ${d42big.rows}`);
+    await d42Shot('24');
+    ok(`${tag}: 32j. D-42 — TWENTY-FOUR A SIDE, EVERY SPRITE INSIDE THE FRAME AND EVERY NAME LEGIBLE: 48 sprites in a four-row field, all inside it, every name at the 18px floor or above, monospace, unclipped, and no two names overlapping anywhere`,
+      d42big.sprites.length === 48 && d42big.rows === '4' && d42Inside(d42big)
+      && d42big.sprites.every((s) => s.font >= 18 && /mono/i.test(s.family) && !s.clipped)
+      && d42NamesApart(d42big) === '' && d42big.sprites.every((s) => s.onTop),
+      { n: d42big.sprites.length, rows: d42big.rows, inside: d42Inside(d42big), apart: d42NamesApart(d42big),
+        field: d42big.field, look: d42bigLook });
+
+    await pg.evaluate(() => {
+      App.render.sceneHome();
+      try { localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ }
+    });
     await d41Fresh();
 
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
