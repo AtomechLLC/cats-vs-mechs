@@ -134,6 +134,12 @@ function makeStubDom() {
     // read out of the shell below rather than re-typed, #howto's method.
     // Same three-part rule as every entry here, in BOTH directions.
     'scene', 'scene-head', 'scene-hint', 'scene-reset', 'scene-field',
+    // plan 05-D44 — D-44's picker between the two generations of art (the
+    // group and its two buttons) and the 16-bit backdrop's canvas. The two
+    // labels are read out of the shell below, and the buttons carry the
+    // shell's data-scn-pick, so a press here says what a press there says.
+    // Same three-part rule, in BOTH directions.
+    'scene-gen', 'scene-gen-16', 'scene-gen-8', 'scene-back',
     // plan 03-05 — the reference band, full width below both columns. The
     // node is built a dozen lines below in the same change: this list and the
     // stub page disagreeing in EITHER direction fails the run at section 5b.
@@ -607,6 +613,11 @@ function makeStubDom() {
       node.width = 300;
       node.height = 150;
       node._pixels = Object.create(null);
+      /* plan 05-D44 — AND IMAGE DATA, for the one caller that uses it: the
+         16-bit backdrop is painted in one putImageData. createImageData hands
+         back a zeroed buffer of the asked size, and putImageData keeps the
+         last one put as _image, so a row can read a backdrop pixel exactly
+         as it reads a sprite pixel out of _pixels. */
       const ctx = {
         fillStyle: '',
         clearRect() { node._pixels = Object.create(null); },
@@ -614,7 +625,9 @@ function makeStubDom() {
           for (let i = 0; i < w; i++) {
             for (let j = 0; j < h; j++) { node._pixels[(x + i) + ',' + (y + j)] = String(ctx.fillStyle); }
           }
-        }
+        },
+        createImageData(w, h) { return { width: w, height: h, data: new Uint8ClampedArray(w * h * 4) }; },
+        putImageData(img) { node._image = img; }
       };
       node.getContext = (kind) => (kind === '2d' ? ctx : null);
     }
@@ -820,10 +833,53 @@ function makeStubDom() {
     if (tag === 'button') { n.type = 'button'; }
     n.textContent = sceneWord(id);
     sceneTop.appendChild(n);
+    if (id === 'scene-hint') {
+      // plan 05-D44 — the picker sits between the hint and the reset control,
+      // as in the shell. Its two labels and the section's resting generation
+      // are READ OUT OF THE SHELL, #howto's method, and it fails LOUD if they
+      // are not found; the resting pressed state is the shell's too.
+      const genRest = /id="scene"[^>]*data-scn-gen="(\d+)"/.exec(html);
+      if (!genRest) { fail('the scene\'s resting data-scn-gen could not be read out of the shell.'); }
+      scene.dataset.scnGen = genRest[1];
+      const group = idNode('scene-gen');
+      group.className = 'scn-gen';
+      group.setAttribute('role', 'group');
+      const groupSaid = /id="scene-gen" role="group" aria-label="([^"]+)"/.exec(html);
+      if (!groupSaid) { fail('the scene picker\'s group name could not be read out of the shell.'); }
+      group.setAttribute('aria-label', groupSaid[1]);
+      sceneTop.appendChild(group);
+      ['16', '8'].forEach((g) => {
+        const m = new RegExp('id="scene-gen-' + g + '" data-scn-pick="' + g + '" aria-pressed="(true|false)">'
+          + '<span class="scn-gen-name">([^<]+)</span><span class="scn-gen-check">([^<]+)</span>').exec(html);
+        if (!m) { fail('the scene picker\'s #scene-gen-' + g + ' could not be read out of the shell.'); }
+        const b = idNode('scene-gen-' + g, 'button');
+        b.className = 'scn-gen-btn' + (m[1] === 'true' ? ' scn-gen-on' : '');
+        b.type = 'button';
+        b.dataset.scnPick = g;
+        b.setAttribute('aria-pressed', m[1]);
+        const nm = createElement('span');
+        nm.className = 'scn-gen-name';
+        nm.textContent = m[2];
+        const tick = createElement('span');
+        tick.className = 'scn-gen-check';
+        tick.textContent = m[3];
+        b.appendChild(nm);
+        b.appendChild(tick);
+        group.appendChild(b);
+      });
+    }
   });
   const sceneWin = createElement('div');
   sceneWin.className = 'scn-win';
   scene.appendChild(sceneWin);
+  // plan 05-D44 — the 16-bit backdrop, under the field, as in the shell.
+  const sceneBackWrap = createElement('div');
+  sceneBackWrap.className = 'scn-back';
+  sceneBackWrap.setAttribute('aria-hidden', 'true');
+  sceneWin.appendChild(sceneBackWrap);
+  const sceneBack = idNode('scene-back', 'canvas');
+  sceneBack.className = 'scn-back-art';
+  sceneBackWrap.appendChild(sceneBack);
   const sceneField = idNode('scene-field');
   sceneField.className = 'scn-field';
   sceneField.dataset.scnRows = '3';

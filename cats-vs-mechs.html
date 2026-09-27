@@ -6813,6 +6813,72 @@
   }
   .scn-unit--down .scn-name{color:var(--ink-faint)}
 
+  /* D-44, plan 05-D44: TWO GENERATIONS OF ART, AND A PICKER BETWEEN THEM. The
+     developer: "change the bar to FFV level art and redraw, keep the original
+     art and let users pick the generation, use the new one as default".
+
+     THE GENERATION IS ONE ATTRIBUTE, data-scn-gen on #scene, "16" or "8".
+     Every rule above is the 8-bit generation and is untouched; every rule
+     below that names "16" is the 16-bit one and only adds. The shell ships
+     "16" so the first paint is already the default, and [S06.17] moves it.
+
+     THE PICKER is .fg-pill's family restated under its own prefix, for
+     [C13]'s reason about .rs-: two permanent labels at UX-02's 18px floor,
+     and the chosen one said in three channels that are not hue — the
+     on-class's fill and line, aria-pressed, and a tick that is a REAL NODE
+     whose visibility the class moves. */
+  .scn-gen{display:flex;gap:8px;flex:0 0 auto}
+  .scn-gen-btn{
+    display:flex;align-items:center;gap:8px;
+    min-height:40px;padding:6px 16px;
+    background:var(--panel);
+    border:1px solid color-mix(in srgb, var(--ink-faint) 45%, transparent);
+    border-radius:999px;color:var(--ink-dim);
+    font:inherit;font-size:18px;font-weight:600;line-height:1.2;
+    cursor:pointer;user-select:none;touch-action:manipulation;
+    &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
+  }
+  .scn-gen-on{border-color:var(--state-on-line);background-color:var(--state-on-solid);color:var(--ink)}
+  .scn-gen-name{white-space:nowrap}
+  .scn-gen-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
+  .scn-gen-on .scn-gen-check{visibility:visible}
+
+  /* THE 16-BIT WINDOW: an FFV menu window — a blue graded from light at the
+     top to deep at the foot, a rim lit on its top and left and shaded on its
+     bottom and right, and a bevel inside it. Same 3px rim and 6px inset as the
+     8-bit window, so nothing inside it moves by a pixel between the two.
+     Every colour is a [C00] token or a color-mix() of two. */
+  .scn[data-scn-gen="16"] .scn-win{
+    position:relative;
+    border-color:var(--ink) var(--ink-dim) var(--ink-dim) var(--ink);
+    background:linear-gradient(to bottom,
+      color-mix(in srgb, var(--accent) 44%, var(--bg)),
+      color-mix(in srgb, var(--accent) 16%, var(--bg)));
+    box-shadow:
+      0 0 0 2px color-mix(in srgb, var(--accent) 18%, var(--bg)),
+      inset 2px 2px 0 color-mix(in srgb, var(--ink) 45%, transparent),
+      inset -2px -2px 0 color-mix(in srgb, var(--bg) 65%, transparent);
+  }
+  /* A 16-BIT SPRITE IS TWO SCREEN PIXELS A SPRITE PIXEL AT EVERY WINDOW SIZE:
+     a cat is 24 sprite pixels drawn at 48px, a mech 48 drawn at 96px, still
+     --scn-big times a cat (D-43). 64px — the 8-bit cat on a projector-sized
+     window — is not a whole multiple of 24, and the next whole size up, 72px
+     and 144px, does not fit the formation: a row of six 144px mechs is wider
+     than the mechs' strip. So the 16-bit set draws finer rather than larger
+     there, and the name under each sprite, which is what tells units apart,
+     is the same 18px line in both. Recorded in 05-D44-SUMMARY.md. The field
+     carries no picture of its own here: the backdrop below shows through. */
+  .scn[data-scn-gen="16"] .scn-field{--scn-px:48px;background:transparent}
+  /* THE 16-BIT BACKDROP: a canvas [S06.17] paints from the tokens — a banded
+     sky, a snowy range, near hills and textured ground — laid under the field
+     inside the window's inset, two screen pixels a picture pixel, clipped to
+     the field and taking no pointer. The 8-bit window never shows it. */
+  .scn-back{display:none}
+  .scn[data-scn-gen="16"] .scn-back{
+    display:block;position:absolute;inset:6px;overflow:hidden;border-radius:4px;pointer-events:none;
+  }
+  .scn-back-art{display:block;width:2048px;height:720px;image-rendering:pixelated}
+
   /* ===================== [C16] MOTION AND SCROLL ===================== */
   /* The two document-wide layers D-33 PASS A adds, and the ONLY block in
      this stylesheet that deliberately reaches across every region rather
@@ -6894,7 +6960,10 @@
      the attribute rather than as a bare .fg-res because the bare class
      also matches the READINGS, which are not pressable and have no hover
      to ramp. */
-  .fg-res[data-fg="res"], .fgu-close, .fgu-alive, .pv-close{
+  /* D-44's picker joins the list the day it is authored rather than an audit
+     later, which is D-39 P2-7's lesson above: a pill that snapped on hover
+     beside the reset control that ramps. */
+  .fg-res[data-fg="res"], .fgu-close, .fgu-alive, .pv-close, .scn-gen-btn{
     background-image:linear-gradient(transparent, transparent);
     transition:
       border-color var(--ramp) ease,
@@ -7153,7 +7222,7 @@
        "add the four class names to the existing selector list AND to the
        prefers-reduced-motion guard's copy of it", and a ramp added in one
        place is a ramp this guard does not take off. */
-    .fg-res[data-fg="res"], .fgu-close, .fgu-alive, .pv-close,
+    .fg-res[data-fg="res"], .fgu-close, .fgu-alive, .pv-close, .scn-gen-btn,
     .unit-card, .fg-area, .ld-now, .fg-row{transition:none}
     .pk[open], .ae[open], .sh[open], .rs[open]{animation:none}
     .pk[open]::backdrop, .ae[open]::backdrop,
@@ -7731,14 +7800,28 @@
        match inside #board, [S07.1] routes any data-act into App.ops.dispatch,
        and [S07.5] routes any data-fg inside #fightbar. The reset control is a
        plain button with a listener of its own. Five ids here; the id, the
-       KNOWN_IDS entry and the stub node arrive together. -->
-  <section class="scn" id="scene" aria-labelledby="scene-head">
+       KNOWN_IDS entry and the stub node arrive together.
+
+       D-44, plan 05-D44: TWO GENERATIONS OF ART AND A PICKER. data-scn-gen on
+       the section says which is drawn, and the shell ships the default, "16".
+       The picker is two plain buttons with listeners of their own, labelled by
+       generation rather than by game title so no trademark is on a control.
+       What they choose is kept best-effort on this computer, like a place: in
+       no slice, no undo entry and no build code. #scene-back is the 16-bit
+       backdrop's canvas, under the field and taking no pointer. Four ids
+       more, each arriving with its KNOWN_IDS entry and its stub node. -->
+  <section class="scn" id="scene" aria-labelledby="scene-head" data-scn-gen="16">
     <div class="scn-top">
       <h2 class="scn-head" id="scene-head">Who is who</h2>
       <p class="scn-hint" id="scene-hint">Drag anyone anywhere. Where they stand only helps you tell them apart: it is not part of the build, and nothing is ruled from it.</p>
+      <div class="scn-gen" id="scene-gen" role="group" aria-label="Sprite art">
+        <button class="scn-gen-btn scn-gen-on" type="button" id="scene-gen-16" data-scn-pick="16" aria-pressed="true"><span class="scn-gen-name">16-bit</span><span class="scn-gen-check">✓</span></button>
+        <button class="scn-gen-btn" type="button" id="scene-gen-8" data-scn-pick="8" aria-pressed="false"><span class="scn-gen-name">8-bit</span><span class="scn-gen-check">✓</span></button>
+      </div>
       <button class="brd-btn scn-reset" type="button" id="scene-reset">Back to formation</button>
     </div>
     <div class="scn-win">
+      <div class="scn-back" aria-hidden="true"><canvas class="scn-back-art" id="scene-back" width="1024" height="360"></canvas></div>
       <div class="scn-field" id="scene-field" data-scn-rows="3"></div>
     </div>
   </section>
@@ -29091,6 +29174,108 @@ App.render = (function () {
     ])
   });
 
+  /* D-44, plan 05-D44: THE 16-BIT GENERATION, at Final Fantasy V's level of
+     detail. Same encoding as the pair above, one letter per pixel, '.' empty,
+     with more pixels and more letters: a cat is 24 by 24, a mech 48 by 48, and
+     every material is a RAMP of shades rather than one flat colour.
+
+     CATS: k the outline (the fur's own darkest shade, not black); 1 2 3 4 the
+     fur from deep shadow to highlight, 3 being --coral itself; c w x the cream
+     of the muzzle, chest and paws; g the iris, p the pupil, h the glint; n the
+     nose; m the inside of an ear. A tabby standing alert, tail up, facing the
+     mechs, drawn by hand pixel by pixel.
+
+     MECHS: k the outline; 1 2 3 4 5 the plate from deep shadow to specular, 4
+     being --ink-dim itself; j q the dark joints (hip, knee, cannon mouth); u t y
+     the gold trim; d s v the sensor light from dark to glow, s being --accent;
+     r the lamp on the antenna. A walker facing the cats: visor, pauldron, arm
+     cannon with barrel rings, backpack with vents, a far arm and leg set back
+     in shade. Its plates were laid out as shapes and shaded by one rule (lit
+     from the top left, a seam wherever a nearer plate overlaps), then touched
+     up by hand; the lab that did it lived in the plan's scratchpad and is not
+     part of the artifact — these rows are.
+
+     Upright on purpose, like the 8-bit pair: [C19]'s quarter turn lays either
+     one down. */
+  var SCENE_SPRITES_16 = Object.freeze({
+    cats: Object.freeze([
+      '.............k.......k..',
+      '............k3k.....k3k.',
+      '...kkk......k4mk...k4mk.',
+      '..k443k.....k4m3kkk43mk.',
+      '.k43kk.....k43344424433k',
+      '.k42k......k33332323332k',
+      '.k32k......k3333kk33kk3k',
+      '.k31k......k3333hp33hp3k',
+      '.k42k......k2333gp22gp2k',
+      '.k32k......k2222222cwxnk',
+      '.k31k.......k2222cwwwkck',
+      '..k321111111k22cwwcckkk.',
+      '..k4442442442322wwcck...',
+      '...k332132132122cwwck...',
+      '...k33213213222cwcck....',
+      '...k3332332222ccccck....',
+      '...k23322221k433k12k....',
+      '...k23321111k433k12k....',
+      '...k232kkkkkk332k12k....',
+      '...k232k....k332k12k....',
+      '...k232k....k332k12k....',
+      '..kwwxck....kwxwck2k....',
+      '..kkkkkk....kkkkkkkk....',
+      '........................'
+    ]),
+    mechs: Object.freeze([
+      '...................r............................',
+      '...................r............................',
+      '...................k............................',
+      '..................k.............................',
+      '.................1qk............................',
+      '............1111153k...............11k..........',
+      '.........11155555453k..............12k..........',
+      '.........15544444443k..............12k..........',
+      '........13dsdddd4443k..............12k..........',
+      '........k2svvsss33322k...........11333111k......',
+      '.........k22222222222k11111111111k4333442k......',
+      '..........k22222222255555555533k3k43jjjj2k......',
+      '...........kk2kkkkkk55444444433k3k4333332k......',
+      '.............15553k3544444444433kk43jjjj2k......',
+      '.............15443k2533333345432k3k433332k......',
+      '.............15443k2312252244132k3k4jjjj2k......',
+      '............1544443k2kkkk1k2222k33k322221k......',
+      '............1544443kk555533k222k33k322221k......',
+      '............13333333yyyyyyyyyyy433k322221k......',
+      '............122tttttttttttttttttt3k111111k......',
+      '..jjjk......1kkuuuuuuuuuuuuuuuuuu3k111111k......',
+      '..jqjj1111115555555554444433k54433k1111kkk......',
+      '..jqjj5555155555515554444433k43322kkkkk.........',
+      '..jsjj4433153333315333333322k433322k31k.........',
+      '..jvjj2222152222215222222222k222222k31k.........',
+      '..jsjj2222132222213222222222k222222k31k.........',
+      '..jjjjkkkkkkkkkk222222222222k22k222k31k.........',
+      '..kkkk..........kkkkkkkkkqqqqjk.1kk221k.........',
+      '..................jjjjjjjjjjjjk.11211k..........',
+      '..................jjjjjjjjjjjjk.1k111k..........',
+      '...............111555533kkkjjjj111k11k..........',
+      '...............15555553k...k333311kkkk..........',
+      '...............15433343k....133221k.............',
+      '..............15432223k.....132221k.............',
+      '..............13322222k.....k12221k.............',
+      '..............k222jjj2k......132221k............',
+      '...............k2jyttjk......k32221k............',
+      '................jjttujk.......13221k............',
+      '................155553k.......13221k............',
+      '................155553k.......13221k............',
+      '................154443k.......13221k............',
+      '................143332k.......12111k............',
+      '................143332k.......12111k............',
+      '...........1111133333331k...1111111111k.........',
+      '...........1222212222222k...11111k1111k.........',
+      '...........1222212222222k...11111k1111k.........',
+      '...........kkkkkkkkkkkkkk...kkkkkkkkkkk.........',
+      '................................................'
+    ])
+  });
+
   // Where a sprite stands, keyed by unit id: [x, y], each the CENTRE of the
   // sprite as a share of the field. Only sprites somebody dragged are here;
   // everyone else stands in formation. null until the first paint reads it.
@@ -29305,6 +29490,235 @@ App.render = (function () {
     };
   }
 
+  /* D-44: THE 16-BIT PALETTE, every entry a token or a mix of tokens, exactly
+     as the 8-bit one is. A ramp needs shades a flat palette does not, and
+     they are made the SNES way: a shadow is not the colour mixed toward black
+     but toward a TINTED dark, so fur shades lean violet (--bg with a little
+     --accent-2 in it) and plate shades lean blue (--bg with a little
+     --accent). A highlight is the colour mixed toward a warmer or a lighter
+     token: the fur's toward --gold and --ink, the plate's toward --ink. So the
+     tokens reach every colour the sprites need, fur orange and sky blue
+     included, and nothing here is typed. A token that cannot be read paints
+     nothing for its letters, the 8-bit rule. */
+  function scenePalette16(read) {
+    var t = function (name) { return sceneRgb(read(name)); };
+    var m = sceneMix;
+    var c = sceneCss;
+    var bg = t('--bg');
+    var ink = t('--ink');
+    var fur = t('--coral');
+    var steel = t('--ink-dim');
+    var gold = t('--gold');
+    var sky = t('--accent');
+    var pink = t('--accent-2');
+    var dusk = m(bg, pink, 0.18);
+    var night = m(bg, sky, 0.16);
+    return {
+      cats: {
+        k: c(m(fur, dusk, 0.8)), 1: c(m(fur, dusk, 0.5)), 2: c(m(fur, dusk, 0.24)), 3: c(fur),
+        4: c(m(m(fur, gold, 0.3), ink, 0.22)),
+        c: c(m(m(fur, ink, 0.45), bg, 0.12)), w: c(m(fur, ink, 0.66)), x: c(m(fur, ink, 0.86)),
+        g: c(t('--green')), p: c(bg), h: c(ink), n: c(pink), m: c(m(pink, fur, 0.35))
+      },
+      mechs: {
+        k: c(m(steel, night, 0.84)), 1: c(m(steel, night, 0.62)), 2: c(m(steel, night, 0.4)),
+        3: c(m(steel, night, 0.15)), 4: c(steel), 5: c(m(steel, ink, 0.6)),
+        j: c(m(t('--ink-faint'), bg, 0.55)), q: c(m(t('--ink-faint'), bg, 0.2)),
+        u: c(m(gold, bg, 0.45)), t: c(gold), y: c(m(gold, ink, 0.55)),
+        d: c(m(sky, bg, 0.45)), s: c(sky), v: c(m(sky, ink, 0.7)), r: c(pink)
+      }
+    };
+  }
+
+  /* D-44: THE 16-BIT BACKDROP, an SNES battle background painted by code. Four
+     layers, back to front: a sky in five bands with a dithered seam between
+     each (the way a 16-bit machine grades a colour it has no gradient for),
+     flat-bottomed clouds, a range of mountains lit on the faces that turn to
+     the left with snow on the tallest peaks, a line of near hills, and the
+     ground the units stand on — hazy at the horizon, then grass with tufts,
+     darkening toward the foot. The picture is 1024 by 360 and [C19] draws it
+     at two screen pixels a picture pixel, anchored at the top of the field and
+     clipped to it, so a field of any row count shows its own share of the
+     ground. Every colour is a mix of tokens. The ridges are sums of sines and
+     the tufts a fixed integer hash, so the picture is the same on every load,
+     and painting it is one putImageData, only when the tokens move. */
+  var SCENE_BACK = Object.freeze({ w: 1024, h: 360, horizon: 30 });
+
+  function sceneBackPalette(read) {
+    var t = function (name) { return sceneRgb(read(name)); };
+    var m = sceneMix;
+    var bg = t('--bg');
+    var ink = t('--ink');
+    var sky = t('--accent');
+    var hill = t('--green');
+    var peak = t('--violet');
+    var sun = t('--gold');
+    return {
+      sky: [m(sky, bg, 0.72), m(sky, bg, 0.63), m(sky, bg, 0.54), m(m(sky, peak, 0.2), bg, 0.45),
+        m(m(sky, sun, 0.18), bg, 0.36)],
+      cloud: [m(m(sky, ink, 0.3), bg, 0.36), m(m(sky, ink, 0.55), bg, 0.22)],
+      far: [m(m(peak, sky, 0.3), bg, 0.62), m(m(peak, sky, 0.3), bg, 0.46), m(m(peak, sky, 0.6), bg, 0.5)],
+      snow: m(m(ink, peak, 0.2), bg, 0.12),
+      near: [m(hill, bg, 0.7), m(hill, bg, 0.56), m(hill, bg, 0.42)],
+      ground: [m(hill, bg, 0.84), m(hill, bg, 0.77), m(hill, bg, 0.7), m(hill, bg, 0.58),
+        m(m(hill, sun, 0.3), bg, 0.44)]
+    };
+  }
+
+  // The skyline, one height per column in picture pixels above the horizon.
+  function sceneRidges(w) {
+    var far = [];
+    var near = [];
+    for (var x = 0; x <= w; x++) {
+      far.push(Math.round(12 + 6 * Math.sin(x * 0.031) + 3.5 * Math.sin(x * 0.097 + 1.3)
+        + 1.5 * Math.sin(x * 0.23 + 0.4)));
+      near.push(Math.round(4 + 2.2 * Math.sin(x * 0.061 + 2.1) + 1.2 * Math.sin(x * 0.153 + 0.7)));
+    }
+    return { far: far, near: near };
+  }
+
+  function sceneHash(x, y) {
+    var h = Math.imul(x, 73856093) ^ Math.imul(y, 19349663);
+    h = Math.imul(h ^ (h >>> 13), 1274126177);
+    return (h ^ (h >>> 16)) >>> 0;
+  }
+
+  // One picture pixel of the backdrop, as three channels (or null for a
+  // colour whose token could not be read). Pure, so [S09.15] reads it.
+  function sceneBackAt(x, y, pal, rid) {
+    var H = SCENE_BACK.horizon;
+    var chk = ((x + y) & 1) === 0;
+    var g = pal.ground;
+    if (y > H) {
+      var d = y - H;
+      if (d <= 2) { return chk ? g[3] : g[2]; }
+      if (d <= 5) { return (chk && (y & 1) === 0) ? g[3] : g[2]; }
+      // Tufts of grass on a coarse grid, one cell in three: two lit blade
+      // tips, a lit middle blade between two duller ones, and a dark root.
+      var col = Math.floor(x / 11);
+      var row = Math.floor(d / 7);
+      var hh = sceneHash(col, row + 101);
+      if (d >= 7 && hh % 3 === 0) {
+        var ox = x - (col * 11 + 1 + (hh >>> 3) % 9);
+        var oy = d - (row * 7 + (hh >>> 7) % 5);
+        if (oy === 0 && (ox === -1 || ox === 1)) { return g[4]; }
+        if (oy === 1 && ox === 0) { return g[4]; }
+        if (oy === 1 && (ox === -1 || ox === 1)) { return g[3]; }
+        if (oy === 2 && ox >= -1 && ox <= 1) { return g[0]; }
+      }
+      if (d < 12) { return (chk && (y & 1) === 1) ? g[2] : g[1]; }
+      if (d < 36) { return g[1]; }
+      if (d < 44) { return (chk && (y & 1) === 0) ? g[0] : g[1]; }
+      if (d < 52) { return chk ? g[0] : g[1]; }
+      if (d < 60) { return (chk && (y & 1) === 0) ? g[1] : g[0]; }
+      return g[0];
+    }
+    var nearTop = H - rid.near[x];
+    if (y >= nearTop) {
+      if (y === nearTop) { return pal.near[2]; }
+      if (y === nearTop + 1) { return chk ? pal.near[2] : pal.near[1]; }
+      return (y - nearTop) < 4 ? pal.near[1] : pal.near[0];
+    }
+    var farTop = H - rid.far[x];
+    if (y >= farTop) {
+      var cap = rid.far[x] - 15;
+      if (cap > 0 && y - farTop < cap) { return pal.snow; }
+      if (cap > 0 && y - farTop === cap && chk) { return pal.snow; }
+      if (y >= H - 3) { return (chk || y >= H - 1) ? pal.far[2] : pal.far[0]; }
+      var lit = rid.far[Math.min(x + 3, rid.far.length - 1)] > rid.far[Math.max(x - 3, 0)];
+      return lit ? pal.far[1] : pal.far[0];
+    }
+    // Clouds: one flat-bottomed puff in every 128 columns, placed by the hash.
+    var cx = (x >> 7) * 128 + 40 + sceneHash(x >> 7, 3) % 48;
+    var cy = 6 + sceneHash(x >> 7, 5) % 4;
+    var dx = (x - cx) / (18 + sceneHash(x >> 7, 9) % 10);
+    var dy = (y - cy) / 3;
+    if (y <= cy + 1 && dx * dx + dy * dy <= 1) { return y === cy + 1 ? pal.cloud[0] : pal.cloud[1]; }
+    var band = Math.min(4, Math.floor(y / 5));
+    if (band < 4 && y - band * 5 === 4 && chk) { return pal.sky[band + 1]; }
+    return pal.sky[band];
+  }
+
+  var sceneRidgeCache = null;
+
+  // Paints the backdrop into its canvas in one putImageData. A context the
+  // browser will not hand over, or one without image data, leaves the window's
+  // own blue showing — the sprites and their names do not depend on it.
+  function sceneBackDraw(canvas, pal) {
+    var ctx = canvas.getContext('2d');
+    if (!ctx || typeof ctx.createImageData !== 'function' || typeof ctx.putImageData !== 'function') {
+      return false;
+    }
+    if (sceneRidgeCache === null) { sceneRidgeCache = sceneRidges(SCENE_BACK.w); }
+    var img = ctx.createImageData(SCENE_BACK.w, SCENE_BACK.h);
+    var data = img.data;
+    var i = 0;
+    for (var y = 0; y < SCENE_BACK.h; y++) {
+      for (var x = 0; x < SCENE_BACK.w; x++) {
+        var c = sceneBackAt(x, y, pal, sceneRidgeCache);
+        if (c !== null) {
+          data[i] = c[0];
+          data[i + 1] = c[1];
+          data[i + 2] = c[2];
+          data[i + 3] = 255;
+        }
+        i += 4;
+      }
+    }
+    ctx.putImageData(img, 0, 0);
+    return true;
+  }
+
+  /* D-44: WHICH GENERATION IS DRAWN is view state, held the way a place is:
+     in this region's scope and best-effort in the store, under its own key in
+     this artifact's namespace. Never in the build, the fight, `ui`, the undo
+     stack or the build code. What the store hands back is read as foreign:
+     exactly "8" or exactly "16", and anything else — nothing, garbage, a store
+     that is missing or refuses — is the default, 16-bit. */
+  var SCENE_GEN_KEY = 'cvm.v1.scene-art';
+  var SCENE_GEN_DEFAULT = '16';
+  // Each generation: its sprites, how many pixels a sprite is across (the
+  // canvas's own size), and its palette. [C19] decides how large each is drawn.
+  var SCENE_GENS = Object.freeze({
+    '16': Object.freeze({ sprites: SCENE_SPRITES_16, size: Object.freeze({ cats: 24, mechs: 48 }),
+      palette: scenePalette16 }),
+    '8': Object.freeze({ sprites: SCENE_SPRITES, size: Object.freeze({ cats: 16, mechs: 16 }),
+      palette: scenePalette })
+  });
+  var SCENE_GEN_BUTTONS = Object.freeze({ '16': 'scene-gen-16', '8': 'scene-gen-8' });
+  var sceneGenNow = null;
+
+  function sceneGenParse(raw) {
+    return (raw === '8' || raw === '16') ? raw : SCENE_GEN_DEFAULT;
+  }
+
+  function sceneGenGet(storage) {
+    if (!storage) { return null; }
+    try {
+      return storage.getItem(SCENE_GEN_KEY);
+    } catch (refused) {
+      void refused;
+      return null;
+    }
+  }
+
+  function sceneGenPut(storage, gen) {
+    if (!storage) { return false; }
+    try {
+      storage.setItem(SCENE_GEN_KEY, gen);
+      return true;
+    } catch (refused) {
+      void refused;
+      return false;
+    }
+  }
+
+  // The generation drawn now, read from the store on first asking.
+  function sceneGen() {
+    if (sceneGenNow === null) { sceneGenNow = sceneGenParse(sceneGenGet(sceneStorage())); }
+    return sceneGenNow;
+  }
+
   function sceneTokenReader() {
     var cs = null;
     try {
@@ -29319,13 +29733,13 @@ App.render = (function () {
 
   // Paints one sprite, pixel by pixel. A canvas whose context the browser
   // will not hand over (getContext may answer null) stays empty: the name
-  // under it still says who it is.
-  function sceneDraw(canvas, side, pal) {
+  // under it still says who it is. D-44: the rows and the colours are the
+  // generation's, and the canvas is cleared at its own size.
+  function sceneDraw(canvas, rows, colours) {
     var ctx = canvas.getContext('2d');
     if (!ctx) { return false; }
-    ctx.clearRect(0, 0, 16, 16);
-    var colours = pal[side];
-    SCENE_SPRITES[side].forEach(function (row, y) {
+    ctx.clearRect(0, 0, rows.length, rows.length);
+    rows.forEach(function (row, y) {
       for (var x = 0; x < row.length; x++) {
         var c = colours[row.charAt(x)];
         if (!c) { continue; }
@@ -29344,13 +29758,13 @@ App.render = (function () {
     node.dataset.scnAt = String(x) + ',' + String(y);
   }
 
-  function sceneBuildUnit(side, id) {
+  function sceneBuildUnit(side, id, px) {
     var node = el('div', 'scn-unit');
     setData(node, { scnUnit: id, scnSide: side });
     node.setAttribute('role', 'img');
     var canvas = el('canvas', 'scn-sprite');
-    canvas.width = 16;
-    canvas.height = 16;
+    canvas.width = px;
+    canvas.height = px;
     canvas.setAttribute('aria-hidden', 'true');
     node.appendChild(canvas);
     node.appendChild(el('span', 'scn-name'));
@@ -29399,10 +29813,19 @@ App.render = (function () {
     var rows = String(sceneFieldRows(counts.cats, counts.mechs));
     if (field.dataset.scnRows !== rows) { field.dataset.scnRows = rows; }
 
-    var pal = scenePalette(sceneTokenReader());
-    var palSig = JSON.stringify(pal);
+    // D-44: the generation, said on the section for [C19] and on the picker.
+    var gen = sceneGen();
+    var art = SCENE_GENS[gen];
+    var sect = document.getElementById('scene');
+    if (sect && sect.dataset.scnGen !== gen) { sect.dataset.scnGen = gen; }
+    scenePickerPaint(gen);
+
+    var read = sceneTokenReader();
+    var pal = art.palette(read);
+    var palSig = gen + JSON.stringify(pal);
     var repaint = field.dataset.scnPal !== palSig;
     field.dataset.scnPal = palSig;
+    if (gen === '16') { sceneBackPaint(read); }
 
     var have = Object.create(null);
     var want = Object.create(null);
@@ -29419,13 +29842,22 @@ App.render = (function () {
     roster.forEach(function (u, i) {
       var node = have[u.id];
       var fresh = node === undefined;
-      if (fresh) { node = sceneBuildUnit(u.side, u.id); }
+      var px = art.size[u.side];
+      if (fresh) { node = sceneBuildUnit(u.side, u.id, px); }
       // Order is roster order, which is reading order. Only a node that is
       // out of place is moved, so a frame on an unchanged roster moves none.
       if (field.children[i] !== node) { field.insertBefore(node, field.children[i] || null); }
 
+      // D-44: a switch of generation resizes the canvas IN PLACE — the same
+      // node, the same place — and a canvas resized is a canvas cleared, so it
+      // is drawn again on this frame.
       var canvas = node.firstElementChild;
-      if (fresh || repaint) { sceneDraw(canvas, u.side, pal); }
+      var resized = canvas.width !== px || canvas.height !== px;
+      if (resized) {
+        canvas.width = px;
+        canvas.height = px;
+      }
+      if (fresh || repaint || resized) { sceneDraw(canvas, art.sprites[u.side], pal[u.side]); }
 
       var label = node.lastElementChild;
       if (label.textContent !== u.name) { label.textContent = u.name; }
@@ -29440,6 +29872,35 @@ App.render = (function () {
         scenePlace(node, at[0], at[1]);
       }
     });
+  }
+
+  // D-44: the picker says which generation is drawn in the shipped idiom —
+  // the on-class, aria-pressed, and the tick the class shows. Written only
+  // when it differs, so an unchanged frame writes nothing.
+  function scenePickerPaint(gen) {
+    Object.keys(SCENE_GEN_BUTTONS).forEach(function (g) {
+      var b = document.getElementById(SCENE_GEN_BUTTONS[g]);
+      if (!b) { return; }
+      var on = g === gen;
+      if (b.classList.contains('scn-gen-on') !== on) {
+        if (on) { b.classList.add('scn-gen-on'); } else { b.classList.remove('scn-gen-on'); }
+      }
+      var pressed = on ? 'true' : 'false';
+      if (b.getAttribute('aria-pressed') !== pressed) { b.setAttribute('aria-pressed', pressed); }
+    });
+  }
+
+  // D-44: the backdrop is painted when its colours change and not otherwise —
+  // on the first 16-bit frame, and when a token moves.
+  function sceneBackPaint(read) {
+    var canvas = document.getElementById('scene-back');
+    if (!canvas || typeof canvas.getContext !== 'function') { return; }
+    var pal = sceneBackPalette(read);
+    var sig = JSON.stringify(pal);
+    if (canvas.dataset.scnPal === sig) { return; }
+    if (canvas.width !== SCENE_BACK.w) { canvas.width = SCENE_BACK.w; }
+    if (canvas.height !== SCENE_BACK.h) { canvas.height = SCENE_BACK.h; }
+    if (sceneBackDraw(canvas, pal)) { canvas.dataset.scnPal = sig; }
   }
 
   function syncScene(state) {
@@ -29476,6 +29937,19 @@ App.render = (function () {
   // string, so nothing outside can hold the record.
   function sceneSaid() {
     return JSON.stringify(sceneStore());
+  }
+
+  /* D-44: THE PICKER'S ONE JOB. The generation is changed here and in the
+     store, and the scene is painted onto it at once — page work, no commit,
+     so no frame would come for it otherwise. Nothing is rebuilt: every sprite
+     keeps its node and its place, and only its canvas is resized and drawn
+     again. Anything but "8" or "16" is refused and changes nothing. */
+  function sceneSetGen(gen) {
+    if (gen !== '8' && gen !== '16') { return false; }
+    sceneGenNow = gen;
+    sceneGenPut(sceneStorage(), gen);
+    scene(App.state.get());
+    return true;
   }
   // #endregion [S06.17] RENDER — THE BATTLE SCENE
 
@@ -29649,6 +30123,24 @@ App.render = (function () {
     SCENE_KEY: SCENE_KEY,
     SCENE_SPRITES: SCENE_SPRITES,
     SCENE_DOWN_SAID: SCENE_DOWN_SAID,
+    // D-44, to the same standard: the picker's one call, the generation read
+    // back, the store's reading and both of its accesses, the 16-bit palette,
+    // the backdrop's palette and one pixel of it, and the tables, so [S09.15]
+    // and the gate assert what the scene is drawn with.
+    sceneSetGen: sceneSetGen,
+    sceneGen: sceneGen,
+    sceneGenParse: sceneGenParse,
+    sceneGenGet: sceneGenGet,
+    sceneGenPut: sceneGenPut,
+    scenePalette16: scenePalette16,
+    sceneBackPalette: sceneBackPalette,
+    sceneBackAt: sceneBackAt,
+    sceneRidges: sceneRidges,
+    SCENE_BACK: SCENE_BACK,
+    SCENE_GENS: SCENE_GENS,
+    SCENE_GEN_KEY: SCENE_GEN_KEY,
+    SCENE_GEN_DEFAULT: SCENE_GEN_DEFAULT,
+    SCENE_SPRITES_16: SCENE_SPRITES_16,
     MAX_UNITS: MAX_UNITS
   });
 })();
@@ -36151,6 +36643,18 @@ App.interactions = (function () {
     }
     var reset = document.getElementById('scene-reset');
     if (reset) { reset.addEventListener('click', App.boot.wrap('scene formation', onSceneReset)); }
+    // D-44: the two picker buttons, each with a listener of its own like the
+    // reset control — no data-act, so [S07.1] never routes them into an op.
+    // A press changes the art and nothing else: a sprite being held stays
+    // held, and every place stays where it is.
+    ['scene-gen-16', 'scene-gen-8'].forEach(function (id) {
+      var b = document.getElementById(id);
+      if (b) {
+        b.addEventListener('click', App.boot.wrap('scene art', function () {
+          App.render.sceneSetGen(String(b.dataset.scnPick));
+        }));
+      }
+    });
   }
 
   LATE_BINDERS.push(bindScene);
@@ -49558,6 +50062,186 @@ App.selftest = (function () {
       + 'the state named after the scene, and no saved place afterwards',
       SLICE, [[0.2, 0.7], true, 0, 0, true, [], '{}']);
 
+    /* --- D-44 (plan 05-D44): TWO GENERATIONS. The 16-bit sprites are square
+           maps of 24 (a cat) and 48 (a mech) pixels, twice a cat either way;
+           the table says so for each generation and the 8-bit pair is D-42's
+           own sixteen; every letter either 16-bit sprite uses has a colour;
+           and the default is 16-bit. --- */
+    // The tokens as [C00] ships them, for the D-44 rows below.
+    var tokens44 = {
+      '--bg': '#0e1014', '--ink': '#e8ebf2', '--coral': '#ff8a5c', '--ink-dim': '#a4adbe',
+      '--ink-faint': '#6c7689', '--accent': '#5cc8ff', '--accent-2': '#ff7eb6', '--gold': '#ffd166',
+      '--green': '#5bd99c', '--violet': '#b98cff'
+    };
+    var GENS;
+    try {
+      var g16 = R.SCENE_GENS['16'];
+      var g8 = R.SCENE_GENS['8'];
+      var pal16 = R.scenePalette16(function (name) { return tokens44[name] || ''; });
+      var square = function (rows, n) {
+        return rows.length === n && rows.every(function (r) { return r.length === n; });
+      };
+      var coloured = ['cats', 'mechs'].every(function (side) {
+        return R.SCENE_SPRITES_16[side].every(function (row) {
+          for (var i = 0; i < row.length; i++) {
+            var ch = row.charAt(i);
+            if (ch !== '.' && !pal16[side][ch]) { return false; }
+          }
+          return true;
+        });
+      });
+      GENS = [
+        R.SCENE_GEN_DEFAULT, Object.keys(R.SCENE_GENS).sort().join(),
+        g16.size.cats, g16.size.mechs, g8.size.cats, g8.size.mechs,
+        square(g16.sprites.cats, g16.size.cats), square(g16.sprites.mechs, g16.size.mechs),
+        g8.sprites === R.SCENE_SPRITES, g16.sprites === R.SCENE_SPRITES_16,
+        g16.size.mechs / g16.size.cats, coloured,
+        // Every sprite has something on it: a map that lost its pixels would draw nothing.
+        R.SCENE_SPRITES_16.cats.join('').replace(/\./g, '').length > 300,
+        R.SCENE_SPRITES_16.mechs.join('').replace(/\./g, '').length > 1000
+      ];
+    } catch (stopped) {
+      GENS = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('D-44 — TWO GENERATIONS, 16-BIT BY DEFAULT: the 16-bit cat is a 24-pixel square and the '
+      + 'mech a 48-pixel one, twice a cat; the 8-bit pair is D-42\'s own sixteen; every letter '
+      + 'either 16-bit sprite uses has a colour, and both are drawn full',
+      GENS, ['16', '16,8', 24, 48, 16, 16, true, true, true, true, 2, true, true, true]);
+
+    /* --- D-44: THE 16-BIT PALETTE IS THE TOKENS, every shade a mix. The fur's
+           middle shade IS --coral, the plate's IS --ink-dim, the sensor IS
+           --accent and the trim IS --gold. Move --coral and the whole fur ramp
+           and its outline move and the mech does not; move --ink-dim and the
+           plate ramp moves and the cat does not. A token that cannot be read
+           paints nothing. --- */
+    var PAL16;
+    try {
+      var read44 = function (over) {
+        return function (name) { return (over && over[name]) || tokens44[name] || ''; };
+      };
+      var p0 = R.scenePalette16(read44(null));
+      var pFur = R.scenePalette16(read44({ '--coral': '#123456' }));
+      var pSteel = R.scenePalette16(read44({ '--ink-dim': '#654321' }));
+      var furKeys = ['k', '1', '2', '3', '4', 'c', 'w', 'x'];
+      var plateKeys = ['k', '1', '2', '3', '4', '5'];
+      PAL16 = [
+        p0.cats['3'], p0.mechs['4'], p0.mechs.s, p0.mechs.t, p0.cats.g,
+        furKeys.every(function (k) { return pFur.cats[k] !== p0.cats[k]; }),
+        JSON.stringify(pFur.mechs) === JSON.stringify(p0.mechs),
+        plateKeys.every(function (k) { return pSteel.mechs[k] !== p0.mechs[k]; }),
+        JSON.stringify(pSteel.cats) === JSON.stringify(p0.cats),
+        R.scenePalette16(function () { return ''; }).cats['3'],
+        R.scenePalette16(function () { return ''; }).mechs.k
+      ];
+    } catch (stopped) {
+      PAL16 = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('D-44 — THE 16-BIT PALETTE IS THE TOKENS: the fur\'s middle shade is --coral, the '
+      + 'plate\'s --ink-dim, the sensor --accent, the trim --gold, the eye --green; moving --coral '
+      + 'moves every fur shade and the outline and nothing of the mech, moving --ink-dim moves '
+      + 'every plate shade and nothing of the cat, and an unread token paints nothing',
+      PAL16, ['rgb(255, 138, 92)', 'rgb(164, 173, 190)', 'rgb(92, 200, 255)', 'rgb(255, 209, 102)',
+        'rgb(91, 217, 156)', true, true, true, true, '', '']);
+
+    /* --- D-44: THE BACKDROP IS THE TOKENS. Its top-left picture pixel is
+           --accent mixed 72% into --bg; move --accent and it moves; move
+           --green and the sky stays while the ground moves. A grid of pixels
+           across the whole picture is every one of them a colour, and the
+           picture is the same picture on a second reading. --- */
+    var BACK;
+    try {
+      var bp = R.sceneBackPalette(function (name) { return tokens44[name] || ''; });
+      var rid = R.sceneRidges(R.SCENE_BACK.w);
+      var bpSky = R.sceneBackPalette(function (name) {
+        return name === '--accent' ? '#654321' : (tokens44[name] || '');
+      });
+      var bpGrass = R.sceneBackPalette(function (name) {
+        return name === '--green' ? '#654321' : (tokens44[name] || '');
+      });
+      var H = R.SCENE_BACK.horizon;
+      var full = true;
+      for (var gy = 0; gy < R.SCENE_BACK.h; gy += 7) {
+        for (var gx = 0; gx < R.SCENE_BACK.w; gx += 13) {
+          var c = R.sceneBackAt(gx, gy, bp, rid);
+          if (!Array.isArray(c) || c.length !== 3) { full = false; }
+        }
+      }
+      BACK = [
+        R.SCENE_BACK.w, R.SCENE_BACK.h,
+        R.sceneBackAt(0, 0, bp, rid).join(','), R.sceneBackAt(0, 0, bpSky, rid).join(','),
+        R.sceneBackAt(0, 0, bpGrass, rid).join(',') === R.sceneBackAt(0, 0, bp, rid).join(','),
+        R.sceneBackAt(500, H + 80, bpGrass, rid).join(',') !== R.sceneBackAt(500, H + 80, bp, rid).join(','),
+        full, JSON.stringify(R.sceneRidges(R.SCENE_BACK.w)) === JSON.stringify(rid)
+      ];
+    } catch (stopped) {
+      BACK = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('D-44 — THE 16-BIT BACKDROP IS THE TOKENS: 1024 by 360 picture pixels; the top-left one '
+      + 'is --accent mixed into --bg and follows --accent; --green moves the ground and not the '
+      + 'sky; a grid across the whole picture is every point a colour, and the skyline is the '
+      + 'same on every load',
+      BACK, [1024, 360, '36,68,86', '38,30,24', true, true, true, true]);
+
+    /* --- D-44: WHAT THE STORE HELD FOR THE GENERATION IS READ AS FOREIGN:
+           exactly "8" or "16", and anything else is 16-bit. A store that is
+           missing or refuses answers nothing and throws nothing, and a working
+           one round-trips under this artifact's namespace. --- */
+    var GSTORE;
+    try {
+      var grec = { v: Object.create(null) };
+      var ggood = {
+        getItem: function (k) { return (k in grec.v) ? grec.v[k] : null; },
+        setItem: function (k, v) { grec.v[k] = String(v); }
+      };
+      var grefuses = {
+        getItem: function () { throw new Error('SecurityError'); },
+        setItem: function () { throw new Error('QuotaExceededError'); }
+      };
+      var gwrote = R.sceneGenPut(ggood, '8');
+      GSTORE = [
+        [null, '', 'x', '8 ', '32', '{"g":8}', '16', '8'].map(R.sceneGenParse).join(),
+        R.sceneGenGet(null), R.sceneGenPut(null, '8'), R.sceneGenGet(grefuses), R.sceneGenPut(grefuses, '8'),
+        gwrote, R.sceneGenParse(R.sceneGenGet(ggood)),
+        R.SCENE_GEN_KEY.indexOf('cvm.v1.') === 0 && R.SCENE_GEN_KEY !== R.SCENE_KEY
+      ];
+    } catch (stopped) {
+      GSTORE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    }
+    t.eq('D-44 — THE STORED GENERATION IS READ AS FOREIGN: nothing, garbage, a padded "8", an '
+      + 'unknown generation and an object all read as 16-bit, and only "16" and "8" as themselves; '
+      + 'a missing or refusing store answers nothing and throws nothing; a working one round-trips '
+      + 'under its own key in the cvm.v1. namespace',
+      GSTORE, ['16,16,16,16,16,16,16,8', null, false, null, false, true, '8', true]);
+
+    /* --- D-44: THE GENERATION LIVES IN NO SLICE. Switching to 8-bit and back
+           leaves the state byte-identical, no commit, no undo entry and the
+           same build code; a generation that does not exist is refused and
+           changes nothing. --- */
+    var GSLICE;
+    var genWas = R.sceneGen();
+    try {
+      var gBefore = JSON.stringify(App.state.get());
+      var gCommits = App.state.stats().commits;
+      var gDepth = App.state.undoDepth();
+      var gCode = App.serialize.encode(App.state.get().build);
+      var to8 = R.sceneSetGen('8');
+      var now8 = R.sceneGen();
+      var refused = R.sceneSetGen('32');
+      var still8 = R.sceneGen();
+      var to16 = R.sceneSetGen('16');
+      GSLICE = [to8, now8, refused, still8, to16, R.sceneGen(),
+        JSON.stringify(App.state.get()) === gBefore, App.state.stats().commits - gCommits,
+        App.state.undoDepth() - gDepth, App.serialize.encode(App.state.get().build) === gCode];
+    } catch (stopped) {
+      GSLICE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      R.sceneSetGen(genWas);
+    }
+    t.eq('D-44 — THE GENERATION LIVES IN NO SLICE: to 8-bit and back is two answers of true, '
+      + 'a generation that does not exist is refused and moves nothing, and across all of it the '
+      + 'state is byte-identical, no commit, no undo entry and the same build code',
+      GSLICE, [true, '8', false, '8', true, '16', true, 0, 0, true]);
+
     // Everything below needs a page: the sprites themselves.
     if (typeof document === 'undefined') {
       t.info('the battle scene\'s sprites', 'skipped — no DOM');
@@ -49612,6 +50296,62 @@ App.selftest = (function () {
       + 'nothing in the scene carries data-k, data-act or data-fg',
       PAINT, [true, true, 'Cat 1', 'Mech 3', 'CANVAS', 'true',
         true, 'Cat 2' + R.SCENE_DOWN_SAID, false, 'Mech 2', false, 0]);
+
+    /* --- D-44: A SWITCH OF GENERATION REDRAWS IN PLACE. With a fight running
+           and Cat 1 kept somewhere of its own, the 16-bit scene says "16" on the
+           section and draws canvases of 24 and 48 pixels; switched to 8-bit,
+           every sprite is THE SAME NODE at THE SAME PLACE, drawn at 16, and the
+           picker's pressed state has moved with it; switched back, the same
+           again at 24 and 48, and Cat 1's place is still its own. --- */
+    var SWITCH;
+    var genWas2 = R.sceneGen();
+    try {
+      App.ops.resetToDefaults();
+      App.ops.startFight();
+      App.state.flush();
+      R.sceneSetGen('16');
+      R.sceneKeep('c1', 0.2, 0.7);
+      R.scene(App.state.get());
+      var fld = document.getElementById('scene-field');
+      var sect = document.getElementById('scene');
+      var nodes0 = Array.prototype.slice.call(fld.children);
+      var at0 = nodes0.map(function (n) { return n.dataset.scnAt; }).join('|');
+      var sizes = function () {
+        return Array.prototype.slice.call(fld.children).map(function (n) { return n.firstElementChild.width; }).join();
+      };
+      var same = function () {
+        var now = Array.prototype.slice.call(fld.children);
+        return now.length === nodes0.length && now.every(function (n, i) { return n === nodes0[i]; })
+          && now.map(function (n) { return n.dataset.scnAt; }).join('|') === at0;
+      };
+      var pressed = function () {
+        return ['scene-gen-16', 'scene-gen-8'].map(function (id) {
+          var b = document.getElementById(id);
+          return b.getAttribute('aria-pressed') + '/' + b.classList.contains('scn-gen-on');
+        }).join(' ');
+      };
+      var s16 = [sect.dataset.scnGen, sizes(), pressed()];
+      R.sceneSetGen('8');
+      var s8 = [sect.dataset.scnGen, sizes(), same(), pressed()];
+      R.sceneSetGen('16');
+      SWITCH = [s16, s8, [sect.dataset.scnGen, sizes(), same(), pressed()],
+        JSON.stringify(JSON.parse(R.sceneSaid()).c1)];
+    } catch (stopped) {
+      SWITCH = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      R.sceneHome();
+      R.sceneSetGen(genWas2);
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    var s24 = '24,24,24,24,24,24,24,24,24,48,48,48';
+    t.eq('D-44 — A SWITCH OF GENERATION REDRAWS IN PLACE: the 16-bit scene draws canvases of 24 '
+      + 'and 48 pixels with the 16-bit control pressed; switched to 8-bit every sprite is the same '
+      + 'node at the same place, drawn at 16, with the 8-bit control pressed; switched back, the '
+      + 'same nodes and places at 24 and 48, and Cat 1\'s kept place is its own throughout',
+      SWITCH, [['16', s24, 'true/true false/false'],
+        ['8', '16,16,16,16,16,16,16,16,16,16,16,16', true, 'false/false true/true'],
+        ['16', s24, true, 'true/true false/false'], '[0.2,0.7]']);
 
     App.state.restore(savedAll);
     App.state.flush();

@@ -6227,8 +6227,26 @@ A.state.flush();
    strings here, and at every board a student can build that is still far
    above 257 — a floor is a lower bound on the whole page and not a census of
    one region. So the names are counted BY NAME in #scene by check 130, and
-   that is the row that goes red. */
-const FIGHT_FLOOR = 257;
+   that is the row that goes red.
+
+   257 -> 262 UNDER D-44, plan 05-D44, by the same method on a scratch copy of
+   HEAD (6551cb6) and the working tree, the same five shapes:
+
+                     setup before  after  delta     fight before  after  delta   #scene
+       2 x 2                 175    180     +5              323    328     +5       16
+       3 x 3                 194    199     +5              387    392     +5       20
+       5 x 3                 212    217     +5              451    456     +5       24
+       9 x 3                 248    253     +5              579    584     +5       32
+       24 x 24               572    577     +5             1731   1736     +5      104
+
+   The picker between the two generations of art costs exactly 5 at every
+   shape — the group's name, the two labels and the two ticks — so all 5 are
+   roster-independent and all 5 are this constant's. 257 + 5 = 262. Check 47
+   stays 117, as it did under D-42. (The HEAD column reproduces D-42's own
+   "after" column to the string, which is what says the harness is the same
+   harness.) Check 130d counts the picker's words by name in #scene, for this
+   paragraph's reason above: a floor is not a census. */
+const FIGHT_FLOOR = 262;
 
 console.log('scan: ' + fightText.length + ' rendered strings read from #app WITH '
   + 'A FIGHT RUNNING (Layer C, floor ' + FIGHT_FLOOR + ')');
@@ -18407,15 +18425,50 @@ d43Heights.large[3] = d43Num(d43Media, /\.scn-field\{[^}]*;height:(\d+)px/);
 const d43Ratio = [d43Big, d43Cat.small, d43Cat.large, d43Cat.small * d43Big, d43Cat.large * d43Big,
   [d43Cat.small, d43Cat.large, d43Cat.small * d43Big, d43Cat.large * d43Big].every((v) => v > 0 && v % 16 === 0)];
 const d43Hit = (a, b) => a.l < b.r && b.l < a.r && a.t < b.b && b.t < a.b;
+/* TURNED IN THE OPEN UNDER D-44, plan 05-D44: "make it cover both generations".
+   The 16-bit generation draws a cat at 48px at EVERY window size (a 24-pixel
+   sprite at two screen pixels a sprite pixel), read here off its own [C19] rule,
+   and a mech at --scn-big times that. So every roster is laid out twice more,
+   and the laid-out count this row asks for doubles, 1152 -> 2304. RED recorded
+   on a scratch copy: this row with its loop still laying out the two 8-bit
+   fields alone printed `laid 1152 first bad: none`, 228 of 229, 130c the only
+   red. And
+   for BOTH generations every drawn size must be a WHOLE multiple of the
+   sprite's own pixel count ([S06.17]'s SCENE_GENS), which is what keeps the
+   pixels crisp. */
+const d44Px16 = d43Num(d43Css, /\.scn\[data-scn-gen="16"\] \.scn-field\{--scn-px:(\d+)px/);
+// EVERY rule that names the 16-bit generation is read for the four custom
+// properties that decide a sprite's size. Only --scn-px may appear, once: a
+// 16-bit rule that also set --scn-big, --scn-spr, --scn-w or --scn-h would
+// draw the 16-bit set at sizes this row never laid out (a mech at a cat's size,
+// say), and reading the multiplier off the base rule alone would not see it.
+const d44SizeDecls = [];
+(d43Css.replace(/\/\*[\s\S]*?\*\//g, ' ').match(/[^{}]*\[data-scn-gen="16"\][^{}]*\{[^}]*\}/g) || [])
+  .forEach((rule) => (rule.match(/--scn-(px|big|spr|w|h)\s*:[^;}]*/g) || []).forEach((d) => d44SizeDecls.push(d.trim())));
+const d44Gens = A.render.SCENE_GENS || {};
+const d44Drawn = {
+  '8': { small: { cats: d43Cat.small, mechs: d43Cat.small * d43Big },
+    large: { cats: d43Cat.large, mechs: d43Cat.large * d43Big } },
+  '16': { small: { cats: d44Px16, mechs: d44Px16 * d43Big },
+    large: { cats: d44Px16, mechs: d44Px16 * d43Big } }
+};
+const d44Whole = [];
+['8', '16'].forEach((g) => ['small', 'large'].forEach((media) => ['cats', 'mechs'].forEach((side) => {
+  const own = (d44Gens[g] && d44Gens[g].size) ? d44Gens[g].size[side] : NaN;
+  const k = d44Drawn[g][media][side] / own;
+  d44Whole.push(g + ' ' + media + ' ' + side + ' ' + d44Drawn[g][media][side] + '/' + own
+    + (k > 0 && k === Math.round(k) ? '' : ' NOT WHOLE'));
+})));
 let d43Laid = 0;
 let d43Bad = '';
-for (const fld of [{ media: 'small', w: 1304 }, { media: 'large', w: 1582 }]) {
-  const spr = { cats: d43Cat[fld.media], mechs: d43Cat[fld.media] * d43Big };
+for (const fld of [{ media: 'small', w: 1304, gen: '8' }, { media: 'large', w: 1582, gen: '8' },
+  { media: 'small', w: 1304, gen: '16' }, { media: 'large', w: 1582, gen: '16' }]) {
+  const spr = d44Drawn[fld.gen][fld.media];
   for (let nc = 1; nc <= 24 && d43Bad === ''; nc++) {
     for (let nm = 1; nm <= 24 && d43Bad === ''; nm++) {
       const rows = A.render.sceneFieldRows(nc, nm);
       const H = d43Heights[fld.media][rows];
-      const where = fld.media + ' ' + nc + 'v' + nm + ' rows ' + rows;
+      const where = fld.gen + '-bit ' + fld.media + ' ' + nc + 'v' + nm + ' rows ' + rows;
       if (!(H > 0)) { d43Bad = where + ': [C19] gives no height'; break; }
       const units = [];
       [['cats', nc, 'Cat '], ['mechs', nm, 'Mech ']].forEach(([side, n, word]) => {
@@ -18460,15 +18513,172 @@ check(
     + 'drives, on the field height [C19] gives its row count: no sprite over another sprite, '
     + 'no sprite over another unit\'s name, no two names overlapping, every box inside the '
     + 'field. The shipped 9v3 keeps D-42\'s three-row field, its three mechs standing in one '
-    + 'row, and 24 a side takes six rows, four of them mechs',
+    + 'row, and 24 a side takes six rows, four of them mechs. D-44: ALL OF IT FOR BOTH '
+    + 'GENERATIONS — the 16-bit cat is 48px at every window size and its mech twice that, '
+    + 'every roster is laid out at those sizes too, and in both generations every drawn size '
+    + 'is a whole multiple of the sprite\'s own pixel count, so no pixel is smoothed',
   d43Ratio[0] === 2 && d43Ratio[1] === 48 && d43Ratio[2] === 64 && d43Ratio[3] === 96
     && d43Ratio[4] === 128 && d43Ratio[5] === true && d43BoxW === 128 && d43Under === 24
-    && d43Rules.every(Boolean) && d43Laid === 2 * 24 * 24 && d43Bad === ''
+    && d43Rules.every(Boolean) && d43Laid === 2 * 2 * 24 * 24 && d43Bad === ''
+    && d44Px16 === 48 && d44Whole.length === 8 && d44Whole.every((s) => s.indexOf('NOT') === -1)
+    && JSON.stringify(d44SizeDecls) === JSON.stringify(['--scn-px:48px'])
     && d43Ship[0] === 3 && d43Ship[1] === 6 && d43Ship[2] === true,
   'ratio [big, cat small, cat large, mech small, mech large, all x16] ' + JSON.stringify(d43Ratio)
     + ' | box w ' + d43BoxW + ' under ' + d43Under + ' | rules ' + JSON.stringify(d43Rules)
     + ' | heights ' + JSON.stringify(d43Heights) + ' | laid ' + d43Laid + ' first bad: ' + (d43Bad || 'none')
+    + ' | 16-bit cat px ' + d44Px16 + ' | drawn / sprite ' + JSON.stringify(d44Whole)
+    + ' | size properties in 16-bit rules ' + JSON.stringify(d44SizeDecls)
     + ' | shipped rows / 24v24 rows / 3 mechs one row ' + JSON.stringify(d43Ship)
+);
+
+/* --- 130d. D-44 — TWO GENERATIONS OF ART AND A PICKER BETWEEN THEM, plan 05-D44 ---
+   The developer, verbatim: "change the bar to FFV level art and redraw, keep the
+   original art and let users pick the generation, use the new one as default".
+
+   THE DEFAULT IS READ OFF THE SHELL AND OFF THE PAGE: the section ships "16" and
+   the 16-bit control ships pressed, and this page — which has no store at all —
+   paints the 16-bit set: canvases of 24 and 48 pixels and the backdrop painted.
+   THE COLOURS ARE COMPARED WITH THE SHELL'S OWN :root, mixed here by this row
+   and not by the artifact, so a palette that stopped deriving from the tokens
+   cannot agree with itself: the fur pixel is --coral, the plate --ink-dim, the
+   sensor --accent, and the backdrop's first pixel --accent mixed 72% into --bg.
+
+   THE PICKER IS PRESSED THE WAY A MOUSE OR A KEYBOARD PRESSES IT, with a click:
+   to 8-bit, every sprite is the same node at the same place drawn at 16 and the
+   pressed state has moved; then a sprite is PICKED UP AND HELD while the art is
+   switched back, and it is still held, still the same node, still where the
+   pointer put it, and let go it keeps that place. Across all of it the state is
+   byte-identical, no commit, no undo entry, the same build code. A generation
+   that does not exist is refused. AND EVERY WORD THE SCENE SHOWS reaches
+   Layer C's harvest from #scene once — heading, hint, the picker's name and
+   both labels, the reset — so the no-verdict scan reads the picker, and a
+   static word that fell off the page is missed here rather than nowhere: this
+   plan's own first stub edit dropped three of them with every row green, and
+   FIGHT_FLOOR's re-derivation is what found it. --- */
+const d44Shell = [
+  /<section class="scn" id="scene"[^>]*data-scn-gen="16"/.test(html),
+  /class="scn-gen-btn scn-gen-on" type="button" id="scene-gen-16" data-scn-pick="16" aria-pressed="true"/.test(html),
+  /class="scn-gen-btn" type="button" id="scene-gen-8" data-scn-pick="8" aria-pressed="false"/.test(html),
+  (html.match(/<span class="scn-gen-check">✓<\/span>/g) || []).length === 2
+];
+const d44Gen0 = A.render.sceneGen();
+A.ops.resetToDefaults();
+A.ops.startFight();
+A.state.invalidate({ structural: true });
+A.state.flush();
+A.render.sceneHome();
+const d44Field = dom.byId['scene-field'];
+const d44Sect = dom.byId['scene'];
+const d44Back = dom.byId['scene-back'];
+const d44Sizes = () => d44Field.children.map((n) => (n.firstElementChild ? n.firstElementChild.width : 0)).join();
+const d44Pressed = () => ['scene-gen-16', 'scene-gen-8'].map((id) => dom.byId[id].getAttribute('aria-pressed')
+  + '/' + dom.byId[id].classList.contains('scn-gen-on')).join(' ');
+const d44Root = {};
+(function () {
+  const at = html.indexOf(':root{');
+  const body = at === -1 ? '' : html.slice(at, html.indexOf('}', at));
+  body.replace(/(--[a-z0-9-]+)\s*:\s*(#[0-9a-fA-F]{6})\s*;/g, (_, k, v) => {
+    d44Root[k] = [1, 3, 5].map((i) => parseInt(v.slice(i, i + 2), 16));
+    return _;
+  });
+})();
+const d44Mix = (a, b, t) => (a && b ? [0, 1, 2].map((i) => Math.round(a[i] * (1 - t) + b[i] * t)) : null);
+const d44Css = (c) => (c ? 'rgb(' + c.join(', ') + ')' : 'MISSING TOKEN');
+const d44First = (rows, ch) => {
+  for (let y = 0; y < rows.length; y++) { const x = rows[y].indexOf(ch); if (x !== -1) { return x + ',' + y; } }
+  return 'none';
+};
+const d44Sp = A.render.SCENE_SPRITES_16 || { cats: [], mechs: [] };
+const d44Cat1 = d44Field.children[0] || null;
+const d44Mech1 = d44Field.children.filter((n) => n.dataset.scnUnit === 'm1')[0] || null;
+const d44Px = (n, at) => (n && n.firstElementChild && n.firstElementChild._pixels ? n.firstElementChild._pixels[at] : 'MISSING');
+const d44Img = d44Back && d44Back._image ? d44Back._image : null;
+const d44Paint = [d44Sect.dataset.scnGen, d44Sizes(), d44Pressed(),
+  d44Px(d44Cat1, d44First(d44Sp.cats, '3')), d44Px(d44Mech1, d44First(d44Sp.mechs, '4')),
+  d44Px(d44Mech1, d44First(d44Sp.mechs, 's')),
+  d44Img ? d44Img.width + 'x' + d44Img.height : 'NOT PAINTED',
+  d44Img ? 'rgb(' + [d44Img.data[0], d44Img.data[1], d44Img.data[2]].join(', ') + ')' : 'NOT PAINTED'];
+const d44Want = [d44Css(d44Root['--coral']), d44Css(d44Root['--ink-dim']), d44Css(d44Root['--accent']),
+  d44Css(d44Mix(d44Root['--accent'], d44Root['--bg'], 0.72))];
+const S24 = '24,24,24,24,24,24,24,24,24,48,48,48';
+
+// PRESSED: to 8-bit.
+const d44State0 = JSON.stringify(A.state.get());
+const d44C0 = commits();
+const d44Depth0 = A.state.undoDepth();
+const d44Code0 = A.serialize.encode(A.state.get().build);
+const d44Nodes0 = d44Field.children.slice();
+const d44At0 = d44Nodes0.map((n) => n.dataset.scnAt).join('|');
+const d44Same = () => d44Field.children.length === d44Nodes0.length
+  && d44Field.children.every((n, i) => n === d44Nodes0[i]);
+dom.byId['scene-gen-8'].dispatchEvent(dom.event('click', {}));
+const d44To8 = [d44Sect.dataset.scnGen, d44Sizes(), d44Pressed(), d44Same(),
+  d44Field.children.map((n) => n.dataset.scnAt).join('|') === d44At0, A.render.sceneGen()];
+
+// HELD WHILE THE ART IS SWITCHED BACK.
+const d44FieldRectWas = d44Field.getBoundingClientRect;
+d44Field.getBoundingClientRect = d42Rect(0, 0, 1000, 300);
+const d44C1RectWas = d44Cat1 ? d44Cat1.getBoundingClientRect : null;
+if (d44Cat1) { d44Cat1.getBoundingClientRect = d42Rect(52, 64, 96, 72); }    // centre (100, 100)
+if (d44Cat1) { d44Cat1.firstElementChild.dispatchEvent(d42Ev('pointerdown', 100, 100)); }
+d44Field.dispatchEvent(d42Ev('pointermove', 400, 150));
+const d44Held0 = A.interactions.sceneHeld();
+dom.byId['scene-gen-16'].dispatchEvent(dom.event('click', {}));
+const d44Mid = [JSON.parse(A.interactions.sceneHeld() || '{}').live, A.interactions.sceneHeld() === d44Held0,
+  d44Same(), d44Cat1 ? d44Cat1.classList.contains('scn-unit--held') : false,
+  d44Cat1 ? d44Cat1.style.getPropertyValue('--scn-x') + ',' + d44Cat1.style.getPropertyValue('--scn-y') : '',
+  d44Sect.dataset.scnGen, d44Sizes(), d44Pressed()];
+d44Field.dispatchEvent(d42Ev('pointerup', 400, 150));
+const d44Kept = [A.interactions.sceneHeld(), JSON.stringify(JSON.parse(A.render.sceneSaid()).c1)];
+const d44Nothing = [JSON.stringify(A.state.get()) === d44State0, commits() - d44C0,
+  A.state.undoDepth() - d44Depth0, A.serialize.encode(A.state.get().build) === d44Code0, errPanel.hidden];
+const d44Refused = [A.render.sceneSetGen('32'), A.render.sceneSetGen(''), A.render.sceneSetGen(8), A.render.sceneGen()];
+
+// THE SCENE'S WORDS IN LAYER C's HARVEST, on check 92's own page.
+const d44HintWord = (/id="scene-hint"[^>]*>([^<]*)</.exec(html) || [])[1] || 'NOT IN THE SHELL';
+const d44Words = ['Who is who', d44HintWord, 'Sprite art', '16-bit', '8-bit', 'Back to formation']
+  .map((w) => d42SceneText.filter((s) => s === w).length);
+const d44Ticks = d42SceneText.filter((s) => s === '✓').length;
+
+A.render.sceneHome();
+d44Field.getBoundingClientRect = d44FieldRectWas;
+if (d44Cat1) { d44Cat1.getBoundingClientRect = d44C1RectWas; }
+A.render.sceneSetGen(d44Gen0);
+A.ops.resetToDefaults();
+A.state.invalidate({ structural: true });
+A.state.flush();
+check(
+  '130d. D-44 — TWO GENERATIONS OF ART, 16-BIT BY DEFAULT, AND A PICKER THAT MOVES THE '
+    + 'PICTURE AND NOTHING ELSE. The shell ships the section at "16" and the 16-bit control '
+    + 'pressed, each control with its tick, and this page — no store at all — paints the '
+    + '16-bit set: nine cats at 24 pixels, three mechs at 48, and the backdrop, 1024 by 360. '
+    + 'THE COLOURS ARE THE SHELL\'S OWN :root, mixed by this row: the fur is --coral, the '
+    + 'plate --ink-dim, the sensor --accent, the backdrop\'s first pixel --accent 28% into '
+    + '--bg. A CLICK on 8-bit: every sprite the same node at the same place, drawn at 16, the '
+    + 'pressed state moved with it. A sprite PICKED UP AND HELD while a click switches the '
+    + 'art back is still held, the same node, still at 0.4 and 0.5 where the pointer put it, '
+    + 'and let go it keeps that place. Across all of it the state is byte-identical, no '
+    + 'commit, no undo entry, the same build code, the panel shut. "32", "" and the number 8 '
+    + 'are refused. And every word the scene shows reaches Layer C from #scene once, both '
+    + 'ticks with them, so the no-verdict scan reads the picker',
+  d44Shell.every(Boolean)
+    && d44Paint[0] === '16' && d44Paint[1] === S24 && d44Paint[2] === 'true/true false/false'
+    && d44Paint[3] === d44Want[0] && d44Paint[4] === d44Want[1] && d44Paint[5] === d44Want[2]
+    && d44Paint[6] === '1024x360' && d44Paint[7] === d44Want[3]
+    && d44To8[0] === '8' && d44To8[1] === '16,16,16,16,16,16,16,16,16,16,16,16'
+    && d44To8[2] === 'false/false true/true' && d44To8[3] === true && d44To8[4] === true && d44To8[5] === '8'
+    && d44Mid[0] === true && d44Mid[1] === true && d44Mid[2] === true && d44Mid[3] === true
+    && d44Mid[4] === '0.4,0.5' && d44Mid[5] === '16' && d44Mid[6] === S24 && d44Mid[7] === 'true/true false/false'
+    && d44Kept[0] === '' && d44Kept[1] === '[0.4,0.5]'
+    && d44Nothing[0] === true && d44Nothing[1] === 0 && d44Nothing[2] === 0 && d44Nothing[3] === true
+    && d44Nothing[4] === true
+    && d44Refused[0] === false && d44Refused[1] === false && d44Refused[2] === false && d44Refused[3] === '16'
+    && d44Words.every((n) => n === 1) && d44Ticks === 2,
+  'shell ' + JSON.stringify(d44Shell) + ' | painted ' + JSON.stringify(d44Paint) + ' want ' + JSON.stringify(d44Want)
+    + ' | to 8 ' + JSON.stringify(d44To8) + ' | held across the switch back ' + JSON.stringify(d44Mid)
+    + ' | kept ' + JSON.stringify(d44Kept) + ' | nothing else [state, commits, undo, code, panel] '
+    + JSON.stringify(d44Nothing) + ' | refused ' + JSON.stringify(d44Refused)
+    + ' | words ' + JSON.stringify(d44Words) + ' ticks ' + d44Ticks
 );
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.
