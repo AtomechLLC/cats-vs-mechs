@@ -1331,3 +1331,35 @@ orchestrator's.** See `05-D41b-SUMMARY.md`.
    art: judged here on screenshots at 1920x1080 and 1366x768 and 3x crops, not on a projector.
 
 **Owner:** the developer (1); the 05-11 playtest (3).
+
+---
+
+## D-45 — generated unit names, what they do not settle, raised by plan 05-D45
+
+**Raised 2026-09-27.**
+
+1. **THE BOARD CARD DOES NOT REPAINT A UNIT'S NAME ON A PLAIN COMMIT.** A unit's name on its card,
+   and inside every stepper's accessible name (`data-ablPre`), is written by `structure()` only,
+   because no op renames a unit. Measured in real Chrome and Edge at both sizes: a name written
+   through `[S03]`'s writer shows on the scene at once (D-42 made the scene read it every frame) and
+   on the card only after the next structural frame. Nothing a student can press reaches this
+   today. It is the render half of a rename-unit op, which D-45 did not ask for: the day one ships
+   it must commit structurally, or teach `sync()` the unit's name the way it already knows a token
+   type's. Recorded at `[S09.16]`'s page row.
+2. **PAST THE FIRST ROUND OF A LIST, TWO SCENE NAMES CAN TOUCH AT 24 A SIDE.** Every name through
+   c52 is at most 7 characters and through m163 at most 8, which is what the 24-a-side formation at
+   1366 clears (95.5px between cats, 106.5px between mechs). c53 is "Biscuit 2" (9) and m164 "Elk
+   MK-10" (9). Only a side that has minted more than fifty units reaches either, and only the scene
+   is narrow enough to show it. Longer lists would push it further out.
+3. **THE `build code` SUITE THROWS, RATHER THAN FAILING ROW BY ROW, WHEN ENCODE REFUSES ITS
+   HOSTILE BOARD.** Found under D-45's probes P3a and P3b (index-keyed naming): encode rightly
+   refuses a board whose names are not its ids' names, and the suite's tamper matrix, built off
+   `bodyOf(hostileCode)`, calls `.indexOf` on null. The harness turns it into one "suite threw"
+   record and the rest of that suite's rows go unreported (1421 -> 1268 rows). Every D-45 row
+   failed cleanly under every probe. Hardening the tamper matrix against an unwritable hostile
+   board is a change to a pre-D-45 suite and is left for its owner.
+4. **WHETHER THE NAMES READ WELL ALOUD AND FROM THE BACK OF A ROOM** is a person's to judge; the
+   lists were chosen to be easy to say and were read back on screenshots only.
+
+**Owner:** the rename-unit op, if one is ever asked for (1); the developer (2, 3); the 05-11
+playtest (4).
