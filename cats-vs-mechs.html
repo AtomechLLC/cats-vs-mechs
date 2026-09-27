@@ -6727,7 +6727,7 @@
      the sprites go to 64px (four screen pixels a sprite pixel, still whole
      pixels) and the fields to 360 and 480, 88px apart against 88. */
   .scn-field{
-    --scn-w:104px;--scn-h:72px;--scn-px:48px;
+    --scn-w:128px;--scn-h:72px;--scn-px:48px;
     --scn-sky:color-mix(in srgb, var(--accent) 36%, var(--bg));
     --scn-sky-2:color-mix(in srgb, var(--accent) 14%, var(--bg));
     --scn-grass:color-mix(in srgb, var(--green) 46%, var(--bg));
@@ -6748,14 +6748,20 @@
     .scn-field{--scn-h:88px;--scn-px:64px;height:360px}
     .scn-field[data-scn-rows="4"]{height:480px}
   }
+  /* THE BOX IS WIDER THAN THE SPRITE AND ONLY THE SPRITE AND ITS NAME TAKE THE
+     POINTER. 128px holds eleven characters of the 18px name on one line; the
+     rest of the box is empty space that must not pick a sprite up, so the box
+     is pointer-events:none and its two visible parts put it back. */
   .scn-unit{
     position:absolute;width:var(--scn-w);
     left:clamp(0px, calc(var(--scn-x, .5) * 100% - var(--scn-w) / 2), calc(100% - var(--scn-w)));
     top:clamp(0px, calc(var(--scn-y, .5) * 100% - var(--scn-h) / 2), calc(100% - var(--scn-h)));
     display:flex;flex-direction:column;align-items:center;gap:2px;
-    cursor:grab;touch-action:none;
+    pointer-events:none;touch-action:none;
   }
-  .scn-unit--held{cursor:grabbing;z-index:2}
+  .scn-unit > *{pointer-events:auto;cursor:grab}
+  .scn-unit--held{z-index:3}
+  .scn-unit--held > *{cursor:grabbing}
   .scn-sprite{
     width:var(--scn-px);height:var(--scn-px);image-rendering:pixelated;display:block;
     transition:transform var(--ramp), filter var(--ramp);
@@ -6768,10 +6774,19 @@
      hidden, because the scene's one job is telling units apart. */
   .scn-unit--down .scn-sprite{filter:grayscale(1) brightness(.7);transform:translateY(12px) rotate(-90deg)}
   .scn-unit--down[data-scn-side="mechs"] .scn-sprite{transform:translateY(12px) rotate(90deg)}
+  /* A NAME IS NEVER UNDER A SPRITE. Measured on the first real screenshots:
+     a renamed unit's long name ran down over the sprite in the next row, and a
+     sprite dropped onto a neighbour covered the neighbour's name — every row
+     green, because a row that compared names with names could not see a name
+     under a picture. So every name is positioned and lifted above every
+     canvas (the units form no stacking context of their own, so one z-index
+     orders all names over all sprites), on a plate of the field's own dark,
+     and it breaks only at a space unless one word is wider than the box. */
   .scn-name{
-    max-width:100%;font:600 18px/22px ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
-    color:var(--ink);text-align:center;overflow-wrap:anywhere;
-    text-shadow:0 2px 0 var(--bg);
+    position:relative;z-index:1;max-width:100%;padding:0 4px;border-radius:3px;
+    background:color-mix(in srgb, var(--bg) 82%, transparent);
+    font:600 18px/22px ui-monospace, "Cascadia Mono", Consolas, "Courier New", monospace;
+    color:var(--ink);text-align:center;overflow-wrap:break-word;
   }
   .scn-unit--down .scn-name{color:var(--ink-faint)}
 
