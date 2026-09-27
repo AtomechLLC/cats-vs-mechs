@@ -788,6 +788,13 @@ if (!A || !A.interactions) {
   fail('Script loaded into the stub page but App.interactions is missing');
 }
 
+// D-45, plan 05-D45: a unit's default name is the generator's, read from the
+// artifact under test — never re-typed here. Every row that names a unit reads
+// it through this, so a changed list is a changed expectation rather than a
+// red run that teaches nothing, and a row cannot agree with a stale copy of
+// itself (the D-40 lesson).
+const bornName = (side, n) => A.data.unitName(side, n);
+
 // boot.start() asked for the first structural frame through requestAnimationFrame.
 // Run it now so every assertion below reads a page that matches state.
 A.state.flush();
@@ -2094,15 +2101,21 @@ A.state.flush();
 const madeAriaAfter = madeStepperNodes().map(ariaOf);
 A.ops.removeTokenType(madeAria);
 A.state.flush();
+const stepperAria = (unit, type) => ['Decrease ' + unit + ' ' + type, unit + ' ' + type,
+  'Increase ' + unit + ' ' + type];
 
 check(
   '41. a rename moves the accessible name on the field and on both nudge '
     + 'buttons, for a type the board is built on and for one a student made',
-  String(hpAriaBefore) === String(['Decrease Cat 1 Health', 'Cat 1 Health', 'Increase Cat 1 Health'])
-    && String(hpAriaAfter) === String(['Decrease Cat 1 Vigor', 'Cat 1 Vigor', 'Increase Cat 1 Vigor'])
+  // TURNED IN THE OPEN UNDER D-45: this row held "Cat 1" as a literal and went
+  // red when c1 was born "Biscuit". The unit's name is now read from the
+  // generator; the claim — the type's word moves and the unit's does not — is
+  // unchanged.
+  String(hpAriaBefore) === String(stepperAria(bornName('cats', 1), 'Health'))
+    && String(hpAriaAfter) === String(stepperAria(bornName('cats', 1), 'Vigor'))
     && String(hpAriaBack) === String(hpAriaBefore)
-    && String(madeAriaBefore) === String(['Decrease Cat 1 New type', 'Cat 1 New type', 'Increase Cat 1 New type'])
-    && String(madeAriaAfter) === String(['Decrease Cat 1 Poison', 'Cat 1 Poison', 'Increase Cat 1 Poison']),
+    && String(madeAriaBefore) === String(stepperAria(bornName('cats', 1), 'New type'))
+    && String(madeAriaAfter) === String(stepperAria(bornName('cats', 1), 'Poison')),
   'built-in before=' + JSON.stringify(hpAriaBefore)
     + ' after=' + JSON.stringify(hpAriaAfter)
     + ' back=' + JSON.stringify(hpAriaBack)
@@ -17064,11 +17077,12 @@ check(
   d39MarkOnC1.total === 12
     && d39MarkOnC1.byClass.length === 1 && d39MarkOnC1.byClass[0] === 'cats/c1'
     && d39MarkOnC1.byAria.length === 1 && d39MarkOnC1.byAria[0] === 'cats/c1'
-    && d39MarkOnC1.head === 'Cat 1'
+    // D-45: both headings read from the generator (was 'Cat 1' / 'Cat 5').
+    && d39MarkOnC1.head === bornName('cats', 1)
     && d39MarkOnC1.notFalse === 0
     && d39MarkMoved.byClass.length === 1 && d39MarkMoved.byClass[0] === 'cats/c5'
     && d39MarkMoved.byAria.length === 1 && d39MarkMoved.byAria[0] === 'cats/c5'
-    && d39MarkMoved.head === 'Cat 5'
+    && d39MarkMoved.head === bornName('cats', 5)
     && d39MarkMoved.notFalse === 0
     && d39MarkShut.shut === true
     && d39MarkShut.byClass.length === 0 && d39MarkShut.byAria.length === 0
@@ -17208,21 +17222,22 @@ check(
     + 'the bound actually refuses, is the one that answers. Arrived-at and '
     + 'refused-by are two different facts about the same number and only the '
     + 'second is a thing to tell a student',
-  d37Held.shut === false && d37Held.head === 'Cat 1'
+  // D-45: every "Cat 1" this row held is read from the generator now.
+  d37Held.shut === false && d37Held.head === bornName('cats', 1)
     && d37Held.toks.join(',') === ['hp', 'shield', d36Tok, 'dead'].join(',')
     && d37Zero.row === true && d37Zero.plus === true
-    && d37Zero.said === 'Cat 1 Shield, 0.'
+    && d37Zero.said === bornName('cats', 1) + ' Shield, 0.'
     && d37Zero.says === ''
-    && d37ZeroRuled.shield === 1 && d37ZeroRuled.said === 'Cat 1 Shield, 1.'
+    && d37ZeroRuled.shield === 1 && d37ZeroRuled.said === bornName('cats', 1) + ' Shield, 1.'
     && d37ZeroRuled.rec.unit === 'c1' && d37ZeroRuled.rec.tok === 'shield'
     && d37HpWas === 3 && d37Floor.hp === 0
     && d37Floor.alive === true && d37Floor.standing === 9
-    && d37Floor.hand === 3 && d37Floor.said === 'Cat 1 Health, 0.'
+    && d37Floor.hand === 3 && d37Floor.said === bornName('cats', 1) + ' Health, 0.'
     && d37Floor.says === ''
     && d37Clamped.hp === 0 && d37Clamped.hand === 3
     && d37Clamped.says === 'This board keeps this number between 0 and 4.'
     && d37Clamped.panel === true
-    && d37Tally.n === 1 && d37Tally.said === 'Cat 1 Chill, 1.'
+    && d37Tally.n === 1 && d37Tally.said === bornName('cats', 1) + ' Chill, 1.'
     && d37Tally.rec.tok === d36Tok && d37Tally.rec.unit === 'c1'
     && d37Standing.pressed === 'false' && d37Standing.on === false
     && d37Standing.word === 'Mark dead' && d37Standing.alive === true
@@ -18461,6 +18476,7 @@ const d44Whole = [];
 })));
 let d43Laid = 0;
 let d43Bad = '';
+let d45Widest = 0;
 for (const fld of [{ media: 'small', w: 1304, gen: '8' }, { media: 'large', w: 1582, gen: '8' },
   { media: 'small', w: 1304, gen: '16' }, { media: 'large', w: 1582, gen: '16' }]) {
   const spr = d44Drawn[fld.gen][fld.media];
@@ -18471,14 +18487,20 @@ for (const fld of [{ media: 'small', w: 1304, gen: '8' }, { media: 'large', w: 1
       const where = fld.gen + '-bit ' + fld.media + ' ' + nc + 'v' + nm + ' rows ' + rows;
       if (!(H > 0)) { d43Bad = where + ': [C19] gives no height'; break; }
       const units = [];
-      [['cats', nc, 'Cat '], ['mechs', nm, 'Mech ']].forEach(([side, n, word]) => {
+      [['cats', nc], ['mechs', nm]].forEach(([side, n]) => {
         for (let i = 0; i < n; i++) {
           const at = A.render.sceneSlot(side, i, n, rows);
           const s = spr[side];
           const boxH = s + d43Under;
           const cx = at[0] * fld.w;
           const top = at[1] * H - boxH / 2;
-          const nw = (word + (i + 1)).length * 11 + 8;
+          // TURNED UNDER D-45: the name's width was modelled from "Cat " / "Mech "
+          // and the number — a second copy of the naming rule that stayed green
+          // while the page drew "Bastion-09". It is the generator's name now, at
+          // the same 11px a character and 8px of plate, and it must fit the box
+          // on ONE line, which is what the 22px the box gives a name assumes.
+          const nw = bornName(side, i + 1).length * 11 + 8;
+          d45Widest = Math.max(d45Widest, nw);
           units.push({ id: side.charAt(0) + (i + 1),
             box: { l: cx - d43BoxW / 2, r: cx + d43BoxW / 2, t: top, b: top + boxH },
             art: { l: cx - s / 2, r: cx + s / 2, t: top, b: top + s },
@@ -18516,16 +18538,20 @@ check(
     + 'row, and 24 a side takes six rows, four of them mechs. D-44: ALL OF IT FOR BOTH '
     + 'GENERATIONS — the 16-bit cat is 48px at every window size and its mech twice that, '
     + 'every roster is laid out at those sizes too, and in both generations every drawn size '
-    + 'is a whole multiple of the sprite\'s own pixel count, so no pixel is smoothed',
+    + 'is a whole multiple of the sprite\'s own pixel count, so no pixel is smoothed. D-45: '
+    + 'EVERY NAME LAID OUT IS THE GENERATOR\'S, and the widest of them at 24 a side still fits '
+    + 'the box on one line',
   d43Ratio[0] === 2 && d43Ratio[1] === 48 && d43Ratio[2] === 64 && d43Ratio[3] === 96
     && d43Ratio[4] === 128 && d43Ratio[5] === true && d43BoxW === 128 && d43Under === 24
     && d43Rules.every(Boolean) && d43Laid === 2 * 2 * 24 * 24 && d43Bad === ''
+    && d45Widest > 0 && d45Widest <= d43BoxW
     && d44Px16 === 48 && d44Whole.length === 8 && d44Whole.every((s) => s.indexOf('NOT') === -1)
     && JSON.stringify(d44SizeDecls) === JSON.stringify(['--scn-px:48px'])
     && d43Ship[0] === 3 && d43Ship[1] === 6 && d43Ship[2] === true,
   'ratio [big, cat small, cat large, mech small, mech large, all x16] ' + JSON.stringify(d43Ratio)
     + ' | box w ' + d43BoxW + ' under ' + d43Under + ' | rules ' + JSON.stringify(d43Rules)
     + ' | heights ' + JSON.stringify(d43Heights) + ' | laid ' + d43Laid + ' first bad: ' + (d43Bad || 'none')
+    + ' | widest name modelled ' + d45Widest + 'px of ' + d43BoxW
     + ' | 16-bit cat px ' + d44Px16 + ' | drawn / sprite ' + JSON.stringify(d44Whole)
     + ' | size properties in 16-bit rules ' + JSON.stringify(d44SizeDecls)
     + ' | shipped rows / 24v24 rows / 3 mechs one row ' + JSON.stringify(d43Ship)
@@ -18688,6 +18714,76 @@ check(
     + ' | kept ' + JSON.stringify(d44Kept) + ' | nothing else [state, commits, undo, code, panel] '
     + JSON.stringify(d44Nothing) + ' | refused ' + JSON.stringify(d44Refused)
     + ' | words ' + JSON.stringify(d44Words) + ' ticks ' + d44Ticks
+);
+
+/* --- 131. D-45 — THE NAME LISTS AGAINST THE LIVE PROJ-06 ARRAYS, plan 05-D45 ---
+   The developer, verbatim: "Use a name generator to create initial names for the
+   cats and mechs, theme appropriately".
+
+   A unit's default name is a RENDERED STRING that reaches every surface — the
+   card head, the grid row, the scene, the popup, the ledger — so it is exactly
+   the text PROJ-06 exists to police. But Layer C only reads what is PAINTED, and
+   on the pages this gate drives that is twelve names out of seventy: a list
+   entry that only a 13th cat or a 4th mech would wear would never be read by
+   anything. Layers A and B read the file's literals, but not for the three
+   rendered-only words (lose, lost, best), and nothing reads the eight words
+   that are clean by rule and still unshippable. So THIS ROW WALKS EVERY ENTRY
+   OF BOTH LISTS — and every name the generator makes for the first two rounds
+   of each, which is every word shape a name can take — against:
+     all three live arrays, VERDICT_WORDS, VERDICT_LITERAL_WORDS and
+     VERDICT_RENDERED_WORDS, read here by name so a word added to any of them
+     later is walked too;
+     the eight clean-but-unshippable words (named at the "CLEAN AND ARE STILL
+     NOT WRITABLE" paragraph above), as whole words;
+     and the rank words D-45 names — a name that reads as a rank is a verdict
+     on the unit even where no list catches it.
+   A WALKER THAT CATCHES NOTHING IS THE VACUOUS PASS, so the same walker is
+   shown a control list first and must catch every one of it. --- */
+const CLEAN_BUT_UNSHIPPABLE = ['contested', 'one-sided', 'blowout', 'lopsided', 'even', 'close',
+  'tight', 'behind'];
+const D45_RANK_WORDS = ['ace', 'prime', 'alpha', 'titan', 'champion', 'champ', 'chief', 'king',
+  'queen', 'boss', 'elite', 'apex', 'major', 'captain', 'commander', 'general', 'lord', 'master',
+  'hero', 'lucky', 'top', 'first', 'number one', 'dominator', 'victor'];
+const d45Whole = (w) => new RegExp('(^|[^a-z])' + w.replace(/[-]/g, '\\-') + '($|[^a-z])', 'i');
+const d45Walk = (names) => {
+  const hits = [];
+  names.forEach((n) => {
+    [['VERDICT_WORDS', VERDICT_WORDS], ['VERDICT_LITERAL_WORDS', VERDICT_LITERAL_WORDS],
+      ['VERDICT_RENDERED_WORDS', VERDICT_RENDERED_WORDS]].forEach(([list, rules]) => {
+      rules.forEach((r) => { if (new RegExp(r.re.source, r.re.flags.replace('g', '')).test(n)) { hits.push(n + ' [' + list + ': ' + r.label + ']'); } });
+    });
+    CLEAN_BUT_UNSHIPPABLE.forEach((w) => { if (d45Whole(w).test(n)) { hits.push(n + ' [clean-but-unshippable: ' + w + ']'); } });
+    D45_RANK_WORDS.forEach((w) => { if (d45Whole(w).test(n)) { hits.push(n + ' [rank: ' + w + ']'); } });
+  });
+  return hits;
+};
+const d45Cats = Array.from(A.data.CAT_NAMES || []);
+const d45Mechs = Array.from(A.data.MECH_NAMES || []);
+const d45Made = [];
+for (let n = 1; n <= 2 * Math.max(d45Cats.length, d45Mechs.length); n++) {
+  d45Made.push(bornName('cats', n), bornName('mechs', n));
+}
+const d45Every = d45Cats.concat(d45Mechs, d45Made.filter((s) => typeof s === 'string'));
+const d45Hits = d45Walk(d45Every);
+const d45Control = ['Victor', 'Ace MK-2', 'Best', 'Losing', 'Edge-07', 'Behind', 'Rating', 'Wins'];
+const d45Caught = d45Control.filter((n) => d45Walk([n]).length > 0);
+check(
+  '131. D-45 — EVERY NAME THE GENERATOR CAN GIVE A UNIT IS WALKED AGAINST THE LIVE PROJ-06 '
+    + 'ARRAYS, because a default name is rendered copy on every surface and Layer C reads only '
+    + 'the twelve that are painted on the pages this gate drives. Every entry of CAT_NAMES and '
+    + 'MECH_NAMES, and every name made for the first two rounds of each list, against all three '
+    + 'live arrays read by name, the eight clean-but-unshippable words and the rank words D-45 '
+    + 'names: NOT ONE HIT. Both lists hold at least 24, so a full side is named from the first '
+    + 'round. And the walker is not vacuous — shown a control list of eight names built to fail, '
+    + 'one per kind of rule, it catches all eight',
+  d45Cats.length >= 24 && d45Mechs.length >= 24
+    && d45Made.every((s) => typeof s === 'string' && s !== '')
+    && d45Every.length === d45Cats.length + d45Mechs.length + d45Made.length
+    && d45Hits.length === 0
+    && d45Caught.length === d45Control.length,
+  'cat names ' + d45Cats.length + ', mech names ' + d45Mechs.length + ', names made '
+    + d45Made.length + ', walked ' + d45Every.length + ' | hits ' + JSON.stringify(d45Hits)
+    + ' | control caught ' + d45Caught.length + ' of ' + d45Control.length + ' ' + JSON.stringify(d45Caught)
 );
 
 /* --- WHAT THIS GATE CANNOT REACH, named rather than left to be discovered.

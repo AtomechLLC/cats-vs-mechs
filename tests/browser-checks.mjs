@@ -261,6 +261,15 @@ for (const ch of ['chrome', 'msedge']) {
   for (const size of SIZES) {
     const tag = `${ch} ${size.name}`;
     const { b, pg, errs } = await open(ch, { width: size.width, height: size.height });
+    // D-45, plan 05-D45: every default unit name a cell below asserts is read off the page's
+    // own generator, keyed like an id — born.c1, born.m3 — and never re-typed here, so a cell
+    // cannot agree with a stale copy of the naming rule (the D-40 lesson). The cell labels
+    // still say "Cat 1" and "Mech 3": they are prose naming a unit by its slot, not expectations.
+    const born = await pg.evaluate(() => {
+      const out = {};
+      ['cats', 'mechs'].forEach((s) => { for (let n = 1; n <= 24; n++) { out[s.charAt(0) + n] = App.data.unitName(s, n); } });
+      return out;
+    });
 
     // ── 4. THE TAB. Two controls, both pressable, and the view follows each of them. ────────
     // Then the three regions the switch moves between are read for their LEFT and WIDTH: the
@@ -5183,7 +5192,7 @@ for (const ch of ['chrome', 'msedge']) {
       hpWas === 4 && rapid.hp === 1 && rapid.hand === 3
       && rapid.focus === 'fg/u/cats/c1/hp/less' && rapid.same === true
       && rapid.alive === true && rapid.standing === 9
-      && rapid.said === 'Cat 1 Health, 1.',
+      && rapid.said === born.c1 + ' Health, 1.',
       { hpWas, rapid });
 
     // ── 26c. THE BOUND CLAMPS, THE READING SAYS SO, AND UNDO KEEPS ITS SHIPPED SHAPE. ────
@@ -5306,7 +5315,7 @@ for (const ch of ['chrome', 'msedge']) {
       // ARRIVED AT, NOT REFUSED BY. Turned under D-39 P2-9 — see the block
       // above the second press for why this reads the opposite of what it did.
       && clamped.shown === false && clamped.says === ''
-      && clamped.said === 'Cat 1 Health, 0.' && clamped.panel === true
+      && clamped.said === born.c1 + ' Health, 0.' && clamped.panel === true
       && refusedByBound.hp === 0 && refusedByBound.hand === 4
       && refusedByBound.figure === '0'
       && refusedByBound.shown === true
@@ -5443,7 +5452,7 @@ for (const ch of ['chrome', 'msedge']) {
       beforeAdvance === 4 && ledger.n === 4
       && ledger.sub.filter((s) => String(s).indexOf('Set by hand') === 0).length === 1
       && ledger.said.filter((s) => s.indexOf('Cats ') === 0).length === 2
-      && ledger.said.filter((s) => s.indexOf('Cat 1 ') === 0).length === 2
+      && ledger.said.filter((s) => s.indexOf(born.c1 + ' ') === 0).length === 2
       && ledger.said.some((s) => s.indexOf('Action points set by hand, 3 to 2.') !== -1)
       && ledger.said.some((s) => s.indexOf('Health set by hand, 4 to 3.') !== -1)
       && ledger.said.some((s) => s.indexOf('Chill set by hand, 2 to 1.') !== -1)
@@ -5525,7 +5534,7 @@ for (const ch of ['chrome', 'msedge']) {
     }
     note(ch, size.name, 'D-37 the popup rows', held.rows.map((r) => r.tok + ':' + r.toks).join(' '));
     ok(`${tag}: 26g. THE POPUP HOLDS EVERY VALUE THE UNIT HAS — INCLUDING ONE AT ZERO THE BATTLEFIELD NO LONGER DRAWS — AND IT STAYS ON SCREEN AT BOTH EDGES. DEFERRED ITEM 18 IS CLOSED HERE AND THE MEASUREMENT IS BOTH HALVES: the shield is driven to ZERO, its line on the battlefield is confirmed HIDDEN WITH ZERO HEIGHT by real layout — which is exactly why it stopped being reachable under D-36 — and the popup still draws it, still says zero in D-21's own count form, and its + still writes a real ruling into the round's record. EVERY ROW IS A REAL D-29 SYMBOL with the prose on a tooltip equal to its accessible name and the student's fragment declared on data-tsay, and the type the STUDENT invented appears with the name they gave it. THE DEAD TOGGLE STATES WHAT IS AND WHAT IT DOES — D-33 P3-2's ruling: the ACT when unpressed, the STATE when pressed, with aria-pressed, the class, the word and a REAL TICK whose computed visibility is read, all moving together, and the marker's own symbol with them. NOTHING IN THE BOX IS EVER DISABLED. AND THE PLACEMENT AT THE EDGES: the leftmost cat and the rightmost mech both open a popup that is WHOLLY ON SCREEN and beside its own unit — on screen wins over aligned, which is what the clamp is for and what a stylesheet cannot answer`,
-      held.shut === false && held.head === 'Cat 1'
+      held.shut === false && held.head === born.c1
       && held.rows.map((r) => r.tok).join(',') === ['hp', 'shield', d36.tok, 'dead'].join(',')
       && held.rows.every((r) => r.said !== null && r.said === r.aria && r.tsay !== ''
         && r.toks > 0)
@@ -5533,16 +5542,16 @@ for (const ch of ['chrome', 'msedge']) {
       && held.rows.filter((r) => r.alive).length === 1
       && held.disabled === 0 && held.onScreen === true && /fgu/.test(held.topmost)
       && bfHidden !== null && bfHidden.hidden === true && bfHidden.box === 0
-      && held.rows[1].said === 'Cat 1 Shield, 0.'
+      && held.rows[1].said === born.c1 + ' Shield, 0.'
       && held.rows[2].lbl === 'Chill'
-      && zeroRuled.shield === 1 && zeroRuled.said === 'Cat 1 Shield, 1.'
+      && zeroRuled.shield === 1 && zeroRuled.said === born.c1 + ' Shield, 1.'
       && zeroRuled.rec.tok === 'shield' && zeroRuled.rec.unit === 'c1'
       && standing.pressed === 'false' && standing.word === 'Mark dead'
       && standing.tick === 'hidden' && standing.alive === true
-      && standing.said === 'Cat 1 Dead marker, 0.'
+      && standing.said === born.c1 + ' Dead marker, 0.'
       && marked.pressed === 'true' && marked.on === true
       && marked.word === 'Marked dead' && marked.tick === 'visible'
-      && marked.alive === false && marked.said === 'Cat 1 Dead marker, 1.'
+      && marked.alive === false && marked.said === born.c1 + ' Dead marker, 1.'
       && marked.standing === 8
       && unmarked.pressed === 'false' && unmarked.word === 'Mark dead'
       && unmarked.alive === true && unmarked.standing === 9
@@ -6400,7 +6409,7 @@ for (const ch of ['chrome', 'msedge']) {
       && ['mechs/m1', 'mechs/m2', 'mechs/m3'].every((k) => d41G.flight.no.indexOf(k) !== -1)
       && d41G.flight.lit.indexOf('cats/c2') !== -1
       && g1.commits === g0.commits && g1.c1 === 3 && g1.m1 === 6
-      && g1.said.join() === 'm1: Mech 1 holds at most 4 "Health", so it cannot take another.'
+      && g1.said.join() === 'm1: ' + born.m1 + ' holds at most 4 "Health", so it cannot take another.'
       && gBox !== null && gBox.onScreen === true
       && g1.panel === true,
       { flight: d41G.flight, after: g1, box: gBox });
@@ -6831,10 +6840,10 @@ for (const ch of ['chrome', 'msedge']) {
     await d42Shot('dead');
     ok(`${tag}: 32c. D-42 — A UNIT RULED DEAD LIES DOWN AND GOES GREY, AND A UNIT AT ZERO HEALTH NOBODY RULED ON STANDS IN FULL COLOUR: Cat 2, ruled dead through setAlive, has the down class, a turned canvas (a real transform, not "none") and a grayscale filter, and its accessible name says it is ruled dead; Mech 2 at zero health is still alive in the fight slice and its canvas is untransformed and unfiltered, exactly like Cat 1's. Read from the stored flag and never from the health (D-00d)`,
       d42Dead.c2.down && d42Dead.c2.transform !== 'none' && /grayscale/.test(d42Dead.c2.filter)
-      && d42Dead.c2.aria === 'Cat 2, ruled dead'
+      && d42Dead.c2.aria === born.c2 + ', ruled dead'
       && d42Dead.m2hp === 0 && d42Dead.m2alive === true
       && !d42Dead.m2.down && d42Dead.m2.transform === 'none' && d42Dead.m2.filter === 'none'
-      && d42Dead.m2.aria === 'Mech 2'
+      && d42Dead.m2.aria === born.m2
       && d42Dead.c1.transform === 'none' && d42Inside(d42rd) && d42rd.sprites.every((s) => s.onTop),
       d42Dead);
 
@@ -7098,7 +7107,7 @@ for (const ch of ['chrome', 'msedge']) {
     ok(`${tag}: 32m. D-43 — A BIG MECH RULED DEAD LIES DOWN GREY AND CLEARS ITS OWN NAME: Mech 3, ruled dead through setAlive, has the down class, a turned canvas and a grayscale filter, and the turned canvas's own rectangle ends ABOVE the top of its name — nothing of the lying mech is over the words that say who it is, and the name is what a hit test finds. No sprite overlaps another unit's name either`,
       d43m3.down === true && d43m3.ctf !== 'none' && d43m3.ctf !== '' && /grayscale/.test(d43m3.cf)
       && d43m3.cb <= d43m3.nt + 0.5 && d43m3.onTop === true && d43Clear(d43d) === ''
-      && d43m3.aria === 'Mech 3, ruled dead',
+      && d43m3.aria === born.m3 + ', ruled dead',
       { m3: d43m3, clear: d43Clear(d43d) });
 
     // ── 32n. A BIG MECH DRAGGED TO EVERY SIDE STOPS THERE BY ITS OWN SIZE. ──
@@ -7293,11 +7302,11 @@ for (const ch of ['chrome', 'msedge']) {
     await d44Shot('dead');
     ok(`${tag}: 32q. D-44 — THE DEAD LIE DOWN GREY IN 16-BIT TOO, READ FROM THE STORED FLAG: Cat 2 and Mech 3, ruled dead through setAlive, each wear the down class, a turned canvas and a grayscale filter, and each accessible name says it is ruled dead; the lying mech's turned canvas ends above its own name. Mech 2 at zero health that nobody ruled on is still alive in the fight slice and stands untransformed and in colour. Every name is still what a hit test finds and no sprite is over another unit's name`,
       d44c2.down === true && d44c2.ctf !== 'none' && d44c2.ctf !== '' && /grayscale/.test(d44c2.cf)
-      && d44c2.aria === 'Cat 2, ruled dead'
+      && d44c2.aria === born.c2 + ', ruled dead'
       && d44m3.down === true && d44m3.ctf !== 'none' && /grayscale/.test(d44m3.cf) && d44m3.cb <= d44m3.nt + 0.5
-      && d44m3.aria === 'Mech 3, ruled dead'
+      && d44m3.aria === born.m3 + ', ruled dead'
       && d44m2Fight.hp === 0 && d44m2Fight.alive === true && d44m2.down === false && d44m2.ctf === 'none'
-      && d44m2.cf === 'none' && d44m2.aria === 'Mech 2'
+      && d44m2.cf === 'none' && d44m2.aria === born.m2
       && d44d.sprites.every((s) => s.onTop) && d43Clear(d44d) === '',
       { c2: d44c2, m3: d44m3, m2: d44m2, m2fight: d44m2Fight, clear: d43Clear(d44d) });
 
