@@ -595,3 +595,15 @@ identification — which cat is which, which mech is which. It is not a control 
   no-verdict gate exists to prevent. The scene shows who is standing, and nothing more (D-26 stands).
 - **Accessibility:** positions are cosmetic, so drag-only is acceptable here. No information is
   locked behind a drag. Every sprite still carries its unit's name as an accessible label.
+
+---
+
+## D-43 — 2026-09-27: the mechs are much bigger than the cats
+
+Verbatim:
+
+> make the mechs much bigger than the cats
+
+Orchestrator reading: mech sprites render at about **2× the cats' linear size** (4× the area),
+FF1's scale for large monsters. Names stay legible. The default formation, the drag clamp, and the
+24-a-side case are all re-measured at the new size.
