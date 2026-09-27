@@ -672,3 +672,43 @@ unit popup.
 - **The no-verdict gate applies to the name lists.** Names that judge or rank ("Victor",
   "Champion", "Dominator", "Ace", anything on the live word lists or the eight
   clean-but-unshippable words) are excluded. Screen every candidate against the live arrays.
+
+---
+
+## D-46 — 2026-09-27: drag resources on the fight tab
+
+Verbatim:
+
+> I can't drag resources around the battle screen.
+
+D-41 deliberately built drag-to-allocate on the BOARD tab only and recorded the fight tab as a
+follow-up ("a fight-tab drag would be a hand ruling, not an allocation"). The developer now wants it.
+
+### What this settles
+
+The fight tab gets D-41's drag model, applied to the FIGHT slice as hand rulings:
+- **Drag a resource token between units**: any unit to any other unit, either side, on the fight
+  tab's battlefield.
+- **The team-resources area is each side's pool**, mirroring D-41's amendment: a conserved per-side
+  fight reserve for unit-scope tokens, plus the side's side-scope tokens (action points, student
+  side tallies), which move pool to pool.
+- **Scope binds exactly as in D-41's `moveToken`**: side-scope types never land on a unit; Damage
+  and the dead marker don't move.
+
+### Orchestrator calls (recorded, overridable)
+
+- **Every drop is a hand ruling:** it writes the fight slice only (never the build), is recorded in
+  the round's by-hand record (so the ledger's what-changed shows it), and is ONE commit and ONE undo
+  entry. Bounds (D-35) are refused whole, never clamped (conservation). A unit taken to zero is
+  never marked dead automatically (D-00d).
+- **The fight reserve is invisible to the fight's arithmetic:** advanceRound, spokenFor,
+  affordability and the projection never read it. A unit fights only with what it holds. The fight
+  slice is not in the build code, so there is no codec work.
+- **Clicks and drags coexist:** a movement threshold separates them. A still press on a unit keeps
+  opening the D-37 popup, and a press on a team resource keeps D-36's nudge. While a retarget is
+  half-made the battlefield belongs to the retarget flow and no drag starts.
+- **The D-42/D-44 battle scene is untouched:** its sprites drag for position only and carry no
+  resources.
+- **Reuse, don't fork:** the same op pattern and guard-predicate discipline as D-41 (lit and
+  invalid targets computed from the op's own guards), and the same pointer machinery where it can be
+  shared.
