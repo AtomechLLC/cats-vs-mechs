@@ -1283,3 +1283,29 @@ orchestrator's.** See `05-D41b-SUMMARY.md`.
    no browser cell drives a drag mid-fight.
 
 **Owner:** the developer (1); the 05-11 playtest (2, 4).
+
+---
+
+## D-42 — the battle scene, what it does not settle, raised by plan 05-D42
+
+**Raised 2026-09-26.**
+
+1. **THE SCENE COSTS THE ROUND ITS PLACE ON THE FIRST SCREEN.** It is the fight tab's first panel,
+   above the lane, chosen by measurement (`05-D42-SUMMARY.md` § Placement): with three rounds
+   resolved the round-state panel moves from 727 to 1180 of 1080 and from 653 to 1046 of 768.
+   Advance's reachability (cells 18 and 18c) is untouched at every placement measured. The
+   one-line alternative is to move `<section id="scene">` to after `#fightbar` in the band, which
+   costs the round nothing and puts the picture off the first screen instead. The developer's call.
+2. **A SPRITE HAS NO KEYBOARD PATH, BY DESIGN.** A place in the scene carries no information: every
+   name, state and number is on the battlefield and the board, so WCAG 2.5.7 is not engaged. The
+   reset control is a real button. Recorded so nobody reads the absence as an oversight.
+3. **TOUCH AND PEN ARE NOT DRIVEN**, as for D-41: Pointer Events with `touch-action:none`, every
+   cell drives `page.mouse`.
+4. **FIREFOX AND SAFARI**, as for every other surface (CLAUDE.md § Gaps) — and the store is one of
+   CLAUDE.md's named Firefox unknowns (`privacy.file_unique_origin`). The scene treats a missing
+   or refusing store as normal, so the worst case is a layout that lasts until the page closes.
+5. **WHETHER A 48px PIXEL CAT READS AS A CAT FROM THE BACK OF A ROOM.** The sprites go to 64px on a
+   projector-sized window. Legibility of the names is measured; recognisability of the picture is a
+   person's to judge. Harness limitations entry 40.
+
+**Owner:** the developer (1); the 05-11 playtest (3, 5).
