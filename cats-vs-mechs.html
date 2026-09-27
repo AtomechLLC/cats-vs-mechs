@@ -791,6 +791,56 @@
   }
   .drg-ghost--no{opacity:.45}
 
+  /* ==================================================================
+     D-46 — THE SAME THREE STATES ON THE FIGHT TAB. Plan 05-D46.
+     ==================================================================
+     The battlefield shape and the fight tab's pool are the fight surface's
+     two entities, and they wear D-41b's three answers spelled exactly as a
+     board card wears them — lit is D-33's lit role (a 2px SOLID outline in
+     --state-lit-line, the border and the --state-lit-fill wash), refused is a
+     DASHED --ink-faint border and the entity dimmed to half, home is nothing,
+     and the one under the pointer gains a 4px outline in its own state's
+     style. Two classes deep, (0,2,0), for the board's reason: a shape's
+     hover border and its dead treatment must not out-rank a live drag's
+     answer. The lit state cannot collide with the retarget flow's own
+     .bf-unit--lit, because no drag starts while a change of target is half
+     made ([S07.8]'s fightDragOffer).
+
+     THE POOL IS A BOX NOW, the board pool's box: --line at rest, the edge a
+     card has, so it reads as a group and not as a control; its name and its
+     reserve label are visible words at the 18px floor (UX-02); an empty
+     reserve is the board's dashed drop slot. Its tokens are drawn at 18px —
+     smaller than the board's 22, because here they sit in a line of 18px
+     words, and larger than the battlefield's 12, because in the pool the
+     token is the thing a student picks up. NO NEW COLOUR anywhere below. */
+  .fg-team{
+    --tok:18px;--tok-gap:4px;
+    display:flex;flex-direction:column;gap:8px;
+    border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;
+  }
+  .fg-team-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
+  .fg-team-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
+  .fg-team-lbl{font-size:18px;color:var(--ink-faint)}
+  .fg-team-held{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-height:30px}
+  .fg-team-held .sym{--tok:18px;--tok-gap:4px}
+  .fg-team-held .sym .tok-g{display:grid}
+  .fg-team-empty{
+    font-size:18px;color:var(--ink-dim);
+    border:1px dashed var(--ink-faint);border-radius:10px;padding:4px 12px;
+  }
+  .fg-team-rows{display:flex;flex-direction:column;gap:6px}
+  /* The row is a <button> and keeps [C14.6]'s pointer cursor — a click on it
+     opens D-36's nudge, and that stays true. Its TOKENS wear the grab cursor,
+     so a pointer resting on the thing a drag picks up says so. */
+  .fg-res-toks{display:inline-flex;align-self:center;cursor:grab}
+  .bf-unit.drg-lit, .fg-team.drg-lit{
+    outline:2px solid var(--state-lit-line);outline-offset:2px;
+    border-color:var(--state-lit-line);background-color:var(--state-lit-fill);
+  }
+  .bf-unit.drg-no, .fg-team.drg-no{border-style:dashed;border-color:var(--ink-faint);opacity:.5}
+  .bf-unit.drg-lit.drg-over, .fg-team.drg-lit.drg-over{outline-width:4px}
+  .bf-unit.drg-no.drg-over, .fg-team.drg-no.drg-over{outline:4px dashed var(--ink-faint);outline-offset:2px}
+
   /* ===================== [C05] TOKENS-VIZ ===================== */
   /* One token is three layers, and the reason is D-10: emoji come from
      whatever the OS supplies and their metrics differ per platform, so the
@@ -3215,8 +3265,19 @@
      battlefield is the block whose height differs between the two sides,
      so it is the block that takes the slack when the shorter column is
      stretched to match the taller. Everything under it then starts on the
-     same line on both sides. */
-  .fg-field{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;flex:1 1 auto}
+     same line on both sides.
+
+     D-46: AND THE SLACK GOES UNDER THE SHAPES, NOT BETWEEN THEM. Taking the
+     slack is kept exactly; what changes is where a wrapped cluster puts it.
+     With no align-content, a stretched cluster SPREAD its rows to fill the
+     height, so anything that made the other column taller moved this
+     column's second row down — and a D-46 refusal said under one side's
+     cluster (bfBuildUnit says why it is not inside a shape) measured 54px of
+     movement on Rivet-12 in the OTHER column. Packed at the top, a shape
+     never moves because of a sentence anywhere, and at rest the shorter
+     side's rows line up with the taller side's instead of floating between
+     them. */
+  .fg-field{display:flex;flex-wrap:wrap;gap:10px;align-items:flex-start;align-content:flex-start;flex:1 1 auto}
 
   /* THE TEAM RESOURCES, ABOVE THE PICKER — the addendum's own words. One row
      per resource: the label, then the figures. The label is the student's word
@@ -3245,7 +3306,10 @@
      words: no shipped cost is paid out of a tally, so a tally is shown and
      never depleted, and a reading that looked like the pool would be promising
      an economy the applier does not run. */
-  .fg-team{display:flex;flex-direction:column;gap:6px}
+  /* .fg-team's own rule MOVED under D-46: the area is the side's fight pool
+     now and is styled beside the board's pool, in the D-46 block after
+     [C04]'s drag rules. One rule for one box, rather than two that the
+     cascade would have to settle. */
   /* D-36 MAKES THIS ROW A <button> AND THE RESET IS FOLDED IN HERE RATHER THAN
      WRITTEN AS button.fg-res, for the specificity reason [C14.6] states in
      full: a `button.fg-res{font:inherit}` would outrank this rule's own
@@ -8451,6 +8515,7 @@
         <p>Press an action under a unit to declare it. Press it again to take that declaration back, or press a different one to replace it. An action that names a target aims at the standing enemy with the least health, and the change-target control lights the other side's shapes so you can pick another. An action whose cost or requirements the board cannot meet is switched off until it can.</p>
         <p>The resources above the picker deplete as you declare, so what this round has spoken for is readable before you commit to it.</p>
         <p>Advance resolves the round: it spends what the declarations named, applies the changes they state, and splits damage into the shield first and then health. It does not rule on who is standing. Press a unit on the field to open its values and rule on them by hand.</p>
+        <p>You can drag tokens on this tab too: from a reading on a unit onto any other unit on either side, or into the pool under a side's field, whose Reserve holds it until you drag it out again. Action points and a side's own tokens move from pool to pool. Each drop is a ruling by hand for this round: it moves one token, makes and removes none, is one step for Undo, and is listed under the round once you advance. A unit dragged to zero health is still standing until you mark it. A click that does not move still opens the unit's values or the pool's control, and while a change of target is being picked the field is for picking and nothing drags. Dragging is pointer-only; the unit's values and the pool's control change the same numbers from the keyboard, and the fight's Reserve is reached only by dragging.</p>
       </div>
 
       <div class="ht-card">
@@ -23485,36 +23550,79 @@ App.render = (function () {
      NOTHING HERE IS EVER DISABLED. A row whose number is sitting on its bound
      still opens, and the control says which bound it is on — the D-27 overrule
      is scoped to the declaration grid's action buttons and this is not one. */
-  function fgResRow(state, box, side, tok, held, spoke, extra) {
-    var row = el('button', 'fg-res' + (extra === '' ? '' : ' ' + extra));
+  /* D-46 SPLITS THE ROW INTO A BUILD AND A WRITE, AND THE SPLIT IS THE
+     05-10 FINDING ARRIVING AT A FIFTH SURFACE. What stood here built every row
+     afresh on every repaint — box.replaceChildren() and a new <button> per
+     number — which was harmless while the only press on a row was D-36's
+     click, and is not harmless under a drag: a token picked up off a row that
+     the next commit throws away is a token held by a node that has left the
+     document, D-37 probe G's defect. So the rows are BUILT once per LIST of
+     numbers the side holds (fgFillTeam's fingerprint below) and WRITTEN every
+     frame — the label, the tokens (syncRow, the board's own row writer, which
+     changes a count by delta and never rebuilds a row that moved one step)
+     and the two words. The key, the tag and every attribute D-36 gave the row
+     are unchanged, and the row is ALSO a drag source now (data-drg-tok, the
+     same mark [S06.16] puts on a board card's rows), because which types move
+     is the op's ruling and a pre-filtered source list would be a second copy
+     of moveScope. */
+  function fgResRow(state, side, tok, extra) {
+    var row = el('button', 'fg-res drg-src' + (extra === '' ? '' : ' ' + extra));
     row.type = 'button';
     setData(row, {
       fg: 'res', fgSide: side, fgUnit: '', fgTok: tok,
-      k: fgnKey(side, null, tok)
+      k: fgnKey(side, null, tok), drgTok: tok
     });
     var lbl = text('span', 'fg-res-lbl', labelFor(state, tok));
     setData(lbl, { lbl: tok });
     row.appendChild(lbl);
+    row.appendChild(el('span', 'tok-row fg-res-toks'));
+    row.appendChild(text('span', 'fg-res-spoke', ''));
+    row.appendChild(text('span', 'fg-res-left', ''));
+    return row;
+  }
+
+  function fgResWrite(state, row, tok, held, spoke) {
+    var lbl = row.querySelector('.fg-res-lbl');
+    if (lbl && lbl.textContent !== labelFor(state, tok)) { lbl.textContent = labelFor(state, tok); }
+    var toks = row.querySelector('.fg-res-toks');
+    if (toks) { syncRow(toks, held, styleFor(state, tok)); }
     var words = fgPoolWords(held, spoke);
-    row.appendChild(text('span', 'fg-res-spoke', words.spoke));
-    row.appendChild(text('span', 'fg-res-left', words.left));
-    box.appendChild(row);
+    var spokeNode = row.querySelector('.fg-res-spoke');
+    if (spokeNode && spokeNode.textContent !== words.spoke) { spokeNode.textContent = words.spoke; }
+    var left = row.querySelector('.fg-res-left');
+    if (left && left.textContent !== words.left) { left.textContent = words.left; }
   }
 
   function fgFillTeam(root, state, side, spoke) {
     var box = root.querySelector('.fg-team');
     if (!box) { return; }
-    box.replaceChildren();
     var live = state.fight[side];
 
-    fgResRow(state, box, side, 'ap', live.ap, App.model.pooledAt(spoke, 'ap'), '');
+    // D-46: the fight reserve, through the board pool's own reading.
+    var held = box.querySelector('.fg-team-held');
+    if (held) { reserveHeld(state, held, live, 'fg-team-empty'); }
 
+    var rows = box.querySelector('.fg-team-rows');
+    if (!rows) { return; }
+    var list = [{ tok: 'ap', n: live.ap, extra: '' }];
     var bag = live.tally;
-    if (!bag) { return; }
-    Object.keys(bag).forEach(function (tok) {
-      if (!Number.isInteger(bag[tok])) { return; }
-      fgResRow(state, box, side, tok, bag[tok], App.model.pooledAt(spoke, tok),
-        'fg-res--tally');
+    if (bag) {
+      Object.keys(bag).forEach(function (tok) {
+        if (!Number.isInteger(bag[tok])) { return; }
+        list.push({ tok: tok, n: bag[tok], extra: 'fg-res--tally' });
+      });
+    }
+    // THE LIST IS THE FINGERPRINT AND A NUMBER IS NOT — D-37's popup rule.
+    // A side tally appearing or leaving is a new row; a count moving is a
+    // write into the row that is already there.
+    var print = JSON.stringify(list.map(function (it) { return it.tok; }));
+    if (rows.dataset.fp !== print) {
+      rows.replaceChildren();
+      list.forEach(function (it) { rows.appendChild(fgResRow(state, side, it.tok, it.extra)); });
+      rows.dataset.fp = print;
+    }
+    list.forEach(function (it, i) {
+      fgResWrite(state, rows.children[i], it.tok, it.n, App.model.pooledAt(spoke, it.tok));
     });
   }
 
@@ -23770,8 +23878,48 @@ App.render = (function () {
     root.appendChild(text('p', 'fg-standing', ''));
 
     root.appendChild(el('div', 'fg-field'));
+    // D-46: the refusal line for a drop on any of this side's shapes, under the
+    // cluster and OUTSIDE its scroller — [S06.11]'s bfBuildUnit says why it is
+    // not inside the shape. Hidden and empty at rest, like every said line.
+    var fieldSaid = el('p', 'drg-said fg-field-said');
+    fieldSaid.hidden = true;
+    root.appendChild(fieldSaid);
 
-    root.appendChild(el('div', 'fg-team'));
+    root.appendChild(fgBuildTeam(side));
+  }
+
+  /* ==================================================================
+     D-46 — THE TEAM RESOURCES ARE THE SIDE'S POOL ON THE FIGHT TAB.
+     ==================================================================
+     The developer: "I can't drag resources around the battle screen." D-46
+     turns this area into D-41's pool one tab over: a box headed "Pool",
+     opened by the side's FIGHT reserve — the parked unit tokens, drawn by
+     [S06.16]'s reserveHeld, the reading the board's pool draws with — and
+     holding the side's own numbers (action points and the student's side
+     tallies) exactly where they already were, each now carrying its tokens
+     as well as its words so there is something in the row to pick up.
+
+     THE BOX IS AN ENTITY, THE SIDE'S OWN END, and it is built ONCE per fight
+     here, beside the battlefield's cluster, so the node a drag lights and the
+     node a drop lands on are never replaced under a pointer. Its last child
+     is the said line a refused drop is written on (dragSaidOf finds it).
+
+     NO data-k, NO data-act, NO data-amt ON ANYTHING ADDED HERE, [S06.16]'s
+     standing rule: the rows below keep the data-fg and the key D-36 gave them,
+     and nothing else in the box is a control. */
+  function fgBuildTeam(side) {
+    var box = el('div', 'fg-team');
+    setData(box, { drgAt: side });
+    box.appendChild(text('p', 'fg-team-head', POOL_WORD));
+    var line = el('div', 'fg-team-line');
+    line.appendChild(text('span', 'fg-team-lbl', RESERVE_WORD));
+    line.appendChild(el('div', 'fg-team-held'));
+    box.appendChild(line);
+    box.appendChild(el('div', 'fg-team-rows'));
+    var said = el('p', 'drg-said');
+    said.hidden = true;
+    box.appendChild(said);
+    return box;
   }
 
   function fgBuildInputSide(root, state, side) {
@@ -26959,11 +27107,20 @@ App.render = (function () {
   function bfBuildUnit(state, side, unit, tokens) {
     var node = el('button', 'bf-unit');
     node.type = 'button';
+    /* D-46: THE SHAPE IS ALSO A DRAG ENTITY — data-drg-at and data-drg-unit,
+       the two marks a drop reads back off the node under the pointer, spelled
+       exactly as [S06.16]'s dragEntity spells them on a board card. They route
+       nothing: [S07.5] reads data-fg and [S07.1] reads data-act, and neither
+       reads these. What the shape's press DOES is decided in [S07.5], which
+       now hands a press that lands on a reading to the drag first and opens
+       the popup only if the pointer lets go without travelling. */
     setData(node, {
       fg: 'bf',
       fgSide: side,
       fgVal: unit.id,
-      k: 'fg/bf/' + side + '/' + unit.id
+      k: 'fg/bf/' + side + '/' + unit.id,
+      drgAt: side,
+      drgUnit: unit.id
     });
 
     // The unit's name: permanent, visible, at the 18px floor, and no exemption
@@ -26972,8 +27129,11 @@ App.render = (function () {
 
     var lines = el('div', 'bf-lines');
     tokens.forEach(function (tok) {
-      var line = el('div', 'bf-line');
-      setData(line, { bfAmt: tok });
+      var line = el('div', 'bf-line drg-src');
+      // D-46: EVERY READING IS A DRAG SOURCE naming its type — the dead
+      // marker's too — because which types move is the op's ruling and not
+      // this builder's (dragEntity's argument on the board, held here).
+      setData(line, { bfAmt: tok, drgTok: tok });
       /* ==============================================================
          D-37 TAKES THE PRESS OFF THIS LINE. THE READING IS A READING
          AGAIN, AND THE SUPERSESSION IS RECORDED RATHER THAN ERASED.
@@ -27037,6 +27197,16 @@ App.render = (function () {
     var pick = text('span', 'bf-pick', '');
     pick.hidden = true;
     node.appendChild(pick);
+    // D-46: NO SAID LINE INSIDE THE SHAPE, MEASURED RATHER THAN CHOSEN. The
+    // first build put the drop's refusal line here, D-41b's card arrangement,
+    // and the first real screenshots showed what that costs a 150px shape: a
+    // refused drop on Mittens at 1366x768 widened the shape to a whole row and
+    // pushed six cats out of the cluster's scroller, and at 1920 a ceiling
+    // refusal on Anvil-07 moved Cog MK-2 onto the next row — the battlefield
+    // rearranging itself under the student because of a sentence about it.
+    // Every row was green over both. So a shape's refusal is said on its
+    // COLUMN's line directly under the cluster (fgBuildStateSide builds it;
+    // [S06.16]'s dragSaidOf finds it from the shape), and no shape changes size.
 
     return node;
   }
@@ -29224,7 +29394,17 @@ App.render = (function () {
   // a token under a pointer the same node between frames. No field lives
   // here, so there is no incomplete paint to decline a fingerprint for.
   function poolHeld(state, held, side) {
-    var faction = state.build[side];
+    reserveHeld(state, held, state.build[side], 'brd-pool-empty');
+  }
+
+  // D-46: THE READING ITSELF, FOR EITHER SLICE'S RESERVE. The board's pool
+  // reads the build faction's bag and the fight tab's pool reads the fight
+  // side's, and both are drawn by these lines — one fingerprint, one symQty,
+  // one empty sentence — so a parked token looks the same on both tabs and a
+  // restyle or a rename lands on both on the frame it lands anywhere. Only
+  // the empty slot's class is the caller's, because each pool's slot is
+  // styled beside its own box.
+  function reserveHeld(state, held, faction, emptyCls) {
     var vocab = state.build.tokens || {};
     var items = [];
     Object.keys(vocab).forEach(function (id) {
@@ -29240,7 +29420,7 @@ App.render = (function () {
     held.replaceChildren();
     held.dataset.fp = print;
     if (items.length === 0) {
-      held.appendChild(text('span', 'brd-pool-empty', RESERVE_EMPTY));
+      held.appendChild(text('span', emptyCls, RESERVE_EMPTY));
       return;
     }
     items.forEach(function (it) {
@@ -29294,10 +29474,21 @@ App.render = (function () {
   // Every entity on both columns, per column rather than one descendant
   // selector because the stub page answers a compound selector and not a
   // combinator — and the artifact is not written around the stub either way.
-  function dragEntities() {
+  //
+  // D-46: WHICH TWO COLUMNS IS THE CALLER'S, and the board's are the default,
+  // so every D-41b caller is unchanged. The fight tab's drag passes its own two
+  // column roots (the state area's), and the reason the walk is SCOPED rather
+  // than widened to all four is that the two tabs' entities share their keys —
+  // cats/c1 is a board card AND a battlefield shape — so a walk over both
+  // would light the hidden tab's card with the other slice's answer.
+  var DRAG_COLS = ['col-cats', 'col-mechs'];
+  var FIGHT_DRAG_COLS = Object.freeze(FIGHT_SIDES.map(function (side) {
+    return FIGHT_STATE_IDS[side];
+  }));
+  function dragEntities(cols) {
     var out = [];
     if (typeof document === 'undefined') { return out; }
-    ['col-cats', 'col-mechs'].forEach(function (id) {
+    (cols || DRAG_COLS).forEach(function (id) {
       var col = document.getElementById(id);
       if (!col) { return; }
       var found = col.querySelectorAll('[data-drg-at]');
@@ -29315,6 +29506,14 @@ App.render = (function () {
     for (var i = node.children.length - 1; i >= 0; i--) {
       var kid = node.children[i];
       if (kid.classList && kid.classList.contains('drg-said')) { return kid; }
+    }
+    // D-46: a battlefield shape carries no line of its own (a sentence inside
+    // a 150px shape reflowed the whole cluster — [S06.11]'s bfBuildUnit), so
+    // its refusal is said on its column's line under the cluster.
+    if (node.classList && node.classList.contains('bf-unit') && typeof node.closest === 'function') {
+      var col = node.closest('.fg-side');
+      var line = col ? col.querySelector('.fg-field-said') : null;
+      if (line) { return line; }
     }
     return null;
   }
@@ -29347,11 +29546,11 @@ App.render = (function () {
   // is the entity under the pointer or null; `source` is the node picked up.
   // An entity with no answer (a card built after the answers were taken) is
   // left unlit rather than guessed at.
-  function dragPaint(answers, over, source, ghost) {
+  function dragPaint(answers, over, source, ghost, cols) {
     var byKey = Object.create(null);
     (answers || []).forEach(function (a) { byKey[dragKeyOf(a.side, a.unitId)] = a.answer; });
     var overAnswer = '';
-    dragEntities().forEach(function (node) {
+    dragEntities(cols).forEach(function (node) {
       var v = byKey[dragKeyOf(node.dataset.drgAt, node.dataset.drgUnit)] || '';
       dragMark(node, 'drg-lit', v === 'lit');
       dragMark(node, 'drg-no', v === 'no');
@@ -29365,8 +29564,8 @@ App.render = (function () {
 
   // Everything the drag drew comes off, and the ghost leaves the layer.
   // Called on a drop, on Escape, on a cancelled pointer and on a lost window.
-  function dragDone(source) {
-    dragEntities().forEach(function (node) {
+  function dragDone(source, cols) {
+    dragEntities(cols).forEach(function (node) {
       ['drg-lit', 'drg-no', 'drg-home', 'drg-over'].forEach(function (cls) {
         node.classList.remove(cls);
       });
@@ -29379,8 +29578,8 @@ App.render = (function () {
 
   // A sentence about the last drop stops being true when the next drag
   // begins — dropLoadSaid's rule, arriving at a fifth surface.
-  function dragQuiet() {
-    dragEntities().forEach(function (node) {
+  function dragQuiet(cols) {
+    dragEntities(cols).forEach(function (node) {
       var said = dragSaidOf(node);
       if (said) { said.textContent = ''; said.hidden = true; }
     });
@@ -30415,6 +30614,11 @@ App.render = (function () {
     RESERVE_WORD: RESERVE_WORD,
     RESERVE_EMPTY: RESERVE_EMPTY,
     RESERVE_POST: RESERVE_POST,
+    // D-46. The fight tab's two column roots, which [S07.8] hands to the four
+    // functions above so a fight drag lights the battlefield and the fight's
+    // pools and never the hidden board's cards — read off here rather than
+    // re-typed there, [S06.7]'s FIGHT_STATE_IDS being where they are defined.
+    FIGHT_DRAG_COLS: FIGHT_DRAG_COLS,
     // D-42. [S07.9] holds the drag and these draw it and keep it: the paint,
     // the place, the drop, the way back to formation, and the saved layout
     // read back as a string. The pure pieces go with them so [S09.15] asserts
@@ -35133,7 +35337,7 @@ App.interactions = (function () {
      handler, which bindResetAsk's ruling refuses. The rule it enforced is not
      lost: pressBf enforces it now, for every press on a shape rather than only
      for a press that landed on a reading, which is strictly wider. */
-  function pressRes(node) {
+  function pressRes(node, onRelease) {
     var box = fgNudgeBox();
     if (box === null) { return; }
     var side = String(node.dataset.fgSide || '');
@@ -35163,8 +35367,16 @@ App.interactions = (function () {
        the cursor — so a mouse open ends with focus on the reading or on the
        shape around it, exactly as it did before this line, and the first press
        of the pair puts it on the button anyway. Plan 05-10 measured that
-       sequence in full. */
-    fgFocus(document.getElementById('fg-nudge-less'));
+       sequence in full.
+
+       D-46 KEEPS THAT OUTCOME ON THE RELEASE PATH. A pointer open now runs on
+       the RELEASE (the press was held back for the drag, [S07.8]'s
+       fightDragOffer), and by then the browser has already put the focus on
+       the row — so moving it into the box here would be a NEW pointer
+       behaviour, not the old one. `onRelease` skips the move, and a mouse open
+       ends with focus on the row exactly as it did. The keyboard path passes
+       nothing and is untouched. */
+    if (onRelease !== true) { fgFocus(document.getElementById('fg-nudge-less')); }
   }
 
   /* THE RULING. Every argument is read off the BOX rather than off the pressed
@@ -35309,7 +35521,7 @@ App.interactions = (function () {
      the converse holds for a press on a team resource. The two boxes sit at
      the same z-index and can never be open at once, which is what makes that
      shared band safe. */
-  function pressUnit(btn) {
+  function pressUnit(btn, onRelease) {
     var box = fgUnitBox();
     if (box === null) { return; }
     var side = String(btn.dataset.fgSide || '');
@@ -35334,7 +35546,13 @@ App.interactions = (function () {
        IT COSTS THE POINTER PATH NOTHING. This runs during pointerdown and the
        browser's own default focus-on-mousedown then targets whatever was under
        the cursor, so a mouse open ends with focus on the shape, exactly as it
-       did before this line. Plan 05-10 measured that sequence in full. */
+       did before this line. Plan 05-10 measured that sequence in full.
+
+       D-46: pressRes' paragraph on the release path, held here — a press on a
+       reading opens this on the RELEASE, after the browser has focused the
+       shape, and `onRelease` leaves it there so the pointer path ends where it
+       always ended. */
+    if (onRelease === true) { return; }
     var rows = document.getElementById('fg-unit-rows');
     fgFocus(rows === null ? null : rows.querySelector('[data-fg="unudge"]'));
   }
@@ -35607,7 +35825,10 @@ App.interactions = (function () {
     var node = e.target;
     if (!node || typeof node.closest !== 'function') { return; }
     var btn = node.closest('[data-fg]');
-    if (btn === null) { return; }
+    // D-46: a press on a fight reserve's reading carries no data-fg — it is a
+    // reading and nothing else — so the drag is the only thing that can want
+    // it, and a still release of it is the nothing it always was.
+    if (btn === null) { fightDragOffer(e, null); return; }
     var kind = String(btn.dataset.fg || '');
 
     // The state arms first, each one dispatched. Advance and Reset take no
@@ -35615,7 +35836,18 @@ App.interactions = (function () {
     // which is the reason dispatch's own arm gives for declining a payload
     // shape for it.
     if (kind === 'act') { pressAct(btn); return; }
-    if (kind === 'bf') { pressBf(btn); return; }
+    /* D-46: A PRESS ON A READING ON A SHAPE, AT REST, IS OFFERED TO THE DRAG
+       FIRST, and the popup opens on the release if the pointer never
+       travelled. fightDragOffer declines — and pressBf runs on the way down,
+       exactly as before — for a press on the shape's name or padding, for
+       keyboard activation, and while a change of target is half made, which
+       is when the whole battlefield is the retarget flow's. Its banner in
+       [S07.8] ranks the three claimants in full. */
+    if (kind === 'bf') {
+      if (fightDragOffer(e, function () { pressUnit(btn, true); })) { return; }
+      pressBf(btn);
+      return;
+    }
     if (kind === 'advance') { App.ops.dispatch('advanceRound', {}); return; }
     if (kind === 'reset') { App.ops.dispatch('resetFight', {}); return; }
     // D-36's ruling arm. It sits with the state arms because it dispatches a
@@ -35640,7 +35872,17 @@ App.interactions = (function () {
     // control, so closest() hands this arm the line and hands `bf` the shape,
     // and the two never see each other's presses. The team-resource reading is
     // not nested at all and reaches here the ordinary way.
-    if (kind === 'res') { pressRes(btn); }
+    //
+    // D-46: a pool row is a drag source now, so its press is offered to the
+    // drag first on the same terms as a shape's reading, and D-36's nudge
+    // opens on a still release. Armed, the offer declines and the nudge opens
+    // on the way down exactly as D-36 built it — "a student who armed a change
+    // and then wants to fix a pool reading should not have to cancel the flow
+    // to do it" — and only the drag waits for the flow to be finished.
+    if (kind === 'res') {
+      if (fightDragOffer(e, function () { pressRes(btn, true); })) { return; }
+      pressRes(btn);
+    }
   }
 
   // Keyboard activation ONLY, and the guard is [S07.1]'s verbatim for its
@@ -36504,28 +36746,70 @@ App.interactions = (function () {
 
   var drag = null;
 
+  /* ==================================================================
+     D-46 — THE SAME GESTURE ON THE FIGHT TAB. ONE MACHINE, TWO SURFACES.
+     ==================================================================
+     The developer: "I can't drag resources around the battle screen." What
+     D-41b built for the board — the threshold, capture on a static root,
+     elementFromPoint resolved to the entity, lights asked of the op, one
+     dispatch per drop, the refusal said on the entity, Escape and every
+     other stop, the edge scroll — is the fight tab's too, and it is SHARED
+     rather than copied: a drag in flight carries which SURFACE it belongs to,
+     and the handful of lines that differ between the two read it from this
+     table. What differs is exactly four things:
+       root   the static node the press is heard on and the pointer is
+              captured to — #board, or #fightbar;
+       cols   the two column roots whose entities light (a board card and a
+              battlefield shape share a key, so each surface lights only its
+              own — [S06.16]'s DRAG_COLS paragraph);
+       check  the predicate a target is lit from — moveCheck, or
+              moveFightCheck, each the guards of the op below with the commit
+              left off;
+       op     the op a drop dispatches — moveToken on the build, or
+              moveFightToken on the fight slice as a hand ruling.
+     Every scope rule, bound test and sentence is the ops' — [S05]'s one
+     moveRule — and nothing here restates one. */
+  var DRAG_SURFACES = {
+    board: { root: 'board', check: 'moveCheck', op: 'moveToken' },
+    fight: { root: 'fightbar', check: 'moveFightCheck', op: 'moveFightToken' }
+  };
+
+  function dragSurf(name) {
+    return (name === 'fight') ? DRAG_SURFACES.fight : DRAG_SURFACES.board;
+  }
+
+  // The column roots, read off [S06.16] rather than re-typed: the board's are
+  // its default (undefined), the fight's are its exported pair.
+  function dragCols(name) {
+    return (name === 'fight') ? App.render.FIGHT_DRAG_COLS : undefined;
+  }
+
   function dragUnitOf(node) {
     var u = node.dataset.drgUnit;
     return (u === undefined || u === null || u === '') ? null : String(u);
   }
 
   // Every end on the live board — each side's own end (the pool), then each
-  // of its units — read off the BUILD rather than off the page, so the answer
-  // list does not depend on what the page happens to have drawn.
-  function dragEnds() {
-    var b = App.state.get().build;
+  // of its units — read off the STATE rather than off the page, so the answer
+  // list does not depend on what the page happens to have drawn. D-46: the
+  // fight surface reads the FIGHT roster, and with no fight there are no ends.
+  function dragEnds(surf) {
+    var s = App.state.get();
+    var holder = (surf === 'fight') ? s.fight : s.build;
     var out = [];
+    if (holder === null) { return out; }
     ['cats', 'mechs'].forEach(function (side) {
       out.push({ side: side, unitId: null });
-      b[side].units.forEach(function (u) { out.push({ side: side, unitId: u.id }); });
+      holder[side].units.forEach(function (u) { out.push({ side: side, unitId: u.id }); });
     });
     return out;
   }
 
   // What a drop at one end would do, in the op's own words.
-  function dragAnswer(tokenId, from, to) {
+  function dragAnswer(tokenId, from, to, surf) {
     try {
-      var moves = App.ops.moveCheck(tokenId, from.side, from.unitId, to.side, to.unitId);
+      var moves = App.ops[dragSurf(surf).check](tokenId, from.side, from.unitId,
+        to.side, to.unitId);
       return { answer: moves ? 'lit' : 'home', said: '' };
     } catch (err) {
       if (!isRefusal(err)) { throw err; }
@@ -36533,11 +36817,17 @@ App.interactions = (function () {
     }
   }
 
-  function dragAnswers(tokenId, from) {
-    return dragEnds().map(function (to) {
-      var a = dragAnswer(tokenId, from, to);
+  function dragAnswers(tokenId, from, surf) {
+    return dragEnds(surf).map(function (to) {
+      var a = dragAnswer(tokenId, from, to, surf);
       return { side: to.side, unitId: to.unitId, answer: a.answer, said: a.said };
     });
+  }
+
+  // D-46: the fight surface's answer list, for [S09.17] and the gate to hold
+  // to moveFightToken end by end — dragAnswers with its surface named.
+  function fightDragAnswers(tokenId, from) {
+    return dragAnswers(tokenId, from, 'fight');
   }
 
   // A press on a token in a marked row, or on a reserve reading. [S06.16]
@@ -36559,16 +36849,39 @@ App.interactions = (function () {
     };
   }
 
-  function dragTargetAt(x, y) {
+  // D-46: an entity only answers for the surface the drag belongs to, so a
+  // fight drag let go over a board card (or the reverse, on a page where both
+  // were somehow drawn) is a release over nothing, not a drop.
+  function dragTargetAt(x, y, surf) {
     if (typeof document === 'undefined') { return null; }
     if (typeof document.elementFromPoint !== 'function') { return null; }
     var hit = document.elementFromPoint(x, y);
     if (!hit || typeof hit.closest !== 'function') { return null; }
-    return hit.closest('[data-drg-at]');
+    var at = hit.closest('[data-drg-at]');
+    if (at === null) { return null; }
+    var root = dragRootOf(surf);
+    for (var n = at; n; n = n.parentNode) {
+      if (n === root) { return at; }
+    }
+    return null;
+  }
+
+  function dragRootOf(surf) {
+    return (typeof document === 'undefined') ? null
+      : document.getElementById(dragSurf(surf).root);
   }
 
   function dragBoard() {
-    return (typeof document === 'undefined') ? null : document.getElementById('board');
+    return dragRootOf('board');
+  }
+
+  function dragStart(e, src, surf, still) {
+    drag = {
+      id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+      live: false, tokenId: src.tokenId, from: src.from, node: src.node,
+      over: null, ghost: null, answers: null, at: -1, raf: null,
+      surf: surf, still: still
+    };
   }
 
   function onDragDown(e) {
@@ -36576,20 +36889,65 @@ App.interactions = (function () {
     if (drag !== null) { return; }
     var src = dragSource(e);
     if (src === null) { return; }
-    drag = {
-      id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
-      live: false, tokenId: src.tokenId, from: src.from, node: src.node,
-      over: null, ghost: null, answers: null, at: -1, raf: null
-    };
+    dragStart(e, src, 'board', null);
+  }
+
+  /* D-46 — THE FIGHT TAB'S PRESS, AND WHO OWNS IT. Called by [S07.5]'s
+     onFightPress and by nothing else, because on the fight tab THREE things
+     want a press and the decision is taken in one place, in this order:
+       1. A HALF-MADE RETARGET OWNS THE PRESS. While a change of target is
+          half made anywhere (fgAnyHalfMade), nothing here starts: the
+          battlefield belongs to the retarget flow (D-36, D-37), and a pool
+          press opens D-36's nudge exactly as it did. D-46: "while a retarget
+          is half-made the battlefield belongs to the retarget flow and no drag
+          starts."
+       2. A PRESS ON A SOURCE AT REST IS HELD, NOT ANSWERED. A press on a
+          reading on a shape, on a pool row or on a reserve reading becomes a
+          candidate, and NOTHING ELSE HAPPENS ON THE WAY DOWN — no popup, no
+          nudge. If the pointer travels DRAG_PX it is a drag and the popup
+          never opens; if it lets go still, `still` runs on the release and
+          does what the press always did (D-37's popup on a shape, D-36's
+          nudge on a pool row). This is the ONE change a student can feel:
+          the popup opens on the release rather than on the press, which a
+          click — down and up — cannot tell apart.
+       3. ANYTHING ELSE IS THE CALLER'S, unchanged: a press on a shape's name
+          or padding opens the popup on the way down as it always has.
+     Keyboard activation never reaches here (onFightClick's click has no
+     pointer), so Enter on a shape or a row is exactly what it was.
+
+     THE BATTLE SCENE IS NOT A THIRD CLAIMANT, BY CONSTRUCTION. Its press
+     listener is on #scene-field, which is not inside #fightbar, and this one
+     is reached only from #fightbar's; each gesture's document listeners
+     answer only to its own record (`drag` here, `held` in [S07.9]) and to
+     its own pointer id. A sprite drag and a resource drag cannot capture each
+     other's pointer, because each captures to its own root and only its own
+     root's press can start it. */
+  function fightDragOffer(e, still) {
+    if (!e || e.type !== 'pointerdown' || !isPrimaryPress(e)) { return false; }
+    if (drag !== null) { return false; }
+    if (App.state.get().fight === null) { return false; }
+    if (fgAnyHalfMade()) { return false; }
+    var src = dragSource(e);
+    if (src === null) { return false; }
+    dragStart(e, src, 'fight', typeof still === 'function' ? still : null);
+    return true;
   }
 
   function dragBegin(e) {
     drag.live = true;
-    App.render.dragQuiet();
-    var board = dragBoard();
-    if (board && typeof board.setPointerCapture === 'function' && e.pointerId !== undefined) {
+    App.render.dragQuiet(dragCols(drag.surf));
+    // D-46: a popup or a nudge left open on the fight tab is a fixed box at
+    // z-index 40 sitting over the very targets a drag is aimed at, and the
+    // hit test would answer it instead of the shape under it. Both shut as
+    // the drag begins — the press that began it was never theirs.
+    if (drag.surf === 'fight') {
+      fgNudgeShut();
+      fgUnitShut();
+    }
+    var root = dragRootOf(drag.surf);
+    if (root && typeof root.setPointerCapture === 'function' && e.pointerId !== undefined) {
       try {
-        board.setPointerCapture(e.pointerId);
+        root.setPointerCapture(e.pointerId);
       } catch (noSuchPointer) {
         void noSuchPointer;
       }
@@ -36604,7 +36962,7 @@ App.interactions = (function () {
   function dragFresh() {
     var at = App.state.stats().commits;
     if (drag.answers === null || drag.at !== at) {
-      drag.answers = dragAnswers(drag.tokenId, drag.from);
+      drag.answers = dragAnswers(drag.tokenId, drag.from, drag.surf);
       drag.at = at;
     }
   }
@@ -36623,9 +36981,9 @@ App.interactions = (function () {
       dragEnd();
       throw defect;
     }
-    here.over = dragTargetAt(here.x, here.y);
+    here.over = dragTargetAt(here.x, here.y, here.surf);
     App.render.dragGhostAt(here.ghost, here.x, here.y);
-    App.render.dragPaint(here.answers, here.over, here.node, here.ghost);
+    App.render.dragPaint(here.answers, here.over, here.node, here.ghost, dragCols(here.surf));
   }
 
   function onDragMove(e) {
@@ -36696,11 +37054,11 @@ App.interactions = (function () {
       cancelAnimationFrame(was.raf);
     }
     if (was.live) {
-      App.render.dragDone(was.node);
-      var board = dragBoard();
-      if (board && typeof board.releasePointerCapture === 'function' && was.id !== undefined) {
+      App.render.dragDone(was.node, dragCols(was.surf));
+      var root = dragRootOf(was.surf);
+      if (root && typeof root.releasePointerCapture === 'function' && was.id !== undefined) {
         try {
-          board.releasePointerCapture(was.id);
+          root.releasePointerCapture(was.id);
         } catch (released) {
           void released;
         }
@@ -36717,7 +37075,9 @@ App.interactions = (function () {
   function dragDrop(was, target) {
     var said = App.render.dragSaidOf(target);
     try {
-      App.ops.dispatch('moveToken', {
+      // D-46: the surface names the op — moveToken on the board, moveFightToken
+      // on the fight tab — and the payload is the same five flat keys.
+      App.ops.dispatch(dragSurf(was.surf).op, {
         tokenId: was.tokenId,
         fromSide: was.from.side, fromUnitId: was.from.unitId,
         toSide: String(target.dataset.drgAt), toUnitId: dragUnitOf(target)
@@ -36742,9 +37102,16 @@ App.interactions = (function () {
     if (drag === null || e.pointerId !== drag.id) { return; }
     var was = dragEnd();
     // A press that never became a drag is a click, and a click on a token is
-    // the nothing it always was.
-    if (was === null || !was.live) { return; }
-    var target = dragTargetAt(e.clientX, e.clientY);
+    // the nothing it always was. D-46: on the fight tab a click on a reading
+    // is NOT nothing — it opens the popup or the nudge — and that is what the
+    // press held back on its way down; it runs now, on the release, and only
+    // for a press that never travelled.
+    if (was === null) { return; }
+    if (!was.live) {
+      if (was.still !== null && was.still !== undefined) { was.still(); }
+      return;
+    }
+    var target = dragTargetAt(e.clientX, e.clientY, was.surf);
     // A release over no entity at all is a cancel: nothing was aimed at, so
     // nothing is refused and nothing is said.
     if (target === null) { return; }
@@ -36773,6 +37140,15 @@ App.interactions = (function () {
     document.addEventListener('pointerup', App.boot.wrap('token drag drop', onDragUp));
     document.addEventListener('pointercancel', App.boot.wrap('token drag cancel', onDragCancel));
     board.addEventListener('lostpointercapture', App.boot.wrap('token drag cancel', onDragCancel));
+    // D-46: the fight surface captures to #fightbar, so a capture lost there
+    // ends a fight drag exactly as one lost on #board ends a board drag. Its
+    // PRESS is not bound here: [S07.5]'s onFightPress hands it over through
+    // fightDragOffer, because that is where the three claimants are ranked.
+    var fightRoot = dragRootOf('fight');
+    if (fightRoot !== null) {
+      fightRoot.addEventListener('lostpointercapture',
+        App.boot.wrap('token drag cancel', onDragCancel));
+    }
     document.addEventListener('keydown', App.boot.wrap('token drag escape', onDragKey));
     if (typeof window !== 'undefined') {
       window.addEventListener('blur', App.boot.wrap('token drag cancel', onDragCancel));
@@ -36786,7 +37162,10 @@ App.interactions = (function () {
   // editorSnapshot's shape.
   function dragSaid() {
     if (drag === null) { return ''; }
-    return JSON.stringify({ live: drag.live, tokenId: drag.tokenId, from: drag.from });
+    // D-46: and which surface it belongs to, so a cell can tell a fight drag
+    // held on a battlefield reading from a board drag.
+    return JSON.stringify({ live: drag.live, tokenId: drag.tokenId, from: drag.from,
+      surf: drag.surf });
   }
 
   // THE ACTS THIS REGION CLAIMS: NONE, and the line is written down for
@@ -37032,6 +37411,9 @@ App.interactions = (function () {
     // editorSnapshot's reason, and the threshold browser cells drive either
     // side of.
     dragAnswers: dragAnswers,
+    // D-46. The fight tab's answer list, for [S09.17] and the gate to hold to
+    // moveFightToken end by end, exported for dragAnswers' reason.
+    fightDragAnswers: fightDragAnswers,
     dragInFlight: dragSaid,
     DRAG_PX: DRAG_PX,
     // D-42. The sprite held in the scene, read-only and stringified for
