@@ -17421,39 +17421,77 @@ App.ops = (function () {
   // detached copy to write — the same function both times, so the number that
   // was ruled on and the number that is written are read by one piece of code.
   // The caller has already refused a side-scope type at a unit end.
-  function moveEnd(build, side, unitId, tokenId, scope) {
-    var faction = build[side];
+  //
+  // D-46 — THE SAME END ON THE FIGHT SLICE, AND THE SIXTH ARGUMENT IS THE WHOLE
+  // DIFFERENCE. The developer, at the real artifact: "I can't drag resources
+  // around the battle screen." A fight-tab drag is a HAND RULING on the fight
+  // slice, so its ends are read off `fight` rather than off `build` — and in
+  // exactly three places, each of which is FIGHT-10's division rather than a
+  // new rule:
+  //   - a unit's health is the fight's `hp` and not the allocation's `maxHp`
+  //     (bfAmount's first arm, for its reason: drawing or moving the
+  //     allocation would make a fight's damage appear not to land);
+  //   - the unit and the side's numbers are the fight slice's own copies;
+  //   - the reserve is the fight side's own bag, a different bag from the
+  //     build's, under the same two sparse rules (readReserve/writeReserve are
+  //     written against "a thing with a `reserve`", which is both).
+  // EVERYTHING ELSE IS THE BUILD'S AND IS READ FROM THE BUILD, which is the
+  // fight slice's own founding rule ("names, actions, damage and keywords stay
+  // in build, so a unit has exactly one identity"): the NAMES in every
+  // sentence, the vocabulary and the D-35 BOUNDS — every hand op in [S05]'s
+  // ruling group bounds through s.build.tokens, and a fight move that bounded
+  // against anything else would be a second pair. MAX_RESERVE caps a fight
+  // reserve too; [S01]'s reason for the cap (a stepper creates tokens and a
+  // move conserves them, so step-then-pool grows a count without limit)
+  // holds on this slice word for word — the fight's own nudges step numbers
+  // up — and here the unbounded count would be one thirty snapshots of undo
+  // carry rather than one the wire does.
+  //
+  // ONE FUNCTION FOR BOTH SLICES AND NOT A SECOND RESOLVER, which is D-46's
+  // "reuse, don't fork" at its narrowest point: the arms, their order and the
+  // two sentences' `who` are shared, and what differs is two variables —
+  // WHERE THE NUMBERS ARE HELD (`holder`: the build faction, or the fight
+  // side) and WHICH FIELD A UNIT'S HEALTH IS (`hpKey`). The unit is found on
+  // the holder's roster, because that is the number that moves; its name is
+  // read off the BUILD roster by id — fgUnitName's own read — and for the
+  // build slice that is the very unit found, so the build's sentences are
+  // byte-identical to what they were. A fight unit with no build twin cannot
+  // be made by any op in this file (addUnit and removeUnit write both
+  // rosters), and it says its id rather than throwing, because a sentence is
+  // being built and a refusal must never turn into a defect on the way.
+  function moveEnd(build, side, unitId, tokenId, scope, fight) {
+    var named = build[side];
+    var holder = fight ? fight[side] : named;
+    var hpKey = fight ? 'hp' : 'maxHp';
     var b = tokenBounds(build.tokens, tokenId);
     if (moveNamesUnit(unitId)) {
-      var unit = findUnit(side, unitId, faction.units);
-      if (tokenId === 'hp') {
-        return { who: unit.name, pool: false, lo: b.min, hi: b.max,
-          read: function () { return unit.maxHp; },
-          write: function (n) { unit.maxHp = n; } };
+      var unit = findUnit(side, unitId, holder.units);
+      var who = String(unitId);
+      named.units.forEach(function (u) { if (u.id === unitId) { who = u.name; } });
+      if (tokenId === 'hp' || tokenId === 'shield') {
+        var key = (tokenId === 'hp') ? hpKey : 'shield';
+        return { who: who, pool: false, lo: b.min, hi: b.max,
+          read: function () { return unit[key]; },
+          write: function (n) { unit[key] = n; } };
       }
-      if (tokenId === 'shield') {
-        return { who: unit.name, pool: false, lo: b.min, hi: b.max,
-          read: function () { return unit.shield; },
-          write: function (n) { unit.shield = n; } };
-      }
-      return { who: unit.name, pool: false, lo: b.min, hi: b.max,
+      return { who: who, pool: false, lo: b.min, hi: b.max,
         read: function () { return readTally(unit, tokenId); },
         write: function (n) { writeTally(unit, tokenId, n); } };
     }
     if (scope === 'unit') {
-      return { who: 'The ' + faction.name + ' reserve', pool: true,
+      return { who: 'The ' + named.name + ' reserve', pool: true,
         lo: 0, hi: App.data.MAX_RESERVE,
-        read: function () { return readReserve(faction, tokenId); },
-        write: function (n) { writeReserve(faction, tokenId, n); } };
+        read: function () { return readReserve(holder, tokenId); },
+        write: function (n) { writeReserve(holder, tokenId, n); } };
     }
     if (tokenId === 'ap') {
-      return { who: faction.name, pool: false, lo: b.min, hi: b.max,
-        read: function () { return faction.ap; },
-        write: function (n) { faction.ap = n; } };
+      return { who: named.name, pool: false, lo: b.min, hi: b.max,
+        read: function () { return holder.ap; },
+        write: function (n) { holder.ap = n; } };
     }
-    return { who: faction.name, pool: false, lo: b.min, hi: b.max,
-      read: function () { return readTally(faction, tokenId); },
-      write: function (n) { writeTally(faction, tokenId, n); } };
+    return { who: named.name, pool: false, lo: b.min, hi: b.max,
+      read: function () { return readTally(holder, tokenId); },
+      write: function (n) { writeTally(holder, tokenId, n); } };
   }
 
   // The two bound sentences, one per end. A floor of zero is "none left", which
@@ -17503,11 +17541,22 @@ App.ops = (function () {
     return moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId).moves;
   }
 
-  function moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+  // D-46 — THE SIXTH ARGUMENT SAYS WHICH SLICE, AND IT IS THE ONLY THING THE
+  // TWO MOVES DO NOT SHARE. moveToken and moveCheck pass nothing and are ruled
+  // on the build exactly as before; moveFightToken and moveFightCheck pass
+  // `true` and are ruled on the fight slice, through the SAME guard block in
+  // the SAME order with the SAME sentences. The one guard the fight adds is
+  // that a fight is running, and it is fightOf's own refusal ("No fight in
+  // progress", a plain Error), taken after the id and the two sides and
+  // before anything is read — because nothing after it can be read without a
+  // fight to read it from. Every other line below is D-41's, unedited.
+  function moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId, onFight) {
     requireTokenId(tokenId);
     requireSide(fromSide);
     requireSide(toSide);
-    var live = App.state.get().build;
+    var whole = App.state.get();
+    var g = (onFight === true) ? fightOf(whole) : null;
+    var live = whole.build;
     if (!Object.prototype.hasOwnProperty.call(live.tokens, tokenId)) {
       throw new Error('There is no token type "' + String(tokenId) + '" on this board.');
     }
@@ -17521,8 +17570,8 @@ App.ops = (function () {
       throw new Error('"' + String(name) + '" is kept on the whole side, so it cannot be '
         + 'moved onto or off a single unit.');
     }
-    var from = moveEnd(live, fromSide, fromUnitId, tokenId, scope);
-    var to = moveEnd(live, toSide, toUnitId, tokenId, scope);
+    var from = moveEnd(live, fromSide, fromUnitId, tokenId, scope, g);
+    var to = moveEnd(live, toSide, toUnitId, tokenId, scope, g);
     if (fromSide === toSide && (moveNamesUnit(fromUnitId) === moveNamesUnit(toUnitId))
       && (!moveNamesUnit(fromUnitId) || fromUnitId === toUnitId)) {
       return { moves: false, scope: scope };
@@ -17548,6 +17597,94 @@ App.ops = (function () {
       }
       a.write(had - 1);
       b.write(got + 1);
+    });
+    return true;
+  }
+
+  /* ==================================================================
+     D-46 — THE SAME MOVE ON THE FIGHT SLICE, AS A HAND RULING.
+     ==================================================================
+     The developer, at the real artifact: "I can't drag resources around the
+     battle screen." D-41 built the drag on the board tab only and wrote the
+     fight tab down as a follow-up in one line — "a fight-tab drag would be a
+     hand ruling, not an allocation" — and this is that line, built.
+
+     IT IS moveToken's MODEL, NOT A SECOND ONE. One op for unit -> unit (any
+     unit, either side), unit -> reserve, reserve -> unit and side -> side;
+     the ends spelled exactly as moveToken spells them (a null unit is the
+     side's own end); the guards are moveRule's — the one function, asked
+     with `true` for the slice — so a scope, a bound or a same-end drop is
+     ruled on the fight tab by the lines that rule it on the board tab, and
+     says the same sentence. CONSERVATION IS THE SAME INVARIANT ON THE FIGHT
+     SLICE: −1 at one end, +1 at the other, and a breach of a D-35 bound is
+     REFUSED WHOLE and never clamped, for the reason moveToken's banner gives.
+
+     WHAT MAKES IT A HAND RULING, AND EACH OF THE FOUR IS THE HAND-RULING
+     GROUP'S OWN RULE HELD FOR A FIFTH SPELLING:
+       - IT WRITES THE FIGHT SLICE AND ONLY THE FIGHT SLICE. FIGHT-10's
+         division: nothing here touches `build`, so the build code cannot see a
+         fight-tab drag and there is no codec work. [S09.17] holds the build
+         byte-identical across every move it drives.
+       - IT LANDS IN THE ROUND'S `hand` RECORD, BOTH ENDS OF IT, through the
+         same `ruled` every hand op calls, inside the mutator: the source's
+         number going down one and the target's going up one, in that order,
+         so the ledger's "Set by hand this round" reads a move as the two
+         numbers it changed. A reserve end is recorded with `unit: null` — the
+         side-scope shape D-36 gave the record — and [S06.8]'s ldHandWho tells
+         a reserve from a pool by the TYPE's scope, which is the reading the
+         op itself used to decide which of the two a null unit named. No key is
+         added to the record, so nothing that walks it learns a second shape.
+       - IT NEVER WRITES `alive`. A unit dragged to zero health is still
+         standing (D-00d, the file's oldest ruling): zero PROMPTS a death
+         ruling from the table and never causes one. A unit ruled dead is not
+         refused either way — every hand op in this group rules on a dead
+         unit's numbers, because whether a fallen unit can give or be given
+         anything is the table's call and not this file's.
+       - ONE COMMIT AND ONE UNDO ENTRY, AND TWO MOVES NEVER FOLD. The label
+         carries [S03]'s monotonic commit count for moveToken's reason, and it
+         begins `fight move` rather than `token move` so neither op's label can
+         ever be the other's — a build move and a fight move made inside one
+         COALESCE_MS window are two entries on two slices.
+
+     THE FIGHT NEVER READS THE RESERVE, and it is the same blindness D-41a
+     measured, one slice over. advanceRound spends and applies to `ap`, the
+     units and the side's tally BY NAME; spokenFor and affordability read the
+     caster's units and pools; the projection reads the units. The one place a
+     fight reserve appears in Advance's output is the verbatim snapshot `was`
+     takes of each side — a copy of the board as it stood, which is what that
+     record is — and [S09.17] drives two fights that differ only in their
+     reserves and requires them identical once that one bag is set aside.
+
+     WHERE THE TWO SLICES' GUARDS DIFFER, SAID EXACTLY: in one place. The
+     fight move is refused when no fight is running, by fightOf's own
+     sentence, before any end is read. Everything else is one block. */
+  function moveFightCheck(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+    return moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId, true).moves;
+  }
+
+  function moveFightToken(tokenId, fromSide, fromUnitId, toSide, toUnitId) {
+    var rule = moveRule(tokenId, fromSide, fromUnitId, toSide, toUnitId, true);
+    if (rule.moves === false) { return false; }
+    var scope = rule.scope;
+    // fightUnitOrNull's normalisation, for its stated reason: the record, the
+    // lookup and the ledger must all say the same thing about "nobody".
+    var fromWho = fightUnitOrNull(fromUnitId);
+    var toWho = fightUnitOrNull(toUnitId);
+
+    App.state.commit('fight move ' + App.state.stats().commits, function (s) {
+      var g = fightOf(s);
+      var a = moveEnd(s.build, fromSide, fromUnitId, tokenId, scope, g);
+      var b = moveEnd(s.build, toSide, toUnitId, tokenId, scope, g);
+      var had = a.read();
+      var got = b.read();
+      if (had - 1 < a.lo || got + 1 > b.hi) {
+        throw new TypeError('moveFightToken ruled on one board and was handed another, '
+          + 'so it wrote nothing.');
+      }
+      a.write(had - 1);
+      b.write(got + 1);
+      ruled(g, fromSide, fromWho, tokenId, had, had - 1);
+      ruled(g, toSide, toWho, tokenId, got, got + 1);
     });
     return true;
   }
@@ -17702,6 +17839,13 @@ App.ops = (function () {
       // into a unit would decide an end the drag did not name.
       case 'moveToken': return moveToken(p.tokenId, p.fromSide, p.fromUnitId,
         p.toSide, p.toUnitId);
+      // D-46. The fight slice's move, read key by key with flat ends for the
+      // moveToken arm's reasons, one line up. Its own arm and its own name,
+      // never a flag on moveToken's payload: which slice a drag writes is a
+      // fact about which function was called — setUnitShield's and
+      // setFightShield's argument against a mode argument, held again.
+      case 'moveFightToken': return moveFightToken(p.tokenId, p.fromSide, p.fromUnitId,
+        p.toSide, p.toUnitId);
       case 'undo': return undo();
       default: throw new Error('Unknown op: ' + act);
     }
@@ -17761,6 +17905,13 @@ App.ops = (function () {
          a rule, never touches the fight slice, and chooses no unit — the drag
          names both. Its name matches neither of [S09.10]'s applier families
          and that is checked by reading the live list, not by this sentence.
+       - THE FIGHT MOVE, as of D-46: moveFightToken, with one arm. The same
+         move on the fight slice, and a HAND RULING rather than an applier for
+         the hand-ruling group's own reason: the student names both ends, it
+         spends no declaration, tests nothing against a rule, never writes
+         `alive`, and records both numbers it moved in the round's `hand`
+         list. "Never touches the fight slice" above is moveToken's property
+         and stays true of moveToken; this op is the one that does.
 
      WHAT STILL DOES NOT EXIST, AND THIS HALF IS THE REQUIREMENT RATHER THAN
      THE GAP: THERE IS NO WRITER THAT DECIDES ANYTHING. No op picks an action,
@@ -17983,6 +18134,15 @@ App.ops = (function () {
     // function whose only job is to answer without writing. [S09.14] holds it
     // to moveToken's answer over every end of a board.
     moveCheck: moveCheck,
+    // D-46. The same move on the fight slice as a hand ruling, and its
+    // predicate beside it on moveCheck's terms: the op has an arm, the
+    // predicate has none. moveScope goes with them because [S06.8]'s ledger
+    // must tell a reserve from a pool on a record whose unit is null, and the
+    // only honest way to do that is to ask the function the op asked — it is
+    // pure, reads the vocabulary it is handed and writes nothing.
+    moveFightToken: moveFightToken,
+    moveFightCheck: moveFightCheck,
+    moveScope: moveScope,
     setUi: setUi,
     undo: undo,
     dispatch: dispatch,
@@ -24624,11 +24784,30 @@ App.render = (function () {
      function down — a faction name is not on any of the three channels — and
      the SIDE is read defensively because a record can arrive from a round
      resolved before the side it names was anything this file recognises. */
+  /* D-46 GIVES A NULL UNIT A SECOND MEANING AND THIS IS THE ARM THAT TELLS THE
+     TWO APART. A fight-tab drag into or out of a side's RESERVE is a hand
+     ruling on the reserve's count, and the record spells that end the way D-36
+     spelled a pool: `unit: null`, no new key. What says which of the two a
+     null unit named is the TYPE: a type kept on the whole side has its number
+     in the pool, and a type kept on each unit has no side-level number EXCEPT
+     the reserve — so a null unit beside a unit-kept type can only be the
+     reserve. The scope is asked of App.ops.moveScope, the function the move
+     itself asked when it decided which end a null unit was, rather than
+     restated here; and it is asked only of a type the vocabulary still holds,
+     because a record can outlive its type and moveScope reads the record's
+     scope. The words are the op's own for that end ("The Cats reserve"), so a
+     student who read a refusal about the reserve meets the same name here. */
   function ldHandWho(state, r) {
     if (r.unit !== null && r.unit !== undefined) { return ldUnitName(state, r.unit); }
     var faction = Object.prototype.hasOwnProperty.call(state.build, r.side)
       ? state.build[r.side] : null;
-    return (faction && typeof faction.name === 'string') ? faction.name : String(r.side);
+    var name = (faction && typeof faction.name === 'string') ? faction.name : String(r.side);
+    var vocab = state.build.tokens || {};
+    if (Object.prototype.hasOwnProperty.call(vocab, r.tok)
+      && App.ops.moveScope(vocab, r.tok) === 'unit') {
+      return 'The ' + name + ' reserve';
+    }
+    return name;
   }
 
   function ldHandInto(acts, state, record) {
