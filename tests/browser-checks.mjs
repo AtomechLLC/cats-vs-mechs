@@ -6706,6 +6706,11 @@ for (const ch of ['chrome', 'msedge']) {
     // ── 32. WHERE IT SITS, WHAT IT LOOKS LIKE, AND THAT EVERY NAME IS LEGIBLE. ──
     await pg.evaluate(() => { try { localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ } });
     await d42Fresh();
+    // D-44, plan 05-D44: THE 8-BIT GENERATION IS SELECTED HERE, BY A REAL CLICK ON THE PICKER,
+    // and every cell from 32 to 32n below is D-42's and D-43's own, untouched. That they pass with
+    // 8-bit selected is the claim "keep the original art". The choice is kept in the store, so it
+    // holds across 32g's reload as well. The 16-bit cells, and the picker's, are 32o onwards.
+    await pg.click('#scene-gen-8'); await pg.waitForTimeout(150);
     const d42Look = await pg.evaluate(() => {
       const band = document.querySelector('.fg-band');
       const scene = document.getElementById('scene');
@@ -7133,6 +7138,316 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.evaluate(() => {
       App.render.sceneHome();
       try { localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ }
+    });
+
+    // ── 32o-32v. D-44 — 16-BIT ART BY DEFAULT, THE 8-BIT ART KEPT, AND A PICKER. Plan 05-D44.
+    // ═════════════════════════════════════════════════════════════════════════════════════
+    // "change the bar to FFV level art and redraw, keep the original art and let users pick the
+    // generation, use the new one as default". 32-32n above ran with 8-bit selected by a real
+    // click and are D-42's and D-43's own cells. These are the 16-bit generation's and the
+    // picker's: the default with an empty store, the look against the tokens, the dead, the
+    // switch keeping every place, a reload keeping the choice, a store that refuses, 24 a side,
+    // and the clamp by the 16-bit mech's own size. Every screenshot is read back.
+    const d44Shot = (name) => pg.locator('#scene').screenshot({
+      path: path.join(process.env.SHOT_DIR || tmpdir(), `d44-${name}-${ch}-${size.name}.png`)
+    });
+    const d44Gen = (p) => (p || pg).evaluate(() => {
+      let stored = null;
+      try { stored = localStorage.getItem('cvm.v1.scene-art'); } catch (e) { stored = 'BLOCKED'; }
+      const btn = (g) => {
+        const b0 = document.getElementById('scene-gen-' + g);
+        if (!b0) { return {}; }
+        const tick = b0.querySelector('.scn-gen-check');
+        const nm = b0.querySelector('.scn-gen-name');
+        return { pressed: b0.getAttribute('aria-pressed'), on: b0.classList.contains('scn-gen-on'),
+          tick: tick ? getComputedStyle(tick).visibility : '', label: nm ? nm.textContent : '',
+          font: parseFloat(getComputedStyle(b0).fontSize), shown: b0.getBoundingClientRect().width > 0 };
+      };
+      return { gen: document.getElementById('scene').dataset.scnGen, now: App.render.sceneGen(), stored,
+        b16: btn('16'), b8: btn('8'),
+        sizes: Array.from(document.querySelectorAll('#scene-field > .scn-unit canvas')).map((c) => c.width).join(),
+        state: JSON.stringify(App.state.get()), commits: App.state.stats().commits, depth: App.state.undoDepth() };
+    });
+    const d44Rgb = async (css) => ((await d42Tok(css)).match(/\d+/g) || [0, 0, 0]).slice(0, 3).map(Number);
+    const d44Mix = (a, b0, t) => 'rgb(' + [0, 1, 2].map((i) => Math.round(a[i] * (1 - t) + b0[i] * t)).join(', ') + ')';
+    const d44BackPx = (x, y) => pg.evaluate(([px, py]) => {
+      const c = document.getElementById('scene-back');
+      if (!c) { return 'MISSING'; }
+      const d = c.getContext('2d').getImageData(px, py, 1, 1).data;
+      return `rgb(${d[0]}, ${d[1]}, ${d[2]})`;
+    }, [x, y]);
+    // Where a letter first occurs in a 16-bit sprite, read off the artifact's own map.
+    const d44At = (side, letter) => pg.evaluate(([s, c]) => {
+      const rows = (App.render.SCENE_SPRITES_16 || {})[s] || [];
+      for (let y = 0; y < rows.length; y++) { const x = rows[y].indexOf(c); if (x !== -1) { return [x, y]; } }
+      return [0, 0];
+    }, [side, letter]);
+    // Every cat canvas 24 sprite pixels drawn at 48, every mech 48 drawn at 96 — two screen pixels a
+    // sprite pixel exactly, at BOTH window sizes — pixelated, and a mech twice a cat.
+    const d44Ratio = (rd) => {
+      const up = rd.sprites.filter((s) => !s.down);
+      const cats = up.filter((s) => s.id.charAt(0) === 'c');
+      const mechs = up.filter((s) => s.id.charAt(0) === 'm');
+      return { cat: cats.length ? cats[0].cw : 0, mech: mechs.length ? mechs[0].cw : 0,
+        ok: cats.length > 0 && mechs.length > 0
+          && cats.every((s) => s.cbw === 24 && Math.abs(s.cw - 48) < 0.5 && Math.abs(s.chh - 48) < 0.5)
+          && mechs.every((s) => s.cbw === 48 && Math.abs(s.cw - 96) < 0.5 && Math.abs(s.chh - 96) < 0.5)
+          && up.every((s) => s.ir === 'pixelated') };
+    };
+    const D44_S24 = '24,24,24,24,24,24,24,24,24,48,48,48';
+    const D44_S16 = '16,16,16,16,16,16,16,16,16,16,16,16';
+
+    // ── 32o. THE DEFAULT WITH AN EMPTY STORE, AND WHAT 16-BIT LOOKS LIKE. ──
+    await pg.evaluate(() => {
+      try { localStorage.removeItem('cvm.v1.scene-art'); localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ }
+    });
+    await pg.reload(); await pg.waitForTimeout(600);
+    await d42Fresh();
+    const d44g0 = await d44Gen();
+    const d44r0 = await d42Read();
+    const d44Look = await pg.evaluate(() => {
+      const win = getComputedStyle(document.querySelector('.scn-win'));
+      const back = document.getElementById('scene-back');
+      const wrap = back ? back.parentElement : null;
+      const wr = wrap ? wrap.getBoundingClientRect() : null;
+      const fr = document.getElementById('scene-field').getBoundingClientRect();
+      const bs = back ? getComputedStyle(back) : null;
+      const r = document.getElementById('scene').getBoundingClientRect();
+      return { rim: [win.borderTopColor, win.borderLeftColor, win.borderBottomColor, win.borderRightColor],
+        graded: /linear-gradient/.test(win.backgroundImage),
+        fieldPicture: getComputedStyle(document.getElementById('scene-field')).backgroundImage,
+        wrapShown: !!wr && wr.width > 0,
+        wrapOnField: !!wr && Math.abs(wr.left - fr.left) <= 1 && Math.abs(wr.top - fr.top) <= 1
+          && Math.abs(wr.right - fr.right) <= 1 && Math.abs(wr.bottom - fr.bottom) <= 1,
+        back: back ? [back.width, back.height, parseFloat(bs.width), parseFloat(bs.height)] : [],
+        backIr: bs ? bs.imageRendering : '', wrapPe: wrap ? getComputedStyle(wrap).pointerEvents : '',
+        bottom: Math.round(r.bottom + window.scrollY), vh: window.innerHeight,
+        text: document.getElementById('scene').innerText };
+    });
+    const d44Tok = { coral: await d42Tok('var(--coral)'), steel: await d42Tok('var(--ink-dim)'),
+      accent: await d42Tok('var(--accent)'), gold: await d42Tok('var(--gold)'),
+      ink: await d42Tok('var(--ink)') };
+    const d44BgRgb = await d44Rgb('var(--bg)');
+    const d44AccRgb = await d44Rgb('var(--accent)');
+    const d44FurAt = await d44At('cats', '3');
+    const d44PlateAt = await d44At('mechs', '4');
+    const d44SensorAt = await d44At('mechs', 's');
+    const d44TrimAt = await d44At('mechs', 't');
+    const d44Px0 = [await d42Pixel('c1', ...d44FurAt), await d42Pixel('m1', ...d44PlateAt),
+      await d42Pixel('m1', ...d44SensorAt), await d42Pixel('m1', ...d44TrimAt), await d44BackPx(0, 0)];
+    const d44Want0 = [d44Tok.coral, d44Tok.steel, d44Tok.accent, d44Tok.gold, d44Mix(d44AccRgb, d44BgRgb, 0.72)];
+    const d44Verdict = /victor|triumph|winner|loser|\bwin(s|ning)?\b|\bwon\b|defeat|\blost\b|\bbest\b|score|rank/i.test(d44Look.text);
+    const d44r0Ratio = d44Ratio(d44r0);
+    await d44Shot('fresh');
+    note(ch, size.name, 'D-44 16-bit sprite px cat / mech, backdrop css', `${d44r0Ratio.cat} / ${d44r0Ratio.mech}, ${d44Look.back.join('x')}`);
+    ok(`${tag}: 32o. D-44 — 16-BIT IS THE DEFAULT AND LOOKS IT: with an empty store and a reload the section says "16", the 16-bit control is pressed with its tick showing and the 8-bit one is not, both labels at UX-02's 18px floor, and nothing is written to the store until somebody presses. Twelve sprites, each cat 24 sprite pixels drawn at 48px and each mech 48 drawn at 96 — two screen pixels a sprite pixel exactly, pixelated, a mech twice a cat — all inside the field, no sprite over a sprite or another unit's name, every name what a hit test finds. THE PIXELS ARE THE TOKENS, read off the canvas: the fur is --coral, the plate --ink-dim, the sensor --accent, the trim --gold, and the backdrop's first pixel is --accent mixed 72% into --bg, mixed by this cell. The window's rim is lit --ink on its top and left and --ink-dim on its bottom and right over a graded fill; the field draws no picture of its own; the backdrop lies exactly on the field, 1024 by 360 drawn at 2048 by 720, pixelated, taking no pointer. The scene is whole on screen at load and names no outcome`,
+      d44g0.gen === '16' && d44g0.now === '16' && d44g0.stored === null
+      && d44g0.b16.pressed === 'true' && d44g0.b16.on && d44g0.b16.tick === 'visible'
+      && d44g0.b8.pressed === 'false' && !d44g0.b8.on && d44g0.b8.tick === 'hidden'
+      && d44g0.b16.label === '16-bit' && d44g0.b8.label === '8-bit' && d44g0.b16.font >= 18 && d44g0.b8.font >= 18
+      && d44g0.b16.shown && d44g0.b8.shown && d44g0.sizes === D44_S24
+      && d44r0.sprites.length === 12 && d44r0Ratio.ok && d42Inside(d44r0) && d43Clear(d44r0) === ''
+      && d42NamesApart(d44r0) === '' && d44r0.sprites.every((s) => s.onTop)
+      && JSON.stringify(d44Px0) === JSON.stringify(d44Want0)
+      && d44Look.rim[0] === d44Tok.ink && d44Look.rim[1] === d44Tok.ink
+      && d44Look.rim[2] === d44Tok.steel && d44Look.rim[3] === d44Tok.steel && d44Look.graded
+      && d44Look.fieldPicture === 'none' && d44Look.wrapShown && d44Look.wrapOnField
+      && JSON.stringify(d44Look.back) === JSON.stringify([1024, 360, 2048, 720]) && d44Look.backIr === 'pixelated'
+      && d44Look.wrapPe === 'none' && d44Look.bottom <= d44Look.vh && d44Verdict === false && d44r0.panel === true,
+      { gen: d44g0, ratio: d44r0Ratio, px: d44Px0, want: d44Want0, look: Object.assign({}, d44Look, { text: undefined }),
+        clear: d43Clear(d44r0), apart: d42NamesApart(d44r0) });
+
+    // ── 32p. MOVE THE TOKENS AND THE 16-BIT PICTURE FOLLOWS, SPRITES AND BACKDROP ALIKE. ──
+    await pg.evaluate(() => {
+      document.documentElement.style.setProperty('--coral', '#123456');
+      document.documentElement.style.setProperty('--ink-dim', '#654321');
+      document.documentElement.style.setProperty('--accent', '#224466');
+      App.state.invalidate(); App.state.flush();
+    });
+    const d44Moved = [await d42Pixel('c1', ...d44FurAt), await d42Pixel('m1', ...d44PlateAt), await d44BackPx(0, 0)];
+    await pg.evaluate(() => {
+      ['--coral', '--ink-dim', '--accent'].forEach((t) => document.documentElement.style.removeProperty(t));
+      App.state.invalidate(); App.state.flush();
+    });
+    const d44Back = [await d42Pixel('c1', ...d44FurAt), await d42Pixel('m1', ...d44PlateAt), await d44BackPx(0, 0)];
+    ok(`${tag}: 32p. D-44 — THE 16-BIT COLOURS ARE DERIVED, NOT TYPED: --coral, --ink-dim and --accent are moved on the root and one frame is painted, and the fur pixel, the plate pixel and the backdrop's sky follow them (the sky as the moved --accent mixed into --bg); put back, all three read the tokens again. 107f catches a literal written into the stylesheet; this catches a colour that stopped deriving for any reason, including one painted by script`,
+      d44Moved[0] === 'rgb(18, 52, 86)' && d44Moved[1] === 'rgb(101, 67, 33)'
+      && d44Moved[2] === d44Mix([34, 68, 102], d44BgRgb, 0.72)
+      && d44Back[0] === d44Want0[0] && d44Back[1] === d44Want0[1] && d44Back[2] === d44Want0[4],
+      { moved: d44Moved, back: d44Back, want: [d44Want0[0], d44Want0[1], d44Want0[4]] });
+
+    // ── 32q. THE DEAD, IN 16-BIT. ──
+    await d42Fresh();
+    await pg.evaluate(() => {
+      App.ops.dispatch('setAlive', { side: 'cats', unitId: 'c2', value: false });
+      App.ops.dispatch('setAlive', { side: 'mechs', unitId: 'm3', value: false });
+      App.ops.dispatch('setUnitHp', { side: 'mechs', unitId: 'm2', value: 0 });
+      App.state.flush();
+    });
+    await pg.waitForTimeout(400);
+    const d44d = await d42Read();
+    const d44c2 = d42Sprite(d44d, 'c2');
+    const d44m3 = d42Sprite(d44d, 'm3');
+    const d44m2 = d42Sprite(d44d, 'm2');
+    const d44m2Fight = await pg.evaluate(() => App.state.get().fight.mechs.units[1]);
+    await d44Shot('dead');
+    ok(`${tag}: 32q. D-44 — THE DEAD LIE DOWN GREY IN 16-BIT TOO, READ FROM THE STORED FLAG: Cat 2 and Mech 3, ruled dead through setAlive, each wear the down class, a turned canvas and a grayscale filter, and each accessible name says it is ruled dead; the lying mech's turned canvas ends above its own name. Mech 2 at zero health that nobody ruled on is still alive in the fight slice and stands untransformed and in colour. Every name is still what a hit test finds and no sprite is over another unit's name`,
+      d44c2.down === true && d44c2.ctf !== 'none' && d44c2.ctf !== '' && /grayscale/.test(d44c2.cf)
+      && d44c2.aria === 'Cat 2, ruled dead'
+      && d44m3.down === true && d44m3.ctf !== 'none' && /grayscale/.test(d44m3.cf) && d44m3.cb <= d44m3.nt + 0.5
+      && d44m3.aria === 'Mech 3, ruled dead'
+      && d44m2Fight.hp === 0 && d44m2Fight.alive === true && d44m2.down === false && d44m2.ctf === 'none'
+      && d44m2.cf === 'none' && d44m2.aria === 'Mech 2'
+      && d44d.sprites.every((s) => s.onTop) && d43Clear(d44d) === '',
+      { c2: d44c2, m3: d44m3, m2: d44m2, m2fight: d44m2Fight, clear: d43Clear(d44d) });
+
+    // ── 32r. THE PICKER, BY REAL CLICKS, MOVES THE ART AND NOTHING ELSE. ──
+    await d42Fresh();
+    const d44q0 = await d42Read();
+    await d42Drag('c1', Math.round(d44q0.field.l + d44q0.field.w * 0.5), Math.round(d44q0.field.t + d44q0.field.h * 0.55));
+    await d42Drag('m1', Math.round(d44q0.field.l + d44q0.field.w * 0.72), Math.round(d44q0.field.t + d44q0.field.h * 0.3));
+    const d44q1 = await d42Read();
+    const d44gq1 = await d44Gen();
+    await pg.evaluate(() => { window.__d44n = Array.from(document.querySelectorAll('#scene-field > .scn-unit')); });
+    const d44SameNodes = () => pg.evaluate(() => {
+      const now = Array.from(document.querySelectorAll('#scene-field > .scn-unit'));
+      return !!window.__d44n && now.length === window.__d44n.length && now.every((n, i) => n === window.__d44n[i]);
+    });
+    const d44Kept = (a, b0) => a.sprites.length === b0.sprites.length && a.sprites.every((s) => {
+      const t = d42Sprite(b0, s.id);
+      return t.at === s.at && Math.abs(t.cx - s.cx) <= 1 && Math.abs(t.cy - s.cy) <= 1;
+    });
+    await pg.click('#scene-gen-8'); await pg.waitForTimeout(200);
+    const d44q2 = await d42Read();
+    const d44gq2 = await d44Gen();
+    const d44same2 = await d44SameNodes();
+    await d44Shot('switched-8');
+    await pg.click('#scene-gen-16'); await pg.waitForTimeout(200);
+    const d44q3 = await d42Read();
+    const d44gq3 = await d44Gen();
+    const d44same3 = await d44SameNodes();
+    ok(`${tag}: 32r. D-44 — THE PICKER, BY REAL CLICKS, MOVES THE ART AND NOTHING ELSE: Cat 1 and Mech 1 are dragged somewhere of their own, then 8-bit is clicked — every sprite is the same node, at the same saved share, its centre within a pixel of where it stood, now drawn at 16; the section says "8", the 8-bit control is pressed and the store holds "8". Then 16-bit is clicked and the same again at 24 and 48, the store holding "16". The saved layout never moved, and across both clicks the state is byte-identical, no commit and no undo entry`,
+      !d42Home(d44q1) && d44Kept(d44q1, d44q2) && d44Kept(d44q1, d44q3) && d44same2 && d44same3
+      && d44gq2.gen === '8' && d44gq2.sizes === D44_S16 && d44gq2.b8.pressed === 'true' && d44gq2.b16.pressed === 'false'
+      && d44gq2.stored === '8'
+      && d44gq3.gen === '16' && d44gq3.sizes === D44_S24 && d44gq3.b16.pressed === 'true' && d44gq3.stored === '16'
+      && d44q2.saved === d44q1.saved && d44q3.saved === d44q1.saved && d44q3.stored === d44q1.stored
+      && d44gq2.state === d44gq1.state && d44gq3.state === d44gq1.state
+      && d44gq3.commits === d44gq1.commits && d44gq3.depth === d44gq1.depth && d44q3.panel === true,
+      { saved: [d44q1.saved, d44q2.saved, d44q3.saved], gens: [d44gq2.gen, d44gq3.gen], sizes: [d44gq2.sizes, d44gq3.sizes],
+        stored: [d44gq2.stored, d44gq3.stored], same: [d44same2, d44same3], kept: [d44Kept(d44q1, d44q2), d44Kept(d44q1, d44q3)],
+        commits: [d44gq1.commits, d44gq3.commits], depth: [d44gq1.depth, d44gq3.depth] });
+
+    // ── 32s. A RELOAD KEEPS THE CHOICE, AND AN EMPTY STORE IS 16-BIT. ──
+    const d44ToFight = async () => {
+      await pg.waitForTimeout(600);
+      if (await pg.evaluate(() => document.querySelector('#app').dataset.view) !== 'fight') {
+        await pg.click('#view-fight'); await pg.waitForTimeout(250);
+      }
+      await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+      await pg.waitForTimeout(150);
+    };
+    await pg.click('#scene-gen-8'); await pg.waitForTimeout(150);
+    await pg.reload(); await d44ToFight();
+    const d44s1 = await d44Gen();
+    const d44s1r = await d42Read();
+    await pg.click('#scene-gen-16'); await pg.waitForTimeout(150);
+    await pg.reload(); await d44ToFight();
+    const d44s2 = await d44Gen();
+    await pg.evaluate(() => { try { localStorage.removeItem('cvm.v1.scene-art'); } catch (e) { /* none */ } });
+    await pg.reload(); await d44ToFight();
+    const d44s3 = await d44Gen();
+    ok(`${tag}: 32s. D-44 — THE CHOICE SURVIVES A RELOAD, AND AN EMPTY STORE IS 16-BIT: 8-bit clicked and the page reloaded comes back 8-bit (section, pressed control, canvases of 16) with Cat 1 and Mech 1 still where they were dragged; 16-bit clicked and reloaded comes back 16-bit; and with the key taken out of the store a reload is 16-bit again with nothing written. The store is best-effort, and on this machine it held`,
+      d44s1.gen === '8' && d44s1.stored === '8' && d44s1.b8.pressed === 'true' && d44s1.sizes === D44_S16
+      && ['c1', 'm1'].every((u) => d42Sprite(d44s1r, u).at === d42Sprite(d44q1, u).at)
+      && d44s2.gen === '16' && d44s2.stored === '16' && d44s2.b16.pressed === 'true' && d44s2.sizes === D44_S24
+      && d44s3.gen === '16' && d44s3.stored === null && d44s3.b16.pressed === 'true' && d44s3.sizes === D44_S24,
+      { s1: [d44s1.gen, d44s1.stored, d44s1.sizes], places: ['c1', 'm1'].map((u) => [d42Sprite(d44s1r, u).at, d42Sprite(d44q1, u).at]),
+        s2: [d44s2.gen, d44s2.stored], s3: [d44s3.gen, d44s3.stored, d44s3.b16.pressed] });
+
+    // ── 32t. A STORE THAT REFUSES: the picker still works, and nothing breaks. ──
+    // A second page whose localStorage getter throws a SecurityError, the way a browser that
+    // blocks storage for file:// answers. Its own errors are collected apart from this column's.
+    const d44bctx = await b.newContext({ viewport: { width: size.width, height: size.height } });
+    await d44bctx.addInitScript(() => {
+      Object.defineProperty(window, 'localStorage', {
+        configurable: true,
+        get() { throw new DOMException('The operation is insecure.', 'SecurityError'); }
+      });
+    });
+    const d44bp = await d44bctx.newPage();
+    const d44bErrs = [];
+    d44bp.on('pageerror', (e) => d44bErrs.push(String(e)));
+    d44bp.on('console', (m) => { if (m.type() === 'error') { d44bErrs.push('console: ' + m.text()); } });
+    await d44bp.goto(URL_); await d44bp.waitForTimeout(500);
+    await d44bp.click('#fight-start'); await d44bp.waitForTimeout(300);
+    const d44t0 = await d44Gen(d44bp);
+    await d44bp.click('#scene-gen-8'); await d44bp.waitForTimeout(200);
+    const d44t1 = await d44Gen(d44bp);
+    await d44bp.click('#scene-gen-16'); await d44bp.waitForTimeout(200);
+    const d44t2 = await d44Gen(d44bp);
+    const d44tPanel = await d44bp.evaluate(() => document.getElementById('err-panel').hidden);
+    await d44bctx.close();
+    ok(`${tag}: 32t. D-44 — A STORE THAT REFUSES IS THE ORDINARY CASE: on a page whose localStorage throws a SecurityError on every read, the scene opens 16-bit, a click on 8-bit draws 8-bit (canvases of 16, the control pressed) and a click on 16-bit draws 16-bit again, with no page error, no console error and the panel shut. The choice lasts until the page closes, which is what best-effort means`,
+      d44t0.stored === 'BLOCKED' && d44t0.gen === '16' && d44t0.sizes === D44_S24
+      && d44t1.gen === '8' && d44t1.sizes === D44_S16 && d44t1.b8.pressed === 'true'
+      && d44t2.gen === '16' && d44t2.sizes === D44_S24 && d44t2.b16.pressed === 'true'
+      && d44bErrs.length === 0 && d44tPanel === true,
+      { t0: [d44t0.stored, d44t0.gen, d44t0.sizes], t1: [d44t1.gen, d44t1.sizes], t2: [d44t2.gen, d44t2.sizes],
+        errs: d44bErrs.slice(0, 3), panel: d44tPanel });
+
+    // ── 32u. TWENTY-FOUR A SIDE, IN 16-BIT. ──
+    await pg.evaluate(() => { if (App.state.get().fight !== null) { App.ops.endFight(); } App.state.flush(); });
+    await toRoster(pg, 24);
+    await pg.click('#fight-start'); await pg.waitForTimeout(300);
+    await pg.evaluate(() => window.scrollTo({ top: 0, left: 0, behavior: 'instant' }));
+    await pg.waitForTimeout(150);
+    // Everyone back in formation first, by a real click: 32r's two drags came back with 32s's
+    // reloads, and the first run of this cell measured Cat 1 standing over Mech 7's name because
+    // of them — the cell's board, not the formation's. 32j is preceded by 32i's reset for the same
+    // reason.
+    await pg.click('#scene-reset'); await pg.waitForTimeout(200);
+    const d44big = await d42Read();
+    const d44bigRatio = d44Ratio(d44big);
+    await d44Shot('24');
+    ok(`${tag}: 32u. D-44 — TWENTY-FOUR A SIDE IN 16-BIT: 48 sprites in the same six-row field, every cat 24 pixels drawn at 48 and every mech 48 drawn at 96, all inside, no sprite over another sprite or another unit's name, every name at the 18px floor, monospace, unclipped, apart, and what a hit test finds`,
+      d44big.sprites.length === 48 && d44big.rows === '6' && d44bigRatio.ok && d42Inside(d44big)
+      && d43Clear(d44big) === '' && d42NamesApart(d44big) === ''
+      && d44big.sprites.every((s) => s.font >= 18 && /mono/i.test(s.family) && !s.clipped && s.onTop),
+      { n: d44big.sprites.length, rows: d44big.rows, ratio: d44bigRatio, clear: d43Clear(d44big), apart: d42NamesApart(d44big) });
+
+    // ── 32v. A 16-BIT MECH DRAGGED PAST EVERY SIDE STOPS THERE BY ITS OWN SIZE. ──
+    await d42Fresh();
+    const d44Edges = [];
+    for (const side of ['left', 'top', 'right', 'bottom']) {
+      const f = (await d42Read()).field;
+      const vw = await pg.evaluate(() => [window.innerWidth, window.innerHeight]);
+      const tgt = {
+        left: { x: Math.max(3, Math.round(f.l - 40)), y: Math.round(f.t + f.h * 0.5) },
+        top: { x: Math.round(f.l + f.w * 0.5), y: Math.max(3, Math.round(f.t - 40)) },
+        right: { x: Math.min(vw[0] - 3, Math.round(f.r + 40)), y: Math.round(f.t + f.h * 0.5) },
+        bottom: { x: Math.round(f.l + f.w * 0.5), y: Math.min(vw[1] - 3, Math.round(f.b + 60)) }
+      }[side];
+      await d42Drag('m1', tgt.x, tgt.y);
+      const rd = await d42Read();
+      const m1 = d42Sprite(rd, 'm1');
+      const kept = d42J(rd.saved).m1 || [];
+      const gap = { left: m1.l - rd.field.l, top: m1.t - rd.field.t, right: rd.field.r - m1.r, bottom: rd.field.b - m1.b }[side];
+      const want = { left: (m1.w / 2) / rd.field.w, top: (m1.h / 2) / rd.field.h,
+        right: 1 - (m1.w / 2) / rd.field.w, bottom: 1 - (m1.h / 2) / rd.field.h }[side];
+      const got = (side === 'left' || side === 'right') ? kept[0] : kept[1];
+      d44Edges.push({ side, gap: Math.round(gap * 10) / 10, want: Math.round(want * 10000) / 10000, got, h: m1.h,
+        ok: Math.abs(gap) <= 2 && typeof got === 'number' && Math.abs(got - want) <= 0.0015
+          && Math.abs(m1.h - 120) <= 1 && d42Inside(rd) && rd.sprites.every((s) => s.onTop) });
+    }
+    note(ch, size.name, 'D-44 16-bit Mech 1 at each side: gap px / kept share', d44Edges.map((e) => `${e.side} ${e.gap}/${e.got}`).join('  '));
+    ok(`${tag}: 32v. D-44 — A 16-BIT MECH DRAGGED PAST EVERY SIDE OF THE FRAME STOPS AT THAT SIDE BY ITS OWN SIZE: Mech 1, whose 16-bit box is 96px of sprite and 24 of name at both window sizes, taken with page.mouse and let go beyond each side in turn, rests within two pixels of it, and the share kept is half its own box in from that side. Every name is still what a hit test finds after each drop`,
+      d44Edges.length === 4 && d44Edges.every((e) => e.ok), d44Edges);
+
+    await pg.evaluate(() => {
+      App.render.sceneHome();
+      App.render.sceneSetGen('16');
+      try { localStorage.removeItem('cvm.v1.scene'); localStorage.removeItem('cvm.v1.scene-art'); } catch (e) { /* none */ }
     });
     await d41Fresh();
 
