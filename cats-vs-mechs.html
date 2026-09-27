@@ -51006,6 +51006,625 @@ App.selftest = (function () {
   });
 })();
 
+/* --- [S09.17] SUITE: the fight move — owner plan 05-D46 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('the fight move', function (t) {
+    /* D-46: "I can't drag resources around the battle screen." The fight tab's
+       drag is D-41's model on the FIGHT slice, as a hand ruling, and this suite
+       holds the arithmetic of it: the move, conservation, the refusals, the
+       hand record, undo, D-00d and the fight's blindness to the reserve. EVERY
+       ROW IS STATE WORK AND SITS ABOVE ANY no-DOM BRACKET — [S09.13]'s and
+       [S09.14]'s declaration, for their reason — so every one runs in the
+       terminal harness and can fail a build. The gesture is the interaction
+       gate's and the browser's; the summary lists which claim lives where.
+
+       Every drive that can throw is inside a try with the restore in a finally,
+       for PROBE M's reason: a row may FAIL; it may not throw and it may not
+       hang. */
+    var savedAll = JSON.stringify(App.state.get());
+
+    function protoIntact() {
+      return Object.getPrototypeOf({}) === Object.prototype
+        && Object.prototype.polluted === undefined
+        && !Object.prototype.hasOwnProperty.call(Object.prototype, 'reserve');
+    }
+
+    // [S07.1]'s isRefusal, restated for [S09.13]'s reason, character for
+    // character in what it tests.
+    function isRefusal(err) {
+      return err instanceof Error
+        && err.constructor === Error
+        && typeof err.message === 'string'
+        && err.message !== '';
+    }
+
+    function attempt(tok, fromSide, fromUnit, toSide, toUnit) {
+      try {
+        return { kind: App.ops.moveFightToken(tok, fromSide, fromUnit, toSide, toUnit)
+          ? 'moved' : 'nothing', said: '' };
+      } catch (e) {
+        return { kind: isRefusal(e) ? 'refused' : 'DEFECT', said: String(e && e.message),
+          type: e && e.constructor ? e.constructor.name : typeof e };
+      }
+    }
+
+    function fight() { return App.state.get().fight; }
+    function build() { return App.state.get().build; }
+
+    // What one END holds ON THE FIGHT SLICE, read straight off the record and
+    // not through the op's reader, so a row cannot agree with the op merely by
+    // asking the function it asks. A unit's health is the fight's `hp`.
+    function heldAt(side, unitId, tok) {
+      var g = fight()[side];
+      var bag;
+      if (unitId !== null) {
+        var unit = g.units.find(function (u) { return u.id === unitId; });
+        if (tok === 'hp') { return unit.hp; }
+        if (tok === 'shield') { return unit.shield; }
+        bag = unit.tally;
+      } else if (tok === 'ap') {
+        return g.ap;
+      } else if (tok === 'hp' || tok === 'shield'
+        || (build().tokens[tok] && build().tokens[tok].scope === 'unit')) {
+        bag = g.reserve;
+      } else {
+        bag = g.tally;
+      }
+      return (bag && Object.prototype.hasOwnProperty.call(bag, tok)) ? bag[tok] : 0;
+    }
+
+    // THE WHOLE-FIGHT TOTAL OF ONE TYPE: every fight unit, both sides' own
+    // numbers and both FIGHT reserves — everywhere on the slice a token of it
+    // could be. Summed over every holder, [S09.13]'s reason.
+    function fightTotal(tok) {
+      var g = fight();
+      var n = 0;
+      ['cats', 'mechs'].forEach(function (side) {
+        var f = g[side];
+        if (tok === 'ap') { n += f.ap; }
+        if (f.tally && Object.prototype.hasOwnProperty.call(f.tally, tok)) { n += f.tally[tok]; }
+        if (f.reserve && Object.prototype.hasOwnProperty.call(f.reserve, tok)) {
+          n += f.reserve[tok];
+        }
+        f.units.forEach(function (u) {
+          if (tok === 'hp') { n += u.hp; }
+          if (tok === 'shield') { n += u.shield; }
+          if (u.tally && Object.prototype.hasOwnProperty.call(u.tally, tok)) { n += u.tally[tok]; }
+        });
+      });
+      return n;
+    }
+    function allTotals() {
+      return Object.keys(build().tokens).sort().map(function (tok) {
+        return tok + '=' + fightTotal(tok);
+      }).join(' ');
+    }
+
+    // A fight on a board carrying a type of the student's own at each scope,
+    // so D-24 rides with every row: a student's invention moves on the fight
+    // tab on the same terms as a shipped type, or it is a second tier.
+    function fightBoard() {
+      App.ops.resetToDefaults();
+      var ooze = App.ops.createTokenType({ name: 'Ooze', shape: 'circ', color: 'violet',
+        glyph: '', scope: 'unit' });
+      var zeal = App.ops.createTokenType({ name: 'Zeal', shape: 'hex', color: 'gold',
+        glyph: '', scope: 'side' });
+      App.ops.setTally('cats', 'c1', ooze, 3);
+      App.ops.setTally('mechs', 'm1', ooze, 1);
+      App.ops.setTally('cats', null, zeal, 2);
+      App.ops.startFight();
+      // Cleared so every depth below is read from zero and nowhere near
+      // UNDO_LIMIT, where a push that shifted the oldest entry off reads as a
+      // fold ([S09.13]'s note on its own undo row).
+      App.state.restore(JSON.stringify(App.state.get()));
+      App.state.flush();
+      return { ooze: ooze, zeal: zeal };
+    }
+
+    /* --- THE SCHEMA, THE EXPORTS, AND NO FIGHT TO MOVE ON. --- */
+    var SCHEMA;
+    try {
+      App.ops.resetToDefaults();
+      var noFightWas = JSON.stringify(App.state.get());
+      var noFightCommits = App.state.stats().commits;
+      var noFight = attempt('hp', 'cats', 'c1', 'cats', 'c2');
+      var noFightQuiet = JSON.stringify(App.state.get()) === noFightWas
+        && App.state.stats().commits === noFightCommits;
+      App.ops.startFight();
+      App.state.flush();
+      var armThrew = false;
+      try { App.ops.dispatch('moveFightCheck', {}); } catch (e) { armThrew = true; }
+      SCHEMA = [noFight.kind, noFight.said, noFightQuiet,
+        Object.keys(fight().cats).join(','), Object.keys(fight().mechs).join(','),
+        typeof App.ops.moveFightToken, typeof App.ops.moveFightCheck, armThrew];
+    } catch (stopped) {
+      SCHEMA = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('A FIGHT OPENS WITH NO RESERVE, AND WITH NO FIGHT THERE IS NOTHING TO MOVE: the '
+      + 'fight move is refused by fightOf\'s own sentence, a plain Error, and writes nothing; '
+      + 'a fresh fight\'s two sides carry exactly `ap` and `units` — the fight reserve is '
+      + 'the tally\'s sparse bag and a fight starts it empty, because sideFromBuild copies '
+      + 'by name and the build\'s reserve is not one of the names. The op is exported, its '
+      + 'predicate beside it, and the predicate has no router arm',
+      SCHEMA, ['refused', 'No fight in progress', true, 'ap,units', 'ap,units', 'function',
+        'function', true]);
+
+    /* --- EVERY DRAG, EVERY SPELLING, ON THE FIGHT SLICE. Each line is one
+           call, and what it reports is: did the op say it moved, did the source
+           drop by exactly one, did the target rise by exactly one, did the
+           WHOLE-FIGHT total of that type stay put, and did the BUILD — and so
+           the build code — stay byte-identical. --- */
+    var EVERY;
+    try {
+      var eT = fightBoard();
+      var eBuild = JSON.stringify(build());
+      var eCode = App.serialize.encode(build());
+      EVERY = [
+        ['unit to unit, same side', 'hp', 'cats', 'c1', 'cats', 'c2'],
+        ['unit to unit, ACROSS sides', 'shield', 'mechs', 'm1', 'cats', 'c1'],
+        ['a student\'s unit type, unit to unit across sides', eT.ooze, 'cats', 'c1', 'mechs', 'm2'],
+        ['unit to its own side\'s reserve', 'hp', 'cats', 'c3', 'cats', null],
+        ['unit to the OTHER side\'s reserve', eT.ooze, 'cats', 'c1', 'mechs', null],
+        ['reserve to a unit on its own side', 'hp', 'cats', null, 'cats', 'c4'],
+        ['reserve to a unit on the OTHER side', eT.ooze, 'mechs', null, 'cats', 'c2'],
+        ['unit to reserve, to set up the next', 'shield', 'mechs', 'm2', 'mechs', null],
+        ['reserve to reserve, between sides', 'shield', 'mechs', null, 'cats', null],
+        ['action points, side to side', 'ap', 'cats', null, 'mechs', null],
+        ['a student\'s side type, side to side', eT.zeal, 'cats', null, 'mechs', null]
+      ].map(function (row) {
+        var tok = row[1];
+        var fromBefore = heldAt(row[2], row[3], tok);
+        var toBefore = heldAt(row[4], row[5], tok);
+        var totalBefore = fightTotal(tok);
+        var got = attempt(tok, row[2], row[3], row[4], row[5]);
+        return [row[0], got.kind, fromBefore - heldAt(row[2], row[3], tok),
+          heldAt(row[4], row[5], tok) - toBefore, fightTotal(tok) === totalBefore,
+          JSON.stringify(build()) === eBuild];
+      });
+      EVERY.push(App.serialize.encode(build()) === eCode);
+    } catch (stopped) {
+      EVERY = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('EVERY DRAG D-46 NAMES, ON THE FIGHT SLICE: unit to unit on one side and ACROSS '
+      + 'sides, unit to either side\'s reserve, reserve to a unit on either side, reserve to '
+      + 'reserve, action points side to side and a student\'s side type side to side. Every '
+      + 'one moved EXACTLY ONE, left the whole-fight total of its type where it was, and '
+      + 'left the BUILD byte-identical — so the build code, which reads nothing else, did '
+      + 'not move by one character across all eleven',
+      EVERY, (function () {
+        var want = [
+          'unit to unit, same side', 'unit to unit, ACROSS sides',
+          'a student\'s unit type, unit to unit across sides', 'unit to its own side\'s reserve',
+          'unit to the OTHER side\'s reserve', 'reserve to a unit on its own side',
+          'reserve to a unit on the OTHER side', 'unit to reserve, to set up the next',
+          'reserve to reserve, between sides', 'action points, side to side',
+          'a student\'s side type, side to side'
+        ].map(function (label) { return [label, 'moved', 1, 1, true, true]; });
+        want.push(true);
+        return want;
+      })());
+
+    /* --- THE HAND RECORD, BOTH ENDS OF EVERY MOVE, AND IT TRAVELS WITH ITS
+           ROUND. Two moves on a fresh fight — a cat's health onto a mech, and
+           a mech's shield into its own side's reserve — must leave FOUR
+           records in the round's list, source then target each time, each in
+           the record's one shape and nothing more: {side, unit, tok, from,
+           to}, with the reserve end's unit NULL (D-36's side-scope shape; the
+           TYPE says it is the reserve). A real Advance then carries all four
+           into the round's `past` entry and the live list goes. --- */
+    var HAND;
+    try {
+      fightBoard();
+      App.ops.moveFightToken('hp', 'cats', 'c1', 'mechs', 'm1');
+      App.ops.moveFightToken('shield', 'mechs', 'm2', 'mechs', null);
+      var live = JSON.parse(JSON.stringify(fight().hand || []));
+      var shapes = live.map(function (r) { return Object.keys(r).join(','); });
+      App.ops.advanceRound();
+      var after = fight();
+      HAND = [live, shapes, Object.prototype.hasOwnProperty.call(after, 'hand'),
+        JSON.stringify(after.past[after.past.length - 1].hand) === JSON.stringify(live),
+        [after.cats.units[0].alive, after.mechs.units[1].alive]];
+    } catch (stopped) {
+      HAND = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('EVERY FIGHT MOVE LANDS IN THE ROUND\'S HAND RECORD, BOTH ENDS OF IT, SOURCE FIRST: '
+      + 'the cat\'s health 3 to 2 and the mech\'s 6 to 7; the mech\'s shield 3 to 2 and the '
+      + 'Mechs\' reserve 0 to 1, with a NULL unit — each record the one shape the list has '
+      + 'always had and not a key more. Advance carries all four into that round\'s `past` '
+      + 'entry and the live list goes (D-04), so the ledger\'s "Set by hand this round" reads '
+      + 'the move. Nobody\'s standing flag moved',
+      HAND, [[
+        { side: 'cats', unit: 'c1', tok: 'hp', from: 3, to: 2 },
+        { side: 'mechs', unit: 'm1', tok: 'hp', from: 6, to: 7 },
+        { side: 'mechs', unit: 'm2', tok: 'shield', from: 3, to: 2 },
+        { side: 'mechs', unit: null, tok: 'shield', from: 0, to: 1 }
+      ], ['side,unit,tok,from,to', 'side,unit,tok,from,to', 'side,unit,tok,from,to',
+        'side,unit,tok,from,to'], false, true, [true, true]]);
+
+    /* --- EVERY DROP THE FIGHT CANNOT TAKE IS A REFUSAL AND WRITES NOTHING.
+           The same guard block as the board's, so the same sentences — and
+           after each: the whole state byte-identical, the undo depth the same,
+           the commit count unmoved, so no half of any transfer and no hand
+           record was written anywhere. --- */
+    var REFUSED;
+    try {
+      var rT = fightBoard();
+      App.ops.setTokenBounds('hp', { min: 1, max: 4 });
+      App.ops.setUnitHp('cats', 'c2', 1);
+      App.state.flush();
+      REFUSED = [
+        ['action points onto a unit', 'ap', 'cats', null, 'cats', 'c1', 'is kept on the whole side'],
+        ['action points off a unit', 'ap', 'cats', 'c1', 'mechs', null, 'is kept on the whole side'],
+        ['a student\'s side type onto a unit', rT.zeal, 'cats', null, 'mechs', 'm1',
+          'is kept on the whole side'],
+        ['Damage, which nobody allocates', 'dmg', 'cats', 'c1', 'cats', 'c2',
+          'is not a number anyone allocates'],
+        ['the dead marker, which nobody allocates', 'dead', 'mechs', 'm1', 'mechs', null,
+          'is not a number anyone allocates'],
+        ['onto a unit already past the type\'s ceiling', 'hp', 'cats', 'c4', 'mechs', 'm1',
+          'holds at most 4'],
+        ['off a unit already at the type\'s floor', 'hp', 'cats', 'c2', 'cats', 'c5',
+          'keeps at least 1'],
+        ['out of a fight reserve holding none', 'shield', 'mechs', null, 'mechs', 'm1',
+          'reserve has no'],
+        ['off a unit holding none', 'shield', 'cats', 'c1', 'cats', null, 'has no'],
+        ['a side that does not exist', 'hp', 'dogs', 'c1', 'cats', 'c2', 'Unknown side'],
+        ['a unit that does not exist', 'hp', 'cats', 'c99', 'cats', 'c2', 'No unit'],
+        ['a type that is not on this board', 't9', 'cats', 'c1', 'cats', 'c2', 'no token type']
+      ].map(function (row) {
+        var was = JSON.stringify(App.state.get());
+        var depth = App.state.undoDepth();
+        var commitsWere = App.state.stats().commits;
+        var got = attempt(row[1], row[2], row[3], row[4], row[5]);
+        return [row[0], got.kind, got.said.indexOf(row[6]) !== -1,
+          JSON.stringify(App.state.get()) === was, App.state.undoDepth() === depth,
+          App.state.stats().commits === commitsWere];
+      });
+    } catch (stopped) {
+      REFUSED = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('EVERY DROP THE FIGHT CANNOT TAKE IS A REFUSAL IN THE HOUSE IDIOM AND WRITES '
+      + 'NOTHING: a side-scope type onto or off a unit, either built-in nobody allocates, a '
+      + 'mech already past the ceiling, a cat on the floor, an empty fight reserve, an empty '
+      + 'unit, and a side, a unit or a type that is not there. Each carries the sentence the '
+      + 'BOARD\'s move says for the same drop — one guard block — and leaves the state '
+      + 'byte-identical, the undo depth and the commit count unmoved',
+      REFUSED, REFUSED.map ? REFUSED.map(function (row) {
+        return [row[0], 'refused', true, true, true, true];
+      }) : 'rows');
+
+    /* --- REFUSED WHOLE, NEVER CLAMPED, AND DIRECTIONAL. A mech on six health
+           under a ceiling tightened to two gives one away and the number
+           WRITTEN is five — not the ceiling, which would destroy four tokens.
+           And a same-end drop is nothing: no commit, no hand record. --- */
+    var WHOLE;
+    try {
+      fightBoard();
+      App.ops.setTokenBounds('hp', { min: 0, max: 2 });
+      var wBefore = heldAt('mechs', 'm1', 'hp');
+      var wGive = attempt('hp', 'mechs', 'm1', 'cats', null);
+      var wAfter = [heldAt('mechs', 'm1', 'hp'), heldAt('cats', null, 'hp')];
+      var wOnto = attempt('hp', 'cats', null, 'mechs', 'm2');
+      var wSame = JSON.stringify(App.state.get());
+      var wHome = attempt('hp', 'mechs', 'm1', 'mechs', 'm1');
+      WHOLE = [wBefore, wGive.kind, wAfter, wOnto.kind, heldAt('mechs', 'm2', 'hp'),
+        wHome.kind, JSON.stringify(App.state.get()) === wSame];
+    } catch (stopped) {
+      WHOLE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('A BOUND BREACH IS REFUSED WHOLE AND AN ADMITTED MOVE WRITES BOTH NUMBERS EXACTLY: '
+      + 'a mech on six under a ceiling of two gives one to the Cats\' reserve and reads FIVE, '
+      + 'the reserve one; that token cannot land on the other mech, also on six, and the '
+      + 'mech still reads six rather than a clamped two. A drop on its own end is nothing '
+      + 'and writes nothing',
+      WHOLE, [6, 'moved', [5, 1], 'refused', 6, 'nothing', true]);
+
+    /* --- D-00d, ON THE FIGHT TAB'S NEWEST WRITER. Every point of a cat's
+           health dragged away leaves it on zero and STANDING; a unit a student
+           ruled dead still gives and receives, and stays marked. --- */
+    var STANDS;
+    try {
+      fightBoard();
+      for (var d = 0; d < 3; d++) { App.ops.moveFightToken('hp', 'cats', 'c1', 'cats', null); }
+      var zero = [heldAt('cats', 'c1', 'hp'), fight().cats.units[0].alive,
+        App.model.aliveCount(fight().cats)];
+      App.ops.setAlive('mechs', 'm3', false);
+      var fromDead = attempt('hp', 'mechs', 'm3', 'cats', 'c1');
+      var ontoDead = attempt('shield', 'mechs', 'm1', 'mechs', 'm3');
+      var m3 = fight().mechs.units[2];
+      STANDS = zero.concat([fromDead.kind, ontoDead.kind, m3.alive, m3.hp, m3.shield,
+        fight().cats.units[0].alive]);
+    } catch (stopped) {
+      STANDS = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('A UNIT IS NEVER MARKED DEAD BY A MOVE (D-00d): a cat dragged to zero health is on '
+      + 'zero and still standing, nine of nine; and a mech the student ruled dead still gives '
+      + 'a token and takes one — whether a fallen unit can is the table\'s call — and stays '
+      + 'marked dead, while the cat it gave to stays standing',
+      STANDS, [0, true, 9, 'moved', 'moved', false, 5, 4, true]);
+
+    /* --- CONSERVATION AS AN EQUALITY OVER THE WHOLE FIGHT, OVER A SWEEP. Four
+           hundred fixed-seed moves over every end of the fight and six types,
+           on a board built to meet its bounds; after EVERY attempt the
+           whole-fight total of EVERY type equals the one the sweep started
+           with, and the build never moves. Required NOT VACUOUS: more than
+           fifty moves landed and refusals were met at a floor, at a ceiling and
+           on scope — an all-refused sweep conserves spotlessly. --- */
+    var SWEEP;
+    try {
+      var sT = fightBoard();
+      App.ops.setTokenBounds('hp', { min: 0, max: 4 });
+      App.ops.setTokenBounds('shield', { min: 0, max: 2 });
+      App.ops.setTokenBounds(sT.ooze, { min: 0, max: 3 });
+      var sBuild = JSON.stringify(build());
+      var ends = [];
+      ['cats', 'mechs'].forEach(function (side) {
+        fight()[side].units.forEach(function (u) { ends.push([side, u.id]); });
+        ends.push([side, null]);
+      });
+      var types = ['hp', 'shield', sT.ooze, 'ap', sT.zeal, 'dmg'];
+      var start = allTotals();
+      var seed = 46;
+      var next = function (n) {
+        seed = (Math.imul(seed, 1103515245) + 12345) >>> 0;
+        return (seed >>> 8) % n;
+      };
+      var kinds = { moved: 0, nothing: 0, refused: 0, DEFECT: 0 };
+      var said = { floor: 0, ceiling: 0, scope: 0 };
+      var drifted = [];
+      var defects = [];
+      for (var step = 0; step < 400; step++) {
+        var tok = types[next(types.length)];
+        var a = ends[next(ends.length)];
+        var b = ends[next(ends.length)];
+        var got = attempt(tok, a[0], a[1], b[0], b[1]);
+        kinds[got.kind] += 1;
+        if (got.kind === 'DEFECT') { defects.push(step + ': ' + got.type + ' ' + got.said); }
+        if (/has no|keeps at least/.test(got.said)) { said.floor += 1; }
+        if (/holds at most|already holds/.test(got.said)) { said.ceiling += 1; }
+        if (/whole side|allocates/.test(got.said)) { said.scope += 1; }
+        if (allTotals() !== start) { drifted.push(step + ': ' + allTotals()); }
+      }
+      t.info('the fight conservation sweep — moved / nothing / refused at a floor / at a '
+        + 'ceiling / on scope', [kinds.moved, kinds.nothing, said.floor, said.ceiling,
+          said.scope].join(' / '));
+      SWEEP = [drifted.slice(0, 3), defects.slice(0, 3), kinds.moved > 50, said.floor > 0,
+        said.ceiling > 0, said.scope > 0, allTotals() === start,
+        JSON.stringify(build()) === sBuild];
+    } catch (stopped) {
+      SWEEP = ['THE SWEEP THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('CONSERVATION HOLDS AS AN EQUALITY OVER THE WHOLE FIGHT across four hundred moves '
+      + 'over every end and six types: after every attempt the total of every type — every '
+      + 'fight unit, both sides\' own numbers and both fight reserves — is what it was, '
+      + 'nothing thrown was anything but a refusal, the build never moved, and the sweep met '
+      + 'moves, floors, ceilings and scope',
+      SWEEP, [[], [], true, true, true, true, true, true]);
+
+    /* --- THE PREDICATE AND THE OP GIVE ONE ANSWER ON THE FIGHT SLICE, sentence
+           and all, over a three-hundred-step walk that moves the board as it
+           goes — [S09.14]'s row, held for the second slice, because the fight
+           surface lights its targets from moveFightCheck and drops on
+           moveFightToken. --- */
+    var SAME;
+    try {
+      var qT = fightBoard();
+      App.ops.setTokenBounds('hp', { min: 0, max: 4 });
+      var qEnds = [];
+      ['cats', 'mechs'].forEach(function (side) {
+        qEnds.push([side, null]);
+        fight()[side].units.forEach(function (u) { qEnds.push([side, u.id]); });
+      });
+      var qToks = ['hp', 'shield', qT.ooze, 'ap', qT.zeal, 'dead'];
+      var qSeed = 64;
+      var qNext = function (n) {
+        qSeed = (Math.imul(qSeed, 1103515245) + 12345) >>> 0;
+        return (qSeed >>> 8) % n;
+      };
+      var outcome = function (fn) {
+        try { return { kind: fn() ? 'moved' : 'nothing', said: '' }; } catch (e) {
+          return { kind: isRefusal(e) ? 'refused' : 'DEFECT', said: String(e && e.message) };
+        }
+      };
+      var differ = [];
+      var qKinds = { moved: 0, nothing: 0, refused: 0, DEFECT: 0 };
+      var asked = 0;
+      var askWrote = 0;
+      for (var q = 0; q < 300; q++) {
+        var qt = qToks[qNext(qToks.length)];
+        var qa = qEnds[qNext(qEnds.length)];
+        var qb = qEnds[qNext(qEnds.length)];
+        var c0 = App.state.stats().commits;
+        var ask = outcome(function () { return App.ops.moveFightCheck(qt, qa[0], qa[1], qb[0], qb[1]); });
+        asked += 1;
+        if (App.state.stats().commits !== c0) { askWrote += 1; }
+        var did = outcome(function () { return App.ops.moveFightToken(qt, qa[0], qa[1], qb[0], qb[1]); });
+        qKinds[did.kind] += 1;
+        if (ask.kind !== did.kind || ask.said !== did.said) {
+          differ.push(q + ': asked ' + ask.kind + ' "' + ask.said + '" did ' + did.kind);
+        }
+      }
+      SAME = [differ.slice(0, 3), qKinds.DEFECT, askWrote, asked, qKinds.moved > 30,
+        qKinds.nothing > 0, qKinds.refused > 0];
+    } catch (stopped) {
+      SAME = ['THE WALK THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('moveFightCheck AND moveFightToken GIVE ONE ANSWER, SENTENCE AND ALL, over three '
+      + 'hundred attempts on a fight that meets its bounds; asking wrote nothing three '
+      + 'hundred times; and the walk met moves, same-end drops and refusals, with no defect',
+      SAME, [[], 0, 0, 300, true, true, true]);
+
+    /* --- ONE COMMIT AND ONE UNDO ENTRY PER MOVE, AND TWO MOVES NEVER FOLD. The
+           worst case, driven: the same type between the same two ends, twice,
+           back to back inside COALESCE_MS. THE CONTROL in the same run: two
+           presses of one fight nudge DO fold into one, so the window was open.
+           And a BUILD move and a FIGHT move made inside one window are two
+           entries on two slices, not one. --- */
+    var UNDO;
+    try {
+      fightBoard();
+      var u0 = Date.now();
+      App.ops.nudgeFightHp('cats', 'c5', 1);
+      App.ops.nudgeFightHp('cats', 'c5', 1);
+      var control = App.state.undoDepth();
+      var c1 = App.state.stats().commits;
+      App.ops.moveFightToken('hp', 'cats', 'c1', 'cats', 'c2');
+      var perMove = App.state.stats().commits - c1;
+      App.ops.moveFightToken('hp', 'cats', 'c1', 'cats', 'c2');
+      var twoMoves = App.state.undoDepth() - control;
+      var inWindow = (Date.now() - u0) < App.state.COALESCE_MS;
+      App.ops.undo();
+      var one = [heldAt('cats', 'c1', 'hp'), heldAt('cats', 'c2', 'hp'), (fight().hand || []).length];
+      App.ops.undo();
+      var two = [heldAt('cats', 'c1', 'hp'), heldAt('cats', 'c2', 'hp'), (fight().hand || []).length];
+      var d0 = App.state.undoDepth();
+      App.ops.moveToken('hp', 'cats', 'c6', 'cats', 'c7');
+      App.ops.moveFightToken('hp', 'cats', 'c6', 'cats', 'c7');
+      UNDO = [control, perMove, twoMoves, inWindow, one, two, App.state.undoDepth() - d0];
+    } catch (stopped) {
+      UNDO = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('ONE COMMIT PER MOVE, AND TWO FIGHT MOVES FIRED BACK TO BACK ARE TWO UNDO ENTRIES — '
+      + 'the same type between the same ends inside COALESCE_MS, where the CONTROL in the same '
+      + 'run shows two fight nudges DO fold into one. One Ctrl+Z takes back exactly one move '
+      + 'and its two hand records, the second the other — the list reading two, six, four, '
+      + 'two, because each of the control\'s two nudges records its own ruling. And a board '
+      + 'move and a fight move made together are two entries',
+      UNDO, [1, 1, 2, true, [2, 4, 4], [3, 3, 2], 2]);
+
+    /* --- THE FIGHT IS BLIND TO ITS RESERVE. Two fights that differ in their
+           reserves AND IN NOTHING ELSE: Y is a started fight; X is Y with a
+           reserve written into BOTH sides — health, shield and a type of the
+           student's own — by the suite's own restore, so no op, no hand record
+           and no other number differs. The first clause proves that is all
+           that differs. THEN THE SAME THREE ROUNDS ON BOTH, declared and
+           Advanced for real, and read before every Advance and after the
+           last:
+             - the whole fight slice, as a string, once X's reserve bag is set
+               aside WHEREVER IT IS — each live side, and each side of every
+               `was`, which is the one place Advance copies it, verbatim;
+             - every reading the fight tab draws from a side: affordability of
+               every action against a caster that CARRIES THE RESERVE (so a
+               reader that looked would find it), the spoken-for pools, the
+               survivor count and the spent figure.
+           And X's reserve is exactly what it was after all three rounds: the
+           fight neither spends it, refills it nor applies to it. --- */
+    var BLIND;
+    try {
+      App.ops.resetToDefaults();
+      var goo = App.ops.createTokenType({ name: 'Goo', shape: 'circ', color: 'violet',
+        glyph: '', scope: 'unit' });
+      App.ops.setTally('cats', 'c1', goo, 2);
+      var needy = App.ops.createAction('cats', 'Pounce');
+      App.ops.setActionCost('cats', needy, 0, 'ap', 1);
+      App.ops.setActionReq('cats', needy, 0, 'hp', 20);
+      App.ops.setActionReq('cats', needy, 1, goo, 1);
+      App.ops.startFight();
+      var yStart = JSON.stringify(App.state.get());
+      var xObj = JSON.parse(yStart);
+      xObj.fight.cats.reserve = { hp: 7, shield: 2 };
+      xObj.fight.cats.reserve[goo] = 5;
+      xObj.fight.mechs.reserve = { hp: 9 };
+      var xStart = JSON.stringify(xObj);
+      var stripped = function (json) {
+        var o = JSON.parse(json);
+        ['cats', 'mechs'].forEach(function (side) { delete o.fight[side].reserve; });
+        o.fight.past.forEach(function (p) {
+          ['cats', 'mechs'].forEach(function (side) { delete p.was[side].reserve; });
+        });
+        return JSON.stringify(o.fight);
+      };
+      var readings = function () {
+        var s = App.state.get();
+        return JSON.stringify(['cats', 'mechs'].map(function (side) {
+          var live = JSON.parse(JSON.stringify(s.fight[side]));
+          live.units.forEach(function (u) { u.maxHp = u.hp; });
+          return {
+            afford: s.build[side].actions.map(function (a) {
+              return App.model.affordability(live, a, s.build.tokens);
+            }),
+            spoken: App.model.spokenForPools(s.build[side].actions, s.fight.decl, side,
+              s.build.tokens),
+            alive: App.model.aliveCount(s.fight[side]),
+            spent: App.model.apSpent(s.build[side], s.fight[side])
+          };
+        }));
+      };
+      var play = function (startJson) {
+        App.state.restore(startJson);
+        var seen = [];
+        for (var r = 0; r < 3; r++) {
+          App.ops.declareAction('cats', 'slash', 'c1', 'm1');
+          App.ops.declareAction('cats', 'hairball', 'c3', 'm2');
+          App.ops.declareAction('mechs', 'lasers', 'm1', 'c1');
+          App.ops.declareAction('mechs', 'fly', 'm2', 'c2');
+          seen.push(readings());
+          App.ops.advanceRound();
+        }
+        seen.push(readings());
+        App.state.flush();
+        return { fight: JSON.stringify(App.state.get()), seen: JSON.stringify(seen),
+          reserve: JSON.stringify([fight().cats.reserve || null, fight().mechs.reserve || null]) };
+      };
+      var X = play(xStart);
+      var Y = play(yStart);
+      BLIND = [stripped(xStart) === stripped(yStart), xStart !== yStart,
+        stripped(X.fight) === stripped(Y.fight), X.fight !== Y.fight, X.fight.length > 1000,
+        X.seen === Y.seen, X.reserve === JSON.stringify([xObj.fight.cats.reserve,
+          xObj.fight.mechs.reserve]), Y.reserve];
+    } catch (stopped) {
+      BLIND = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE FIGHT IS BLIND TO ITS RESERVE. Two fights differing ONLY in their reserves — '
+      + 'X with health, shield and a student\'s own type parked on both sides, Y with none — '
+      + 'play the same three rounds through a real Advance and come back byte-identical once '
+      + 'X\'s reserve bag is set aside where it sits; every reading the fight tab draws from a '
+      + 'side (affordability against a caster CARRYING the reserve, the spoken-for pools, '
+      + 'the survivors, the spent figure) is identical before every Advance and after the '
+      + 'last; and X\'s reserve is exactly what it was — nothing spent it, refilled it or '
+      + 'applied to it. A unit fights only with what it holds',
+      BLIND, [true, true, true, true, true, true, true, '[null,null]']);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.ok('the prototype is intact after the whole fight-move suite', protoIntact());
+    t.eq('the fight-move suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
 // #endregion [S09] SELFTEST
 
 /* ===================== [S10] LAUNCH =====================
