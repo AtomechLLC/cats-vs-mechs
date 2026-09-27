@@ -554,3 +554,44 @@ And, asked what the pool holds, the developer chose **a real reserve** over a so
    - Bounds (D-35) clamp on units. Whether the pool itself is bounded is decided by measurement:
      a pool at a token's max would refuse a unit→pool drag the student reasonably expects to work.
      Record the choice.
+
+---
+
+## D-42 — 2026-09-26: a Final Fantasy 1-style battle scene, for telling units apart
+
+Verbatim:
+
+> Please create a final fantasy 1 esque visualization of the battlefield. Allow people to drag the
+> entities around anywhere they like.
+>
+> It is simply a visualization for the purpose of them tracking which cat and which mech is which.
+
+### What this settles
+
+The fight tab gains a SCENE: an FF1-style battle view where every unit appears as a pixel sprite
+labelled with its name, and students can drag any sprite anywhere inside the scene. Its only job is
+identification — which cat is which, which mech is which. It is not a control surface.
+
+### Orchestrator calls (recorded, overridable)
+
+- **Placement:** a panel on the fight tab. It ADDS to the existing battlefield (D-27 addendum),
+  which keeps its jobs (retarget targets, the D-37 unit popup). It does not replace it.
+- **Look:** an FF1 battle window. A framed scene (FF1's blue menu-window border, derived from the
+  design tokens) with a backdrop band. Cats on the left, Mechs on the right, facing each other,
+  matching every other column in the artifact. Each unit has a pixel-art cat or mech sprite with its
+  name beneath in a monospace system font (no external fonts). A unit ruled dead lies down greyed
+  out, the way an FF1 party member falls. The ruling is read from the stored flag and never
+  inferred from health (D-00d).
+- **Sprites are drawn by code:** canvas, or CSS pixel grids. The gate forbids image files, `url(`,
+  ` src=`, inline SVG and innerHTML. Sprite colours are DERIVED from the design tokens at runtime
+  (e.g. read from computed custom properties), not typed as literals. No new hex in the stylesheet
+  (row 107f).
+- **Drag positions are view state only:** not undoable, not in the build code, not in the fight
+  slice. They persist best-effort in `localStorage` under a namespaced key (`cvm.v1.*`, try/catch,
+  total absence treated as normal — CLAUDE.md's rule). Positions are keyed by unit id. A new unit
+  gets a default FF1 formation slot, and a removed unit's saved position is dropped. Every sprite
+  stays inside the scene, clamped at the edges.
+- **No victory screen, fanfare or outcome text.** FF1's "Victory" moment is exactly the verdict the
+  no-verdict gate exists to prevent. The scene shows who is standing, and nothing more (D-26 stands).
+- **Accessibility:** positions are cosmetic, so drag-only is acceptable here. No information is
+  locked behind a drag. Every sprite still carries its unit's name as an accessible label.
