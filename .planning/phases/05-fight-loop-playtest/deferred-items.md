@@ -1363,3 +1363,34 @@ orchestrator's.** See `05-D41b-SUMMARY.md`.
 
 **Owner:** the rename-unit op, if one is ever asked for (1); the developer (2, 3); the 05-11
 playtest (4).
+
+## D-46 — resource drags on the fight tab, what they do not settle, raised by plan 05-D46
+
+**Raised 2026-09-27.**
+
+1. **THE FIGHT RESERVE IS REACHED ONLY BY DRAGGING.** D-41b's item, one tab over. Every number a
+   fight-tab drag changes on a unit or a side has a keyboard path (D-37's popup, D-36's pool
+   control); moving a token INTO or OUT OF a fight reserve has none. Said in the How-to card,
+   at `[S07.8]`'s banner and here, and not papered over with a focusable token Enter could not
+   operate.
+2. **WHILE A REFUSAL IS SHOWING AT 1366x768, THE TWO POOLS SIT ABOUT 24px OUT OF LINE.** The
+   refusal is said on the column's line under its battlefield (never inside a shape — a sentence
+   in a 150px shape reflowed the cluster and hid six cats). The other column's cluster takes the
+   slack, but at 1366 the Mechs' cluster is at its scroller's cap, so the slack cannot all be
+   taken and the Mechs' pool sits 24px higher than the Cats' until the next drag begins. No shape
+   moves. Read on `d46-refused-scope-*-1366x768`.
+3. **A TOKEN TYPE REMOVED MID-FIGHT LEAVES ITS FIGHT NUMBERS STANDING, NOW INCLUDING A FIGHT
+   RESERVE COUNT.** `removeTokenType` drops the BUILD's tallies and reserve and does not touch the
+   fight slice. That was already true of fight tallies before D-46; a fight reserve count of the
+   departed type now joins them. All are unread (the pool draws only types the vocabulary holds,
+   and the move refuses a departed type by name), and a new fight starts without them. Whether a
+   removal should reach into a running fight is a ruling for the developer, not a D-46 fix.
+4. **TOUCH AND PEN ARE NOT DRIVEN**, as for D-41 and D-42: Pointer Events with `touch-action:none`
+   on every source, real mouse drags only.
+5. **A STILL CLICK ON A READING NOW OPENS THE POPUP ON THE RELEASE, NOT THE PRESS.** A click
+   cannot tell the difference and every D-36/D-37 cell passes unchanged, but a student who holds
+   the button down on a reading and waits will see nothing until they let go. That is the price
+   of a threshold between a click and a drag on a node that answers both. (On the board a click
+   on a token was nothing, so D-41 never paid it.)
+
+**Owner:** the developer (1, 3); the 05-11 playtest (2, 5); CLAUDE.md § Gaps (4).
