@@ -18910,38 +18910,45 @@ check(
 
 /* 132b — the fight reserve's readings, and the rows built once. Moved in through the
    OP; read back off the page. */
+// Every op 132b and 132c drive goes through this, for PROBE M's reason: a row may FAIL, it
+// may not throw — and a refusal escaping a bare call here stopped the whole gate before its
+// summary line under D-46's probe P1, which is how this was found.
+const d46Threw = [];
+function d46Do(fn) {
+  try { return fn(); } catch (e) { d46Threw.push(String(e && e.message)); return null; }
+}
 const d46Team = (side) => dom.byId['state-' + side].querySelector('.fg-team');
 const d46HeldOf = (side) => d46Team(side).querySelector('.fg-team-held').children.map((box) => ({
   cls: box.className, tok: box.dataset.drgTok, title: box.getAttribute('title'),
   n: box.querySelectorAll('.tok').length, text: box.textContent
 }));
-A.ops.moveFightToken('hp', 'cats', 'c1', 'cats', null);
-A.ops.moveFightToken(d46Grit, 'cats', 'c1', 'cats', null);
+d46Do(() => A.ops.moveFightToken('hp', 'cats', 'c1', 'cats', null));
+d46Do(() => A.ops.moveFightToken(d46Grit, 'cats', 'c1', 'cats', null));
 A.state.flush();
 const d46In = d46HeldOf('cats');
 const d46MechsHeld = d46HeldOf('mechs');
 const d46ApRow = d46Team('cats').querySelector('.fg-res[data-drg-tok="ap"]');
 const d46FirstHeld = d46Team('cats').querySelector('.fg-team-held').children[0];
 const d46Shape = dom.byId['state-cats'].querySelector('.bf-unit');
-A.ops.nudgeFightAp('cats', 1);
+d46Do(() => A.ops.nudgeFightAp('cats', 1));
 A.state.flush();
 const d46AfterNudge = [d46Team('cats').querySelector('.fg-res[data-drg-tok="ap"]') === d46ApRow,
   d46ApRow.querySelectorAll('.tok').length, d46ApRow.querySelector('.fg-res-spoke').textContent,
   d46Team('cats').querySelector('.fg-team-held').children[0] === d46FirstHeld];
-A.ops.advanceRound();
+d46Do(() => A.ops.advanceRound());
 A.state.flush();
 const d46AfterAdvance = [d46Team('cats').querySelector('.fg-res[data-drg-tok="ap"]') === d46ApRow,
   d46Team('cats').querySelector('.fg-team-held').children[0] === d46FirstHeld,
   dom.byId['state-cats'].querySelector('.bf-unit') === d46Shape,
   A.state.get().fight.round, JSON.stringify(A.state.get().fight.cats.reserve)];
-A.ops.setFightTally('mechs', null, d46Zeal, 1);
+d46Do(() => A.ops.setFightTally('mechs', null, d46Zeal, 1));
 A.state.flush();
 const d46MechsRows = d46Team('mechs').querySelectorAll('.fg-res').map((r) => [r.dataset.drgTok,
   r.querySelectorAll('.tok').length]);
 // Read off the slice, never typed: the round rules refilled the pool at the Advance.
 const d46MechsAp = A.state.get().fight.mechs.ap;
-A.ops.moveFightToken('hp', 'cats', null, 'mechs', 'm1');
-A.ops.moveFightToken(d46Grit, 'cats', null, 'cats', 'c2');
+d46Do(() => A.ops.moveFightToken('hp', 'cats', null, 'mechs', 'm1'));
+d46Do(() => A.ops.moveFightToken(d46Grit, 'cats', null, 'cats', 'c2'));
 A.state.flush();
 const d46Drained = d46HeldOf('cats');
 const d46NoKey = !Object.prototype.hasOwnProperty.call(A.state.get().fight.cats, 'reserve');
@@ -18969,8 +18976,9 @@ check(
     && d46AfterAdvance[3] === 2 && d46AfterAdvance[4] === JSON.stringify({ hp: 1, [d46Grit]: 1 })
     && JSON.stringify(d46MechsRows) === JSON.stringify([['ap', d46MechsAp], [d46Zeal, 1]])
     && d46MechsAp > 0
-    && d46Drained.length === 1 && d46Drained[0].text === A.render.RESERVE_EMPTY && d46NoKey === true,
-  'in ' + JSON.stringify(d46In) + ' | mechs ' + JSON.stringify(d46MechsHeld)
+    && d46Drained.length === 1 && d46Drained[0].text === A.render.RESERVE_EMPTY && d46NoKey === true
+    && d46Threw.length === 0,
+  'ops that threw ' + JSON.stringify(d46Threw) + ' | in ' + JSON.stringify(d46In) + ' | mechs ' + JSON.stringify(d46MechsHeld)
     + ' | after a nudge ' + JSON.stringify(d46AfterNudge) + ' | after an Advance '
     + JSON.stringify(d46AfterAdvance) + ' | mechs rows ' + JSON.stringify(d46MechsRows)
     + ' | drained ' + JSON.stringify(d46Drained) + ' key gone=' + d46NoKey
@@ -19028,7 +19036,7 @@ const d46LiveLights = d46Lights();
 const d46Ghost = d46Layer.children[0] || null;
 const d46LiveCommits = commits() - d46C0;
 const d46LivePopup = d46Popup.hidden;
-A.ops.advanceRound();
+d46Do(() => A.ops.advanceRound());
 A.state.flush();
 d46Bar.dispatchEvent(d46Ev('pointermove', 140, 120));
 const d46AfterAdv = [JSON.parse(A.interactions.dragInFlight() || '{}').live, d46Attached(d46Src),
@@ -19049,7 +19057,7 @@ d46Bar.dispatchEvent(dom.event('keydown', { key: 'Escape' }));
 
 // ARMED: a change of target half made. The press is the retarget's and no drag starts.
 const d46Act = A.state.get().build.mechs.actions[0].id;
-A.ops.dispatch('declare', { side: 'mechs', actionId: d46Act, by: 'm1', at: 'c1' });
+d46Do(() => A.ops.dispatch('declare', { side: 'mechs', actionId: d46Act, by: 'm1', at: 'c1' }));
 A.state.flush();
 dom.byId['decl-mechs'].dataset.fgAct = d46Act;
 dom.byId['decl-mechs'].dataset.fgBy = 'm1';
@@ -19101,8 +19109,8 @@ check(
     && d46RowUp[0] === false && d46RowUp[1] === 'ap' && d46RowUp[2] === 'cats'
     && d46ArmedMid[0] === '' && d46ArmedMid[1] === 0 && d46ArmedAt === 'c3'
     && d46Sprite !== null && d46SceneDown[0] === true && d46SceneDown[1] === ''
-    && errPanel.hidden === true,
-  'still down ' + JSON.stringify(d46StillDown) + ' up ' + JSON.stringify(d46StillUp)
+    && errPanel.hidden === true && d46Threw.length === 0,
+  'ops that threw ' + JSON.stringify(d46Threw) + ' | still down ' + JSON.stringify(d46StillDown) + ' up ' + JSON.stringify(d46StillUp)
     + ' popup shut after Escape=' + d46PopupShut + ' | live ' + JSON.stringify(d46Live)
     + ' lights ' + JSON.stringify(d46LiveLights) + ' commits while live ' + d46LiveCommits
     + ' popup hidden=' + d46LivePopup + ' | after an Advance ' + JSON.stringify(d46AfterAdv)

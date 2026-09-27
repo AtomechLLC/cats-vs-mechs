@@ -7473,7 +7473,10 @@ for (const ch of ['chrome', 'msedge']) {
     // sentence on screen, the ledger's reading after a real Advance, and all layout.
     const d46Fresh = async (setup) => {
       await pg.evaluate((s) => {
-        if (App.state.get().fight !== null) { App.ops.endFight(); }
+        // The end is PAINTED before the next start: fgRest runs only on a frame with no fight,
+        // and it is what clears a half-made retarget. Without this flush an arm left by one
+        // cell carried into the next — measured under probe P9, where 33l's popup never opened.
+        if (App.state.get().fight !== null) { App.ops.endFight(); App.state.flush(); }
         App.ops.resetToDefaults();
         if (s === 'hp4') { App.ops.setTokenBounds('hp', { min: 0, max: 4 }); }
         App.ops.startFight();
@@ -7752,7 +7755,9 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.mouse.up();
     await pg.waitForTimeout(200);
     const h46b = await d46Read();
-    await pg.click('#fg-unit-close'); await pg.waitForTimeout(150);
+    // Shut with Escape and not a click on Close: a click WAITS for its target, so under a
+    // probe that stops the popup opening it would throw instead of letting this cell fail.
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
     // The shape's NAME is not a reading: a press there opens the popup on the way down, as
     // D-37 built it, with no drag to wait for.
     const h46Name = await pg.evaluate((s) => { const r = document.querySelector(s).getBoundingClientRect(); return { x: r.left + 8, y: r.top + r.height / 2 }; }, d46Name('cats', 'c3'));
@@ -7761,7 +7766,7 @@ for (const ch of ['chrome', 'msedge']) {
     const h46NameDown = await pg.evaluate(() => document.getElementById('fg-unit').dataset.fgUnit || '');
     await pg.mouse.up();
     await pg.waitForTimeout(150);
-    await pg.click('#fg-unit-close'); await pg.waitForTimeout(150);
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
     // A still click on the Cats' action-point row opens D-36's nudge on that row.
     await pg.click(`${FPOOL('cats')} .fg-res[data-drg-tok="ap"]`); await pg.waitForTimeout(200);
     const h46c = await d46Read();
@@ -7937,9 +7942,12 @@ for (const ch of ['chrome', 'msedge']) {
     await pg.waitForTimeout(600);
     await pg.click(d46Name('cats', 'c5')); await pg.waitForTimeout(200);
     const lc0 = await d46Read();
-    const l46Plus = await pg.evaluate(() => { const b = document.querySelector('#fg-unit-rows [data-fg="unudge"][data-fg-tok="hp"][data-fg-step="1"]'); const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
-    await pg.mouse.click(l46Plus.x, l46Plus.y);
-    await pg.mouse.click(l46Plus.x, l46Plus.y);
+    const l46Plus = await pg.evaluate(() => { const b = document.querySelector('#fg-unit-rows [data-fg="unudge"][data-fg-tok="hp"][data-fg-step="1"]'); if (!b) return null; const r = b.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; });
+    // Guarded: a popup that did not open is this cell FAILING, never the run throwing.
+    if (l46Plus) {
+      await pg.mouse.click(l46Plus.x, l46Plus.y);
+      await pg.mouse.click(l46Plus.x, l46Plus.y);
+    }
     await pg.waitForTimeout(150);
     const lc1 = await d46Read();
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(120);
