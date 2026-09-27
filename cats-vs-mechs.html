@@ -9600,14 +9600,124 @@ App.data = (function () {
     return Object.freeze(o);
   }
 
+  /* ---- D-45, plan 05-D45: THE NAME A UNIT IS BORN WITH ---------------------
+     The developer: "Use a name generator to create initial names for the cats
+     and mechs, theme appropriately". Until this plan every unit was born
+     "Cat 3" or "Mech 1"; now a cat is born with a cat's name and a mech with a
+     designation, and those are the names every surface already shows, because
+     every surface reads `unit.name`.
+
+     A PURE FUNCTION OF (side, id number), AND NOTHING ELSE. Not random and not
+     keyed to a unit's POSITION: the number is the one in the unit's id, which
+     nextUnitId in [S05] hands out once and a removal never reassigns. So
+     removing the third cat renames nobody after it, the same board shows the
+     same names on every machine and after every reload, a classmate's copy
+     loaded from a build code shows the ones the sender saw, and an instructor
+     can name a unit aloud to the room. There is no re-roll; nobody asked.
+
+     STORED AS BORN, NEVER WRITTEN AGAIN. The unit record has always carried
+     its name, and no op in this file writes one (there is no rename-unit op).
+     So the name is minted here, by makeUnits, by [S05]'s addUnit and by
+     [S04]'s decoder, all from this one function, and after that it is the
+     unit's own: every surface reads the record and none of them calls this.
+     That is what makes a rename win — the day an op writes a unit's name, the
+     record carries it and nothing re-derives over it — and it is also why the
+     build code did not change by one character: [S04] still writes no name,
+     restores this one on the way back, and refuses a board whose unit wears
+     any other (the guard it has always had, now asked of this function).
+
+     THE LISTS ARE THE FIRST TIME ROUND, IN ORDER. CAT_NAMES[0] is c1's name
+     and MECH_NAMES[0] is m1's, so a reader sees exactly what a fresh roster of
+     forty cats or thirty mechs is called. Past the end of a list the names go
+     round again, and the second time round is told apart:
+       a cat   takes the round number after its name — "Biscuit 2";
+       a mech  keeps its model and moves its mark on by one per round —
+               "Anvil-07" is m1 and "Anvil-08" is m31.
+     WHY NO TWO UNITS ON A SIDE CAN SHARE A NAME, at any id, sparse or huge:
+     a name spells back its list entry and its round (the entries are distinct
+     single words carrying no digit, and a mech's round is its mark less the
+     mark it is listed with), and the entry and the round together are the id.
+     And no cat can share a name with a mech: every mech name carries a hyphen
+     and no cat name does. [S09.16] walks both claims to 2,000 ids a side.
+
+     HOW LONG A NAME GETS — measured, and THE BATTLE SCENE DECIDES IT. Its
+     formation ([S06.17]) stands cats 95.5px apart at 24 a side and mechs
+     106.5px apart in a row of six on the 1366-wide window, and every name is
+     a plate of 18px monospace under its sprite, so two neighbours' names
+     clear each other only if a cat's is at most SEVEN characters and a
+     mech's at most EIGHT (check 130c lays every roster to 24v24 out at the
+     gate's 11px a character). Every list entry is inside that: the cats top
+     out at seven ("Biscuit"), the mechs at eight ("Anvil-07", "Cog MK-2").
+     The first draft of these lists followed the example D-45 was written
+     with, "Warden MK-2" — eleven characters — and 130c measured its name
+     over its neighbour's in a row of six mechs; so a model is five letters
+     at most, and the MK spelling is kept for three-letter models only.
+     Going round again adds characters: a cat's first repeat, c53, is
+     "Biscuit 2" at nine, and a mech's first two-digit MK mark is m164
+     ("Elk MK-10") at nine. Only a side that has minted more than fifty units
+     reaches either, and what it costs there is two neighbours' names
+     touching in the scene at 24 a side; every other surface is wider. The
+     longest name any safe integer makes is twenty-one characters, inside the
+     twenty-four requireName holds a decoded unit to; [S09.16] asserts the
+     top ids fit that cap and that there is no name one past them.
+
+     WHAT NEITHER LIST MAY HOLD. No word that judges or ranks — nothing on the
+     PROJ-06 gate's three lists or its eight named clean-but-unshippable
+     words, and nothing that reads as a rank even where it passes (no Ace, no
+     Prime, no Alpha, no Titan). The node gate walks every entry against the
+     live arrays, so an edit to either list cannot slip one in. No entry is
+     the name of an action, an effect, a token type or a faction either, so a
+     ledger line never reads "Slash uses Slash", and no cat is called
+     something a control could be mistaken for ("Button" was a candidate). */
+  var CAT_NAMES = Object.freeze([
+    'Biscuit', 'Mittens', 'Pepper', 'Nimbus', 'Tofu', 'Juniper', 'Waffles',
+    'Clover', 'Ginger', 'Socks', 'Marble', 'Pumpkin', 'Noodle', 'Olive',
+    'Pebble', 'Maple', 'Sprout', 'Hazel', 'Paprika', 'Sesame', 'Bramble',
+    'Doodle', 'Poppy', 'Truffle', 'Muffin', 'Willow', 'Saffron', 'Nutmeg',
+    'Cocoa', 'Basil', 'Miso', 'Fennel', 'Thistle', 'Custard', 'Ziggy',
+    'Toffee', 'Mochi', 'Pickles', 'Pippin', 'Cricket', 'Mango', 'Peanut',
+    'Bagel', 'Figgy', 'Kipper', 'Jasper', 'Cosmo', 'Taffy', 'Smudge',
+    'Patches', 'Turnip', 'Parsley'
+  ]);
+  // A model and its mark, in one of two spellings: "Model-nn" with the mark
+  // written to the width it is listed at, or "Model MK-n" for a model of
+  // three letters, which is what keeps that spelling inside eight.
+  var MECH_NAMES = Object.freeze([
+    'Anvil-07', 'Cog MK-2', 'Rivet-12', 'Servo-04', 'Flint-21', 'Ram MK-4',
+    'Hoist-05', 'Quill-09', 'Ingot-16', 'Ore MK-3', 'Crane-06', 'Lathe-11',
+    'Axle-03', 'Elk MK-5', 'Clamp-08', 'Forge-14', 'Strut-10', 'Tug MK-2',
+    'Boron-19', 'Truss-02', 'Cable-13', 'Awl MK-3', 'Pylon-17', 'Auger-06',
+    'Joist-24', 'Rotor-15', 'Gauge-09', 'Valve-18', 'Piton-22', 'Spoke-05'
+  ]);
+  var MECH_NAME_SHAPE = /^([A-Z][a-z]+)( MK-|-)([0-9]+)$/;
+
+  // The name the unit numbered `n` on `side` is born with, or null for a side
+  // or a number this file cannot name. Null rather than a throw because [S04]
+  // asks it inside encode, which never throws, and refuses on a null.
+  function unitName(side, n) {
+    if (!Number.isSafeInteger(n) || n < 1) { return null; }
+    var at = n - 1;
+    if (side === 'cats') {
+      var catRound = Math.floor(at / CAT_NAMES.length);
+      return CAT_NAMES[at % CAT_NAMES.length] + (catRound === 0 ? '' : ' ' + (catRound + 1));
+    }
+    if (side === 'mechs') {
+      var parts = MECH_NAME_SHAPE.exec(MECH_NAMES[at % MECH_NAMES.length]);
+      var mark = String(Number(parts[3]) + Math.floor(at / MECH_NAMES.length));
+      while (mark.length < parts[3].length) { mark = '0' + mark; }
+      return parts[1] + parts[2] + mark;
+    }
+    return null;
+  }
+
   // Units are built by a loop, so a roster change is one number rather than
   // twelve near-identical literals drifting apart.
-  function makeUnits(idPrefix, namePrefix, howMany, stats) {
+  function makeUnits(side, idPrefix, howMany, stats) {
     var units = [];
     for (var i = 1; i <= howMany; i++) {
       units.push({
         id: idPrefix + i,
-        name: namePrefix + ' ' + i,
+        name: unitName(side, i),
         maxHp: stats.maxHp,
         shield: stats.shield
       });
@@ -10235,7 +10345,7 @@ App.data = (function () {
       id: 'cats',
       name: 'Cats',
       ap: 3,
-      units: makeUnits('c', 'Cat', 9, { maxHp: 3, shield: 0 }),
+      units: makeUnits('cats', 'c', 9, { maxHp: 3, shield: 0 }),
       actions: [
         { id: 'slash', name: 'Slash', dmg: 1, keywords: [],
           cost: [{ tok: 'ap', n: 1 }], req: [],
@@ -10250,7 +10360,7 @@ App.data = (function () {
       id: 'mechs',
       name: 'Mechs',
       ap: 3,
-      units: makeUnits('m', 'Mech', 3, { maxHp: 6, shield: 3 }),
+      units: makeUnits('mechs', 'm', 3, { maxHp: 6, shield: 3 }),
       actions: [
         { id: 'fly', name: 'Fly', dmg: 0, keywords: ['evade'],
           cost: [{ tok: 'ap', n: 1 }], req: [], xf: [] },
@@ -10443,6 +10553,13 @@ App.data = (function () {
     TOKEN_SCOPES: TOKEN_SCOPES,
     MAX_TOKEN_NAME: MAX_TOKEN_NAME,
     TOKEN_NAME_REFUSE: TOKEN_NAME_REFUSE,
+    // D-45's generator and the two lists it reads. [S04] and [S05] mint a
+    // unit's name through unitName and nowhere else, and [S09.16] and the
+    // node gate read the lists by these names rather than a re-typed copy —
+    // the gate walks every entry against its live PROJ-06 arrays.
+    unitName: unitName,
+    CAT_NAMES: CAT_NAMES,
+    MECH_NAMES: MECH_NAMES,
     GLYPHS: GLYPHS,
     // The action record. The digit-width source string behind the two patterns
     // is deliberately NOT exported: it is written once and read twice, both
@@ -12115,17 +12232,25 @@ App.serialize = (function () {
      and side B is the mechs; a side is seven fields wide; a unit id is its
      side's letter followed by the sequence number the gap list carries.
 
-     None of these four is encoded. `id`, `name` and a unit's label are
-     RESTORED from here on the way back, because no op in this file writes any
-     of them — there is no rename-faction op and no rename-unit op — so a build
-     code paying characters for them would be paying for a value it already
-     knows. The moment an op writes one, the guard in encode below turns that
-     into a refusal rather than into a name that quietly changed.
+     None of these is encoded, and neither is a unit's name. `id`, `name` and
+     the name a unit is born with are RESTORED on the way back, because no op
+     in this file writes any of them — there is no rename-faction op and no
+     rename-unit op — so a build code paying characters for them would be
+     paying for a value it already knows. The moment an op writes one, the
+     guard in encode below turns that into a refusal rather than into a name
+     that quietly changed.
+
+     D-45 MOVED WHERE A UNIT'S NAME COMES FROM AND NOT WHETHER IT IS WRITTEN.
+     It used to be one more record here, a label plus the id's number ("Cat 3");
+     it is now [S01]'s unitName of the side and that same number ("Nimbus"),
+     which is a pure function of what the gap list already carries. So the
+     wire did not move by one character, the shipped board is still 45, and
+     a code shared before D-45 loads today — showing the new names, because
+     the names were never on it.
      ----------------------------------------------------------------------- */
   var WIRE_SIDES = ['cats', 'mechs'];
   var WIRE_SIDE_MARKS = ['A', 'B'];
   var WIRE_UNIT_PREFIX = { cats: 'c', mechs: 'm' };
-  var WIRE_UNIT_LABEL = { cats: 'Cat ', mechs: 'Mech ' };
   var WIRE_SIDE_FIELDS = 7;
 
   // The ordinal order for token types, DERIVED and never enumerated: the five
@@ -12411,7 +12536,7 @@ App.serialize = (function () {
       }).join(SEP.record);
     }
 
-    function sideCode(mark, side, shippedSide, prefix, label) {
+    function sideCode(mark, side, shippedSide, prefix, sideId) {
       if (!side || typeof side !== 'object') { return refuse(); }
       if (side.id !== shippedSide.id) { return refuse(); }
       if (side.name !== shippedSide.name) { return refuse(); }
@@ -12428,11 +12553,13 @@ App.serialize = (function () {
         if (unit.id.charAt(0) !== prefix) { refuse(); return; }
         var suffix = Number(unit.id.slice(1));
         if (!Number.isInteger(suffix) || suffix < 1) { refuse(); return; }
-        // The unit label is DERIVED from the suffix on the way back, so a
-        // label that does not match the suffix is a value this codec would
-        // silently change. It refuses instead — the day a rename-unit op
-        // ships, this line is what says so out loud.
-        if (unit.name !== label + suffix) { refuse(); return; }
+        // The unit's name is DERIVED from the suffix on the way back (D-45:
+        // the name it was born with), so a name that is not that one is a
+        // value this codec would silently change. It refuses instead — the day
+        // a rename-unit op ships, this line is what says so out loud, and a
+        // student's rename is never swapped for a generated name in transit.
+        var born = App.data.unitName(sideId, suffix);
+        if (born === null || unit.name !== born) { refuse(); return; }
         // A gap is a position where the id suffix breaks the run. nextUnitId
         // takes the largest suffix and adds one, so ids are contiguous UNTIL
         // a removal — a board nobody removed a unit from pays nothing here.
@@ -12500,7 +12627,7 @@ App.serialize = (function () {
 
     var sideCodes = WIRE_SIDES.map(function (id, i) {
       return sideCode(WIRE_SIDE_MARKS[i], build[id], App.data.DEFAULTS[id],
-        WIRE_UNIT_PREFIX[id], WIRE_UNIT_LABEL[id]);
+        WIRE_UNIT_PREFIX[id], id);
     });
 
     /* D-41's RESERVE, AND ONLY WHEN SOMETHING IS IN IT. Rule 1 of the three
@@ -13008,9 +13135,16 @@ App.serialize = (function () {
         var maxHp = amountAt(pair[0]);
         var shield = amountAt(pair[1]);
         if (maxHp === null || shield === null) { return content(problem); }
+        // D-45: the name the unit was born with, restored from the number the
+        // gap list carries. Null only past the largest safe integer — a run
+        // stepping one past a gap that already sat there — which no board
+        // this file can build reaches, and which is refused as the id shape
+        // it is rather than handed on as a unit nobody can name.
+        var bornName = App.data.unitName(sideId, suffix);
+        if (bornName === null) { return content('a unit id is the wrong shape'); }
         var unit = {
           id: WIRE_UNIT_PREFIX[sideId] + suffix,
-          name: WIRE_UNIT_LABEL[sideId] + suffix,
+          name: bornName,
           maxHp: maxHp,
           shield: shield
         };
@@ -14045,8 +14179,9 @@ App.ops = (function () {
   // collides after any removal: take c2 out of c1,c2,c3 and the next add
   // produces a second c3, after which findUnit edits the wrong unit and
   // withPreservedFocus refocuses the wrong node. So: scan every existing id,
-  // take the largest suffix in use and add one. The name reuses the same suffix,
-  // so id and name stay in step after removals too.
+  // take the largest suffix in use and add one. The name is born from the same
+  // suffix ([S01]'s unitName, D-45), so id and name stay in step after
+  // removals too, and a removal renames nobody.
   function nextUnitId(side, units) {
     var prefix = side.charAt(0);
     var pattern = new RegExp('^' + prefix + '(\\d+)$');
@@ -14071,9 +14206,11 @@ App.ops = (function () {
       // wrong starting point.
       var seed = App.data.DEFAULTS[side].units[0];
       var named = nextUnitId(side, units);
+      var born = App.data.unitName(side, named.suffix);
+      if (born === null) { throw new Error('That side has no name left for a new unit'); }
       units.push({
         id: named.id,
-        name: (side === 'cats' ? 'Cat ' : 'Mech ') + named.suffix,
+        name: born,
         maxHp: last ? last.maxHp : seed.maxHp,
         shield: last ? last.shield : seed.shield
       });
@@ -49782,8 +49919,11 @@ App.selftest = (function () {
       + 'cat\'s health is home on its own card, refused on a mech holding six under a '
       + 'ceiling of four with the ceiling sentence, and lights the other side\'s pool and '
       + 'a cat below the ceiling',
+      // D-45: m1's name is read from the generator, never re-typed — this
+      // row was the one that held "Mech 1" as a literal, and went red on it.
       NAMED, ['home', 'lit', true, 'home', 'no',
-        'Mech 1 holds at most 4 "Health", so it cannot take another.', 'lit', 'lit']);
+        App.data.unitName('mechs', 1) + ' holds at most 4 "Health", so it cannot take another.',
+        'lit', 'lit']);
 
     /* --- THE DRAG LIVES IN NO SLICE. Answering every drag writes no key into
            `ui`, and nothing reachable from the state names a drag — [S09.3]'s
@@ -50294,8 +50434,10 @@ App.selftest = (function () {
       + 'order, each name a text node, the canvas hidden from assistive tech; the cat RULED '
       + 'dead lies down and says so, the mech at ZERO HEALTH that nobody ruled on stands, and '
       + 'nothing in the scene carries data-k, data-act or data-fg',
-      PAINT, [true, true, 'Cat 1', 'Mech 3', 'CANVAS', 'true',
-        true, 'Cat 2' + R.SCENE_DOWN_SAID, false, 'Mech 2', false, 0]);
+      // D-45: every name here is read from the generator rather than typed.
+      PAINT, [true, true, App.data.unitName('cats', 1), App.data.unitName('mechs', 3),
+        'CANVAS', 'true', true, App.data.unitName('cats', 2) + R.SCENE_DOWN_SAID, false,
+        App.data.unitName('mechs', 2), false, 0]);
 
     /* --- D-44: A SWITCH OF GENERATION REDRAWS IN PLACE. With a fight running
            and Cat 1 kept somewhere of its own, the 16-bit scene says "16" on the
@@ -50356,6 +50498,331 @@ App.selftest = (function () {
     App.state.restore(savedAll);
     App.state.flush();
     t.eq('the scene suite handed the board back untouched',
+      JSON.stringify(App.state.get()), savedAll);
+  });
+})();
+
+/* --- [S09.16] SUITE: unit names — owner plan 05-D45 --- */
+(function () {
+  'use strict';
+
+  App.selftest.suite('unit names', function (t) {
+    /* D-45: a unit is born with a themed name, from its side and the number in
+       its id, and keeps it. [S01]'s banner above unitName gives the reasons;
+       this suite drives them. EVERY EXPECTED NAME BELOW IS READ FROM THE
+       GENERATOR OR ITS LISTS, never typed — the D-40 lesson: a row holding a
+       second copy of a name agrees with itself and catches nothing. The one
+       literal in the suite is the shipped board's build code, which is
+       pinned as the characters it was on the day before D-45 on purpose. */
+    var D = App.data;
+    var born = D.unitName;
+    var SIDES = ['cats', 'mechs'];
+    var MAX = Number.MAX_SAFE_INTEGER;
+    var savedAll = JSON.stringify(App.state.get());
+    var idNumber = function (id) { return Number(String(id).slice(1)); };
+    var namesOf = function (side) {
+      var out = {};
+      App.state.get().build[side].units.forEach(function (u) { out[u.id] = u.name; });
+      return out;
+    };
+    var wornAsBorn = function (side) {
+      return App.state.get().build[side].units.every(function (u) {
+        return u.name === born(side, idNumber(u.id));
+      });
+    };
+    var repeats = function (list) {
+      var seen = Object.create(null);
+      return list.filter(function (w) {
+        var k = w.toLowerCase();
+        var again = seen[k] === true;
+        seen[k] = true;
+        return again;
+      });
+    };
+
+    /* --- THE LISTS. --- */
+    var models = D.MECH_NAMES.map(function (w) { return w.replace(/( MK-|-)[0-9]+$/, ''); });
+    t.ok('at least 24 cat names and at least 24 mech names, so a full side is named from the '
+      + 'first time round the list', D.CAT_NAMES.length >= 24 && D.MECH_NAMES.length >= 24);
+    t.eq('every cat name is one capitalised word of at most seven letters, the widest a cat\'s '
+      + 'name can be and still clear its neighbour\'s in the scene at 24 a side',
+      D.CAT_NAMES.filter(function (w) { return !/^[A-Z][a-z]{1,6}$/.test(w); }), []);
+    t.eq('every mech name is a model and its mark — "Model-nn" for a model of up to five '
+      + 'letters, "Mod MK-n" for one of three — at most eight characters, for the same reason',
+      D.MECH_NAMES.filter(function (w) {
+        return !/^([A-Z][a-z]{2,4}-[0-9]{2}|[A-Z][a-z]{2} MK-[1-9])$/.test(w) || w.length > 8;
+      }), []);
+    t.eq('no word is used twice, within a list or across the two', repeats(D.CAT_NAMES.concat(models)), []);
+    var vocabulary = [];
+    SIDES.forEach(function (side) {
+      vocabulary.push(D.DEFAULTS[side].name);
+      D.DEFAULTS[side].actions.forEach(function (a) { vocabulary.push(a.name); });
+    });
+    D.TOKEN_IDS.forEach(function (id) { vocabulary.push(D.DEFAULTS.tokens[id].name); });
+    D.REFERENCE.effects.forEach(function (e) { vocabulary.push(e.name); });
+    var vocabWords = vocabulary.join(' ').toLowerCase().split(/\s+/);
+    t.eq('no list word is the word for a shipped action, effect, token type or faction, so a '
+      + 'ledger line never names a unit and an action with the same word',
+      D.CAT_NAMES.concat(models).filter(function (w) {
+        return vocabWords.indexOf(w.toLowerCase()) !== -1;
+      }), []);
+
+    /* --- THE SHIPPED BOARD. --- */
+    t.eq('the shipped board is born with the generated names: every unit wears its own id\'s '
+      + 'name, c1 is the first cat name and m1 the first mech name',
+      [SIDES.map(function (side) {
+        return D.DEFAULTS[side].units.every(function (u) { return u.name === born(side, idNumber(u.id)); });
+      }), D.DEFAULTS.cats.units[0].name, D.DEFAULTS.mechs.units[0].name],
+      [[true, true], D.CAT_NAMES[0], D.MECH_NAMES[0]]);
+    t.eq('and no unit on it is still called by its side and a number, the way every unit was '
+      + 'before D-45',
+      D.DEFAULTS.cats.units.concat(D.DEFAULTS.mechs.units)
+        .map(function (u) { return u.name; })
+        .filter(function (n) { return /^(Cat|Mech) [0-9]+$/.test(n); }), []);
+
+    /* --- NO TWO ALIKE, AT ANY ID. --- */
+    var WALK = 2000;
+    var clashes = function (side) {
+      var seen = Object.create(null);
+      var out = [];
+      for (var n = 1; n <= WALK; n++) {
+        var s = born(side, n);
+        if (seen[s] === true) { out.push(n); }
+        seen[s] = true;
+      }
+      return out;
+    };
+    var catSet = Object.create(null);
+    for (var cn = 1; cn <= WALK; cn++) { catSet[born('cats', cn)] = true; }
+    var shared = 0;
+    for (var mn = 1; mn <= WALK; mn++) { if (catSet[born('mechs', mn)] === true) { shared += 1; } }
+    t.eq('two thousand ids a side, and no two on one side share a name; and no mech is ever '
+      + 'called what a cat is', [clashes('cats'), clashes('mechs'), shared], [[], [], 0]);
+    var firstMark = /^(.*?)([0-9]+)$/.exec(D.MECH_NAMES[0]);
+    var nextMark = String(Number(firstMark[2]) + 1);
+    while (nextMark.length < firstMark[2].length) { nextMark = '0' + nextMark; }
+    t.eq('past the end of a list the names go round again and are told apart: the cat after the '
+      + 'last list entry is the first name with a 2 after it, and the mech after the last is '
+      + 'the first model with its mark moved on by one',
+      [born('cats', D.CAT_NAMES.length + 1), born('mechs', D.MECH_NAMES.length + 1)],
+      [D.CAT_NAMES[0] + ' 2', firstMark[1] + nextMark]);
+
+    /* --- HOW LONG. --- */
+    var longest = function (side, upTo) {
+      var most = 0;
+      for (var n = 1; n <= upTo; n++) { most = Math.max(most, born(side, n).length); }
+      return most;
+    };
+    t.eq('every cat through the whole first round of its list is at most seven characters and '
+      + 'every mech through five rounds of its list at most eight; and the first repeat of the '
+      + 'cats is the one that goes past seven',
+      [longest('cats', D.CAT_NAMES.length) <= 7, longest('mechs', 5 * D.MECH_NAMES.length) <= 8,
+        born('cats', D.CAT_NAMES.length + 1).length > 7], [true, true, true]);
+    var topFits = true;
+    for (var k = 0; k < 2 * Math.max(D.CAT_NAMES.length, D.MECH_NAMES.length); k++) {
+      SIDES.forEach(function (side) {
+        var s = born(side, MAX - k);
+        if (typeof s !== 'string' || s.length > D.MAX_TOKEN_NAME || D.TOKEN_NAME_REFUSE.test(s)) {
+          topFits = false;
+        }
+      });
+    }
+    t.eq('at the top of the safe integers every name still fits the cap a decoded unit is held '
+      + 'to, and one past it there is no name at all',
+      [topFits, born('cats', MAX + 1), born('mechs', MAX + 1)], [true, null, null]);
+    t.eq('a number or a side this file cannot name has no name: zero, a negative, a fraction, '
+      + 'a numeral in a string, a side that is not one, a prototype key',
+      [born('cats', 0), born('mechs', -1), born('cats', 1.5), born('cats', '1'),
+        born('dogs', 1), born('__proto__', 1), born('constructor', 1)],
+      [null, null, null, null, null, null, null]);
+
+    /* --- REMOVING A UNIT IN THE MIDDLE RENAMES NOBODY. Keyed to the id and
+           never to a position: with c3 gone the fourth cat is FOURTH in the
+           id and THIRD in the roster, and a name read off its position would
+           be the third name. --- */
+    var MIDDLE;
+    try {
+      App.ops.resetToDefaults();
+      var before = namesOf('cats');
+      App.ops.removeUnit('cats', 'c3');
+      var after = namesOf('cats');
+      var keptAll = Object.keys(after).every(function (id) { return after[id] === before[id]; });
+      App.ops.addUnit('cats');
+      var added = App.state.get().build.cats.units[App.state.get().build.cats.units.length - 1];
+      MIDDLE = [keptAll, Object.keys(after).length, App.state.get().build.cats.units[2].id,
+        App.state.get().build.cats.units[2].name, added.id, added.name, wornAsBorn('cats')];
+    } catch (stopped) {
+      MIDDLE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('REMOVING THE THIRD CAT RENAMES NOBODY: the eight still there keep the names they had; '
+      + 'the unit now third in the roster is c4 and wears the FOURTH name, its own; and the '
+      + 'next cat added is c10 with the tenth name, not the one the removed cat wore',
+      MIDDLE, [true, 8, 'c4', born('cats', 4), 'c10', born('cats', 10), true]);
+
+    /* --- TWENTY-FOUR A SIDE, THE ROSTER CEILING. --- */
+    var FULL;
+    try {
+      App.ops.resetToDefaults();
+      SIDES.forEach(function (side) {
+        while (App.state.get().build[side].units.length < App.ops.MAX_UNITS) { App.ops.addUnit(side); }
+      });
+      FULL = SIDES.map(function (side) {
+        var list = App.state.get().build[side].units.map(function (u) { return u.name; });
+        return [list.length, repeats(list).length, wornAsBorn(side),
+          Math.max.apply(null, list.map(function (n) { return n.length; })) <= (side === 'cats' ? 7 : 8)];
+      });
+    } catch (stopped) {
+      FULL = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('ADDED UP TO 24 A SIDE THROUGH THE OP: 24 names a side, none repeated, each the '
+      + 'generator\'s name for its own id, a cat at most seven characters and a mech at most eight',
+      FULL, [[24, 0, true, true], [24, 0, true, true]]);
+
+    /* --- THE BUILD CODE. The wire carries no name, so D-45 moved nothing on
+           it. These three codes were written by this file on the day before
+           D-45, by the board each row names; they are literals because they
+           are the evidence that the older file wrote them. --- */
+    var SHIPPED_CODE = 'v1~N~V~A9~3~9*3!0~9*~~~~B3~3~3*6!3~3*~~~~7tvo';
+    var GAPPED_CODE = 'v1~N~V~A8~3~8*3!0~8*~2!4~~~B3~3~3*6!3~3*~1!3~~~5gdx';
+    var FULL_CODE = 'v1~N~V~Ao~3~o*3!0~o*~2!4~~~Bo~3~o*6!3~o*~1!3~~~evui';
+    var WIRE;
+    try {
+      App.ops.resetToDefaults();
+      var shippedNow = App.serialize.encode(App.state.get().build);
+      var gapped = App.ops.loadBuildCode(GAPPED_CODE);
+      var gappedIds = SIDES.map(function (side) { return Object.keys(namesOf(side)).join(); });
+      var gappedAsBorn = wornAsBorn('cats') && wornAsBorn('mechs');
+      var gappedBack = App.serialize.encode(App.state.get().build);
+      var full = App.ops.loadBuildCode(FULL_CODE);
+      var fullCounts = SIDES.map(function (side) { return App.state.get().build[side].units.length; });
+      var fullAsBorn = wornAsBorn('cats') && wornAsBorn('mechs');
+      var fullBack = App.serialize.encode(App.state.get().build);
+      WIRE = [shippedNow, shippedNow.length, gapped.ok, gappedIds, gappedAsBorn, gappedBack === GAPPED_CODE,
+        full.ok, fullCounts, fullAsBorn, fullBack === FULL_CODE];
+    } catch (stopped) {
+      WIRE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE BUILD CODE DID NOT MOVE, AND A CODE FROM BEFORE D-45 SHOWS THE NEW NAMES: the '
+      + 'untouched board writes the same 45 characters it wrote the day before; a code shared '
+      + 'then, with c3 and m2 removed, loads with every unit wearing its own id\'s generated name '
+      + 'and writes back the same code; and so does one at 24 a side with gaps on both',
+      WIRE, [SHIPPED_CODE, 45, true, ['c1,c2,c4,c5,c6,c7,c8,c9', 'm1,m3,m4'], true, true,
+        true, [24, 24], true, true]);
+
+    /* --- A RENAME WINS, AND UNDO GIVES THE BORN NAME BACK. No op renames a
+           unit, so the rename is written through [S03]'s writer — the path
+           the browser tier's cell 32b already takes, and the one a future
+           rename op would. What must hold: the record carries the rename and
+           nothing re-derives over it, the build code REFUSES the renamed
+           board rather than writing it back under a generated name, and one
+           undo is the name the unit was born with. --- */
+    var RENAME;
+    try {
+      App.ops.resetToDefaults();
+      var depth0 = App.state.undoDepth();
+      App.state.commit('D-45 rename drive', function (s) { s.build.cats.units[2].name = 'Whiskerton'; });
+      App.state.flush();
+      var worn = App.state.get().build.cats.units[2].name;
+      var codeWhileRenamed = App.serialize.encode(App.state.get().build);
+      var depthRenamed = App.state.undoDepth() - depth0;
+      App.state.undo();
+      App.state.flush();
+      RENAME = [worn, codeWhileRenamed, depthRenamed, App.state.get().build.cats.units[2].name,
+        App.serialize.encode(App.state.get().build)];
+    } catch (stopped) {
+      RENAME = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('A RENAME IS WHAT SHOWS, AND UNDO GIVES THE BORN NAME BACK: the third cat renamed through the '
+      + 'state writer wears the rename, the build code refuses that board rather than carrying '
+      + 'it off under the generated name, the rename is one undo entry, and undone the cat '
+      + 'wears its own id\'s generated name and the board writes the shipped code again',
+      RENAME, ['Whiskerton', null, 1, born('cats', 3), SHIPPED_CODE]);
+
+    // Everything below needs a page: the rename as the PAGE shows it.
+    if (typeof document === 'undefined') {
+      t.info('unit names on the page', 'skipped — no DOM');
+      App.state.restore(savedAll);
+      App.state.flush();
+      return;
+    }
+
+    /* --- THE PAGE SHOWS THE RENAME, AND UNDONE IT SHOWS THE BORN NAME. The
+           row above holds the record; this one holds every surface that reads
+           it, because a card or a sprite that asked the generator for its
+           name instead of the record would put the generated name back over a
+           student's own on the page while the record stayed right — and the
+           row above would be green over it. Read on the board card's head,
+           its remove button's accessible name, and the scene's label and
+           accessible name.
+
+           EACH READ IS ON A STRUCTURAL FRAME, and that is a recorded finding
+           rather than a convenience. The scene reads a unit's name every frame
+           (D-42 wrote it that way ahead of any rename op); the board card does
+           NOT — its name, and the unit's name inside each stepper's accessible
+           name, are written by structure() only, because no op renames a
+           unit. Measured in real Chrome and Edge under D-45: on a plain commit
+           the card still says the born name until the next structural frame.
+           Nothing a student can press reaches that today; the day a
+           rename-unit op ships it must commit structurally, or teach sync()
+           the unit's name as it already knows a token type's. --- */
+    var ONPAGE;
+    try {
+      App.ops.resetToDefaults();
+      var readC3 = function () {
+        App.state.invalidate({ structural: true });
+        App.state.flush();
+        App.render.scene(App.state.get());
+        var rm = document.querySelector('[data-k="cats/c3/rm"]');
+        var card = rm ? rm.closest('.unit-card') : null;
+        var head = card ? card.querySelector('.unit-name') : null;
+        var sprite = Array.prototype.slice.call(document.getElementById('scene-field').children)
+          .filter(function (n) { return n.dataset.scnUnit === 'c3'; })[0] || null;
+        return [head ? head.textContent : 'NO CARD HEAD', rm ? rm.getAttribute('aria-label') : 'NO REMOVE',
+          sprite ? sprite.lastElementChild.textContent : 'NO SPRITE',
+          sprite ? sprite.getAttribute('aria-label') : 'NO SPRITE'];
+      };
+      var depthBefore = App.state.undoDepth();
+      App.state.commit('D-45 page rename drive', function (s) { s.build.cats.units[2].name = 'Whiskerton'; });
+      var boardRenamed = readC3();
+      App.ops.startFight();
+      var sceneRenamed = readC3().slice(2);
+      App.ops.endFight();
+      // Back to the depth before the rename, however many entries the fight's
+      // start and end each left — the rename is the one this lands under.
+      for (var guard = 0; guard < 10 && App.state.undoDepth() > depthBefore; guard++) { App.state.undo(); }
+      var boardBack = readC3();
+      App.ops.startFight();
+      var sceneBack = readC3().slice(2);
+      ONPAGE = [boardRenamed.slice(0, 2), sceneRenamed, boardBack.slice(0, 2), sceneBack,
+        App.state.get().build.cats.units[2].name];
+    } catch (stopped) {
+      ONPAGE = ['THE DRIVE THREW: ' + String(stopped && stopped.message)];
+    } finally {
+      App.state.restore(savedAll);
+      App.state.flush();
+    }
+    t.eq('THE PAGE SHOWS THE RENAME, AND UNDONE IT SHOWS THE BORN NAME: the third cat renamed '
+      + 'through the state writer is what its card head, its remove button, its sprite\'s label '
+      + 'and its sprite\'s accessible name say; undone, all four say its own id\'s generated name',
+      ONPAGE, [['Whiskerton', 'Remove Whiskerton'], ['Whiskerton', 'Whiskerton'],
+        [born('cats', 3), 'Remove ' + born('cats', 3)], [born('cats', 3), born('cats', 3)],
+        born('cats', 3)]);
+
+    App.state.restore(savedAll);
+    App.state.flush();
+    t.eq('the unit names suite handed the board back untouched',
       JSON.stringify(App.state.get()), savedAll);
   });
 })();
