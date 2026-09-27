@@ -18602,7 +18602,13 @@ const d44Want = [d44Css(d44Root['--coral']), d44Css(d44Root['--ink-dim']), d44Cs
   d44Css(d44Mix(d44Root['--accent'], d44Root['--bg'], 0.72))];
 const S24 = '24,24,24,24,24,24,24,24,24,48,48,48';
 
-// PRESSED: to 8-bit.
+// PRESSED: to 8-bit — with Cat 2 ALREADY KEPT somewhere of its own. Hardened
+// after PROBE PF (a switch that wiped every place) ran this row GREEN: it
+// switched on a board where nobody had been placed, so formation before and
+// formation after compared equal. A place kept before the press is what a
+// wiping switch loses.
+A.render.sceneKeep('c2', 0.3, 0.6);
+A.render.scene(A.state.get());
 const d44State0 = JSON.stringify(A.state.get());
 const d44C0 = commits();
 const d44Depth0 = A.state.undoDepth();
@@ -18629,7 +18635,8 @@ const d44Mid = [JSON.parse(A.interactions.sceneHeld() || '{}').live, A.interacti
   d44Cat1 ? d44Cat1.style.getPropertyValue('--scn-x') + ',' + d44Cat1.style.getPropertyValue('--scn-y') : '',
   d44Sect.dataset.scnGen, d44Sizes(), d44Pressed()];
 d44Field.dispatchEvent(d42Ev('pointerup', 400, 150));
-const d44Kept = [A.interactions.sceneHeld(), JSON.stringify(JSON.parse(A.render.sceneSaid()).c1)];
+const d44Kept = [A.interactions.sceneHeld(), JSON.stringify(JSON.parse(A.render.sceneSaid()).c1),
+  JSON.stringify(JSON.parse(A.render.sceneSaid()).c2), d44Nodes0[1] ? d44Nodes0[1].dataset.scnAt : ''];
 const d44Nothing = [JSON.stringify(A.state.get()) === d44State0, commits() - d44C0,
   A.state.undoDepth() - d44Depth0, A.serialize.encode(A.state.get().build) === d44Code0, errPanel.hidden];
 const d44Refused = [A.render.sceneSetGen('32'), A.render.sceneSetGen(''), A.render.sceneSetGen(8), A.render.sceneGen()];
@@ -18655,7 +18662,8 @@ check(
     + 'THE COLOURS ARE THE SHELL\'S OWN :root, mixed by this row: the fur is --coral, the '
     + 'plate --ink-dim, the sensor --accent, the backdrop\'s first pixel --accent 28% into '
     + '--bg. A CLICK on 8-bit: every sprite the same node at the same place, drawn at 16, the '
-    + 'pressed state moved with it. A sprite PICKED UP AND HELD while a click switches the '
+    + 'pressed state moved with it, and Cat 2, kept at (0.3, 0.6) BEFORE the press, still kept '
+    + 'and still drawn there after both presses. A sprite PICKED UP AND HELD while a click switches the '
     + 'art back is still held, the same node, still at 0.4 and 0.5 where the pointer put it, '
     + 'and let go it keeps that place. Across all of it the state is byte-identical, no '
     + 'commit, no undo entry, the same build code, the panel shut. "32", "" and the number 8 '
@@ -18669,7 +18677,8 @@ check(
     && d44To8[2] === 'false/false true/true' && d44To8[3] === true && d44To8[4] === true && d44To8[5] === '8'
     && d44Mid[0] === true && d44Mid[1] === true && d44Mid[2] === true && d44Mid[3] === true
     && d44Mid[4] === '0.4,0.5' && d44Mid[5] === '16' && d44Mid[6] === S24 && d44Mid[7] === 'true/true false/false'
-    && d44Kept[0] === '' && d44Kept[1] === '[0.4,0.5]'
+    && d44Kept[0] === '' && d44Kept[1] === '[0.4,0.5]' && d44Kept[2] === '[0.3,0.6]' && d44Kept[3] === '0.3,0.6'
+    && d44At0.split('|')[1] === '0.3,0.6'
     && d44Nothing[0] === true && d44Nothing[1] === 0 && d44Nothing[2] === 0 && d44Nothing[3] === true
     && d44Nothing[4] === true
     && d44Refused[0] === false && d44Refused[1] === false && d44Refused[2] === false && d44Refused[3] === '16'
