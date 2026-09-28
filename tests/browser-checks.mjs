@@ -6727,7 +6727,15 @@ for (const ch of ['chrome', 'msedge']) {
       const win = getComputedStyle(document.querySelector('.scn-win'));
       const cv = getComputedStyle(document.querySelector('#scene-field canvas') || document.getElementById('scene-field'));
       const reset = document.getElementById('scene-reset');
-      const words = ['scene-head', 'scene-hint', 'scene-reset'].map((id) => parseFloat(getComputedStyle(document.getElementById(id)).fontSize));
+      // TURNED IN THE OPEN UNDER D-47: this read three shell words, the middle one #scene-hint,
+      // and on the first run after the hint left the shell getComputedStyle(null) THREW and
+      // stopped the whole column at this line (TypeError, "parameter 1 is not of type
+      // 'Element'"). Two words now, read null-safe so a missing one is a 0 and a FAILED clause
+      // rather than a stopped run; and the move itself is asserted below — the paragraph is
+      // gone and the heading carries its sentence as a title, which is where Layer C reads it.
+      const words = ['scene-head', 'scene-reset'].map((id) => { const n = document.getElementById(id); return n ? parseFloat(getComputedStyle(n).fontSize) : 0; });
+      const headTitle = (document.getElementById('scene-head') || { title: '' }).title;
+      const hintGone = document.getElementById('scene-hint') === null && document.querySelector('#scene .scn-hint') === null;
       const text = document.getElementById('scene').innerText;
       return {
         first: band.firstElementChild === scene,
@@ -6737,7 +6745,7 @@ for (const ch of ['chrome', 'msedge']) {
         rim: win.borderTopColor, rimWidth: win.borderTopWidth, fill: win.backgroundColor,
         pixelated: cv.imageRendering, canvasPx: Math.round(parseFloat(cv.width)),
         resetText: reset.textContent.trim(), resetShown: reset.getBoundingClientRect().width > 0,
-        minWord: Math.min(...words), text,
+        minWord: Math.min(...words), text, headTitle, hintGone,
         dataK: document.querySelectorAll('#scene [data-k], #scene [data-act], #scene [data-fg]').length
       };
     });
@@ -6765,7 +6773,7 @@ for (const ch of ['chrome', 'msedge']) {
     note(ch, size.name, 'D-42 scene top/bottom from the top of the document, at load', `${d42Look.top}/${d42Look.bottom} of ${d42Look.vh}`);
     note(ch, size.name, 'D-42 field w x h, rows, sprite px', `${Math.round(d42r0.field.w)}x${Math.round(d42r0.field.h)} rows ${d42r0.rows} px ${d42Look.canvasPx}`);
     await d42Shot('fresh');
-    ok(`${tag}: 32. D-42 — THE BATTLE SCENE IS THE FIGHT TAB'S FIRST PANEL, WHOLE ON SCREEN AT LOAD, FRAMED IN TOKENS, AND EVERY NAME IN IT IS LEGIBLE. It is the band's first child and above the lane of earlier rounds (so the lane still leads into the round), outside #board, and nothing in it carries data-k, data-act or data-fg. The window's rim is --ink and its fill is --accent mixed into --bg, each compared with what the stylesheet computes for that token rather than with a typed value. Twelve sprites, all inside the field, one per fight unit; the canvas is drawn pixelated; the fur pixel IS --coral, the mech's plate IS --ink-dim and its visor IS --accent, read off the canvas. Every name is monospace, at UX-02's 18px floor or above, unclipped, no two names overlap, and a HIT TEST at every name's centre and four inner corners finds that name — nothing is painted over any of them. The three shell words are at the floor too and the way back to formation is a visible text control. And not one word in the scene names an outcome — FF1's end-of-battle banner is the verdict D-26 forbids`,
+    ok(`${tag}: 32. D-42 — THE BATTLE SCENE IS THE FIGHT TAB'S FIRST PANEL, WHOLE ON SCREEN AT LOAD, FRAMED IN TOKENS, AND EVERY NAME IN IT IS LEGIBLE. It is the band's first child and above the lane of earlier rounds (so the lane still leads into the round), outside #board, and nothing in it carries data-k, data-act or data-fg. The window's rim is --ink and its fill is --accent mixed into --bg, each compared with what the stylesheet computes for that token rather than with a typed value. Twelve sprites, all inside the field, one per fight unit; the canvas is drawn pixelated; the fur pixel IS --coral, the mech's plate IS --ink-dim and its visor IS --accent, read off the canvas. Every name is monospace, at UX-02's 18px floor or above, unclipped, no two names overlap, and a HIT TEST at every name's centre and four inner corners finds that name — nothing is painted over any of them. The shell words are at the floor too and the way back to formation is a visible text control. TURNED UNDER D-47: there are two shell words now, the heading and the way back; the sentence that stood under the heading as #scene-hint is gone from the scene and is the heading's title, where Layer C reads it. And not one word in the scene names an outcome — FF1's end-of-battle banner is the verdict D-26 forbids`,
       d42Look.first && d42Look.aboveLedger && d42Look.outsideBoard && d42Look.dataK === 0
       && d42Look.bottom <= d42Look.vh
       && d42Look.rim === d42Ink && d42Look.fill === d42FillProbe
@@ -6775,6 +6783,7 @@ for (const ch of ['chrome', 'msedge']) {
       && d42r0.sprites.every((s) => s.font >= 18 && /mono/i.test(s.family) && !s.clipped && s.name !== '')
       && d42NamesApart(d42r0) === '' && d42r0.sprites.every((s) => s.onTop)
       && d42Look.minWord >= 18 && d42Look.resetText === 'Back to formation' && d42Look.resetShown
+      && d42Look.hintGone === true && /^Drag anyone anywhere./.test(d42Look.headTitle)
       && d42Verdict === false && d42r0.panel === true,
       { look: d42Look, fill: [d42Fill, d42FillProbe], px: d42Px, want: [d42Coral, d42Steel, d42Accent],
         apart: d42NamesApart(d42r0), inside: d42Inside(d42r0) });
@@ -8053,6 +8062,158 @@ for (const ch of ['chrome', 'msedge']) {
       try { App.render.sceneHome(); localStorage.removeItem('cvm.v1.scene'); } catch (e) { /* none */ }
     });
     await pg.click('#view-build'); await pg.waitForTimeout(150);
+
+    /* ── 34. D-47 — THE DENSITY CAME FROM SPACE AND NOT FROM TYPE. ─────────────────────────
+       "Can you make the pages denser." The orchestrator's binding call: reclaim padding, gaps,
+       margins and stacked panels, and hold READING TEXT at or above UX-02's 18px floor, with
+       secondary labels kept at whatever floor the file already gave them. A density pass is
+       the one change most likely to reach for a smaller font, so the floor gets a cell of its
+       own rather than a promise in a commit message.
+
+       THE WALK: every rendered TEXT LEAF and every visible text FIELD (an input's value is not
+       a text node, so a leaf walk alone never sees the field a student types into — measured,
+       it missed four), on the board, How this works, the fight fresh, the fight after a real
+       Advance, the fight with the projection panel open and with D-37's unit popup open, and
+       the token picker, the action editor, its Proposal pane, share and reset. A leaf counts
+       when its box is non-empty and its parent is visibility:visible, so a tick built and not
+       shown is not a leaf, and a dialog that is shut is not walked.
+
+       THE FLOOR IS 18 FOR EVERYTHING EXCEPT A NAMED STANDING LIST, and each entry on the list
+       is pinned at the size it measured on the file D-47 started from. So the cell says two
+       things: nothing new goes under 18, and nothing already under it goes lower. The list is
+       the honest inventory of where this file sits under its own floor today — the ticks, the
+       eyebrow, the uppercase group labels, the round rules' column heads and the dialogs'
+       chooser names, which are SECONDARY; and a set of readings in the action editor, its
+       Proposal pane and the share dialog, which are NOT secondary and are recorded as a
+       finding rather than waived: D-47 did not put them there and did not move them. The six
+       reading sizes D-47 did touch (the subtitle, How this works, the round rules' reading,
+       amount and Remove) went UP to 18 and are therefore not on the list. A token's glyph is
+       excluded by reason: it is decoration drawn at a fraction of --tok, and How this works
+       says in as many words that the shape and colour carry the meaning without it.
+
+       FAILS RATHER THAN THROWS: every drive step is guarded, and a surface that could not be
+       reached is a failed clause with its reason, never a stopped run. */
+    const STANDING34 = [
+      ['.vw-check', 14], ['.pv-check', 14], ['.scn-gen-check', 14], ['.fg-check', 14], ['.pk-check', 14],
+      ['.rr-check', 14], ['.ae-check', 14], ['.ae-pill .ae-check', 13],
+      ['.eyebrow', 12], ['.ex', 12],
+      ['.brd-tokedit-label', 15], ['.pv-title', 15], ['.ref-sb-head', 15],
+      ['.rr-col', 16],
+      ['.ae-pill', 15], ['.ae-prop-pill', 15], ['.ae-item', 16], ['.pk-list-item', 16],
+      ['.ae-note', 16], ['.ae-pool-say', 16], ['.ae-amt', 17], ['.ae-prop-report', 17], ['.ae-prop-refuse', 17],
+      ['.ae-prop-lbl', 16], ['.ae-prop-amt', 17], ['.ae-prop-nothing', 16], ['.sh-note', 16], ['.sh-code', 13], ['.sh-paste', 13],
+      ['.tok-g', 0]
+    ];
+    const scan34 = async (surface, rootSel) => {
+      try {
+        return await pg.evaluate(({ surface, rootSel, table }) => {
+          const root = document.querySelector(rootSel);
+          const out = { surface, leaves: 0, fields: 0, minReading: 999, under: [] };
+          if (!root) { out.under.push('no root ' + rootSel); return out; }
+          const floorOf = (el) => {
+            let f = 18;
+            table.forEach(([sel, pin]) => { if (el.closest(sel) && pin < f) { f = pin; } });
+            return f;
+          };
+          const judge = (el, fs, sample) => {
+            const f = floorOf(el);
+            if (f === 18 && fs < out.minReading) { out.minReading = fs; }
+            if (fs < f) { out.under.push((el.className || el.tagName) + ' ' + fs + 'px < ' + f + ' "' + sample.slice(0, 30) + '"'); }
+          };
+          const w = document.createTreeWalker(root, NodeFilter.SHOW_TEXT);
+          let n;
+          while ((n = w.nextNode())) {
+            if (!n.nodeValue.trim()) { continue; }
+            const p = n.parentElement;
+            if (!p || p.closest('[hidden],#selftest-report,#err-panel')) { continue; }
+            if (rootSel === '#app' && p.closest('dialog')) { continue; }
+            const cs = getComputedStyle(p);
+            if (cs.visibility !== 'visible') { continue; }
+            const r = document.createRange(); r.selectNodeContents(n);
+            const rb = r.getBoundingClientRect();
+            if (rb.width === 0 || rb.height === 0) { continue; }
+            out.leaves++;
+            judge(p, parseFloat(cs.fontSize), n.nodeValue.trim());
+          }
+          root.querySelectorAll('input:not([type]), input[type="text"], textarea').forEach((f) => {
+            if (f.closest('[hidden]')) { return; }
+            const rb = f.getBoundingClientRect();
+            if (rb.width === 0 || rb.height === 0) { return; }
+            out.fields++;
+            judge(f, parseFloat(getComputedStyle(f).fontSize), f.value || f.getAttribute('aria-label') || '');
+          });
+          return out;
+        }, { surface, rootSel, table: STANDING34 });
+      } catch (e) { return { surface, leaves: 0, fields: 0, minReading: 999, under: ['threw: ' + String(e).slice(0, 120)] }; }
+    };
+    const step34 = async (fn) => { try { await fn(); return true; } catch (e) { return false; } };
+    const s34 = [];
+    const reached34 = {};
+    s34.push(await scan34('board', '#app'));
+    reached34.howto = await step34(async () => { await pg.click('#view-howto', { timeout: 3000 }); await pg.waitForTimeout(200); });
+    s34.push(await scan34('howto', '#app'));
+    reached34.fight = await step34(async () => {
+      await pg.click('#view-build', { timeout: 3000 }); await pg.waitForTimeout(100);
+      await pg.evaluate(() => window.scrollTo(0, 0));
+      await pg.click('#fight-start', { timeout: 3000 }); await pg.waitForTimeout(400);
+    });
+    s34.push(await scan34('fight', '#app'));
+    reached34.advanced = await step34(async () => {
+      await pg.evaluate(() => {
+        const a = document.querySelector('.fg-row .fg-act:not([disabled])');
+        if (a) { a.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })); }
+      });
+      await pg.waitForTimeout(150);
+      await pg.evaluate(() => document.querySelector('.fg-advance').dispatchEvent(new PointerEvent('pointerdown', { bubbles: true })));
+      await pg.waitForTimeout(250);
+      const round = await pg.evaluate(() => (App.state.get().fight || {}).round);
+      if (round !== 2) { throw new Error('round ' + round); }
+    });
+    s34.push(await scan34('fight after an Advance', '#app'));
+    reached34.proj = await step34(async () => { await pg.click('#proj-toggle', { timeout: 3000 }); await pg.waitForTimeout(250); });
+    s34.push(await scan34('fight, projection open', '#app'));
+    await step34(async () => { await pg.click('#proj-toggle', { timeout: 3000 }); await pg.waitForTimeout(200); });
+    reached34.popup = await step34(async () => {
+      await pg.evaluate(() => window.scrollTo(0, 0));
+      await pg.locator('#state-cats .bf-unit').first().click({ timeout: 3000 }); await pg.waitForTimeout(250);
+      const open = await pg.evaluate(() => !document.getElementById('fg-unit').hidden);
+      if (!open) { throw new Error('popup shut'); }
+    });
+    s34.push(await scan34('fight, unit popup open', '#app'));
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(150);
+    const dlg34 = async (name, act, id) => {
+      reached34[name] = await step34(async () => {
+        await pg.evaluate(() => window.scrollTo(0, 0));
+        await pg.click(`#topbar [data-act="${act}"]`, { timeout: 3000 }); await pg.waitForTimeout(300);
+        const open = await pg.evaluate((i) => document.getElementById(i).open, id);
+        if (!open) { throw new Error(id + ' shut'); }
+      });
+      s34.push(await scan34(name, '#' + id));
+    };
+    await dlg34('token picker', 'openTokenPicker', 'tok-picker');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await dlg34('action editor', 'openActionEditor', 'act-edit');
+    reached34.proposal = await step34(async () => { await pg.click('#act-prop-open', { timeout: 3000 }); await pg.waitForTimeout(300); });
+    s34.push(await scan34('proposal pane', '#act-edit'));
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await dlg34('share', 'openShare', 'share');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await dlg34('reset', 'openResetAsk', 'reset-ask');
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await pg.evaluate(() => {
+      if (App.state.get().fight !== null) { App.ops.endFight(); App.state.flush(); }
+      App.ops.resetToDefaults();
+      App.state.invalidate({ structural: true });
+      App.state.flush();
+    });
+    await pg.click('#view-build').catch(() => {}); await pg.waitForTimeout(150);
+    const under34 = s34.filter((s) => s.under.length > 0).map((s) => s.surface + ': ' + s.under.slice(0, 4).join(' | '));
+    const minRead34 = Math.min(...s34.map((s) => s.minReading));
+    note(ch, size.name, 'D-47 smallest reading text on any surface (px)', String(minRead34));
+    ok(`${tag}: 34. D-47 — THE DENSITY CAME FROM SPACE AND NOT FROM TYPE. Every rendered text leaf and every visible text field on eleven surfaces — the board, How this works, the fight fresh, after a real Advance, with the projection panel open and with the unit popup open, the token picker, the action editor, its Proposal pane, share and reset — is at UX-02's 18px floor, or at the size a NAMED standing entry measured on the file D-47 started from and no lower. Every surface was reached, and every one carried text, so a walk that met nothing cannot pass`,
+      under34.length === 0 && s34.length === 11 && s34.every((s) => s.leaves > 0)
+        && Object.keys(reached34).length === 10 && Object.values(reached34).every(Boolean) && minRead34 >= 18,
+      { under: under34, reached: reached34, minReading: minRead34, walked: s34.map((s) => s.surface + ' ' + s.leaves + '/' + s.fields) });
 
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
     ok(`${tag}: 16. no page error and no console error across every press above`,
