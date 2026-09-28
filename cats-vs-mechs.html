@@ -1141,12 +1141,25 @@
   .pk{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:22px 24px;max-width:660px;width:calc(100vw - 48px);
+    /* D-47: the one dialog frame D-33 gave all four dialogs moves onto the
+       scale in all four at once — 22/24 to --sp-5 — and the picker takes the
+       editor's 1040px measure, because at 660 its three create buttons broke
+       onto two lines and its Name and Range could not sit side by side.
+       1040 is under 100vw - 48px at both target sizes. */
+    padding:var(--sp-5);max-width:1040px;width:calc(100vw - 48px);
     font:inherit;
     display:grid;grid-template-rows:auto minmax(0, 1fr) auto;
     max-height:calc(100vh - 40px);overflow:hidden;
   }
   .pk-body{overflow-y:auto;min-height:0;padding:2px}
+  /* D-47: Name and Range side by side. Every other child of the body is a
+     full-width row in the order it was written; the two groups are found by
+     what they hold rather than by a position, so a group added above them
+     cannot silently take their columns. */
+  .pk-body{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);column-gap:var(--sp-5);align-content:start}
+  .pk-body > *{grid-column:1 / -1}
+  .pk-body > .pk-group:has(> .pk-name){grid-column:1}
+  .pk-body > .pk-group:has(> .pk-bounds){grid-column:2}
   /* THE WAY OUT IS ALWAYS ON SCREEN. It is sticky rather than merely last,
      because the body scrolling under it is the whole point, and the negative
      margins take it out to the dialog's padding edges so the rule above it
@@ -1155,7 +1168,7 @@
      this dialog's own background, read straight. */
   .pk-foot{
     position:sticky;bottom:0;
-    margin:0 -24px -22px;padding:12px 24px 22px;
+    margin:0 calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));padding:var(--sp-4) var(--sp-5) var(--sp-5);
     border-top:1px solid var(--line);
     background:var(--panel);
     /* D-39 P1-1 — the refusal line below shares this row and takes a full
@@ -1208,7 +1221,7 @@
   .pk-said{flex:1 0 100%;margin:0 0 10px;font-size:18px;color:var(--ink-dim);line-height:1.4}
   .pk-said[hidden]{display:none}
   .pk::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
-  .pk-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
+  .pk-title{margin:0 0 var(--sp-1);font-size:26px;line-height:1.2;letter-spacing:-.3px}
   /* .pk-note IS GONE UNDER D-38 AND THE TOMBSTONE IS THE POINT. Both of its
      uses were displaced: the shape-and-colour paragraph to the how-to tab, and
      the range pair's one-liner onto its own heading as a tooltip. The rule is
@@ -1216,12 +1229,12 @@
      the other way round: a rule that never applies is invisible to both gates,
      so the only safe number of them is zero. .sh-note and .ae-note are the two
      survivors of this family and both still ship above. */
-  .pk-group{margin:0 0 18px}
+  .pk-group{margin:0 0 var(--sp-4)}
   /* UX-02 again: a permanent visible label at the 18px minimum, never an icon
      and never a title= tooltip. */
-  .pk-legend{display:block;margin:0 0 8px;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  .pk-legend{display:block;margin:0 0 var(--sp-2);font-size:18px;font-weight:400;color:var(--ink-dim)}
   .pk-legend--inline{margin:0;white-space:nowrap}
-  .pk-grid{display:flex;flex-wrap:wrap;gap:8px}
+  .pk-grid{display:flex;flex-wrap:wrap;gap:var(--sp-2)}
 
   /* WCAG 2.5.5 Enhanced puts the floor at 44 x 44; these are taller because
      each one stacks a token, a text label and a selection mark. --tok is set
@@ -1229,8 +1242,9 @@
      raises the board's own token size in [C00]. */
   .pk-sw{
     --tok:24px;
-    min-width:84px;min-height:70px;padding:7px 9px;
-    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:5px;
+    min-width:84px;min-height:58px;padding:var(--sp-2) var(--sp-3);
+    display:flex;flex-direction:column;align-items:center;justify-content:center;gap:var(--sp-1);
+    position:relative;
     background:color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 8%, transparent);
     border:1px solid color-mix(in srgb, var(--tok-fill, var(--ink-faint)) 32%, transparent);
     border-radius:10px;color:var(--ink);
@@ -1250,11 +1264,17 @@
   .pk-sw--on{border-color:var(--state-on-line);background-color:var(--state-on-fill)}
   .pk-check{visibility:hidden;font-size:14px;line-height:1;color:var(--accent)}
   .pk-sw--on .pk-check{visibility:visible}
+  /* D-47: the swatch's tick leaves the flow for the swatch's top-right
+     corner. It stood under the label and paid a line of every tile row for
+     it — twenty pixels times seven rows of shapes, colours and emoji — and
+     it is still the second channel [C07] asks for, only where it no longer
+     costs a row. .pk-list-item keeps its tick in line, before the name. */
+  .pk-sw .pk-check{position:absolute;top:var(--sp-1);right:var(--sp-2);pointer-events:none}
   .pk-sw-label{text-align:center}
 
   .pk-preview-line{
-    display:flex;align-items:center;gap:14px;margin:0 0 18px;
-    border:1px solid var(--line);border-radius:10px;padding:12px 14px;background:var(--bg-2);
+    display:flex;align-items:center;gap:var(--sp-4);margin:0 0 var(--sp-4);
+    border:1px solid var(--line);border-radius:10px;padding:var(--sp-2) var(--sp-4);background:var(--bg-2);
   }
   /* Board size, not swatch size: this row exists to answer "what will it look
      like out there", so it inherits --tok from [C00] rather than overriding it. */
@@ -1349,7 +1369,7 @@
      Done lives, and Done is the only control that ends the visit. No disabled
      styling is written here: .brd-btn already carries &:disabled, and a second
      rule for it would be a second place for the two to disagree. */
-  .pk-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
+  .pk-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 var(--sp-4)}
 
   /* ACT-07's line beside Remove. Carried hidden while nothing names the type,
      with its own hidden rule for the reason .prj-work[hidden] and
@@ -1361,7 +1381,7 @@
      the button it is about are one block. Dimmed like every other line of
      consequence on this surface — it states a fact, and nothing here is
      coloured to alarm anybody. */
-  .pk-warn{margin:-14px 0 18px;font-size:18px;color:var(--ink-dim)}
+  .pk-warn{margin:calc(-1 * var(--sp-3)) 0 var(--sp-4);font-size:18px;color:var(--ink-dim)}
   .pk-warn[hidden]{display:none}
 
   /* D-35's range pair. THE HEAD LINE IS .ae-term-head's, COPIED RATHER THAN
@@ -1728,7 +1748,7 @@
   .ae{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:22px 24px;max-width:1040px;width:calc(100vw - 48px);
+    padding:var(--sp-5);max-width:1040px;width:calc(100vw - 48px);
     font:inherit;
     max-height:calc(100vh - 40px);overflow:hidden;
     /* THE BOX IS A GRID TOO, WITH ONE ROW, AND THAT IS NOT DECORATION. Measured
@@ -1744,9 +1764,31 @@
   }
   .ae-pane{display:grid;grid-template-rows:auto minmax(0, 1fr) auto;min-height:0}
   .ae-body{overflow-y:auto;min-height:0;padding:2px}
+  /* D-47: the authoring pane's first four blocks become TWO ROWS — Side
+     beside the list of actions, and New / Remove beside the name — in the
+     order they are written, so the tab order and the reading order are the
+     same sequence they were. Everything from the terms region down stays a
+     full-width row: that region is D-32b's and its density is its own. The
+     column is max-content, so it is as wide as the wider of the side
+     chooser and the two buttons and no wider. */
+  #act-edit-pane-author .ae-body{display:grid;grid-template-columns:max-content minmax(0, 1fr);column-gap:var(--sp-5);align-content:start}
+  #act-edit-pane-author .ae-body > *{grid-column:1 / -1}
+  #act-edit-pane-author .ae-body > .ae-group:has(#act-edit-side-cats),
+  #act-edit-pane-author .ae-body > .ae-actions--new{grid-column:1}
+  #act-edit-pane-author .ae-body > .ae-group:has(#act-edit-list),
+  #act-edit-pane-author .ae-body > .ae-group:has(#act-edit-name){grid-column:2}
+  #act-edit-pane-author .ae-body > .ae-actions--new{align-self:end}
+  /* The proposal pane's Caster and Target choosers are two answers to one
+     question and sit side by side for the same reason. Layout only: the
+     symbols-in-the-proposal decision D-39 reserves for its pass G is not
+     taken here. */
+  #act-edit-propose .ae-body{display:grid;grid-template-columns:minmax(0, 1fr) minmax(0, 1fr);column-gap:var(--sp-5);align-content:start}
+  #act-edit-propose .ae-body > *{grid-column:1 / -1}
+  #act-edit-propose .ae-body > .ae-group:has(.ae-prop-caster){grid-column:1}
+  #act-edit-propose .ae-body > .ae-group:has(.ae-prop-target){grid-column:2}
   .ae-foot{
     position:sticky;bottom:0;
-    margin:0 -24px -22px;padding:12px 24px 22px;
+    margin:0 calc(-1 * var(--sp-5)) calc(-1 * var(--sp-5));padding:var(--sp-4) var(--sp-5) var(--sp-5);
     border-top:1px solid var(--line);
     background:var(--panel);
     /* D-39 P1-1 — .pk-foot's line, one dialog across and for its reason. */
@@ -1764,12 +1806,12 @@
   .ae-said{flex:1 0 100%;margin:0 0 10px;font-size:18px;color:var(--ink-dim);line-height:1.4}
   .ae-said[hidden]{display:none}
   .ae::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
-  .ae-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
+  .ae-title{margin:0 0 var(--sp-1);font-size:26px;line-height:1.2;letter-spacing:-.3px}
   .ae-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
-  .ae-group{margin:0 0 18px}
+  .ae-group{margin:0 0 var(--sp-4)}
   /* UX-02, the same floor [C07] holds: a permanent visible label at 18px, never
      an icon and never a title= tooltip. */
-  .ae-legend{display:block;margin:0 0 8px;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  .ae-legend{display:block;margin:0 0 var(--sp-2);font-size:18px;font-weight:400;color:var(--ink-dim)}
   .ae-row{display:flex;flex-wrap:wrap;gap:8px}
 
   /* The list of every action on the chosen side (D-07). It SCROLLS rather than
@@ -1887,7 +1929,7 @@
      disabled styling is written here: .brd-btn already carries &:disabled, and
      a second rule for it would be a second place for the two to disagree. */
   .ae-actions{display:flex;justify-content:flex-end;gap:8px;margin-top:4px}
-  .ae-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 18px}
+  .ae-actions--new{justify-content:flex-start;flex-wrap:wrap;margin:0 0 var(--sp-4)}
 
   /* THE TERM ROWS (ACT-02, ACT-03, ACT-04 — plan 03.1-06). Each carries its own
      hidden rule for the reason .pk-warn[hidden], .prj-note[hidden] and
@@ -2430,7 +2472,7 @@
   .sh, .rs{
     background:var(--panel);color:var(--ink);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:22px 24px;width:calc(100vw - 48px);
+    padding:var(--sp-5);width:calc(100vw - 48px);
     font:inherit;
   }
   .sh{max-width:660px}
@@ -2439,7 +2481,7 @@
      second workspace rather than as a stop. */
   .rs{max-width:520px}
   .sh::backdrop, .rs::backdrop{background:color-mix(in srgb, var(--bg) 76%, transparent)}
-  .sh-title, .rs-title{margin:2px 0 6px;font-size:26px;line-height:1.2;letter-spacing:-.3px}
+  .sh-title, .rs-title{margin:0 0 var(--sp-1);font-size:26px;line-height:1.2;letter-spacing:-.3px}
   .sh-note{margin:0 0 16px;color:var(--ink-dim);font-size:16px;max-width:60ch}
   .sh-pane[hidden]{display:none}
 
@@ -2467,7 +2509,10 @@
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
     color:var(--ink);padding:9px 12px;
     font-family:ui-monospace,Consolas,monospace;font-size:13px;line-height:1.5;
-    min-height:104px;max-height:216px;overflow-y:auto;resize:vertical;
+    /* D-47: 104 to 80. The shipped code is 45 characters and a realistic
+       authored one ~344, which is three lines of this field; it still grows
+       by hand, and still scrolls past 216. */
+    min-height:80px;max-height:216px;overflow-y:auto;resize:vertical;
     user-select:text;overflow-wrap:anywhere;
     &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
@@ -2498,7 +2543,7 @@
      [C07]'s arrangement, restated. No disabled styling is written here:
      .brd-btn already carries &:disabled, and a second rule for it would be a
      second place for the two to disagree. */
-  .sh-actions, .rs-actions{display:flex;justify-content:flex-end;gap:8px;flex-wrap:wrap;margin-top:14px}
+  .sh-actions, .rs-actions{display:flex;justify-content:flex-end;gap:var(--sp-3);flex-wrap:wrap;margin-top:var(--sp-4)}
 
   /* The sentence that says what reset does and what survives it. Dimmed like
      every other line of consequence in this file, and at the 18px floor because
