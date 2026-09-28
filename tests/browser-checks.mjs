@@ -8195,6 +8195,10 @@ for (const ch of ['chrome', 'msedge']) {
     await dlg34('action editor', 'openActionEditor', 'act-edit');
     reached34.proposal = await step34(async () => { await pg.click('#act-prop-open', { timeout: 3000 }); await pg.waitForTimeout(300); });
     s34.push(await scan34('proposal pane', '#act-edit'));
+    // Back to the authoring pane before the dialog shuts, so the editor is left as it was found:
+    // it reopens on the pane it was shut on, and cell 34b's first draft read four empty rects
+    // off an editor that had reopened on the Proposal pane.
+    await step34(async () => { await pg.click('#act-prop-close', { timeout: 3000 }); await pg.waitForTimeout(200); });
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
     await dlg34('share', 'openShare', 'share');
     await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
@@ -8214,6 +8218,85 @@ for (const ch of ['chrome', 'msedge']) {
       under34.length === 0 && s34.length === 11 && s34.every((s) => s.leaves > 0)
         && Object.keys(reached34).length === 10 && Object.values(reached34).every(Boolean) && minRead34 >= 18,
       { under: under34, reached: reached34, minReading: minRead34, walked: s34.map((s) => s.surface + ' ' + s.leaves + '/' + s.fields) });
+
+    /* ── 34b. D-47 — THE DENSITY ITSELF, AS REGIMES. ───────────────────────────────────────
+       Cell 34 holds the TYPE; nothing held the SPACE, and D-32b's PROBE CF is the reason that
+       matters: a density pass undone leaves every node row green, because a padding is a
+       browser's claim. So the density is asserted here, and as REGIMES — a thing on one line,
+       a thing on the first screen, no empty panel — never as a pixel budget that reddens on a
+       font. Each clause is one D-47 change, and each was FALSE on the file D-47 started from:
+       two whole unit cards on the board's first screen at 1920 and none at 1366; a 660px picker
+       whose three create buttons broke onto two lines, with Name above Range and 623px of it
+       out of sight at 1920; the editor's Side, action list, New/Remove and Name one per row; a
+       side's name above its survivor count and "Each round" above its two readings; and How
+       this works laid out in rows, one of which carried ~500px of empty panel. */
+    const r34b = { board: null, picker: null, editor: null, fight: null, howto: null };
+    const geo34b = async (fn, arg) => { try { return await pg.evaluate(fn, arg); } catch (e) { return { threw: String(e).slice(0, 120) }; } };
+    await pg.evaluate(() => window.scrollTo(0, 0)); await pg.waitForTimeout(100);
+    r34b.board = await geo34b(() => {
+      let whole = 0;
+      // The CATS column: it is the long one, the one that sets the board's height, and the
+      // first draft counting both columns read 4 on the file D-47 started from (two a column).
+      document.querySelectorAll('#col-cats .unit-card').forEach((c) => {
+        const r = c.getBoundingClientRect(); if (r.top >= 0 && r.bottom <= innerHeight) { whole++; }
+      });
+      return { whole };
+    });
+    const oneLine34 = (a, b) => a && b && Math.abs(a.top - b.top) <= 12;
+    await step34(async () => { await pg.click('#topbar [data-act="openTokenPicker"]', { timeout: 3000 }); await pg.waitForTimeout(300); });
+    r34b.picker = await geo34b(() => {
+      const r = (s) => { const n = document.querySelector(s); if (!n) { return null; } const b = n.getBoundingClientRect(); return { top: b.top, left: b.left, right: b.right, bottom: b.bottom }; };
+      const body = document.querySelector('#tok-picker .pk-body');
+      return { open: document.getElementById('tok-picker').open, hidden: body ? body.scrollHeight - body.clientHeight : -1,
+        n1: r('#tok-pick-new-unit'), n2: r('#tok-pick-new-side'), rm: r('#tok-pick-remove'),
+        name: r('#tok-pick-name-label'), range: r('#tok-pick-bounds-label') };
+    });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await step34(async () => { await pg.click('#topbar [data-act="openActionEditor"]', { timeout: 3000 }); await pg.waitForTimeout(300); });
+    r34b.editor = await geo34b(() => {
+      const r = (s) => { const n = document.querySelector(s); if (!n) { return null; } const b = n.getBoundingClientRect(); return { top: b.top, left: b.left, right: b.right, bottom: b.bottom }; };
+      return { open: document.getElementById('act-edit').open, side: r('#act-edit-sides-label'), list: r('#act-edit-list-label'),
+        fresh: r('#act-edit-new'), name: r('#act-edit-name') };
+    });
+    await pg.keyboard.press('Escape'); await pg.waitForTimeout(200);
+    await step34(async () => { await pg.evaluate(() => window.scrollTo(0, 0)); await pg.click('#fight-start', { timeout: 3000 }); await pg.waitForTimeout(400); });
+    r34b.fight = await geo34b(() => {
+      const r = (n) => { if (!n) { return null; } const b = n.getBoundingClientRect(); return { top: b.top, left: b.left, right: b.right, bottom: b.bottom }; };
+      const side = document.getElementById('state-cats');
+      const rr = document.querySelector('#fight-state .fg-eachround');
+      return { head: r(side && side.querySelector('.fg-side-head')), standing: r(side && side.querySelector('.fg-standing')),
+        rrHead: r(rr && rr.querySelector('.fg-rr-head')), rrLine: r(rr && rr.querySelector('.fg-rr-line')) };
+    });
+    await pg.evaluate(() => { if (App.state.get().fight !== null) { App.ops.endFight(); App.state.flush(); } App.ops.resetToDefaults(); App.state.invalidate({ structural: true }); App.state.flush(); });
+    await step34(async () => { await pg.click('#view-howto', { timeout: 3000 }); await pg.waitForTimeout(200); });
+    r34b.howto = await geo34b(() => {
+      const cards = Array.from(document.querySelectorAll('#howto .ht-card')).map((c) => { const b = c.getBoundingClientRect(); return { left: Math.round(b.left), top: b.top, bottom: b.bottom }; });
+      const gap = parseFloat(getComputedStyle(document.querySelector('#howto .ht-card')).marginBottom) || 0;
+      let worst = 0;
+      cards.forEach((c) => {
+        const above = cards.filter((o) => o !== c && Math.abs(o.left - c.left) <= 2 && o.bottom <= c.top + 1);
+        const floor = above.length ? Math.max(...above.map((o) => o.bottom)) : null;
+        if (floor !== null) { worst = Math.max(worst, c.top - floor - gap); }
+      });
+      return { cards: cards.length, columns: new Set(cards.map((c) => c.left)).size, worst: Math.round(worst) };
+    });
+    await pg.click('#view-build').catch(() => {}); await pg.waitForTimeout(150);
+    const wide34b = size.width >= 1920;
+    const p34 = r34b.picker || {};
+    const e34 = r34b.editor || {};
+    const f34 = r34b.fight || {};
+    const h34 = r34b.howto || {};
+    ok(`${tag}: 34b. D-47 — THE DENSITY ITSELF, AS REGIMES: whole unit cards in the Cats column on the board's first screen (at least 3 at 1920, at least 1 at 1366 — 2 and 0 before D-47); the token picker's three create buttons on ONE line and Name BESIDE Range, and at 1920 the whole picker in view with nothing to scroll; the action editor's Side BESIDE its list of actions and the name to the RIGHT of New action; in the fight's state area a side's name and its survivor count on ONE line and "Each round" on ONE line with its readings; and How this works in columns with no card carrying more than one gap of empty space above it`,
+      (r34b.board && r34b.board.whole >= (wide34b ? 3 : 1))
+        && p34.open === true && oneLine34(p34.n1, p34.n2) && oneLine34(p34.n1, p34.rm) && oneLine34(p34.name, p34.range)
+        && p34.range && p34.name && p34.range.left > p34.name.right
+        && (!wide34b || p34.hidden <= 1)
+        && e34.open === true && oneLine34(e34.side, e34.list) && e34.list && e34.side && e34.list.left > e34.side.right
+        && e34.name && e34.fresh && e34.name.left > e34.fresh.right
+        && oneLine34(f34.head, f34.standing) && f34.standing && f34.head && f34.standing.left > f34.head.right
+        && oneLine34(f34.rrHead, f34.rrLine) && f34.rrLine && f34.rrHead && f34.rrLine.left > f34.rrHead.right
+        && h34.cards === 6 && h34.columns >= 2 && h34.worst <= 1,
+      r34b);
 
     // ── 16. NO PAGE ERROR AND NO CONSOLE ERROR over the whole of the above.
     ok(`${tag}: 16. no page error and no console error across every press above`,
