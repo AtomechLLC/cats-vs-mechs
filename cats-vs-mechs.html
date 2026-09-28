@@ -6810,7 +6810,7 @@
     width:min(var(--boardw), calc(100vw - 44px));
     margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
-  #app[data-view="howto"] #howto{display:grid;gap:18px}
+  #app[data-view="howto"] #howto{display:grid;gap:var(--sp-4)}
   #app[data-view="howto"] #board{display:none}
   #app[data-view="howto"] .fg-band{display:none}
   #app[data-view="howto"] #roundrules{display:none}
@@ -6834,17 +6834,34 @@
      obvious: a stretched grid item whose own rows are auto-sized distributes
      the extra height across those rows, so the paragraphs inside a short card
      drift apart until they line up with nothing. `start` keeps the gap at 10px
-     and puts the slack at the bottom. */
+     and puts the slack at the bottom.
+
+     D-47 ANSWERS BOTH PARAGRAPHS ABOVE RATHER THAN DELETING THEM. They
+     chose between two ways of SPENDING the dead space — under the short
+     cards, or inside them — and both kept it. Measured at 1920 with the
+     six cards this tab holds: the fight card runs ~1000px and the round
+     rules card beside it ~480, so the second row carried ~500px of panel
+     with nothing in it, and the page was 2499px for about 1,300px of text.
+     A MULTI-COLUMN FLOW keeps neither: cards pack top to bottom and each
+     column ends where its last card does. The minimum measure is the same
+     340px, so a laptop still gets fewer columns with no second rule, and
+     the reading order is DOM order down each column. break-inside:avoid
+     keeps a card whole; the margin replaces the grid gap, which a column
+     box does not have. The card's own align-content no longer has a
+     stretched height to distribute and is kept as the inner spacing. */
   .ht-grid{
-    display:grid;gap:16px;
-    grid-template-columns:repeat(auto-fit, minmax(340px, 1fr));
+    columns:340px;column-gap:var(--sp-5);
   }
   .ht-card{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:16px 18px;display:grid;gap:10px;align-content:start;
+    padding:var(--sp-4) var(--sp-5);display:grid;gap:var(--sp-3);align-content:start;
+    break-inside:avoid;margin:0 0 var(--sp-5);
   }
   .ht-card-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
-  .ht-card p{margin:0;font-size:17px;line-height:1.5;color:var(--ink-dim);max-width:62ch}
+  /* D-47: 17px to UX-02's 18. This tab is where the explanations the
+     working surfaces gave up now live, the scene's among them since D-47,
+     and a sentence moved off a surface should not get smaller on the way. */
+  .ht-card p{margin:0;font-size:18px;line-height:1.5;color:var(--ink-dim);max-width:62ch}
   /* THE THREE TERM LINES, AND WHY THEY ARE THREE PARAGRAPHS RATHER THAN ONE
      WITH <b> IN IT. Not a look: the Layer C walk harvests LEAF nodes, so a <p>
      holding an inline element stops being one and only the emphasised words
