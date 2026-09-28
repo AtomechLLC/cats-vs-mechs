@@ -2992,6 +2992,20 @@
      visible and empty above the board of every student who never starts a
      fight, and nothing anywhere would say so. */
   #ledger{display:grid;grid-auto-flow:row;gap:var(--sp-3)}
+  /* D-47 — THE LANE IS NEVER THE SCROLL ANCHOR. Measured, not reasoned: an
+     Advance grows the lane by a whole round card (180px at 1920), and the
+     browser keeps the page still by anchoring on the first node it can see.
+     Before D-47 the canonical working position — Cat 1 just under the bar —
+     left the lane 3px above the window, so the anchor was the round state and
+     the page held still under a student's held token. The denser page leaves
+     the lane's last 10px inside the window, UNDER THE OPAQUE STICKY BAR where
+     nobody can see them, and the browser anchored on those: Cat 2 slid 179px
+     out from under the pointer and cell 33m reddened at both sizes. Taking the
+     lane out of anchor selection makes the round state the anchor whenever it
+     is on screen, which is what D-46's "an Advance rebuilds nothing under the
+     pointer" was always relying on. Where a browser does no scroll anchoring
+     at all, this declaration does nothing, which is what it did there before. */
+  #ledger{overflow-anchor:none}
   #ledger[hidden]{display:none}
 
   /* THE SCROLL IS ON THE ELEMENT ITSELF, AND THE GOTCHA IN THE BANNER IS WHY.
@@ -6995,15 +7009,17 @@
     .scn-field[data-scn-rows="4"]{height:480px}
     .scn-field[data-scn-rows="5"]{height:600px}
     .scn-field[data-scn-rows="6"]{height:720px}
-    /* D-47: THE 16-BIT SET DRAWS AT 48 HERE TOO — .scn[data-scn-gen="16"]
-       .scn-field below pins --scn-px at 48 at every size — but it was
-       inheriting the field height sized for 64. Measured: 60px of empty
-       field under the last row of cats at 1920. The field follows the
-       sprite, so 16-bit takes the heights 48 takes everywhere else. */
-    .scn[data-scn-gen="16"] .scn-field{height:300px}
-    .scn[data-scn-gen="16"] .scn-field[data-scn-rows="4"]{height:400px}
-    .scn[data-scn-gen="16"] .scn-field[data-scn-rows="5"]{height:500px}
-    .scn[data-scn-gen="16"] .scn-field[data-scn-rows="6"]{height:600px}
+    /* D-47 TRIED, MEASURED AND TOOK BACK: the 16-bit set draws at 48 here
+       too — .scn[data-scn-gen="16"] .scn-field below pins --scn-px at 48 at
+       every size — while the field keeps the height sized for 8-bit's 64,
+       which is 60px of empty field under the last row of cats at 1920. A
+       16-bit field of 300 took that 60px and reddened cell 32r in the same
+       run: the field's height then followed the ART, so the picker moved
+       every sprite's centre and the whole page under the scene by 60px,
+       which is D-44's "a switch moves the picture and nothing else" broken.
+       The 60px is the price of that rule, recorded rather than paid twice.
+       Taking it honestly means one sprite size at this size for BOTH
+       generations — a D-44 decision, and the developer's. */
   }
   /* THE BOX IS WIDER THAN THE SPRITE AND ONLY THE SPRITE AND ITS NAME TAKE THE
      POINTER. 128px holds eleven characters of the 18px name on one line; the
