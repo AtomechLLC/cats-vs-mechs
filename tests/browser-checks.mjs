@@ -8240,7 +8240,17 @@ for (const ch of ['chrome', 'msedge']) {
       document.querySelectorAll('#col-cats .unit-card').forEach((c) => {
         const r = c.getBoundingClientRect(); if (r.top >= 0 && r.bottom <= innerHeight) { whole++; }
       });
-      return { whole };
+      // AND THE CARD IS ON THE SCALE, read as COMPUTED values against the root's own tokens.
+      // PROBE P6 is why: D-47's card padding and row gap put back (14/16/10) left the card
+      // count above GREEN in all four columns — the chrome's compaction bought the third card
+      // on its own, and the fourth sits 16px from the fold at 1920, too close to hold as a
+      // regime. What D-47 changed about the card is that its room comes off the scale.
+      const sp = (n) => parseFloat(getComputedStyle(document.documentElement).getPropertyValue('--sp-' + n));
+      const card = document.querySelector('#col-cats .unit-card');
+      const cs = card ? getComputedStyle(card) : null;
+      const onScale = !!cs && parseFloat(cs.paddingTop) === sp(3) && parseFloat(cs.paddingBottom) === sp(3)
+        && parseFloat(cs.rowGap) === sp(2) && sp(2) > 0 && sp(3) > 0;
+      return { whole, onScale, pad: cs ? cs.paddingTop + '/' + cs.rowGap : null };
     });
     const oneLine34 = (a, b) => a && b && Math.abs(a.top - b.top) <= 12;
     await step34(async () => { await pg.click('#topbar [data-act="openTokenPicker"]', { timeout: 3000 }); await pg.waitForTimeout(300); });
@@ -8286,8 +8296,8 @@ for (const ch of ['chrome', 'msedge']) {
     const e34 = r34b.editor || {};
     const f34 = r34b.fight || {};
     const h34 = r34b.howto || {};
-    ok(`${tag}: 34b. D-47 — THE DENSITY ITSELF, AS REGIMES: whole unit cards in the Cats column on the board's first screen (at least 3 at 1920, at least 1 at 1366 — 2 and 0 before D-47); the token picker's three create buttons on ONE line and Name BESIDE Range, and at 1920 the whole picker in view with nothing to scroll; the action editor's Side BESIDE its list of actions and the name to the RIGHT of New action; in the fight's state area a side's name and its survivor count on ONE line and "Each round" on ONE line with its readings; and How this works in columns with no card carrying more than one gap of empty space above it`,
-      (r34b.board && r34b.board.whole >= (wide34b ? 3 : 1))
+    ok(`${tag}: 34b. D-47 — THE DENSITY ITSELF, AS REGIMES: whole unit cards in the Cats column on the board's first screen (at least 3 at 1920, at least 1 at 1366 — 2 and 0 before D-47) and each card's room read off the spacing scale by computed value; the token picker's three create buttons on ONE line and Name BESIDE Range, and at 1920 the whole picker in view with nothing to scroll; the action editor's Side BESIDE its list of actions and the name to the RIGHT of New action; in the fight's state area a side's name and its survivor count on ONE line and "Each round" on ONE line with its readings; and How this works in columns with no card carrying more than one gap of empty space above it`,
+      (r34b.board && r34b.board.whole >= (wide34b ? 3 : 1) && r34b.board.onScale === true)
         && p34.open === true && oneLine34(p34.n1, p34.n2) && oneLine34(p34.n1, p34.rm) && oneLine34(p34.name, p34.range)
         && p34.range && p34.name && p34.range.left > p34.name.right
         && (!wide34b || p34.hidden <= 1)
