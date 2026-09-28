@@ -712,3 +712,31 @@ The fight tab gets D-41's drag model, applied to the FIGHT slice as hand rulings
 - **Reuse, don't fork:** the same op pattern and guard-predicate discipline as D-41 (lit and
   invalid targets computed from the op's own guards), and the same pointer machinery where it can be
   shared.
+
+---
+
+## D-47 — 2026-09-27: denser pages
+
+Verbatim:
+
+> Can you make the pages denser
+
+### What this settles
+
+A whole-artifact density pass: every tab (the board, the fight, How this works) and the dialogs show
+more per screen.
+
+### Orchestrator calls (recorded, overridable)
+
+- **Density comes from space, not type size.** This is a projector tool (CLAUDE.md: legibility on a
+  shared screen matters as much as usability), and the file sets an 18px floor for reading text.
+  Reclaim padding, gaps, margins, duplicated headings and labels, oversized controls, and panels
+  that stack where they could sit side by side. Reading text stays at or above the floor; secondary
+  labels keep whatever floor the file already gives them.
+- **Measured, not eyeballed:** each tab's full scrolling height and the first-screen content at
+  1920x1080 and 1366x768, before and after, recorded per surface.
+- **The explainer sentence above the D-42 battle scene** moves into a scanned tooltip on its heading
+  and into the How this works tab (D-38's rule, which this sentence broke).
+- **Nothing is removed that a student needs.** Readings, refusals, controls and the D-31
+  state/input separation all stay. Advance stays reachable. Every geometry cell that moves turns in
+  the open.
