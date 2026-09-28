@@ -615,7 +615,7 @@
      rosters — and that is the board, not a stylesheet. Recorded for the
      rehearsal rather than dialled: whether a room actually reads across
      is a question only a room answers. */
-  .brd-col{display:flex;flex-direction:column;gap:14px;min-width:0}
+  .brd-col{display:flex;flex-direction:column;gap:var(--sp-3);min-width:0}
 
   /* A [C03] EDIT BY PLAN 03-03, named as one because this rule was written by
      plan 02-01 for a different job. D-02 reserved this box and drew it dashed
@@ -637,8 +637,8 @@
     position:sticky;top:var(--topbar-now, var(--topbar-h));align-self:start;
     background:var(--panel);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:18px;
-    display:grid;grid-auto-flow:row;place-items:start stretch;gap:12px;
+    padding:var(--sp-5);
+    display:grid;grid-auto-flow:row;place-items:start stretch;gap:var(--sp-3);
     color:var(--ink-dim);font-size:18px;
   }
 
@@ -656,8 +656,16 @@
      .num class so the digits keep a stable width while a held button steps. */
   .brd-col-head{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:18px 20px;display:flex;flex-direction:column;gap:12px;user-select:none;
+    padding:var(--sp-4) var(--sp-5);display:flex;flex-direction:column;gap:var(--sp-3);user-select:none;
   }
+  /* D-47: the two projections under the pool — Damage and Total health —
+     share ONE line when the column can hold both, and wrap back to two the
+     moment it cannot. Each keeps its own label and its own figure; what
+     went was the line between them. */
+  .brd-col-head{flex-flow:row wrap;column-gap:var(--sp-5);align-items:center}
+  .brd-col-head > *{flex:1 0 100%}
+  .brd-col-head > .brd-line:not(.brd-said){flex:0 1 auto}
+  .brd-col-head > .brd-line:not(.brd-said) .brd-label{min-width:0}
   .brd-faction{margin:0;font-size:26px;font-weight:700;letter-spacing:-.2px}
   .brd-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
   /* A stat line for a type a student made, which shows nothing until they
@@ -707,7 +715,7 @@
 
   .unit-card{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:14px 16px;display:flex;flex-direction:column;gap:10px;user-select:none;
+    padding:var(--sp-3) var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2);user-select:none;
     /* :focus-within, and deliberately not the parent-matching selector that
        would also work here. The file's whole design is that render writes
        explicit classes from state; a parent-matching rule would create a
@@ -716,7 +724,7 @@
   }
   .unit-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
   .unit-name{font-size:18px;font-weight:600}
-  .unit-line{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+  .unit-line{display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap}
   .unit-label{font-size:18px;color:var(--ink-dim);min-width:80px}
 
   /* D-06 plus UX-02: available, not inviting, and never revealed by pointing
@@ -745,8 +753,8 @@
 
   .brd-add{
     background:var(--panel);border:1px dashed var(--ink-faint);color:var(--ink);
-    border-radius:var(--radius);padding:12px 16px;min-height:44px;
-    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    border-radius:var(--radius);padding:var(--sp-3) var(--sp-5);min-height:44px;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;user-select:none;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
@@ -793,9 +801,15 @@
      keeps it from ever being the node elementFromPoint answers. NO NEW
      COLOUR: the shadow is --bg mixed toward transparent. */
   .brd-pool{
-    display:flex;flex-direction:column;gap:12px;
-    border:1px solid var(--line);border-radius:var(--radius);padding:12px 14px;
+    display:flex;flex-direction:column;gap:var(--sp-2);
+    border:1px solid var(--line);border-radius:var(--radius);padding:var(--sp-3) var(--sp-4);
   }
+  /* D-47: the Reserve's drop slot SHRINKS and wraps its own sentence rather
+     than dropping under its label. Measured before: label 128 + gap 12 + slot
+     420 = 560 inside 552 at 1920, so the line broke by eight pixels and the
+     pool paid a whole line for it at every size. */
+  .brd-pool-line{flex-wrap:nowrap}
+  .brd-pool-line .brd-pool-held{flex:1 1 0;min-width:0}
   .brd-pool-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
   .brd-pool-held{display:flex;align-items:center;flex-wrap:wrap;gap:8px 14px;min-height:36px}
   /* A RESERVE READING IS THE SUBJECT HERE, NOT A TERM IN A SENTENCE, so it is
@@ -812,7 +826,7 @@
   .brd-pool-held .sym .tok-g{display:grid}
   .brd-pool-empty{
     font-size:18px;color:var(--ink-dim);
-    border:1px dashed var(--ink-faint);border-radius:10px;padding:6px 12px;
+    border:1px dashed var(--ink-faint);border-radius:10px;padding:var(--sp-1) var(--sp-4);line-height:1.35;
   }
   .drg-src{cursor:grab;touch-action:none}
   .drg-said{margin:0;font-size:18px;color:var(--ink-dim);max-width:52ch;line-height:1.4}
@@ -1572,8 +1586,8 @@
   #refband{
     background:var(--panel);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:18px 20px;
-    display:grid;grid-auto-flow:row;gap:12px;
+    padding:var(--sp-4) var(--sp-5);
+    display:grid;grid-auto-flow:row;gap:var(--sp-3);
     color:var(--ink-dim);
   }
   .ref-band-head{margin:0;font-size:20px;font-weight:600;color:var(--ink-dim)}
@@ -1604,9 +1618,19 @@
      nothing focusable, so the rule would be dead on arrival. */
   .ref-card{
     background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
-    padding:14px 16px;display:flex;flex-direction:column;gap:10px;user-select:none;
+    padding:var(--sp-3) var(--sp-4);display:flex;flex-direction:column;gap:var(--sp-2);user-select:none;
   }
   .ref-card-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  /* D-47: a reference card's effects sit on the NAME's line, between the
+     name and its damage, instead of on a line of their own. The head's two
+     children join the card's grid through display:contents, so DOM order —
+     name, damage, effects, which is what a screen reader walks — is
+     untouched; only the columns they land in moved. */
+  .ref-card{display:grid;grid-template-columns:max-content minmax(0, 1fr) max-content;align-items:center;column-gap:var(--sp-4)}
+  .ref-card > .ref-card-head{display:contents}
+  .ref-card .ref-action{grid-column:1;grid-row:1}
+  .ref-card .ref-dmg{grid-column:3;grid-row:1}
+  .ref-card > .ref-effects{grid-column:2;grid-row:1}
   .ref-action{font-size:24px;font-weight:700}
   .ref-dmg{font-size:18px;color:var(--ink-dim)}
   .ref-effects{display:flex;flex-wrap:wrap;gap:8px}
@@ -1614,7 +1638,7 @@
      something countable, and a keyword is not countable — borrowing one of
      those shapes here would say the two are the same kind of thing. */
   .ref-effect{
-    border:1px solid var(--line);border-radius:999px;padding:4px 12px;
+    border:1px solid var(--line);border-radius:999px;padding:0 var(--sp-4);
     font-size:18px;color:var(--ink-dim);
   }
 
@@ -6302,7 +6326,7 @@
      which is exactly the number this entry is fixing. So the shorthand goes
      FIRST and the longhand after it. */
   #roundrules{
-    margin:0 0 24px;padding:16px 18px;
+    margin:0 0 var(--sp-5);padding:var(--sp-4) var(--sp-5);
     background:var(--panel);border:1px solid var(--line);border-radius:14px;
     width:min(var(--boardw), calc(100vw - 44px));
     margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
@@ -6311,7 +6335,7 @@
   /* The legend and its note on ONE line, which is .ae-term-head's measurement
      arriving on a second surface: two stacked blocks cost a line of height per
      legend and buy nothing, and the words are unchanged. */
-  .rr-head-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:12px;margin:0 0 12px}
+  .rr-head-line{display:flex;flex-wrap:wrap;align-items:baseline;gap:var(--sp-4);margin:0 0 var(--sp-3)}
   .rr-head{margin:0;font-size:20px;font-weight:700;color:var(--ink)}
   /* .rr-note IS GONE UNDER D-38 (site 1). Its paragraph is named in that
      decision verbatim and is in the how-to tab's round-rules card; the heading
@@ -6429,7 +6453,8 @@
      The min-width is what gives the strip a left rule a student can scan down;
      D-32b measured 96 as the width of the widest reading plus the removal
      mark's overhang, and this surface draws the same readings. */
-  .rr-read{min-width:96px}
+  /* D-47: the reading's side word inherited the body's 17px. */
+  .rr-read{min-width:96px;font-size:18px}
   /* THE OVERRIDE GOES ON .sym AND NOT ON THE BOX AROUND IT — [C14.5] sets
      --tok on .sym itself, so a value on an ancestor is shadowed by the
      descendant's own. That was measured once on the editor and is not
@@ -6586,7 +6611,7 @@
   .rr-amt{
     width:5.5ch;box-sizing:content-box;flex:0 0 auto;
     background:var(--bg-2);border:1px solid var(--line);border-radius:9px;
-    color:var(--ink);padding:6px 10px;font:inherit;font-size:17px;
+    color:var(--ink);padding:6px 10px;font:inherit;font-size:18px;
     font-variant-numeric:tabular-nums;text-align:right;
     &:focus-visible{outline:2px solid var(--state-focus);outline-offset:1px;box-shadow:0 0 0 1px var(--bg)}
   }
@@ -6615,18 +6640,18 @@
      rather than inviting (D-06 plus UX-02) — quiet border, quiet ink,
      --accent-2 reserved for hover and focus, opacity 1 at all times and never
      revealed by pointing at anything. */
-  .rr-foot{display:flex;flex-wrap:wrap;align-items:center;gap:14px;margin:14px 0 0}
+  .rr-foot{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-4);margin:var(--sp-3) 0 0}
   .rr-add{
     background:var(--panel);border:1px dashed var(--ink-faint);color:var(--ink);
-    border-radius:var(--radius);padding:10px 16px;min-height:44px;
-    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    border-radius:var(--radius);padding:var(--sp-2) var(--sp-5);min-height:40px;
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;user-select:none;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
   .rr-rm{
     background:transparent;border:1px solid var(--ink-faint);color:var(--ink-dim);
     border-radius:10px;min-width:44px;min-height:32px;padding:0 10px;opacity:1;
-    font:inherit;font-size:17px;line-height:1;cursor:pointer;user-select:none;
+    font:inherit;font-size:18px;line-height:1;cursor:pointer;user-select:none;
     white-space:nowrap;
     &:hover{border-color:var(--state-hover-line-2);background-image:var(--state-hover-wash-2);color:var(--accent-2)}
     &:focus{border-color:var(--accent-2);color:var(--accent-2)}
