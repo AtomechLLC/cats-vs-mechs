@@ -871,9 +871,17 @@
      token is the thing a student picks up. NO NEW COLOUR anywhere below. */
   .fg-team{
     --tok:18px;--tok-gap:4px;
-    display:flex;flex-direction:column;gap:8px;
-    border:1px solid var(--line);border-radius:var(--radius);padding:10px 14px;
+    display:flex;flex-direction:column;gap:var(--sp-2);
+    border:1px solid var(--line);border-radius:var(--radius);padding:var(--sp-3) var(--sp-4);
   }
+  /* D-47: "Pool" heads its box from the Reserve's own line rather than from
+     a line above it. A grid, not a reorder: the head is column 1 of row 1,
+     the Reserve line column 2 of row 1, and every row after it spans both —
+     DOM order, and so the order a screen reader walks, is unchanged. */
+  .fg-team{display:grid;grid-template-columns:max-content minmax(0, 1fr);align-items:center;column-gap:var(--sp-4)}
+  .fg-team > *{grid-column:1 / -1}
+  .fg-team > .fg-team-head{grid-column:1;grid-row:1}
+  .fg-team > .fg-team-line{grid-column:2;grid-row:1}
   .fg-team-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
   .fg-team-line{display:flex;align-items:center;flex-wrap:wrap;gap:8px 12px}
   .fg-team-lbl{font-size:18px;color:var(--ink-faint)}
@@ -2789,10 +2797,10 @@
      sticky panel on this page and a second would compete with it for the same
      top edge. */
   #fightbar{
-    display:grid;grid-auto-flow:row;gap:12px;
+    display:grid;grid-auto-flow:row;gap:var(--sp-3);
     background:var(--panel);
     border:1px solid var(--line);border-radius:var(--radius);
-    padding:16px 18px;
+    padding:var(--sp-4) var(--sp-5);
     color:var(--ink-dim);
   }
 
@@ -2897,7 +2905,7 @@
      happens to the picker rows below"; it does not. Both .fg-rows in the
      input area start at y=1256 on the shipped file, because that area's
      two columns open with one heading each. Only the state area drifted. */
-  .fg-sides{display:flex;flex-wrap:wrap;gap:16px;align-items:stretch}
+  .fg-sides{display:flex;flex-wrap:wrap;gap:var(--sp-4);align-items:stretch}
   .fg-side{flex:1 1 320px;min-width:0}
 
   /* The reading on the bar. tabular-nums for the reason [C03] uses it on the
@@ -2938,7 +2946,7 @@
      agent's [hidden]{display:none} outright. Without this line the region ships
      visible and empty above the board of every student who never starts a
      fight, and nothing anywhere would say so. */
-  #ledger{display:grid;grid-auto-flow:row;gap:10px}
+  #ledger{display:grid;grid-auto-flow:row;gap:var(--sp-3)}
   #ledger[hidden]{display:none}
 
   /* THE SCROLL IS ON THE ELEMENT ITSELF, AND THE GOTCHA IN THE BANNER IS WHY.
@@ -3111,7 +3119,7 @@
      turning one dial against four different pages, and it is the reason this
      block does not reach for a fifth number on the same axis. */
   .ld-list{
-    display:flex;flex-direction:row;align-items:flex-start;gap:12px;
+    display:flex;flex-direction:row;align-items:flex-start;gap:var(--sp-3);
     overflow-x:auto;overflow-y:hidden;
     padding:2px;
   }
@@ -3176,7 +3184,25 @@
      D-27's addendum set: the side, the battlefield cluster, the team
      resources, the picker rows, and the side's own reading box. The gap is the
      one the region above uses, so the two read as one surface. */
-  .fg-side{display:flex;flex-direction:column;gap:16px}
+  .fg-side{display:flex;flex-direction:column;gap:var(--sp-3)}
+  /* D-47: in the STATE area a side's name and its survivor count share one
+     line — "Cats  9 of 9 still standing" — instead of two. Everything else
+     in the column stays a full-width line in the order it was built. The
+     input area is untouched: its head is followed by the picker rows.
+     A GRID AND NOT A WRAPPING ROW, measured: the two sides stretch to one
+     height, and a wrapping row shares the shorter side's spare height out
+     between its LINES, which parked the Mechs cluster 40px under its own
+     name. The grid gives that height to the field's row, which is where the
+     column's flex:1 used to put it, so both pools still end level.
+     :not([hidden]) because .fg-side[hidden] is the same weight and earlier. */
+  .fg-area--state .fg-side:not([hidden]){
+    display:grid;grid-template-columns:max-content minmax(0, 1fr);
+    grid-template-rows:auto 1fr;align-items:baseline;column-gap:var(--sp-4);
+  }
+  .fg-area--state .fg-side > *{grid-column:1 / -1}
+  .fg-area--state .fg-side > .fg-side-head{grid-column:1;grid-row:1}
+  .fg-area--state .fg-side > .fg-standing{grid-column:2;grid-row:1}
+  .fg-area--state .fg-side > .fg-field{align-self:start}
   .fg-side-head{
     margin:0;font-size:22px;font-weight:700;color:var(--ink);letter-spacing:-.2px;
   }
@@ -3284,8 +3310,8 @@
      somebody moves an element is a rule to write down rather than to rely on,
      and that is [C14]'s own sentence about the same trap. */
   .fg-area{
-    display:flex;flex-direction:column;gap:12px;
-    padding:14px 16px;
+    display:flex;flex-direction:column;gap:var(--sp-3);
+    padding:var(--sp-3) var(--sp-4);
     border:1px solid var(--line);border-radius:var(--radius);
     background:var(--panel-2);
   }
@@ -3417,7 +3443,7 @@
      anything, and a fixed column would either clip the name or leave a gutter
      the length of the longest name anybody might type. It is the one place in
      this block where two rows are asked to agree about a measurement. */
-  .fg-rows{display:flex;flex-direction:column;gap:10px}
+  .fg-rows{display:flex;flex-direction:column;gap:var(--sp-2)}
   /* D-33 P3-6, CARRIED FROM PASS A: the fight row had no focus-within rule
      where the board has one. .unit-card{&:focus-within{border-color:accent}}
      exists on the board and nothing equivalent existed here — two surfaces, the
@@ -3976,7 +4002,10 @@
   .fg-round-acts{
     display:flex;align-items:flex-start;flex-wrap:wrap;gap:12px 20px;
     position:sticky;bottom:0;z-index:2;
-    margin:4px -16px -14px;padding:12px 16px 14px;
+    /* D-47: the bleed cancels .fg-area's padding exactly, so it is written
+       in the same two tokens that padding now is. */
+    margin:var(--sp-1) calc(-1 * var(--sp-4)) calc(-1 * var(--sp-3));
+    padding:var(--sp-3) var(--sp-4);
     border-top:1px solid var(--line);
     background:var(--panel-2);
   }
@@ -4167,7 +4196,7 @@
     display:flex;flex-direction:column;gap:6px;
     flex:0 0 340px;min-width:0;
     max-height:26vh;overflow-y:auto;
-    padding:10px 12px;
+    padding:var(--sp-3) var(--sp-4);
     border:1px solid color-mix(in srgb, var(--line) 70%, transparent);
     border-radius:var(--radius);
     background:color-mix(in srgb, var(--panel) 55%, transparent);
@@ -6711,11 +6740,17 @@
      are DRAWN there and authored nowhere near it. It is a lighter object than
      the block above on purpose: no border and no fill, because it sits inside
      a panel that already has both, and .fg-area's own box is what bounds it. */
-  .fg-eachround{margin:12px 0 0;padding:12px 0 0;border-top:1px solid var(--line)}
-  .fg-rr-head{margin:0 0 8px;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  /* D-47: the heading and its readings share ONE line and wrap when they
+     cannot — "Each round  Cats ▲▲▲  Mechs ▲▲▲" was three lines of 30px. */
+  .fg-eachround{
+    display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-5);
+    margin:var(--sp-3) 0 0;padding:var(--sp-3) 0 0;border-top:1px solid var(--line);
+  }
+  .fg-rr-head{margin:0;font-size:18px;font-weight:400;color:var(--ink-dim)}
+  .fg-rr-lines{display:flex;flex-wrap:wrap;align-items:center;gap:var(--sp-2) var(--sp-5)}
   .fg-rr-line{
     display:flex;align-items:center;flex-wrap:wrap;gap:8px;
-    margin:0 0 6px;font-size:18px;color:var(--ink);
+    margin:0;font-size:18px;color:var(--ink);
   }
   .fg-rr-line:last-child{margin-bottom:0}
   .fg-rr-line .sym{--tok:16px}
@@ -6843,10 +6878,15 @@
      and every roster up to six mechs, and one row more for each further row of
      mechs, because a mech is twice a cat (D-43) and a row of mechs takes two
      rows of height. 24 a side is six rows: cats 6 columns by 4, mechs 6 by 4. */
-  .scn{flex:1 1 100%;min-width:0;display:grid;gap:10px}
+  .scn{flex:1 1 100%;min-width:0;display:grid;gap:var(--sp-2)}
   .scn-top{display:flex;flex-wrap:wrap;align-items:baseline;gap:8px 18px}
   .scn-head{margin:0;font-size:18px;font-weight:600;color:var(--ink-dim)}
-  .scn-hint{margin:0;font-size:18px;color:var(--ink-faint);flex:1 1 420px}
+  /* D-47: .scn-hint is gone from the shell — its sentence is #scene-head's
+     tooltip and a paragraph on How this works — and its rule went with it,
+     because a rule for a class nothing carries is a rule for nothing. It
+     used to hold the line open with flex:1 1 420px and push the picker and
+     the reset control to the right; the picker's own auto margin does that
+     now, so the line keeps its shape without the sentence. */
   .scn-reset{flex:0 0 auto}
   .scn-win{
     border:3px solid var(--ink);border-radius:10px;padding:6px;
@@ -6893,6 +6933,15 @@
     .scn-field[data-scn-rows="4"]{height:480px}
     .scn-field[data-scn-rows="5"]{height:600px}
     .scn-field[data-scn-rows="6"]{height:720px}
+    /* D-47: THE 16-BIT SET DRAWS AT 48 HERE TOO — .scn[data-scn-gen="16"]
+       .scn-field below pins --scn-px at 48 at every size — but it was
+       inheriting the field height sized for 64. Measured: 60px of empty
+       field under the last row of cats at 1920. The field follows the
+       sprite, so 16-bit takes the heights 48 takes everywhere else. */
+    .scn[data-scn-gen="16"] .scn-field{height:300px}
+    .scn[data-scn-gen="16"] .scn-field[data-scn-rows="4"]{height:400px}
+    .scn[data-scn-gen="16"] .scn-field[data-scn-rows="5"]{height:500px}
+    .scn[data-scn-gen="16"] .scn-field[data-scn-rows="6"]{height:600px}
   }
   /* THE BOX IS WIDER THAN THE SPRITE AND ONLY THE SPRITE AND ITS NAME TAKE THE
      POINTER. 128px holds eleven characters of the 18px name on one line; the
@@ -6958,7 +7007,7 @@
      and the chosen one said in three channels that are not hue — the
      on-class's fill and line, aria-pressed, and a tick that is a REAL NODE
      whose visibility the class moves. */
-  .scn-gen{display:flex;gap:8px;flex:0 0 auto}
+  .scn-gen{display:flex;gap:var(--sp-3);flex:0 0 auto;margin-left:auto}
   .scn-gen-btn{
     display:flex;align-items:center;gap:8px;
     min-height:40px;padding:6px 16px;
@@ -7943,8 +7992,13 @@
        more, each arriving with its KNOWN_IDS entry and its stub node. -->
   <section class="scn" id="scene" aria-labelledby="scene-head" data-scn-gen="16">
     <div class="scn-top">
-      <h2 class="scn-head" id="scene-head">Who is who</h2>
-      <p class="scn-hint" id="scene-hint">Drag anyone anywhere. Where they stand only helps you tell them apart: it is not part of the build, and nothing is ruled from it.</p>
+      <!-- D-47: the sentence that stood under this heading as #scene-hint is
+           the heading's scanned tooltip now, and a paragraph on How this works.
+           D-38's rule, which it broke: text that explains HOW TO USE a surface
+           leaves the surface. #rr-head's precedent — a title on the heading,
+           read by Layer C through LABEL_ATTRS; no data-tsay, because no
+           student's word is in it. -->
+      <h2 class="scn-head" id="scene-head" title="Drag anyone anywhere. Where they stand only helps you tell them apart: it is not part of the build, and nothing is ruled from it.">Who is who</h2>
       <div class="scn-gen" id="scene-gen" role="group" aria-label="Sprite art">
         <button class="scn-gen-btn scn-gen-on" type="button" id="scene-gen-16" data-scn-pick="16" aria-pressed="true"><span class="scn-gen-name">16-bit</span><span class="scn-gen-check">✓</span></button>
         <button class="scn-gen-btn" type="button" id="scene-gen-8" data-scn-pick="8" aria-pressed="false"><span class="scn-gen-name">8-bit</span><span class="scn-gen-check">✓</span></button>
@@ -8579,6 +8633,7 @@
       <div class="ht-card">
         <h3 class="ht-card-head">The fight</h3>
         <p>Start the fight from the bar at the top. The fight takes its own tab: the rounds already played run along a lane above, then the state of the board as it stands, then the row of actions each unit can declare.</p>
+        <p>Who is who, at the top of the fight tab, draws every unit with its name under it. Drag anyone anywhere. Where they stand only helps you tell them apart: it is not part of the build, and nothing is ruled from it.</p>
         <p>Press an action under a unit to declare it. Press it again to take that declaration back, or press a different one to replace it. An action that names a target aims at the standing enemy with the least health, and the change-target control lights the other side's shapes so you can pick another. An action whose cost or requirements the board cannot meet is switched off until it can.</p>
         <p>The resources above the picker deplete as you declare, so what this round has spoken for is readable before you commit to it.</p>
         <p>Advance resolves the round: it spends what the declarations named, applies the changes they state, and splits damage into the shield first and then health. It does not rule on who is standing. Press a unit on the field to open its values and rule on them by hand.</p>
