@@ -18695,7 +18695,16 @@ const d44Nothing = [JSON.stringify(A.state.get()) === d44State0, commits() - d44
 const d44Refused = [A.render.sceneSetGen('32'), A.render.sceneSetGen(''), A.render.sceneSetGen(8), A.render.sceneGen()];
 
 // THE SCENE'S WORDS IN LAYER C's HARVEST, on check 92's own page.
-const d44HintWord = (/id="scene-hint"[^>]*>([^<]*)</.exec(html) || [])[1] || 'NOT IN THE SHELL';
+// TURNED IN THE OPEN UNDER D-47. This clause read the explainer out of
+// `id="scene-hint"`, the paragraph under the heading, and on the first run
+// after that paragraph left the shell it reddened with the word as
+// 'NOT IN THE SHELL' and a count of 0. The sentence did not leave the page: it
+// is #scene-head's title, and LABEL_ATTRS carries title, so it is read from
+// THERE now and must still be harvested EXACTLY ONCE. That keeps the claim
+// the clause always made — the scene's words are in the scan — and adds the
+// one the move needed: a sentence that went from a leaf into an attribute
+// did not fall out of the harvest on the way, which is 107d's lesson.
+const d44HintWord = (/id="scene-head" title="([^"]*)"/.exec(html) || [])[1] || 'NOT IN THE SHELL';
 const d44Words = ['Who is who', d44HintWord, 'Sprite art', '16-bit', '8-bit', 'Back to formation']
   .map((w) => d42SceneText.filter((s) => s === w).length);
 const d44Ticks = d42SceneText.filter((s) => s === '✓').length;

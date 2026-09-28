@@ -127,13 +127,17 @@ function makeStubDom() {
     // directions if one of the three is missing.
     'drag-layer',
     // plan 05-D42 — D-42's battle scene, the first child of the fight band.
-    // FIVE ids: the section, its heading, the one line under it, the way back
-    // to formation, and the field [S06.17] draws sprites into and [S07.9]
+    // FOUR ids since D-47: the section, its heading, the way back to
+    // formation, and the field [S06.17] draws sprites into and [S07.9]
     // captures the pointer on. The field is static and never rebuilt, which is
-    // the whole of why a held sprite survives a commit. The three words are
-    // read out of the shell below rather than re-typed, #howto's method.
+    // the whole of why a held sprite survives a commit. The words are read out
+    // of the shell below rather than re-typed, #howto's method.
+    // TURNED UNDER D-47: 'scene-hint' — the one line under the heading — left
+    // the shell. Its sentence is the heading's title now, read out of the
+    // shell below, and a paragraph on How this works. The stub-drift gate
+    // goes 174 -> 173 by exactly this id.
     // Same three-part rule as every entry here, in BOTH directions.
-    'scene', 'scene-head', 'scene-hint', 'scene-reset', 'scene-field',
+    'scene', 'scene-head', 'scene-reset', 'scene-field',
     // plan 05-D44 — D-44's picker between the two generations of art (the
     // group and its two buttons) and the 16-bit backdrop's canvas. The two
     // labels are read out of the shell below, and the buttons carry the
@@ -826,16 +830,25 @@ function makeStubDom() {
     }
     return m[1];
   };
-  [['scene-head', 'h2', 'scn-head'], ['scene-hint', 'p', 'scn-hint'],
+  [['scene-head', 'h2', 'scn-head'],
     ['scene-reset', 'button', 'brd-btn scn-reset']].forEach(([id, tag, cls]) => {
     const n = idNode(id, tag);
     n.className = cls;
     if (tag === 'button') { n.type = 'button'; }
     n.textContent = sceneWord(id);
+    if (id === 'scene-head') {
+      // D-47 — the sentence that stood under the heading as #scene-hint is
+      // the heading's scanned tooltip. READ OUT OF THE SHELL and loud if it
+      // is not there, so the harvest this page feeds reads what ships.
+      const said = /id="scene-head" title="([^"]+)"/.exec(html);
+      if (!said) { fail('the scene heading\'s title could not be read out of the shell.'); }
+      n.setAttribute('title', said[1]);
+    }
     sceneTop.appendChild(n);
-    if (id === 'scene-hint') {
-      // plan 05-D44 — the picker sits between the hint and the reset control,
-      // as in the shell. Its two labels and the section's resting generation
+    if (id === 'scene-head') {
+      // plan 05-D44 — the picker sits between the heading and the reset
+      // control, as in the shell (D-47: it followed the hint until the hint
+      // left the shell). Its two labels and the section's resting generation
       // are READ OUT OF THE SHELL, #howto's method, and it fails LOUD if they
       // are not found; the resting pressed state is the shell's too.
       const genRest = /id="scene"[^>]*data-scn-gen="(\d+)"/.exec(html);
