@@ -1394,3 +1394,35 @@ playtest (4).
    on a token was nothing, so D-41 never paid it.)
 
 **Owner:** the developer (1, 3); the 05-11 playtest (2, 5); CLAUDE.md § Gaps (4).
+
+## D-47 — denser pages, what the pass did not settle, raised by plan 05-D47
+
+**Raised 2026-09-28.**
+
+1. **READINGS THAT WERE ALREADY UNDER UX-02's 18px FLOOR BEFORE D-47, AND STILL ARE.** Browser
+   cell 34 pins each at the size it measured on the file D-47 started from, so none may go lower
+   and none new may join them — but they are READINGS, not secondary labels: `.ae-note` 16,
+   `.ae-pool-say` 16 ("Enough to spend."), `.ae-amt` 17 (the term amounts), the Proposal pane's
+   `.ae-prop-report` 17, `.ae-prop-refuse` 17, `.ae-prop-lbl` 16, `.ae-prop-amt` 17,
+   `.ae-prop-nothing` 16, share's `.sh-note` 16 and the build-code field `.sh-code` / `.sh-paste`
+   13 (monospace). The chooser names (`.ae-pill` 15, `.ae-prop-pill` 15, `.ae-item` 16,
+   `.pk-list-item` 16) are controls under the floor too. D-47 raised the six reading sizes it
+   redrew (the subtitle, How this works, the round rules' reading word, amount and Remove) and left
+   these: the editor's are D-32b's dense row, and the Proposal pane is D-39's pass G.
+2. **THE 16-BIT SCENE CARRIES 60px OF EMPTY FIELD AT 1600x900 AND UP.** 16-bit draws at 48px at
+   every size; the field keeps the 360px sized for 8-bit's 64px there. Taking it (a 300px 16-bit
+   field) made the picker move every sprite and the page by 60px, which broke D-44's "the picker
+   moves the picture and nothing else" (cell 32r). Settling it means ONE big-screen sprite size for
+   both generations — a D-44 decision. Recorded at `[C19]`.
+3. **THE SPACING SCALE COVERS WHAT D-47 REDREW, NOT THE WHOLE SHEET.** 95 of 374 padding / margin /
+   gap declarations are on `--sp-1..5`; 279 still carry pixel values, over 23 distinct values
+   (was 30). The rest live in rules D-47 did not redraw (the ledger's cards, the popup, the
+   nudge, the proposal pane, the self-test report). A mechanical rewrite of them was declined:
+   several are bleed margins that cancel a padding exactly and must move with it.
+4. **THE LANE'S LEDE IS EXPLANATORY PROSE ON A WORKING SURFACE.** "Each card is the board as it
+   stood when that round began." is D-38's class of sentence (it explains what a card IS), the same
+   class as the scene's explainer D-47 moved. It is outside D-47's binding scope and is left
+   standing; the same move (a scanned tooltip on "Earlier rounds" plus a line on How this works)
+   would take one more line off the fight tab.
+
+**Owner:** the developer (1, 2, 4); a later density pass (3).
