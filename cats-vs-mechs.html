@@ -47,6 +47,35 @@
     --tok-gap:6px;
 
     /* ==================================================================
+       [C00] D-47 — ONE SPACING SCALE. "Can you make the pages denser."
+       ==================================================================
+       MEASURED BEFORE THIS BLOCK WENT IN: 363 padding / margin / gap
+       declarations in this sheet, spread over 30 distinct pixel values
+       (2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 14, 16, 18, 20, 22, 24, 28...),
+       and NOT ONE of them on a token. Every surface had grown its own
+       idea of "a little room" and "a panel's room", which is how a
+       1920x1080 board came to show two unit cards on its first screen.
+
+       FIVE STEPS, AND THE LAYOUT-LEVEL SPACING OF EVERY SURFACE D-47
+       TOUCHED IS WRITTEN IN THEM: a panel's padding, the gap between
+       sections, the gap inside a row. The density comes from HERE and
+       never from type size — UX-02's 18px floor for controls and
+       readings is untouched, and browser cell 34 walks every rendered
+       text leaf on every tab and dialog to hold it.
+
+       WHAT IS DELIBERATELY NOT ON THE SCALE: a hairline (1-2px) that is
+       a border's companion rather than a room; a negative margin that
+       exists to cancel a padding exactly (the sticky bleed idiom), which
+       is written in the SAME token as the padding it cancels wherever
+       D-47 moved that padding; and the 22px .shell gutter, which four
+       computed widths (`100vw - 44px`) depend on. */
+    --sp-1:4px;
+    --sp-2:6px;
+    --sp-3:8px;
+    --sp-4:12px;
+    --sp-5:16px;
+
+    /* ==================================================================
        [C00] D-33 PASS A — ONE VOCABULARY OF STATE. Plan 05-D33a.
        ==================================================================
        THE DEFECT THIS ANSWERS WAS MEASURED, NOT GUESSED. The D-33 audit
@@ -222,7 +251,9 @@
   .num{font-variant-numeric:tabular-nums}
 
   /* ===================== [C02] SHELL ===================== */
-  .shell{max-width:var(--maxw);margin:0 auto;padding:28px 22px}
+  /* D-47: 28px of air above the title became a --sp-4. The 22px gutter
+     stays — four computed widths in this sheet are `100vw - 44px`. */
+  .shell{max-width:var(--maxw);margin:0 auto;padding:var(--sp-4) 22px}
   /* ==================================================================
      D-33 P2-1 — THE PAGE STOPS HAVING TWO LEFT EDGES. Plan 05-D33b.
      ==================================================================
@@ -248,12 +279,20 @@
 
      NOTHING ELSE ABOUT THIS BLOCK MOVES. No overflow, no position — [C03]'s
      sticky gotcha, kept for the sixth time. */
+  /* D-47: the title and its one-line subtitle share a BASELINE instead of
+     stacking. The subtitle says what this page is; it wraps under the
+     title the moment the line cannot hold both, and stacked it cost a
+     whole line on every tab at every size. */
   .shell-head{
-    margin:0 0 18px;
+    display:flex;align-items:baseline;flex-wrap:wrap;column-gap:var(--sp-5);
+    margin:0 0 var(--sp-3);
     width:min(var(--boardw), calc(100vw - 44px));
     margin-left:calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
-  .shell-head h1{margin:0 0 2px;font-size:32px;line-height:1.2;letter-spacing:-.4px}
+  /* D-47: the subtitle was the body's 17px, one under UX-02's floor; it is a
+     reading, so it joins the floor on the same pass that took its line. */
+  .shell-head .muted{font-size:18px}
+  .shell-head h1{margin:0;font-size:32px;line-height:1.2;letter-spacing:-.4px}
 
   .card{background:var(--panel);border:1px solid var(--line);border-radius:var(--radius);
     padding:20px 22px;margin:14px 0}
@@ -289,7 +328,7 @@
      on .tok-row itself. There is no error and no warning when it goes wrong.
      Sticky simply stops working. */
   #topbar{
-    position:sticky;top:0;z-index:20;min-height:var(--topbar-h);margin:0 0 18px;
+    position:sticky;top:0;z-index:20;min-height:var(--topbar-h);margin:0 0 var(--sp-3);
     display:flex;align-items:center;justify-content:space-between;gap:16px;
     background:var(--bg);border-bottom:1px solid var(--line);
     /* The same width and the same computed negative margin #board carries, and
@@ -438,8 +477,11 @@
 
   .brd-btn{
     background:var(--panel);border:1px solid var(--ink-faint);color:var(--ink);
-    border-radius:999px;padding:8px 16px;min-height:36px;
-    font:inherit;font-size:18px;cursor:pointer;user-select:none;
+    border-radius:999px;padding:var(--sp-2) var(--sp-5);min-height:36px;
+    /* D-47: line-height 1.2. `font:inherit` was handing every button the
+       BODY's 1.6, so an 18px label sat in a 47px pill; it is 40 now with
+       the label at the same 18px. */
+    font:inherit;font-size:18px;line-height:1.2;cursor:pointer;user-select:none;
     &:hover{border-color:var(--state-hover-line);background-image:var(--state-hover-wash);color:var(--accent)}
     &:disabled{opacity:.45;cursor:not-allowed}
   }
@@ -516,7 +558,7 @@
      need the width more than the projection needs its headline on one
      line, the lever is this track and the cost is written above. */
   #board{
-    display:grid;grid-template-columns:1fr minmax(220px, 320px) 1fr;gap:18px;align-items:start;
+    display:grid;grid-template-columns:1fr minmax(220px, 320px) 1fr;gap:var(--sp-4);align-items:start;
     /* D-01 wants both columns fully visible at once, which the 1280px document
        measure wastes on a projector. The escape is width plus a computed
        negative margin, deliberately NOT a transform: a transform on an
@@ -2576,9 +2618,9 @@
      #ledger and #board all report left 152 at 1920 and left 14 at 1366, and
      the band reads the board's own width at both. */
   .fg-band{
-    display:flex;flex-wrap:wrap;align-items:flex-start;gap:18px;
+    display:flex;flex-wrap:wrap;align-items:flex-start;gap:var(--sp-4);
     width:min(var(--boardw), calc(100vw - 44px));
-    margin:0 0 18px calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+    margin:0 0 var(--sp-4) calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
 
   /* ==================================================================
@@ -5699,17 +5741,17 @@
      beside each is a REAL NODE whose visibility the on-class moves - never
      colour alone, which is [C07]'s rule and the shape .fg-check already ships. */
   #views{
-    display:flex;align-items:center;gap:12px;flex-wrap:wrap;
+    display:flex;align-items:center;gap:var(--sp-3);flex-wrap:wrap;
     width:min(var(--boardw), calc(100vw - 44px));
-    margin:0 0 18px calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
+    margin:0 0 var(--sp-4) calc((100% - min(var(--boardw), calc(100vw - 44px))) / 2);
   }
   /* .fg-pill's shape restated under this prefix rather than borrowed, for
      [C13]'s reason about .rs-: a rule two regions depend on is a rule neither
      of them can change. The pill treatment is .brd-btn's, because these two sit
      directly under the control bar and read as controls of the same family. */
   .vw-btn{
-    display:flex;align-items:center;gap:8px;
-    min-height:44px;padding:8px 18px;
+    display:flex;align-items:center;gap:var(--sp-3);
+    min-height:40px;padding:var(--sp-2) var(--sp-5);
     background:var(--panel);
     border:1px solid color-mix(in srgb, var(--ink-faint) 45%, transparent);
     border-radius:999px;color:var(--ink-dim);
@@ -6168,8 +6210,8 @@
      line. Recorded rather than dialled. */
   #app[data-view="build"] #proj-toggle{display:none}
   .pv-btn{
-    display:flex;align-items:center;gap:8px;
-    min-height:44px;padding:8px 18px;
+    display:flex;align-items:center;gap:var(--sp-3);
+    min-height:40px;padding:var(--sp-2) var(--sp-5);
     background:var(--panel);
     border:1px dashed color-mix(in srgb, var(--ink-faint) 45%, transparent);
     border-radius:999px;color:var(--ink-dim);
